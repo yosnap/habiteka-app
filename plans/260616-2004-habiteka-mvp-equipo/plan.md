@@ -78,14 +78,9 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 
 ## Dependencias clave externas
 
-<<<<<<< Updated upstream
-- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL · Cloudflare Turnstile (CAPTCHA) · proveedor de email (Resend/SMTP, OTP+verificación) · OAuth Google + Meta.
+- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL · MinIO/S3 (storage) · Cloudflare Turnstile (CAPTCHA) · proveedor de email (Resend/SMTP, OTP+verificación) · OAuth Google + Meta.
 - **Auth (3 métodos, Better Auth 1.6 nativo):** email+password, email-OTP sin contraseña, OAuth social Google+Meta. **Turnstile como CAPTCHA solo en flujos no-OAuth** (OAuth exento); email verificado es invariante anti-sybil antes de gastar cupo gratis.
-- Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET`, `TURNSTILE_SECRET_KEY`, email enchufable (`EMAIL_PROVIDER` + `RESEND_API_KEY` por defecto o `SMTP_*`). Público (cliente): `TURNSTILE_SITE_KEY`.
-=======
-- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL.
 - Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET` (Meta), `TURNSTILE_SECRET_KEY`, email enchufable (`EMAIL_PROVIDER` + `RESEND_API_KEY` por defecto o `SMTP_*`), `STORAGE_*` (MinIO/S3). Público (cliente): `TURNSTILE_SITE_KEY`.
->>>>>>> Stashed changes
 
 ## Estrategia de ramas (branching avanzado)
 
@@ -114,6 +109,9 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 
 ## Notas
 
+- **Segmento primario MVP = B2C** (cliente final / inquilino, no técnico): flujo, tono y onboarding se optimizan para B2C; el disclaimer "conceptual" se presenta para **generar confianza, no miedo** (F1). El **B2B se añade DESPUÉS (post-MVP)**: el modelo de datos ya soporta multi-tenant (`organizationId` intacto, sin recortes), pero la **experiencia/onboarding comercial B2B y el flujo de venta de licencia comercial son post-MVP** (F13). En el MVP, F13 queda solo como licencia fair-code + control operativo (capa técnica/legal), no venta B2B.
+- **Modelo de pricing = créditos + PRIMER RESULTADO GRATIS + GARANTÍA** (decisión de negocio, F8): (a) el **primer entregable** de una organización no consume créditos (onboarding gratis); (b) **garantía en feedback iterativo** — las **primeras `N` iteraciones** de un mismo entregable no se cobran ("si no te gusta, no se cobra"). Mecanismo sobre el patrón hold/settle existente: **hold de 0 / revert automático** mientras dure el cupo gratis; se cobra solo al agotarlo. `N` configurable en `SystemSetting`; **sin schema nuevo** (se deriva de `Iteration`/`CreditLedger` que F2 ya modela). El preview de coste de F6 marca **GRATIS** vs "~N créditos".
+- **Proveedor de imagen = decisión por SPIKE comparativo (F-S0), no fijado a priori:** FLUX vs Nano Banana vs Imagen se comparan de igual a igual por **realismo del render 3D, precisión del plano 2D, calidad del inpainting (feedback por zona)** Y **coste por imagen**; el spike produce una **decisión go/no-go documentada + proveedor elegido** (cierra §9.1). El adaptador F3 queda conmutable por `IMAGE_PROVIDER` hasta el veredicto.
 - **Plan test-first (TDD):** cada fase define sus pruebas ANTES del código en su sección "TDD / Pruebas primero" (rojo→verde→refactor). **F12 es la estrategia transversal** (pirámide, convención de nombres/ubicación, política de mocks de servicios externos, gates de cobertura por hito, DoD test-first, cableado CI). Ninguna fase se considera hecha sin sus tests rojos→verdes.
 - **Mocks:** OpenRouter/proveedor de imagen/Polar se mockean con fixtures deterministas — **cero llamadas reales a IA/pagos en CI**. La lógica propia (state machine, ledger, guards, sanitizer, licencia) NO se mockea; Postgres es DB real efímera.
 - **Gates de cobertura** (definidos en F12) alineados con los hitos: M1 contratos+datos, M2 flujo core, M3 negocio+add-ons, M4 hardening+cumplimiento (gate de release).
