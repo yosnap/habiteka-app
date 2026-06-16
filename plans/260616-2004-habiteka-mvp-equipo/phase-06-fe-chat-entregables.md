@@ -17,7 +17,7 @@
 - Render 3D y memoria son assets/texto del `Deliverable`: el 3D es imagen (`assetUrl`), la memoria es texto estructurado.
 - **Sello legal visible**: el `Deliverable.legalSeal` se muestra en el margen del visor (no editable, no ocultable). Disclaimer de Ingesta visible en la pantalla de carga.
 - **Sello en el export, no solo en el DOM:** un overlay DOM **no** aparece en `stage.toDataURL()` ni en el export PDF → el sello del plano2d/render debe dibujarse **dentro del Stage de Konva** (capa de sello) o aplicarse **server-side** antes de servir el asset. El overlay DOM es solo refuerzo visual, no la fuente del sello exportado.
-- **Preview de coste en créditos:** antes de toda acción generadora (entrega, iteración) la UI muestra "esto costará ~N créditos, confirmar" (CTA), alimentado por el `gating`/pricing de F8. El usuario confirma antes del hold de créditos.
+- **Preview de coste en créditos:** antes de toda acción generadora (entrega, iteración) la UI muestra el coste, alimentado por el `gating`/pricing de F8. Para **iteraciones**: si quedan iteraciones gratis del entregable muestra "Gratis (te quedan K de N ajustes)"; agotadas, "~M créditos, confirmar". Para **entregable nuevo**: siempre "~M créditos, confirmar" (sale del saldo; el cupo de bienvenida es saldo finito, no un "gratis por proyecto"). El usuario confirma antes del hold de créditos. K/N (cupo restante por entregable) y M provienen de F8 (`freeIterationsRemaining` + `estimateCost`); el FE solo refleja, no decide.
 - **Hooks de streaming sin `useEffect` directo:** consumir `AgentStreamEvent` (F0) vía `useSyncExternalStore`/refs/event-driven (regla no-useEffect del proyecto), no con `useEffect` de suscripción manual.
 - Navegación de fases refleja `AgentState.phase`; estados deshabilitados según guards (p.ej. Entrega bloqueada hasta validar estilo+tipo → CTA guía al chat).
 - **Sin solape con F4:** F4 posee el canvas core (`src/canvas/**`) y la vista de edición; F6 posee las vistas de chat y entregables y una capa de presentación de plano2d que *consume* utilidades de F4.
@@ -45,7 +45,7 @@ src/components/chat/
   message-input.tsx          # input + envío → advance()
   style-quick-picks.tsx      # chips de estilo (enum)
   deliverable-picker.tsx     # selección de entregables (enum[])
-  cost-preview.tsx           # "esto costará ~N créditos, confirmar" antes de acción generadora (gating F8)
+  cost-preview.tsx           # iteración: "Gratis (te quedan K de N)" o "~M créditos"; entregable nuevo: "~M créditos" (lee freeIterationsRemaining + estimateCost de F8)
   use-agent-stream.ts        # hook: consume AgentStreamEvent (F0) vía useSyncExternalStore/refs (sin useEffect)
 src/components/deliverables/
   deliverables-panel.tsx     # tabs/layout de los 3 visores
@@ -74,7 +74,7 @@ src/app/(app)/projects/[id]/
 3. `style-quick-picks.tsx` + `deliverable-picker.tsx`: chips/enum mapeados a los valores cerrados; al elegir → mensaje al agente.
 4. `qualification-chat.tsx`: compone lo anterior; maneja loading/error/empty.
 5. `konva-seal-layer.ts` + `legal-seal.tsx`: sello dibujado **dentro del Stage** (capa Konva → aparece en `toDataURL`/PDF) + refuerzo DOM no ocultable. Disclaimer en carga (Ingesta) reusando el texto de contratos/F5.
-6. `cost-preview.tsx`: antes de disparar entrega/iteración, mostrar "~N créditos, confirmar" (consulta `gating`/pricing de F8); solo al confirmar se invoca `advance`.
+6. `cost-preview.tsx`: antes de disparar entrega/iteración, consultar F8 (`freeIterationsRemaining(deliverableId)` + `estimateCost`). Iteración con cupo gratis restante → "Gratis (te quedan K de N ajustes)"; cupo agotado o entregable nuevo → "~M créditos, confirmar". Solo al confirmar se invoca `advance`. El FE no calcula el cupo (lo da F8).
 8. `plan2d-viewer.tsx`: mapear `Plano2dPayload` (F0) a primitivas Konva usando utilidades read-only de F4.
 9. `render3d-viewer.tsx` + `materials-memo.tsx`: visores de imagen y texto.
 10. `deliverables-panel.tsx` + `phase-stepper.tsx`: layout de tabs + stepper sincronizado con `AgentState.phase`; deshabilitar Entrega hasta guard OK (CTA al chat).
@@ -84,7 +84,7 @@ src/app/(app)/projects/[id]/
 ## Todo List
 - [ ] Hook de streaming (`AgentStreamEvent`) sin useEffect (useSyncExternalStore/refs)
 - [ ] Chat (lista + input + quick-picks de estilo + picker de entregables)
-- [ ] Preview de coste en créditos antes de acción generadora (gating F8)
+- [ ] Preview de coste: "Gratis (te quedan K de N)" para iteración con cupo, "~M créditos" agotado/entregable nuevo (lee F8)
 - [ ] Sello legal: capa Konva dentro del Stage (export) + refuerzo DOM + disclaimer de carga
 - [ ] Visor plano2d en canvas (capa read-only F4)
 - [ ] Visor render3d + memoria de materiales
@@ -119,7 +119,8 @@ src/app/(app)/projects/[id]/
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor):
 - **Sello en el export, no solo en DOM** (e2e/Playwright): el flujo chat→entrega con IA mockeada genera un entregable; el export (`toDataURL`/PDF) **contiene** el sello (capa Konva/server-side), no solo el overlay DOM. Rojo si el sello vive únicamente en el DOM.
-- **Preview de coste antes de generar** (e2e/Playwright + component): la UI muestra "~N créditos, confirmar" ANTES del hold; solo al confirmar dispara `advance`. Rojo sin el gate de confirmación.
+- **Preview de coste antes de generar** (e2e/Playwright + component): la UI muestra el coste ANTES del hold; solo al confirmar dispara `advance`. Rojo sin el gate de confirmación.
+- **Preview gratis vs cobro por cupo de iteración** (component): con `freeIterationsRemaining>0` (mock de F8) la UI muestra "Gratis (te quedan K de N ajustes)"; con `=0` muestra "~M créditos"; para entregable nuevo siempre "~M créditos". El FE refleja el valor de F8, no lo calcula. Rojo si el FE decide gratis por su cuenta.
 - **Streaming incremental sin useEffect** (component/Vitest): el hook acumula `AgentStreamEvent` vía `useSyncExternalStore`; render incremental de tokens. Verde al implementar el hook.
 - **Stepper sincronizado** (component): Entrega deshabilitada hasta que el guard legal de F5 reporta OK.
 - **Mock:** el flujo e2e corre con `ChatVisionAdapter`/`ImageAdapter` mockeados y DB efímera (cero red a IA). NO se mockea el render del sello en el Stage (es lo que se valida en el export).

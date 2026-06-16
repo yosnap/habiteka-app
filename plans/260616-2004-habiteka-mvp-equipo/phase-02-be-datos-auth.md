@@ -26,6 +26,7 @@
 - **Tenancy uniforme por `organizationId` (resuelve la contradicción saldo/subscription):** TODO recurso de negocio cuelga de `organizationId` — `Project`, `CreditBalance`, `CreditHold`, `CreditLedger`, `Subscription`. **Cuenta personal (B2C) = organización implícita de 1 miembro** creada al registrarse → un solo modelo de pertenencia. `Subscription` pasa a ser **por organización** (no 1:1 con User), coherente con que saldo y proyectos son de la org. `accountType` (B2B/B2C) es metadato de la org, no cambia el dueño.
 - **Ownership ESTRUCTURAL, no opcional:** repos/helpers que **exigen** `OrgContext` como parámetro obligatorio; no existe ruta de acceso a recurso sin él (la API del repo no ofrece método sin scoping → no compila). No es un `assertOwnership` *opcional* que el dev puede olvidar: el scoping es la única puerta → anti-IDOR por construcción.
 - **Congelar campos add-ons:** dejar `Subscription`/`VotingRoom`/`MarketplaceItem` con sus campos previstos por F8/F9/F10 ya en el schema inicial (aditivo) para no forzar migración tardía.
+- **Créditos de bienvenida FINITOS por cuenta (no "gratis por proyecto"):** al registrar, la org recibe `welcome_credits` (de `SystemSetting`, NO hardcodeado) en `CreditBalance`, **una sola vez**. El "primer entregable gratis" se paga con ese saldo finito → da igual cuántos `Project` cree el usuario; agotado, se cobra normal (cierra el abuso de multiplicar proyectos). **Idempotencia derivada (sin flag nuevo):** un `CreditLedger` entry `reason="welcome_grant"` con UNIQUE parcial `(organizationId) WHERE reason='welcome_grant'` garantiza que reintento/doble-registro no re-acredita (el ledger ya es la fuente append-only de movimientos, DRY). Crédito y ledger en la **misma tx** que crea la org. **Anti-sybil:** el cupo solo es **gastable** tras verificar email (Better Auth `verification`); se registra el `origin` (IP + dominio email) y un `accounts_per_origin_limit` (`SystemSetting`) frena altas del mismo origen. **En MVP el límite se cuenta por IP** (más costosa de rotar que el dominio); el dominio email se guarda como refuerzo post-MVP. Cadena: email verificado → límite por IP → cupo finito → cap global de F8 (el gating de gasto vive en F8).
 
 ## Requirements
 **Funcionales**
@@ -39,7 +40,7 @@
 - `CreditHold(idempotencyKey UNIQUE, organizationId, amount, state PENDING|SETTLED|REVERTED|EXPIRED, refType, refId, expiresAt, createdAt, updatedAt)`: idempotencyKey por OPERACIÓN; transiciones válidas explícitas (PENDING→SETTLED|REVERTED|EXPIRED; estados terminales).
 - `ProcessedWebhookEvent`: dedup idempotente de webhooks Polar (event id UNIQUE).
 - Campos de `Subscription`/`VotingRoom`/`MarketplaceItem` congelados en el schema inicial (previstos por F8/F9/F10, aditivo).
-- Auth: registro/login email+password (crea org implícita), OAuth (Google mínimo), sesión persistida, logout.
+- Auth: registro/login email+password (crea org implícita, `requireEmailVerification`), OAuth (Google mínimo), sesión persistida, logout. Al registrar: acreditar `welcome_credits` (de `SystemSetting`) a `CreditBalance` una vez (`CreditLedger.reason="welcome_grant"` + UNIQUE parcial, idempotente) + registrar `origin` (dominio email + IP). Gate de gasto del cupo (email verificado + `accounts_per_origin_limit`) lo aplica F8.
 - RBAC: distinguir cuenta B2B (organización multi-miembro) de B2C (org implícita de 1); gate de permisos en server.
 - **Scoping estructural:** repositorio/helper `withOrg(orgContext)` que exige `OrgContext` como parámetro obligatorio; toda query de recurso pasa por él *por construcción* (no hay método de acceso sin scoping → anti-IDOR no olvidable).
 - Cliente Prisma singleton (evita agotar conexiones en dev hot-reload).
@@ -65,7 +66,8 @@ Organization 1──1 Subscription (organizationId; plan, status; ids Polar; cyc
 Organization 1──1 CreditBalance (organizationId UNIQUE, balance:int, updatedAt)  # saldo AUTORITATIVO, fila bloqueable (FOR UPDATE)
 Organization 1──n CreditHold (idempotencyKey UNIQUE, amount:int,
                         state:PENDING|SETTLED|REVERTED|EXPIRED, refType, refId, expiresAt, createdAt, updatedAt)  # idem por OPERACIÓN
-Organization 1──n CreditLedger (delta:int, reason, refId, holdId?, createdAt)  # AUDITORÍA append-only (no fuente del saldo)
+Organization 1──n CreditLedger (delta:int, reason, refId, holdId?, createdAt)  # AUDITORÍA append-only; reason="welcome_grant" + UNIQUE parcial (organizationId) → cupo bienvenida 1 vez
+Organization (originEmailDomain?, originIp?)  # origen del alta → anti-sybil por origen (gate en F8)
 ProcessedWebhookEvent (eventId UNIQUE, type, processedAt)  # dedup webhooks Polar
 Project 1──n VotingRoom 1──n Vote ; VotingRoom 1──n Comment
 Deliverable 1──n MarketplaceItem (label, affiliateUrl, vendor; campos congelados p/ F10)
@@ -129,11 +131,11 @@ prisma/
 
 ## Implementation Steps
 1. Configurar `prisma/schema/base.prisma`: datasource Postgres, generator con carpeta multi-file, enums (DeliverableType, AccountType, SubscriptionStatus, AddonKey, HoldState `PENDING|SETTLED|REVERTED|EXPIRED`, ModelAction `vision|chat|plano2d|render3d|inpaint|memoria`, UsageUnit `token|image`, MediaStatus).
-2. Modelar dominios en sus `.prisma` respectivos con relaciones, índices y `Json` para canvas/zona/extensionPoints. **Tenancy uniforme:** `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger. `CreditBalance(organizationId UNIQUE, balance Int)` (saldo autoritativo). `CreditHold(idempotencyKey UNIQUE, state HoldState, amount, refType, refId, expiresAt)`. `CreditLedger` append-only (auditoría, `holdId?`). Tabla `ProcessedWebhookEvent`. Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem.
+2. Modelar dominios en sus `.prisma` respectivos con relaciones, índices y `Json` para canvas/zona/extensionPoints. **Tenancy uniforme:** `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger. `CreditBalance(organizationId UNIQUE, balance Int)` (saldo autoritativo). `CreditHold(idempotencyKey UNIQUE, state HoldState, amount, refType, refId, expiresAt)`. `CreditLedger` append-only (auditoría, `holdId?`, `reason`) **+ índice UNIQUE parcial `@@unique([organizationId]) WHERE reason='welcome_grant'`** (o constraint SQL en la migración) → garantiza un único acreditado de bienvenida por org. Campos `originEmailDomain?`/`originIp?` en Organization (origen del alta, anti-sybil). Tabla `ProcessedWebhookEvent`. Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem.
 2b. Modelar `admin.prisma`: AuditLog (append-only, idx createdAt/actorId), ModelConfig (action UNIQUE, fallbacks `String[]`), BrandSettings (singleton), SystemSetting (key UNIQUE), MediaFolder (parentId self-ref), MediaAsset (idx folderId), UsageEvent (idx createdAt/action/userId). Seed de defaults para ModelConfig (mapeo acción→modelo de arranque).
 3. `prisma migrate dev` → generar migración inicial; verificar `jsonb` en SQL.
 4. Cliente singleton en `db/prisma.ts` (patrón global en dev).
-5. Better Auth: `auth.ts` con `prismaAdapter(prisma,{provider:"postgresql"})`, `emailAndPassword`, `socialProviders.google`, `plugins:[organization({...}), admin({...})]`. **Hook de registro:** crear org implícita de 1 miembro + `CreditBalance(balance=0)` para esa org al dar de alta un usuario (cuenta personal = org de 1). El plugin `admin()` añade rol plataforma `admin`/`user`.
+5. Better Auth: `auth.ts` con `prismaAdapter(prisma,{provider:"postgresql"})`, `emailAndPassword` (requireEmailVerification), `socialProviders.google`, `plugins:[organization({...}), admin({...})]`. **Hook de registro (misma tx):** crear org implícita de 1 miembro + `CreditBalance`; registrar `origin` (dominio email + IP); **acreditar `welcome_credits`** (de `SystemSetting`) al balance + `CreditLedger(reason="welcome_grant")` con UNIQUE parcial → idempotente. El plugin `admin()` añade rol plataforma. El gasto del cupo lo gatea F8 (email verificado + límite por origen); aquí solo se acredita y registra origen.
 6. `permissions.ts` + `org-context.ts`: `createAccessControl` con recursos (project, deliverable, votingRoom); roles owner/admin/member + helper B2C. `org-context.ts` resuelve `OrgContext` (organizationId activo) desde la sesión.
 7. Route handler `toNextJsHandler(auth)` en `/api/auth/[...all]`.
 8. **Scoping estructural** `db/scoped-repo.ts`: `withOrg(orgContext)` retorna un repo cuyas queries inyectan `organizationId` por construcción; **no** existe método de acceso a recurso sin `OrgContext` (anti-IDOR no olvidable). Usarlo en TODA Server Action de recurso.
@@ -149,7 +151,7 @@ prisma/
 - [ ] AuditLog (append-only) / ModelConfig (seed defaults) / BrandSettings / SystemSetting / MediaAsset / MediaFolder / UsageEvent con índices
 - [ ] Migración inicial aplicada; `jsonb` verificado
 - [ ] Cliente Prisma singleton
-- [ ] Better Auth: email/password + Google OAuth + sesión; hook que crea org implícita + CreditBalance al registrar
+- [ ] Better Auth: email/password (requireEmailVerification) + Google OAuth + sesión; hook que crea org implícita + CreditBalance + acredita `welcome_credits` (idempotente, UNIQUE parcial `welcome_grant`) + registra `origin` al registrar
 - [ ] Plugin organization() + admin() (rol plataforma) + access control B2B/B2C
 - [ ] Scoping estructural `withOrg(orgContext)` (exige OrgContext) usado en todas las Server Actions de recurso
 - [ ] Débito con lock de fila (`FOR UPDATE`) + máquina de estados CreditHold + reaper de holds huérfanos
@@ -159,7 +161,7 @@ prisma/
 
 ## Success Criteria
 - `prisma migrate` corre limpio; DB refleja modelos core + 7 modelos admin + tablas auth.
-- Registro/login email+password y Google funcionan; sesión persiste; **registro crea org implícita + `CreditBalance`**.
+- Registro/login email+password y Google funcionan; sesión persiste; **registro crea org implícita + `CreditBalance` + acredita `welcome_credits` (de `SystemSetting`) una sola vez** (`CreditLedger.reason="welcome_grant"`, UNIQUE parcial → reintento no re-acredita) **+ registra `origin`**.
 - `CreditBalance` es la fuente del saldo (no `SUM(CreditLedger)`); débito bloquea la fila; saldo nunca negativo bajo concurrencia multi-réplica.
 - `CreditHold` respeta transiciones válidas (PENDING→terminal); settle-tras-revert rechazado; reaper revierte holds PENDING vencidos.
 - Server Action protegida rechaza sin sesión y respeta rol B2B/B2C; rol plataforma `admin` distinguible. Toda query de recurso pasa por `withOrg` (no hay acceso sin scoping).
@@ -181,6 +183,7 @@ prisma/
 | IDOR: acceso a recurso de otro usuario/org | Med×Alto | Scoping **estructural** `withOrg(orgContext)`: el repo exige `OrgContext`; no existe ruta de acceso sin scoping (no olvidable por construcción) |
 | Migración tardía por campos de add-ons | Med×Med | Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem en schema inicial (aditivo) |
 | Migración Json no mapea a jsonb | Bajo×Med | Verificar SQL generado en paso 3 |
+| Doble acreditado de bienvenida / "gratis por proyecto" infinito | Med×Alto | UNIQUE parcial `(organizationId) WHERE reason='welcome_grant'` + acreditado en la tx que crea la org; el gratis es saldo finito por cuenta, no por proyecto → crear proyectos no re-acredita |
 
 ## Security Considerations
 - `BETTER_AUTH_SECRET`, `DATABASE_URL`, OAuth secrets solo server-side.
@@ -195,7 +198,7 @@ Escribir ANTES del código (rojo→verde→refactor), integration/Vitest contra 
 - **CreditHold máquina de estados / idempotencia por operación**: reaplicar la misma `idempotencyKey` no re-efecta (devuelve estado); doble `settle` no duplica débito; `revert` libera; **`settle` tras `revert` se rechaza** (terminal); operaciones distintas (iteración vs regeneración vs webhook) usan claves distintas. Rojo sin la máquina de estados.
 - **Saldo autoritativo no negativo bajo concurrencia multi-réplica**: dos `hold` concurrentes sobre `CreditBalance` justo → uno falla; el saldo nunca baja de 0. El test simula **dos conexiones/transacciones** (no un mutex de proceso) → valida el lock de fila `FOR UPDATE`. Rojo sin lock.
 - **Reaper de holds huérfanos**: un hold PENDING con `expiresAt` vencido → el reaper lo pasa a EXPIRED y **repone el balance**; no toca holds vigentes ni terminales. Rojo sin reaper.
-- **Tenancy uniforme**: registrar un usuario crea org implícita + `CreditBalance(0)`; `Subscription`/`CreditBalance` cuelgan de `organizationId`. Verde con el hook de registro.
+- **Tenancy + bienvenida UNA sola vez (N proyectos no dan gratis infinito)**: registrar crea org implícita + `CreditBalance(welcome_credits de SystemSetting)` (`Subscription`/`CreditBalance` cuelgan de `organizationId`) + un `CreditLedger(reason="welcome_grant")`; reejecutar el hook o crear varios `Project` NO re-acredita (UNIQUE parcial → segundo insert falla; el cupo es por cuenta, no por proyecto). Registra `originEmailDomain`/`originIp` (consultable por F8; el gate de gasto vive en F8). Rojo sin el constraint.
 - **Scoping estructural/IDOR**: el repo `withOrg(orgA)` no devuelve recursos de `orgB`; **no existe** un método de acceso a recurso que omita `OrgContext` (verificado por la firma/tipos del repo). Verde con `withOrg`.
 - **Dedup webhook**: insertar dos veces el mismo `ProcessedWebhookEvent` (eventId) en la misma tx que el crédito → segundo insert falla, crédito no se re-emite.
 - **Auth**: Server Action sin sesión rechaza; con sesión respeta rol B2B/B2C; rol plataforma `admin` se distingue de `user`.
