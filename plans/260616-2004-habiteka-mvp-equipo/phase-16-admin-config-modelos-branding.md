@@ -1,0 +1,115 @@
+# F16 — Admin: Config de Modelos, Branding & Sistema (Rol BE+FE)
+
+## Context Links
+- Plan general: [plan.md](plan.md) · Arquitectura: [docs/system-architecture.md](../../docs/system-architecture.md)
+- Adaptadores IA (consumidores de la config): [phase-03](phase-03-ia-adaptadores.md) (`model-routing.ts`)
+- BD/auth base: [phase-02](phase-02-be-datos-auth.md) · Shell/guard admin: [phase-15](phase-15-admin-shell-usuarios.md)
+
+## Overview
+- **Rol primario:** BE+FE (back-office)
+- **Prioridad:** P2
+- **Estado:** Planificado
+- **Depende de:** F2 (BD, modelos nuevos), F3 (adaptadores que consumen la config de modelos), F15 (`requireAdmin`/`writeAudit`/shell)
+- **Paralela con:** F15, F17, F18
+- **Descripción:** Panel admin para (a) **mapeo ACCIÓN→MODELO** de OpenRouter editable en BD (acciones: `vision`, `chat`, `plano2d`, `render3d`, `inpaint`, `memoria`; cada una con modelo primario + fallbacks); (b) **branding** completo (logo, logo móvil, colores/identidad) persistido y consumido por la app; (c) **config general** del sistema (feature flags, límites). El adaptador de F3 **lee** la tabla de config en runtime (no hardcodea).
+
+## Key Insights
+- **El `model-config-loader` (lectura+caché) vive en F3** (`src/server/ai/model-config-loader.ts`), porque el adaptador IA lo consume en runtime. F3 ya migra `model-routing` a leer `ModelConfig` de BD vía ese loader, con **caché en memoria + `invalidate()`** y default seguro si la tabla está vacía. **El admin NO crea su propio loader** (DRY: una sola fuente de verdad): edita `ModelConfig` vía Prisma y llama a `model-config-loader.invalidate()` (interfaz pública de F3) tras guardar.
+- **Acciones cerradas (enum):** `vision|chat|plano2d|render3d|inpaint|memoria`. Coincide con las operaciones que F3 expone. Mantener el enum sincronizado con F3 (definirlo en contrato/F0 si aplica).
+- **Fallbacks ≤3** (límite OpenRouter, ver F3) → validar en escritura admin.
+- **ALLOWLIST de modelos + techo de precio (un admin/bug no puede apuntar a un modelo carísimo arbitrario):** la edición de `ModelConfig` solo permite elegir modelos de una **allowlist** curada (lista de modelos permitidos por acción) y respeta un **techo de precio por acción**. La UI admin presenta un selector cerrado (no input libre de model id). F3 **valida contra la allowlist** antes de usar un modelo leído de la BD → un `primaryModel` fuera de allowlist (admin malicioso, bug de escritura, fila corrupta) se rechaza y cae al default seguro, no se factura un modelo carísimo. La allowlist y el techo de precio viven en config (no hardcode en cliente).
+- **Provider/baseURL desde allowlist (fallback de gateway de F3):** `ModelConfig` puede fijar `provider`/`baseURL` por acción para el fallback de gateway de F3, pero **solo** de una allowlist de gateways permitidos — nunca un `baseURL` arbitrario (evita exfiltración de la key a un endpoint atacante).
+- **Branding consumido en runtime:** la app lee `BrandSettings` (logo URL en MinIO de F17, colores) en el layout raíz. Cachear; invalidar al guardar. Las URLs de logo apuntan a assets gestionados por el media manager (F17) — el admin de branding **selecciona** un asset existente, no sube directo (DRY con F17).
+- **Feature flags / límites en `SystemSetting`** (key-value tipado) → evita redeploy para togglear.
+- **Validación de color/contraste:** los colores de marca deben pasar validación básica (hex válido); el contraste AA es responsabilidad de UX, no bloqueante aquí.
+
+## Requirements
+**Funcionales**
+- CRUD de `ModelConfig`: por cada acción, editar `primaryModel` + `fallbacks[]` (≤3) + `enabled` (+ opcional `provider`/`baseURL`). La UI ofrece un **selector cerrado** desde la **allowlist** de modelos/gateways permitidos; rechaza model id/baseURL fuera de allowlist o por encima del **techo de precio** por acción.
+- F3 lee `ModelConfig` en runtime (loader con caché) **y valida contra la allowlist** antes de usar el modelo; admin invalida caché al guardar.
+- CRUD de `BrandSettings`: logo, logoMobile (refs a `MediaAsset` de F17), paleta de colores, nombre de marca.
+- CRUD de `SystemSetting`: feature flags + límites (key, value tipado, enabled).
+- Toda mutación: `requireAdmin()` + `writeAudit()`.
+
+**No funcionales**
+- Lectura de config en runtime O(1) (caché en memoria); sin golpear BD por request.
+- Archivos ≤200 líneas. Sin claves/secrets de proveedores aquí (solo nombres de modelo, no API keys).
+
+## Architecture
+```
+src/app/(admin)/config/
+  models/page.tsx            # editor acción→modelo+fallbacks
+  branding/page.tsx          # brand kit (selecciona assets de F17)
+  system/page.tsx            # feature flags / límites
+src/server/admin/config/
+  models.actions.ts          # CRUD ModelConfig vía Prisma + llama model-config-loader.invalidate() de F3
+  system.actions.ts          # CRUD SystemSetting
+  # NOTA: el model-config-loader (lectura+caché) lo posee F3 (src/server/ai/), no se duplica aquí
+src/server/admin/branding/
+  branding.actions.ts        # CRUD BrandSettings + invalidar caché
+  branding-loader.ts         # lee BrandSettings + caché (consumido por layout raíz)
+```
+**Data flow (config modelos):** admin edita → `models.actions` valida (fallbacks≤3, modelo no vacío) → Prisma `ModelConfig` → llama `model-config-loader.invalidate()` (de F3). **Runtime IA:** F3 `model-routing` → `model-config-loader.get(action)` → `{primary, fallbacks, enabled}` (caché; default si vacío) → llamada OpenRouter. **Branding:** layout raíz → `branding-loader.get()` → logo/colores (caché) → render.
+
+## Related Code Files
+**Crear (owner F16):** todo el árbol anterior.
+**Lee (no edita):** `src/server/admin/{guard,audit}.ts` (F15), tipos Prisma `ModelConfig`/`BrandSettings`/`SystemSetting`, `MediaAsset` (F17, solo refs).
+**Coordinar con F3 (NO editar `src/server/ai/**`):** el `model-config-loader` (lectura+caché+`invalidate()`) lo posee F3 en `src/server/ai/`. F16 lo **consume**: tras escribir `ModelConfig`, llama `model-config-loader.invalidate()`. F16 no duplica el loader (DRY). El enum de acciones (`vision|chat|plano2d|render3d|inpaint|memoria`) se mantiene sincronizado con F3/F2.
+**Requiere de F2 (propuestos, NO editar `prisma/**`):** modelos `ModelConfig`, `BrandSettings`, `SystemSetting`.
+**Sin solape:** NO toca `src/app/(app)/**`, `src/server/{ai,agent,db,billing}/**`, ni subrutas de F15/F17/F18.
+
+## Implementation Steps
+1. Proponer a F2 los modelos `ModelConfig(action UNIQUE, primaryModel, fallbacks Json/String[], enabled)`, `BrandSettings(singleton: brandName, logoAssetId, logoMobileAssetId, colors Json)`, `SystemSetting(key UNIQUE, value Json, enabled)` + seed de defaults.
+2. (El `model-config-loader` con caché + `invalidate()` + fallback a defaults lo implementa F3 en `src/server/ai/`; F16 solo lo consume.)
+3. `models.actions.ts`: CRUD `ModelConfig` vía Prisma con validación (fallbacks≤3, action en enum, **modelo/provider en allowlist, precio ≤ techo por acción**) + `model-config-loader.invalidate()` (de F3) + `writeAudit()`. La allowlist y el techo viven en config (p.ej. `SystemSetting`/constante de servidor compartida), no en el cliente.
+4. Coordinar con F3: confirmar que `model-routing.ts` consume el loader en vez de constante **y valida contra la allowlist** antes de usar el modelo (un model id fuera de allowlist cae al default). (F3 edita su propio fichero.)
+5. `branding-loader.ts` + `branding.actions.ts`: CRUD `BrandSettings`, selección de assets de F17, caché+invalidación.
+6. `system.actions.ts`: CRUD `SystemSetting` (flags/límites).
+7. UI editores (shadcn forms) en `(admin)/config/**`.
+8. `pnpm typecheck` + `build` verdes.
+
+## Todo List
+- [ ] Modelos propuestos a F2 (`ModelConfig`/`BrandSettings`/`SystemSetting`) + seed
+- [ ] Editor acción→modelo+fallbacks (validación ≤3 + allowlist + techo de precio; selector cerrado, no input libre) que escribe `ModelConfig` + llama `invalidate()` de F3
+- [ ] F3 implementa/consume el loader (coordinado, F3 edita su fichero)
+- [ ] `branding-loader` + editor brand kit (refs a assets F17)
+- [ ] Editor de feature flags / límites
+- [ ] `writeAudit()` en toda mutación de config
+- [ ] Tests TDD rojo→verde
+
+## TDD / Pruebas primero
+Escribir ANTES del código (rojo→verde→refactor):
+- **Acción de config invalida la caché (integration, Postgres efímero):** `models.actions.update('chat', ...)` persiste en `ModelConfig` y llama `model-config-loader.invalidate()`; la siguiente lectura del loader (de F3) devuelve el nuevo valor. (El test del loader en sí — caché + fallback a defaults — vive en F3.) Rojo sin la action.
+- **Validación fallbacks≤3:** guardar 4 fallbacks → rechaza. Verde con validación.
+- **Allowlist + techo de precio:** guardar un `primaryModel`/`provider` fuera de la allowlist → rechaza; guardar un modelo por encima del techo de precio de la acción → rechaza. (Complementa el test en F3 de que `model-routing` valida la allowlist antes de usar el modelo.)
+- **Branding consumido:** `branding-loader.get()` devuelve logo/colores guardados; cambio en admin se refleja tras invalidar.
+- **Auditoría:** cambiar config escribe `AuditLog`.
+- **Mock:** se mockea OpenRouter (F3 ya lo mockea). NO se mockea Prisma/Postgres.
+
+## Success Criteria
+- Admin cambia el modelo de una acción y F3 usa el nuevo en la siguiente llamada (sin redeploy).
+- Branding (logo/colores) editable y reflejado en la app tras guardar.
+- Feature flags togglean comportamiento sin redeploy.
+- Tabla vacía no rompe (defaults). Toda mutación auditada.
+
+## Risk Assessment
+| Riesgo | Prob×Imp | Mitigación |
+|---|---|---|
+| F3 sigue hardcodeando y se ignora la config | Med×Alto | El loader (propiedad de F3) es la única fuente; coordinar con F3; test (en F3) que verifica `model-routing` consume el loader |
+| Config corrupta deja la IA sin modelo válido | Med×Alto | Validación en escritura + fallback a defaults + `enabled` por acción |
+| Admin/bug apunta a un modelo carísimo arbitrario | Med×Alto | Allowlist de modelos + techo de precio por acción; selector cerrado en UI; F3 valida contra allowlist antes de usar (fuera de allowlist → default) |
+| `baseURL`/provider arbitrario filtra la key a endpoint atacante | Baja×Crítico | provider/baseURL solo de allowlist de gateways; nunca input libre |
+| Caché obsoleta tras editar | Med×Med | `invalidate()` en cada action de escritura; TTL corto de respaldo |
+| Branding referencia asset borrado en F17 | Baja×Med | FK/validación de existencia del `MediaAsset` al guardar |
+| Doble fuente de verdad (código vs BD) | Med×Med | Seed inicial = defaults; BD es la fuente; defaults solo fallback |
+
+## Security Considerations
+- Toda ruta/acción protegida por `requireAdmin()`; mutaciones auditadas.
+- **NO** almacenar API keys de proveedores aquí (solo nombres de modelo); las keys siguen en `process.env` server-side (F3).
+- Validar entrada (hex de color, enum de acción) para evitar inyección en config consumida por la app.
+- Comentarios/nombres NO referencian nº de fase: explican el porqué (p.ej. "config en BD evita redeploy para cambiar de modelo").
+
+## Next Steps
+- F3 migra `model-routing` a consumir el loader.
+- F17 provee los assets de logo que branding referencia.
+- F2 incorpora `ModelConfig`/`BrandSettings`/`SystemSetting`.

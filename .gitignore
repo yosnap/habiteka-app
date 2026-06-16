@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Build / output
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Cache
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Agent internal memory inside plans
+.claude/agent-memory/
+**/.claude/agent-memory/
