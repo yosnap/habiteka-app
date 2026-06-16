@@ -78,8 +78,9 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 
 ## Dependencias clave externas
 
-- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL.
-- Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`.
+- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL · MinIO/S3 (storage) · Cloudflare Turnstile (CAPTCHA) · proveedor de email (Resend/SMTP, OTP+verificación) · OAuth Google + Meta.
+- **Auth (3 métodos, Better Auth 1.6 nativo):** email+password, email-OTP sin contraseña, OAuth social Google+Meta. **Turnstile como CAPTCHA solo en flujos no-OAuth** (OAuth exento); email verificado es invariante anti-sybil antes de gastar cupo gratis.
+- Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET` (Meta), `TURNSTILE_SECRET_KEY`, email enchufable (`EMAIL_PROVIDER` + `RESEND_API_KEY` por defecto o `SMTP_*`), `STORAGE_*` (MinIO/S3). Público (cliente): `TURNSTILE_SITE_KEY`.
 
 ## Estrategia de ramas (branching avanzado)
 

@@ -36,6 +36,7 @@
 - Copy de producto sin jerga de fases (mapear las 5 fases internas a lenguaje de usuario).
 - Specs de los 2 disclaimers legales: posición, contraste, persistencia, no-dismissible, **tono que genera confianza** (transparente y tranquilizador para el B2C no técnico; el "conceptual" informa sin asustar).
 - Onboarding y copy optimizados para **B2C** (cliente final no técnico) como segmento primario; el flujo B2B comercial queda fuera del MVP.
+- **Auth UI (3 métodos):** botones OAuth Google + Meta + formulario email (password o código OTP). El formulario **no-OAuth muestra el widget Turnstile**; los botones OAuth **no** lo muestran. Estados de OTP (envío de código, reintento, código incorrecto/expirado) y mensaje cuando social sin email verificado debe completar verificación antes de usar cupo gratis.
 
 **No funcionales**
 - WCAG 2.2 AA: contraste ≥ 4.5:1, foco visible, navegación por teclado, roles ARIA.
@@ -104,6 +105,7 @@
 - [ ] Affordance de feedback por zona (hover-highlight + hint)
 - [ ] Copy de producto sin jerga de fases (mapa fase→lenguaje usuario)
 - [ ] Specs de ambos disclaimers legales (tono equilibrado B2C)
+- [ ] Auth UI: OAuth Google+Meta + email (password/OTP); widget Turnstile solo en formulario no-OAuth; estados OTP y verificación social pendiente
 - [ ] Checklist accesibilidad WCAG 2.2 AA
 
 ## Success Criteria
