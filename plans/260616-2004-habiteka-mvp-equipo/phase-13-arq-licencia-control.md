@@ -9,6 +9,7 @@
 - **Depende de:** F3 (adaptadores IA: punto donde se intercepta la llamada a OpenRouter), F8 (plan/estado de licencia por usuario/organización).
 - **Paralela con:** — (cierre del MVP; M3).
 - **Descripción:** El control es **LEGAL + OPERATIVO**, no una imposibilidad técnica: (1) **Sustainable Use License** (fair-code estilo n8n) — `LICENSE` + política (`docs/licensing.md`) define qué uso comercial está restringido; (2) la **barrera real es operativa**: el servicio oficial de Habiteka es quien **posee la API key de OpenRouter**, así que el uso del agente a escala pasa por la infra oficial. El JWT de licencia es un gate **dentro del servicio oficial** (UX/billing/scope), NO una protección anti-fork. Un fork **puede** borrar el guard y usar su propia key de OpenRouter — eso lo cubre la **licencia**, no el código.
+- **Alcance MVP vs post-MVP (segmento B2C primario):** en el MVP entra **solo la parte técnica/legal** — `LICENSE` fair-code (SUL), `docs/licensing.md`, y el **control operativo** (license-guard + JWT de scope ante el adaptador F3). El **onboarding comercial B2B y el flujo de venta/contratación de licencia comercial son POST-MVP** (el segmento primario del MVP es B2C). El MVP **deja la capacidad lista** (el JWT codifica `scope` comercial/interno desde el plan de F8 y el modelo es multi-tenant por `organizationId`), pero **no construye** la UX de alta comercial, el flujo de cobro de licencia B2B ni el portal de gestión de licencias.
 
 ## Key Insights
 - **Fair-code = fuente abierta + restricción comercial:** Sustainable Use License (modelo n8n): self-host interno permitido, explotación comercial obliga a hosting oficial / licencia (§8). No es OSI-open-source; el `LICENSE` lo deja explícito para evitar ambigüedad legal.
@@ -119,4 +120,4 @@ Escribir ANTES del guard/verify (rojo→verde→refactor), unit/Vitest (firma as
 - **Mock:** se mockea el servicio de claves/reloj (para simular `exp` y fallo transitorio). NO se mockea la verificación de firma ni la lógica de grace (es lo que se prueba).
 
 ## Next Steps
-Cierra el modelo de negocio: el plan B2B de F8 determina emisión/scope del token; F3 cablea el `license-guard` en el wrapper del adaptador. Post-MVP: servicio de licencia dedicado (emisión/rotación remota), telemetría de uso por licencia y endurecimiento del refresh.
+Cierra el modelo de negocio (capa técnica): el plan/scope de F8 determina emisión del token; F3 cablea el `license-guard` en el wrapper del adaptador. **Post-MVP (B2C es el segmento primario del MVP):** **onboarding comercial B2B y flujo de venta/contratación de licencia comercial**, servicio de licencia dedicado (emisión/rotación remota), portal de gestión de licencias, telemetría de uso por licencia y endurecimiento del refresh.
