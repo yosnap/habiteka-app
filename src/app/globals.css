@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+/* Tokens de marca de Habiteka (fuente única de verdad del design system). */
+@import '../styles/tokens.css';
 
 @custom-variant dark (&:is(.dark *));
 

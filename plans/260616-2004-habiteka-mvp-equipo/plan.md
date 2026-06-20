@@ -54,7 +54,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | # | Fase | Rol primario | Depende de | Paralela con | Estado | Detalle |
 |---|---|---|---|---|---|---|
 | F0 | Setup & 11 contratos (freeze gate) | ARQ | — | — | ✅ #6 | [phase-00](phase-00-arq-setup-contratos.md) |
-| F1 | Design system & UX | UX | F0 | F2,F3,F11 | ⬜ | [phase-01](phase-01-ux-design-system.md) |
+| F1 | Design system & UX | UX | F0 | F2,F3,F11 | ✅ #10 | [phase-01](phase-01-ux-design-system.md) |
 | F2 | Datos, auth, scoping & /api/health | BE | F0 | F1,F3,F11 | ✅ #8 | [phase-02](phase-02-be-datos-auth.md) |
 | F3 | Adaptadores IA (OpenRouter+imagen) | IA | F0 | F1,F2,F11 | ✅ #9 | [phase-03](phase-03-ia-adaptadores.md) |
 | **F-S0** | **Spike calidad IA (GATE GO/NO-GO, decide §9.1)** | **IA+Producto** | **F0,F3** | **—** | ⬜ | [phase-spike](phase-spike-validacion-calidad-ia.md) |
