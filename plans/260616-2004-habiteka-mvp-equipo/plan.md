@@ -63,7 +63,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F6 | UI chat + entregables | FE | F4,F5 | F8 | ✅ #13 | [phase-06](phase-06-fe-chat-entregables.md) |
 | F7 | Feedback por zona + render 3D/inpaint | IA+BE | F3,F5,F6 | F9,F10 | ✅ #14 | [phase-07](phase-07-feedback-render-3d.md) |
 | F8 | Créditos hold/settle & pagos (Polar) | BE | F2,F6 | F7 | ✅ #15 | [phase-08](phase-08-be-creditos-pagos.md) |
-| **F-INT** | **Integración end-to-end (flujo vivo, sin mocks)** | **Tech Lead/Fullstack** | **F5,F6,F7,F8** | **—** | ⬜ | [phase-int](phase-integracion-e2e.md) |
+| **F-INT** | **Integración end-to-end (flujo vivo, sin mocks)** | **Tech Lead/Fullstack** | **F5,F6,F7,F8** | **—** | 🟡 wiring | [phase-int](phase-integracion-e2e.md) |
 | F9 | Add-on Votación comunitaria | FE+BE | F4,F6 | F10 | ✅ #20 | [phase-09](phase-09-addon-votacion.md) |
 | F10 | Add-on Marketplace | FE+BE | F4,F6 | F9 | ✅ #21 | [phase-10](phase-10-addon-marketplace.md) |
 | F11 | DevOps: CI/CD & despliegue | OPS | F0 | casi todas | ✅ #7 | [phase-11](phase-11-ops-cicd-despliegue.md) |

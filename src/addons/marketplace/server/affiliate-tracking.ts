@@ -5,6 +5,7 @@
  * producto —la experiencia del usuario manda sobre la métrica—.
  */
 import { emitUsageEvent } from '@/server/analytics/usage-emitter';
+import { cookieCategoryAllowed } from '@/server/legal/cookie-consent-service';
 
 export interface AffiliateClick {
   itemId: string;
@@ -14,6 +15,13 @@ export interface AffiliateClick {
 
 export async function trackAffiliateClick(click: AffiliateClick): Promise<void> {
   try {
+    // ePrivacy: si hay usuario identificado y NO consintió la categoría de
+    // afiliación, no se registra su clic como evento de tracking (la redirección
+    // al producto sí ocurre, fuera de aquí). Un clic anónimo no tiene
+    // consentimiento que consultar y se anota como métrica sin PII.
+    if (click.userId && !(await cookieCategoryAllowed(click.userId, 'affiliate'))) {
+      return;
+    }
     await emitUsageEvent({
       action: 'affiliate_click',
       unit: 'image', // unidad neutra: el clic no consume tokens

@@ -13,6 +13,14 @@
 
 /** Modelos permitidos para tratamiento de datos personales. */
 let allowlist: Set<string> = new Set();
+let loadedFromEnv = false;
+
+/** Carga la allowlist de la env una sola vez (idempotente). */
+function ensureLoadedFromEnv(): void {
+  if (loadedFromEnv) return;
+  loadedFromEnv = true;
+  loadAllowlist(process.env.AI_MODEL_JURISDICTION_ALLOWLIST);
+}
 
 /**
  * Carga la allowlist desde una lista separada por comas (p. ej. la env
@@ -25,6 +33,9 @@ export function loadAllowlist(raw: string | undefined): void {
       .map((m) => m.trim())
       .filter(Boolean),
   );
+  // Una carga explícita cuenta como inicialización: la auto-carga de la env no
+  // debe pisarla después.
+  loadedFromEnv = true;
 }
 
 /** true si el modelo está en la allowlist de jurisdicción. */
@@ -46,7 +57,30 @@ export function assertModelAllowed(model: string): void {
   }
 }
 
-/** Solo para tests: vacía la allowlist. */
+/**
+ * true si hay una allowlist configurada. Cuando NO la hay, el control de
+ * jurisdicción está desactivado (el operador no lo ha configurado) y no debe
+ * bloquear todas las llamadas; al configurar `AI_MODEL_JURISDICTION_ALLOWLIST`
+ * pasa a aplicarse fail-closed.
+ */
+export function isAllowlistActive(): boolean {
+  return allowlist.size > 0;
+}
+
+/**
+ * Aplica el control de jurisdicción SOLO si hay allowlist configurada. Es el
+ * punto que el routing de IA invoca: sin configuración no rompe el servicio;
+ * con configuración, exige que el modelo esté permitido.
+ */
+export function enforceModelJurisdiction(model: string): void {
+  ensureLoadedFromEnv();
+  if (isAllowlistActive()) {
+    assertModelAllowed(model);
+  }
+}
+
+/** Solo para tests: vacía la allowlist y olvida la carga previa de la env. */
 export function resetAllowlist(): void {
   allowlist = new Set();
+  loadedFromEnv = false;
 }

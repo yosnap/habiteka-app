@@ -21,6 +21,7 @@ import { OpenRouterChatVisionAdapter } from './chat-vision-adapter';
 import { ProviderImageAdapter, createActiveProvider } from './image/provider-image-adapter';
 import { resolveRoute } from './model-routing';
 import { assertCanSpend, recordOutcome } from './guard/spend-guard';
+import { enforceModelJurisdiction } from '@/server/privacy/jurisdiction-allowlist';
 
 // Estimaciones de coste por llamada para el guardia (USD). Conservadoras: el
 // coste real medido lo aporta la respuesta y lo concilia la facturación.
@@ -42,8 +43,12 @@ export async function getChatVisionAdapter(
   return {
     async chat(req: ChatRequest): Promise<ChatResult> {
       assertCanSpend(ctx.organizationId, CHAT_ESTIMATE_USD);
+      const routed = withRoute(req, route);
+      // Transferencia internacional lícita (RGPD art. 44): si hay allowlist de
+      // jurisdicción configurada, el modelo elegido debe estar en ella.
+      enforceModelJurisdiction(routed.model);
       try {
-        const result = await inner.chat(withRoute(req, route));
+        const result = await inner.chat(routed);
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
@@ -53,8 +58,10 @@ export async function getChatVisionAdapter(
     },
     async *chatStream(req: ChatRequest): AsyncIterable<ChatDelta> {
       assertCanSpend(ctx.organizationId, CHAT_ESTIMATE_USD);
+      const routed = withRoute(req, route);
+      enforceModelJurisdiction(routed.model);
       try {
-        yield* inner.chatStream(withRoute(req, route));
+        yield* inner.chatStream(routed);
         recordOutcome(ctx.organizationId, true);
       } catch (err) {
         recordOutcome(ctx.organizationId, false);

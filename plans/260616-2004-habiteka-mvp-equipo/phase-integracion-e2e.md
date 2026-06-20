@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** Tech Lead / Fullstack
 - **Prioridad:** P1 (puerta de cierre de M2 hacia M3)
-- **Estado:** Planificado
+- **Estado:** 🟡 Parcial — mitad autónoma HECHA (gates RGPD/ToS/jurisdicción/cookies cableados + `cost-to-credit` con DebitService real + `wiring/README.md` con bitácora de desajustes; tests verdes). Mitad sandbox (flujo vivo + contratos contra proveedor real + job nightly) DIFERIDA: necesita dev-keys reales.
 - **Depende de:** F5 (agente), F6 (UI chat/entregables), F7 (feedback/render), F8 (créditos hold/settle)
 - **Paralela con:** — (es un hito de integración; corre cuando F5/F6/F7/F8 están "verdes con mocks")
 - **Descripción:** Cablear el flujo **VIVO end-to-end SIN mocks**: ingesta → cualificación → entrega → feedback con **créditos reales** (`DebitService` real, no stub) y **adaptadores reales contra sandbox** de proveedores. Es el **dueño del ENSAMBLAJE** que el red team echó en falta: cada fase pasa sus tests con fixtures deterministas, pero nadie cablea el flujo real con datos vivos. F12 es transversal (estrategia de pruebas), no es owner de integración. Esta fase lo es.
@@ -61,13 +61,15 @@ tests/integration/e2e-flow/
 7. Registrar cada desajuste detectado en `wiring/README.md` y escalar al owner de la fase; re-correr hasta flujo vivo verde.
 
 ## Todo List
-- [ ] `wiring/README.md` (cableado del flujo vivo documentado)
-- [ ] `full-flow-vivo` (ingesta→feedback, DebitService real + sandbox)
-- [ ] `stream-event-contract` (F5 emite ↔ F6 consume)
-- [ ] `inpaint-mask-contract` (F7 construye ↔ ImageAdapter real)
-- [ ] `cost-to-credit` (ProviderCost real → débito cuadra con saldo)
-- [ ] Job de sandbox configurado (nightly/staging, fuera del PR-gate; coord. F11)
-- [ ] Bitácora de desajustes + reportes a owners; flujo vivo verde
+- [x] `wiring/README.md` (cableado de gates + bitácora de desajustes documentado)
+- [ ] `full-flow-vivo` (ingesta→feedback, DebitService real + sandbox) — **diferido: necesita dev-keys (job nightly)**
+- [ ] `stream-event-contract` (F5 emite ↔ F6 consume) — diferido a sandbox
+- [ ] `inpaint-mask-contract` (F7 construye ↔ ImageAdapter real) — diferido a sandbox
+- [x] `cost-to-credit` (OperationCost real → débito cuadra con saldo) — con DebitService REAL, Postgres real, sin sandbox
+- [ ] Job de sandbox configurado (nightly/staging, fuera del PR-gate; coord. F11) — diferido
+- [x] Bitácora de desajustes + gates transversales cableados (consent/ToS/jurisdicción/cookies) — verde; desajuste `settle` registrado para F8
+
+**Mitad autónoma (sin keys) HECHA:** wiring de gates RGPD/ToS/jurisdicción/cookies con tests + cost-to-credit real. **Mitad sandbox DIFERIDA** (flujo vivo + contratos contra proveedor real) hasta tener dev-keys reales.
 
 ## Success Criteria
 - Flujo completo vivo (ingesta→cualificación→entrega→feedback) verde **sin mocks** de la lógica propia, con `DebitService` REAL y adaptadores contra sandbox.
