@@ -1,0 +1,90 @@
+// Créditos y facturación. Separación deliberada de responsabilidades:
+//  - CreditBalance: saldo AUTORITATIVO, una fila por organización, bloqueable
+//    con FOR UPDATE para que el débito sea seguro bajo concurrencia multi-réplica.
+//  - CreditHold: máquina de estados de las reservas (idempotencia por operación).
+//  - CreditLedger: auditoría append-only de movimientos (NO es la fuente del saldo).
+// El gating del gasto (cupo gratis, caps) lo añade la fase de facturación encima.
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  organizationId         String             @unique
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan                   String
+  status                 SubscriptionStatus @default(INCOMPLETE)
+  // Identificadores del proveedor de pagos (congelados para la fase de pagos).
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@map("subscription")
+}
+
+// Saldo autoritativo. NUNCA se calcula con SUM(CreditLedger): se lee y se
+// modifica esta fila bajo lock para evitar saldos negativos concurrentes.
+model CreditBalance {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  balance        Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+
+  @@map("credit_balance")
+}
+
+// Reserva de créditos como máquina de estados. `idempotencyKey` identifica una
+// OPERACIÓN concreta (iteración, regeneración, webhook…), de modo que reintentos
+// y reenvíos no produzcan doble efecto. PENDING → {SETTLED|REVERTED|EXPIRED}.
+model CreditHold {
+  id             String       @id @default(cuid())
+  idempotencyKey String       @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  amount         Int
+  state          HoldState    @default(PENDING)
+  refType        String
+  refId          String
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  ledgerEntries CreditLedger[]
+
+  @@index([organizationId])
+  @@index([state, expiresAt])
+  @@map("credit_hold")
+}
+
+// Auditoría append-only de movimientos de crédito. El acreditado de bienvenida
+// usa `reason = "welcome_grant"`; un índice UNIQUE PARCIAL sobre ese motivo
+// (añadido en SQL en la migración) garantiza un único grant por organización.
+model CreditLedger {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  delta          Int
+  reason         String
+  refId          String?
+  holdId         String?
+  hold           CreditHold?  @relation(fields: [holdId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("credit_ledger")
+}
+
+// Deduplicación de webhooks del proveedor de pagos: el id de evento es único, de
+// modo que un reenvío no vuelve a aplicar el crédito (se inserta en la misma tx).
+model ProcessedWebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  type        String
+  processedAt DateTime @default(now())
+
+  @@map("processed_webhook_event")
+}

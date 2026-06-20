@@ -1,0 +1,78 @@
+// Modelos de los add-ons (votación y marketplace). Sus campos se congelan ya en
+// el schema inicial aunque su lógica llegue en fases posteriores, para evitar una
+// migración tardía sobre tablas con datos.
+
+// Sala de votación comunitaria asociada a un proyecto (acceso por enlace).
+model VotingRoom {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  shareSlug String   @unique
+  isOpen    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  votes    Vote[]
+  comments Comment[]
+
+  @@index([projectId])
+  @@map("voting_room")
+}
+
+model Vote {
+  id           String     @id @default(cuid())
+  votingRoomId String
+  votingRoom   VotingRoom @relation(fields: [votingRoomId], references: [id], onDelete: Cascade)
+  // Referencia estable al elemento votado (targetRef del entregable).
+  targetRef    String
+  // Identidad del votante (usuario o invitado por enlace).
+  voterId      String
+  value        Int
+  createdAt    DateTime   @default(now())
+
+  @@unique([votingRoomId, targetRef, voterId])
+  @@index([votingRoomId])
+  @@map("vote")
+}
+
+model Comment {
+  id           String     @id @default(cuid())
+  votingRoomId String
+  votingRoom   VotingRoom @relation(fields: [votingRoomId], references: [id], onDelete: Cascade)
+  targetRef    String?
+  authorId     String
+  body         String
+  createdAt    DateTime   @default(now())
+
+  @@index([votingRoomId])
+  @@map("comment")
+}
+
+// Producto del catálogo curado, asociado a un entregable, con enlace de afiliación.
+model MarketplaceItem {
+  id            String      @id @default(cuid())
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  label         String
+  affiliateUrl  String
+  vendor        String
+  // Referencia estable al elemento de diseño al que se asocia el producto.
+  targetRef     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([deliverableId])
+  @@map("marketplace_item")
+}
+
+// Registro persistente de un add-on habilitado (espejo en BD del registry puro).
+model Addon {
+  id              String   @id @default(cuid())
+  key             AddonKey @unique
+  version         String
+  // Puntos de extensión declarados por el add-on; mapea a jsonb.
+  extensionPoints Json
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@map("addon")
+}
