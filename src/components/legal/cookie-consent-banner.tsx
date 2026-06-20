@@ -12,21 +12,24 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useMountEffect } from '@/lib/use-mount-effect';
-import { saveCookieConsent, loadCookieConsent } from '@/server/legal/actions';
+import { saveCookieConsent, loadCookieBannerState } from '@/server/legal/actions';
 import type { CookieChoice } from './cookie-gate';
 
 export function CookieConsentBanner() {
-  // null = aún no sabemos si hay elección (cargando); 'pending' = mostrar banner.
+  // null = cargando; true = no mostrar (sin sesión o ya decidido); false = mostrar.
   const [decided, setDecided] = useState<boolean | null>(null);
   const [analytics, setAnalytics] = useState(false);
   const [affiliate, setAffiliate] = useState(false);
 
   useMountEffect(() => {
-    // Si ya hay alguna categoría registrada, asumimos elección previa y no
-    // molestamos. (Una UI de "gestionar cookies" permitiría reabrirlo.) Sin
-    // sesión, la carga falla: no se muestra el banner (no hay a quién registrar).
-    void loadCookieConsent()
-      .then((choice) => {
+    // Sin sesión, el banner no aplica (no hay dónde registrar la elección). Con
+    // sesión, se muestra solo si aún no hay ninguna categoría registrada.
+    void loadCookieBannerState()
+      .then(({ hasSession, choice }) => {
+        if (!hasSession) {
+          setDecided(true);
+          return;
+        }
         setAnalytics(choice.analytics);
         setAffiliate(choice.affiliate);
         setDecided(choice.analytics || choice.affiliate);
