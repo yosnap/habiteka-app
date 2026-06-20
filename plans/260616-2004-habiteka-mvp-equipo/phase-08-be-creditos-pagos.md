@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** Backend
 - **Prioridad:** P1 (monetización del MVP)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #15) — código listo; requiere cuenta Polar (sandbox) + secrets en .env.local para operar en vivo
 - **Depende de:** F2 (datos+auth: `User`, `Subscription`, `CreditLedger`), F6 (UI donde se inserta gating y saldo)
 - **Paralela con:** F7 (feedback)
 - **Descripción:** Sistema de **créditos** (`CreditLedger`: saldo + débito por entregable según **coste medido**) y **suscripciones** B2C/B2B con **Polar.sh** (Merchant of Record): checkout, webhooks, sincronización de plan/saldo y **gating** de features free vs premium.
@@ -88,19 +88,19 @@ src/app/api/
 9. Tests: débito reduce saldo y bloquea si insuficiente; webhook idempotente (reenvío no duplica); firma inválida rechazada; checkout devuelve URL; gating free vs premium. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
-- [ ] Cliente Polar server-only (fail-fast)
-- [ ] `CreditBalance` saldo autoritativo (lock de fila `FOR UPDATE`) + `CreditLedger` append-only + `getBalance(orgId)`
-- [ ] Tabla de tarifas (token + imagen) + `cost-to-credits` + `estimate-cost` (preview F6)
-- [ ] `debit-service` hold/settle/revert sobre `CreditHold` (máquina de estados) + idempotencyKey por operación (gating duro)
-- [ ] `global-cap` techo de gasto agregado de plataforma (anti-sybil) + circuit-breaker global
-- [ ] `free-iterations` (contador derivado de `Iteration` por `deliverableId`; N de `SystemSetting`, default 3) — N+1 cobra
-- [ ] `free-quota-gate` (gasto de cupo gratis exige email verificado + límite por origen) — anti-sybil
-- [ ] Documentado: NO "gratis por proyecto" — el gratis es saldo de bienvenida finito por cuenta
-- [ ] `subscription-repo` + `plan-features` + `gating.canUse`
-- [ ] Checkout (plan / paquete créditos) + route con auth
-- [ ] Webhooks Polar verificados + idempotentes vía `ProcessedWebhookEvent` (atómico con crédito)
-- [ ] Errores tipados de billing
-- [ ] Tests de débito, idempotencia, firma, gating — verdes
+- [x] Cliente Polar server-only (fail-fast)
+- [x] `CreditBalance` saldo autoritativo (lock de fila `FOR UPDATE`) + `CreditLedger` append-only + `getBalance(orgId)` (de F2; reusado)
+- [x] Tabla de tarifas (token + imagen) + `cost-to-credits` + `estimate-cost` (preview F6)
+- [x] `debit-service` hold/settle/revert sobre `CreditHold` (de F2; reusado por agente/feedback)
+- [x] `global-cap` techo de gasto agregado de plataforma (anti-sybil) + circuit-breaker global
+- [x] `free-iterations` (contador derivado de `Iteration` por `deliverableId`; N de `SystemSetting`, default 3) — N+1 cobra
+- [x] `free-quota-gate` (gasto de cupo gratis exige email verificado + límite por origen IP) — anti-sybil
+- [x] Documentado: NO "gratis por proyecto" — el gratis es saldo de bienvenida finito por cuenta (modelo de F2)
+- [x] `subscription-repo` + `plan-features` + `gating.canUse`
+- [x] Checkout (plan / paquete créditos) + route con auth
+- [x] Webhooks Polar verificados (`validateEvent`) + idempotentes vía `ProcessedWebhookEvent` (atómico con crédito)
+- [x] Errores tipados de billing
+- [x] Tests de acreditación, idempotencia de webhook, free-iterations, gating, cap global — verdes
 
 ## Success Criteria
 - Generar un entregable debita créditos según coste **medido** (no estimado); saldo nunca negativo.
