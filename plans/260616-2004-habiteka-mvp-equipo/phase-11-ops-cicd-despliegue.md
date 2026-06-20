@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** OPS / DevOps
 - **Prioridad:** P1 (arranca temprano; habilita merges seguros del resto del equipo)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #7) — CI/Dockerfile/runbooks. Deploy real a Easypanel y backup/DR pendientes de infra (VPS)
 - **Depende de:** F0 (repo + scripts Bun existen)
 - **Paralela con:** casi todas (F1–F10 mergean a través del pipeline de F11)
 - **Descripción:** Pipeline CI (lint + typecheck + test + build) en GitHub Actions, `Dockerfile` reproducible, gestión de secrets, estrategia de despliegue coherente con fair-code (Vercel o contenedor self-host), Postgres gestionado y observabilidad básica.
@@ -76,16 +76,16 @@ infra/
 11. Validar pipeline completo con un PR de prueba (verde) y un deploy a staging.
 
 ## Todo List
-- [ ] `ci.yml`: lint + typecheck + test + build con Postgres de servicio
-- [ ] Secrets bloqueados en PRs de forks
-- [ ] `Dockerfile` standalone multi-stage non-root
-- [ ] GitHub Environments staging/prod + catálogo de env
-- [ ] `deploy.yml` con `migrate deploy` previo + smoke test
-- [ ] Postgres gestionado por entorno con PITR; S3 gestionado (oficial) + backup de bucket
-- [ ] Backup/DR: `infra/backup-dr.md` (PITR, RPO/RTO) + **restore probado** a entorno aparte
-- [ ] Logs estructurados + alerta error-rate/healthcheck
-- [ ] Runbook deploy + rollback
-- [ ] Pipeline validado end-to-end en staging
+- [x] `ci.yml`: lint + typecheck + test + build con Postgres de servicio
+- [x] Secrets bloqueados en PRs de forks (permisos mínimos, sin secrets en el job de calidad)
+- [x] `Dockerfile` standalone multi-stage non-root
+- [~] GitHub Environments staging/prod + catálogo de env (catálogo en `infra/env.reference.md`; Environments los crea OPS en el VPS)
+- [x] `deploy.yml` con `migrate deploy` previo + smoke test (vía webhook de Easypanel)
+- [ ] Postgres gestionado por entorno con PITR; S3/MinIO + backup de bucket (pendiente de infra: servicios Easypanel)
+- [~] Backup/DR: `infra/backup-dr.md` (RPO/RTO) escrito; **restore probado** pendiente de infra
+- [ ] Logs estructurados + alerta error-rate/healthcheck (pendiente de infra)
+- [x] Runbook deploy + rollback (`infra/README.md`)
+- [ ] Pipeline validado end-to-end en staging (pendiente de infra)
 
 ## Success Criteria
 - PR no mergeable si lint/typecheck/test/build fallan.

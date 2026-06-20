@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** ARQ / Tech Lead
 - **Prioridad:** P1 (bloqueante de todo el equipo)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #6)
 - **Depende de:** — (raíz del grafo)
 - **Paralela con:** — (debe completarse antes de F1/F2/F3/F11)
 - **Descripción:** Bootstrap Next.js 16 + TS5 + Tailwind v4 + shadcn. Define la estructura de carpetas, estándares (ESLint/Prettier) y los **contratos TypeScript transversales** que todos los roles importan: `ChatVisionAdapter`, `ImageAdapter`, tipos del estado de fase del agente, interfaz del registry de add-ons y tipos de entregables. Estos contratos son el "API freeze" del equipo: BE/FE/IA programan contra ellos en paralelo.
@@ -89,16 +89,16 @@ Contratos como **capa de tipos pura** (zero runtime salvo el registry). Diseño 
 9. Documentar en `docs/code-standards.md` la regla: comentarios explican el *porqué*, nunca el nº de fase del plan.
 
 ## Todo List
-- [ ] Next.js 16.2 + React 19.2 + TS5 + Tailwind v4 arrancan
-- [ ] tsconfig strict + alias `@/*`
-- [ ] ESLint/Prettier configurados
-- [ ] shadcn/ui base inicializado
-- [ ] `.env.example` con todos los nombres de secrets
-- [ ] 10 ficheros de contrato + barrel en `src/lib/contracts/` (incl. plano2d-payload, canvas-zone, design-element, product-drop-payload, agent-stream)
-- [ ] `Collected` tipado en `agent-state` (fuente del guard legal)
-- [ ] `targetRef` estable entre versiones en `design-element`
-- [ ] Registry de add-ons (types + factory + barrel)
-- [ ] `bun run typecheck` + `bun run build` en verde
+- [x] Next.js 16.2 + React 19.2 + TS5 + Tailwind v4 arrancan
+- [x] tsconfig strict + alias `@/*`
+- [x] ESLint/Prettier configurados
+- [x] shadcn/ui base inicializado
+- [x] `.env.example` con todos los nombres de secrets
+- [x] 10 ficheros de contrato + barrel en `src/lib/contracts/` (incl. plano2d-payload, canvas-zone, design-element, product-drop-payload, agent-stream)
+- [x] `Collected` tipado en `agent-state` (fuente del guard legal)
+- [x] `targetRef` estable entre versiones en `design-element`
+- [x] Registry de add-ons (types + factory + barrel)
+- [x] `bun run typecheck` + `bun run build` en verde
 
 ## Success Criteria
 - `bun install && bun run build` sin errores.

@@ -7,7 +7,7 @@
 ## Overview
 - **Rol primario:** BE/Backend
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #8)
 - **Depende de:** F0 (repo, tsconfig, contratos en `src/lib/contracts/**`)
 - **Paralela con:** F1, F3, F11
 - **Descripción:** Schema Prisma 7 completo + migraciones (incl. 7 modelos de plataforma que consume el back-office), Better Auth 1.6 (email/password + OAuth, sesiones, RBAC B2B/B2C + plugin `admin()` para rol plataforma), cliente Prisma singleton, y estructura base de Server Actions/route handlers. **No** implementa adaptadores IA, state machine ni el back-office (eso es `src/server/ai/**`, `src/server/agent/**` y `src/server/admin/**`/`src/app/(admin)/**`); aquí solo se **declaran** los modelos y el rol que aquellos consumen.
@@ -149,19 +149,19 @@ prisma/
 11. `prisma generate` y verificar tipos en contratos compartidos.
 
 ## Todo List
-- [ ] Schema multi-file Prisma 7 con modelos core (incl. ProcessedWebhookEvent) + 7 modelos admin (admin.prisma) + tablas Better Auth
-- [ ] Tenancy uniforme: `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger; campos add-ons congelados
-- [ ] `CreditBalance` (saldo autoritativo, fila bloqueable) + `CreditHold` (máquina de estados PENDING|SETTLED|REVERTED|EXPIRED, idempotencyKey por operación, expiresAt) + `CreditLedger` auditoría append-only
-- [ ] AuditLog (append-only) / ModelConfig (seed defaults) / BrandSettings / SystemSetting / MediaAsset / MediaFolder / UsageEvent con índices
-- [ ] Migración inicial aplicada; `jsonb` verificado
-- [ ] Cliente Prisma singleton
-- [ ] Better Auth: email/password (requireEmailVerification) + email-OTP + OAuth Google+Meta + sesión; `emailOTP()` (sendVerificationOTP→send-email) + `captcha()` Turnstile (server-side, solo no-OAuth); hook que crea org implícita + CreditBalance + acredita `welcome_credits` (idempotente, UNIQUE parcial `welcome_grant`) + registra `origin`; social sin email verificado pide OTP antes de cupo gratis
-- [ ] Plugin organization() + admin() (rol plataforma) + access control B2B/B2C
-- [ ] Scoping estructural `withOrg(orgContext)` (exige OrgContext) usado en todas las Server Actions de recurso
-- [ ] Débito con lock de fila (`FOR UPDATE`) + máquina de estados CreditHold + reaper de holds huérfanos
-- [ ] Route handler `/api/auth/[...all]` + `/api/health`
-- [ ] Server Actions base de Project con guard de permisos + scoping
-- [ ] `.env.example` actualizado (coordinado con OPS)
+- [x] Schema multi-file Prisma 7 con modelos core (incl. ProcessedWebhookEvent) + 7 modelos admin (admin.prisma) + tablas Better Auth
+- [x] Tenancy uniforme: `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger; campos add-ons congelados
+- [x] `CreditBalance` (saldo autoritativo, fila bloqueable) + `CreditHold` (máquina de estados PENDING|SETTLED|REVERTED|EXPIRED, idempotencyKey por operación, expiresAt) + `CreditLedger` auditoría append-only
+- [x] AuditLog (append-only) / ModelConfig (seed defaults) / BrandSettings / SystemSetting / MediaAsset / MediaFolder / UsageEvent con índices
+- [x] Migración inicial aplicada; `jsonb` verificado
+- [x] Cliente Prisma singleton
+- [x] Better Auth: email/password (requireEmailVerification) + email-OTP + OAuth Google+Meta + sesión; `emailOTP()` (sendVerificationOTP→send-email) + `captcha()` Turnstile (server-side, solo no-OAuth); hook que crea org implícita + CreditBalance + acredita `welcome_credits` (idempotente, UNIQUE parcial `welcome_grant`) + registra `origin`; social sin email verificado pide OTP antes de cupo gratis
+- [x] Plugin organization() + admin() (rol plataforma) + access control B2B/B2C
+- [x] Scoping estructural `withOrg(orgContext)` (exige OrgContext) usado en todas las Server Actions de recurso
+- [x] Débito con lock de fila (`FOR UPDATE`) + máquina de estados CreditHold + reaper de holds huérfanos
+- [x] Route handler `/api/auth/[...all]` + `/api/health`
+- [x] Server Actions base de Project con guard de permisos + scoping
+- [x] `.env.example` actualizado (coordinado con OPS)
 
 ## Success Criteria
 - `prisma migrate` corre limpio; DB refleja modelos core + 7 modelos admin + tablas auth.
