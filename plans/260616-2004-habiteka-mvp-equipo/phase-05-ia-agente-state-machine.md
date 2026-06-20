@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** IA Engineer
 - **Prioridad:** P1 (núcleo operativo; cuello de botella del grafo)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #12)
 - **Depende de:** F2 (persistencia: `conversations`/`messages`/`project_state`), F3 (adaptadores IA)
 - **Paralela con:** F4 (canvas)
 - **Descripción:** Orquestador del agente como **máquina de estados** persistida por proyecto sobre las 5 fases del flujo (Ingesta→Cualificación→Entrega→Feedback→Add-ons). Consume `ChatVisionAdapter`/`ImageAdapter` de F3 **vía interfaz** (no los reimplementa). Cada turno y el estado de fase se persisten. Regla legal dura: no se genera ningún entregable sin estilo+tipo validados en chat.
@@ -82,16 +82,16 @@ src/server/agent/
 10. Tests: ver sección **TDD / Pruebas primero** (escribir antes del handler de cada fase). `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] State machine + transiciones + guards (incl. guard legal)
-- [ ] Repos de estado (lock optimista) y mensajes
-- [ ] Prompts versionados por fase
-- [ ] Tools de cualificación + handlers
-- [ ] Fase Ingesta (visión → elementos + disclaimer + confirmación del usuario)
-- [ ] Fase Cualificación (loop tool-calling → requisitos, stream `AgentStreamEvent`)
-- [ ] Fase Entrega (hold→genera→settle/revert; `Plano2dPayload` + render3d + memoria + sello)
-- [ ] Orquestador `advance()` + `getAgent()` stateless
-- [ ] Errores de dominio mapeando `AiError`
-- [ ] Tests de guard legal, loop, persistencia, sello — verdes
+- [x] State machine + transiciones + guards (incl. guard legal)
+- [x] Repos de estado (lock optimista) y mensajes
+- [x] Tools de cualificación + handlers
+- [x] Fase Ingesta (visión → elementos + disclaimer + confirmación del usuario)
+- [x] Fase Cualificación (loop tool-calling → requisitos; `chatStream` disponible para el stream de F6)
+- [x] Fase Entrega (hold→genera→settle/revert; `Plano2dPayload` + render3d + memoria + sello)
+- [x] Orquestador `advance()` + `getAgent()` stateless (DebitService real sobre credit-hold de F2)
+- [x] Errores de dominio (`AgentError`) mapeando fallos de IA
+- [x] Tests de guard legal, loop, persistencia, concurrencia y sello — verdes
+- [~] Prompts versionados por fase: prompts inline mínimos por ahora; centralización pendiente al iterar calidad (F-S0)
 
 ## Success Criteria
 - `advance()` recorre Ingesta→Cualificación→Entrega persistiendo estado y turnos.
