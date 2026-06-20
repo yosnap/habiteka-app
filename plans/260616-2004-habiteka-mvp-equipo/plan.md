@@ -70,7 +70,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F12 | QA: suite de pruebas | QA | todas | continua | ⬜ | [phase-12](phase-12-qa-testing.md) |
 | F13 | Licencia fair-code (legal+operativo) | ARQ | F3,F8 | F14 | ✅ #24 | [phase-13](phase-13-arq-licencia-control.md) |
 | F14 | RGPD & privacidad (bloqueante UE) | ARQ/Legal+BE | F2 | F8,F9,F10,F13 | ✅ | [phase-14](phase-14-rgpd-privacidad.md) |
-| **F19** | **Legal: ToS/EULA + cookies + DPIA (bloqueante UE)** | **ARQ/Legal+BE+FE** | **F14** | **F14** | ⬜ | [phase-legal](phase-legal-tos-cookies-dpia.md) |
+| **F19** | **Legal: ToS/EULA + cookies + DPIA (bloqueante UE)** | **ARQ/Legal+BE+FE** | **F14** | **F14** | ✅ | [phase-legal](phase-legal-tos-cookies-dpia.md) |
 | F15 | Admin: shell + gestión de usuarios | FE+BE | F2 | F16,F17,F18 | ✅ #16 | [phase-15](phase-15-admin-shell-usuarios.md) |
 | F16 | Admin: config modelos (BD) + branding + flags + productos Polar | BE+FE | F2,F3,F15 | F17,F18 | ✅ #17 | [phase-16](phase-16-admin-config-modelos-branding.md) |
 | F17 | Admin: media manager + StorageAdapter (MinIO) | BE+FE | F2,F0,F15 | F16,F18 | ✅ #18 | [phase-17](phase-17-admin-media-manager.md) |
