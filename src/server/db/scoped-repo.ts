@@ -44,8 +44,10 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
   return {
     projects: {
       list() {
+        // Solo proyectos vivos: el soft-delete (`deletedAt`) los oculta de las
+        // vistas normales sin borrarlos (papelera/retención).
         return prisma.project.findMany({
-          where: { organizationId },
+          where: { organizationId, deletedAt: null },
           select: { id: true, title: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         });
@@ -54,7 +56,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       // contexto, así que un id ajeno simplemente no encuentra nada.
       findById(id) {
         return prisma.project.findFirst({
-          where: { id, organizationId },
+          where: { id, organizationId, deletedAt: null },
           select: { id: true, title: true, createdAt: true },
         });
       },
@@ -64,10 +66,14 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           select: { id: true, title: true, createdAt: true },
         });
       },
+      // Borrado de usuario = SOFT-delete (marca `deletedAt`), no hard-delete. El
+      // borrado real (RGPD art. 17 / purga por TTL) lo hace el deletion-service.
+      // `updateMany` con el filtro de org evita tocar recursos de otra org.
       async delete(id) {
-        // `deleteMany` con el filtro de org evita borrar recursos de otra org:
-        // si el id no pertenece a la organización, no afecta a ninguna fila.
-        await prisma.project.deleteMany({ where: { id, organizationId } });
+        await prisma.project.updateMany({
+          where: { id, organizationId, deletedAt: null },
+          data: { deletedAt: new Date() },
+        });
       },
     },
 
@@ -75,7 +81,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       async load(projectId) {
         // El join por organización impide leer el canvas de un proyecto ajeno.
         const row = await prisma.canvasState.findFirst({
-          where: { projectId, project: { organizationId } },
+          where: { projectId, project: { organizationId, deletedAt: null } },
           select: { data: true },
         });
         return row?.data ?? null;
@@ -83,7 +89,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       async save(projectId, data) {
         // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR).
         const owned = await prisma.project.findFirst({
-          where: { id: projectId, organizationId },
+          where: { id: projectId, organizationId, deletedAt: null },
           select: { id: true },
         });
         if (!owned) {
@@ -102,7 +108,11 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       async list(projectId) {
         // El join por organización impide listar entregables de un proyecto ajeno.
         return prisma.deliverable.findMany({
-          where: { projectId, project: { organizationId } },
+          where: {
+            projectId,
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
           select: { id: true, type: true, payload: true, legalSeal: true, version: true },
           orderBy: { createdAt: 'desc' },
         });

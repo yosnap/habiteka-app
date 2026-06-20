@@ -22,6 +22,7 @@ model User {
   accounts    Account[]
   members     Member[]
   invitations Invitation[]
+  consents    ConsentRecord[]
 
   @@index([email])
   @@map("user")
@@ -102,6 +103,7 @@ model Organization {
   creditBalance CreditBalance?
   creditHolds   CreditHold[]
   creditLedger  CreditLedger[]
+  consents      ConsentRecord[]
 
   @@map("organization")
 }

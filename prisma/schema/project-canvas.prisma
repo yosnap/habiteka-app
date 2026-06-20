@@ -9,6 +9,9 @@ model Project {
   title          String
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  // Soft-delete: marca de borrado lógico (papelera/retención). El borrado RGPD
+  // (art. 17) y la purga por TTL hacen hard-delete real; esto NO los sustituye.
+  deletedAt      DateTime?
 
   conversations Conversation[]
   canvasState   CanvasState?
@@ -17,6 +20,7 @@ model Project {
   votingRooms   VotingRoom[]
 
   @@index([organizationId])
+  @@index([deletedAt])
   @@map("project")
 }
 
@@ -81,11 +85,14 @@ model Deliverable {
   legalSeal String
   version   Int             @default(1)
   createdAt DateTime        @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt DateTime?
 
   iterations       Iteration[]
   marketplaceItems MarketplaceItem[]
 
   @@index([projectId])
+  @@index([deletedAt])
   @@map("deliverable")
 }
 
