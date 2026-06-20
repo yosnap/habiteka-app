@@ -7,6 +7,7 @@
  * existe un método que omita el contexto, así que el aislamiento no depende de
  * que quien programa recuerde filtrar.
  */
+import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from './prisma';
 import type { OrgContext } from '@/server/auth/org-context';
 
@@ -20,6 +21,12 @@ export interface ScopedRepo {
     findById(id: string): Promise<{ id: string; title: string; createdAt: Date } | null>;
     create(input: CreateProjectInput): Promise<{ id: string; title: string; createdAt: Date }>;
     delete(id: string): Promise<void>;
+  };
+  canvas: {
+    /** Lee el estado del canvas de un proyecto de la org, o null. */
+    load(projectId: string): Promise<unknown | null>;
+    /** Guarda el estado del canvas (upsert) verificando la pertenencia del proyecto. */
+    save(projectId: string, data: unknown): Promise<void>;
   };
 }
 
@@ -53,6 +60,33 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
         // `deleteMany` con el filtro de org evita borrar recursos de otra org:
         // si el id no pertenece a la organización, no afecta a ninguna fila.
         await prisma.project.deleteMany({ where: { id, organizationId } });
+      },
+    },
+
+    canvas: {
+      async load(projectId) {
+        // El join por organización impide leer el canvas de un proyecto ajeno.
+        const row = await prisma.canvasState.findFirst({
+          where: { projectId, project: { organizationId } },
+          select: { data: true },
+        });
+        return row?.data ?? null;
+      },
+      async save(projectId, data) {
+        // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR).
+        const owned = await prisma.project.findFirst({
+          where: { id: projectId, organizationId },
+          select: { id: true },
+        });
+        if (!owned) {
+          throw new Error('Proyecto no encontrado en la organización');
+        }
+        const value = data as Prisma.InputJsonValue;
+        await prisma.canvasState.upsert({
+          where: { projectId },
+          create: { projectId, data: value },
+          update: { data: value },
+        });
       },
     },
   };
