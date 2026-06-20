@@ -42,6 +42,12 @@ export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
             🎨 Abrir el canvas (proyecto de muestra)
           </Link>
         ) : null}
+        <Link
+          href="/proyectos"
+          className="border-brand-500 text-brand-700 hover:bg-brand-50 rounded-[var(--radius-control)] border px-3 py-2 text-sm font-medium"
+        >
+          📁 Mis proyectos (frontend de usuario)
+        </Link>
         {NAV.map((n) => (
           <Link
             key={n.href}
