@@ -85,7 +85,7 @@ src/app/api/
 6. `polar/checkout-service.ts` + `api/billing/checkout/route.ts`: crear checkout (plan/créditos) con `successUrl`; requiere auth (F2).
 7. `polar/webhook-handlers.ts` + `api/webhooks/polar/route.ts`: `Webhooks({ onSubscriptionCreated/Updated/Canceled, onOrderCreated/Paid, ... })`; dedup vía `ProcessedWebhookEvent` (F2) en la **misma transacción** que la mutación de crédito; sync plan + re-emisión de créditos. `webhookSecret: POLAR_WEBHOOK_SECRET`.
 8. `errors.ts`: tipar errores de billing.
-9. Tests: débito reduce saldo y bloquea si insuficiente; webhook idempotente (reenvío no duplica); firma inválida rechazada; checkout devuelve URL; gating free vs premium. `pnpm typecheck`/`build` verdes.
+9. Tests: débito reduce saldo y bloquea si insuficiente; webhook idempotente (reenvío no duplica); firma inválida rechazada; checkout devuelve URL; gating free vs premium. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
 - [ ] Cliente Polar server-only (fail-fast)

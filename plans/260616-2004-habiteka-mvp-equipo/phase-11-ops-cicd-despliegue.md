@@ -6,7 +6,7 @@
 - **Rol primario:** OPS / DevOps
 - **Prioridad:** P1 (arranca temprano; habilita merges seguros del resto del equipo)
 - **Estado:** Planificado
-- **Depende de:** F0 (repo + scripts npm existen)
+- **Depende de:** F0 (repo + scripts Bun existen)
 - **Paralela con:** casi todas (F1–F10 mergean a través del pipeline de F11)
 - **Descripción:** Pipeline CI (lint + typecheck + test + build) en GitHub Actions, `Dockerfile` reproducible, gestión de secrets, estrategia de despliegue coherente con fair-code (Vercel o contenedor self-host), Postgres gestionado y observabilidad básica.
 
@@ -20,7 +20,7 @@
 
 ## Requirements
 **Funcionales**
-- CI en cada PR: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`. Falla el merge si algo falla.
+- CI en cada PR (Bun): `bun install --frozen-lockfile`, `bun run lint`, `bun run typecheck`, `bun test`, `bun run build`. Falla el merge si algo falla.
 - `Dockerfile` multi-stage que construye y arranca la app Next.js standalone.
 - Gestión de secrets por entorno (CI, staging, prod) sin valores en el repo.
 - Pipeline de deploy a staging en merge a `dev`; a prod en tag/release.
@@ -38,7 +38,7 @@
 .github/workflows/
   ci.yml         # PR + push: install → lint → typecheck → test → build (Postgres de servicio para tests de integración)
   deploy.yml     # merge dev → staging; release/tag → prod (migrate deploy → deploy → smoke)
-Dockerfile       # multi-stage: deps → build (output: standalone) → runner (node slim, non-root)
+Dockerfile       # multi-stage: deps+build con Bun (oven/bun) → runner con Node slim, non-root (sirve Next standalone)
 .dockerignore
 infra/
   README.md            # runbook: secrets, deploy, rollback
@@ -63,9 +63,9 @@ infra/
 **NO tocar:** `src/**`, `prisma/schema.prisma`, contratos. El endpoint `/api/health` lo implementa BE (F2); OPS solo lo consume en healthcheck.
 
 ## Implementation Steps
-1. `ci.yml`: matrix Node fijado; cache de pnpm + `.next/cache`; servicio Postgres para tests de integración; pasos lint→typecheck→test→build.
+1. `ci.yml`: `oven-sh/setup-bun` con versión fijada; cache de `~/.bun/install/cache` + `.next/cache`; servicio Postgres para tests de integración; pasos `bun install --frozen-lockfile`→lint→typecheck→test→build.
 2. Bloquear secrets en jobs de PR de forks (usar `pull_request_target` con cautela o gates de aprobación).
-3. `Dockerfile` multi-stage con `output: 'standalone'` de Next; runner non-root; `EXPOSE` + `CMD node server.js`.
+3. `Dockerfile` multi-stage: stage de build con imagen `oven/bun` (`bun install` + `bun run build`, `output: 'standalone'` de Next); **runner sobre Node slim non-root** que sirve el standalone con `CMD ["node", "server.js"]` (Bun NO sirve Next en prod, ver decisión de stack); `EXPOSE` del puerto de prod (env `PORT`, no 3040).
 4. `.dockerignore` (node_modules, .next salvo standalone, .env*, .git).
 5. Configurar GitHub Environments staging/prod con sus secrets; mapear catálogo en `infra/env.reference.md`.
 6. `deploy.yml`: en `dev`→staging y en release→prod; paso `prisma migrate deploy` ANTES de cambiar tráfico; smoke test al `/api/health` post-deploy.
@@ -101,7 +101,8 @@ infra/
 | Secrets expuestos en CI/logs/build args | Baja | Crítico | Environments + masking; nunca como build args; gate en PRs de fork |
 | Migración rompe prod al desplegar | Media | Alto | `migrate deploy` previo + smoke test; rollback de release; PITR + restore probado (no solo backup pre-migración) |
 | Pérdida de datos sin DR (backup nunca restaurado) | Baja | Crítico | PITR habilitado + RPO/RTO definidos + ejercicio de restore probado a entorno aparte antes del lanzamiento |
-| Build Next.js 16 standalone falla en Docker | Media | Medio | Probar imagen en CI; fijar versión Node; `output: standalone` validado temprano |
+| Build Next.js 16 standalone falla en Docker | Media | Medio | Probar imagen en CI; fijar versión de Bun (build) y Node (runner); `output: standalone` validado temprano |
+| Incompatibilidad de Bun con alguna lib del build (Prisma/nativas) | Media | Medio | Build con Bun validado en F0/CI temprano; runner sigue en Node; fallback a npm/pnpm solo si una lib rompe el build (no afecta runtime de prod) |
 | Decisión Vercel vs self-host bloquea deploy | Media | Medio | Soportar ambos en runbook; elegir uno para MVP; el otro queda documentado |
 | Postgres gestionado mal dimensionado (JSONB) | Baja | Medio | Plan con margen; monitor de conexiones; pool en app (config BE) |
 

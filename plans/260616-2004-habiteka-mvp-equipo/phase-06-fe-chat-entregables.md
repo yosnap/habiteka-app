@@ -79,7 +79,7 @@ src/app/(app)/projects/[id]/
 9. `render3d-viewer.tsx` + `materials-memo.tsx`: visores de imagen y texto.
 10. `deliverables-panel.tsx` + `phase-stepper.tsx`: layout de tabs + stepper sincronizado con `AgentState.phase`; deshabilitar Entrega hasta guard OK (CTA al chat).
 11. `_actions/agent-actions.ts`: Server Actions thin → F5 (`advance`); sin lógica de negocio.
-12. Tests de componente (estados, sello en export `toDataURL`, preview de coste, stepper, hook sin useEffect) + `pnpm typecheck`/`build` verdes.
+12. Tests de componente (estados, sello en export `toDataURL`, preview de coste, stepper, hook sin useEffect) + `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
 - [ ] Hook de streaming (`AgentStreamEvent`) sin useEffect (useSyncExternalStore/refs)

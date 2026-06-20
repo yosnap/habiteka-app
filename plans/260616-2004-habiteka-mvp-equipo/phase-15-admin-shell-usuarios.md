@@ -66,7 +66,7 @@ src/server/admin/
 4. `users/actions.ts`: Server Actions que revalidan `requireAdmin()` y delegan en Better Auth admin API (`listUsers`, `setRole`, `banUser`, `unbanUser`, `revokeSessions`) + `updateUser` vía Prisma.
 5. `audit.ts`: `writeAudit({actorId, action, targetType, targetId, meta})` → `AuditLog`.
 6. UI: `user-table` (paginado/filtros), `user-detail` con botones de acción (confirm dialogs en destructivas).
-7. `pnpm typecheck` + `build` verdes.
+7. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] Plugin `admin()` consumido (coordinado con F2)

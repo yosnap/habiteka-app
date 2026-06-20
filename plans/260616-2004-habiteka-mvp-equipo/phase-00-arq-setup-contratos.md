@@ -19,7 +19,7 @@
 
 ## Requirements
 **Funcionales**
-- Proyecto Next.js 16.2 App Router arranca (`pnpm dev`) con página raíz placeholder.
+- Proyecto Next.js 16.2 App Router arranca con `bun run dev` en el **puerto 3040** (script `dev` con `-p 3040`), página raíz placeholder.
 - `src/lib/contracts/` exporta todas las interfaces transversales con barrel `index.ts`.
 - `src/lib/addons/registry/` exporta interfaz `AddonDefinition`, tipos de slots y un `createAddonRegistry()` puro (sin lógica de UI).
 - Path alias `@/*` configurado en tsconfig.
@@ -78,14 +78,14 @@ Contratos como **capa de tipos pura** (zero runtime salvo el registry). Diseño 
 **NO tocar (otros owners):** `prisma/**`, `src/server/**`, `src/app/(app)/**`, `src/components/**`, `.github/**`.
 
 ## Implementation Steps
-1. `pnpm create next-app` con TS, App Router, Tailwind v4; fijar versiones exactas del stack en `package.json`.
+1. `bun create next-app` (o `bunx create-next-app`) con TS, App Router, Tailwind v4; fijar versiones exactas del stack en `package.json`. Commitear `bun.lock` (no usar npm/pnpm lockfiles). Definir script `"dev": "next dev -p 3040"`.
 2. `tsconfig.json`: `strict`, `noUncheckedIndexedAccess`, alias `@/*`.
 3. Configurar ESLint + Prettier (no estricto en formato; sí en errores de compilación).
 4. Inicializar shadcn/ui (CLI) — solo config base; tokens los define UX en F1.
 5. Crear `.env.example` con nombres de secrets (sin valores): `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`.
 6. Escribir cada contrato en `src/lib/contracts/` (un fichero por dominio) + barrel. Incluir los 5 nuevos (`plano2d-payload`, `canvas-zone`, `design-element`, `product-drop-payload`, `agent-stream`) y el `Collected` tipado en `agent-state`.
 7. Escribir `registry/types.ts` + `create-registry.ts` (Map id→def, `register`/`get`/`list`, valida `sdkVersion`).
-8. `pnpm typecheck` y `pnpm build` deben pasar en verde con contratos importados desde un módulo de prueba.
+8. `bun run typecheck` y `bun run build` deben pasar en verde con contratos importados desde un módulo de prueba.
 9. Documentar en `docs/code-standards.md` la regla: comentarios explican el *porqué*, nunca el nº de fase del plan.
 
 ## Todo List
@@ -98,10 +98,10 @@ Contratos como **capa de tipos pura** (zero runtime salvo el registry). Diseño 
 - [ ] `Collected` tipado en `agent-state` (fuente del guard legal)
 - [ ] `targetRef` estable entre versiones en `design-element`
 - [ ] Registry de add-ons (types + factory + barrel)
-- [ ] `typecheck` + `build` en verde
+- [ ] `bun run typecheck` + `bun run build` en verde
 
 ## Success Criteria
-- `pnpm install && pnpm build` sin errores.
+- `bun install && bun run build` sin errores.
 - Cualquier rol puede `import { ChatVisionAdapter, AgentState, Deliverable, AddonDefinition } from '@/lib/contracts'`.
 - Registry registra/lista una `AddonDefinition` de ejemplo en un test unitario.
 - Cero `any` en `src/lib/contracts/**`.

@@ -74,7 +74,7 @@ src/app/(app)/voting/[roomId]/
 7. `ui/use-room-poll.ts`: polling ~2s con pausa por `document.hidden`; backoff ante error.
 8. `ui/voting-room.tsx` + `element-vote-list.tsx` + `comment-thread.tsx` + `share-link.tsx`: sala, lista votable, hilos, copia de enlace.
 9. `app/(app)/voting/[roomId]/page.tsx`: vista que monta la sala; sin sesión → CTA login y retorno.
-10. Tests (delegados a F12): upsert no duplica voto; deltas devuelven solo lo nuevo; sala requiere auth para mutar. `pnpm typecheck`/`build` verdes.
+10. Tests (delegados a F12): upsert no duplica voto; deltas devuelven solo lo nuevo; sala requiere auth para mutar. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
 - [ ] `AddonDefinition` de votación registrado en el registry (slots)

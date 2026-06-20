@@ -71,7 +71,7 @@ prisma/seed/
 7. `ui/catalog-palette.tsx` + `product-card.tsx`: paleta en `canvas.toolbar`; tarjetas draggable.
 8. `ui/use-product-drag.ts`: produce payload de producto; el drop lo resuelve la API del canvas de F4.
 9. `ui/affiliate-disclosure.tsx`: texto de divulgación visible junto al catálogo.
-10. Tests (delegados a F12): catálogo lee seed; `affiliate` registra clic y redirige a URL allowlisted; URL no-allowlisted rechazada. `pnpm typecheck`/`build` verdes.
+10. Tests (delegados a F12): catálogo lee seed; `affiliate` registra clic y redirige a URL allowlisted; URL no-allowlisted rechazada. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
 - [ ] `AddonDefinition` de marketplace registrado en el registry (slots)

@@ -67,7 +67,7 @@ src/server/admin/branding/
 5. `branding-loader.ts` + `branding.actions.ts`: CRUD `BrandSettings`, selección de assets de F17, caché+invalidación.
 6. `system.actions.ts`: CRUD `SystemSetting` (flags/límites), incluidos `welcome_credits`, `free_iterations_per_deliverable` (default 3) y `accounts_per_origin_limit` (validación entero ≥0 + techo; `writeAudit()`). F2/F8 leen el valor actual en cada decisión (no se cachea stale) → cambio en caliente sin redeploy.
 7. UI editores (shadcn forms) en `(admin)/config/**`.
-8. `pnpm typecheck` + `build` verdes.
+8. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] Modelos propuestos a F2 (`ModelConfig`/`BrandSettings`/`SystemSetting`) + seed
