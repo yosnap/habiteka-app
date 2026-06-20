@@ -8,7 +8,7 @@
 ## Overview
 - **Rol primario:** BE+FE (back-office)
 - **Prioridad:** P2
-- **Estado:** Planificado
+- **Estado:** Completado (PR #17) — incluye creación de productos Polar vía API desde el admin
 - **Depende de:** F2 (BD, modelos nuevos), F3 (adaptadores que consumen la config de modelos), F15 (`requireAdmin`/`writeAudit`/shell)
 - **Paralela con:** F15, F17, F18
 - **Descripción:** Panel admin para (a) **mapeo ACCIÓN→MODELO** de OpenRouter editable en BD (acciones: `vision`, `chat`, `plano2d`, `render3d`, `inpaint`, `memoria`; cada una con modelo primario + fallbacks); (b) **branding** completo (logo, logo móvil, colores/identidad) persistido y consumido por la app; (c) **config general** del sistema (feature flags, límites). El adaptador de F3 **lee** la tabla de config en runtime (no hardcodea).
@@ -70,13 +70,14 @@ src/server/admin/branding/
 8. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] Modelos propuestos a F2 (`ModelConfig`/`BrandSettings`/`SystemSetting`) + seed
-- [ ] Editor acción→modelo+fallbacks (validación ≤3 + allowlist + techo de precio; selector cerrado, no input libre) que escribe `ModelConfig` + llama `invalidate()` de F3
-- [ ] F3 implementa/consume el loader (coordinado, F3 edita su fichero)
-- [ ] `branding-loader` + editor brand kit (refs a assets F17)
-- [ ] Editor de feature flags / límites + parámetros anti-abuso (`welcome_credits`, `free_iterations_per_deliverable` default 3, `accounts_per_origin_limit`) con validación ≥0
-- [ ] `writeAudit()` en toda mutación de config
-- [ ] Tests TDD rojo→verde
+- [x] Modelos `ModelConfig`/`BrandSettings`/`SystemSetting` (de F2; consumidos) + seed
+- [x] Editor acción→modelo+fallbacks (validación ≤3 + allowlist + techo de precio) que escribe `ModelConfig` + llama `invalidateModelConfig()` de F3
+- [x] F3 consume el loader (ya existente de F3; invalidate cableado desde el admin)
+- [x] `branding-loader` (caché+invalidate) + ops de brand kit (validación hex)
+- [x] Editor de feature flags / límites + parámetros anti-abuso (`welcome_credits`, `free_iterations_per_deliverable`, `accounts_per_origin_limit`, `global_spend_cap_usd`) con validación entero ≥0 + techo
+- [x] `writeAudit()` en toda mutación de config
+- [x] **Creación de productos Polar vía API (`polar.products.create`) desde el admin** + id guardado en `SystemSetting`
+- [x] Tests TDD rojo→verde (validación, invalidación de caché, hex, producto Polar con mock)
 
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor):

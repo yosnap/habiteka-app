@@ -72,7 +72,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F14 | RGPD & privacidad (bloqueante UE) | ARQ/Legal+BE | F2 | F8,F9,F10,F13 | ⬜ | [phase-14](phase-14-rgpd-privacidad.md) |
 | **F19** | **Legal: ToS/EULA + cookies + DPIA (bloqueante UE)** | **ARQ/Legal+BE+FE** | **F14** | **F14** | ⬜ | [phase-legal](phase-legal-tos-cookies-dpia.md) |
 | F15 | Admin: shell + gestión de usuarios | FE+BE | F2 | F16,F17,F18 | ✅ #16 | [phase-15](phase-15-admin-shell-usuarios.md) |
-| F16 | Admin: config modelos (BD) + branding + flags | BE+FE | F2,F3,F15 | F17,F18 | ⬜ | [phase-16](phase-16-admin-config-modelos-branding.md) |
+| F16 | Admin: config modelos (BD) + branding + flags + productos Polar | BE+FE | F2,F3,F15 | F17,F18 | ✅ #17 | [phase-16](phase-16-admin-config-modelos-branding.md) |
 | F17 | Admin: media manager + StorageAdapter (MinIO) | BE+FE | F2,F0,F15 | F16,F18 | ⬜ | [phase-17](phase-17-admin-media-manager.md) |
 | F18 | Admin: analítica, facturación & auditoría | BE+FE | F2,F3,F8,F15 | F16,F17 | ⬜ | [phase-18](phase-18-admin-analitica-facturacion-logs.md) |
 
