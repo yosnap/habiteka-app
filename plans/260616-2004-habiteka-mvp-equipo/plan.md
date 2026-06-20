@@ -74,7 +74,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F15 | Admin: shell + gestión de usuarios | FE+BE | F2 | F16,F17,F18 | ✅ #16 | [phase-15](phase-15-admin-shell-usuarios.md) |
 | F16 | Admin: config modelos (BD) + branding + flags + productos Polar | BE+FE | F2,F3,F15 | F17,F18 | ✅ #17 | [phase-16](phase-16-admin-config-modelos-branding.md) |
 | F17 | Admin: media manager + StorageAdapter (MinIO) | BE+FE | F2,F0,F15 | F16,F18 | ✅ #18 | [phase-17](phase-17-admin-media-manager.md) |
-| F18 | Admin: analítica, facturación & auditoría | BE+FE | F2,F3,F8,F15 | F16,F17 | ⬜ | [phase-18](phase-18-admin-analitica-facturacion-logs.md) |
+| F18 | Admin: analítica, facturación & auditoría | BE+FE | F2,F3,F8,F15 | F16,F17 | ✅ #19 | [phase-18](phase-18-admin-analitica-facturacion-logs.md) |
 
 ## Dependencias clave externas
 
