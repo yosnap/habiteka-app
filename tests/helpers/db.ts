@@ -19,10 +19,22 @@ export async function resetDb(): Promise<void> {
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
       "credit_ledger", "credit_hold", "credit_balance", "subscription",
-      "project", "organization", "audit_log", "usage_event",
-      "processed_webhook_event"
+      "project", "member", "organization", "user",
+      "audit_log", "usage_event", "processed_webhook_event"
     RESTART IDENTITY CASCADE
   `);
+}
+
+/** Crea un usuario mínimo (las FKs de organización/miembro lo requieren). */
+export async function makeUser(
+  email?: string,
+): Promise<{ id: string; email: string; name: string }> {
+  const id = `user-${uniqueSuffix()}`;
+  const finalEmail = email ?? `${id}@example.com`;
+  await prisma.user.create({
+    data: { id, name: `User ${id}`, email: finalEmail, emailVerified: true },
+  });
+  return { id, email: finalEmail, name: `User ${id}` };
 }
 
 /** Crea una organización con su saldo inicial. Devuelve su id. */
