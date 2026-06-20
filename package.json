@@ -18,6 +18,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:dev-seed": "bun run prisma/dev-seed.ts",
+    "spike:calidad": "RUN_SPIKE=true vitest run tests/spikes",
     "postinstall": "prisma generate"
   },
   "dependencies": {

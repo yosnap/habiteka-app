@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** IA + Producto
 - **Prioridad:** P1 (**GATE bloqueante: si NO pasa, M2 no arranca**)
-- **Estado:** Planificado
+- **Estado:** 🟡 Andamiaje listo — arnés (`tests/spikes/**`), docs (`docs/spikes/calidad-ia/**`), script `spike:calidad` y vars de entorno preparados (tests se omiten sin `RUN_SPIKE`). **La EJECUCIÓN y la DECISIÓN GO/NO-GO requieren dev-keys reales + juicio humano** (no autónomo). Nota: solo FLUX está implementado; Nano Banana/Imagen son stubs.
 - **Depende de:** F0 (contratos, repo), F3 (adaptadores mínimos: `ImageAdapter.generate`/`inpaint` conmutables por env + `ChatVisionAdapter` para visión sobre bocetos)
 - **Paralela con:** — (es un spike previo; corre tras F3 y antes de cualquier fase de M2)
 - **Descripción:** Validar empíricamente que la **calidad del entregable IA** (render 3D + plano 2D, y la fiabilidad de la detección de visión sobre boceto) es suficiente para que un usuario objetivo pague — ANTES de construir el resto del producto. Cierra la decisión §9.1 (proveedor de imagen) y da luz verde (o no) a M2. Sin este gate, las 18 fases se construyen sobre una apuesta no verificada (el valor central del producto).
@@ -66,14 +66,19 @@ tests/spikes/
 7. Comunicar el veredicto al equipo: si GO, M2 arranca con el proveedor fijado en `IMAGE_PROVIDER`; si NO-GO, M2 se detiene y se replantea (pricing/segmento/proveedor).
 
 ## Todo List
-- [ ] Set de entradas reales (bocetos+fotos) anonimizado
-- [ ] Ground-truth anotado para detección de visión
-- [ ] `image-quality-harness` (dispara cada proveedor → samples + coste/latencia)
-- [ ] `vision-detection-accuracy` (tasa de acierto sobre bocetos)
-- [ ] `rubric.md` + evaluación interna
-- [ ] Sesión de evaluación con usuarios objetivo
-- [ ] `decision.md`: proveedor elegido (§9.1) + GO/NO-GO documentado
-- [ ] Veredicto comunicado al equipo (gate a M2)
+**Andamiaje (hecho, listo para ejecutar):**
+- [x] `image-quality-harness` (dispara el proveedor activo → samples + coste/latencia; skip sin `RUN_SPIKE`)
+- [x] `vision-detection-accuracy` (tasa de acierto sobre bocetos vs ground-truth)
+- [x] `rubric.md` (criterios + umbral GO a fijar) + `decision.md` (plantilla) + READMEs de inputs/samples
+- [x] Script `spike:calidad` + vars `.env.example` (`RUN_SPIKE`, `SPIKE_VISION_MODEL`)
+
+**Ejecución (requiere dev-keys reales + juicio humano):**
+- [ ] Set de entradas reales (bocetos+fotos) anonimizado → `inputs/` (formato en `inputs/README.md`)
+- [ ] Ground-truth anotado en `inputs/cases.json`
+- [ ] Ejecutar el arnés por proveedor (FLUX real hoy; Nano Banana/Imagen son stubs, implementar antes de comparar los 3)
+- [ ] Evaluación interna con `rubric.md` + **sesión con usuarios objetivo** (`user-eval-results.md`)
+- [ ] `decision.md`: proveedor elegido (§9.1) + GO/NO-GO por evidencia
+- [ ] Veredicto comunicado (gate a M2)
 
 ## Success Criteria
 - 15-20 muestras reales generadas por **cada** candidato de proveedor, versionadas en `samples/`.
