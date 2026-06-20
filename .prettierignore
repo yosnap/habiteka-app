@@ -1,0 +1,10 @@
+.next/
+out/
+build/
+coverage/
+node_modules/
+bun.lock
+public/
+plans/
+docs/
+next-env.d.ts
