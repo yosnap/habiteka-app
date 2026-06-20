@@ -143,8 +143,10 @@ Globs **disjuntos:** NO hay overlaps. Cambios en otra zona = PR con revisión de
 > **Runtime:** Bun es el package manager y ejecutor de scripts/tests (`bun install`, `bun run`, `bun test`); Node sirve la app en prod/Docker. Dev local arranca en el puerto **3040** (`bun run dev`).
 
 - **Build:** `bun run build` → sin errores TypeScript.
+- **Typecheck:** `bun run typecheck` (`tsc --noEmit`) → contratos sin `any`; el guard legal tipado debe seguir rechazando estados incompletos.
 - **Linting:** `bun run lint` → obligatorio antes de commit (pre-commit hook).
-- **Format:** Prettier vía pre-commit.
+- **Format:** `bun run format` (escribe) / `bun run format:check` (verifica) con Prettier. Ignora `docs/` y `plans/` (markdown con formato propio).
+- **Tests:** `bun run test` (Vitest). Incluye el typecheck-como-test de los 11 contratos y el guard legal a nivel de tipos.
 
 ## Resumen
 
