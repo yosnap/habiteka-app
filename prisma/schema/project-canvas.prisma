@@ -1,0 +1,105 @@
+// Proyecto y todo lo que cuelga de él: diálogo del agente, estado del canvas,
+// estado de la máquina de 5 fases y entregables con su historial de iteraciones.
+// Todo recurso cuelga de `organizationId` (tenancy uniforme).
+
+model Project {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  conversations Conversation[]
+  canvasState   CanvasState?
+  agentState    AgentState?
+  deliverables  Deliverable[]
+  votingRooms   VotingRoom[]
+
+  @@index([organizationId])
+  @@map("project")
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@index([projectId])
+  @@map("conversation")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  // Partes del mensaje (texto/imagen) serializadas; mapea a jsonb.
+  content        Json
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@map("message")
+}
+
+// Objetos del canvas (Konva) serializados. Una fila por proyecto.
+model CanvasState {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  data      Json
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("canvas_state")
+}
+
+// Estado persistido de la máquina de 5 fases. `version` habilita lock optimista
+// para que el orquestador no pise una actualización concurrente.
+model AgentState {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase     String
+  // `Collected` (objetivo/estilo/entregables/detectados) serializado.
+  collected Json
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("agent_state")
+}
+
+model Deliverable {
+  id        String          @id @default(cuid())
+  projectId String
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      DeliverableType
+  // Payload tipado según el tipo (plano 2D / render / memoria); mapea a jsonb.
+  payload   Json
+  legalSeal String
+  version   Int             @default(1)
+  createdAt DateTime        @default(now())
+
+  iterations       Iteration[]
+  marketplaceItems MarketplaceItem[]
+
+  @@index([projectId])
+  @@map("deliverable")
+}
+
+// Feedback dirigido sobre una zona del entregable (inpainting / regeneración).
+model Iteration {
+  id            String      @id @default(cuid())
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  // Zona normalizada seleccionada en el canvas; mapea a jsonb.
+  zone          Json
+  instruction   String
+  resultRef     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([deliverableId])
+  @@map("iteration")
+}

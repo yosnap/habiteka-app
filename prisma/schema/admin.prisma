@@ -1,0 +1,107 @@
+// Modelos de plataforma que consume el back-office. Aquí solo se DECLARAN; las
+// pantallas de administración los leen/escriben en fases posteriores sin tocar
+// este schema. AuditLog y UsageEvent son append-only (lo refuerza un trigger SQL
+// en la migración, además de no exponer update/delete en los repos).
+
+// Traza de acciones administrativas. Append-only: fuente fiable, no falsificable.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_log")
+}
+
+// Mapeo acción→modelo de IA, editable en runtime sin redeploy. `provider`/
+// `baseURL` permiten el fallback de gateway (valor de allowlist, no arbitrario).
+// NO almacena API keys: solo nombres de modelo y flags.
+model ModelConfig {
+  id           String      @id @default(cuid())
+  action       ModelAction @unique
+  primaryModel String
+  fallbacks    String[]
+  provider     String?
+  baseURL      String?
+  enabled      Boolean     @default(true)
+  updatedAt    DateTime    @updatedAt
+
+  @@map("model_config")
+}
+
+// Configuración de marca (singleton). El logo referencia un MediaAsset.
+model BrandSettings {
+  id                String   @id @default(cuid())
+  brandName         String
+  logoAssetId       String?
+  logoMobileAssetId String?
+  colors            Json?
+  updatedAt         DateTime @updatedAt
+
+  @@map("brand_settings")
+}
+
+// Feature flags y límites/cuotas configurables (welcome_credits, caps, etc.).
+model SystemSetting {
+  id      String  @id @default(cuid())
+  key     String  @unique
+  value   Json
+  enabled Boolean @default(true)
+
+  @@map("system_setting")
+}
+
+// Carpeta del gestor de media (jerarquía auto-referenciada).
+model MediaFolder {
+  id        String        @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    MediaFolder?  @relation("MediaFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MediaFolder[] @relation("MediaFolderTree")
+  assets    MediaAsset[]
+  createdAt DateTime      @default(now())
+
+  @@index([parentId])
+  @@map("media_folder")
+}
+
+model MediaAsset {
+  id        String       @id @default(cuid())
+  folderId  String?
+  folder    MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  key       String
+  url       String
+  mime      String
+  size      Int
+  width     Int?
+  height    Int?
+  status    MediaStatus  @default(PENDING)
+  createdBy String
+  createdAt DateTime     @default(now())
+
+  @@index([folderId])
+  @@map("media_asset")
+}
+
+// Telemetría de consumo de IA (append-only), separada del ledger contable.
+model UsageEvent {
+  id        String    @id @default(cuid())
+  userId    String?
+  orgId     String?
+  action    String
+  unit      UsageUnit
+  amount    Int
+  cost      Decimal   @db.Decimal(12, 6)
+  refId     String?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([userId])
+  @@map("usage_event")
+}

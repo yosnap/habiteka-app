@@ -67,7 +67,15 @@ jobs:
             nextjs-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
 
       - name: Install dependencies
+        # `postinstall` genera el cliente Prisma; lo necesitan typecheck y build.
         run: bun install --frozen-lockfile
+
+      - name: Apply migrations + seed
+        # Los tests de integración corren contra la Postgres de servicio: se
+        # aplican las migraciones (valida que son correctas) y el seed de defaults.
+        run: |
+          bun run db:deploy
+          bun run db:seed
 
       - name: Lint
         run: bun run lint
