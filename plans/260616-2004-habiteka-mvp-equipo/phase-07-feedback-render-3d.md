@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** IA + Backend
 - **Prioridad:** P1 (MVP incluye feedback por zona + render 3D — decisión usuario)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #14)
 - **Depende de:** F5 (state machine y entregables), F6 (UI de selección en panel/canvas), F3 (consume `ImageAdapter.inpaint` vía interfaz — no edita su subárbol)
 - **Paralela con:** F9, F10 (add-ons)
 - **Descripción:** Implementa la **Fase 4** del flujo: feedback por **zona**. El usuario selecciona objeto/pared/área → modificación **selectiva** manteniendo el resto intacto. Render 3D fotorrealista + **inpainting/edición dirigida** vía `ImageAdapter`. Regeneración **parcial** estructurada del plano 2D. **Versionado** de iteraciones. Extiende la SM de F5 sin reescribirla.
@@ -67,14 +67,14 @@ src/app/api/iterations/
 8. Tests: ver sección **TDD / Pruebas primero** (escribir antes de cada módulo). `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
-- [ ] `zone-resolver` (zona UI → región normalizada)
-- [ ] `mask-builder` en `agent/feedback/` (región → máscara, formato del contrato `InpaintRequest`/`CanvasZone` F0)
-- [ ] `directed-inpaint` consumiendo `ImageAdapter.inpaint` vía interfaz (F3, sin editar `ai/**`)
-- [ ] `partial-plan-editor` (regeneración parcial del JSON, resto intacto)
-- [ ] `iteration-repo` (versionado tx + inmutabilidad + historial)
-- [ ] `feedback-orchestrator` (despacho + reaplicar sello + débito créditos)
-- [ ] `POST/GET /api/iterations` con auth
-- [ ] Tests de selectividad, versionado, sello — verdes
+- [x] `zone-resolver` (zona UI → región normalizada, validada)
+- [x] `mask-builder` en `agent/feedback/` (región → zona de `InpaintRequest`, formato del contrato F0)
+- [x] `directed-inpaint` consumiendo `ImageAdapter.inpaint` vía interfaz (F3, sin editar `ai/**`)
+- [x] `partial-plan-editor` (regeneración parcial del JSON, resto intacto por referencia)
+- [x] `iteration-repo` (versionado tx + inmutabilidad de previas + historial; scoping anti-IDOR)
+- [x] `feedback-orchestrator` (despacho render/plano + reaplicar sello + débito hold/settle/revert)
+- [x] `POST/GET /api/iterations` con auth + scoping
+- [x] Tests de selectividad, versionado, inmutabilidad, sello, anti-IDOR — verdes
 
 ## Success Criteria
 - Modificar una zona del render3d cambia solo esa región; el resto del asset permanece estable (test).
