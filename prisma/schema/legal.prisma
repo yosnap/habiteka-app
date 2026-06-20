@@ -1,0 +1,31 @@
+// Instrumentos jurídicos (F19): aceptación de Términos de Servicio y
+// consentimiento de cookies (ePrivacy). Ambos son append-only para trazar QUÉ
+// versión aceptó cada usuario y CUÁNDO, igual que el consentimiento de privacidad.
+
+model TosAcceptance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Versión del documento de Términos aceptada (trazabilidad).
+  version   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("tos_acceptance")
+}
+
+model CookieConsent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Categorías no esenciales aceptadas (analytics/affiliate); las necesarias se
+  // asumen siempre. Se guardan como flags para respetarlas en el tracking.
+  analytics Boolean  @default(false)
+  affiliate Boolean  @default(false)
+  // Versión de la política de cookies vigente al consentir.
+  version   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("cookie_consent")
+}

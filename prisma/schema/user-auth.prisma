@@ -20,9 +20,11 @@ model User {
 
   sessions    Session[]
   accounts    Account[]
-  members     Member[]
-  invitations Invitation[]
-  consents    ConsentRecord[]
+  members        Member[]
+  invitations    Invitation[]
+  consents       ConsentRecord[]
+  tosAcceptances TosAcceptance[]
+  cookieConsents CookieConsent[]
 
   @@index([email])
   @@map("user")
