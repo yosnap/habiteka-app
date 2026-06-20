@@ -1,0 +1,37 @@
+# Artefactos y dependencias: se regeneran en el build.
+node_modules
+.next
+out
+build
+coverage
+
+# Secretos y entorno local: nunca entran en la imagen.
+.env
+.env.*
+!.env.example
+
+# Control de versiones y metadatos.
+.git
+.github
+.gitignore
+
+# Documentación y planificación: no forman parte del runtime.
+docs
+plans
+infra
+README*.md
+AGENTS.md
+CLAUDE.md
+
+# Configuración de editor/herramientas de desarrollo.
+.vscode
+.idea
+.editorconfig
+.prettierrc
+.prettierignore
+.claude
+
+# Tests: no se ejecutan dentro de la imagen de producción.
+tests
+**/*.test.ts
+vitest.config.ts
