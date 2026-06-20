@@ -28,6 +28,14 @@ export interface ScopedRepo {
     /** Guarda el estado del canvas (upsert) verificando la pertenencia del proyecto. */
     save(projectId: string, data: unknown): Promise<void>;
   };
+  deliverables: {
+    /** Lista los entregables de un proyecto de la org (los más recientes primero). */
+    list(
+      projectId: string,
+    ): Promise<
+      Array<{ id: string; type: string; payload: unknown; legalSeal: string; version: number }>
+    >;
+  };
 }
 
 export function withOrg(ctx: OrgContext): ScopedRepo {
@@ -86,6 +94,17 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           where: { projectId },
           create: { projectId, data: value },
           update: { data: value },
+        });
+      },
+    },
+
+    deliverables: {
+      async list(projectId) {
+        // El join por organización impide listar entregables de un proyecto ajeno.
+        return prisma.deliverable.findMany({
+          where: { projectId, project: { organizationId } },
+          select: { id: true, type: true, payload: true, legalSeal: true, version: true },
+          orderBy: { createdAt: 'desc' },
         });
       },
     },

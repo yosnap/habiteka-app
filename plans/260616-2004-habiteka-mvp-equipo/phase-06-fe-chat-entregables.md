@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** Frontend
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #13)
 - **Depende de:** F4 (canvas Konva), F5 (orquestador del agente)
 - **Paralela con:** F8 (créditos+pagos)
 - **Descripción:** UI del chat de cualificación con streaming, panel de entregables (plano 2D renderizado en canvas, render 3D, memoria de materiales), sello legal **visible** y navegación entre las 5 fases. Integra con el canvas (F4) y el agente (F5) sin reimplementar lógica de IA ni de orquestación.
@@ -82,15 +82,16 @@ src/app/(app)/projects/[id]/
 12. Tests de componente (estados, sello en export `toDataURL`, preview de coste, stepper, hook sin useEffect) + `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
-- [ ] Hook de streaming (`AgentStreamEvent`) sin useEffect (useSyncExternalStore/refs)
-- [ ] Chat (lista + input + quick-picks de estilo + picker de entregables)
-- [ ] Preview de coste: "Gratis (te quedan K de N)" para iteración con cupo, "~M créditos" agotado/entregable nuevo (lee F8)
-- [ ] Sello legal: capa Konva dentro del Stage (export) + refuerzo DOM + disclaimer de carga
-- [ ] Visor plano2d en canvas (capa read-only F4)
-- [ ] Visor render3d + memoria de materiales
-- [ ] Panel de entregables + stepper de fases sincronizado
-- [ ] Server Actions thin a F5
-- [ ] Tests de componente + typecheck/build verdes
+- [x] Hook de streaming (`AgentStreamEvent`) sin useEffect (useSyncExternalStore sobre store externo)
+- [x] Chat (lista + input + quick-picks de estilo + picker de entregables)
+- [x] Preview de coste: "Gratis (te quedan K de N)" para iteración con cupo, "~M créditos" agotado/entregable nuevo (función pura que refleja F8)
+- [x] Sello legal: capa Konva dentro del Stage (export) + refuerzo DOM + texto único compartido
+- [x] Visor plano2d en canvas (mapeo `Plano2dPayload`→primitivas Konva)
+- [x] Visor render3d + memoria de materiales (texto plano, anti-XSS)
+- [x] Panel de entregables + stepper de fases sincronizado (entrega bloqueada hasta guard OK)
+- [x] Server Actions thin a F5 (`advanceAgent`)
+- [x] Tests de componente (stream store, preview de coste, mapeo plano2d) + typecheck/build verdes
+- [~] Cableado del stream a un route handler real de F5 (el store + hook están listos; el endpoint de streaming se conecta al integrar end-to-end, F-INT)
 
 ## Success Criteria
 - El chat muestra tokens en streaming y consolida estilo+entregables vía las quick-picks/picker.
