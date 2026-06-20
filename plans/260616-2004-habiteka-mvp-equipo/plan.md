@@ -65,7 +65,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F8 | Créditos hold/settle & pagos (Polar) | BE | F2,F6 | F7 | ✅ #15 | [phase-08](phase-08-be-creditos-pagos.md) |
 | **F-INT** | **Integración end-to-end (flujo vivo, sin mocks)** | **Tech Lead/Fullstack** | **F5,F6,F7,F8** | **—** | ⬜ | [phase-int](phase-integracion-e2e.md) |
 | F9 | Add-on Votación comunitaria | FE+BE | F4,F6 | F10 | ✅ #20 | [phase-09](phase-09-addon-votacion.md) |
-| F10 | Add-on Marketplace | FE+BE | F4,F6 | F9 | ⬜ | [phase-10](phase-10-addon-marketplace.md) |
+| F10 | Add-on Marketplace | FE+BE | F4,F6 | F9 | ✅ #21 | [phase-10](phase-10-addon-marketplace.md) |
 | F11 | DevOps: CI/CD & despliegue | OPS | F0 | casi todas | ✅ #7 | [phase-11](phase-11-ops-cicd-despliegue.md) |
 | F12 | QA: suite de pruebas | QA | todas | continua | ⬜ | [phase-12](phase-12-qa-testing.md) |
 | F13 | Licencia fair-code (legal+operativo) | ARQ | F3,F8 | F14 | ⬜ | [phase-13](phase-13-arq-licencia-control.md) |
