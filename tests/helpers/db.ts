@@ -20,7 +20,8 @@ export async function resetDb(): Promise<void> {
     TRUNCATE TABLE
       "credit_ledger", "credit_hold", "credit_balance", "subscription",
       "project", "member", "organization", "user",
-      "audit_log", "usage_event", "processed_webhook_event"
+      "audit_log", "usage_event", "processed_webhook_event",
+      "media_asset", "media_folder"
     RESTART IDENTITY CASCADE
   `);
 }
