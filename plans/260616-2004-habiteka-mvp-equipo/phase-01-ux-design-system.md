@@ -8,7 +8,7 @@
 ## Overview
 - **Rol primario:** UX/Diseño
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #10)
 - **Depende de:** F0 (setup, Tailwind v4 + shadcn instalados)
 - **Paralela con:** F2, F3, F11
 - **Descripción:** Define flujos de las 5 fases, wireframes conceptuales, design system (tokens, tipografía, color), componentes base, estados (carga/error/vacío), ubicación de disclaimers legales y accesibilidad. Entrega specs en `docs/ux/**` y tokens reales en `src/styles/**`. No implementa lógica de negocio.
@@ -95,18 +95,18 @@
 9. Checklist accesibilidad WCAG 2.2 AA en `accessibility.md` (contraste, foco, teclado, ARIA, motion-reduce).
 
 ## Todo List
-- [ ] User flows de las 5 fases documentados
-- [ ] Wireframes ASCII de 5 pantallas
-- [ ] Design system (tokens, tipografía, color, espaciado)
-- [ ] `tokens.css` con `@theme` Tailwind v4 funcional
-- [ ] Catálogo de componentes base → shadcn
-- [ ] Estados loading/error/vacío definidos
-- [ ] Onboarding del canvas (plantillas/ejemplos + estado vacío guiado)
-- [ ] Affordance de feedback por zona (hover-highlight + hint)
-- [ ] Copy de producto sin jerga de fases (mapa fase→lenguaje usuario)
-- [ ] Specs de ambos disclaimers legales (tono equilibrado B2C)
-- [ ] Auth UI: OAuth Google+Meta + email (password/OTP); widget Turnstile solo en formulario no-OAuth; estados OTP y verificación social pendiente
-- [ ] Checklist accesibilidad WCAG 2.2 AA
+- [x] User flows de las 5 fases documentados
+- [x] Wireframes ASCII de 5 pantallas
+- [x] Design system (tokens, tipografía, color, espaciado)
+- [x] `tokens.css` con `@theme` Tailwind v4 funcional
+- [x] Catálogo de componentes base → shadcn
+- [x] Estados loading/error/vacío definidos
+- [x] Onboarding del canvas (plantillas/ejemplos + estado vacío guiado)
+- [x] Affordance de feedback por zona (hover-highlight + hint)
+- [x] Copy de producto sin jerga de fases (mapa fase→lenguaje usuario)
+- [x] Specs de ambos disclaimers legales (tono equilibrado B2C)
+- [x] Auth UI (spec): OAuth Google+Meta + email (password/OTP); Turnstile solo en formulario no-OAuth; estados OTP/verificación social — render en F4/F6
+- [x] Checklist accesibilidad WCAG 2.2 AA
 
 ## Success Criteria
 - 5 flujos + 5 wireframes revisables sin ambigüedad por FE.
