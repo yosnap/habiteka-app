@@ -81,7 +81,7 @@ src/server/ai/
 10. `image/provider-image-adapter.ts`: fachada que delega al proveedor activo, **aplica `call-limits` (dimensiones/tamaño)** y normaliza `ImageResult`.
 11. `index.ts`: factories singleton-por-proceso seguras (sin estado por request), que cablean `spend-guard` antes de cada llamada IA.
 12. Tests unitarios con SDK mockeado (HTTP interceptado): json_schema válido, fallback al 2º modelo, parse de `usage`/coste-imagen, error de refusal, cap de gasto dispara circuit-breaker, sanitizer rechaza magic bytes inválidos / `image_url` externa. Smoke test real opcional tras una key de dev (no en CI).
-13. `pnpm typecheck` + `pnpm build` verdes.
+13. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] `gateway-client` (baseURL+key server-side, fail-fast) + `gateway-fallback` (conmuta a secundario si primario cae; OpenRouter es SPOF)

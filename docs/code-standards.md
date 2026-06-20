@@ -140,8 +140,10 @@ Globs **disjuntos:** NO hay overlaps. Cambios en otra zona = PR con revisión de
 
 ## Compilación y Linting
 
-- **Build:** `npm run build` → sin errores TypeScript.
-- **Linting:** `npm run lint` → obligatorio antes de commit (pre-commit hook).
+> **Runtime:** Bun es el package manager y ejecutor de scripts/tests (`bun install`, `bun run`, `bun test`); Node sirve la app en prod/Docker. Dev local arranca en el puerto **3040** (`bun run dev`).
+
+- **Build:** `bun run build` → sin errores TypeScript.
+- **Linting:** `bun run lint` → obligatorio antes de commit (pre-commit hook).
 - **Format:** Prettier vía pre-commit.
 
 ## Resumen

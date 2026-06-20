@@ -71,7 +71,7 @@ src/app/api/admin/media/upload/route.ts # presigned upload / confirm
 6. `media.actions.ts` + `folder.actions.ts`: CRUD con `requireAdmin()` + `writeAudit()`; anti-ciclo al mover carpeta.
 7. `api/admin/media/upload/route.ts`: emitir presigned + confirmar+validar.
 8. UI explorador (carpetas/grid, subida por las 3 vías).
-9. `pnpm typecheck` + `build` verdes.
+9. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] Modelos propuestos a F2 (`MediaAsset`/`MediaFolder`)

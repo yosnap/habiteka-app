@@ -64,7 +64,7 @@ src/app/api/iterations/
 5. `iteration-repo.ts`: tx → crear `Iteration` + `Deliverable` v(n+1), marcar previas inmutables; método de historial. Lock por `deliverableId`.
 6. `feedback-orchestrator.ts`: despachar por `Deliverable.type` (render3d→inpaint, plano2d→partial); reaplicar `legalSeal` (F5); invocar débito de créditos (F8).
 7. `api/iterations/route.ts`: validar payload (auth de F2), invocar orquestador, devolver nueva versión; GET historial.
-8. Tests: ver sección **TDD / Pruebas primero** (escribir antes de cada módulo). `pnpm typecheck`/`build` verdes.
+8. Tests: ver sección **TDD / Pruebas primero** (escribir antes de cada módulo). `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
 - [ ] `zone-resolver` (zona UI → región normalizada)

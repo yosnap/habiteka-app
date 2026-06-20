@@ -79,7 +79,7 @@ src/server/agent/
 7. `phases/entrega.ts`: `debit-service.hold()` (idempotencyKey) → generar entregables pedidos (`Plano2dPayload`) → inyectar `legalSeal` → persistir → `settle()`; si algo falla → `revert()`. Reintento de reparación 1 vez si JSON no valida.
 8. `orchestrator.ts` + `index.ts`: `advance()` despacha por fase, inyecta adaptadores F3, persiste, transiciona. `getAgent()` sin estado por request.
 9. `errors.ts`: `AgentError` tipado; mapear `AiError` de F3.
-10. Tests: ver sección **TDD / Pruebas primero** (escribir antes del handler de cada fase). `pnpm typecheck` + `build` verdes.
+10. Tests: ver sección **TDD / Pruebas primero** (escribir antes del handler de cada fase). `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] State machine + transiciones + guards (incl. guard legal)

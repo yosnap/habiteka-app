@@ -64,7 +64,7 @@ src/app/api/admin/analytics/export/route.ts  # export CSV (opcional)
 6. `refund.action.ts`: `requireAdmin()` → invoca Server Action de reembolso de F8 → `writeAudit()`.
 7. UI dashboards (gráficas simples shadcn/tabla, rangos de fecha, paginación).
 8. (Opcional) export CSV en `api/admin/analytics/export`.
-9. `pnpm typecheck` + `build` verdes.
+9. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
 - [ ] Modelos propuestos a F2 (`AuditLog`/`UsageEvent`) + índices
