@@ -7,4 +7,5 @@ bun.lock
 public/
 plans/
 docs/
+infra/
 next-env.d.ts
