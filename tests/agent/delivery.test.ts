@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runDelivery, type DeliveryDeps } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
-import type { ReadyForDelivery, Hold, OperationCost } from '@/lib/contracts';
+import type { ReadyForDelivery, Hold } from '@/lib/contracts';
 
 const ready: ReadyForDelivery = {
   estilo: 'moderno',
@@ -34,10 +34,10 @@ function makeDeps(opts: { failImage?: boolean } = {}): { deps: DeliveryDeps; cal
         calls.push('hold');
         return { idempotencyKey, amount: 1 };
       },
-      settle: async (_h: Hold, _c: OperationCost) => {
+      settle: async () => {
         calls.push('settle');
       },
-      revert: async (_h: Hold) => {
+      revert: async () => {
         calls.push('revert');
       },
     },
