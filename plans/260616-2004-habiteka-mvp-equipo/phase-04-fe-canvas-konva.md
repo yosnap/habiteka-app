@@ -10,7 +10,7 @@
 ## Overview
 - **Rol primario:** FE/Frontend
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #11)
 - **Depende de:** F1 (tokens/wireframes), F2 (Server Action Project + modelo CanvasState)
 - **Paralela con:** F5 (IA agente)
 - **Descripción:** Canvas con Konva 10.3 + react-konva: imagen de origen como capa base, dibujo a mano alzada, objetos estructurales editables/seleccionables (muros, ventanas, puertas), selección de zonas para feedback (Fase 4), drag&drop de productos del marketplace, serialización del estado a JSONB y toolbar de herramientas. Integra tokens shadcn/Tailwind v4.
@@ -93,15 +93,15 @@ CanvasDoc { schemaVersion, baseImage{url,w,h},
 10. `CanvasToolbar`: botones shadcn por herramienta + deshacer/rehacer; tokens F1.
 
 ## Todo List
-- [ ] Tipos `CanvasDoc` + store cliente
-- [ ] CanvasWorkspace dynamic ssr:false con 5 capas
-- [ ] Imagen de origen escalada en capa base
-- [ ] Dibujo a mano alzada (Line)
-- [ ] Objetos muro/ventana/puerta editables + Transformer
-- [ ] Selección de objeto y de zona (marquesina)
-- [ ] Drag&drop de productos en capa producto
-- [ ] Serialización ⇄ JSONB + rehidratación + debounce persist
-- [ ] Toolbar shadcn + undo/redo con tokens F1
+- [x] Tipos `CanvasDoc` + store cliente
+- [x] CanvasWorkspace dynamic ssr:false con 5 capas
+- [x] Imagen de origen escalada en capa base
+- [x] Dibujo a mano alzada (Line)
+- [x] Objetos muro/ventana/puerta editables + Transformer
+- [x] Selección de objeto y de zona (marquesina)
+- [x] Drag&drop de productos en capa producto (materialización ProductDrop→ProductRef; catálogo arrastrable lo conecta F10)
+- [x] Serialización ⇄ JSONB + rehidratación + debounce persist (Server Action con scoping + validación server-side)
+- [x] Toolbar shadcn + undo/redo con tokens F1
 
 ## Success Criteria
 - Imagen de origen se carga y dibujo libre traza fluido (≥30fps perceptible).

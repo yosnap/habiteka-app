@@ -58,7 +58,7 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 | F2 | Datos, auth, scoping & /api/health | BE | F0 | F1,F3,F11 | ✅ #8 | [phase-02](phase-02-be-datos-auth.md) |
 | F3 | Adaptadores IA (OpenRouter+imagen) | IA | F0 | F1,F2,F11 | ✅ #9 | [phase-03](phase-03-ia-adaptadores.md) |
 | **F-S0** | **Spike calidad IA (GATE GO/NO-GO, decide §9.1)** | **IA+Producto** | **F0,F3** | **—** | ⬜ | [phase-spike](phase-spike-validacion-calidad-ia.md) |
-| F4 | Canvas (Konva) | FE | F1,F2 | F5 | ⬜ | [phase-04](phase-04-fe-canvas-konva.md) |
+| F4 | Canvas (Konva) | FE | F1,F2 | F5 | ✅ #11 | [phase-04](phase-04-fe-canvas-konva.md) |
 | F5 | Agente intérprete (5 fases) | IA | F2,F3 | F4 | ⬜ | [phase-05](phase-05-ia-agente-state-machine.md) |
 | F6 | UI chat + entregables | FE | F4,F5 | F8 | ⬜ | [phase-06](phase-06-fe-chat-entregables.md) |
 | F7 | Feedback por zona + render 3D/inpaint | IA+BE | F3,F5,F6 | F9,F10 | ⬜ | [phase-07](phase-07-feedback-render-3d.md) |
