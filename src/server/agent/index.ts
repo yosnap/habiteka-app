@@ -19,7 +19,7 @@ export interface AgentSession {
  * Crea una sesión de agente para una organización. Las dependencias de IA y de
  * débito quedan cableadas; el despacho por fase lo hace el orquestador.
  */
-export async function getAgent(organizationId: string): Promise<AgentSession> {
+export async function getAgent(organizationId: string, userId: string): Promise<AgentSession> {
   // El modelo de chat se resuelve por la acción 'chat'; las fases que necesiten
   // otra acción (visión) la piden a su propio adaptador en el futuro.
   const chat = await getChatVisionAdapter({ organizationId }, 'chat');
@@ -33,6 +33,7 @@ export async function getAgent(organizationId: string): Promise<AgentSession> {
           chat,
           image,
           debit,
+          userId,
           newDeliverableId: (pid, type) => {
             deliverableSeq += 1;
             return `del-${pid}-${type}-${deliverableSeq}`;

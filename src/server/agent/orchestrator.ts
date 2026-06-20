@@ -20,11 +20,15 @@ import { runIngesta } from './phases/ingesta';
 import { runQualification } from './phases/cualificacion';
 import { runDelivery } from './phases/entrega';
 import { agentError } from './errors';
+import { assertConsent } from '@/server/privacy/consent-service';
+import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 
 export interface AgentDeps {
   chat: ChatVisionAdapter;
   image: ImageAdapter;
   debit: DebitService;
+  /** Usuario en cuyo nombre actúa el agente (gates de consentimiento/ToS). */
+  userId: string;
   newDeliverableId: (projectId: string, type: string) => string;
 }
 
@@ -85,6 +89,9 @@ async function handleIngest(
   image: MessagePart[],
 ): Promise<AgentOutcome> {
   if (phase !== 'ingesta') throw agentError('phase_guard', 'La ingesta ya se completó');
+  // Minimización/base legal: no se trata la imagen sin consentimiento explícito
+  // (RGPD). El gate corta antes de enviar nada al modelo de visión.
+  await assertConsent(deps.userId, 'IMAGE_PROCESSING');
   const { detected, disclaimer } = await runIngesta(deps.chat, image);
   const nextCollected: Collected = { ...collected, detected };
   // Permanece en ingesta hasta que el usuario confirme lo detectado.
@@ -131,6 +138,9 @@ async function handleDeliver(
   if (!isReadyForDelivery(collected)) {
     throw agentError('legal_block', 'Requisitos incompletos para la entrega');
   }
+  // Condición contractual: no se genera ningún entregable sin aceptación del ToS
+  // vigente (limitación de responsabilidad + validación profesional).
+  await assertTosAccepted(deps.userId);
   const deliverables = await runDelivery(
     {
       chat: deps.chat,

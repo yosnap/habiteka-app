@@ -12,6 +12,8 @@ import { getImageAdapter } from '@/server/ai';
 import { createDebitService } from '@/server/agent/debit-service-impl';
 import { runFeedback } from '@/server/agent/feedback/feedback-orchestrator';
 import { listIterations } from '@/server/agent/feedback/iteration-repo';
+import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
+import { assertConsent } from '@/server/privacy/consent-service';
 import type { CanvasZone, PlanZone } from '@/lib/contracts';
 
 export async function POST(request: Request) {
@@ -24,6 +26,17 @@ export async function POST(request: Request) {
   };
   if (!body.deliverableId || !body.zone || !body.instruction) {
     return NextResponse.json({ error: 'payload incompleto' }, { status: 400 });
+  }
+
+  // La iteración regenera imagen (trata la foto) y produce una nueva versión del
+  // entregable: exige consentimiento RGPD y aceptación del ToS, igual que la
+  // entrega inicial. Sin ellos, no se gasta crédito ni se llama a la IA.
+  try {
+    await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+    await assertTosAccepted(ctx.userId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'requisito legal no cumplido';
+    return NextResponse.json({ error: message }, { status: 403 });
   }
 
   try {

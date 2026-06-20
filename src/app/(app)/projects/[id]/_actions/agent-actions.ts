@@ -11,6 +11,6 @@ import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
 
 export async function advanceAgent(projectId: string, input: AgentInput): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  const agent = await getAgent(ctx.organizationId);
+  const agent = await getAgent(ctx.organizationId, ctx.userId);
   return agent.advance(projectId, input);
 }
