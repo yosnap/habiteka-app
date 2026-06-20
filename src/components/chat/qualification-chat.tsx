@@ -10,6 +10,7 @@ import { MessageList, type ChatTurn } from './message-list';
 import { MessageInput } from './message-input';
 import { StyleQuickPicks } from './style-quick-picks';
 import { DeliverablePicker } from './deliverable-picker';
+import { ImageUpload, type UploadedImage } from './image-upload';
 import type { AgentInput, AgentOutcome } from '@/server/agent';
 import type { Estilo, DeliverableType, ChatMessage } from '@/lib/contracts';
 
@@ -39,6 +40,25 @@ export function QualificationChat({ projectId, advance }: Props) {
   const onSend = (text: string) =>
     sendQualify([{ role: 'user', content: [{ type: 'text', text }] }], text);
 
+  // Subida de la imagen del espacio → fase de ingesta (análisis de visión).
+  const onUploadImage = (image: UploadedImage) => {
+    pushTurn('user', '📷 Imagen del espacio subida');
+    startTransition(async () => {
+      const out = await advance(projectId, {
+        action: 'ingest',
+        image: [{ type: 'image_url', base64: image.base64, mimeType: image.mimeType }],
+      });
+      if (out.detected) {
+        const d = out.detected;
+        pushTurn(
+          'assistant',
+          `Detecté ${d.walls} muros, ${d.doors} puertas, ${d.windows} ventanas y ${d.pillars} pilares.`,
+        );
+      }
+      if (out.disclaimer) pushTurn('assistant', out.disclaimer);
+    });
+  };
+
   const onPickStyle = (estilo: Estilo) =>
     sendQualify(
       [{ role: 'user', content: [{ type: 'text', text: `Estilo: ${estilo}` }] }],
@@ -55,6 +75,7 @@ export function QualificationChat({ projectId, advance }: Props) {
     <div className="flex h-full flex-col gap-3">
       <MessageList turns={turns} streamingText="" />
       <div className="flex flex-col gap-2">
+        <ImageUpload onUpload={onUploadImage} disabled={pending} />
         <StyleQuickPicks onPick={onPickStyle} />
         <DeliverablePicker onConfirm={onPickDeliverables} />
         <MessageInput onSend={onSend} disabled={pending} />
