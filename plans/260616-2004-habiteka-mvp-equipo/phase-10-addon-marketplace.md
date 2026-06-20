@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** FE + BE
 - **Prioridad:** P2 (add-on de negocio/monetización por afiliación, no bloquea flujo core)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #21)
 - **Depende de:** F4 (canvas: destino del drag&drop), F6 (panel de entregables: punto de entrada al add-on). Usa modelos de F2 y registry/slots de F0.
 - **Paralela con:** F9 (votación) — globs disjuntos.
 - **Descripción:** Add-on de **marketplace** registrado contra la interfaz del registry de add-ons (F0). **Catálogo curado propio** (productos seed en DB, modelo `MarketplaceItem`), **drag&drop al canvas**, **links de afiliación reales** (Ikea / Amazon Associates) y **tracking de afiliación** (clics). Se enchufa en slots `canvas.toolbar` (paleta de productos) y `agent.postEntrega` (sugerencias por diseño aprobado).
@@ -74,16 +74,16 @@ prisma/seed/
 10. Tests (delegados a F12): catálogo lee seed; `affiliate` registra clic y redirige a URL allowlisted; URL no-allowlisted rechazada. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
-- [ ] `AddonDefinition` de marketplace registrado en el registry (slots)
-- [ ] Seed curado `prisma/seed/marketplace.ts`
-- [ ] `catalog-repo` (lectura seed + filtros opcionales)
-- [ ] `affiliate-url` con allowlist de dominios
-- [ ] `affiliate-tracking` (registro de clic tolerante a fallo)
-- [ ] Route handlers catálogo + afiliación (track→302)
-- [ ] Paleta de catálogo + tarjetas draggable (slot toolbar)
-- [ ] Hook drag → payload (drop lo hace F4)
-- [ ] Disclosure de afiliación visible
-- [ ] Tests verdes (delegados a F12)
+- [x] `AddonDefinition` de marketplace registrado en el registry (slots canvas.toolbar/agent.postEntrega)
+- [x] Catálogo curado seed estático en código (`catalog-seed.ts`; sin feeds externos en runtime)
+- [x] `catalog-repo` (lectura seed + filtro por categorías)
+- [x] `affiliate-url` con allowlist de dominios (Amazon/Ikea, https, anti sufijo-falso)
+- [x] `affiliate-tracking` (registro de clic vía telemetría, tolerante a fallo)
+- [x] Route handlers catálogo + afiliación (valida allowlist → track → 302)
+- [x] Paleta de catálogo + tarjetas draggable
+- [x] Hook drag → emite/lee `ProductDrop` (contrato F0; el drop lo hace F4)
+- [x] Disclosure de afiliación visible (no ocultable)
+- [x] Tests verdes (allowlist anti open-redirect, catálogo/filtro, ProductDrop, registro add-on)
 
 ## Success Criteria
 - El catálogo curado se lista desde el seed (sin llamadas a PA-API/feeds en runtime).
