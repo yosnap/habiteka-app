@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** ARQ / Tech Lead
 - **Prioridad:** P1 (modelo de negocio fair-code; protege la explotación comercial)
-- **Estado:** Planificado
+- **Estado:** ✅ Hecho (módulo `src/lib/licensing/**` + `LICENSE` + `docs/licensing.md`; 9 tests). El cableado con el wrapper de F3 se completa en F-INT (es edición propiedad de F3).
 - **Depende de:** F3 (adaptadores IA: punto donde se intercepta la llamada a OpenRouter), F8 (plan/estado de licencia por usuario/organización).
 - **Paralela con:** — (cierre del MVP; M3).
 - **Descripción:** El control es **LEGAL + OPERATIVO**, no una imposibilidad técnica: (1) **Sustainable Use License** (fair-code estilo n8n) — `LICENSE` + política (`docs/licensing.md`) define qué uso comercial está restringido; (2) la **barrera real es operativa**: el servicio oficial de Habiteka es quien **posee la API key de OpenRouter**, así que el uso del agente a escala pasa por la infra oficial. El JWT de licencia es un gate **dentro del servicio oficial** (UX/billing/scope), NO una protección anti-fork. Un fork **puede** borrar el guard y usar su propia key de OpenRouter — eso lo cubre la **licencia**, no el código.
@@ -74,17 +74,17 @@ src/lib/licensing/
 10. Tests: ver sección **TDD / Pruebas primero** (escribir antes del guard/verify).
 
 ## Todo List
-- [ ] `LICENSE` Sustainable Use License (fair-code) en raíz
-- [ ] `docs/licensing.md` política + FAQ comercial
-- [ ] `LicenseClaims` tipados
-- [ ] `keys.ts` carga clave priv/pub por `kid` (rotación)
-- [ ] `sign-license` emite JWT firmado (exp corto, claims de F8)
-- [ ] `verify-license` valida firma + exp + scope
-- [ ] `verification-cache` (cache + grace period anti lock-out)
-- [ ] `license-guard` previo a IA con cache/grace (consumido por F3)
+- [x] `LICENSE` Sustainable Use License (fair-code) en raíz
+- [x] `docs/licensing.md` política + FAQ comercial
+- [x] `LicenseClaims` tipados
+- [x] `keys.ts` carga clave priv/pub por `kid` (rotación)
+- [x] `sign-license` emite JWT firmado (exp corto, claims de F8)
+- [x] `verify-license` valida firma + exp + scope
+- [x] `verification-cache` (cache + grace period anti lock-out)
+- [x] `license-guard` previo a IA con cache/grace (consumido por F3)
 - [ ] Cableado con F3 (wrapper del adaptador llama al guard)
-- [ ] Secrets de firma server-only (coordinado F0/F11)
-- [ ] Tests: válido/expirado/inválido/scope + rotación (delegados a F12)
+- [x] Secrets de firma server-only (coordinado F0/F11)
+- [x] Tests: válido/expirado/inválido/scope + rotación (delegados a F12)
 
 ## Success Criteria
 - `LICENSE` y `docs/licensing.md` expresan claramente fair-code: interno permitido, comercial restringido a hosting/licencia oficial. La restricción comercial es **legal**, no técnica.

@@ -46,10 +46,26 @@ async function main() {
     create: { organizationId: member.organizationId, balance: 1000 },
   });
 
+  // Crea un proyecto de muestra (idempotente) para poder abrir el canvas sin
+  // tener todavía una pantalla de "mis proyectos" en la UI.
+  const sampleTitle = 'Proyecto de muestra';
+  let project = await prisma.project.findFirst({
+    where: { organizationId: member.organizationId, title: sampleTitle },
+  });
+  if (!project) {
+    project = await prisma.project.create({
+      data: { organizationId: member.organizationId, title: sampleTitle },
+    });
+  }
+
+  const port = process.env.PORT ?? '3040';
+
   console.log('✅ Usuario de desarrollo listo:');
   console.log(`   email:    ${DEV_EMAIL}`);
   console.log(`   password: ${DEV_PASSWORD}`);
   console.log(`   rol:      admin · saldo: 1000 créditos`);
+  console.log('🎨 Canvas de muestra:');
+  console.log(`   http://localhost:${port}/projects/${project.id}`);
 }
 
 main()
