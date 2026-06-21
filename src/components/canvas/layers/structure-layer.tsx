@@ -44,15 +44,27 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
     tr.nodes(nodes);
   }, [selectedIds, objects]);
 
-  // Clic en un objeto: selecciona solo ese; con Shift, lo añade/quita de la selección.
+  // Resuelve a qué ids afecta un clic en `id`: si el objeto pertenece a un grupo,
+  // se selecciona TODO el grupo; si no, solo ese objeto.
+  const idsForClick = (id: string): string[] => {
+    const obj = objects.find((o) => o.id === id);
+    if (obj?.groupId) return objects.filter((o) => o.groupId === obj.groupId).map((o) => o.id);
+    return [id];
+  };
+
+  // Clic en un objeto: lo selecciona (o su grupo); con Shift, lo añade/quita.
   const onObjectClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, id: string) => {
     const shift = 'shiftKey' in e.evt ? e.evt.shiftKey : false;
+    const clickIds = idsForClick(id);
     if (!shift) {
-      setSelection({ type: 'object', objectIds: [id] });
+      setSelection({ type: 'object', objectIds: clickIds });
       return;
     }
     const current = selection?.type === 'object' ? selection.objectIds : [];
-    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    const allIncluded = clickIds.every((x) => current.includes(x));
+    const next = allIncluded
+      ? current.filter((x) => !clickIds.includes(x))
+      : [...new Set([...current, ...clickIds])];
     setSelection(next.length ? { type: 'object', objectIds: next } : null);
   };
 

@@ -38,6 +38,10 @@ interface CanvasState {
   sendToBack(ids: string[]): void;
   bringForward(ids: string[]): void;
   sendBackward(ids: string[]): void;
+  /** Agrupa los objetos indicados bajo un mismo `groupId`. */
+  groupObjects(ids: string[]): void;
+  /** Desagrupa: quita el `groupId` de los objetos indicados. */
+  ungroupObjects(ids: string[]): void;
   addProduct(product: ProductRef): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
@@ -144,6 +148,27 @@ export const useCanvasStore = create<CanvasState>((set) => {
 
     bringForward: (ids) => mutate((d) => ({ ...d, objects: shiftZ(d.objects, ids, +1) })),
     sendBackward: (ids) => mutate((d) => ({ ...d, objects: shiftZ(d.objects, ids, -1) })),
+
+    groupObjects: (ids) => {
+      if (ids.length < 2) return;
+      cloneSeq += 1;
+      const groupId = `grp-${cloneSeq}`;
+      mutate((d) => ({
+        ...d,
+        objects: d.objects.map((o) => (ids.includes(o.id) ? { ...o, groupId } : o)),
+      }));
+    },
+
+    ungroupObjects: (ids) =>
+      mutate((d) => ({
+        ...d,
+        objects: d.objects.map((o) => {
+          if (!ids.includes(o.id) || o.groupId === undefined) return o;
+          const rest = { ...o };
+          delete rest.groupId;
+          return rest;
+        }),
+      })),
 
     addProduct: (product) => mutate((d) => ({ ...d, products: [...d.products, product] })),
 

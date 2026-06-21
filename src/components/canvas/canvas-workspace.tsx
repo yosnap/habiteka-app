@@ -100,6 +100,12 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
         else store.undo();
         return;
       }
+      if (ctrl && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        if (e.shiftKey) store.ungroupObjects(ids);
+        else store.groupObjects(ids);
+        return;
+      }
 
       if (!ids.length) return;
 
@@ -204,6 +210,9 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
         },
         disabled: !hasSel,
       },
+      { label: '-', onClick: () => {} },
+      { label: 'Agrupar', onClick: () => store.groupObjects(ids), disabled: ids.length < 2 },
+      { label: 'Desagrupar', onClick: () => store.ungroupObjects(ids), disabled: !hasSel },
       { label: '-', onClick: () => {} },
       { label: 'Traer al frente', onClick: () => store.bringToFront(ids), disabled: !hasSel },
       { label: 'Enviar al fondo', onClick: () => store.sendToBack(ids), disabled: !hasSel },
