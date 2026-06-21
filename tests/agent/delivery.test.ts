@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { runDelivery, type DeliveryDeps } from '@/server/agent/phases/entrega';
+import {
+  runDelivery,
+  explanationPrompt,
+  type DeliveryDeps,
+} from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
 import type { ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
 
@@ -108,5 +112,63 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(req?.prompt).toContain('Sofá: junto a la pared del fondo');
     // La proporción de la sala se traslada al encuadre del render (no el 16:9 fijo).
     expect(req?.aspectRatio).toBe('3:2');
+  });
+
+  it('sin prompt libre, el prompt del render no añade instrucción de usuario', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      sketch: {
+        description: 'Sofá: junto a la pared del fondo',
+        referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+        aspectRatio: '3:2',
+      },
+    });
+    expect(imageRequests[0]?.prompt).not.toContain('el usuario pide');
+  });
+
+  it('con prompt libre, el render lo incluye reforzando no mover la disposición', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      sketch: {
+        description: 'Sofá: junto a la pared del fondo',
+        referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+        aspectRatio: '3:2',
+        promptLibre: 'haz la sala más cálida',
+      },
+    });
+    const prompt = imageRequests[0]?.prompt ?? '';
+    expect(prompt).toContain('haz la sala más cálida');
+    expect(prompt.toLowerCase()).toContain('sin cambiar la disposición');
+    // La descripción del plano sigue presente (la disposición manda).
+    expect(prompt).toContain('Sofá: junto a la pared del fondo');
+  });
+});
+
+describe('explanationPrompt — texto para la 2ª llamada de chat', () => {
+  it('incorpora el prompt libre del usuario cuando existe', () => {
+    const out = explanationPrompt({
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      sketch: {
+        description: 'Sofá al fondo',
+        referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+        aspectRatio: '3:2',
+        promptLibre: 'añade plantas',
+      },
+    });
+    expect(out).toContain('añade plantas');
+    expect(out.toLowerCase()).toContain('explica');
+  });
+
+  it('cae al objetivo si no hay prompt libre', () => {
+    const out = explanationPrompt({
+      ...input,
+      collected: { ...ready, objetivo: 'reformar el salón', entregables: ['render3d'] },
+    });
+    expect(out).toContain('reformar el salón');
   });
 });
