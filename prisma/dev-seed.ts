@@ -9,6 +9,33 @@
 import { auth } from '../src/server/auth/auth';
 import { prisma } from '../src/server/db/prisma';
 import { provisionOrganization } from '../src/server/auth/provision-organization';
+import { MODEL_DEFAULTS } from '../src/server/ai/model-defaults';
+
+/**
+ * Repara la configuración de modelos si algún test dejó datos corruptos en la BD
+ * de desarrollo (p. ej. `primaryModel: "p"` o un `provider` de prueba). Repone los
+ * valores por defecto cuando el modelo no parece un id válido (slug `vendor/modelo`).
+ */
+async function repairModelConfig(): Promise<void> {
+  const rows = await prisma.modelConfig.findMany({
+    select: { action: true, primaryModel: true, provider: true },
+  });
+  for (const row of rows) {
+    const looksValid = /.+\/.+/.test(row.primaryModel) && !row.provider;
+    if (looksValid) continue;
+    const fallback = MODEL_DEFAULTS[row.action];
+    if (!fallback) continue;
+    await prisma.modelConfig.update({
+      where: { action: row.action },
+      data: {
+        primaryModel: fallback.primaryModel,
+        fallbacks: fallback.fallbacks,
+        provider: fallback.provider,
+      },
+    });
+    console.log(`🔧 ModelConfig '${row.action}' reparado → ${fallback.primaryModel}`);
+  }
+}
 
 const DEV_EMAIL = 'admin@habiteka.dev';
 const DEV_PASSWORD = 'habiteka-dev-1234';
@@ -57,6 +84,9 @@ async function main() {
       data: { organizationId: member.organizationId, title: sampleTitle },
     });
   }
+
+  // Repara la config de modelos por si un test dejó datos corruptos en la BD.
+  await repairModelConfig();
 
   const port = process.env.PORT ?? '3040';
 
