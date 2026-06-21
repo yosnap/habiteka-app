@@ -171,7 +171,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
             size="sm"
             variant="ghost"
             onClick={() => setBaseImage(null)}
-            title="Quitar la imagen de fondo del lienzo"
+            title="Quitar la imagen de fondo del plano"
           >
             Quitar fondo
           </Button>

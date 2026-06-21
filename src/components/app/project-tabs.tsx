@@ -20,7 +20,7 @@ export function ProjectTabs({ projectId, title }: Props) {
 
   const tabs = [
     { href: `${base}/chat`, label: 'Asistente' },
-    { href: base, label: 'Lienzo', exact: true },
+    { href: base, label: 'Plano', exact: true },
     { href: `${base}/deliverables`, label: 'Diseños' },
   ];
 

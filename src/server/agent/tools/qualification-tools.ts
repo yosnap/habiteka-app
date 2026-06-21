@@ -4,19 +4,16 @@
  * herramientas con valores acotados (el estilo y los entregables son enumerados),
  * de modo que el estado resultante siempre es válido.
  */
-import type { ToolDefinition, Estilo, DeliverableType } from '@/lib/contracts';
+import type { ToolDefinition, DeliverableType } from '@/lib/contracts';
+import {
+  ESTILO_VALUES,
+  ENTREGABLE_VALUES,
+  isValidEstilo as isValidEstiloShared,
+} from '@/lib/design-options';
 
-export const ESTILOS: Estilo[] = [
-  'minimalista',
-  'moderno',
-  'clasico',
-  'industrial',
-  'rustico',
-  'mediterraneo',
-  'nordico',
-];
-
-export const ENTREGABLES: DeliverableType[] = ['plano2d', 'render3d', 'memoria'];
+// Valores derivados de la fuente única `design-options` (un solo sitio de verdad).
+const ESTILOS = ESTILO_VALUES;
+const ENTREGABLES = ENTREGABLE_VALUES;
 
 export const QUALIFICATION_TOOLS: ToolDefinition[] = [
   {
@@ -58,11 +55,10 @@ export const QUALIFICATION_TOOLS: ToolDefinition[] = [
   },
 ];
 
-export function isValidEstilo(v: unknown): v is Estilo {
-  return typeof v === 'string' && (ESTILOS as string[]).includes(v);
-}
+// Re-exporta el validador de estilo de la fuente única (mismo comportamiento).
+export const isValidEstilo = isValidEstiloShared;
 
 export function parseEntregables(v: unknown): DeliverableType[] {
   if (!Array.isArray(v)) return [];
-  return v.filter((x): x is DeliverableType => (ENTREGABLES as string[]).includes(x as string));
+  return v.filter((x): x is DeliverableType => (ENTREGABLES as readonly string[]).includes(x as string));
 }

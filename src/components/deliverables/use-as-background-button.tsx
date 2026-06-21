@@ -51,7 +51,7 @@ export function UseAsBackgroundButton({ projectId, assetUrl }: Props) {
   return (
     <div className="flex flex-col items-start gap-1">
       <Button type="button" size="sm" onClick={apply} disabled={busy}>
-        {busy ? 'Aplicando…' : 'Usar como fondo del lienzo'}
+        {busy ? 'Aplicando…' : 'Usar como fondo del plano'}
       </Button>
       {error ? (
         <p className="text-destructive text-xs" role="alert">
