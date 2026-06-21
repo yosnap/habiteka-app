@@ -17,9 +17,10 @@ import { ObjectPalette } from './object-palette';
 import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
+import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Button } from '@/components/ui/button';
 import type { AgentOutcome } from '@/server/agent';
-import type { DeliverableType, Estilo, DecorRecommendation } from '@/lib/contracts';
+import type { DeliverableType, Estilo, DecorRecommendation, DetectedObject } from '@/lib/contracts';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -44,6 +45,10 @@ interface Props {
     estilo: Estilo,
     objetivo: string,
   ) => Promise<DecorRecommendation[]>;
+  detectAction: (
+    projectId: string,
+    imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
+  ) => Promise<DetectedObject[]>;
 }
 
 const DEBOUNCE_MS = 800;
@@ -54,12 +59,15 @@ export function CanvasWorkspace({
   saveAction,
   generateAction,
   recommendAction,
+  detectAction,
 }: Props) {
   const [tool, setTool] = useState<Tool>('select');
   // Diálogo de generación de diseño desde el lienzo (CRL-4).
   const [showGenerate, setShowGenerate] = useState(false);
   // Diálogo de sugerencias de decoración por IA (F4).
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Diálogo de detección desde foto (F5, BETA).
+  const [showDetect, setShowDetect] = useState(false);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
   // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
@@ -254,6 +262,15 @@ export function CanvasWorkspace({
             type="button"
             size="sm"
             variant="ghost"
+            onClick={() => setShowDetect(true)}
+            title="Detectar elementos desde una foto o plano (beta)"
+          >
+            Detectar desde foto
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
             onClick={() => setShowSuggestions(true)}
             title="Pedir a la IA elementos de decoración para tu plano"
           >
@@ -273,7 +290,7 @@ export function CanvasWorkspace({
         <ObjectPalette tool={tool} onPick={setTool} />
         <div
           ref={containerRef}
-          className="border-line bg-surface flex-1 overflow-hidden rounded-[var(--radius-card)] border"
+          className="border-line bg-surface flex-1 overflow-hidden rounded-card border"
         >
           {size.width > 0 && size.height > 0 ? (
             <CanvasStage
@@ -301,6 +318,13 @@ export function CanvasWorkspace({
           projectId={projectId}
           recommendAction={recommendAction}
           onClose={() => setShowSuggestions(false)}
+        />
+      ) : null}
+      {showDetect ? (
+        <DetectFromPhotoDialog
+          projectId={projectId}
+          detectAction={detectAction}
+          onClose={() => setShowDetect(false)}
         />
       ) : null}
     </div>

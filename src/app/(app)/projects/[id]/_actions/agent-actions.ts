@@ -12,11 +12,20 @@ import { withOrg } from '@/server/db/scoped-repo';
 import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
 import { getChatVisionAdapter } from '@/server/ai';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
+import { detectLayout } from '@/server/agent/phases/deteccion-layout';
+import { assertConsent } from '@/server/privacy/consent-service';
+import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { deserializeCanvas } from '@/canvas/serialize';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { isValidEstilo, isValidEntregable } from '@/lib/design-options';
-import type { DeliverableType, Estilo, DecorRecommendation } from '@/lib/contracts';
+import type {
+  DeliverableType,
+  Estilo,
+  DecorRecommendation,
+  DetectedObject,
+  MessagePart,
+} from '@/lib/contracts';
 
 /**
  * Verifica que el proyecto pertenece a la organización de la sesión. El agente
@@ -108,4 +117,24 @@ export async function recommendDecoration(
 
   const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'chat');
   return runRecommend(chat, estilo, String(objetivo ?? '').slice(0, 200), description);
+}
+
+/**
+ * Detecta los elementos de una foto/boceto y devuelve sus posiciones (bbox) para
+ * poblar el plano (F5, BETA). Procesa una imagen con IA: mismo deber RGPD que la
+ * ingesta (gate de consentimiento + ToS) y se acota por organización. La calidad
+ * de la detección sobre foto en perspectiva es imprecisa: se ofrece como BETA.
+ */
+export async function detectPlanFromPhoto(
+  projectId: string,
+  imageParts: MessagePart[],
+): Promise<DetectedObject[]> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+  await assertTosAccepted(ctx.userId);
+
+  // Usa el adaptador de VISIÓN (la detección lee una imagen), no el de chat texto.
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+  return detectLayout(chat, imageParts);
 }
