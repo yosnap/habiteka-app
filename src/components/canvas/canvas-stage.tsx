@@ -26,6 +26,8 @@ interface Props {
   height: number;
   /** Tras crear un objeto se vuelve a 'select' para poder editarlo en el acto. */
   onObjectCreated?: () => void;
+  /** Clic derecho: posición en pantalla y si fue sobre un objeto (para el menú). */
+  onContextMenu?: (screenX: number, screenY: number, objectId: string | null) => void;
 }
 
 let objectSeq = 0;
@@ -35,7 +37,7 @@ const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 const ZOOM_STEP = 1.15;
 
-export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
+export function CanvasStage({ tool, width, height, onObjectCreated, onContextMenu }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
   const setSelection = useCanvasStore((s) => s.setSelection);
@@ -192,6 +194,28 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onContextMenu={(e) => {
+        e.evt.preventDefault();
+        const stage = e.target.getStage();
+        // Sube por la jerarquía hasta el Group del objeto (que lleva el id).
+        let node: Konva.Node | null = e.target;
+        let objectId: string | null = null;
+        while (node && node !== stage) {
+          const id = node.id();
+          if (id && doc.objects.some((o) => o.id === id)) {
+            objectId = id;
+            break;
+          }
+          node = node.getParent();
+        }
+        // Si el objeto del clic no estaba seleccionado, se selecciona solo él.
+        if (objectId) {
+          const sel = doc.selection;
+          const already = sel?.type === 'object' && sel.objectIds.includes(objectId);
+          if (!already) setSelection({ type: 'object', objectIds: [objectId] });
+        }
+        onContextMenu?.(e.evt.clientX, e.evt.clientY, objectId);
+      }}
     >
       <GridLayer
         width={width}

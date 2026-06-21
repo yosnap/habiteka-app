@@ -14,6 +14,7 @@ import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
 import { ObjectPalette } from './object-palette';
+import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -39,6 +40,8 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
   // Portapapeles interno del editor (no el del SO): objetos copiados/cortados.
   const clipboardRef = useRef<StructObj[]>([]);
   const pasteSeq = useRef(0);
+  // Menú contextual abierto (clic derecho): posición e items, o null si cerrado.
+  const [menu, setMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
   useMountEffect(() => {
     const el = containerRef.current;
@@ -150,6 +153,66 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
     };
   });
 
+  // Construye los items del menú contextual según la selección actual.
+  const buildMenuItems = (): ContextMenuItem[] => {
+    const store = useCanvasStore.getState();
+    const sel = store.doc.selection;
+    const ids = sel?.type === 'object' ? sel.objectIds : [];
+    const hasSel = ids.length > 0;
+    const hasClip = clipboardRef.current.length > 0;
+
+    const copy = () => {
+      clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+    };
+    const paste = () => {
+      let seq = pasteSeq.current;
+      const clones = clipboardRef.current.map((o) => {
+        seq += 1;
+        return { ...o, id: `obj-paste-${seq}`, x: o.x + 20, y: o.y + 20 };
+      });
+      pasteSeq.current = seq;
+      store.insertObjects(clones);
+    };
+
+    return [
+      { label: 'Copiar', onClick: copy, disabled: !hasSel },
+      {
+        label: 'Cortar',
+        onClick: () => {
+          copy();
+          store.removeObjects(ids);
+        },
+        disabled: !hasSel,
+      },
+      { label: 'Pegar', onClick: paste, disabled: !hasClip },
+      { label: 'Duplicar', onClick: () => store.duplicateObjects(ids), disabled: !hasSel },
+      { label: '-', onClick: () => {} },
+      {
+        label: 'Girar 90°',
+        onClick: () => {
+          for (const o of store.doc.objects)
+            if (ids.includes(o.id)) store.updateObject(o.id, { rotation: (o.rotation + 90) % 360 });
+        },
+        disabled: !hasSel,
+      },
+      {
+        label: 'Voltear',
+        onClick: () => {
+          for (const o of store.doc.objects)
+            if (ids.includes(o.id)) store.updateObject(o.id, { flipX: !o.flipX });
+        },
+        disabled: !hasSel,
+      },
+      { label: '-', onClick: () => {} },
+      { label: 'Traer al frente', onClick: () => store.bringToFront(ids), disabled: !hasSel },
+      { label: 'Enviar al fondo', onClick: () => store.sendToBack(ids), disabled: !hasSel },
+      { label: 'Subir una capa', onClick: () => store.bringForward(ids), disabled: !hasSel },
+      { label: 'Bajar una capa', onClick: () => store.sendBackward(ids), disabled: !hasSel },
+      { label: '-', onClick: () => {} },
+      { label: 'Eliminar', onClick: () => store.removeObjects(ids), disabled: !hasSel },
+    ];
+  };
+
   return (
     <div className="flex h-full flex-col gap-2">
       <CanvasToolbar tool={tool} onToolChange={setTool} />
@@ -165,10 +228,14 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
               width={size.width}
               height={size.height}
               onObjectCreated={() => setTool('select')}
+              onContextMenu={(x, y) => setMenu({ x, y, items: buildMenuItems() })}
             />
           ) : null}
         </div>
       </div>
+      {menu ? (
+        <CanvasContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      ) : null}
     </div>
   );
 }
