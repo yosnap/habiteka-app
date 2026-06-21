@@ -10,6 +10,7 @@ import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructKind } from '@/canvas/types';
 import { isValidScale, formatObjectSize } from '@/canvas/scale';
 import { ScaleControl } from './scale-control';
+import { LightControls } from './light-controls';
 
 // La herramienta activa: modos generales o la creación de un objeto del catálogo.
 export type Tool = 'select' | 'freehand' | 'zone' | StructKind;
@@ -160,6 +161,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       >
         Eliminar
       </Button>
+      <LightControls />
       <ScaleControl />
       {/* Controles del fondo: solo cuando hay una imagen base (render aplicado). */}
       {baseImage ? (

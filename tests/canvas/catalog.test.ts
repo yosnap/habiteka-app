@@ -39,6 +39,8 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   alfombra: true,
   planta: true,
   chimenea: true,
+  // iluminación
+  foco: true,
 };
 
 const expectedKinds = Object.keys(EXPECTED_KINDS).sort();

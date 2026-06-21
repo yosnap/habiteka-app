@@ -115,4 +115,29 @@ describe('serialización del canvas', () => {
     const back = deserializeCanvas({ scale: { pxPerMeter: 80, ratio: -1 } });
     expect(back.scale).toEqual({ pxPerMeter: 80 });
   });
+
+  it('round-trip de los atributos de luz de un foco', () => {
+    const back = deserializeCanvas({
+      objects: [
+        { id: 'l1', kind: 'foco', x: 1, y: 2, width: 40, height: 40, rotation: 0, light: { color: '#ffcc88', intensidad: 70 } },
+      ],
+    });
+    expect(back.objects[0]?.light).toEqual({ color: '#ffcc88', intensidad: 70 });
+  });
+
+  it('acota la intensidad de la luz y descarta una luz sin color', () => {
+    const acotada = deserializeCanvas({
+      objects: [
+        { id: 'l1', kind: 'foco', x: 0, y: 0, width: 40, height: 40, rotation: 0, light: { color: '#fff', intensidad: 500 } },
+      ],
+    });
+    expect(acotada.objects[0]?.light?.intensidad).toBe(100);
+
+    const sinColor = deserializeCanvas({
+      objects: [
+        { id: 'l1', kind: 'foco', x: 0, y: 0, width: 40, height: 40, rotation: 0, light: { intensidad: 50 } },
+      ],
+    });
+    expect(sinColor.objects[0]?.light).toBeUndefined();
+  });
 });

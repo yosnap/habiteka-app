@@ -83,6 +83,15 @@ export const CATALOG: CatalogCategory[] = [
       { kind: 'chimenea', label: 'Chimenea', defaultWidth: 120, defaultHeight: 40 },
     ],
   },
+  {
+    id: 'iluminacion',
+    label: 'Iluminación',
+    items: [
+      // El foco es una luz de PRIMERA CLASE: además del kind, lleva atributos
+      // `light` (color/intensidad). La `lampara` (en Electrónica) es solo mueble.
+      { kind: 'foco', label: 'Foco', defaultWidth: 40, defaultHeight: 40 },
+    ],
+  },
 ];
 
 /** Índice plano kind → entrada, para resolver el tamaño por defecto al crear. */

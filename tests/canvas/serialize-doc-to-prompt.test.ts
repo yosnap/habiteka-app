@@ -85,4 +85,26 @@ describe('serializeDocToPrompt', () => {
     const out = serializeDocToPrompt(doc)!;
     expect(out).not.toContain('La sala mide');
   });
+
+  it('describe las luces colocadas y pide reflejar la iluminación en el render', () => {
+    const foco: StructObj = {
+      id: 'f1',
+      kind: 'foco',
+      x: 500,
+      y: 240,
+      width: 40,
+      height: 40,
+      rotation: 0,
+      light: { color: '#ff8030', intensidad: 90 },
+    };
+    const out = serializeDocToPrompt(docWith([...walls, foco]))!;
+    expect(out).toContain('Foco');
+    expect(out).toContain('luz cálida intensa');
+    expect(out.toLowerCase()).toContain('iluminación');
+  });
+
+  it('sin luces no añade la instrucción de iluminación', () => {
+    const out = serializeDocToPrompt(docWith([...walls, o('sofa', 40, 120)]))!;
+    expect(out.toLowerCase()).not.toContain('temperatura de color');
+  });
 });

@@ -18,6 +18,7 @@ import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
+import { isLight, defaultLight } from '@/canvas/light';
 
 interface Props {
   tool: Tool;
@@ -147,6 +148,8 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
           width: catalogEntry.defaultWidth,
           height: catalogEntry.defaultHeight,
           rotation: 0,
+          // Las luces de primera clase nacen con sus atributos por defecto.
+          ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
         });
         setSelection({ type: 'object', objectIds: [id] });
         onObjectCreated?.();

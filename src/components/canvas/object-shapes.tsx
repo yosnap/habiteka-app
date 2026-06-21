@@ -34,8 +34,14 @@ function box(w: number, h: number, fill: string, radius = 2) {
  * Dibuja un objeto en planta. Si `flip`, lo espeja en horizontal envolviéndolo en
  * un único Group con `scaleX(-1)` y `x(w)` (un solo nivel de transform, fiable).
  */
-export function objectShape(kind: StructKind, w: number, h: number, flip = false): React.ReactNode {
-  const content = shapeFor(kind, w, h);
+export function objectShape(
+  kind: StructKind,
+  w: number,
+  h: number,
+  flip = false,
+  color?: string,
+): React.ReactNode {
+  const content = shapeFor(kind, w, h, color);
   if (!flip) return content;
   return (
     <Group scaleX={-1} x={w}>
@@ -45,7 +51,7 @@ export function objectShape(kind: StructKind, w: number, h: number, flip = false
 }
 
 /** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
-function shapeFor(kind: StructKind, w: number, h: number): React.ReactNode {
+function shapeFor(kind: StructKind, w: number, h: number, color?: string): React.ReactNode {
   switch (kind) {
     // --- Estructura ---
     case 'wall':
@@ -365,6 +371,26 @@ function shapeFor(kind: StructKind, w: number, h: number): React.ReactNode {
           />
         </>
       );
+
+    // --- Iluminación ---
+    case 'foco': {
+      // El foco se dibuja con su color de luz (si lo tiene): halo + punto central.
+      const glow = color ?? '#ffd9a0';
+      return (
+        <>
+          <Circle
+            x={w / 2}
+            y={h / 2}
+            radius={Math.min(w, h) / 2}
+            fill={glow}
+            opacity={0.5}
+            stroke={STROKE}
+            strokeWidth={1}
+          />
+          <Circle x={w / 2} y={h / 2} radius={Math.min(w, h) * 0.22} fill={glow} stroke={STROKE} strokeWidth={1} />
+        </>
+      );
+    }
 
     // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
     // caja simple. Así añadir una entrada al catálogo nunca rompe el render.

@@ -10,6 +10,7 @@
 import type { CanvasDoc, StructObj } from './types';
 import { CATALOG_BY_KIND } from './catalog';
 import { isValidScale, pxToMeters, formatLength, formatObjectSize } from './scale';
+import { isLight, describeLight } from './light';
 
 /** Bounding box que envuelve un conjunto de objetos. */
 interface Bounds {
@@ -74,8 +75,11 @@ export function serializeDocToPrompt(doc: CanvasDoc): string | null {
   const lines = items.map((o) => {
     const label = CATALOG_BY_KIND[o.kind]?.label ?? o.kind;
     const size = scale ? ` (${formatObjectSize(o, scale)})` : '';
-    return `- ${label}${size}: ${positionLabel(o, room)}, ${orientationLabel(o)}.`;
+    // Las luces de primera clase aportan su iluminación (color/intensidad) al render.
+    const luz = isLight(o.kind) && o.light ? `, ${describeLight(o.light)}` : '';
+    return `- ${label}${size}: ${positionLabel(o, room)}, ${orientationLabel(o)}${luz}.`;
   });
+  const hayLuces = items.some((o) => isLight(o.kind) && o.light);
 
   return [
     'PLANO EN PLANTA (vista cenital, mirando la sala desde arriba). NO es una foto frontal:',
@@ -94,6 +98,12 @@ export function serializeDocToPrompt(doc: CanvasDoc): string | null {
           'Respeta también los TAMAÑOS indicados entre paréntesis: cada elemento debe ocupar en',
           'el render una fracción de la sala acorde a sus medidas reales (p. ej. una ventana',
           'pequeña debe verse pequeña, no a lo ancho de toda la pared).',
+        ]
+      : []),
+    ...(hayLuces
+      ? [
+          'La iluminación indicada en cada luz (color y nivel) debe notarse en el ambiente del',
+          'render: refleja los reflejos, las sombras y la temperatura de color de esas luces.',
         ]
       : []),
   ].join('\n');

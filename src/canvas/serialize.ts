@@ -13,10 +13,12 @@ import {
   type ProductRef,
   type BaseImage,
   type CanvasScale,
+  type LightProps,
   CANVAS_SCHEMA_VERSION,
   emptyCanvasDoc,
 } from './types';
 import { CATALOG_BY_KIND } from './catalog';
+import { clampIntensity } from './light';
 
 /** Vuelca el documento a un valor JSON serializable (para JSONB). */
 export function serializeCanvas(doc: CanvasDoc): unknown {
@@ -89,6 +91,7 @@ function parseStruct(v: unknown): StructObj | null {
   // El `kind` debe ser uno del catálogo (estructura o mobiliario). Un kind
   // desconocido (formato futuro) se descarta sin romper el resto del documento.
   if (typeof v.kind !== 'string' || !(v.kind in CATALOG_BY_KIND)) return null;
+  const light = parseLight(v.light);
   return {
     id: v.id,
     kind: v.kind as StructObj['kind'],
@@ -99,6 +102,18 @@ function parseStruct(v: unknown): StructObj | null {
     rotation: num(v.rotation),
     ...(v.flipX === true ? { flipX: true } : {}),
     ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
+    ...(light ? { light } : {}),
+  };
+}
+
+function parseLight(v: unknown): LightProps | null {
+  if (!isRecord(v)) return null;
+  // El color debe ser un string; si falta, se descarta la luz entera (no se
+  // inventa). La intensidad se acota a 0–100 (un valor inválido cae a 0).
+  if (typeof v.color !== 'string') return null;
+  return {
+    color: v.color,
+    intensidad: clampIntensity(typeof v.intensidad === 'number' ? v.intensidad : 0),
   };
 }
 

@@ -41,6 +41,7 @@ export type FurnitureKind =
   | 'mesilla';
 export type ElectronicsKind = 'tv' | 'ordenador' | 'lampara';
 export type DecorKind = 'alfombra' | 'planta' | 'chimenea';
+export type LightKind = 'foco';
 
 export type StructKind =
   | StructuralKind
@@ -48,7 +49,20 @@ export type StructKind =
   | KitchenKind
   | FurnitureKind
   | ElectronicsKind
-  | DecorKind;
+  | DecorKind
+  | LightKind;
+
+/**
+ * Atributos de iluminación de una luz de primera clase (F-LUZ). Solo los objetos
+ * de tipo luz los llevan (`StructObj.light`); el render y un panel de UI los leen,
+ * el resto del pipeline ignora el campo. La intensidad es 0–100.
+ */
+export interface LightProps {
+  /** Color de la luz en hex (#rrggbb). */
+  color: string;
+  /** Intensidad relativa, 0–100. */
+  intensidad: number;
+}
 
 /** Objeto colocable y editable del plano (estructura o mobiliario). */
 export interface StructObj {
@@ -63,6 +77,8 @@ export interface StructObj {
   flipX?: boolean;
   /** Id de grupo: los objetos con el mismo `groupId` se seleccionan/mueven juntos. */
   groupId?: string;
+  /** Atributos de iluminación; presente solo en objetos de tipo luz (F-LUZ). */
+  light?: LightProps;
 }
 
 /** Producto del marketplace colocado en el canvas. */
