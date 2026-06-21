@@ -207,6 +207,19 @@ planta / cenitales; la foto en perspectiva entra como experimento. Métrica de s
   `model-routing`/`model-allowlist`; es conmutable por config).
 - Medir calidad con prototipos antes de comprometer cada fase.
 
+### Fidelidad de disposición (problema CONOCIDO, pendiente)
+El render por imagen NO respeta con fidelidad total la disposición del plano: el usuario reporta
+que la IA coloca la puerta (u otros elementos) en otro sitio. Es el mismo límite que cerró F2 en
+NO-GO: un modelo de imagen 2D no garantiza posiciones exactas, aunque reciba el `referenceImage`
+cenital y el texto con medidas. Vías:
+- **Mitigación (incremental):** reforzar el prompt (medidas reales ya ayudan, F0), probar mejor
+  `referenceImage`, o cambiar de modelo. Mejora la fidelidad pero NO la garantiza. Validar con spike.
+- **Solución real:** F6 (3D navegable) SÍ es fiel por geometría — la puerta está exactamente donde
+  el usuario la puso, porque la escena se construye del plano, no la "imagina" el modelo. La vista
+  100 % fiel del diseño es el 3D, no el render por imagen.
+- Mientras tanto: gestionar la expectativa (el render es una propuesta conceptual, no un plano
+  exacto) y priorizar F6 para la fidelidad real.
+
 ## Orden recomendado (siguiendo las 3 etapas)
 **Fundacional:** F1 ✅ → F1b ✅ → F0 ✅ (escala). Las tres fundacionales completadas.
 **ETAPA A (mapeo):** F0 + F5 (detección editable de foto).
