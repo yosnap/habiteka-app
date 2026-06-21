@@ -84,7 +84,11 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
         >
           {/* Fondo transparente: da al Group un área de captura/transform estable. */}
           <Rect width={o.width} height={o.height} fill="transparent" />
-          {objectShape(o.kind, o.width, o.height)}
+          {/* La forma se voltea en X (espejo) si el objeto está flipado, sin mover
+              su posición: se escala -1 y se compensa con un desplazamiento. */}
+          <Group scaleX={o.flipX ? -1 : 1} x={o.flipX ? o.width : 0}>
+            {objectShape(o.kind, o.width, o.height)}
+          </Group>
         </Group>
       ))}
 

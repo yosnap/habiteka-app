@@ -43,6 +43,12 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
     updateObject(selectedObj.id, { rotation: (selectedObj.rotation + 90) % 360 });
   };
 
+  // Voltea horizontalmente (espejo): p. ej. una puerta que abre al otro lado.
+  const flip = () => {
+    if (!selectedObj) return;
+    updateObject(selectedObj.id, { flipX: !selectedObj.flipX });
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">
       {MODES.map(({ tool: t, label }) => (
@@ -75,6 +81,16 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       >
         Girar 90°
       </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={!selectedObj}
+        onClick={flip}
+        title="Voltear horizontalmente (p. ej. puerta al otro lado)"
+      >
+        Voltear
+      </Button>
       <label className="text-ink-soft flex items-center gap-1 text-xs">
         Ángulo
         <input
@@ -92,6 +108,36 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
           className="border-line bg-surface w-14 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
         />
         °
+      </label>
+      <label className="text-ink-soft flex items-center gap-1 text-xs">
+        Ancho
+        <input
+          type="number"
+          min={8}
+          step={1}
+          disabled={!selectedObj}
+          value={selectedObj ? Math.round(selectedObj.width) : ''}
+          onChange={(e) => {
+            if (!selectedObj) return;
+            updateObject(selectedObj.id, { width: Math.max(8, Number(e.target.value)) });
+          }}
+          className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
+        />
+      </label>
+      <label className="text-ink-soft flex items-center gap-1 text-xs">
+        Alto
+        <input
+          type="number"
+          min={8}
+          step={1}
+          disabled={!selectedObj}
+          value={selectedObj ? Math.round(selectedObj.height) : ''}
+          onChange={(e) => {
+            if (!selectedObj) return;
+            updateObject(selectedObj.id, { height: Math.max(8, Number(e.target.value)) });
+          }}
+          className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
+        />
       </label>
       <Button
         type="button"

@@ -78,6 +78,7 @@ function parseStruct(v: unknown): StructObj | null {
     width: num(v.width),
     height: num(v.height),
     rotation: num(v.rotation),
+    ...(v.flipX === true ? { flipX: true } : {}),
   };
 }
 

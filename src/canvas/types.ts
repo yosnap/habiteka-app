@@ -55,6 +55,8 @@ export interface StructObj {
   width: number;
   height: number;
   rotation: number;
+  /** Volteo horizontal (espejo), p. ej. una puerta que abre al otro lado. */
+  flipX?: boolean;
 }
 
 /** Producto del marketplace colocado en el canvas. */
