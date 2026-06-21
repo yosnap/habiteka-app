@@ -3,14 +3,16 @@
 /**
  * Capa de objetos del plano (estructura y mobiliario). Cada objeto se dibuja con
  * su forma vectorial en planta y es seleccionable; el seleccionado recibe un
- * `Transformer` para moverlo, redimensionarlo y rotarlo. Los cambios geométricos
- * se confían al store (con historial).
+ * `Transformer` para moverlo, redimensionarlo y rotarlo. Al pasar el ratón se
+ * muestra su nombre (para saber qué es cada elemento). Los cambios geométricos se
+ * confían al store (con historial).
  */
-import { useEffect, useRef } from 'react';
-import { Layer, Group, Rect, Transformer } from 'react-konva';
+import { useEffect, useRef, useState } from 'react';
+import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructObj } from '@/canvas/types';
+import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
 
@@ -21,6 +23,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
 
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
   const selectedId = selection?.type === 'object' ? selection.objectId : null;
 
@@ -31,6 +34,14 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
     const node = selectedId ? layer.findOne(`#${selectedId}`) : null;
     tr.nodes(node ? [node] : []);
   }, [selectedId, objects]);
+
+  // Cambia el cursor a "mano" sobre un objeto para indicar que es interactivo.
+  const setCursor = (e: Konva.KonvaEventObject<MouseEvent>, cursor: string) => {
+    const stage = e.target.getStage();
+    if (stage) stage.container().style.cursor = cursor;
+  };
+
+  const hoveredObj = objects.find((o) => o.id === hovered);
 
   return (
     <Layer ref={layerRef}>
@@ -46,6 +57,14 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           draggable
           onClick={() => setSelection({ type: 'object', objectId: o.id })}
           onTap={() => setSelection({ type: 'object', objectId: o.id })}
+          onMouseEnter={(e) => {
+            setHovered(o.id);
+            setCursor(e, 'move');
+          }}
+          onMouseLeave={(e) => {
+            setHovered((h) => (h === o.id ? null : h));
+            setCursor(e, 'default');
+          }}
           onDragEnd={(e) => updateObject(o.id, { x: snap(e.target.x()), y: snap(e.target.y()) })}
           onTransformEnd={(e) => {
             const node = e.target;
@@ -68,7 +87,34 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           {objectShape(o.kind, o.width, o.height)}
         </Group>
       ))}
-      <Transformer ref={trRef} rotateEnabled flipEnabled={false} />
+
+      {/* Etiqueta flotante con el nombre del objeto bajo el ratón. */}
+      {hoveredObj ? (
+        <Label x={hoveredObj.x} y={hoveredObj.y - 22} listening={false}>
+          <Tag fill="#3a322e" cornerRadius={3} />
+          <Text
+            text={CATALOG_BY_KIND[hoveredObj.kind]?.label ?? hoveredObj.kind}
+            fontSize={12}
+            padding={4}
+            fill="#fff"
+          />
+        </Label>
+      ) : null}
+
+      <Transformer
+        ref={trRef}
+        rotateEnabled
+        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnapTolerance={8}
+        flipEnabled={false}
+        anchorSize={10}
+        anchorStroke="#b5532f"
+        anchorFill="#fff"
+        borderStroke="#b5532f"
+        // El tirador de rotación, más separado y visible, para girar desde fuera
+        // de la esquina superior del objeto.
+        rotateAnchorOffset={28}
+      />
     </Layer>
   );
 }

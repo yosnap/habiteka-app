@@ -11,6 +11,7 @@ import { prisma } from '../src/server/db/prisma';
 import { provisionOrganization } from '../src/server/auth/provision-organization';
 import { MODEL_DEFAULTS } from '../src/server/ai/model-defaults';
 import { CANVAS_EXAMPLES } from '../src/canvas/examples';
+import type { Prisma } from '../src/generated/prisma/client';
 
 /**
  * Repara la configuración de modelos si algún test dejó datos corruptos en la BD
@@ -96,9 +97,17 @@ async function main() {
     const exampleProject = await prisma.project.create({
       data: { organizationId: member.organizationId, title: example.title },
     });
-    const { selection: _selection, ...data } = example.doc;
+    const { schemaVersion, objects } = example.doc;
+    const canvasData = {
+      schemaVersion,
+      baseImage: null,
+      strokes: [],
+      objects,
+      products: [],
+      selection: null,
+    } as unknown as Prisma.InputJsonValue;
     await prisma.canvasState.create({
-      data: { projectId: exampleProject.id, data: data as object },
+      data: { projectId: exampleProject.id, data: canvasData },
     });
   }
 
