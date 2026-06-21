@@ -25,14 +25,16 @@ export function CookieConsentBanner() {
     // Sin sesión, el banner no aplica (no hay dónde registrar la elección). Con
     // sesión, se muestra solo si aún no hay ninguna categoría registrada.
     void loadCookieBannerState()
-      .then(({ hasSession, choice }) => {
+      .then(({ hasSession, decided, choice }) => {
         if (!hasSession) {
           setDecided(true);
           return;
         }
         setAnalytics(choice.analytics);
         setAffiliate(choice.affiliate);
-        setDecided(choice.analytics || choice.affiliate);
+        // Se oculta si el usuario YA decidió (incluida la opción "solo necesarias",
+        // que deja ambas categorías en false pero cuenta como decisión tomada).
+        setDecided(decided);
       })
       .catch(() => setDecided(true));
   });

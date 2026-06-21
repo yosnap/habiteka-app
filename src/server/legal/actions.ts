@@ -10,6 +10,7 @@ import { acceptTos, hasAcceptedCurrentTos } from './tos-acceptance-service';
 import {
   recordCookieConsent,
   getCookieConsent,
+  hasCookieDecision,
   type CookieConsentChoice,
 } from './cookie-consent-service';
 
@@ -60,12 +61,20 @@ export async function loadCookieConsent(): Promise<CookieConsentChoice> {
 export interface CookieBannerState {
   /** Si no hay sesión, el banner no se muestra (no hay dónde registrar). */
   hasSession: boolean;
+  /** true si el usuario ya decidió (no debe reaparecer el banner). */
+  decided: boolean;
   choice: CookieConsentChoice;
 }
 
-/** Estado para el banner: si hay sesión y la elección vigente. */
+/** Estado para el banner: si hay sesión, si ya decidió y la elección vigente. */
 export async function loadCookieBannerState(): Promise<CookieBannerState> {
   const userId = await currentUserId();
-  if (!userId) return { hasSession: false, choice: { analytics: false, affiliate: false } };
-  return { hasSession: true, choice: await getCookieConsent(userId) };
+  if (!userId) {
+    return { hasSession: false, decided: true, choice: { analytics: false, affiliate: false } };
+  }
+  const [decided, choice] = await Promise.all([
+    hasCookieDecision(userId),
+    getCookieConsent(userId),
+  ]);
+  return { hasSession: true, decided, choice };
 }
