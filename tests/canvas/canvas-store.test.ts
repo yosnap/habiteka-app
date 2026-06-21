@@ -50,7 +50,7 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
   it('cambiar la selección NO entra en el historial', () => {
     const s = useCanvasStore.getState();
     s.addObject(wall('o1'));
-    s.setSelection({ type: 'object', objectId: 'o1' });
+    s.setSelection({ type: 'object', objectIds: ['o1'] });
 
     useCanvasStore.getState().undo(); // revierte el addObject, no la selección
     expect(useCanvasStore.getState().doc.objects).toHaveLength(0);
@@ -59,7 +59,7 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
   it('eliminar el objeto seleccionado limpia la selección', () => {
     const s = useCanvasStore.getState();
     s.addObject(wall('o1'));
-    s.setSelection({ type: 'object', objectId: 'o1' });
+    s.setSelection({ type: 'object', objectIds: ['o1'] });
     s.removeObject('o1');
     expect(useCanvasStore.getState().doc.selection).toBeNull();
   });

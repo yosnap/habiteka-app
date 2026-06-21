@@ -124,7 +124,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
           height: catalogEntry.defaultHeight,
           rotation: 0,
         });
-        setSelection({ type: 'object', objectId: id });
+        setSelection({ type: 'object', objectIds: [id] });
         onObjectCreated?.();
       } else if (tool === 'zone') {
         setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
@@ -193,7 +193,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      <GridLayer width={width} height={height} scale={view.scale} offsetX={view.x} offsetY={view.y} />
+      <GridLayer
+        width={width}
+        height={height}
+        scale={view.scale}
+        offsetX={view.x}
+        offsetY={view.y}
+      />
       <BaseImageLayer baseImage={doc.baseImage} stageWidth={width} stageHeight={height} />
       <FreehandLayer strokes={doc.strokes} draft={freehand.draft} />
       <StructureLayer objects={doc.objects} />

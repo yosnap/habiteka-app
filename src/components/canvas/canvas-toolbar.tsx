@@ -31,22 +31,23 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const canUndo = useCanvasStore((s) => s.past.length > 0);
   const canRedo = useCanvasStore((s) => s.future.length > 0);
   const selection = useCanvasStore((s) => s.doc.selection);
-  const removeObject = useCanvasStore((s) => s.removeObject);
-  const updateObject = useCanvasStore((s) => s.updateObject);
+  const removeObjects = useCanvasStore((s) => s.removeObjects);
+  const updateObjects = useCanvasStore((s) => s.updateObjects);
   const objects = useCanvasStore((s) => s.doc.objects);
-  const selectedId = selection?.type === 'object' ? selection.objectId : null;
-  const selectedObj = selectedId ? objects.find((o) => o.id === selectedId) : undefined;
+  const selectedIds = selection?.type === 'object' ? selection.objectIds : [];
+  const selectedObjs = objects.filter((o) => selectedIds.includes(o.id));
+  // Objeto de referencia para los campos numéricos (el primero de la selección).
+  const ref0 = selectedObjs[0];
+  const hasSel = selectedObjs.length > 0;
 
-  // Rota el objeto seleccionado 90° (p. ej. para poner una ventana en vertical).
+  // Rota los seleccionados 90° (cada uno desde su ángulo actual).
   const rotate90 = () => {
-    if (!selectedObj) return;
-    updateObject(selectedObj.id, { rotation: (selectedObj.rotation + 90) % 360 });
+    for (const o of selectedObjs) updateObjects([o.id], { rotation: (o.rotation + 90) % 360 });
   };
 
-  // Voltea horizontalmente (espejo): p. ej. una puerta que abre al otro lado.
+  // Voltea horizontalmente (espejo) cada seleccionado.
   const flip = () => {
-    if (!selectedObj) return;
-    updateObject(selectedObj.id, { flipX: !selectedObj.flipX });
+    for (const o of selectedObjs) updateObjects([o.id], { flipX: !o.flipX });
   };
 
   return (
@@ -75,7 +76,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
         type="button"
         size="sm"
         variant="ghost"
-        disabled={!selectedObj}
+        disabled={!hasSel}
         onClick={rotate90}
         title="Girar 90° (p. ej. ventana en vertical)"
       >
@@ -85,7 +86,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
         type="button"
         size="sm"
         variant="ghost"
-        disabled={!selectedObj}
+        disabled={!hasSel}
         onClick={flip}
         title="Voltear horizontalmente (p. ej. puerta al otro lado)"
       >
@@ -98,12 +99,12 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
           min={0}
           max={359}
           step={1}
-          disabled={!selectedObj}
-          value={selectedObj ? Math.round(selectedObj.rotation) : ''}
+          disabled={!hasSel}
+          value={ref0 ? Math.round(ref0.rotation) : ''}
           onChange={(e) => {
-            if (!selectedObj) return;
+            if (!hasSel) return;
             const deg = ((Number(e.target.value) % 360) + 360) % 360;
-            updateObject(selectedObj.id, { rotation: deg });
+            updateObjects(selectedIds, { rotation: deg });
           }}
           className="border-line bg-surface w-14 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
         />
@@ -115,11 +116,11 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
           type="number"
           min={8}
           step={1}
-          disabled={!selectedObj}
-          value={selectedObj ? Math.round(selectedObj.width) : ''}
+          disabled={!hasSel}
+          value={ref0 ? Math.round(ref0.width) : ''}
           onChange={(e) => {
-            if (!selectedObj) return;
-            updateObject(selectedObj.id, { width: Math.max(8, Number(e.target.value)) });
+            if (!hasSel) return;
+            updateObjects(selectedIds, { width: Math.max(8, Number(e.target.value)) });
           }}
           className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
         />
@@ -130,11 +131,11 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
           type="number"
           min={8}
           step={1}
-          disabled={!selectedObj}
-          value={selectedObj ? Math.round(selectedObj.height) : ''}
+          disabled={!hasSel}
+          value={ref0 ? Math.round(ref0.height) : ''}
           onChange={(e) => {
-            if (!selectedObj) return;
-            updateObject(selectedObj.id, { height: Math.max(8, Number(e.target.value)) });
+            if (!hasSel) return;
+            updateObjects(selectedIds, { height: Math.max(8, Number(e.target.value)) });
           }}
           className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
         />
@@ -143,8 +144,8 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
         type="button"
         size="sm"
         variant="ghost"
-        disabled={!selectedId}
-        onClick={() => selectedId && removeObject(selectedId)}
+        disabled={!hasSel}
+        onClick={() => removeObjects(selectedIds)}
       >
         Eliminar
       </Button>

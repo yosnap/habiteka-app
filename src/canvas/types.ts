@@ -71,7 +71,7 @@ export interface ProductRef {
 
 /** Selección activa: un objeto por id, o una zona rectangular normalizada (0–1). */
 export type CanvasSelection =
-  | { type: 'object'; objectId: string }
+  | { type: 'object'; objectIds: string[] }
   | { type: 'zone'; x: number; y: number; width: number; height: number };
 
 export interface CanvasDoc {

@@ -7,7 +7,7 @@
  * muestra su nombre (para saber qué es cada elemento). Los cambios geométricos se
  * confían al store (con historial).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
@@ -25,15 +25,33 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const layerRef = useRef<Konva.Layer>(null);
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const selectedId = selection?.type === 'object' ? selection.objectId : null;
+  const selectedIds = useMemo(
+    () => (selection?.type === 'object' ? selection.objectIds : []),
+    [selection],
+  );
 
   useEffect(() => {
     const tr = trRef.current;
     const layer = layerRef.current;
     if (!tr || !layer) return;
-    const node = selectedId ? layer.findOne(`#${selectedId}`) : null;
-    tr.nodes(node ? [node] : []);
-  }, [selectedId, objects]);
+    // El Transformer puede gobernar varios nodos a la vez (multiselección).
+    const nodes = selectedIds
+      .map((id) => layer.findOne(`#${id}`))
+      .filter((n): n is Konva.Node => Boolean(n));
+    tr.nodes(nodes);
+  }, [selectedIds, objects]);
+
+  // Clic en un objeto: selecciona solo ese; con Shift, lo añade/quita de la selección.
+  const onObjectClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, id: string) => {
+    const shift = 'shiftKey' in e.evt ? e.evt.shiftKey : false;
+    if (!shift) {
+      setSelection({ type: 'object', objectIds: [id] });
+      return;
+    }
+    const current = selection?.type === 'object' ? selection.objectIds : [];
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    setSelection(next.length ? { type: 'object', objectIds: next } : null);
+  };
 
   // Cambia el cursor a "mano" sobre un objeto para indicar que es interactivo.
   const setCursor = (e: Konva.KonvaEventObject<MouseEvent>, cursor: string) => {
@@ -55,8 +73,8 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           height={o.height}
           rotation={o.rotation}
           draggable
-          onClick={() => setSelection({ type: 'object', objectId: o.id })}
-          onTap={() => setSelection({ type: 'object', objectId: o.id })}
+          onClick={(e) => onObjectClick(e, o.id)}
+          onTap={(e) => onObjectClick(e, o.id)}
           onMouseEnter={(e) => {
             setHovered(o.id);
             setCursor(e, 'move');

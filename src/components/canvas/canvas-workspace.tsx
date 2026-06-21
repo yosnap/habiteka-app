@@ -9,6 +9,7 @@
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import type { StructObj } from '@/canvas/types';
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
@@ -35,6 +36,9 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  // Portapapeles interno del editor (no el del SO): objetos copiados/cortados.
+  const clipboardRef = useRef<StructObj[]>([]);
+  const pasteSeq = useRef(0);
 
   useMountEffect(() => {
     const el = containerRef.current;
@@ -56,13 +60,49 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
 
       const store = useCanvasStore.getState();
       const sel = store.doc.selection;
-      if (sel?.type !== 'object') return;
-      const obj = store.doc.objects.find((o) => o.id === sel.objectId);
-      if (!obj) return;
+      const ids = sel?.type === 'object' ? sel.objectIds : [];
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      // Portapapeles interno: copiar/cortar/pegar/duplicar de los seleccionados.
+      if (ctrl && e.key.toLowerCase() === 'c' && ids.length) {
+        e.preventDefault();
+        clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+        return;
+      }
+      if (ctrl && e.key.toLowerCase() === 'x' && ids.length) {
+        e.preventDefault();
+        clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+        store.removeObjects(ids);
+        return;
+      }
+      if (ctrl && e.key.toLowerCase() === 'v' && clipboardRef.current.length) {
+        e.preventDefault();
+        let seq = pasteSeq.current;
+        const clones = clipboardRef.current.map((o) => {
+          seq += 1;
+          return { ...o, id: `obj-paste-${seq}`, x: o.x + 20, y: o.y + 20 };
+        });
+        pasteSeq.current = seq;
+        store.insertObjects(clones);
+        return;
+      }
+      if (ctrl && e.key.toLowerCase() === 'd' && ids.length) {
+        e.preventDefault();
+        store.duplicateObjects(ids);
+        return;
+      }
+      if (ctrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) store.redo();
+        else store.undo();
+        return;
+      }
+
+      if (!ids.length) return;
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        store.removeObject(obj.id);
+        store.removeObjects(ids);
         return;
       }
       const step = e.shiftKey ? 1 : 20;
@@ -75,7 +115,11 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
       const delta = moves[e.key];
       if (delta) {
         e.preventDefault();
-        store.updateObject(obj.id, { x: obj.x + delta[0], y: obj.y + delta[1] });
+        for (const o of store.doc.objects) {
+          if (ids.includes(o.id)) {
+            store.updateObject(o.id, { x: o.x + delta[0], y: o.y + delta[1] });
+          }
+        }
       }
     };
     window.addEventListener('keydown', onKey);

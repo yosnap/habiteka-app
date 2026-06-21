@@ -8,7 +8,7 @@ const sample: CanvasDoc = {
   strokes: [{ id: 's1', points: [0, 0, 10, 10], color: '#ff0000', width: 3 }],
   objects: [{ id: 'o1', kind: 'wall', x: 5, y: 5, width: 100, height: 12, rotation: 0 }],
   products: [{ id: 'p1', marketplaceItemId: 'm1', x: 20, y: 30, targetRef: 'salon' }],
-  selection: { type: 'object', objectId: 'o1' },
+  selection: { type: 'object', objectIds: ['o1'] },
 };
 
 describe('serialización del canvas', () => {
