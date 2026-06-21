@@ -22,7 +22,7 @@ import { persistDeliverables } from './persistence/deliverable-repo';
 import { assertTransition, isReadyForDelivery } from './state-machine';
 import { runIngesta } from './phases/ingesta';
 import { runQualification } from './phases/cualificacion';
-import { runDelivery } from './phases/entrega';
+import { runDelivery, explanationPrompt } from './phases/entrega';
 import { agentError } from './errors';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
@@ -51,6 +51,8 @@ export type AgentInput =
       entregable: DeliverableType;
       /** Objetivo opcional del usuario (paridad con el chat); '' si no se indicó. */
       objetivo: string;
+      /** Instrucción libre en lenguaje natural ("haz la sala más cálida"); '' si no se indicó. */
+      promptLibre: string;
       description: string;
       referenceImage: { base64: string; mimeType: string };
       /** Proporción de la sala (ancho:alto) para encuadrar el render. */
@@ -71,6 +73,8 @@ export interface AgentOutcome {
   detected?: StructuralElements;
   disclaimer?: string;
   deliverables?: Deliverable[];
+  /** Explicación en lenguaje natural de las decisiones del diseño (efímera, no se persiste). */
+  explanation?: string;
 }
 
 export async function advance(
@@ -214,6 +218,22 @@ async function handleGenerateFromCanvas(
     entregables: [input.entregable],
   };
 
+  const deliveryInput = {
+    projectId,
+    collected: ready,
+    // Clave única por intento (no por versión, que aquí no avanza): cada clic de
+    // "Generar" cobra; un reintento de red con el mismo `requestId` no recobra.
+    // Prefijo `canvas:` distinto de `deliver:` para que ambos flujos coexistan.
+    idempotencyKey: `canvas:${projectId}:${input.requestId}`,
+    estimateCredits: 1000,
+    sketch: {
+      description: input.description,
+      referenceImage: input.referenceImage,
+      aspectRatio: input.aspectRatio,
+      ...(input.promptLibre ? { promptLibre: input.promptLibre } : {}),
+    },
+  };
+
   const deliverables = await runDelivery(
     {
       chat: deps.chat,
@@ -221,24 +241,29 @@ async function handleGenerateFromCanvas(
       debit: deps.debit,
       newId: (type) => deps.newDeliverableId(projectId, type),
     },
-    {
-      projectId,
-      collected: ready,
-      // Clave única por intento (no por versión, que aquí no avanza): cada clic de
-      // "Generar" cobra; un reintento de red con el mismo `requestId` no recobra.
-      // Prefijo `canvas:` distinto de `deliver:` para que ambos flujos coexistan.
-      idempotencyKey: `canvas:${projectId}:${input.requestId}`,
-      estimateCredits: 1000,
-      sketch: {
-        description: input.description,
-        referenceImage: input.referenceImage,
-        aspectRatio: input.aspectRatio,
-      },
-    },
+    deliveryInput,
   );
 
   await persistDeliverables(projectId, deliverables);
+
+  // Si se generó un render, la IA explica sus decisiones (2ª llamada de chat,
+  // barata). Es un extra: si falla, se devuelve el render igual (sin explicación).
+  let explanation: string | undefined;
+  if (deliverables.some((d) => d.payload.type === 'render3d')) {
+    try {
+      const result = await deps.chat.chat({
+        model: '',
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: explanationPrompt(deliveryInput) }] },
+        ],
+      });
+      explanation = result.content.trim() || undefined;
+    } catch {
+      // La explicación es accesoria: nunca tumba la entrega del render.
+    }
+  }
+
   // NO se toca la fase del chat: la generación desde el lienzo es un flujo paralelo
   // y no debe pisar una conversación de cualificación en curso.
-  return { phase: 'feedback', collected, deliverables };
+  return { phase: 'feedback', collected, deliverables, ...(explanation ? { explanation } : {}) };
 }

@@ -42,6 +42,11 @@ export interface DeliveryInput {
     referenceImage: { base64: string; mimeType: string };
     /** Proporción de la sala (ancho:alto); encuadra el render como el lienzo. */
     aspectRatio: string;
+    /**
+     * Instrucción libre del usuario en lenguaje natural ("haz la sala más cálida").
+     * Ajusta estilo/ambiente; NO debe alterar la disposición del plano.
+     */
+    promptLibre?: string;
   };
   /** Clave idempotente de ESTA operación de entrega. */
   idempotencyKey: string;
@@ -189,7 +194,37 @@ function renderPrompt(input: DeliveryInput): string {
   const base = `Render 3D conceptual, estilo ${input.collected.estilo}. ${input.collected.objetivo ?? ''}`;
   // Cuando el render parte del lienzo, su descripción estructurada guía la
   // disposición de los elementos (complementa a la imagen de referencia).
-  return input.sketch ? `${base}\n\n${input.sketch.description}` : base;
+  if (!input.sketch) return base;
+  const parts = [base, input.sketch.description];
+  const libre = input.sketch.promptLibre?.trim();
+  if (libre) {
+    // El prompt libre AJUSTA estilo/ambiente; se coloca DESPUÉS de la disposición
+    // y se acota explícitamente para que el modelo no reubique los elementos.
+    parts.push(
+      `Además, el usuario pide: "${libre}". Aplica ese ajuste de estilo, ambiente o ` +
+        `decoración SIN cambiar la disposición, la pared ni la orientación de los elementos ` +
+        `descritos arriba.`,
+    );
+  }
+  return parts.join('\n\n');
+}
+
+/**
+ * Prompt para la 2ª llamada de chat que EXPLICA, en una o dos frases y en primera
+ * persona, las decisiones del diseño según lo que pidió el usuario. Función pura.
+ */
+export function explanationPrompt(input: DeliveryInput): string {
+  const libre = input.sketch?.promptLibre?.trim();
+  const objetivo = input.collected.objetivo?.trim();
+  const intencion = libre || objetivo || `un diseño de estilo ${input.collected.estilo}`;
+  return [
+    `Eres un interiorista. Acabas de generar un render para este espacio:`,
+    input.sketch?.description ?? `Estilo ${input.collected.estilo}.`,
+    '',
+    `El usuario pidió: "${intencion}".`,
+    `Explica en 1-2 frases, en primera persona y tono cercano, qué decisiones de diseño tomaste`,
+    `y por qué (p. ej. "centré el sofá para dejar paso a la puerta"). No listes; sé concreto y breve.`,
+  ].join('\n');
 }
 function memoriaPrompt(input: DeliveryInput): string {
   return `Memoria de materiales para un espacio estilo ${input.collected.estilo}.`;

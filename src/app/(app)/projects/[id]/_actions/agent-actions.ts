@@ -45,6 +45,7 @@ export async function generateDesignFromCanvas(
   estilo: Estilo,
   entregable: DeliverableType,
   objetivo = '',
+  promptLibre = '',
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
@@ -68,7 +69,10 @@ export async function generateDesignFromCanvas(
     estilo,
     entregable,
     // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
-    objetivo: objetivo.slice(0, 200),
+    // Coerción a string defensiva: el cliente puede enviar cualquier valor pese al tipo.
+    objetivo: String(objetivo ?? '').slice(0, 200),
+    // Instrucción libre del usuario; se acota para no inflar el prompt del render.
+    promptLibre: String(promptLibre ?? '').slice(0, 500),
     description,
     referenceImage: { base64, mimeType: 'image/png' },
     aspectRatio,
