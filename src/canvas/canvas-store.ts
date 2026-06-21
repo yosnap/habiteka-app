@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import {
   type CanvasDoc,
+  type BaseImage,
   type StructObj,
   type Stroke,
   type ProductRef,
@@ -22,6 +23,10 @@ interface CanvasState {
   future: CanvasDoc[];
 
   load(doc: CanvasDoc): void;
+  /** Fija (o quita, con null) la imagen de fondo del lienzo. Entra en historial. */
+  setBaseImage(image: BaseImage | null): void;
+  /** Ajusta la opacidad del fondo actual (0–1); no hace nada si no hay fondo. */
+  setBaseImageOpacity(opacity: number): void;
   addStroke(stroke: Stroke): void;
   addObject(obj: StructObj): void;
   updateObject(id: string, patch: Partial<Omit<StructObj, 'id' | 'kind'>>): void;
@@ -74,6 +79,15 @@ export const useCanvasStore = create<CanvasState>((set) => {
     future: [],
 
     load: (doc) => set({ doc, past: [], future: [] }),
+
+    setBaseImage: (image) => mutate((d) => ({ ...d, baseImage: image })),
+
+    setBaseImageOpacity: (opacity) =>
+      mutate((d) =>
+        d.baseImage
+          ? { ...d, baseImage: { ...d.baseImage, opacity: Math.min(1, Math.max(0, opacity)) } }
+          : d,
+      ),
 
     addStroke: (stroke) => mutate((d) => ({ ...d, strokes: [...d.strokes, stroke] })),
 

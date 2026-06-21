@@ -13,6 +13,8 @@ export interface BaseImage {
   url: string;
   width: number;
   height: number;
+  /** Opacidad del fondo (0–1); permite atenuarlo para que no tape lo dibujado. */
+  opacity?: number;
 }
 
 /** Trazo a mano alzada: secuencia de puntos en coordenadas del stage. */

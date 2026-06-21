@@ -21,7 +21,7 @@ export default async function DeliverablesPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
-      <DeliverablesPanel deliverables={deliverables} />
+      <DeliverablesPanel deliverables={deliverables} projectId={id} />
     </main>
   );
 }

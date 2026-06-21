@@ -48,4 +48,47 @@ describe('serialización del canvas', () => {
     expect(deserializeCanvas(null).objects).toHaveLength(0);
     expect(deserializeCanvas('texto').strokes).toHaveLength(0);
   });
+
+  it('conserva la opacidad del fondo en el round-trip y la acota a [0,1]', () => {
+    const conOpacidad = deserializeCanvas({
+      baseImage: { url: 'https://cdn.test/r.png', width: 10, height: 10, opacity: 0.4 },
+    });
+    expect(conOpacidad.baseImage?.opacity).toBe(0.4);
+
+    // Opacidad fuera de rango se acota; un fondo sin opacidad queda opaco (undefined).
+    const acotada = deserializeCanvas({
+      baseImage: { url: 'https://cdn.test/r.png', width: 10, height: 10, opacity: 5 },
+    });
+    expect(acotada.baseImage?.opacity).toBe(1);
+    const sinOpacidad = deserializeCanvas({
+      baseImage: { url: 'https://cdn.test/r.png', width: 10, height: 10 },
+    });
+    expect(sinOpacidad.baseImage?.opacity).toBeUndefined();
+
+    // opacity 0 (fondo invisible) es un valor válido: no debe caer a 1.
+    const invisible = deserializeCanvas({
+      baseImage: { url: 'https://cdn.test/r.png', width: 10, height: 10, opacity: 0 },
+    });
+    expect(invisible.baseImage?.opacity).toBe(0);
+  });
+
+  it('descarta un fondo con width/height no positivos (evita NaN en la capa)', () => {
+    const back = deserializeCanvas({
+      baseImage: { url: 'https://cdn.test/r.png', width: 0, height: 100 },
+    });
+    expect(back.baseImage).toBeNull();
+  });
+
+  it('coordenadas no finitas (NaN/Infinity) caen a 0 (no rompen render/SVG)', () => {
+    const back = deserializeCanvas({
+      objects: [
+        { id: 'o', kind: 'wall', x: NaN, y: Infinity, width: -Infinity, height: 10, rotation: 0 },
+      ],
+    });
+    const o = back.objects[0]!;
+    expect(o.x).toBe(0);
+    expect(o.y).toBe(0);
+    expect(o.width).toBe(0);
+    expect(o.height).toBe(10);
+  });
 });

@@ -48,10 +48,24 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
 
 function parseBaseImage(v: unknown): BaseImage | null {
   if (!isRecord(v)) return null;
-  if (typeof v.url !== 'string' || typeof v.width !== 'number' || typeof v.height !== 'number') {
+  // width/height deben ser positivos: la capa de fondo escala dividiendo por ellos
+  // (un 0 produciría Infinity → NaN en las dimensiones del KonvaImage).
+  if (
+    typeof v.url !== 'string' ||
+    typeof v.width !== 'number' ||
+    typeof v.height !== 'number' ||
+    v.width <= 0 ||
+    v.height <= 0
+  ) {
     return null;
   }
-  return { url: v.url, width: v.width, height: v.height };
+  return {
+    url: v.url,
+    width: v.width,
+    height: v.height,
+    // Opacidad opcional, acotada a [0,1]; ausente o inválida ⇒ fondo opaco.
+    ...(typeof v.opacity === 'number' ? { opacity: Math.min(1, Math.max(0, v.opacity)) } : {}),
+  };
 }
 
 function parseStroke(v: unknown): Stroke | null {
@@ -105,7 +119,9 @@ function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
 }
 function num(v: unknown): number {
-  return typeof v === 'number' ? v : 0;
+  // Exige finitud: NaN/Infinity romperían el render (división por cero en la capa
+  // de fondo, atributos SVG inválidos al rasterizar el lienzo). Caen a 0.
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 function isPresent<T>(v: T | null): v is T {
   return v !== null;

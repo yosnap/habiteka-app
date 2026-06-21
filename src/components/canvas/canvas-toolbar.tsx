@@ -36,6 +36,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const rotate90Action = useCanvasStore((s) => s.rotate90);
   const flipSelection = useCanvasStore((s) => s.flipSelection);
   const objects = useCanvasStore((s) => s.doc.objects);
+  const baseImage = useCanvasStore((s) => s.doc.baseImage);
+  const setBaseImage = useCanvasStore((s) => s.setBaseImage);
+  const setBaseImageOpacity = useCanvasStore((s) => s.setBaseImageOpacity);
   const selectedIds = selection?.type === 'object' ? selection.objectIds : [];
   const selectedObjs = objects.filter((o) => selectedIds.includes(o.id));
   // Objeto de referencia para los campos numéricos (el primero de la selección).
@@ -145,6 +148,35 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       >
         Eliminar
       </Button>
+      {/* Controles del fondo: solo cuando hay una imagen base (render aplicado). */}
+      {baseImage ? (
+        <>
+          <span className="bg-border mx-1 h-5 w-px" aria-hidden />
+          <label className="text-ink-soft flex items-center gap-1 text-xs">
+            Fondo
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round((baseImage.opacity ?? 1) * 100)}
+              onChange={(e) => setBaseImageOpacity(Number(e.target.value) / 100)}
+              className="w-20"
+              aria-label="Opacidad del fondo"
+              title="Opacidad del fondo"
+            />
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setBaseImage(null)}
+            title="Quitar la imagen de fondo del lienzo"
+          >
+            Quitar fondo
+          </Button>
+        </>
+      ) : null}
     </div>
   );
 }
