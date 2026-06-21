@@ -16,6 +16,10 @@ model TosAcceptance {
 
 model CookieConsent {
   id        String   @id @default(cuid())
+  // Secuencia monotónica de inserción: determina sin ambigüedad la elección más
+  // reciente del usuario aunque dos registros caigan en el mismo milisegundo
+  // (createdAt tiene precisión de ms). Es la fuente de verdad del estado actual.
+  seq       BigInt   @default(autoincrement())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Categorías no esenciales aceptadas (analytics/affiliate); las necesarias se
@@ -26,6 +30,6 @@ model CookieConsent {
   version   String
   createdAt DateTime @default(now())
 
-  @@index([userId, createdAt])
+  @@index([userId, seq])
   @@map("cookie_consent")
 }

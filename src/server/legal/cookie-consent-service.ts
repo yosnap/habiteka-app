@@ -36,9 +36,11 @@ export async function recordCookieConsent(
 
 /** Devuelve la elección vigente del usuario; sin registro → todo denegado. */
 export async function getCookieConsent(userId: string): Promise<CookieConsentChoice> {
+  // La elección vigente la fija el registro con mayor `seq` (secuencia monotónica
+  // de inserción): garantiza "la última manda" aunque dos compartan createdAt al ms.
   const latest = await prisma.cookieConsent.findFirst({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { seq: 'desc' },
     select: { analytics: true, affiliate: true },
   });
   return {
