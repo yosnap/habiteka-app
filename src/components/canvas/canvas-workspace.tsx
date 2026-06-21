@@ -331,16 +331,26 @@ export function CanvasWorkspace({
   );
 }
 
-// Compara solo el contenido persistible (ignora la selección) para no guardar
-// cuando lo único que cambió fue la selección.
+// Compara el contenido PERSISTIBLE (ignora la selección, que es UI efímera) para
+// no guardar cuando solo cambió la selección. Incluye escala y altura de techo:
+// si no, cambiar solo la escala no dispararía el autosave y se perdería al recargar.
 function sameContent(
-  a: { strokes: unknown; objects: unknown; products: unknown; baseImage: unknown },
+  a: {
+    strokes: unknown;
+    objects: unknown;
+    products: unknown;
+    baseImage: unknown;
+    scale?: unknown;
+    ceilingHeightM?: unknown;
+  },
   b: typeof a,
 ): boolean {
   return (
     a.strokes === b.strokes &&
     a.objects === b.objects &&
     a.products === b.products &&
-    a.baseImage === b.baseImage
+    a.baseImage === b.baseImage &&
+    a.scale === b.scale &&
+    a.ceilingHeightM === b.ceilingHeightM
   );
 }
