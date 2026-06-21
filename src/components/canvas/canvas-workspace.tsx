@@ -35,6 +35,7 @@ interface Props {
     rawDoc: unknown,
     estilo: Estilo,
     entregable: DeliverableType,
+    objetivo: string,
   ) => Promise<AgentOutcome>;
 }
 
@@ -237,9 +238,9 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction, generateAct
           type="button"
           size="sm"
           onClick={() => setShowGenerate(true)}
-          title="Usar la disposición del lienzo para generar un render con IA"
+          title="Usar la disposición del plano para generar un diseño con IA"
         >
-          Generar diseño desde el lienzo
+          Generar diseño desde el plano
         </Button>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">

@@ -13,21 +13,8 @@ import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
 import { deserializeCanvas } from '@/canvas/serialize';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
+import { isValidEstilo, isValidEntregable } from '@/lib/design-options';
 import type { DeliverableType, Estilo } from '@/lib/contracts';
-
-// Valores válidos para validar la entrada del cliente en el límite de la Server
-// Action (TypeScript no protege el boundary RSC: el cliente puede mandar cualquier
-// string). Deben coincidir con los tipos `Estilo` / `DeliverableType`.
-const ESTILOS_VALIDOS: readonly Estilo[] = [
-  'minimalista',
-  'moderno',
-  'clasico',
-  'industrial',
-  'rustico',
-  'mediterraneo',
-  'nordico',
-];
-const ENTREGABLES_VALIDOS: readonly DeliverableType[] = ['plano2d', 'render3d', 'memoria'];
 
 /**
  * Verifica que el proyecto pertenece a la organización de la sesión. El agente
@@ -57,20 +44,21 @@ export async function generateDesignFromCanvas(
   rawDoc: unknown,
   estilo: Estilo,
   entregable: DeliverableType,
+  objetivo = '',
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
   // selección de rama de generación.
-  if (!ESTILOS_VALIDOS.includes(estilo)) throw new Error('Estilo no válido');
-  if (!ENTREGABLES_VALIDOS.includes(entregable)) throw new Error('Tipo de entregable no válido');
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEntregable(entregable)) throw new Error('Tipo de entregable no válido');
 
   // Normaliza el doc del cliente con el mismo deserializador defensivo del canvas.
   const doc = deserializeCanvas(rawDoc);
   const description = serializeDocToPrompt(doc);
   if (!description) {
-    throw new Error('El lienzo está vacío: añade elementos antes de generar un diseño.');
+    throw new Error('El plano está vacío: añade elementos antes de generar un diseño.');
   }
   const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
 
@@ -79,6 +67,8 @@ export async function generateDesignFromCanvas(
     action: 'generate-from-canvas',
     estilo,
     entregable,
+    // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
+    objetivo: objetivo.slice(0, 200),
     description,
     referenceImage: { base64, mimeType: 'image/png' },
     aspectRatio,

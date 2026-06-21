@@ -1,31 +1,22 @@
 'use client';
 
 /**
- * Mini-formulario para generar un diseño a partir del lienzo (CRL-4).
+ * Mini-formulario para generar un diseño a partir del plano (CRL-4).
  *
- * El usuario elige estilo y tipo de entregable aquí mismo (no necesita pasar por
- * la cualificación del chat). Al confirmar, se envía el documento ACTUAL del store
- * a la Server Action, que lo serializa y rasteriza en el servidor. Se construye
- * con `<select>` nativos estilados como el resto de la toolbar para no añadir
- * dependencias de UI; el panel es un diálogo accesible (rol dialog + Escape).
+ * El usuario elige objetivo, estilo y tipo de entregable aquí mismo (paridad con
+ * la cualificación del chat, sin pasar por ella). Al confirmar, se envía el
+ * documento ACTUAL del store a la Server Action, que lo serializa y rasteriza en
+ * el servidor. Las opciones (estilos, entregables) vienen de la fuente única
+ * `design-options` para no duplicar. Diálogo accesible (rol dialog + Escape).
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas } from '@/canvas/serialize';
+import { ESTILOS, ENTREGABLES } from '@/lib/design-options';
 import type { AgentOutcome } from '@/server/agent';
 import type { DeliverableType, Estilo } from '@/lib/contracts';
-
-const ESTILOS: Array<{ value: Estilo; label: string }> = [
-  { value: 'nordico', label: 'Nórdico' },
-  { value: 'moderno', label: 'Moderno' },
-  { value: 'minimalista', label: 'Minimalista' },
-  { value: 'clasico', label: 'Clásico' },
-  { value: 'industrial', label: 'Industrial' },
-  { value: 'rustico', label: 'Rústico' },
-  { value: 'mediterraneo', label: 'Mediterráneo' },
-];
 
 interface Props {
   projectId: string;
@@ -34,6 +25,7 @@ interface Props {
     rawDoc: unknown,
     estilo: Estilo,
     entregable: DeliverableType,
+    objetivo: string,
   ) => Promise<AgentOutcome>;
   onClose: () => void;
 }
@@ -41,6 +33,8 @@ interface Props {
 export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }: Props) {
   const objectCount = useCanvasStore((s) => s.doc.objects.length);
   const [estilo, setEstilo] = useState<Estilo>('nordico');
+  const [entregable, setEntregable] = useState<DeliverableType>('render3d');
+  const [objetivo, setObjetivo] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -52,8 +46,8 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
     setError(null);
     try {
       const rawDoc = serializeCanvas(useCanvasStore.getState().doc);
-      await generateAction(projectId, rawDoc, estilo, 'render3d');
-      // El render se persiste como entregable: llevar al usuario a verlo.
+      await generateAction(projectId, rawDoc, estilo, entregable, objetivo.trim());
+      // El diseño se persiste como entregable: llevar al usuario a verlo.
       router.push(`/projects/${projectId}/deliverables`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo generar el diseño.');
@@ -66,37 +60,66 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       role="dialog"
       aria-modal="true"
-      aria-label="Generar diseño desde el lienzo"
+      aria-label="Generar diseño desde el plano"
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
     >
       <div className="bg-surface w-full max-w-sm rounded-[var(--radius-card)] border border-line p-4 shadow-lg">
-        <h2 className="text-ink mb-1 text-base font-medium">Generar diseño desde el lienzo</h2>
+        <h2 className="text-ink mb-1 text-base font-medium">Generar diseño desde el plano</h2>
         <p className="text-ink-soft mb-3 text-xs">
-          La IA usará la disposición de tu lienzo como referencia para crear un render.
+          La IA usará la disposición de tu plano como referencia para crear el diseño.
         </p>
 
         {empty ? (
           <p className="text-destructive mb-3 text-sm" role="alert">
-            El lienzo está vacío. Añade muebles o estructura antes de generar.
+            El plano está vacío. Añade muebles o estructura antes de generar.
           </p>
         ) : (
-          <label className="text-ink-soft mb-3 flex flex-col gap-1 text-sm">
-            Estilo
-            <select
-              value={estilo}
-              onChange={(e) => setEstilo(e.target.value as Estilo)}
-              disabled={busy}
-              className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
-            >
-              {ESTILOS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="mb-3 flex flex-col gap-3">
+            <label className="text-ink-soft flex flex-col gap-1 text-sm">
+              Objetivo (opcional)
+              <input
+                type="text"
+                value={objetivo}
+                onChange={(e) => setObjetivo(e.target.value)}
+                disabled={busy}
+                placeholder="p. ej. salón acogedor para recibir visitas"
+                maxLength={200}
+                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+              />
+            </label>
+            <label className="text-ink-soft flex flex-col gap-1 text-sm">
+              Estilo
+              <select
+                value={estilo}
+                onChange={(e) => setEstilo(e.target.value as Estilo)}
+                disabled={busy}
+                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+              >
+                {ESTILOS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-ink-soft flex flex-col gap-1 text-sm">
+              Entregable
+              <select
+                value={entregable}
+                onChange={(e) => setEntregable(e.target.value as DeliverableType)}
+                disabled={busy}
+                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+              >
+                {ENTREGABLES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         )}
 
         {error ? (

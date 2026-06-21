@@ -49,6 +49,8 @@ export type AgentInput =
       action: 'generate-from-canvas';
       estilo: Estilo;
       entregable: DeliverableType;
+      /** Objetivo opcional del usuario (paridad con el chat); '' si no se indicó. */
+      objetivo: string;
       description: string;
       referenceImage: { base64: string; mimeType: string };
       /** Proporción de la sala (ancho:alto) para encuadrar el render. */
@@ -206,6 +208,8 @@ async function handleGenerateFromCanvas(
   // no la cualificación del chat: se construye un Collected listo para entregar.
   const ready: ReadyForDelivery = {
     ...collected,
+    // El objetivo del formulario tiene prioridad si se indicó; si no, lo ya recogido.
+    objetivo: input.objetivo || collected.objetivo,
     estilo: input.estilo,
     entregables: [input.entregable],
   };
