@@ -10,6 +10,7 @@ import { auth } from '../src/server/auth/auth';
 import { prisma } from '../src/server/db/prisma';
 import { provisionOrganization } from '../src/server/auth/provision-organization';
 import { MODEL_DEFAULTS } from '../src/server/ai/model-defaults';
+import { CANVAS_EXAMPLES } from '../src/canvas/examples';
 
 /**
  * Repara la configuración de modelos si algún test dejó datos corruptos en la BD
@@ -82,6 +83,22 @@ async function main() {
   if (!project) {
     project = await prisma.project.create({
       data: { organizationId: member.organizationId, title: sampleTitle },
+    });
+  }
+
+  // Crea proyectos con lienzos de ejemplo (idempotente) para mostrar el editor
+  // con planos ya montados. La selección no se persiste.
+  for (const example of CANVAS_EXAMPLES) {
+    const existing = await prisma.project.findFirst({
+      where: { organizationId: member.organizationId, title: example.title },
+    });
+    if (existing) continue;
+    const exampleProject = await prisma.project.create({
+      data: { organizationId: member.organizationId, title: example.title },
+    });
+    const { selection: _selection, ...data } = example.doc;
+    await prisma.canvasState.create({
+      data: { projectId: exampleProject.id, data: data as object },
     });
   }
 
