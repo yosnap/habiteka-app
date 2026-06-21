@@ -79,6 +79,7 @@ function parseStruct(v: unknown): StructObj | null {
     height: num(v.height),
     rotation: num(v.rotation),
     ...(v.flipX === true ? { flipX: true } : {}),
+    ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
   };
 }
 

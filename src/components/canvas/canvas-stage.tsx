@@ -47,6 +47,24 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   // Vista (zoom/pan) del stage. La escala es uniforme; (x,y) es el desplazamiento.
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
+  // El pan solo se activa con la barra espaciadora (estilo editores de diseño): así
+  // arrastrar el fondo SELECCIONA con un marco (marquee) en vez de mover el lienzo.
+  const [spaceDown, setSpaceDown] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceDown(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceDown(false);
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
 
   // Es herramienta de creación de objeto si el tool es un kind del catálogo.
   const catalogEntry = tool in CATALOG_BY_KIND ? CATALOG_BY_KIND[tool] : undefined;
@@ -107,7 +125,12 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       if (!pos) return;
 
       if (tool === 'select') {
-        if (e.target === stage) setSelection(null);
+        // Con espacio se panea (el Stage es draggable); sin espacio, arrastrar el
+        // fondo dibuja un marco de selección. Un clic simple en vacío deselecciona.
+        if (e.target === stage && !spaceDown) {
+          setSelection(null);
+          setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
+        }
         return;
       }
 
@@ -132,14 +155,14 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
       }
     },
-    [tool, catalogEntry, freehand.handlers, addObject, setSelection, onObjectCreated],
+    [tool, catalogEntry, freehand.handlers, addObject, setSelection, onObjectCreated, spaceDown],
   );
 
   const onPointerMove = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
       if (tool === 'freehand') {
         freehand.handlers.onPointerMove(e);
-      } else if (tool === 'zone' && marquee) {
+      } else if ((tool === 'zone' || tool === 'select') && marquee) {
         const pos = worldPointer(e.target.getStage());
         if (pos) setMarquee((m) => (m ? { ...m, width: pos.x - m.x, height: pos.y - m.y } : m));
       }
@@ -150,6 +173,15 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const onPointerUp = useCallback(() => {
     if (tool === 'freehand') {
       freehand.handlers.onPointerUp();
+    } else if (tool === 'select' && marquee) {
+      // Selección por marco: todos los objetos cuyo rectángulo intersecta el marco.
+      // Un marco mínimo (clic sin arrastrar) no selecciona nada (ya deseleccionó).
+      const r = normalizeRect(marquee);
+      if (r.width > 3 || r.height > 3) {
+        const ids = doc.objects.filter((o) => intersects(r, o)).map((o) => o.id);
+        setSelection(ids.length ? { type: 'object', objectIds: ids } : null);
+      }
+      setMarquee(null);
     } else if (tool === 'zone' && marquee) {
       zoneSeq += 1;
       const zone = pixelRectToZone(`zone-${zoneSeq}`, marquee, { width, height });
@@ -165,11 +197,11 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       }
       setMarquee(null);
     }
-  }, [tool, marquee, freehand.handlers, width, height, setSelection]);
+  }, [tool, marquee, freehand.handlers, width, height, setSelection, doc.objects]);
 
-  // Pan: arrastrar el FONDO del lienzo (no un objeto) desplaza la vista. Solo con
-  // la herramienta de selección, para no interferir con dibujar/crear.
-  const panEnabled = tool === 'select';
+  // Pan: solo con la barra espaciadora presionada (estilo editores de diseño), para
+  // que arrastrar el fondo seleccione con un marco en vez de mover el lienzo.
+  const panEnabled = spaceDown;
 
   return (
     <Stage
@@ -231,4 +263,26 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       <SelectionOverlay marquee={marquee} />
     </Stage>
   );
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Normaliza un rectángulo (que puede tener ancho/alto negativos) a x/y arriba-izq. */
+function normalizeRect(r: Rect): Rect {
+  return {
+    x: Math.min(r.x, r.x + r.width),
+    y: Math.min(r.y, r.y + r.height),
+    width: Math.abs(r.width),
+    height: Math.abs(r.height),
+  };
+}
+
+/** true si el marco `r` intersecta el rectángulo del objeto `o` (AABB). */
+function intersects(r: Rect, o: { x: number; y: number; width: number; height: number }): boolean {
+  return r.x < o.x + o.width && r.x + r.width > o.x && r.y < o.y + o.height && r.y + r.height > o.y;
 }

@@ -57,6 +57,8 @@ export interface StructObj {
   rotation: number;
   /** Volteo horizontal (espejo), p. ej. una puerta que abre al otro lado. */
   flipX?: boolean;
+  /** Id de grupo: los objetos con el mismo `groupId` se seleccionan/mueven juntos. */
+  groupId?: string;
 }
 
 /** Producto del marketplace colocado en el canvas. */

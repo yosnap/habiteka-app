@@ -107,6 +107,18 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
               un Group scaleX anidado, que no compensaba bien dentro del Group que
               además rota). */}
           {objectShape(o.kind, o.width, o.height, o.flipX === true)}
+          {/* Resalte individual de los objetos seleccionados, para distinguir cuáles
+              están en la selección (el Transformer dibuja solo el recuadro conjunto). */}
+          {selectedIds.includes(o.id) ? (
+            <Rect
+              width={o.width}
+              height={o.height}
+              stroke="#b5532f"
+              strokeWidth={2}
+              dash={[6, 4]}
+              listening={false}
+            />
+          ) : null}
         </Group>
       ))}
 
