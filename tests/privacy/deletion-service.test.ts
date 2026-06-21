@@ -67,12 +67,26 @@ describe('eraseOrganizationData (RGPD art. 17)', () => {
     // Borró los dos objetos de storage (render + iteración).
     expect(storage.deleted).toEqual(expect.arrayContaining(['renders/x.png', 'iterations/y.png']));
 
-    // Cero filas en DB para esa organización (cascade completo).
+    // Cero filas en DB para esa organización (cascade completo). Se filtra por la
+    // org borrada en vez de contar el total: la BD de dev conserva el admin (con
+    // sus propios proyectos/entregables), que no debe contaminar la aserción.
     expect(await prisma.project.count({ where: { organizationId: orgId } })).toBe(0);
-    expect(await prisma.conversation.count()).toBe(0);
-    expect(await prisma.message.count()).toBe(0);
-    expect(await prisma.deliverable.count()).toBe(0);
-    expect(await prisma.iteration.count()).toBe(0);
+    expect(
+      await prisma.conversation.count({ where: { project: { organizationId: orgId } } }),
+    ).toBe(0);
+    expect(
+      await prisma.message.count({
+        where: { conversation: { project: { organizationId: orgId } } },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.deliverable.count({ where: { project: { organizationId: orgId } } }),
+    ).toBe(0);
+    expect(
+      await prisma.iteration.count({
+        where: { deliverable: { project: { organizationId: orgId } } },
+      }),
+    ).toBe(0);
   });
 
   it('no toca el contenido de otra organización', async () => {
