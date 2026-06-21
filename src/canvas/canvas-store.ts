@@ -55,6 +55,8 @@ interface CanvasState {
   addProduct(product: ProductRef): void;
   /** Fija (o quita, con null) la escala arquitectónica del plano. Entra en historial. */
   setScale(scale: CanvasScale | null): void;
+  /** Fija (o quita, con null) la altura de techo del plano en metros. Entra en historial. */
+  setCeilingHeight(meters: number | null): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
   redo(): void;
@@ -255,6 +257,16 @@ export const useCanvasStore = create<CanvasState>((set) => {
         // Quitar la escala: el campo es opcional, así que se elimina del doc.
         const rest = { ...d };
         delete rest.scale;
+        return rest;
+      }),
+
+    setCeilingHeight: (meters) =>
+      mutate((d) => {
+        if (meters && Number.isFinite(meters) && meters > 0) {
+          return { ...d, ceilingHeightM: meters };
+        }
+        const rest = { ...d };
+        delete rest.ceilingHeightM;
         return rest;
       }),
 

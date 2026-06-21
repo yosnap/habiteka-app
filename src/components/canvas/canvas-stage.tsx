@@ -19,6 +19,7 @@ import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { isLight, defaultLight } from '@/canvas/light';
+import { isValidScale, catalogSizePx } from '@/canvas/scale';
 
 interface Props {
   tool: Tool;
@@ -139,14 +140,19 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       } else if (catalogEntry) {
         objectSeq += 1;
         const id = `obj-${objectSeq}`;
+        // Con escala activa, el objeto nace con sus MEDIDAS REALES del catálogo
+        // convertidas a px (una puerta de 0,9 m, no "lo que midan 60 px"). Sin
+        // escala, usa el tamaño en px por defecto. Lógica pura en `catalogSizePx`.
+        const scale = isValidScale(doc.scale) ? doc.scale : null;
+        const { w, h } = catalogSizePx(catalogEntry, scale);
         // Se coloca centrado en el punto pulsado (en coordenadas de mundo).
         addObject({
           id,
           kind: catalogEntry.kind,
-          x: pos.x - catalogEntry.defaultWidth / 2,
-          y: pos.y - catalogEntry.defaultHeight / 2,
-          width: catalogEntry.defaultWidth,
-          height: catalogEntry.defaultHeight,
+          x: pos.x - w / 2,
+          y: pos.y - h / 2,
+          width: w,
+          height: h,
           rotation: 0,
           // Las luces de primera clase nacen con sus atributos por defecto.
           ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
@@ -157,7 +163,16 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
       }
     },
-    [tool, catalogEntry, freehand.handlers, addObject, setSelection, onObjectCreated, spaceDown],
+    [
+      tool,
+      catalogEntry,
+      doc.scale,
+      freehand.handlers,
+      addObject,
+      setSelection,
+      onObjectCreated,
+      spaceDown,
+    ],
   );
 
   const onPointerMove = useCallback(

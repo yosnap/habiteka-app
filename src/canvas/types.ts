@@ -69,6 +69,11 @@ export interface StructObj {
   id: string;
   kind: StructKind;
   x: number;
+  /**
+   * Geometría EN PLANTA (vista cenital). `width` y `height` son las dos
+   * dimensiones vistas desde arriba: `width` = largo, `height` = fondo (en un
+   * muro, su GROSOR). NO son la altura vertical: esa es la 3ª dimensión `heightM`.
+   */
   y: number;
   width: number;
   height: number;
@@ -79,6 +84,12 @@ export interface StructObj {
   groupId?: string;
   /** Atributos de iluminación; presente solo en objetos de tipo luz (F-LUZ). */
   light?: LightProps;
+  /**
+   * Altura vertical REAL en metros (la 3ª dimensión, que el plano 2D no captura).
+   * Opcional: si falta, se asume la altura típica del elemento (muros → altura de
+   * techo del plano; muebles → su altura habitual). Da contexto 3D al render.
+   */
+  heightM?: number;
 }
 
 /** Producto del marketplace colocado en el canvas. */
@@ -119,6 +130,12 @@ export interface CanvasDoc {
   selection: CanvasSelection | null;
   /** Escala arquitectónica. Ausente ⇒ el plano trabaja en píxeles abstractos. */
   scale?: CanvasScale;
+  /**
+   * Altura de techo del plano en metros (3ª dimensión global). Da contexto 3D al
+   * render y es la altura por defecto de los muros sin `heightM` propio. Ausente ⇒
+   * se asume una altura estándar (~2,5 m) al describir el espacio.
+   */
+  ceilingHeightM?: number;
 }
 
 /** Documento vacío inicial (proyecto recién creado). */

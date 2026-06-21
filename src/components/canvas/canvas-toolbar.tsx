@@ -8,9 +8,10 @@
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructKind } from '@/canvas/types';
-import { isValidScale, formatObjectSize } from '@/canvas/scale';
+import { isValidScale, pxToMeters, metersToPx } from '@/canvas/scale';
 import { ScaleControl } from './scale-control';
 import { LightControls } from './light-controls';
+import { NumberInput } from './number-input';
 
 // La herramienta activa: modos generales o la creación de un objeto del catálogo.
 export type Tool = 'select' | 'freehand' | 'zone' | StructKind;
@@ -48,9 +49,23 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   // Objeto de referencia para los campos numéricos (el primero de la selección).
   const ref0 = selectedObjs[0];
   const hasSel = selectedObjs.length > 0;
-  // Con escala activa, mostramos las dimensiones reales junto a las de píxeles.
+  // Con escala activa, los inputs de medidas trabajan en METROS (lo intuitivo); sin
+  // escala, en píxeles. Estos helpers convierten en cada sentido según haya escala.
   const scale = isValidScale(docScale) ? docScale : null;
-  const realSize = scale && ref0 ? formatObjectSize(ref0, scale) : null;
+  const unidad = scale ? 'm' : 'px';
+  /** Valor a mostrar en el input para una dimensión en px del objeto. */
+  const toInput = (px: number): number =>
+    scale ? Math.round(pxToMeters(px, scale) * 100) / 100 : Math.round(px);
+  /** Convierte lo que el usuario escribió (m o px) de vuelta a px del modelo. */
+  const fromInput = (v: number): number => (scale ? Math.round(metersToPx(v, scale)) : Math.round(v));
+  // Paso del input: fino en metros (1 cm), entero en píxeles.
+  const stepDim = scale ? 0.01 : 1;
+  // Etiqueta de cada input según la forma real: "Largo" = la dimensión MAYOR,
+  // "Fondo" = la menor. Así un muro vertical (alto y delgado) etiqueta sus 3,6 m
+  // como Largo y sus 15 cm como Fondo, no al revés. Cada input rotula SU dimensión.
+  const widthIsLong = ref0 ? ref0.width >= ref0.height : true;
+  const labelForWidth = widthIsLong ? 'Largo' : 'Fondo';
+  const labelForHeight = widthIsLong ? 'Fondo' : 'Largo';
 
   // Rotar/voltear: la lógica de grupo (centro común) vive en el store.
   const rotate90 = () => rotate90Action(selectedIds);
@@ -100,57 +115,85 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       </Button>
       <label className="text-ink-soft flex items-center gap-1 text-xs">
         Ángulo
-        <input
-          type="number"
+        <NumberInput
           min={0}
           max={359}
-          step={1}
           disabled={!hasSel}
-          value={ref0 ? Math.round(ref0.rotation) : ''}
-          onChange={(e) => {
-            if (!hasSel) return;
-            const deg = ((Number(e.target.value) % 360) + 360) % 360;
+          value={ref0 ? Math.round(ref0.rotation) : null}
+          onCommit={(v) => {
+            if (!hasSel || v === null) return;
+            const deg = ((v % 360) + 360) % 360;
             updateObjects(selectedIds, { rotation: deg });
           }}
+          aria-label="Ángulo en grados"
+          suffix="°"
           className="border-line bg-surface w-14 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
-        °
       </label>
-      <label className="text-ink-soft flex items-center gap-1 text-xs">
-        Ancho
-        <input
-          type="number"
-          min={8}
-          step={1}
+      {/* En planta se miden dos dimensiones (vista cenital). Las etiquetas se
+          asignan por tamaño: "Largo" = la dimensión mayor, "Fondo" = la menor, así
+          un muro vertical no muestra su grosor como "Largo". La altura vertical es
+          la 3ª dimensión y se edita aparte (campo Alto, en m). El input de width
+          siempre escribe en width; solo cambia su rótulo según la forma. */}
+      <label className="text-ink-soft flex items-center gap-1 text-xs" title="Dimensión vista en planta">
+        {labelForWidth}
+        <NumberInput
+          min={scale ? 0.05 : 8}
+          step={stepDim}
           disabled={!hasSel}
-          value={ref0 ? Math.round(ref0.width) : ''}
-          onChange={(e) => {
-            if (!hasSel) return;
-            updateObjects(selectedIds, { width: Math.max(8, Number(e.target.value)) });
+          value={ref0 ? toInput(ref0.width) : null}
+          onCommit={(v) => {
+            if (!hasSel || v === null) return;
+            updateObjects(selectedIds, { width: Math.max(8, fromInput(v)) });
           }}
+          aria-label="Dimensión a lo ancho"
+          suffix={unidad}
           className="border-line bg-surface w-16 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
       </label>
-      <label className="text-ink-soft flex items-center gap-1 text-xs">
-        Alto
-        <input
-          type="number"
-          min={8}
-          step={1}
+      <label
+        className="text-ink-soft flex items-center gap-1 text-xs"
+        title="La otra dimensión en planta (en un muro, su grosor) — NO la altura"
+      >
+        {labelForHeight}
+        <NumberInput
+          min={scale ? 0.05 : 8}
+          step={stepDim}
           disabled={!hasSel}
-          value={ref0 ? Math.round(ref0.height) : ''}
-          onChange={(e) => {
-            if (!hasSel) return;
-            updateObjects(selectedIds, { height: Math.max(8, Number(e.target.value)) });
+          value={ref0 ? toInput(ref0.height) : null}
+          onCommit={(v) => {
+            if (!hasSel || v === null) return;
+            updateObjects(selectedIds, { height: Math.max(8, fromInput(v)) });
           }}
+          aria-label="Dimensión a lo alto en planta"
+          suffix={unidad}
           className="border-line bg-surface w-16 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
       </label>
-      {/* Dimensiones reales (cm/m) cuando hay escala arquitectónica activa. */}
-      {realSize ? (
-        <span className="text-ink-soft text-xs" title="Medidas reales según la escala">
-          ≈ {realSize}
-        </span>
+      {/* Altura vertical REAL (3ª dimensión, en metros). Solo con escala activa. */}
+      {scale ? (
+        <label
+          className="text-ink-soft flex items-center gap-1 text-xs"
+          title="Altura vertical real en metros (la 3ª dimensión; vacío = altura típica)"
+        >
+          Alto
+          <NumberInput
+            min={0}
+            step={0.1}
+            disabled={!hasSel}
+            value={ref0?.heightM ?? null}
+            placeholder="auto"
+            allowEmpty
+            onCommit={(v) => {
+              if (!hasSel) return;
+              // Vaciar o 0 ⇒ sin altura propia (vuelve a la típica del elemento).
+              updateObjects(selectedIds, { heightM: v && v > 0 ? v : undefined });
+            }}
+            aria-label="Altura vertical real en metros"
+            suffix="m"
+            className="border-line bg-surface w-14 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
+          />
+        </label>
       ) : null}
       <Button
         type="button"

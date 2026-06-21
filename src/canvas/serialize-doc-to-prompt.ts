@@ -9,7 +9,13 @@
  */
 import type { CanvasDoc, StructObj } from './types';
 import { CATALOG_BY_KIND } from './catalog';
-import { isValidScale, pxToMeters, formatLength, formatObjectSize } from './scale';
+import {
+  isValidScale,
+  pxToMeters,
+  formatLength,
+  formatObjectSize3d,
+  DEFAULT_CEILING_M,
+} from './scale';
 import { isLight, describeLight } from './light';
 
 /** Bounding box que envuelve un conjunto de objetos. */
@@ -66,15 +72,19 @@ export function serializeDocToPrompt(doc: CanvasDoc): string | null {
   const ratio = roomH > 0 ? (roomW / roomH).toFixed(2) : '1';
   const shape =
     roomW > roomH * 1.2 ? 'apaisada (más ancha que profunda)' : roomH > roomW * 1.2 ? 'profunda (más larga que ancha)' : 'casi cuadrada';
+  // Altura de techo (3ª dimensión): da contexto vertical al render. Solo se cita
+  // cuando hay escala (las medidas en metros tienen sentido).
+  const ceiling = doc.ceilingHeightM && doc.ceilingHeightM > 0 ? doc.ceilingHeightM : DEFAULT_CEILING_M;
   const roomSizeText = scale
-    ? ` La sala mide aproximadamente ${formatLength(pxToMeters(roomW, scale))} de ancho por ${formatLength(pxToMeters(roomH, scale))} de profundidad.`
+    ? ` La sala mide aproximadamente ${formatLength(pxToMeters(roomW, scale))} de ancho por ${formatLength(pxToMeters(roomH, scale))} de profundidad, con techo a ${formatLength(ceiling)} de altura.`
     : '';
 
   // Solo el mobiliario/estructura no-muro se describe como elemento colocado.
   const items = doc.objects.filter((o) => o.kind !== 'wall');
   const lines = items.map((o) => {
     const label = CATALOG_BY_KIND[o.kind]?.label ?? o.kind;
-    const size = scale ? ` (${formatObjectSize(o, scale)})` : '';
+    // Con escala se da largo × fondo × ALTO (la altura es la 3ª dimensión real).
+    const size = scale ? ` (${formatObjectSize3d(o, scale, ceiling)})` : '';
     // Las luces de primera clase aportan su iluminación (color/intensidad) al render.
     const luz = isLight(o.kind) && o.light ? `, ${describeLight(o.light)}` : '';
     return `- ${label}${size}: ${positionLabel(o, room)}, ${orientationLabel(o)}${luz}.`;

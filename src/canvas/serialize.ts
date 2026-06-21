@@ -32,6 +32,7 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     selection: null,
     // La escala solo se persiste si está definida (campo opcional v2 aditivo).
     ...(doc.scale ? { scale: doc.scale } : {}),
+    ...(doc.ceilingHeightM ? { ceilingHeightM: doc.ceilingHeightM } : {}),
   };
 }
 
@@ -48,7 +49,13 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
     products: asArray(raw.products).map(parseProduct).filter(isPresent),
     selection: null,
     ...(scale ? { scale } : {}),
+    ...(posMeters(raw.ceilingHeightM) ? { ceilingHeightM: raw.ceilingHeightM as number } : {}),
   };
+}
+
+/** true si el valor es un número de metros usable (positivo y finito). */
+function posMeters(v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
 }
 
 // --- parsers defensivos ---
@@ -103,6 +110,8 @@ function parseStruct(v: unknown): StructObj | null {
     ...(v.flipX === true ? { flipX: true } : {}),
     ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
     ...(light ? { light } : {}),
+    // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
+    ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),
   };
 }
 
