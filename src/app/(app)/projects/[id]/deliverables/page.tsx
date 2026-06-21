@@ -3,7 +3,6 @@
  * del repositorio con ámbito y los presenta con sus visores. El sello legal viaja
  * con cada entregable.
  */
-import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { DeliverablesPanel } from '@/components/deliverables/deliverables-panel';
@@ -15,16 +14,13 @@ interface Props {
 
 export default async function DeliverablesPage({ params }: Props) {
   const { id } = await params;
+  // El layout del proyecto ya validó la sesión y la pertenencia.
   const ctx = await requireOrgContext();
-  const project = await withOrg(ctx).projects.findById(id);
-  if (!project) notFound();
-
   const rows = await withOrg(ctx).deliverables.list(id);
   const deliverables = rows.map(toDeliverable).filter((d): d is Deliverable => d !== null);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
-      <h1 className="text-lg font-semibold tracking-tight">{project.title} · Tus diseños</h1>
       <DeliverablesPanel deliverables={deliverables} />
     </main>
   );

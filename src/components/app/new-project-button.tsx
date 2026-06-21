@@ -22,7 +22,9 @@ export function NewProjectButton() {
     setPending(true);
     try {
       const project = await createProject(name);
-      router.push(`/projects/${project.id}`);
+      // Un proyecto nuevo arranca en el asistente: el primer paso es subir la
+      // foto y conversar, no el lienzo vacío.
+      router.push(`/projects/${project.id}/chat`);
     } finally {
       setPending(false);
     }
