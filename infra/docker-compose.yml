@@ -1,0 +1,32 @@
+# Postgres de desarrollo para Habiteka.
+# Levanta una base local aislada en el puerto 5440 (host) → 5432 (contenedor).
+# Los datos persisten en el volumen `habiteka_pg_data`.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   docker compose -f infra/docker-compose.yml down        # parar (conserva datos)
+#   docker compose -f infra/docker-compose.yml down -v     # parar y BORRAR datos
+#
+# Ajusta la DATABASE_URL de tu .env.local a:
+#   postgresql://habiteka:habiteka@localhost:5440/habiteka_dev
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: habiteka-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: habiteka
+      POSTGRES_PASSWORD: habiteka
+      POSTGRES_DB: habiteka_dev
+    ports:
+      - '5440:5432'
+    volumes:
+      - habiteka_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U habiteka -d habiteka_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  habiteka_pg_data:

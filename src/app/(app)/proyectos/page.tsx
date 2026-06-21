@@ -36,7 +36,7 @@ export default async function ProyectosPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <Link key={p.id} href={`/projects/${p.id}`}>
+            <Link key={p.id} href={`/projects/${p.id}/chat`}>
               <Card className="hover:border-brand-500 h-full p-5 transition-colors">
                 <h2 className="text-ink mb-1 font-medium">{p.title}</h2>
                 <p className="text-ink-soft text-xs">Creado el {formatDate(p.createdAt)}</p>
