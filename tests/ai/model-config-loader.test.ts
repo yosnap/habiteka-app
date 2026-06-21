@@ -1,13 +1,33 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { getModelConfig, invalidate } from '@/server/ai/model-config-loader';
 import { resolveRoute, MAX_FALLBACKS } from '@/server/ai/model-routing';
 import { MODEL_DEFAULTS } from '@/server/ai/model-defaults';
 import { prisma } from '@/server/db/prisma';
+import type { ModelAction } from '@/generated/prisma/enums';
 
 async function clearModelConfig() {
   await prisma.modelConfig.deleteMany();
   invalidate();
 }
+
+// Restaura la config sembrada al terminar: estos tests comparten la BD con el
+// entorno de desarrollo, así que no deben dejar valores de prueba (p. ej.
+// `primaryModel: 'p'`) que envenenarían la app local tras correr la suite.
+afterAll(async () => {
+  await prisma.modelConfig.deleteMany();
+  for (const [action, route] of Object.entries(MODEL_DEFAULTS)) {
+    await prisma.modelConfig.create({
+      data: {
+        action: action as ModelAction,
+        primaryModel: route.primaryModel,
+        fallbacks: route.fallbacks,
+        provider: route.provider,
+        baseURL: route.baseURL,
+      },
+    });
+  }
+  invalidate();
+});
 
 describe('model-config-loader (Postgres real)', () => {
   beforeEach(clearModelConfig);

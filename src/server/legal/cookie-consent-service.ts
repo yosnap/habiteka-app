@@ -48,6 +48,16 @@ export async function getCookieConsent(userId: string): Promise<CookieConsentCho
 }
 
 /**
+ * true si el usuario YA decidió sobre las cookies (existe algún registro), con
+ * independencia de qué eligió. "Solo necesarias" (todo a false) cuenta como una
+ * decisión: el banner no debe reaparecer tras ella.
+ */
+export async function hasCookieDecision(userId: string): Promise<boolean> {
+  const any = await prisma.cookieConsent.findFirst({ where: { userId }, select: { id: true } });
+  return any !== null;
+}
+
+/**
  * true si una categoría no esencial está consentida AHORA. Punto único que
  * F10/F18 consultan antes de cualquier tracking. Fail-closed: sin registro, false.
  */

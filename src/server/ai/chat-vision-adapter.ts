@@ -26,10 +26,17 @@ type OpenAIContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } };
 
+interface OpenAIToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
 interface OpenAIChatMessage {
   role: string;
   content: string | OpenAIContentPart[];
   tool_call_id?: string;
+  tool_calls?: OpenAIToolCall[];
 }
 
 export interface ChatAdapterOptions {
@@ -131,6 +138,17 @@ function toOpenAIMessage(msg: ChatMessage): OpenAIChatMessage {
     role: msg.role,
     content: msg.content.map(toOpenAIPart),
     ...(msg.toolCallId ? { tool_call_id: msg.toolCallId } : {}),
+    // Mensaje `assistant` que invoca herramientas: debe llevar `tool_calls` para
+    // que el `tool` que le sigue sea válido para el proveedor.
+    ...(msg.toolCalls?.length
+      ? {
+          tool_calls: msg.toolCalls.map((tc) => ({
+            id: tc.id,
+            type: 'function' as const,
+            function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+          })),
+        }
+      : {}),
   };
 }
 

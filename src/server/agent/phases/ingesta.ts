@@ -41,7 +41,15 @@ export async function runIngesta(
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Detecta los elementos estructurales del espacio.' },
+          {
+            type: 'text',
+            text:
+              'Analiza esta imagen de un espacio o boceto de vivienda y cuenta sus elementos ' +
+              'estructurales. Cuenta TODAS las paredes visibles que delimitan el espacio ' +
+              '(incluidas las exteriores del contorno), las puertas, las ventanas (cualquier ' +
+              'forma: cuadradas, redondas, etc.) y los pilares. Si es el contorno de una casa, ' +
+              'las cuatro fachadas cuentan como paredes. Devuelve solo los números.',
+          },
           ...imageParts,
         ],
       },

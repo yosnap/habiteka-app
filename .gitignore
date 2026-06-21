@@ -36,3 +36,6 @@ src/generated/
 # Agent internal memory inside plans
 .claude/agent-memory/
 **/.claude/agent-memory/
+
+# Salidas de los spikes de IA (evidencia local, posible PII; nunca se commitean)
+tests/spikes/out-*.png

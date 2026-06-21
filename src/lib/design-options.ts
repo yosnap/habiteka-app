@@ -1,0 +1,58 @@
+/**
+ * Fuente ÚNICA de las opciones de interacción del producto (estilos, entregables).
+ *
+ * El chat y el formulario del plano comparten estas listas: cambiar o añadir una
+ * opción aquí se propaga a todos los puntos sin duplicar (principio de un solo
+ * sitio de verdad). Los *tipos* viven en `contracts/` (que es solo tipos); este
+ * módulo aporta los DATOS (valor + etiqueta para la UI).
+ *
+ * Escalabilidad: los labels se declaran como `Record<Estilo, ...>`, así el
+ * compilador OBLIGA a dar etiqueta a cada valor nuevo del tipo — añadir un estilo
+ * sin su label es un error de compilación, no un olvido en runtime.
+ */
+import type { Estilo, DeliverableType } from './contracts';
+
+export interface Option<T extends string> {
+  value: T;
+  label: string;
+}
+
+// Etiquetas en español. `Record<Estilo, string>` fuerza exhaustividad: si se añade
+// un `Estilo` al tipo y no se le pone etiqueta aquí, el build falla.
+const ESTILO_LABELS: Record<Estilo, string> = {
+  minimalista: 'Minimalista',
+  moderno: 'Moderno',
+  clasico: 'Clásico',
+  industrial: 'Industrial',
+  rustico: 'Rústico',
+  mediterraneo: 'Mediterráneo',
+  nordico: 'Nórdico',
+};
+
+const ENTREGABLE_LABELS: Record<DeliverableType, string> = {
+  plano2d: 'Plano 2D',
+  render3d: 'Render 3D',
+  memoria: 'Memoria de materiales',
+};
+
+/** Estilos como lista de opciones {value,label} para la UI. */
+export const ESTILOS: ReadonlyArray<Option<Estilo>> = (
+  Object.keys(ESTILO_LABELS) as Estilo[]
+).map((value) => ({ value, label: ESTILO_LABELS[value] }));
+
+/** Entregables como lista de opciones {value,label} para la UI. */
+export const ENTREGABLES: ReadonlyArray<Option<DeliverableType>> = (
+  Object.keys(ENTREGABLE_LABELS) as DeliverableType[]
+).map((value) => ({ value, label: ENTREGABLE_LABELS[value] }));
+
+/** Solo los valores (para enums de herramientas y validación). */
+export const ESTILO_VALUES: ReadonlyArray<Estilo> = ESTILOS.map((o) => o.value);
+export const ENTREGABLE_VALUES: ReadonlyArray<DeliverableType> = ENTREGABLES.map((o) => o.value);
+
+export function isValidEstilo(v: unknown): v is Estilo {
+  return typeof v === 'string' && (ESTILO_VALUES as readonly string[]).includes(v);
+}
+
+export function isValidEntregable(v: unknown): v is DeliverableType {
+  return typeof v === 'string' && (ENTREGABLE_VALUES as readonly string[]).includes(v);
+}

@@ -26,6 +26,8 @@ export async function createProject(title: string) {
 
 export async function deleteProject(id: string) {
   const ctx = await requireOrgContext();
-  requireRole(ctx, 'admin');
+  // Borrar un proyecto propio requiere ser miembro de la organización; el repo con
+  // ámbito garantiza que solo se afecta a proyectos de esa organización.
+  requireRole(ctx, 'member');
   await withOrg(ctx).projects.delete(id);
 }

@@ -40,10 +40,13 @@ describe('user-operations — gestión de usuarios', () => {
   beforeEach(resetDb);
 
   it('listUsers pagina y no devuelve todos', async () => {
+    // La BD de dev conserva el admin de desarrollo; medimos el baseline y
+    // verificamos el incremento, en vez de asumir que se parte de cero.
+    const { total: base } = await listUsers({ page: 1, pageSize: 2 });
     for (let i = 0; i < 5; i++) await makeUser();
     const { users, total } = await listUsers({ page: 1, pageSize: 2 });
     expect(users).toHaveLength(2);
-    expect(total).toBe(5);
+    expect(total).toBe(base + 5);
   });
 
   it('listUsers filtra por email', async () => {

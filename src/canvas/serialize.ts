@@ -12,9 +12,11 @@ import {
   type StructObj,
   type ProductRef,
   type BaseImage,
+  type CanvasScale,
   CANVAS_SCHEMA_VERSION,
   emptyCanvasDoc,
 } from './types';
+import { CATALOG_BY_KIND } from './catalog';
 
 /** Vuelca el documento a un valor JSON serializable (para JSONB). */
 export function serializeCanvas(doc: CanvasDoc): unknown {
@@ -26,12 +28,15 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     products: doc.products,
     // La selección es estado de UI efímero: no se persiste.
     selection: null,
+    // La escala solo se persiste si está definida (campo opcional v2 aditivo).
+    ...(doc.scale ? { scale: doc.scale } : {}),
   };
 }
 
 /** Reconstruye un `CanvasDoc` desde JSONB, tolerante a datos incompletos. */
 export function deserializeCanvas(raw: unknown): CanvasDoc {
   if (!isRecord(raw)) return emptyCanvasDoc();
+  const scale = parseScale(raw.scale);
   return {
     schemaVersion:
       typeof raw.schemaVersion === 'number' ? raw.schemaVersion : CANVAS_SCHEMA_VERSION,
@@ -40,6 +45,7 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
     objects: asArray(raw.objects).map(parseStruct).filter(isPresent),
     products: asArray(raw.products).map(parseProduct).filter(isPresent),
     selection: null,
+    ...(scale ? { scale } : {}),
   };
 }
 
@@ -47,10 +53,24 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
 
 function parseBaseImage(v: unknown): BaseImage | null {
   if (!isRecord(v)) return null;
-  if (typeof v.url !== 'string' || typeof v.width !== 'number' || typeof v.height !== 'number') {
+  // width/height deben ser positivos: la capa de fondo escala dividiendo por ellos
+  // (un 0 produciría Infinity → NaN en las dimensiones del KonvaImage).
+  if (
+    typeof v.url !== 'string' ||
+    typeof v.width !== 'number' ||
+    typeof v.height !== 'number' ||
+    v.width <= 0 ||
+    v.height <= 0
+  ) {
     return null;
   }
-  return { url: v.url, width: v.width, height: v.height };
+  return {
+    url: v.url,
+    width: v.width,
+    height: v.height,
+    // Opacidad opcional, acotada a [0,1]; ausente o inválida ⇒ fondo opaco.
+    ...(typeof v.opacity === 'number' ? { opacity: Math.min(1, Math.max(0, v.opacity)) } : {}),
+  };
 }
 
 function parseStroke(v: unknown): Stroke | null {
@@ -66,16 +86,19 @@ function parseStroke(v: unknown): Stroke | null {
 
 function parseStruct(v: unknown): StructObj | null {
   if (!isRecord(v) || typeof v.id !== 'string') return null;
-  const kind = v.kind;
-  if (kind !== 'wall' && kind !== 'window' && kind !== 'door') return null;
+  // El `kind` debe ser uno del catálogo (estructura o mobiliario). Un kind
+  // desconocido (formato futuro) se descarta sin romper el resto del documento.
+  if (typeof v.kind !== 'string' || !(v.kind in CATALOG_BY_KIND)) return null;
   return {
     id: v.id,
-    kind,
+    kind: v.kind as StructObj['kind'],
     x: num(v.x),
     y: num(v.y),
     width: num(v.width),
     height: num(v.height),
     rotation: num(v.rotation),
+    ...(v.flipX === true ? { flipX: true } : {}),
+    ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
   };
 }
 
@@ -92,6 +115,23 @@ function parseProduct(v: unknown): ProductRef | null {
   };
 }
 
+function parseScale(v: unknown): CanvasScale | null {
+  if (!isRecord(v)) return null;
+  // `pxPerMeter` es la fuente de verdad de la conversión: debe ser positivo y
+  // finito (un 0 o negativo produciría medidas absurdas). Si no, se descarta la
+  // escala entera y el plano vuelve a píxeles abstractos.
+  if (typeof v.pxPerMeter !== 'number' || !Number.isFinite(v.pxPerMeter) || v.pxPerMeter <= 0) {
+    return null;
+  }
+  return {
+    pxPerMeter: v.pxPerMeter,
+    // El ratio es metadato presentacional opcional; solo se conserva si es válido.
+    ...(typeof v.ratio === 'number' && Number.isFinite(v.ratio) && v.ratio > 0
+      ? { ratio: v.ratio }
+      : {}),
+  };
+}
+
 // --- helpers ---
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -101,7 +141,9 @@ function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
 }
 function num(v: unknown): number {
-  return typeof v === 'number' ? v : 0;
+  // Exige finitud: NaN/Infinity romperían el render (división por cero en la capa
+  // de fondo, atributos SVG inválidos al rasterizar el lienzo). Caen a 0.
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 function isPresent<T>(v: T | null): v is T {
   return v !== null;
