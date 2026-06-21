@@ -196,18 +196,12 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
       { label: '-', onClick: () => {} },
       {
         label: 'Girar 90°',
-        onClick: () => {
-          for (const o of store.doc.objects)
-            if (ids.includes(o.id)) store.updateObject(o.id, { rotation: (o.rotation + 90) % 360 });
-        },
+        onClick: () => store.rotate90(ids),
         disabled: !hasSel,
       },
       {
         label: 'Voltear',
-        onClick: () => {
-          for (const o of store.doc.objects)
-            if (ids.includes(o.id)) store.updateObject(o.id, { flipX: !o.flipX });
-        },
+        onClick: () => store.flipSelection(ids),
         disabled: !hasSel,
       },
       { label: '-', onClick: () => {} },

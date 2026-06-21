@@ -33,6 +33,8 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const selection = useCanvasStore((s) => s.doc.selection);
   const removeObjects = useCanvasStore((s) => s.removeObjects);
   const updateObjects = useCanvasStore((s) => s.updateObjects);
+  const rotate90Action = useCanvasStore((s) => s.rotate90);
+  const flipSelection = useCanvasStore((s) => s.flipSelection);
   const objects = useCanvasStore((s) => s.doc.objects);
   const selectedIds = selection?.type === 'object' ? selection.objectIds : [];
   const selectedObjs = objects.filter((o) => selectedIds.includes(o.id));
@@ -40,15 +42,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const ref0 = selectedObjs[0];
   const hasSel = selectedObjs.length > 0;
 
-  // Rota los seleccionados 90° (cada uno desde su ángulo actual).
-  const rotate90 = () => {
-    for (const o of selectedObjs) updateObjects([o.id], { rotation: (o.rotation + 90) % 360 });
-  };
-
-  // Voltea horizontalmente (espejo) cada seleccionado.
-  const flip = () => {
-    for (const o of selectedObjs) updateObjects([o.id], { flipX: !o.flipX });
-  };
+  // Rotar/voltear: la lógica de grupo (centro común) vive en el store.
+  const rotate90 = () => rotate90Action(selectedIds);
+  const flip = () => flipSelection(selectedIds);
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">

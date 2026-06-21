@@ -42,6 +42,10 @@ interface CanvasState {
   groupObjects(ids: string[]): void;
   /** Desagrupa: quita el `groupId` de los objetos indicados. */
   ungroupObjects(ids: string[]): void;
+  /** Rota 90° en horario: uno sobre su centro; varios como bloque (centro común). */
+  rotate90(ids: string[]): void;
+  /** Voltea en horizontal: uno sobre su centro; varios espejando el bloque. */
+  flipSelection(ids: string[]): void;
   addProduct(product: ProductRef): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
@@ -170,6 +174,62 @@ export const useCanvasStore = create<CanvasState>((set) => {
         }),
       })),
 
+    rotate90: (ids) =>
+      mutate((d) => {
+        const sel = d.objects.filter((o) => ids.includes(o.id));
+        if (sel.length <= 1) {
+          return {
+            ...d,
+            objects: d.objects.map((o) =>
+              ids.includes(o.id) ? { ...o, rotation: (o.rotation + 90) % 360 } : o,
+            ),
+          };
+        }
+        const c = bboxCenter(sel);
+        return {
+          ...d,
+          objects: d.objects.map((o) => {
+            if (!ids.includes(o.id)) return o;
+            const ocx = o.x + o.width / 2;
+            const ocy = o.y + o.height / 2;
+            // 90° horaria del centro del objeto alrededor del centro común.
+            const rx = c.x - (ocy - c.y);
+            const ry = c.y + (ocx - c.x);
+            const nw = o.height;
+            const nh = o.width;
+            return {
+              ...o,
+              x: rx - nw / 2,
+              y: ry - nh / 2,
+              width: nw,
+              height: nh,
+              rotation: (o.rotation + 90) % 360,
+            };
+          }),
+        };
+      }),
+
+    flipSelection: (ids) =>
+      mutate((d) => {
+        const sel = d.objects.filter((o) => ids.includes(o.id));
+        if (sel.length <= 1) {
+          return {
+            ...d,
+            objects: d.objects.map((o) => (ids.includes(o.id) ? { ...o, flipX: !o.flipX } : o)),
+          };
+        }
+        const c = bboxCenter(sel);
+        return {
+          ...d,
+          objects: d.objects.map((o) => {
+            if (!ids.includes(o.id)) return o;
+            const ocx = o.x + o.width / 2;
+            const mirroredCx = 2 * c.x - ocx;
+            return { ...o, x: mirroredCx - o.width / 2, flipX: !o.flipX };
+          }),
+        };
+      }),
+
     addProduct: (product) => mutate((d) => ({ ...d, products: [...d.products, product] })),
 
     // La selección no participa del historial: cambia sin tocar past/future.
@@ -207,6 +267,15 @@ function clearSelectionOf(
   if (selection?.type !== 'object') return selection;
   const remaining = selection.objectIds.filter((id) => !removedIds.includes(id));
   return remaining.length ? { type: 'object', objectIds: remaining } : null;
+}
+
+/** Centro del bounding box conjunto de un conjunto de objetos. */
+function bboxCenter(objs: StructObj[]) {
+  const minX = Math.min(...objs.map((o) => o.x));
+  const minY = Math.min(...objs.map((o) => o.y));
+  const maxX = Math.max(...objs.map((o) => o.x + o.width));
+  const maxY = Math.max(...objs.map((o) => o.y + o.height));
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 }
 
 /** Desplaza los objetos indicados una posición en el z-order (±1). */
