@@ -11,6 +11,7 @@ import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { useFreehand } from '@/canvas/use-freehand';
 import { pixelRectToZone } from '@/canvas/selection-math';
+import { GridLayer } from './layers/grid-layer';
 import { BaseImageLayer } from './layers/base-image-layer';
 import { FreehandLayer } from './layers/freehand-layer';
 import { StructureLayer } from './layers/structure-layer';
@@ -120,6 +121,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
+      <GridLayer width={width} height={height} />
       <BaseImageLayer baseImage={doc.baseImage} stageWidth={width} stageHeight={height} />
       <FreehandLayer strokes={doc.strokes} draft={freehand.draft} />
       <StructureLayer objects={doc.objects} />

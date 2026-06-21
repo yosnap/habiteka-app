@@ -12,6 +12,7 @@ import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructObj } from '@/canvas/types';
 import { objectShape } from '../object-shapes';
+import { snap } from './grid-layer';
 
 export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const selection = useCanvasStore((s) => s.doc.selection);
@@ -45,16 +46,17 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           draggable
           onClick={() => setSelection({ type: 'object', objectId: o.id })}
           onTap={() => setSelection({ type: 'object', objectId: o.id })}
-          onDragEnd={(e) => updateObject(o.id, { x: e.target.x(), y: e.target.y() })}
+          onDragEnd={(e) => updateObject(o.id, { x: snap(e.target.x()), y: snap(e.target.y()) })}
           onTransformEnd={(e) => {
             const node = e.target;
             // El Group no expone un width/height intrínseco fiable: se parte del
             // tamaño conocido del objeto y se le aplica la escala del transform.
+            // Posición y tamaño se ajustan a la rejilla.
             updateObject(o.id, {
-              x: node.x(),
-              y: node.y(),
-              width: Math.max(8, o.width * node.scaleX()),
-              height: Math.max(8, o.height * node.scaleY()),
+              x: snap(node.x()),
+              y: snap(node.y()),
+              width: Math.max(8, snap(o.width * node.scaleX())),
+              height: Math.max(8, snap(o.height * node.scaleY())),
               rotation: node.rotation(),
             });
             node.scaleX(1);
