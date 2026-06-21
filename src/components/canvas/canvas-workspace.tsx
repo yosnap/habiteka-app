@@ -46,6 +46,42 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
     return () => observer.disconnect();
   });
 
+  // Atajos de teclado: Supr/Backspace borra el objeto seleccionado; las flechas lo
+  // mueven (paso = rejilla; con Shift, paso fino de 1px). Se ignora si el foco está
+  // en un campo de texto para no interferir con la escritura.
+  useMountEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      const store = useCanvasStore.getState();
+      const sel = store.doc.selection;
+      if (sel?.type !== 'object') return;
+      const obj = store.doc.objects.find((o) => o.id === sel.objectId);
+      if (!obj) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        store.removeObject(obj.id);
+        return;
+      }
+      const step = e.shiftKey ? 1 : 20;
+      const moves: Record<string, [number, number]> = {
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+      };
+      const delta = moves[e.key];
+      if (delta) {
+        e.preventDefault();
+        store.updateObject(obj.id, { x: obj.x + delta[0], y: obj.y + delta[1] });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   // Al montar: hidrata el documento inicial e instala el autoguardado con
   // debounce. Es un efecto de montaje legítimo (suscripción a un store externo +
   // sincronización a servidor); su limpieza cancela el temporizador y la
