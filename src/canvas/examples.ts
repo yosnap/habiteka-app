@@ -20,7 +20,7 @@ function obj(
   return { id, kind, x, y, width, height, rotation };
 }
 
-function doc(objects: StructObj[]): CanvasDoc {
+function doc(objects: StructObj[], scale?: CanvasDoc['scale']): CanvasDoc {
   return {
     schemaVersion: CANVAS_SCHEMA_VERSION,
     baseImage: null,
@@ -28,25 +28,36 @@ function doc(objects: StructObj[]): CanvasDoc {
     objects,
     products: [],
     selection: null,
+    ...(scale ? { scale } : {}),
   };
 }
 
-/** Salón rectangular con sofá, mesa, TV y una ventana. */
+/**
+ * Salón rectangular con una disposición COHERENTE (importa para los renders y
+ * los spikes de calidad): la TV se ancla a la pared del fondo y el sofá la mira
+ * de frente desde la mitad de la sala, con la mesa de centro entre ambos. La
+ * puerta va en la pared lateral izquierda (entrada despejada, no detrás de un
+ * mueble) y la ventana en la pared del fondo, a un lado de la TV. La lámpara
+ * ocupa una esquina libre. Así "frente a la TV", "junto a la ventana" y "entrada
+ * por la izquierda" se corresponden con la realidad del plano.
+ */
 export const EXAMPLE_SALON: CanvasDoc = doc([
-  // Muros del contorno (4 paredes).
+  // Muros del contorno (4 paredes). Sala de 520×360 px.
   obj('w-top', 'wall', 200, 120, 520, 12),
   obj('w-bottom', 'wall', 200, 480, 520, 12),
   obj('w-left', 'wall', 200, 120, 12, 372),
   obj('w-right', 'wall', 708, 120, 12, 372),
-  // Aberturas.
-  obj('win-1', 'window', 360, 114, 120, 12),
-  obj('door-1', 'door', 300, 474, 80, 12),
-  // Mobiliario.
-  obj('sofa-1', 'sofa', 260, 360, 200, 90),
-  obj('mesa-1', 'mesa', 320, 260, 120, 80),
-  obj('tv-1', 'tv', 320, 140, 120, 16),
-  obj('lamp-1', 'lampara', 620, 380, 40, 40),
-]);
+  // Aberturas: puerta en la pared izquierda; ventana en la pared del fondo (derecha).
+  obj('door-1', 'door', 194, 300, 12, 90),
+  obj('win-1', 'window', 540, 114, 140, 12),
+  // Mobiliario: TV en el fondo (izquierda), sofá enfrentado mirando al fondo,
+  // mesa de centro entre ambos, lámpara en la esquina derecha libre.
+  obj('tv-1', 'tv', 300, 134, 140, 16),
+  obj('mesa-1', 'mesa', 320, 250, 120, 70),
+  obj('sofa-1', 'sofa', 300, 370, 200, 80),
+  obj('lamp-1', 'lampara', 650, 410, 40, 40),
+  // Escala: 100 px = 1 m ⇒ sala 5,2×3,6 m, puerta 0,9 m, ventana 1,4 m, sofá 2 m.
+], { pxPerMeter: 100, ratio: 50 });
 
 /** Baño con inodoro, lavabo, ducha y bañera. */
 export const EXAMPLE_BANO: CanvasDoc = doc([

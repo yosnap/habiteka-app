@@ -87,5 +87,14 @@ export function serializeDocToPrompt(doc: CanvasDoc): string | null {
     '',
     'Respeta ESTRICTAMENTE la proporción de la sala, la pared contra la que está cada',
     'elemento y su orientación. No reordenes, no rotes ni cambies de pared los elementos.',
+    // Con escala, las medidas son DATO: hay que insistir en tamaños, porque el
+    // modelo tiende a normalizar todo a un tamaño "típico" e ignora las medidas.
+    ...(scale
+      ? [
+          'Respeta también los TAMAÑOS indicados entre paréntesis: cada elemento debe ocupar en',
+          'el render una fracción de la sala acorde a sus medidas reales (p. ej. una ventana',
+          'pequeña debe verse pequeña, no a lo ancho de toda la pared).',
+        ]
+      : []),
   ].join('\n');
 }
