@@ -63,12 +63,21 @@ ventana para que entre la luz"). Sin esto, no hay negocio. El realismo es transv
 > F0 y F1 son fundacionales y habilitan el resto.
 
 ### F1b · Renombrar "lienzo"→"plano" + centralizar la interacción  (pequeña-media — fundacional)
-- Renombrar de cara al usuario "lienzo" → "plano" (botones, diálogos, textos). Evaluar renombrar
-  también en el código (`canvas-*` → mantener o migrar gradualmente; decisión de coste/beneficio).
-- Centralizar la definición de las opciones de interacción (estilos, entregables, objetivo, y las
-  futuras: vista, materiales…) en UN módulo compartido, consumido por el formulario del plano y
-  por el chat. Elimina la duplicación actual de estilos.
-- Riesgo: bajo-medio. Es refactor + nomenclatura; sin cambiar comportamiento.
+**Diseño resuelto con /ck:predict (veredicto GO):**
+- **Fuente de verdad:** nuevo módulo de DATOS `src/lib/design-options.ts` con
+  `ESTILOS: ReadonlyArray<{ value: Estilo; label: string }>` y `ENTREGABLES` análogo. El *tipo*
+  `Estilo`/`DeliverableType` SIGUE en `contracts/` (que es solo tipos, no datos); el módulo de
+  datos lo importa. Los 5 sitios duplicados pasan a importar de aquí
+  (agent-actions, qualification-tools, style-quick-picks, generate-from-canvas-dialog).
+- **Escalabilidad por tipos:** estructurar para que el COMPILADOR obligue a dar label a cada
+  `Estilo` nuevo (p. ej. `Record<Estilo, string>` y derivar el array). Añadir una opción se
+  propaga sin olvidos. Mismo patrón servirá para futuras familias (`vista`, `materiales`).
+- **Renombrado lienzo→plano: SOLO los ~6 strings de UI** (pestaña 'Lienzo', botón/diálogo
+  'Generar diseño desde el lienzo', 'Usar como fondo del lienzo', tooltips). NO rutas (el href
+  sigue), NO comentarios internos (oportunista al tocar cada archivo). Diff pequeño.
+- **TDD (acordado):** test que afirme que el array de valores derivado == los 7 valores del tipo
+  `Estilo`, y que los enums de `qualification-tools` salen del módulo único.
+- Riesgo: bajo. Refactor + nomenclatura; sin cambiar comportamiento ni valores.
 
 ### F-CAT · Catálogo extensible: nuevos elementos del plano  (media — habilita decoración)
 - Añadir elementos que hoy faltan: alfombra, chimenea, foco/luz, puerta enrollable, planta, etc.
@@ -99,12 +108,19 @@ ventana para que entre la luz"). Sin esto, no hay negocio. El realismo es transv
 - Riesgo: medio. Toca el modelo del doc (migración de schema v2, serialize defensivo).
 - Habilita: mejor F2 (vistas a escala), F4 (decoración con medidas), F5 (detección métrica).
 
-### F1 · Paridad de opciones lienzo ↔ chat  (pequeña, alto valor — ETAPA A)
-- El formulario del lienzo (`generate-from-canvas-dialog.tsx`) debe ofrecer al menos lo mismo
-  que el chat: `objetivo` (texto libre corto), `estilo`, `entregable`. Hoy solo tiene estilo.
-- Reusar la misma lista de estilos en un único sitio (DRY): hoy `ESTILOS` está duplicado en el
-  diálogo y en `agent-actions.ts`. Extraer a un módulo compartido.
-- Riesgo: bajo. Sin tocar el pipeline de IA.
+### F1 · Paridad de opciones plano ↔ chat  ✅ HECHO (ETAPA A)
+- El formulario del plano (`generate-from-canvas-dialog.tsx`) ofrece objetivo + estilo +
+  entregable (paridad de datos con el chat). `objetivo` se propaga: diálogo → Server Action
+  (acotado a 200) → AgentInput → handler → ReadyForDelivery.
+- Lista de estilos/entregables unificada en la fuente única (ver F1b). Verificado: typecheck OK,
+  eslint OK, 61 tests (4 nuevos de design-options). Code-review: sin críticos.
+
+### F1b nota pendiente (futuro): renombrado producto-amplio
+- Hecho en F1b: strings de UI del plano (pestaña, botón, diálogo, tooltips) lienzo→plano +
+  fuente única `src/lib/design-options.ts`.
+- PENDIENTE (fuera de scope de F1b, anotado): el mensaje de error en
+  `src/server/agent/feedback/zone-resolver.ts` aún dice "lienzo". Decidir en un pase de
+  renombrado producto-amplio si se cambia (es del flujo de feedback por zona, no del plano).
 
 ### F5b · Borrador de decoración y materiales  (media — ETAPA B)
 - Etapa intermedia entre el plano y las vistas: definir QUÉ se decora y CON QUÉ materiales/acabados
@@ -204,6 +220,21 @@ F1 → F1b → F0 → F2 → F3 → F-CAT → F5b → F4 → F-LUZ → F5 → F6
 - F3: ¿el modelo de imagen puede devolver imagen + explicación, o hace falta 2ª llamada de chat?
 - F4: ¿la decoración recomendada se materializa como objeto del lienzo o solo en el prompt?
 - F6: stack 3D (R3F), fuente de modelos glTF de muebles, licencias, rendimiento.
+
+## Red de seguridad por fase (predict / red-team / TDD)
+No se aplican al roadmap global (sería análisis en abstracto); se aplican POR FASE, antes de
+implementar cada una, donde aportan:
+- **/ck:predict (debate de personas, antes de implementar):** F0 (migración schema v2 + escala),
+  F5 (detección beta), F6 (3D/Three.js), F-LUZ (vídeo). Caza problemas de diseño concretos
+  (probado útil en CRL-4).
+- **Red-team / /ck:security:** solo donde hay superficie de ataque NUEVA. Candidata principal:
+  F5 (subida y procesamiento de fotos de usuarios). El resto reusa auth/créditos ya cubiertos →
+  basta el `code-reviewer` obligatorio del flujo cook.
+- **TDD (tests primero):** para piezas de LÓGICA PURA testeable — F0 (conversión px↔medidas),
+  serializadores, validadores, centralización de opciones (F1b). NO para piezas de IA/render,
+  cuya validación es visual vía PROTOTIPO (como en CRL-4).
+- **Prototipo de medición:** obligatorio en toda fase con incógnita de calidad de IA antes de
+  comprometer la fase completa (F2 fidelidad por ángulo, F5 precisión de detección, F-LUZ vídeo).
 
 ## Fuera de alcance de este plan
 - Implementación: este documento solo planifica. Cada fase se cocina por separado tras aprobar.
