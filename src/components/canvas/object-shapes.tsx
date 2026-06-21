@@ -6,7 +6,7 @@
  * devuelve primitivas de Konva relativas a su origen (0,0); el contenedor las
  * posiciona/rota. Mantener el dibujo aquí desacopla el render del modelo de datos.
  */
-import { Rect, Circle, Line, Ellipse } from 'react-konva';
+import { Group, Rect, Circle, Line, Ellipse } from 'react-konva';
 import type { StructKind } from '@/canvas/types';
 
 // Paleta de planta: trazo oscuro, rellenos suaves por familia.
@@ -30,8 +30,27 @@ function box(w: number, h: number, fill: string, radius = 2) {
   );
 }
 
-/** Devuelve los nodos Konva que dibujan un objeto en planta. */
-export function objectShape(kind: StructKind, w: number, h: number): React.ReactNode {
+/**
+ * Dibuja un objeto en planta. Si `flip`, lo espeja en horizontal envolviéndolo en
+ * un único Group con `scaleX(-1)` y `x(w)` (un solo nivel de transform, fiable).
+ */
+export function objectShape(
+  kind: StructKind,
+  w: number,
+  h: number,
+  flip = false,
+): React.ReactNode {
+  const content = shapeFor(kind, w, h);
+  if (!flip) return content;
+  return (
+    <Group scaleX={-1} x={w}>
+      {content}
+    </Group>
+  );
+}
+
+/** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
+function shapeFor(kind: StructKind, w: number, h: number): React.ReactNode {
   switch (kind) {
     // --- Estructura ---
     case 'wall':
