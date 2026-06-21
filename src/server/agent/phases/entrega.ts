@@ -99,20 +99,76 @@ async function generateOne(
 }
 
 async function generatePlano(deps: DeliveryDeps, input: DeliveryInput): Promise<Plano2dPayload> {
-  const result = await deps.chat.chat({
-    model: '',
-    messages: [{ role: 'user', content: [{ type: 'text', text: planoPrompt(input) }] }],
-    responseSchema: { type: 'object' },
-  });
-  const structured = result.structured;
-  if (!isPlano(structured)) {
-    throw agentError('schema_repair_failed', 'El plano 2D no respeta el esquema esperado');
+  // Se pide al modelo un plano estructurado; si no respeta el formato (frecuente
+  // con planos métricos), se cae a un plano base derivado de lo detectado en vez
+  // de fallar: el feedback por zona permitirá refinarlo después.
+  try {
+    const result = await deps.chat.chat({
+      model: '',
+      messages: [{ role: 'user', content: [{ type: 'text', text: planoPrompt(input) }] }],
+      responseSchema: PLANO_SCHEMA,
+    });
+    if (isPlano(result.structured)) return result.structured;
+  } catch {
+    // Cae al plano base.
   }
-  return structured;
+  return basePlano(input.elements);
 }
+
+const PLANO_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['schemaVersion', 'zones'],
+  properties: {
+    schemaVersion: { type: 'integer' },
+    zones: { type: 'array', items: { type: 'object' } },
+  },
+};
 
 function isPlano(v: unknown): v is Plano2dPayload {
   return typeof v === 'object' && v !== null && Array.isArray((v as { zones?: unknown }).zones);
+}
+
+/**
+ * Plano base: una estancia rectangular con cuatro paredes y las aperturas
+ * detectadas distribuidas, en milímetros. Sirve como punto de partida editable
+ * cuando el modelo no devuelve un plano estructurado válido.
+ */
+function basePlano(elements?: StructuralElements): Plano2dPayload {
+  const W = 4000;
+  const H = 3000;
+  const corners = [
+    { x: 0, y: 0 },
+    { x: W, y: 0 },
+    { x: W, y: H },
+    { x: 0, y: H },
+  ];
+  const walls = corners.map((from, i) => {
+    const to = corners[(i + 1) % corners.length]!;
+    return { id: `w${i}`, from, to, thicknessMm: 120 };
+  });
+  const doors = elements?.doors ?? 1;
+  const windows = elements?.windows ?? 0;
+  const apertures = [
+    ...Array.from({ length: doors }, (_, i) => ({
+      id: `d${i}`,
+      kind: 'puerta' as const,
+      wallId: 'w3',
+      position: (i + 1) / (doors + 1),
+      widthMm: 900,
+    })),
+    ...Array.from({ length: windows }, (_, i) => ({
+      id: `v${i}`,
+      kind: 'ventana' as const,
+      wallId: 'w0',
+      position: (i + 1) / (windows + 1),
+      widthMm: 1200,
+    })),
+  ];
+  return {
+    schemaVersion: 1,
+    zones: [{ id: 'z0', name: 'Estancia', outline: corners, walls, apertures, dimensions: [] }],
+  };
 }
 
 function renderPrompt(input: DeliveryInput): string {

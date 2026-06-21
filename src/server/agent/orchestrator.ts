@@ -15,6 +15,7 @@ import type {
 } from '@/lib/contracts';
 import { loadState, saveState } from './persistence/state-repo';
 import { appendMessage } from './persistence/message-repo';
+import { persistDeliverables } from './persistence/deliverable-repo';
 import { assertTransition, isReadyForDelivery } from './state-machine';
 import { runIngesta } from './phases/ingesta';
 import { runQualification } from './phases/cualificacion';
@@ -156,6 +157,9 @@ async function handleDeliver(
       estimateCredits: 1000,
     },
   );
+  // Persistir los entregables ANTES de avanzar de fase: la vista de «Diseños» los
+  // lee de la base de datos; sin esto, la generación se perdería.
+  await persistDeliverables(projectId, deliverables);
   await saveState(projectId, version, { phase: 'feedback', collected });
   return { phase: 'feedback', collected, deliverables };
 }
