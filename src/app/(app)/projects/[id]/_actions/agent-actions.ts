@@ -10,11 +10,13 @@ import { requireOrgContext } from '@/server/auth/require-org-context';
 import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
+import { getChatVisionAdapter } from '@/server/ai';
+import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { deserializeCanvas } from '@/canvas/serialize';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { isValidEstilo, isValidEntregable } from '@/lib/design-options';
-import type { DeliverableType, Estilo } from '@/lib/contracts';
+import type { DeliverableType, Estilo, DecorRecommendation } from '@/lib/contracts';
 
 /**
  * Verifica que el proyecto pertenece a la organización de la sesión. El agente
@@ -80,4 +82,30 @@ export async function generateDesignFromCanvas(
     // idempotente del cobro (evita regeneración gratis por clave constante).
     requestId: globalThis.crypto.randomUUID(),
   });
+}
+
+/**
+ * Recomienda decoración para el plano (F4): la IA propone elementos del catálogo
+ * según estilo + objetivo + lo ya colocado. El usuario las acepta/rechaza en la
+ * UI; al aceptar se añaden como objetos editables del plano. Devuelve solo
+ * recomendaciones válidas (kind del catálogo, posición finita); puede ser vacía.
+ */
+export async function recommendDecoration(
+  projectId: string,
+  rawDoc: unknown,
+  estilo: Estilo,
+  objetivo = '',
+): Promise<DecorRecommendation[]> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+
+  const doc = deserializeCanvas(rawDoc);
+  const description = serializeDocToPrompt(doc);
+  if (!description) {
+    throw new Error('El plano está vacío: añade elementos antes de pedir sugerencias.');
+  }
+
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'chat');
+  return runRecommend(chat, estilo, String(objetivo ?? '').slice(0, 200), description);
 }

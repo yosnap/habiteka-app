@@ -4,7 +4,7 @@
  * por organización); el guardado se delega a una Server Action.
  */
 import { loadCanvas, saveCanvas } from '@/server/actions/canvas';
-import { generateDesignFromCanvas } from './_actions/agent-actions';
+import { generateDesignFromCanvas, recommendDecoration } from './_actions/agent-actions';
 import { CanvasWorkspace } from '@/components/canvas/canvas-workspace';
 
 interface Props {
@@ -25,6 +25,7 @@ export default async function ProjectPage({ params }: Props) {
           initialDoc={initialDoc}
           saveAction={saveCanvas}
           generateAction={generateDesignFromCanvas}
+          recommendAction={recommendDecoration}
         />
       </div>
     </main>

@@ -42,3 +42,4 @@ export type {
 export type { AgentStreamEvent } from './agent-stream';
 export type { ProductDrop } from './product-drop-payload';
 export type { OperationCost, Hold, DebitService } from './debit-service';
+export type { DecorRecommendation } from './decor-recommendation';
