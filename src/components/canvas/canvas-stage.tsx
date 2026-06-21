@@ -20,6 +20,7 @@ import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { isLight, defaultLight } from '@/canvas/light';
 import { isValidScale, catalogSizePx } from '@/canvas/scale';
+import { fitToContent } from '@/canvas/fit-view';
 
 interface Props {
   tool: Tool;
@@ -122,6 +123,15 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const onPointerDown = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
       const stage = e.target.getStage();
+      // Modo Mover: el arrastre lo gestiona `draggable` del Stage; no crea ni
+      // selecciona nada aquí.
+      if (tool === 'pan' || spaceDown) return;
+      // Modo Zoom: clic acerca (Shift+clic aleja) centrado en el punto pulsado.
+      if (tool === 'zoom') {
+        const pointer = stage?.getPointerPosition();
+        if (pointer) zoomTo(view.scale * (e.evt.shiftKey ? 1 / ZOOM_STEP : ZOOM_STEP), pointer);
+        return;
+      }
       const pos = worldPointer(stage);
       if (!pos) return;
 
@@ -172,6 +182,8 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       setSelection,
       onObjectCreated,
       spaceDown,
+      zoomTo,
+      view.scale,
     ],
   );
 
@@ -216,11 +228,19 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
     }
   }, [tool, marquee, freehand.handlers, width, height, setSelection, doc.objects]);
 
-  // Pan: solo con la barra espaciadora presionada (estilo editores de diseño), para
-  // que arrastrar el fondo seleccione con un marco en vez de mover el lienzo.
-  const panEnabled = spaceDown;
+  // El pan (arrastrar el lienzo) se activa con la barra espaciadora O en modo Mover.
+  const panEnabled = spaceDown || tool === 'pan';
+
+  // Acciones de los controles de vista (zoom +/−, ajustar a pantalla, 100 %).
+  const center = { x: width / 2, y: height / 2 };
+  const zoomIn = () => zoomTo(view.scale * ZOOM_STEP, center);
+  const zoomOut = () => zoomTo(view.scale / ZOOM_STEP, center);
+  const resetView = () => setView({ scale: 1, x: 0, y: 0 });
+  const fitView = () =>
+    setView(fitToContent(doc.objects, width, height, { minScale: MIN_SCALE, maxScale: MAX_SCALE }));
 
   return (
+    <div className="relative h-full w-full">
     <Stage
       ref={stageRef}
       width={width}
@@ -283,6 +303,26 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       <ProductLayer products={doc.products} />
       <SelectionOverlay marquee={marquee} />
     </Stage>
+      {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
+        <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">
+          −
+        </button>
+        <span className="text-ink-soft w-10 text-center text-xs tabular-nums">
+          {Math.round(view.scale * 100)}%
+        </span>
+        <button type="button" onClick={zoomIn} aria-label="Acercar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">
+          +
+        </button>
+        <span className="bg-border mx-0.5 h-4 w-px" aria-hidden />
+        <button type="button" onClick={fitView} aria-label="Ajustar a pantalla" title="Ajustar el plano a la pantalla" className="text-ink-soft hover:bg-canvas hover:text-ink rounded-control px-1.5 text-xs">
+          Ajustar
+        </button>
+        <button type="button" onClick={resetView} aria-label="Vista 100%" title="Restablecer la vista al 100%" className="text-ink-soft hover:bg-canvas hover:text-ink rounded-control px-1.5 text-xs">
+          100%
+        </button>
+      </div>
+    </div>
   );
 }
 

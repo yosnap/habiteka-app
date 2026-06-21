@@ -14,13 +14,16 @@ import { LightControls } from './light-controls';
 import { NumberInput } from './number-input';
 
 // La herramienta activa: modos generales o la creación de un objeto del catálogo.
-export type Tool = 'select' | 'freehand' | 'zone' | StructKind;
+// 'pan' = mover la vista (arrastrar el lienzo); 'zoom' = acercar al clicar.
+export type Tool = 'select' | 'pan' | 'zoom' | 'freehand' | 'zone' | StructKind;
 
 // Modos del editor de planos. La herramienta 'zone' existe en el modelo (se usa
 // para el feedback dirigido sobre un render), pero no se expone aquí: en el editor
 // manual confunde, ya que está pensada para marcar áreas sobre un diseño generado.
 const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'select', label: 'Seleccionar' },
+  { tool: 'pan', label: 'Mover' },
+  { tool: 'zoom', label: 'Zoom' },
   { tool: 'freehand', label: 'Dibujar' },
 ];
 
