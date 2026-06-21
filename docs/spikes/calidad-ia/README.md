@@ -11,23 +11,28 @@ decisión §9.1 (proveedor de imagen) con datos, no con intuición.
 
 ## Estado de la infraestructura (importante)
 
-Hoy en `src/server/ai/image/` **solo FLUX está implementado**. `nano-banana` e
-`imagen` son **stubs** que fallan a propósito si se seleccionan
-(`providers/stubs.ts`). Consecuencias para este spike:
+En `src/server/ai/image/` hay **dos proveedores reales**: **FLUX** (`providers/flux.ts`)
+y **Nano Banana** (Gemini 2.5 Flash Image vía OpenRouter, `providers/nano-banana.ts`).
+**Imagen** es un **stub** que falla a propósito (`providers/stubs.ts`): requiere
+Vertex AI/OAuth y Google lo está deprecando, así que no se implementó.
 
-- Se puede ejecutar el comparativo **completo solo con FLUX** ya mismo.
-- Para comparar los **tres** proveedores (como pide el plan), antes hay que
-  implementar los providers de Nano Banana e Imagen (cada uno: una clase
-  `ImageProvider` con `generate`/`inpaint` real). Mientras no existan, el arnés los
-  marca como "no disponibles" en la tabla en vez de fingir datos.
+Consecuencias para este spike:
+
+- El comparativo real es **FLUX vs Nano Banana** (los dos disponibles).
+- **Nano Banana** va por OpenRouter: usa `OPENROUTER_API_KEY` (no una key aparte) y
+  `IMAGE_PROVIDER=nano-banana`.
+- **Imagen** no participa; si se selecciona, el arnés falla con un mensaje claro.
 
 ## Cómo ejecutar
 
 1. **Pon las claves reales** en `.env.local` (nunca se commitean):
    ```
+   # FLUX: usa su propia key
    IMAGE_PROVIDER=flux
    IMAGE_PROVIDER_KEY=<tu-key-de-flux>
-   OPENROUTER_API_KEY=<tu-key-openrouter>   # para la detección de visión
+   # Nano Banana: va por OpenRouter (misma key que el resto de IA)
+   #   IMAGE_PROVIDER=nano-banana   (no necesita IMAGE_PROVIDER_KEY)
+   OPENROUTER_API_KEY=<tu-key-openrouter>   # Nano Banana + detección de visión
    # Activa el arnés (por defecto está desactivado para no llamar a IA en tests):
    RUN_SPIKE=true
    ```

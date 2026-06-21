@@ -8,7 +8,9 @@
 import type { ImageAdapter, ImageGenRequest, InpaintRequest, ImageResult } from '@/lib/contracts';
 import type { ImageProvider } from './providers/image-provider';
 import { FluxImageProvider } from './providers/flux';
-import { NanoBananaImageProvider, ImagenImageProvider } from './providers/stubs';
+import { NanoBananaImageProvider } from './providers/nano-banana';
+import { ImagenImageProvider } from './providers/stubs';
+import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { assertImageDimensions } from '../call-limits';
 import { aiError } from '../errors';
 
@@ -34,8 +36,21 @@ export function createActiveProvider(): ImageProvider {
       if (!key) throw aiError('provider_down', 'IMAGE_PROVIDER_KEY no está definida');
       return new FluxImageProvider(key);
     }
-    case 'nano-banana':
-      return new NanoBananaImageProvider();
+    case 'nano-banana': {
+      // Nano Banana va por OpenRouter (mismo gateway que el resto de IA): usa la
+      // key de OpenRouter, no una key de proveedor de imagen aparte.
+      const key = process.env.OPENROUTER_API_KEY;
+      if (!key) throw aiError('provider_down', 'OPENROUTER_API_KEY no está definida');
+      // El storage se resuelve de forma perezosa: si no está configurado, el
+      // proveedor cae a un data URL (útil para el spike sin MinIO).
+      let storage;
+      try {
+        storage = getStorageAdapter();
+      } catch {
+        storage = undefined;
+      }
+      return new NanoBananaImageProvider(key, storage);
+    }
     case 'imagen':
       return new ImagenImageProvider();
     default:

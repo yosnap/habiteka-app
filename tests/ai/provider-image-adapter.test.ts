@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ProviderImageAdapter } from '@/server/ai/image/provider-image-adapter';
-import { NanoBananaImageProvider } from '@/server/ai/image/providers/stubs';
+import { ImagenImageProvider } from '@/server/ai/image/providers/stubs';
 import type { ImageProvider } from '@/server/ai/image/providers/image-provider';
 
 // Proveedor fake determinista: devuelve un asset y coste por imagen. Cero red.
@@ -33,8 +33,8 @@ describe('ProviderImageAdapter', () => {
     );
   });
 
-  it('un proveedor stub no implementado falla de forma explícita', async () => {
-    const adapter = new ProviderImageAdapter(new NanoBananaImageProvider());
+  it('el proveedor Imagen (no implementado) falla de forma explícita', async () => {
+    const adapter = new ProviderImageAdapter(new ImagenImageProvider());
     await expect(adapter.generate({ prompt: 'x' })).rejects.toMatchObject({
       kind: 'provider_down',
     });

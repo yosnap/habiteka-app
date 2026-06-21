@@ -11,8 +11,8 @@
 | Proveedor | Realismo 3D | Plano 2D | Inpaint | Artefactos | Coste/img | Latencia | Ponderada | Disponible |
 |---|---|---|---|---|---|---|---|---|
 | FLUX | | | | | | | | ✅ implementado |
-| Nano Banana | | | | | | | | ⚠️ stub (implementar antes) |
-| Imagen | | | | | | | | ⚠️ stub (implementar antes) |
+| Nano Banana | | | | | | | | ✅ implementado (vía OpenRouter) |
+| Imagen | | | | | | | | ❌ no implementado (Vertex/OAuth, deprecado) |
 
 Detección de visión sobre boceto: tasa de acierto = **\_\_\_ %** (umbral: \_\_\_ %).
 
