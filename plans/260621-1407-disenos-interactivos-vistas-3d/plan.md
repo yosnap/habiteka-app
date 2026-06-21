@@ -98,14 +98,19 @@ ventana para que entre la luz"). Sin esto, no hay negocio. El realismo es transv
 - Riesgo: alto. La parte de imagen es asumible; el vídeo es una pieza nueva (modelo + coste +
   storage). Acotar: primero render con luces, vídeo después.
 
-### F0 · Escala arquitectónica en el plano  (fundacional — ETAPA A)
-- Añadir al `CanvasDoc` una `scale`: ratio (1:50, 1:100, 1:1000) y px-por-unidad real, para
-  convertir px de stage ↔ medidas reales (cm/m). Campo opcional v2 del doc (no romper v1).
-- UI: selector de escala + (opcional) regla/calibración ("esta línea son 1 m").
-- Mostrar dimensiones reales en la toolbar al seleccionar un objeto (ancho/alto en cm).
-- `serialize-doc-to-prompt` pasa a describir MEDIDAS REALES ("puerta de 90 cm", "techo 2,5 m")
-  en vez de píxeles → mejora directa de fidelidad y base para decoración/materiales.
-- Riesgo: medio. Toca el modelo del doc (migración de schema v2, serialize defensivo).
+### F0 · Escala arquitectónica en el plano  ✅ HECHO (fundacional — ETAPA A)
+- `CanvasScale { pxPerMeter; ratio? }` aditivo y opcional en `CanvasDoc` (NO se sube
+  `CANVAS_SCHEMA_VERSION`; un doc v1 sin escala sigue válido). `pxPerMeter` es la ÚNICA fuente de
+  verdad de la conversión; `ratio` (1:50) es metadato presentacional, no autoritativo.
+- Lógica pura en `src/canvas/scale.ts` (px↔m, formateo cm/m, calibración por dimensión conocida,
+  medida de objeto respetando rotación). Parser defensivo `parseScale` en `serialize.ts`.
+- UI: `scale-control.tsx` (selector de ratio + calibración "el ancho de este objeto = X m") en la
+  toolbar; dimensiones reales mostradas al seleccionar.
+- `serialize-doc-to-prompt` añade medidas reales SOLO si hay escala (degrada idéntico a hoy sin
+  escala → protege CRL-4). Diseño validado con /ck:predict (CAUTION→GO).
+- Verificado: typecheck OK, eslint OK, 50 tests en `tests/canvas/` (incl. round-trip de escala,
+  parser defensivo, regresión del prompt sin/con escala). Code-review: sin críticos/altos.
+- Fuera de scope (anotado): regla interactiva sobre el stage, multi-unidad, cantidades (m²/ml).
 - Habilita: mejor F2 (vistas a escala), F4 (decoración con medidas), F5 (detección métrica).
 
 ### F1 · Paridad de opciones plano ↔ chat  ✅ HECHO (ETAPA A)
@@ -203,7 +208,7 @@ planta / cenitales; la foto en perspectiva entra como experimento. Métrica de s
 - Medir calidad con prototipos antes de comprometer cada fase.
 
 ## Orden recomendado (siguiendo las 3 etapas)
-**Fundacional:** F1 (paridad) → F1b (renombrar plano + centralizar interacción) → F0 (escala).
+**Fundacional:** F1 ✅ → F1b ✅ → F0 ✅ (escala). Las tres fundacionales completadas.
 **ETAPA A (mapeo):** F0 + F5 (detección editable de foto).
 **ETAPA B (decoración/materiales):** F-CAT (catálogo extensible) → F5b (borrador materiales) →
 F4 (decoración interactiva) → F-LUZ (luces + render iluminado, vídeo después) →
