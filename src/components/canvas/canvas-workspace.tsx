@@ -6,7 +6,7 @@
  * contenido al servidor con un debounce, suscribiéndose al store sin efectos en
  * el cuerpo del componente.
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
@@ -23,20 +23,27 @@ interface Props {
   projectId: string;
   initialDoc: unknown;
   saveAction: (projectId: string, payload: unknown) => Promise<void>;
-  width?: number;
-  height?: number;
 }
 
 const DEBOUNCE_MS = 800;
 
-export function CanvasWorkspace({
-  projectId,
-  initialDoc,
-  saveAction,
-  width = 960,
-  height = 640,
-}: Props) {
+export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
   const [tool, setTool] = useState<Tool>('select');
+  // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
+  // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
+  // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  useMountEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
 
   // Al montar: hidrata el documento inicial e instala el autoguardado con
   // debounce. Es un efecto de montaje legítimo (suscripción a un store externo +
@@ -65,8 +72,18 @@ export function CanvasWorkspace({
   return (
     <div className="flex h-full flex-col gap-2">
       <CanvasToolbar tool={tool} onToolChange={setTool} />
-      <div className="border-line bg-surface flex-1 overflow-hidden rounded-[var(--radius-card)] border">
-        <CanvasStage tool={tool} width={width} height={height} />
+      <div
+        ref={containerRef}
+        className="border-line bg-surface flex-1 overflow-hidden rounded-[var(--radius-card)] border"
+      >
+        {size.width > 0 && size.height > 0 ? (
+          <CanvasStage
+            tool={tool}
+            width={size.width}
+            height={size.height}
+            onObjectCreated={() => setTool('select')}
+          />
+        ) : null}
       </div>
     </div>
   );

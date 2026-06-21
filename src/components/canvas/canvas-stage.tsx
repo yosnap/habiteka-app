@@ -23,12 +23,14 @@ interface Props {
   tool: Tool;
   width: number;
   height: number;
+  /** Tras crear un objeto se vuelve a 'select' para poder editarlo en el acto. */
+  onObjectCreated?: () => void;
 }
 
 let objectSeq = 0;
 let zoneSeq = 0;
 
-export function CanvasStage({ tool, width, height }: Props) {
+export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
   const setSelection = useCanvasStore((s) => s.setSelection);
@@ -40,15 +42,24 @@ export function CanvasStage({ tool, width, height }: Props) {
 
   const onPointerDown = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
-      const pos = e.target.getStage()?.getPointerPosition();
+      const stage = e.target.getStage();
+      const pos = stage?.getPointerPosition();
       if (!pos) return;
+
+      if (tool === 'select') {
+        // Un clic en el fondo (el propio Stage) deselecciona; el clic sobre un
+        // objeto lo gestiona la capa (selecciona sin pasar por aquí).
+        if (e.target === stage) setSelection(null);
+        return;
+      }
 
       if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (isStructTool) {
         objectSeq += 1;
+        const id = `obj-${objectSeq}`;
         addObject({
-          id: `obj-${objectSeq}`,
+          id,
           kind: tool as StructKind,
           x: pos.x,
           y: pos.y,
@@ -56,11 +67,15 @@ export function CanvasStage({ tool, width, height }: Props) {
           height: tool === 'wall' ? 12 : 40,
           rotation: 0,
         });
+        // Crear es una acción puntual: se selecciona el nuevo objeto y se vuelve a
+        // 'select' para poder moverlo/redimensionarlo sin crear más al hacer clic.
+        setSelection({ type: 'object', objectId: id });
+        onObjectCreated?.();
       } else if (tool === 'zone') {
         setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
       }
     },
-    [tool, isStructTool, freehand.handlers, addObject],
+    [tool, isStructTool, freehand.handlers, addObject, setSelection, onObjectCreated],
   );
 
   const onPointerMove = useCallback(

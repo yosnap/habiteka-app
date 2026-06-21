@@ -29,6 +29,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
   const canRedo = useCanvasStore((s) => s.future.length > 0);
+  const selection = useCanvasStore((s) => s.doc.selection);
+  const removeObject = useCanvasStore((s) => s.removeObject);
+  const selectedId = selection?.type === 'object' ? selection.objectId : null;
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">
@@ -50,6 +53,16 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       </Button>
       <Button type="button" size="sm" variant="ghost" disabled={!canRedo} onClick={redo}>
         Rehacer
+      </Button>
+      <span className="bg-border mx-1 h-5 w-px" aria-hidden />
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={!selectedId}
+        onClick={() => selectedId && removeObject(selectedId)}
+      >
+        Eliminar
       </Button>
     </div>
   );
