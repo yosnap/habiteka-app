@@ -45,6 +45,9 @@ describe('consent-service', () => {
 
   it('la revocación posterior prevalece (el registro más reciente manda)', async () => {
     const { organizationId, userId } = await orgAndUser();
+    // Dos llamadas seguidas (otorgar → revocar). El estado actual lo fija el `seq`
+    // monotónico, así que el orden de inserción manda aunque compartan createdAt al
+    // milisegundo: no hay flaky aunque las inserciones sean instantáneas.
     await recordConsent({
       userId,
       organizationId,
