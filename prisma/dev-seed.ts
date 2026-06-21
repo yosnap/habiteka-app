@@ -13,6 +13,7 @@ import { recordConsent } from '../src/server/privacy/consent-service';
 import { acceptTos } from '../src/server/legal/tos-acceptance-service';
 import { MODEL_DEFAULTS } from '../src/server/ai/model-defaults';
 import { CANVAS_EXAMPLES } from '../src/canvas/examples';
+import { serializeCanvas } from '../src/canvas/serialize';
 import type { Prisma } from '../src/generated/prisma/client';
 
 /**
@@ -107,27 +108,23 @@ async function main() {
     });
   }
 
-  // Crea proyectos con lienzos de ejemplo (idempotente) para mostrar el editor
-  // con planos ya montados. La selección no se persiste.
+  // Crea proyectos con lienzos de ejemplo para mostrar el editor con planos ya
+  // montados. Se usa el serializador real (incluye escala, altura de techo, etc.;
+  // así no se olvida ningún campo) y se REFRESCA el canvas aunque el proyecto ya
+  // exista, para que el ejemplo refleje siempre la versión actual del código.
   for (const example of CANVAS_EXAMPLES) {
-    const existing = await prisma.project.findFirst({
-      where: { organizationId: member.organizationId, title: example.title },
-    });
-    if (existing) continue;
-    const exampleProject = await prisma.project.create({
-      data: { organizationId: member.organizationId, title: example.title },
-    });
-    const { schemaVersion, objects } = example.doc;
-    const canvasData = {
-      schemaVersion,
-      baseImage: null,
-      strokes: [],
-      objects,
-      products: [],
-      selection: null,
-    } as unknown as Prisma.InputJsonValue;
-    await prisma.canvasState.create({
-      data: { projectId: exampleProject.id, data: canvasData },
+    const exampleProject =
+      (await prisma.project.findFirst({
+        where: { organizationId: member.organizationId, title: example.title },
+      })) ??
+      (await prisma.project.create({
+        data: { organizationId: member.organizationId, title: example.title },
+      }));
+    const canvasData = serializeCanvas(example.doc) as Prisma.InputJsonValue;
+    await prisma.canvasState.upsert({
+      where: { projectId: exampleProject.id },
+      update: { data: canvasData },
+      create: { projectId: exampleProject.id, data: canvasData },
     });
   }
 

@@ -41,37 +41,52 @@ function doc(objects: StructObj[], scale?: CanvasDoc['scale']): CanvasDoc {
  * ocupa una esquina libre. Así "frente a la TV", "junto a la ventana" y "entrada
  * por la izquierda" se corresponden con la realidad del plano.
  */
-export const EXAMPLE_SALON: CanvasDoc = doc([
-  // Muros del contorno (4 paredes). Sala de 520×360 px.
-  obj('w-top', 'wall', 200, 120, 520, 12),
-  obj('w-bottom', 'wall', 200, 480, 520, 12),
-  obj('w-left', 'wall', 200, 120, 12, 372),
-  obj('w-right', 'wall', 708, 120, 12, 372),
-  // Aberturas: puerta en la pared izquierda; ventana en la pared del fondo (derecha).
-  obj('door-1', 'door', 194, 300, 12, 90),
-  obj('win-1', 'window', 540, 114, 140, 12),
-  // Mobiliario: TV en el fondo (izquierda), sofá enfrentado mirando al fondo,
-  // mesa de centro entre ambos, lámpara en la esquina derecha libre.
-  obj('tv-1', 'tv', 300, 134, 140, 16),
-  obj('mesa-1', 'mesa', 320, 250, 120, 70),
-  obj('sofa-1', 'sofa', 300, 370, 200, 80),
-  obj('lamp-1', 'lampara', 650, 410, 40, 40),
-  // Escala: 100 px = 1 m ⇒ sala 5,2×3,6 m, puerta 0,9 m, ventana 1,4 m, sofá 2 m.
-], { pxPerMeter: 100, ratio: 50 });
+// Escala del ejemplo: 100 px = 1 m (ratio 1:100 coherente con pxPerMeter). Todas
+// las medidas de abajo son px = cm·… a esta escala (p. ej. 90 px = 90 cm). Muro de
+// 15 cm de grosor = 15 px; puerta de 90 cm de paso = 90 px; sofá de 2 m = 200 px.
+export const EXAMPLE_SALON: CanvasDoc = doc(
+  [
+    // Contorno: sala interior de 5,2 × 3,6 m. Muros de 15 cm de grosor (15 px).
+    obj('w-top', 'wall', 200, 120, 520, 15),
+    obj('w-bottom', 'wall', 200, 465, 520, 15),
+    obj('w-left', 'wall', 200, 120, 15, 360),
+    obj('w-right', 'wall', 705, 120, 15, 360),
+    // Aberturas integradas en el hueco de su pared, SOBRESALIENDO un poco hacia el
+    // interior para que sean visibles y seleccionables (no quedar tapadas por el
+    // muro). Puerta de 90 cm en la pared izquierda (vertical: 18 px de hoja × 90
+    // px de paso); ventana de 1,4 m en la pared del fondo.
+    obj('door-1', 'door', 209, 290, 18, 90),
+    obj('win-1', 'window', 540, 111, 140, 18),
+    // Mobiliario con medidas reales (px = cm): TV 1,4 m al fondo; mesa 1,2×0,7 m;
+    // sofá 2×0,9 m enfrentado; lámpara 0,4 m en una esquina.
+    obj('tv-1', 'tv', 300, 138, 140, 12),
+    obj('mesa-1', 'mesa', 330, 250, 120, 70),
+    obj('sofa-1', 'sofa', 300, 370, 200, 90),
+    obj('lamp-1', 'lampara', 650, 410, 40, 40),
+  ],
+  { pxPerMeter: 100, ratio: 100 },
+);
 
-/** Baño con inodoro, lavabo, ducha y bañera. */
-export const EXAMPLE_BANO: CanvasDoc = doc([
-  obj('w-top', 'wall', 240, 140, 360, 12),
-  obj('w-bottom', 'wall', 240, 440, 360, 12),
-  obj('w-left', 'wall', 240, 140, 12, 312),
-  obj('w-right', 'wall', 588, 140, 12, 312),
-  obj('door-1', 'door', 260, 434, 60, 12),
-  // Sanitarios.
-  obj('inodoro-1', 'inodoro', 280, 360, 40, 60),
-  obj('lavabo-1', 'lavabo', 360, 160, 50, 35),
-  obj('ducha-1', 'ducha', 500, 160, 80, 80),
-  obj('banera-1', 'banera', 280, 200, 160, 70),
-]);
+/** Baño con inodoro, lavabo, ducha y bañera. Misma escala que el salón (100 px = 1 m). */
+export const EXAMPLE_BANO: CanvasDoc = doc(
+  [
+    // Contorno: baño de 3,6 × 3,1 m, muros de 15 cm.
+    obj('w-top', 'wall', 240, 140, 360, 15),
+    obj('w-bottom', 'wall', 240, 435, 360, 15),
+    obj('w-left', 'wall', 240, 140, 15, 310),
+    obj('w-right', 'wall', 585, 140, 15, 310),
+    // Puerta de 70 cm (baño) integrada en la pared inferior, sobresaliendo hacia
+    // dentro para que sea visible/seleccionable (no tapada por el muro).
+    obj('door-1', 'door', 270, 426, 70, 18),
+    // Sanitarios con medidas reales (px = cm): inodoro 40×60, lavabo 60×45,
+    // ducha 90×90, bañera 1,7×0,75 m.
+    obj('inodoro-1', 'inodoro', 280, 360, 40, 60),
+    obj('lavabo-1', 'lavabo', 380, 160, 60, 45),
+    obj('ducha-1', 'ducha', 480, 160, 90, 90),
+    obj('banera-1', 'banera', 270, 250, 170, 75),
+  ],
+  { pxPerMeter: 100, ratio: 100 },
+);
 
 export const CANVAS_EXAMPLES: Array<{ title: string; doc: CanvasDoc }> = [
   { title: 'Salón de ejemplo', doc: EXAMPLE_SALON },
