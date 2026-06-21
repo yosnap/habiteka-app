@@ -23,9 +23,30 @@ export interface Stroke {
   width: number;
 }
 
-export type StructKind = 'wall' | 'window' | 'door';
+// Objetos colocables en el plano, por categoría. Comparten la misma geometría
+// editable (posición/tamaño/rotación), así que el mismo `StructObj`, store y
+// Transformer sirven para todos; solo cambia cómo se dibuja cada uno.
+export type StructuralKind = 'wall' | 'window' | 'door';
+export type SanitaryKind = 'inodoro' | 'lavabo' | 'ducha' | 'banera' | 'bidet';
+export type KitchenKind = 'fregadero' | 'encimera' | 'nevera' | 'horno' | 'isla';
+export type FurnitureKind =
+  | 'cama'
+  | 'sofa'
+  | 'mesa'
+  | 'silla'
+  | 'armario'
+  | 'estanteria'
+  | 'mesilla';
+export type ElectronicsKind = 'tv' | 'ordenador' | 'lampara';
 
-/** Objeto estructural editable (muro/ventana/puerta). */
+export type StructKind =
+  | StructuralKind
+  | SanitaryKind
+  | KitchenKind
+  | FurnitureKind
+  | ElectronicsKind;
+
+/** Objeto colocable y editable del plano (estructura o mobiliario). */
 export interface StructObj {
   id: string;
   kind: StructKind;

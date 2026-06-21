@@ -1,23 +1,17 @@
 'use client';
 
 /**
- * Capa de objetos estructurales (muros/ventanas/puertas). Cada objeto es
- * seleccionable; el seleccionado recibe un `Transformer` para moverlo y
- * redimensionarlo. Los cambios geométricos se confían al store (con historial).
+ * Capa de objetos del plano (estructura y mobiliario). Cada objeto se dibuja con
+ * su forma vectorial en planta y es seleccionable; el seleccionado recibe un
+ * `Transformer` para moverlo, redimensionarlo y rotarlo. Los cambios geométricos
+ * se confían al store (con historial).
  */
 import { useEffect, useRef } from 'react';
-import { Layer, Rect, Transformer } from 'react-konva';
+import { Layer, Group, Rect, Transformer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import type { StructObj, StructKind } from '@/canvas/types';
-
-// Color por tipo (referencia a la familia de tokens; valores resueltos por CSS
-// no aplican en canvas, así que se mapean los equivalentes del design system).
-const FILL: Record<StructKind, string> = {
-  wall: '#7a5c4f',
-  window: '#7aa7c7',
-  door: '#c78b5c',
-};
+import type { StructObj } from '@/canvas/types';
+import { objectShape } from '../object-shapes';
 
 export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const selection = useCanvasStore((s) => s.doc.selection);
@@ -40,7 +34,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
   return (
     <Layer ref={layerRef}>
       {objects.map((o) => (
-        <Rect
+        <Group
           key={o.id}
           id={o.id}
           x={o.x}
@@ -48,25 +42,29 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           width={o.width}
           height={o.height}
           rotation={o.rotation}
-          fill={FILL[o.kind]}
-          cornerRadius={2}
           draggable
           onClick={() => setSelection({ type: 'object', objectId: o.id })}
           onTap={() => setSelection({ type: 'object', objectId: o.id })}
           onDragEnd={(e) => updateObject(o.id, { x: e.target.x(), y: e.target.y() })}
           onTransformEnd={(e) => {
             const node = e.target;
+            // El Group no expone un width/height intrínseco fiable: se parte del
+            // tamaño conocido del objeto y se le aplica la escala del transform.
             updateObject(o.id, {
               x: node.x(),
               y: node.y(),
-              width: Math.max(5, node.width() * node.scaleX()),
-              height: Math.max(5, node.height() * node.scaleY()),
+              width: Math.max(8, o.width * node.scaleX()),
+              height: Math.max(8, o.height * node.scaleY()),
               rotation: node.rotation(),
             });
             node.scaleX(1);
             node.scaleY(1);
           }}
-        />
+        >
+          {/* Fondo transparente: da al Group un área de captura/transform estable. */}
+          <Rect width={o.width} height={o.height} fill="transparent" />
+          {objectShape(o.kind, o.width, o.height)}
+        </Group>
       ))}
       <Transformer ref={trRef} rotateEnabled flipEnabled={false} />
     </Layer>

@@ -7,15 +7,14 @@
  */
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import type { StructKind } from '@/canvas/types';
 
-export type Tool = 'select' | 'freehand' | 'wall' | 'window' | 'door' | 'zone';
+// La herramienta activa: modos generales o la creación de un objeto del catálogo.
+export type Tool = 'select' | 'freehand' | 'zone' | StructKind;
 
-const TOOLS: Array<{ tool: Tool; label: string }> = [
+const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'select', label: 'Seleccionar' },
   { tool: 'freehand', label: 'Dibujar' },
-  { tool: 'wall', label: 'Muro' },
-  { tool: 'window', label: 'Ventana' },
-  { tool: 'door', label: 'Puerta' },
   { tool: 'zone', label: 'Zona' },
 ];
 
@@ -35,7 +34,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">
-      {TOOLS.map(({ tool: t, label }) => (
+      {MODES.map(({ tool: t, label }) => (
         <Button
           key={t}
           type="button"

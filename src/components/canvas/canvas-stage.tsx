@@ -17,7 +17,7 @@ import { StructureLayer } from './layers/structure-layer';
 import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import type { Tool } from './canvas-toolbar';
-import type { StructKind } from '@/canvas/types';
+import { CATALOG_BY_KIND } from '@/canvas/catalog';
 
 interface Props {
   tool: Tool;
@@ -38,7 +38,8 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
   const freehand = useFreehand({ color: '#1f1b18', width: 3, enabled: tool === 'freehand' });
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
 
-  const isStructTool = tool === 'wall' || tool === 'window' || tool === 'door';
+  // Es herramienta de creación de objeto si el tool es un kind del catálogo.
+  const catalogEntry = tool in CATALOG_BY_KIND ? CATALOG_BY_KIND[tool] : undefined;
 
   const onPointerDown = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
@@ -55,16 +56,17 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
 
       if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
-      } else if (isStructTool) {
+      } else if (catalogEntry) {
         objectSeq += 1;
         const id = `obj-${objectSeq}`;
+        // Se coloca centrado en el punto pulsado, con el tamaño del catálogo.
         addObject({
           id,
-          kind: tool as StructKind,
-          x: pos.x,
-          y: pos.y,
-          width: tool === 'wall' ? 120 : 60,
-          height: tool === 'wall' ? 12 : 40,
+          kind: catalogEntry.kind,
+          x: pos.x - catalogEntry.defaultWidth / 2,
+          y: pos.y - catalogEntry.defaultHeight / 2,
+          width: catalogEntry.defaultWidth,
+          height: catalogEntry.defaultHeight,
           rotation: 0,
         });
         // Crear es una acción puntual: se selecciona el nuevo objeto y se vuelve a
@@ -75,7 +77,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated }: Props) {
         setMarquee({ x: pos.x, y: pos.y, width: 0, height: 0 });
       }
     },
-    [tool, isStructTool, freehand.handlers, addObject, setSelection, onObjectCreated],
+    [tool, catalogEntry, freehand.handlers, addObject, setSelection, onObjectCreated],
   );
 
   const onPointerMove = useCallback(

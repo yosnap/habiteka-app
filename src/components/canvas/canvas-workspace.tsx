@@ -12,6 +12,7 @@ import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
+import { ObjectPalette } from './object-palette';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -72,18 +73,21 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
   return (
     <div className="flex h-full flex-col gap-2">
       <CanvasToolbar tool={tool} onToolChange={setTool} />
-      <div
-        ref={containerRef}
-        className="border-line bg-surface flex-1 overflow-hidden rounded-[var(--radius-card)] border"
-      >
-        {size.width > 0 && size.height > 0 ? (
-          <CanvasStage
-            tool={tool}
-            width={size.width}
-            height={size.height}
-            onObjectCreated={() => setTool('select')}
-          />
-        ) : null}
+      <div className="flex min-h-0 flex-1 gap-2">
+        <ObjectPalette tool={tool} onPick={setTool} />
+        <div
+          ref={containerRef}
+          className="border-line bg-surface flex-1 overflow-hidden rounded-[var(--radius-card)] border"
+        >
+          {size.width > 0 && size.height > 0 ? (
+            <CanvasStage
+              tool={tool}
+              width={size.width}
+              height={size.height}
+              onObjectCreated={() => setTool('select')}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );

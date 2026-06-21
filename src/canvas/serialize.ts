@@ -15,6 +15,7 @@ import {
   CANVAS_SCHEMA_VERSION,
   emptyCanvasDoc,
 } from './types';
+import { CATALOG_BY_KIND } from './catalog';
 
 /** Vuelca el documento a un valor JSON serializable (para JSONB). */
 export function serializeCanvas(doc: CanvasDoc): unknown {
@@ -66,11 +67,12 @@ function parseStroke(v: unknown): Stroke | null {
 
 function parseStruct(v: unknown): StructObj | null {
   if (!isRecord(v) || typeof v.id !== 'string') return null;
-  const kind = v.kind;
-  if (kind !== 'wall' && kind !== 'window' && kind !== 'door') return null;
+  // El `kind` debe ser uno del catálogo (estructura o mobiliario). Un kind
+  // desconocido (formato futuro) se descarta sin romper el resto del documento.
+  if (typeof v.kind !== 'string' || !(v.kind in CATALOG_BY_KIND)) return null;
   return {
     id: v.id,
-    kind,
+    kind: v.kind as StructObj['kind'],
     x: num(v.x),
     y: num(v.y),
     width: num(v.width),
