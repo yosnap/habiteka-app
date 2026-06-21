@@ -91,4 +91,28 @@ describe('serialización del canvas', () => {
     expect(o.width).toBe(0);
     expect(o.height).toBe(10);
   });
+
+  it('round-trip de la escala arquitectónica (válida se conserva)', () => {
+    const conEscala: CanvasDoc = { ...sample, scale: { pxPerMeter: 50, ratio: 50 } };
+    const back = deserializeCanvas(JSON.parse(JSON.stringify(serializeCanvas(conEscala))));
+    expect(back.scale).toEqual({ pxPerMeter: 50, ratio: 50 });
+  });
+
+  it('no persiste una escala ausente (doc sin scale ⇒ sin scale)', () => {
+    const json = serializeCanvas(sample) as { scale?: unknown };
+    expect(json.scale).toBeUndefined();
+    expect(deserializeCanvas(json).scale).toBeUndefined();
+  });
+
+  it('descarta una escala malformada o con pxPerMeter no positivo', () => {
+    expect(deserializeCanvas({ scale: { pxPerMeter: 0 } }).scale).toBeUndefined();
+    expect(deserializeCanvas({ scale: { pxPerMeter: -5 } }).scale).toBeUndefined();
+    expect(deserializeCanvas({ scale: { pxPerMeter: NaN } }).scale).toBeUndefined();
+    expect(deserializeCanvas({ scale: 'basura' }).scale).toBeUndefined();
+  });
+
+  it('conserva pxPerMeter válido pero descarta un ratio inválido', () => {
+    const back = deserializeCanvas({ scale: { pxPerMeter: 80, ratio: -1 } });
+    expect(back.scale).toEqual({ pxPerMeter: 80 });
+  });
 });

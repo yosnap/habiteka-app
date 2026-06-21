@@ -14,6 +14,7 @@ import {
   type Stroke,
   type ProductRef,
   type CanvasSelection,
+  type CanvasScale,
   emptyCanvasDoc,
 } from './types';
 
@@ -52,6 +53,8 @@ interface CanvasState {
   /** Voltea en horizontal: uno sobre su centro; varios espejando el bloque. */
   flipSelection(ids: string[]): void;
   addProduct(product: ProductRef): void;
+  /** Fija (o quita, con null) la escala arquitectónica del plano. Entra en historial. */
+  setScale(scale: CanvasScale | null): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
   redo(): void;
@@ -245,6 +248,15 @@ export const useCanvasStore = create<CanvasState>((set) => {
       }),
 
     addProduct: (product) => mutate((d) => ({ ...d, products: [...d.products, product] })),
+
+    setScale: (scale) =>
+      mutate((d) => {
+        if (scale) return { ...d, scale };
+        // Quitar la escala: el campo es opcional, así que se elimina del doc.
+        const rest = { ...d };
+        delete rest.scale;
+        return rest;
+      }),
 
     // La selección no participa del historial: cambia sin tocar past/future.
     setSelection: (selection) => set((state) => ({ doc: { ...state.doc, selection } })),

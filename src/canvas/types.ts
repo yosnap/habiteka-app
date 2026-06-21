@@ -73,6 +73,20 @@ export interface ProductRef {
   targetRef?: string;
 }
 
+/**
+ * Escala arquitectónica del plano: vincula los píxeles del stage con medidas
+ * reales. `pxPerMeter` es la fuente de verdad de la conversión; el `ratio`
+ * arquitectónico (50 ⇒ "1:50") es metadato presentacional opcional. Campo
+ * aditivo y opcional del doc: un plano sin `scale` trabaja en píxeles abstractos
+ * (no se sube `CANVAS_SCHEMA_VERSION`).
+ */
+export interface CanvasScale {
+  /** Píxeles de stage equivalentes a 1 metro real. Debe ser positivo y finito. */
+  pxPerMeter: number;
+  /** Ratio arquitectónico presentacional (50 = "1:50"). No se usa para convertir. */
+  ratio?: number;
+}
+
 /** Selección activa: un objeto por id, o una zona rectangular normalizada (0–1). */
 export type CanvasSelection =
   | { type: 'object'; objectIds: string[] }
@@ -85,6 +99,8 @@ export interface CanvasDoc {
   objects: StructObj[];
   products: ProductRef[];
   selection: CanvasSelection | null;
+  /** Escala arquitectónica. Ausente ⇒ el plano trabaja en píxeles abstractos. */
+  scale?: CanvasScale;
 }
 
 /** Documento vacío inicial (proyecto recién creado). */

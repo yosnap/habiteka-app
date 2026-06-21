@@ -8,6 +8,8 @@
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructKind } from '@/canvas/types';
+import { isValidScale, formatObjectSize } from '@/canvas/scale';
+import { ScaleControl } from './scale-control';
 
 // La herramienta activa: modos generales o la creación de un objeto del catálogo.
 export type Tool = 'select' | 'freehand' | 'zone' | StructKind;
@@ -36,6 +38,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const rotate90Action = useCanvasStore((s) => s.rotate90);
   const flipSelection = useCanvasStore((s) => s.flipSelection);
   const objects = useCanvasStore((s) => s.doc.objects);
+  const docScale = useCanvasStore((s) => s.doc.scale);
   const baseImage = useCanvasStore((s) => s.doc.baseImage);
   const setBaseImage = useCanvasStore((s) => s.setBaseImage);
   const setBaseImageOpacity = useCanvasStore((s) => s.setBaseImageOpacity);
@@ -44,6 +47,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   // Objeto de referencia para los campos numéricos (el primero de la selección).
   const ref0 = selectedObjs[0];
   const hasSel = selectedObjs.length > 0;
+  // Con escala activa, mostramos las dimensiones reales junto a las de píxeles.
+  const scale = isValidScale(docScale) ? docScale : null;
+  const realSize = scale && ref0 ? formatObjectSize(ref0, scale) : null;
 
   // Rotar/voltear: la lógica de grupo (centro común) vive en el store.
   const rotate90 = () => rotate90Action(selectedIds);
@@ -139,6 +145,12 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
           className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
         />
       </label>
+      {/* Dimensiones reales (cm/m) cuando hay escala arquitectónica activa. */}
+      {realSize ? (
+        <span className="text-ink-soft text-xs" title="Medidas reales según la escala">
+          ≈ {realSize}
+        </span>
+      ) : null}
       <Button
         type="button"
         size="sm"
@@ -148,6 +160,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
       >
         Eliminar
       </Button>
+      <ScaleControl />
       {/* Controles del fondo: solo cuando hay una imagen base (render aplicado). */}
       {baseImage ? (
         <>

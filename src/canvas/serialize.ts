@@ -12,6 +12,7 @@ import {
   type StructObj,
   type ProductRef,
   type BaseImage,
+  type CanvasScale,
   CANVAS_SCHEMA_VERSION,
   emptyCanvasDoc,
 } from './types';
@@ -27,12 +28,15 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     products: doc.products,
     // La selección es estado de UI efímero: no se persiste.
     selection: null,
+    // La escala solo se persiste si está definida (campo opcional v2 aditivo).
+    ...(doc.scale ? { scale: doc.scale } : {}),
   };
 }
 
 /** Reconstruye un `CanvasDoc` desde JSONB, tolerante a datos incompletos. */
 export function deserializeCanvas(raw: unknown): CanvasDoc {
   if (!isRecord(raw)) return emptyCanvasDoc();
+  const scale = parseScale(raw.scale);
   return {
     schemaVersion:
       typeof raw.schemaVersion === 'number' ? raw.schemaVersion : CANVAS_SCHEMA_VERSION,
@@ -41,6 +45,7 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
     objects: asArray(raw.objects).map(parseStruct).filter(isPresent),
     products: asArray(raw.products).map(parseProduct).filter(isPresent),
     selection: null,
+    ...(scale ? { scale } : {}),
   };
 }
 
@@ -107,6 +112,23 @@ function parseProduct(v: unknown): ProductRef | null {
     x: num(v.x),
     y: num(v.y),
     ...(typeof v.targetRef === 'string' ? { targetRef: v.targetRef } : {}),
+  };
+}
+
+function parseScale(v: unknown): CanvasScale | null {
+  if (!isRecord(v)) return null;
+  // `pxPerMeter` es la fuente de verdad de la conversión: debe ser positivo y
+  // finito (un 0 o negativo produciría medidas absurdas). Si no, se descarta la
+  // escala entera y el plano vuelve a píxeles abstractos.
+  if (typeof v.pxPerMeter !== 'number' || !Number.isFinite(v.pxPerMeter) || v.pxPerMeter <= 0) {
+    return null;
+  }
+  return {
+    pxPerMeter: v.pxPerMeter,
+    // El ratio es metadato presentacional opcional; solo se conserva si es válido.
+    ...(typeof v.ratio === 'number' && Number.isFinite(v.ratio) && v.ratio > 0
+      ? { ratio: v.ratio }
+      : {}),
   };
 }
 

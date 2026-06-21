@@ -9,6 +9,7 @@
  */
 import type { CanvasDoc, StructObj } from './types';
 import { CATALOG_BY_KIND } from './catalog';
+import { isValidScale, pxToMeters, formatLength, formatObjectSize } from './scale';
 
 /** Bounding box que envuelve un conjunto de objetos. */
 interface Bounds {
@@ -52,6 +53,10 @@ function orientationLabel(o: StructObj): string {
 export function serializeDocToPrompt(doc: CanvasDoc): string | null {
   if (doc.objects.length === 0) return null;
 
+  // Si el plano tiene escala arquitectónica, las medidas reales (cm/m) enriquecen
+  // la descripción. Sin escala, la salida es idéntica a la histórica (proporciones).
+  const scale = isValidScale(doc.scale) ? doc.scale : null;
+
   // La sala la definen los muros; si no hay, el conjunto de todos los objetos.
   const walls = doc.objects.filter((o) => o.kind === 'wall');
   const room = boundsOf(walls.length ? walls : doc.objects);
@@ -60,18 +65,22 @@ export function serializeDocToPrompt(doc: CanvasDoc): string | null {
   const ratio = roomH > 0 ? (roomW / roomH).toFixed(2) : '1';
   const shape =
     roomW > roomH * 1.2 ? 'apaisada (más ancha que profunda)' : roomH > roomW * 1.2 ? 'profunda (más larga que ancha)' : 'casi cuadrada';
+  const roomSizeText = scale
+    ? ` La sala mide aproximadamente ${formatLength(pxToMeters(roomW, scale))} de ancho por ${formatLength(pxToMeters(roomH, scale))} de profundidad.`
+    : '';
 
   // Solo el mobiliario/estructura no-muro se describe como elemento colocado.
   const items = doc.objects.filter((o) => o.kind !== 'wall');
   const lines = items.map((o) => {
     const label = CATALOG_BY_KIND[o.kind]?.label ?? o.kind;
-    return `- ${label}: ${positionLabel(o, room)}, ${orientationLabel(o)}.`;
+    const size = scale ? ` (${formatObjectSize(o, scale)})` : '';
+    return `- ${label}${size}: ${positionLabel(o, room)}, ${orientationLabel(o)}.`;
   });
 
   return [
     'PLANO EN PLANTA (vista cenital, mirando la sala desde arriba). NO es una foto frontal:',
     `interpreta "pared del fondo" como la pared lejana y "pared frontal" como la cercana.`,
-    `La sala es ${shape} (proporción ancho:alto ≈ ${ratio}:1). Genera el render con esa misma proporción.`,
+    `La sala es ${shape} (proporción ancho:alto ≈ ${ratio}:1). Genera el render con esa misma proporción.${roomSizeText}`,
     '',
     'Elementos y su ubicación contra las paredes:',
     ...lines,

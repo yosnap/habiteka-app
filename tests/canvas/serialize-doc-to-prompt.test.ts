@@ -57,4 +57,32 @@ describe('serializeDocToPrompt', () => {
     const out = serializeDocToPrompt(docWith([...walls, o('sofa', 40, 120)]))!;
     expect(out).not.toContain('- Muro');
   });
+
+  it('sin escala no añade medidas reales (degrada al texto histórico)', () => {
+    const out = serializeDocToPrompt(docWith([...walls, o('sofa', 40, 120, 200, 60)]))!;
+    expect(out).not.toContain(' cm');
+    expect(out).not.toContain('La sala mide');
+  });
+
+  it('con escala válida añade medidas reales a la sala y a los elementos', () => {
+    // 50 px = 1 m ⇒ sala 600×300 px = 12 × 6 m; sofá 200×40 px = 4 m × 80 cm.
+    const doc: CanvasDoc = {
+      ...docWith([...walls, o('sofa', 40, 120, 200, 40)]),
+      scale: { pxPerMeter: 50, ratio: 50 },
+    };
+    const out = serializeDocToPrompt(doc)!;
+    expect(out).toContain('La sala mide');
+    expect(out).toContain('12 m'); // ancho de la sala
+    expect(out).toContain('6 m'); // profundidad de la sala
+    expect(out).toContain('4 m × 80 cm'); // medida del sofá (lado < 1 m en cm)
+  });
+
+  it('una escala inválida (pxPerMeter ≤ 0) se ignora y no añade medidas', () => {
+    const doc: CanvasDoc = {
+      ...docWith([...walls, o('sofa', 40, 120, 200, 60)]),
+      scale: { pxPerMeter: 0 },
+    };
+    const out = serializeDocToPrompt(doc)!;
+    expect(out).not.toContain('La sala mide');
+  });
 });
