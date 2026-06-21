@@ -40,13 +40,15 @@ export type FurnitureKind =
   | 'estanteria'
   | 'mesilla';
 export type ElectronicsKind = 'tv' | 'ordenador' | 'lampara';
+export type DecorKind = 'alfombra' | 'planta' | 'chimenea';
 
 export type StructKind =
   | StructuralKind
   | SanitaryKind
   | KitchenKind
   | FurnitureKind
-  | ElectronicsKind;
+  | ElectronicsKind
+  | DecorKind;
 
 /** Objeto colocable y editable del plano (estructura o mobiliario). */
 export interface StructObj {

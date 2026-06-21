@@ -74,6 +74,15 @@ export const CATALOG: CatalogCategory[] = [
       { kind: 'lampara', label: 'Lámpara', defaultWidth: 40, defaultHeight: 40 },
     ],
   },
+  {
+    id: 'decoracion',
+    label: 'Decoración',
+    items: [
+      { kind: 'alfombra', label: 'Alfombra', defaultWidth: 160, defaultHeight: 110 },
+      { kind: 'planta', label: 'Planta', defaultWidth: 45, defaultHeight: 45 },
+      { kind: 'chimenea', label: 'Chimenea', defaultWidth: 120, defaultHeight: 40 },
+    ],
+  },
 ];
 
 /** Índice plano kind → entrada, para resolver el tamaño por defecto al crear. */

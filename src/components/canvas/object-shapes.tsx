@@ -314,5 +314,61 @@ function shapeFor(kind: StructKind, w: number, h: number): React.ReactNode {
           <Circle x={w / 2} y={h / 2} radius={Math.min(w, h) * 0.18} fill="#f4c95d" />
         </>
       );
+
+    // --- Decoración ---
+    case 'alfombra':
+      // Rectángulo con borde interior punteado, evocando el fleco/tejido.
+      return (
+        <>
+          {box(w, h, '#e6ddd0', 4)}
+          <Rect
+            x={w * 0.08}
+            y={h * 0.08}
+            width={w * 0.84}
+            height={h * 0.84}
+            stroke={STROKE}
+            strokeWidth={1}
+            dash={[6, 4]}
+            cornerRadius={2}
+          />
+        </>
+      );
+    case 'planta':
+      // Maceta (cuadrado) con copa (círculo verde) centrada.
+      return (
+        <>
+          {box(w, h, '#cdbda8', 3)}
+          <Circle
+            x={w / 2}
+            y={h / 2}
+            radius={Math.min(w, h) * 0.4}
+            fill="#7faa6b"
+            stroke={STROKE}
+            strokeWidth={1}
+          />
+        </>
+      );
+    case 'chimenea':
+      // Caja del hogar con la boca de fuego marcada al frente.
+      return (
+        <>
+          {box(w, h, '#b9b0a6', 2)}
+          <Rect
+            x={w * 0.2}
+            y={h * 0.35}
+            width={w * 0.6}
+            height={h * 0.5}
+            fill="#5a4a40"
+            stroke={STROKE}
+            strokeWidth={1}
+            cornerRadius={2}
+          />
+        </>
+      );
+
+    // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
+    // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
+    default:
+      return box(w, h, WOOD);
   }
 }
