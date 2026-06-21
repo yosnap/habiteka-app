@@ -22,6 +22,7 @@ export function ProjectTabs({ projectId, title }: Props) {
     { href: `${base}/chat`, label: 'Asistente' },
     { href: base, label: 'Plano', exact: true },
     { href: `${base}/deliverables`, label: 'Diseños' },
+    { href: `${base}/historial`, label: 'Historial' },
   ];
 
   return (

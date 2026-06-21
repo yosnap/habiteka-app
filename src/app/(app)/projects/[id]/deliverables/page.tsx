@@ -6,7 +6,7 @@
  */
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
-import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
+import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
@@ -38,26 +38,6 @@ export default async function DeliverablesPage({ params }: Props) {
       <DeliverablesPanel deliverables={deliverables} projectId={id} />
     </main>
   );
-}
-
-// Genera las URLs presignadas de las imágenes de origen. Degrada a un mapa vacío
-// si el storage no está disponible: la trazabilidad es un extra, no debe tumbar la
-// vista de diseños.
-async function resolveSourceImageUrls(
-  sourceImages: Array<{ id: string; key: string }>,
-): Promise<Map<string, string>> {
-  if (sourceImages.length === 0) return new Map();
-  try {
-    const storage = getStorageAdapter();
-    const entries = await Promise.all(
-      sourceImages.map(
-        async (img) => [img.id, await storage.getPresignedDownloadUrl(img.key)] as const,
-      ),
-    );
-    return new Map(entries);
-  } catch {
-    return new Map();
-  }
 }
 
 // Reconstruye el entregable desde la fila, validando el tipo de payload, y le
