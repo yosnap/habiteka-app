@@ -18,8 +18,16 @@ export interface AgentSession {
 /**
  * Crea una sesión de agente para una organización. Las dependencias de IA y de
  * débito quedan cableadas; el despacho por fase lo hace el orquestador.
+ *
+ * `resolveSourceImageId` lo inyecta la capa con scope de org (Server Action), ya
+ * acotado por organización: así la query de trazabilidad sigue pasando por la
+ * única puerta anti-IDOR sin que el agente conozca el `OrgContext`.
  */
-export async function getAgent(organizationId: string, userId: string): Promise<AgentSession> {
+export async function getAgent(
+  organizationId: string,
+  userId: string,
+  resolveSourceImageId: (projectId: string) => Promise<string | null>,
+): Promise<AgentSession> {
   // El modelo de chat se resuelve por la acción 'chat'; las fases que necesiten
   // otra acción (visión) la piden a su propio adaptador en el futuro.
   const chat = await getChatVisionAdapter({ organizationId }, 'chat');
@@ -34,6 +42,7 @@ export async function getAgent(organizationId: string, userId: string): Promise<
           image,
           debit,
           userId,
+          resolveSourceImageId,
           newDeliverableId: (pid, type) => {
             deliverableSeq += 1;
             return `del-${pid}-${type}-${deliverableSeq}`;

@@ -47,6 +47,15 @@ async function seedProject(organizationId: string) {
       resultRef: 'iterations/y.png',
     },
   });
+  // Imagen de origen subida por el usuario (dato personal con binario en storage).
+  await prisma.sourceImage.create({
+    data: {
+      organizationId,
+      projectId: project.id,
+      key: 'source-images/org/z.png',
+      mime: 'image/png',
+    },
+  });
   return project;
 }
 
@@ -64,8 +73,13 @@ describe('eraseOrganizationData (RGPD art. 17)', () => {
 
     expect(report.projectsDeleted).toBe(1);
     expect(report.deliverablesDeleted).toBe(1);
-    // Borró los dos objetos de storage (render + iteración).
-    expect(storage.deleted).toEqual(expect.arrayContaining(['renders/x.png', 'iterations/y.png']));
+    // Borró los objetos de storage: render, iteración e imagen de origen.
+    expect(storage.deleted).toEqual(
+      expect.arrayContaining(['renders/x.png', 'iterations/y.png', 'source-images/org/z.png']),
+    );
+
+    // Sin filas de imagen de origen tras el borrado (cascade desde Project).
+    expect(await prisma.sourceImage.count({ where: { organizationId: orgId } })).toBe(0);
 
     // Cero filas en DB para esa organización (cascade completo). Se filtra por la
     // org borrada en vez de contar el total: la BD de dev conserva el admin (con

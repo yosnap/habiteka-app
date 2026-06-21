@@ -55,6 +55,7 @@ async function makeProject(): Promise<{ pid: string; deps: AgentDeps }> {
     debit: noopDebit,
     userId: user.id,
     newDeliverableId: () => `del-${++seq}`,
+    resolveSourceImageId: async () => null,
   };
   return { pid: project.id, deps };
 }
@@ -98,6 +99,7 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
       debit: noopDebit,
       userId: user.id,
       newDeliverableId: () => `del-${++seq}`,
+      resolveSourceImageId: async () => null,
     };
 
     await expect(

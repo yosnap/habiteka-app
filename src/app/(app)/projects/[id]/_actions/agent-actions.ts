@@ -9,6 +9,8 @@
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
+import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
+import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
 import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
 import { getChatVisionAdapter } from '@/server/ai';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
@@ -40,8 +42,39 @@ async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<v
 export async function advanceAgent(projectId: string, input: AgentInput): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
-  const agent = await getAgent(ctx.organizationId, ctx.userId);
+
+  // La imagen de origen se persiste en esta capa (la que posee el scope de org),
+  // no en el orquestador (deliberadamente org-agnóstico). Solo en la ingesta y
+  // solo si trae bytes embebidos; el gate de consentimiento del orquestador corta
+  // el procesamiento aguas abajo si falta base legal.
+  if (input.action === 'ingest') {
+    await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+    await persistIngestImages(ctx, projectId, input.image);
+  }
+
+  const agent = await getAgent(ctx.organizationId, ctx.userId, (pid) =>
+    withOrg(ctx).sourceImages.latestPrimaryId(pid),
+  );
   return agent.advance(projectId, input);
+}
+
+/** Persiste las imágenes embebidas de la ingesta como SourceImage (scope org). */
+async function persistIngestImages(
+  ctx: OrgContext,
+  projectId: string,
+  parts: MessagePart[],
+): Promise<void> {
+  const repo = withOrg(ctx);
+  const storage = getStorageAdapter();
+  for (const part of parts) {
+    if (part.type !== 'image_url' || !part.base64) continue;
+    const body = Buffer.from(part.base64, 'base64');
+    await persistSourceImage(repo, storage, {
+      organizationId: ctx.organizationId,
+      projectId,
+      body,
+    });
+  }
 }
 
 /**
@@ -74,7 +107,9 @@ export async function generateDesignFromCanvas(
   }
   const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
 
-  const agent = await getAgent(ctx.organizationId, ctx.userId);
+  // El lienzo rasterizado no es una imagen de origen del usuario, así que la
+  // generación desde el lienzo no vincula trazabilidad (resolver a null).
+  const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
   return agent.advance(projectId, {
     action: 'generate-from-canvas',
     estilo,

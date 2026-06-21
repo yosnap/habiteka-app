@@ -17,10 +17,18 @@ const TYPE_TO_ENUM: Record<string, PrismaDeliverableType> = {
   memoria: 'MEMORIA',
 };
 
-/** Guarda los entregables de un proyecto. Idempotente por id (upsert). */
+/**
+ * Guarda los entregables de un proyecto. Idempotente por id (upsert).
+ *
+ * `sourceImageId` (opcional) vincula cada entregable con la imagen de origen que lo
+ * produjo (trazabilidad origen→diseño). Solo se setea al crear: un re-upsert por
+ * reintento no lo pisa, y entregables sin imagen de origen (flujo del lienzo) lo
+ * dejan en null. La pertenencia de la imagen ya la validó la capa con scope de org.
+ */
 export async function persistDeliverables(
   projectId: string,
   deliverables: Deliverable[],
+  sourceImageId?: string,
 ): Promise<void> {
   for (const d of deliverables) {
     const type = TYPE_TO_ENUM[d.type];
@@ -28,7 +36,15 @@ export async function persistDeliverables(
     const payload = d.payload as unknown as Prisma.InputJsonValue;
     await prisma.deliverable.upsert({
       where: { id: d.id },
-      create: { id: d.id, projectId, type, payload, legalSeal: d.legalSeal, version: d.version },
+      create: {
+        id: d.id,
+        projectId,
+        type,
+        payload,
+        legalSeal: d.legalSeal,
+        version: d.version,
+        ...(sourceImageId ? { sourceImageId } : {}),
+      },
       update: { payload, version: d.version },
     });
   }

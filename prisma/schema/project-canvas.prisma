@@ -18,6 +18,7 @@ model Project {
   agentState    AgentState?
   deliverables  Deliverable[]
   votingRooms   VotingRoom[]
+  sourceImages  SourceImage[]
 
   @@index([organizationId])
   @@index([deletedAt])
@@ -88,12 +89,55 @@ model Deliverable {
   // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
   deletedAt DateTime?
 
+  // Trazabilidad origen→diseño: la imagen de origen que produjo este entregable.
+  // SetNull (no Cascade): borrar la imagen no borra el diseño, solo rompe el vínculo.
+  sourceImageId String?
+  sourceImage   SourceImage? @relation(fields: [sourceImageId], references: [id], onDelete: SetNull)
+  // Zona del inmueble (multi-zona, P3). Nullable; sin FK hasta que exista la entidad Zone.
+  zoneId        String?
+
   iterations       Iteration[]
   marketplaceItems MarketplaceItem[]
 
   @@index([projectId])
   @@index([deletedAt])
+  @@index([sourceImageId])
   @@map("deliverable")
+}
+
+// Imagen de origen subida por el usuario (foto del espacio en la ingesta). Persiste
+// el dato personal con scope de organización (anti-IDOR por construcción, como el
+// resto de recursos de negocio) y engancha la retención/borrado RGPD por `deletedAt`.
+// No reutiliza `MediaAsset` (catálogo del back-office, sin tenant) a propósito.
+model SourceImage {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Zona del inmueble (multi-zona, P3). Nullable; sin FK hasta que exista Zone.
+  zoneId         String?
+  // Clave en el object storage (reusa el backend, no la tabla MediaAsset). Es la
+  // única fuente de verdad: la URL para mostrar la imagen se genera presignada al
+  // servir (no se persiste, caducaría). Ver M1 del code-review.
+  key            String
+  mime           String
+  width          Int?
+  height         Int?
+  role           SourceImageRole @default(PRIMARY)
+  // Marca si se difuminaron caras al ingerir (minimización RGPD). Ver privacy/face-blur.
+  faceBlurred    Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt      DateTime?
+
+  deliverables Deliverable[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([zoneId])
+  @@index([deletedAt])
+  @@map("source_image")
 }
 
 // Feedback dirigido sobre una zona del entregable (inpainting / regeneración).

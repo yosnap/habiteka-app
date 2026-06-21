@@ -8,11 +8,35 @@
  * que quien programa recuerde filtrar.
  */
 import type { Prisma } from '@/generated/prisma/client';
+import type { SourceImageRole } from '@/generated/prisma/enums';
 import { prisma } from './prisma';
 import type { OrgContext } from '@/server/auth/org-context';
 
 export interface CreateProjectInput {
   title: string;
+}
+
+export interface CreateSourceImageInput {
+  key: string;
+  mime: string;
+  width?: number;
+  height?: number;
+  role?: SourceImageRole;
+  faceBlurred: boolean;
+}
+
+export interface SourceImageRow {
+  id: string;
+  /**
+   * Clave en el object storage. La URL para mostrarla se genera al servir (URL
+   * presignada de vida corta): persistir la URL la dejaría caducada. Ver M1.
+   */
+  key: string;
+  mime: string;
+  width: number | null;
+  height: number | null;
+  role: SourceImageRole;
+  createdAt: Date;
 }
 
 export interface ScopedRepo {
@@ -33,8 +57,23 @@ export interface ScopedRepo {
     list(
       projectId: string,
     ): Promise<
-      Array<{ id: string; type: string; payload: unknown; legalSeal: string; version: number }>
+      Array<{
+        id: string;
+        type: string;
+        payload: unknown;
+        legalSeal: string;
+        version: number;
+        sourceImageId: string | null;
+      }>
     >;
+  };
+  sourceImages: {
+    /** Crea una imagen de origen verificando la pertenencia del proyecto (anti-IDOR). */
+    create(projectId: string, input: CreateSourceImageInput): Promise<{ id: string }>;
+    /** Lista las imágenes de origen vivas de un proyecto de la org (recientes primero). */
+    list(projectId: string): Promise<SourceImageRow[]>;
+    /** Id de la imagen de origen PRIMARY más reciente de un proyecto de la org, o null. */
+    latestPrimaryId(projectId: string): Promise<string | null>;
   };
 }
 
@@ -113,9 +152,79 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
             deletedAt: null,
             project: { organizationId, deletedAt: null },
           },
-          select: { id: true, type: true, payload: true, legalSeal: true, version: true },
+          select: {
+            id: true,
+            type: true,
+            payload: true,
+            legalSeal: true,
+            version: true,
+            sourceImageId: true,
+          },
           orderBy: { createdAt: 'desc' },
         });
+      },
+    },
+
+    sourceImages: {
+      // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR). El
+      // organizationId se denormaliza en la fila para filtrar barato en el resto.
+      async create(projectId, input) {
+        const owned = await prisma.project.findFirst({
+          where: { id: projectId, organizationId, deletedAt: null },
+          select: { id: true },
+        });
+        if (!owned) {
+          throw new Error('Proyecto no encontrado en la organización');
+        }
+        return prisma.sourceImage.create({
+          data: {
+            organizationId,
+            projectId,
+            key: input.key,
+            mime: input.mime,
+            width: input.width ?? null,
+            height: input.height ?? null,
+            role: input.role ?? 'PRIMARY',
+            faceBlurred: input.faceBlurred,
+          },
+          select: { id: true },
+        });
+      },
+      // El join por organización impide listar imágenes de un proyecto ajeno.
+      list(projectId) {
+        return prisma.sourceImage.findMany({
+          where: {
+            projectId,
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
+          select: {
+            id: true,
+            key: true,
+            mime: true,
+            width: true,
+            height: true,
+            role: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      },
+      async latestPrimaryId(projectId) {
+        const row = await prisma.sourceImage.findFirst({
+          where: {
+            projectId,
+            role: 'PRIMARY',
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
+          select: { id: true },
+          // Desempate por `id` (cuid monotónico): si varias imágenes comparten el
+          // mismo `createdAt` (misma petición, resolución de ms), el resultado es
+          // determinista en vez de arbitrario.
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        });
+        return row?.id ?? null;
       },
     },
   };

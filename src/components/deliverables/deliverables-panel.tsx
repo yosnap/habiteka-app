@@ -15,11 +15,17 @@ const Plan2dViewer = dynamic(() => import('./plan2d-viewer').then((m) => m.Plan2
   ssr: false,
 });
 
+/** Entregable enriquecido para la vista: añade la URL de su imagen de origen. */
+export type DeliverableView = Deliverable & {
+  /** URL de la imagen que el usuario subió y originó este diseño, si la hay. */
+  sourceImageUrl: string | null;
+};
+
 export function DeliverablesPanel({
   deliverables,
   projectId,
 }: {
-  deliverables: Deliverable[];
+  deliverables: DeliverableView[];
   projectId: string;
 }) {
   if (deliverables.length === 0) {
@@ -34,6 +40,7 @@ export function DeliverablesPanel({
     <div className="flex flex-col gap-4">
       {deliverables.map((d) => (
         <section key={d.id} aria-label={`Entregable ${d.type}`}>
+          {d.sourceImageUrl && <SourceImageOrigin url={d.sourceImageUrl} />}
           {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} />}
           {d.payload.type === 'render3d' && (
             <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} />
@@ -42,5 +49,22 @@ export function DeliverablesPanel({
         </section>
       ))}
     </div>
+  );
+}
+
+/** Miniatura de la imagen de origen sobre el diseño (trazabilidad "origen → diseño"). */
+function SourceImageOrigin({ url }: { url: string }) {
+  return (
+    <figure className="mb-2 flex items-center gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element -- URL prefirmada de storage, no servida por Next */}
+      <img
+        src={url}
+        alt="Imagen de origen subida por el usuario"
+        className="rounded-control h-16 w-16 object-cover"
+      />
+      <figcaption className="text-muted-foreground text-xs">
+        Generado a partir de esta imagen
+      </figcaption>
+    </figure>
   );
 }

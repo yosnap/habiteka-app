@@ -45,6 +45,17 @@ async function collectStorageKeys(organizationId: string): Promise<string[]> {
     if (key) keys.add(key);
   }
 
+  // Imágenes de origen subidas por el usuario (dato personal): sus binarios viven
+  // en storage y deben borrarse también, no solo las filas (que caen por cascade).
+  const sourceImages = await prisma.sourceImage.findMany({
+    where: { organizationId },
+    select: { key: true },
+  });
+  for (const img of sourceImages) {
+    const key = toStorageKey(img.key);
+    if (key) keys.add(key);
+  }
+
   return [...keys];
 }
 

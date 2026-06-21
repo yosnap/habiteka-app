@@ -34,6 +34,12 @@ export interface AgentDeps {
   /** Usuario en cuyo nombre actúa el agente (gates de consentimiento/ToS). */
   userId: string;
   newDeliverableId: (projectId: string, type: string) => string;
+  /**
+   * Resuelve la imagen de origen (PRIMARY) que alimentó la entrega por chat, para
+   * la trazabilidad origen→diseño. Devuelve null si el proyecto no tiene imagen
+   * persistida. Ya viene acotado a la organización (lo inyecta la capa con scope).
+   */
+  resolveSourceImageId: (projectId: string) => Promise<string | null>;
 }
 
 // Inputs posibles de un turno, discriminados por acción.
@@ -188,9 +194,12 @@ async function handleDeliver(
       estimateCredits: 1000,
     },
   );
+  // Trazabilidad origen→diseño: vincula la entrega con la imagen de origen que el
+  // usuario subió en la ingesta (PRIMARY más reciente del proyecto), si la hay.
+  const sourceImageId = (await deps.resolveSourceImageId(projectId)) ?? undefined;
   // Persistir los entregables ANTES de avanzar de fase: la vista de «Diseños» los
   // lee de la base de datos; sin esto, la generación se perdería.
-  await persistDeliverables(projectId, deliverables);
+  await persistDeliverables(projectId, deliverables, sourceImageId);
   await saveState(projectId, version, { phase: 'feedback', collected });
   return { phase: 'feedback', collected, deliverables };
 }
