@@ -214,11 +214,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       y={view.y}
       draggable={panEnabled}
       onWheel={onWheel}
-      onDragStart={(e) => {
-        // Solo paneamos si el arrastre empezó en el fondo, no sobre un objeto.
-        if (e.target !== e.target.getStage()) e.target.stopDrag();
-      }}
       onDragEnd={(e) => {
+        // El pan mueve el PROPIO Stage. El drag de un objeto burbujea hasta aquí,
+        // pero su target es el objeto (no el Stage): se ignora para no pisar su
+        // posición ni el pan.
         if (e.target === e.target.getStage()) {
           setView((v) => ({ ...v, x: e.target.x(), y: e.target.y() }));
         }
