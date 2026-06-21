@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   runDelivery,
   explanationPrompt,
+  memoriaPrompt,
   type DeliveryDeps,
 } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
@@ -170,5 +171,37 @@ describe('explanationPrompt — texto para la 2ª llamada de chat', () => {
       collected: { ...ready, objetivo: 'reformar el salón', entregables: ['render3d'] },
     });
     expect(out).toContain('reformar el salón');
+  });
+});
+
+describe('memoriaPrompt — borrador de materiales (F5b)', () => {
+  it('pide materiales por secciones según estilo y objetivo', () => {
+    const out = memoriaPrompt({
+      ...input,
+      collected: { ...ready, estilo: 'nordico', objetivo: 'salón acogedor', entregables: ['memoria'] },
+    });
+    expect(out).toContain('nordico');
+    expect(out).toContain('salón acogedor');
+    expect(out).toContain('Suelo');
+    expect(out).toContain('Paleta de color');
+  });
+
+  it('incorpora la descripción del plano (con medidas) cuando hay sketch', () => {
+    const out = memoriaPrompt({
+      ...input,
+      collected: { ...ready, entregables: ['memoria'] },
+      sketch: {
+        description: 'La sala mide 5,2 m por 3,6 m. Sofá: junto a la pared del fondo',
+        referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+        aspectRatio: '3:2',
+      },
+    });
+    expect(out).toContain('5,2 m por 3,6 m');
+    expect(out.toLowerCase()).toContain('cantidades');
+  });
+
+  it('sin sketch no menciona el plano', () => {
+    const out = memoriaPrompt({ ...input, collected: { ...ready, entregables: ['memoria'] } });
+    expect(out).not.toContain('plano del espacio');
   });
 });

@@ -226,8 +226,32 @@ export function explanationPrompt(input: DeliveryInput): string {
     `y por qué (p. ej. "centré el sofá para dejar paso a la puerta"). No listes; sé concreto y breve.`,
   ].join('\n');
 }
-function memoriaPrompt(input: DeliveryInput): string {
-  return `Memoria de materiales para un espacio estilo ${input.collected.estilo}.`;
+/**
+ * Prompt de la memoria de materiales (borrador de decoración, F5b). Pide a la IA
+ * una propuesta CONCRETA de acabados según estilo + objetivo; si el render parte
+ * del plano, incorpora su descripción (que ya trae medidas reales por la escala
+ * F0) para que estime cantidades aproximadas. Función pura (testeable).
+ */
+export function memoriaPrompt(input: DeliveryInput): string {
+  const objetivo = input.collected.objetivo?.trim();
+  const lines = [
+    `Eres un interiorista. Redacta una MEMORIA DE MATERIALES en español para un espacio`,
+    `de estilo ${input.collected.estilo}${objetivo ? `, con el objetivo: "${objetivo}"` : ''}.`,
+    '',
+    `Propón materiales y acabados CONCRETOS, organizados por secciones:`,
+    `- Suelo, Paredes y techo, Iluminación, Textiles y tapizados, Paleta de color.`,
+    `Para cada uno indica material/acabado y un porqué breve acorde al estilo y objetivo.`,
+  ];
+  if (input.sketch) {
+    lines.push(
+      '',
+      `Este es el plano del espacio (con medidas reales si están disponibles); úsalo para`,
+      `estimar cantidades aproximadas (p. ej. m² de suelo) cuando puedas:`,
+      input.sketch.description,
+    );
+  }
+  lines.push('', `Sé concreto y conciso; formato markdown con encabezados por sección.`);
+  return lines.join('\n');
 }
 function planoPrompt(input: DeliveryInput): string {
   return `Plano 2D estructurado en zonas para el objetivo: ${input.collected.objetivo ?? 'reforma'}.`;
