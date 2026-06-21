@@ -58,7 +58,7 @@ export function ScaleControl() {
       </Button>
 
       {open ? (
-        <div className="border-line bg-surface flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border p-2 text-xs">
+        <div className="border-line bg-surface flex flex-wrap items-center gap-2 rounded-control border p-2 text-xs">
           {/* Ratio presentacional. */}
           <label className="text-ink-soft flex items-center gap-1">
             Ratio
@@ -71,7 +71,7 @@ export function ScaleControl() {
                 // ratio no hace nada: primero hay que calibrar.
                 if (scale) setScale({ ...scale, ...(ratio ? { ratio } : {}) });
               }}
-              className="border-line bg-surface rounded-[var(--radius-control)] border px-1 py-0.5"
+              className="border-line bg-surface rounded-control border px-1 py-0.5"
             >
               <option value="">—</option>
               {RATIOS.map((r) => (
@@ -94,7 +94,7 @@ export function ScaleControl() {
                   value={meters}
                   onChange={(e) => setMeters(e.target.value)}
                   placeholder="m"
-                  className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5"
+                  className="border-line bg-surface w-16 rounded-control border px-1 py-0.5"
                 />
                 m
               </>

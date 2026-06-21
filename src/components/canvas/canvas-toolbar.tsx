@@ -112,7 +112,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
             const deg = ((Number(e.target.value) % 360) + 360) % 360;
             updateObjects(selectedIds, { rotation: deg });
           }}
-          className="border-line bg-surface w-14 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
+          className="border-line bg-surface w-14 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
         °
       </label>
@@ -128,7 +128,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
             if (!hasSel) return;
             updateObjects(selectedIds, { width: Math.max(8, Number(e.target.value)) });
           }}
-          className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
+          className="border-line bg-surface w-16 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
       </label>
       <label className="text-ink-soft flex items-center gap-1 text-xs">
@@ -143,7 +143,7 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
             if (!hasSel) return;
             updateObjects(selectedIds, { height: Math.max(8, Number(e.target.value)) });
           }}
-          className="border-line bg-surface w-16 rounded-[var(--radius-control)] border px-1 py-0.5 text-xs disabled:opacity-50"
+          className="border-line bg-surface w-16 rounded-control border px-1 py-0.5 text-xs disabled:opacity-50"
         />
       </label>
       {/* Dimensiones reales (cm/m) cuando hay escala arquitectónica activa. */}

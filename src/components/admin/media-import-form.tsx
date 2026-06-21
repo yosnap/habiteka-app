@@ -31,7 +31,7 @@ export function MediaImportForm() {
       <label className="flex-1 text-sm">
         Importar imagen por URL
         <input
-          className="border-line bg-surface mt-1 w-full rounded-[var(--radius-control)] border px-2 py-1"
+          className="border-line bg-surface mt-1 w-full rounded-control border px-2 py-1"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://…/imagen.png"

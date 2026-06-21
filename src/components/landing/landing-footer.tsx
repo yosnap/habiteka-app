@@ -8,7 +8,7 @@ export function LandingFooter() {
   return (
     <footer className="border-line bg-surface-muted mt-8 border-t">
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
-        <div className="border-line bg-surface mb-6 rounded-[var(--radius-card)] border p-5">
+        <div className="border-line bg-surface mb-6 rounded-card border p-5">
           <p className="text-ink-soft text-sm">
             <span className="text-ink font-medium">Diseño para inspirarte.</span> Las propuestas de
             Habiteka son conceptuales y pensadas para ayudarte a explorar ideas. Antes de ejecutar

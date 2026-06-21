@@ -42,7 +42,7 @@ export function TosAcceptanceGate({ children }: Props) {
   }
 
   return (
-    <div className="border-line bg-surface-muted flex flex-col gap-3 rounded-[var(--radius-control)] border p-4">
+    <div className="border-line bg-surface-muted flex flex-col gap-3 rounded-control border p-4">
       <p className="text-sm">
         Antes de generar, debes aceptar los{' '}
         <Link href="/legal/terminos" className="underline">

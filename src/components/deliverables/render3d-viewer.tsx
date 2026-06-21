@@ -15,7 +15,7 @@ export function Render3dViewer({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="bg-surface-muted relative aspect-video w-full overflow-hidden rounded-[var(--radius-card)]">
+      <div className="bg-surface-muted relative aspect-video w-full overflow-hidden rounded-card">
         {/* Asset propio de la plataforma; no se optimiza vía next/image para no
             requerir allowlist de dominios del proveedor en esta fase. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

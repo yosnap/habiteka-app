@@ -25,7 +25,7 @@ export function MessageInput({ onSend, disabled }: Props) {
   return (
     <div className="flex items-end gap-2">
       <textarea
-        className="border-line bg-surface focus-visible:ring-brand-500 min-h-10 flex-1 resize-none rounded-[var(--radius-control)] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+        className="border-line bg-surface focus-visible:ring-brand-500 min-h-10 flex-1 resize-none rounded-control border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
         rows={1}
         value={value}
         disabled={disabled}

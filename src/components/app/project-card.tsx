@@ -37,10 +37,10 @@ export function ProjectCard({ id, title, createdLabel, coverUrl }: Props) {
           <img
             src={coverUrl}
             alt={`Diseño de ${title}`}
-            className="border-line mb-3 h-32 w-full rounded-[var(--radius-control)] border object-cover"
+            className="border-line mb-3 h-32 w-full rounded-control border object-cover"
           />
         ) : (
-          <div className="border-line bg-surface-muted text-ink-soft mb-3 flex h-32 w-full items-center justify-center rounded-[var(--radius-control)] border border-dashed px-3 text-center text-xs">
+          <div className="border-line bg-surface-muted text-ink-soft mb-3 flex h-32 w-full items-center justify-center rounded-control border border-dashed px-3 text-center text-xs">
             Aún no se han generado diseños para este proyecto
           </div>
         )}

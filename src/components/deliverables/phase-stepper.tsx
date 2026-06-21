@@ -36,7 +36,7 @@ export function PhaseStepper({ current, deliveryUnlocked }: Props) {
             key={step.phase}
             aria-current={isCurrent ? 'step' : undefined}
             className={[
-              'rounded-[var(--radius-control)] px-3 py-1 text-sm',
+              'rounded-control px-3 py-1 text-sm',
               isCurrent ? 'bg-brand-500 text-white' : '',
               isDone ? 'text-ink' : '',
               !isCurrent && !isDone ? 'text-muted-foreground' : '',

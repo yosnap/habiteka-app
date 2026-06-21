@@ -84,7 +84,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
         if (e.key === 'Escape') onClose();
       }}
     >
-      <div className="bg-surface w-full max-w-sm rounded-[var(--radius-card)] border border-line p-4 shadow-lg">
+      <div className="bg-surface w-full max-w-sm rounded-card border border-line p-4 shadow-lg">
         <h2 className="text-ink mb-1 text-base font-medium">
           {explanation ? 'Diseño generado' : 'Generar diseño desde el plano'}
         </h2>
@@ -95,7 +95,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
         </p>
 
         {explanation ? (
-          <p className="text-ink bg-canvas mb-3 rounded-[var(--radius-control)] border border-line p-3 text-sm">
+          <p className="text-ink bg-canvas mb-3 rounded-control border border-line p-3 text-sm">
             {explanation}
           </p>
         ) : empty ? (
@@ -113,7 +113,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                 disabled={busy}
                 placeholder="p. ej. salón acogedor para recibir visitas"
                 maxLength={200}
-                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               />
             </label>
             <label className="text-ink-soft flex flex-col gap-1 text-sm">
@@ -125,7 +125,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                 rows={2}
                 placeholder="p. ej. haz la sala más cálida y añade plantas"
                 maxLength={500}
-                className="border-line bg-surface resize-none rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface resize-none rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               />
             </label>
             <label className="text-ink-soft flex flex-col gap-1 text-sm">
@@ -134,7 +134,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                 value={estilo}
                 onChange={(e) => setEstilo(e.target.value as Estilo)}
                 disabled={busy}
-                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               >
                 {ESTILOS.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -149,7 +149,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                 value={entregable}
                 onChange={(e) => setEntregable(e.target.value as DeliverableType)}
                 disabled={busy}
-                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               >
                 {ENTREGABLES.map((s) => (
                   <option key={s.value} value={s.value}>

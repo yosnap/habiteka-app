@@ -35,7 +35,7 @@ export function LightControls() {
           type="color"
           value={light.color}
           onChange={(e) => setLight({ color: e.target.value })}
-          className="h-6 w-8 cursor-pointer rounded-[var(--radius-control)] border border-line"
+          className="h-6 w-8 cursor-pointer rounded-control border border-line"
           aria-label="Color de la luz"
           title="Color de la luz"
         />

@@ -177,7 +177,7 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
             </div>
 
             {tosAccepted === false ? (
-              <div className="border-line bg-surface-muted flex flex-col gap-2 rounded-[var(--radius-control)] border p-3 text-sm">
+              <div className="border-line bg-surface-muted flex flex-col gap-2 rounded-control border p-3 text-sm">
                 <p className="text-ink-soft">
                   Antes de generar, acepta los{' '}
                   <Link href="/legal/terminos" target="_blank" className="text-brand-700 underline">
@@ -228,7 +228,7 @@ function SelectionSummary({
 }) {
   if (estilo === undefined && entregables.length === 0) return null;
   return (
-    <div className="border-line bg-surface-muted flex flex-wrap gap-2 rounded-[var(--radius-control)] border p-2 text-xs">
+    <div className="border-line bg-surface-muted flex flex-wrap gap-2 rounded-control border p-2 text-xs">
       {estilo ? <span className="text-ink">Estilo: {estilo} ✓</span> : null}
       {entregables.length ? (
         <span className="text-ink">Entregables: {entregables.join(', ')} ✓</span>
@@ -245,7 +245,7 @@ function PhaseHint({ phase }: { phase: Phase }) {
     feedback: 'Paso 3 · Revisa tus diseños',
   };
   return (
-    <div className="bg-brand-50 text-brand-700 rounded-[var(--radius-control)] px-3 py-2 text-xs font-medium">
+    <div className="bg-brand-50 text-brand-700 rounded-control px-3 py-2 text-xs font-medium">
       {map[phase]}
     </div>
   );

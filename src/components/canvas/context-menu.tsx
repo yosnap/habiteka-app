@@ -37,7 +37,7 @@ export function CanvasContextMenu({ x, y, items, onClose }: Props) {
 
   return (
     <div
-      className="border-line bg-surface fixed z-50 min-w-44 overflow-hidden rounded-[var(--radius-control)] border py-1 shadow-[var(--shadow-float)]"
+      className="border-line bg-surface fixed z-50 min-w-44 overflow-hidden rounded-control border py-1 shadow-[var(--shadow-float)]"
       style={{ left: x, top: y }}
       // Evita que el pointerdown sobre el menú lo cierre antes del click.
       onPointerDown={(e) => e.stopPropagation()}

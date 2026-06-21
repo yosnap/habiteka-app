@@ -85,7 +85,7 @@ export function DecorSuggestionsDialog({ projectId, recommendAction, onClose }: 
         if (e.key === 'Escape') onClose();
       }}
     >
-      <div className="bg-surface w-full max-w-sm rounded-[var(--radius-card)] border border-line p-4 shadow-lg">
+      <div className="bg-surface w-full max-w-sm rounded-card border border-line p-4 shadow-lg">
         <h2 className="text-ink mb-1 text-base font-medium">Sugerir decoración</h2>
         <p className="text-ink-soft mb-3 text-xs">
           La IA propondrá elementos para tu plano. Acepta los que te gusten y se añadirán como
@@ -107,7 +107,7 @@ export function DecorSuggestionsDialog({ projectId, recommendAction, onClose }: 
                 disabled={busy}
                 placeholder="p. ej. sala acogedora para recibir visitas"
                 maxLength={200}
-                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               />
             </label>
             <label className="text-ink-soft flex flex-col gap-1 text-sm">
@@ -116,7 +116,7 @@ export function DecorSuggestionsDialog({ projectId, recommendAction, onClose }: 
                 value={estilo}
                 onChange={(e) => setEstilo(e.target.value as Estilo)}
                 disabled={busy}
-                className="border-line bg-surface rounded-[var(--radius-control)] border px-2 py-1 text-sm disabled:opacity-50"
+                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               >
                 {ESTILOS.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -135,7 +135,7 @@ export function DecorSuggestionsDialog({ projectId, recommendAction, onClose }: 
             {suggestions.map((rec, i) => (
               <li
                 key={`${rec.kind}-${i}`}
-                className="border-line flex items-start justify-between gap-2 rounded-[var(--radius-control)] border p-2"
+                className="border-line flex items-start justify-between gap-2 rounded-control border p-2"
               >
                 <div className="min-w-0">
                   <p className="text-ink text-sm font-medium">

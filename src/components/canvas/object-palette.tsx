@@ -29,7 +29,7 @@ export function ObjectPalette({ tool, onPick }: Props) {
                 type="button"
                 onClick={() => onPick(item.kind)}
                 className={cn(
-                  'rounded-[var(--radius-control)] px-2 py-1.5 text-left text-sm transition-colors',
+                  'rounded-control px-2 py-1.5 text-left text-sm transition-colors',
                   tool === item.kind
                     ? 'bg-brand-500 text-white'
                     : 'text-ink hover:bg-surface-muted',

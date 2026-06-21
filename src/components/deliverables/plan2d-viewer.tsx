@@ -20,7 +20,7 @@ export function Plan2dViewer({ plano, width = 640, height = 420 }: Props) {
   const primitives = planToPrimitives(plano, { width, height: height - 24 });
 
   return (
-    <Stage width={width} height={height} className="bg-surface rounded-[var(--radius-card)]">
+    <Stage width={width} height={height} className="bg-surface rounded-card">
       <Layer listening={false}>
         {primitives.walls.map((w, i) => (
           <Line
