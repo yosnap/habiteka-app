@@ -24,6 +24,9 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Posición del objeto arrastrado al empezar, para calcular el delta y arrastrar
+  // con él al resto de la selección (mover varios a la vez con el ratón).
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   const selectedIds = useMemo(
     () => (selection?.type === 'object' ? selection.objectIds : []),
@@ -83,7 +86,33 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
             setHovered((h) => (h === o.id ? null : h));
             setCursor(e, 'default');
           }}
-          onDragEnd={(e) => updateObject(o.id, { x: snap(e.target.x()), y: snap(e.target.y()) })}
+          onDragStart={() => {
+            dragStart.current = { x: o.x, y: o.y };
+          }}
+          onDragEnd={(e) => {
+            const nx = snap(e.target.x());
+            const ny = snap(e.target.y());
+            const others = selectedIds.filter((id) => id !== o.id);
+            // Si el objeto arrastrado forma parte de una multiselección, el resto se
+            // desplaza el mismo delta (mover varios a la vez con el ratón).
+            if (others.length && dragStart.current) {
+              const dx = nx - dragStart.current.x;
+              const dy = ny - dragStart.current.y;
+              for (const obj of objects) {
+                if (selectedIds.includes(obj.id)) {
+                  updateObject(
+                    obj.id,
+                    obj.id === o.id
+                      ? { x: nx, y: ny }
+                      : { x: snap(obj.x + dx), y: snap(obj.y + dy) },
+                  );
+                }
+              }
+            } else {
+              updateObject(o.id, { x: nx, y: ny });
+            }
+            dragStart.current = null;
+          }}
           onTransformEnd={(e) => {
             const node = e.target;
             // El Group no expone un width/height intrínseco fiable: se parte del

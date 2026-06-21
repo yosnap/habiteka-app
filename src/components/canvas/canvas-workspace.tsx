@@ -108,7 +108,8 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
         store.removeObjects(ids);
         return;
       }
-      const step = e.shiftKey ? 1 : 20;
+      // Paso fino por defecto (1px); con Shift, salto de rejilla (20px).
+      const step = e.shiftKey ? 20 : 1;
       const moves: Record<string, [number, number]> = {
         ArrowUp: [0, -step],
         ArrowDown: [0, step],
