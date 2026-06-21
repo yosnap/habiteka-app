@@ -1,6 +1,22 @@
 # F0 · Escala arquitectónica en el plano
 
+**Estado: ✅ COMPLETADA** (commits `00e84b3` feat + `e80074b` docs, branch
+`fix/dev-seed-repara-model-config`). Verificado: typecheck OK, eslint OK, 50 tests en
+`tests/canvas/`, code-review sin críticos/altos.
+
 **Etapa A (mapeo). Fundacional.** Veredicto /ck:predict: CAUTION → GO con los gates 1 y 3 implementados tal cual.
+
+## Checklist de entrega
+
+- [x] `src/canvas/scale.ts` — lógica pura px↔metros + formateo + calibración + medida con rotación.
+- [x] `src/canvas/types.ts` — `CanvasScale` + `scale?` aditivo (sin subir `CANVAS_SCHEMA_VERSION`).
+- [x] `src/canvas/serialize.ts` — round-trip de `scale` con parser defensivo `parseScale`.
+- [x] `src/canvas/canvas-store.ts` — acción `setScale`.
+- [x] `src/canvas/serialize-doc-to-prompt.ts` — medidas reales solo con escala (degrada idéntico).
+- [x] `src/components/canvas/scale-control.tsx` — selector de ratio + calibración por dimensión.
+- [x] `src/components/canvas/canvas-toolbar.tsx` — integra control + muestra dimensiones reales.
+- [x] Tests TDD `tests/canvas/scale.test.ts` + regresiones en serialize y prompt.
+- [x] Diseño validado con /ck:predict; hallazgos del code-review resueltos.
 
 ## Objetivo
 
