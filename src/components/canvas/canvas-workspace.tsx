@@ -15,6 +15,10 @@ import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
 import { ObjectPalette } from './object-palette';
 import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
+import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
+import { Button } from '@/components/ui/button';
+import type { AgentOutcome } from '@/server/agent';
+import type { DeliverableType, Estilo } from '@/lib/contracts';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -26,12 +30,20 @@ interface Props {
   projectId: string;
   initialDoc: unknown;
   saveAction: (projectId: string, payload: unknown) => Promise<void>;
+  generateAction: (
+    projectId: string,
+    rawDoc: unknown,
+    estilo: Estilo,
+    entregable: DeliverableType,
+  ) => Promise<AgentOutcome>;
 }
 
 const DEBOUNCE_MS = 800;
 
-export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
+export function CanvasWorkspace({ projectId, initialDoc, saveAction, generateAction }: Props) {
   const [tool, setTool] = useState<Tool>('select');
+  // Diálogo de generación de diseño desde el lienzo (CRL-4).
+  const [showGenerate, setShowGenerate] = useState(false);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
   // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
@@ -219,7 +231,17 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <CanvasToolbar tool={tool} onToolChange={setTool} />
+      <div className="flex items-start justify-between gap-2">
+        <CanvasToolbar tool={tool} onToolChange={setTool} />
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => setShowGenerate(true)}
+          title="Usar la disposición del lienzo para generar un render con IA"
+        >
+          Generar diseño desde el lienzo
+        </Button>
+      </div>
       <div className="flex min-h-0 flex-1 gap-2">
         <ObjectPalette tool={tool} onPick={setTool} />
         <div
@@ -239,6 +261,13 @@ export function CanvasWorkspace({ projectId, initialDoc, saveAction }: Props) {
       </div>
       {menu ? (
         <CanvasContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      ) : null}
+      {showGenerate ? (
+        <GenerateFromCanvasDialog
+          projectId={projectId}
+          generateAction={generateAction}
+          onClose={() => setShowGenerate(false)}
+        />
       ) : null}
     </div>
   );

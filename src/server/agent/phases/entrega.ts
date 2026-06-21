@@ -32,6 +32,17 @@ export interface DeliveryInput {
   projectId: string;
   collected: ReadyForDelivery;
   elements?: StructuralElements;
+  /**
+   * Lienzo del usuario como entrada del render (CRL-4): descripción estructurada
+   * de los elementos + imagen de referencia rasterizada. Cuando está presente, el
+   * render se condiciona a la disposición dibujada (no parte solo del estilo).
+   */
+  sketch?: {
+    description: string;
+    referenceImage: { base64: string; mimeType: string };
+    /** Proporción de la sala (ancho:alto); encuadra el render como el lienzo. */
+    aspectRatio: string;
+  };
   /** Clave idempotente de ESTA operación de entrega. */
   idempotencyKey: string;
   /** Créditos estimados a reservar. */
@@ -86,7 +97,10 @@ async function generateOne(
   if (type === 'render3d') {
     const result = await deps.image.generate({
       prompt: renderPrompt(input),
-      aspectRatio: '16:9',
+      // Desde el lienzo: su proporción y disposición condicionan el render. Sin
+      // lienzo (entrada por foto/chat), se usa el encuadre panorámico por defecto.
+      aspectRatio: input.sketch?.aspectRatio ?? '16:9',
+      ...(input.sketch ? { referenceImage: input.sketch.referenceImage } : {}),
     });
     return { ...base, payload: { type: 'render3d', assetUrl: result.assetUrl } };
   }
@@ -172,7 +186,10 @@ function basePlano(elements?: StructuralElements): Plano2dPayload {
 }
 
 function renderPrompt(input: DeliveryInput): string {
-  return `Render 3D conceptual, estilo ${input.collected.estilo}. ${input.collected.objetivo ?? ''}`;
+  const base = `Render 3D conceptual, estilo ${input.collected.estilo}. ${input.collected.objetivo ?? ''}`;
+  // Cuando el render parte del lienzo, su descripción estructurada guía la
+  // disposición de los elementos (complementa a la imagen de referencia).
+  return input.sketch ? `${base}\n\n${input.sketch.description}` : base;
 }
 function memoriaPrompt(input: DeliveryInput): string {
   return `Memoria de materiales para un espacio estilo ${input.collected.estilo}.`;

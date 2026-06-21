@@ -8,8 +8,11 @@ import type {
   ImageAdapter,
   DebitService,
   Collected,
+  ReadyForDelivery,
   StructuralElements,
   Deliverable,
+  DeliverableType,
+  Estilo,
   ChatMessage,
   MessagePart,
 } from '@/lib/contracts';
@@ -38,7 +41,27 @@ export type AgentInput =
   | { action: 'ingest'; image: MessagePart[] }
   | { action: 'confirm-detection' }
   | { action: 'qualify'; history: ChatMessage[] }
-  | { action: 'deliver' };
+  | { action: 'deliver' }
+  // Generación desde el lienzo (CRL-4): flujo paralelo al chat. El usuario aporta
+  // estilo y entregable en el propio canvas (mini-formulario), más la descripción
+  // estructurada y la imagen rasterizada del lienzo. No avanza la fase del chat.
+  | {
+      action: 'generate-from-canvas';
+      estilo: Estilo;
+      entregable: DeliverableType;
+      description: string;
+      referenceImage: { base64: string; mimeType: string };
+      /** Proporción de la sala (ancho:alto) para encuadrar el render. */
+      aspectRatio: string;
+      /**
+       * Identificador único de ESTE intento de generación, creado por la Server
+       * Action. Es la clave idempotente del cobro: cada clic de "Generar" trae uno
+       * nuevo (operación cobrable), pero un reintento de red con el mismo id no
+       * vuelve a cobrar. No se deriva de `version` (el flujo del lienzo no avanza la
+       * fase del chat, así que `version` no varía entre generaciones).
+       */
+      requestId: string;
+    };
 
 export interface AgentOutcome {
   phase: string;
@@ -78,6 +101,8 @@ export async function advance(
       );
     case 'deliver':
       return handleDeliver(deps, projectId, state.phase, state.collected, state.version);
+    case 'generate-from-canvas':
+      return handleGenerateFromCanvas(deps, projectId, state.collected, input);
   }
 }
 
@@ -161,5 +186,55 @@ async function handleDeliver(
   // lee de la base de datos; sin esto, la generación se perdería.
   await persistDeliverables(projectId, deliverables);
   await saveState(projectId, version, { phase: 'feedback', collected });
+  return { phase: 'feedback', collected, deliverables };
+}
+
+async function handleGenerateFromCanvas(
+  deps: AgentDeps,
+  projectId: string,
+  collected: Collected,
+  input: Extract<AgentInput, { action: 'generate-from-canvas' }>,
+): Promise<AgentOutcome> {
+  // El lienzo rasterizado es una imagen que se procesa con IA: mismo deber RGPD
+  // que la ingesta de la foto. El gate corta antes de enviar nada al modelo.
+  await assertConsent(deps.userId, 'IMAGE_PROCESSING');
+  // Condición contractual idéntica a la entrega por chat: sin ToS aceptado no se
+  // genera nada.
+  await assertTosAccepted(deps.userId);
+
+  // El estilo y el entregable los aporta el usuario en el canvas (mini-formulario),
+  // no la cualificación del chat: se construye un Collected listo para entregar.
+  const ready: ReadyForDelivery = {
+    ...collected,
+    estilo: input.estilo,
+    entregables: [input.entregable],
+  };
+
+  const deliverables = await runDelivery(
+    {
+      chat: deps.chat,
+      image: deps.image,
+      debit: deps.debit,
+      newId: (type) => deps.newDeliverableId(projectId, type),
+    },
+    {
+      projectId,
+      collected: ready,
+      // Clave única por intento (no por versión, que aquí no avanza): cada clic de
+      // "Generar" cobra; un reintento de red con el mismo `requestId` no recobra.
+      // Prefijo `canvas:` distinto de `deliver:` para que ambos flujos coexistan.
+      idempotencyKey: `canvas:${projectId}:${input.requestId}`,
+      estimateCredits: 1000,
+      sketch: {
+        description: input.description,
+        referenceImage: input.referenceImage,
+        aspectRatio: input.aspectRatio,
+      },
+    },
+  );
+
+  await persistDeliverables(projectId, deliverables);
+  // NO se toca la fase del chat: la generación desde el lienzo es un flujo paralelo
+  // y no debe pisar una conversación de cualificación en curso.
   return { phase: 'feedback', collected, deliverables };
 }

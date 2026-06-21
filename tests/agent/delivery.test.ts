@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runDelivery, type DeliveryDeps } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
-import type { ReadyForDelivery, Hold } from '@/lib/contracts';
+import type { ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
 
 const ready: ReadyForDelivery = {
   estilo: 'moderno',
@@ -10,8 +10,13 @@ const ready: ReadyForDelivery = {
 };
 
 // Mocks deterministas con registro del orden de llamadas al débito.
-function makeDeps(opts: { failImage?: boolean } = {}): { deps: DeliveryDeps; calls: string[] } {
+function makeDeps(opts: { failImage?: boolean } = {}): {
+  deps: DeliveryDeps;
+  calls: string[];
+  imageRequests: ImageGenRequest[];
+} {
   const calls: string[] = [];
+  const imageRequests: ImageGenRequest[] = [];
   const deps: DeliveryDeps = {
     chat: {
       chat: async () => ({
@@ -22,8 +27,9 @@ function makeDeps(opts: { failImage?: boolean } = {}): { deps: DeliveryDeps; cal
       chatStream: async function* () {},
     },
     image: {
-      generate: async () => {
+      generate: async (req) => {
         calls.push('generate');
+        imageRequests.push(req);
         if (opts.failImage) throw new Error('proveedor caído');
         return { assetUrl: 'https://cdn/x.png', cost: { amountUsd: 0.04, unit: 'image' } };
       },
@@ -43,7 +49,7 @@ function makeDeps(opts: { failImage?: boolean } = {}): { deps: DeliveryDeps; cal
     },
     newId: (type) => `id-${type}`,
   };
-  return { deps, calls };
+  return { deps, calls, imageRequests };
 }
 
 const input = {
@@ -78,5 +84,29 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(calls).toContain('hold');
     expect(calls).toContain('revert');
     expect(calls).not.toContain('settle');
+  });
+
+  it('sin sketch, el render no envía imagen de referencia', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['render3d'] } });
+    expect(imageRequests[0]?.referenceImage).toBeUndefined();
+  });
+
+  it('con sketch (lienzo), el render recibe referenceImage y la descripción en el prompt', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      sketch: {
+        description: 'Sofá: junto a la pared del fondo, a la izquierda',
+        referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+        aspectRatio: '3:2',
+      },
+    });
+    const req = imageRequests[0];
+    expect(req?.referenceImage).toEqual({ base64: 'QUJD', mimeType: 'image/png' });
+    expect(req?.prompt).toContain('Sofá: junto a la pared del fondo');
+    // La proporción de la sala se traslada al encuadre del render (no el 16:9 fijo).
+    expect(req?.aspectRatio).toBe('3:2');
   });
 });
