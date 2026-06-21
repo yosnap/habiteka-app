@@ -9,6 +9,8 @@
 import { auth } from '../src/server/auth/auth';
 import { prisma } from '../src/server/db/prisma';
 import { provisionOrganization } from '../src/server/auth/provision-organization';
+import { recordConsent } from '../src/server/privacy/consent-service';
+import { acceptTos } from '../src/server/legal/tos-acceptance-service';
 import { MODEL_DEFAULTS } from '../src/server/ai/model-defaults';
 import { CANVAS_EXAMPLES } from '../src/canvas/examples';
 import type { Prisma } from '../src/generated/prisma/client';
@@ -74,6 +76,24 @@ async function main() {
     update: { balance: 1000 },
     create: { organizationId: member.organizationId, balance: 1000 },
   });
+
+  // Otorga al admin los gates legales que en producción daría desde la UI, para
+  // poder probar la generación de diseños en local (procesa imagen + exige ToS).
+  // Son append-only: se crean solo si aún no constan, para mantener idempotencia.
+  const hasImageConsent = await prisma.consentRecord.findFirst({
+    where: { userId: user.id, purpose: 'IMAGE_PROCESSING' },
+  });
+  if (!hasImageConsent) {
+    await recordConsent({
+      userId: user.id,
+      organizationId: member.organizationId,
+      purpose: 'IMAGE_PROCESSING',
+      policyVersion: '2026-06',
+      granted: true,
+    });
+  }
+  const hasTos = await prisma.tosAcceptance.findFirst({ where: { userId: user.id } });
+  if (!hasTos) await acceptTos(user.id);
 
   // Crea un proyecto de muestra (idempotente) para poder abrir el canvas sin
   // tener todavía una pantalla de "mis proyectos" en la UI.
