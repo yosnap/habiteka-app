@@ -34,12 +34,7 @@ function box(w: number, h: number, fill: string, radius = 2) {
  * Dibuja un objeto en planta. Si `flip`, lo espeja en horizontal envolviéndolo en
  * un único Group con `scaleX(-1)` y `x(w)` (un solo nivel de transform, fiable).
  */
-export function objectShape(
-  kind: StructKind,
-  w: number,
-  h: number,
-  flip = false,
-): React.ReactNode {
+export function objectShape(kind: StructKind, w: number, h: number, flip = false): React.ReactNode {
   const content = shapeFor(kind, w, h);
   if (!flip) return content;
   return (

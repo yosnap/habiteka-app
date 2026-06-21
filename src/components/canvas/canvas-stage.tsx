@@ -12,8 +12,7 @@ import { useCanvasStore } from '@/canvas/canvas-store';
 import { useFreehand } from '@/canvas/use-freehand';
 import { pixelRectToZone } from '@/canvas/selection-math';
 import { GridLayer } from './layers/grid-layer';
-import { BaseImageLayer } from './layers/base-image-layer';
-import { FreehandLayer } from './layers/freehand-layer';
+import { BackgroundLayer } from './layers/background-layer';
 import { StructureLayer } from './layers/structure-layer';
 import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
@@ -255,8 +254,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         offsetX={view.x}
         offsetY={view.y}
       />
-      <BaseImageLayer baseImage={doc.baseImage} stageWidth={width} stageHeight={height} />
-      <FreehandLayer strokes={doc.strokes} draft={freehand.draft} />
+      <BackgroundLayer
+        baseImage={doc.baseImage}
+        stageWidth={width}
+        stageHeight={height}
+        strokes={doc.strokes}
+        draft={freehand.draft}
+      />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
       <SelectionOverlay marquee={marquee} />
