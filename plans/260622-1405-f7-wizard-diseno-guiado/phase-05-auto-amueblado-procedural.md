@@ -1,8 +1,8 @@
 ---
 phase: 5
-title: "Auto-amueblado procedural"
-status: pending
-effort: ""
+title: Auto-amueblado procedural
+status: completed
+effort: ''
 ---
 
 # Phase 5: Auto-amueblado procedural
