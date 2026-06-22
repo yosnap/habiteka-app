@@ -45,10 +45,15 @@ sobre una sala no rectangular, avisar/rechazar en vez de colocar muebles fuera d
 3. Integrar en el wizard como paso opcional; permitir reordenar después en el editor.
 4. Verificar: wizard salón → set colocado con sentido (sofá enfrenta TV) en 2D y 3D.
 
+## Mejoras futuras (post-F7, pedidas por el usuario jun-2026)
+- **Más tipos de sala / espacios combinados**: p. ej. "cocina americana" (cocina + salón en un
+  mismo espacio abierto), estudio, comedor, etc. Requiere plantillas combinadas y, posiblemente,
+  dividir el recinto en zonas funcionales. No bloquea F7; ampliar `room-types` + `furnish-templates`.
+
 ## Success Criteria
-- [ ] `autofurnish` puro y testeado (muebles dentro de la sala, anclados, sin solapes groseros).
-- [ ] Set coherente por tipo de sala, determinista.
-- [ ] tsc + eslint + vitest verdes.
+- [x] `autofurnish` puro y testeado (muebles dentro de la sala, anclados, sin solapes groseros).
+- [x] Set coherente por tipo de sala, determinista.
+- [x] tsc + eslint + vitest verdes.
 
 ## Risk Assessment
 - Evitar sobre-ingeniería (YAGNI): reglas simples por plantilla, no un solver de layout. Variedad
