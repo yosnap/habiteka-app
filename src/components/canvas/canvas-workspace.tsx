@@ -19,6 +19,7 @@ import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
+import { DesignWizard } from './wizard/design-wizard';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
@@ -72,6 +73,8 @@ export function CanvasWorkspace({
   const [showDetect, setShowDetect] = useState(false);
   // Vista 3D navegable (F6): se captura el doc de la zona activa al abrir.
   const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
+  // Asistente de diseño (F7): se ofrece al abrir una zona vacía (sin contenido alguno).
+  const [showWizard, setShowWizard] = useState(false);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
   // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
@@ -174,7 +177,12 @@ export function CanvasWorkspace({
   // sincronización a servidor); su limpieza cancela el temporizador y la
   // suscripción al desmontar.
   useMountEffect(() => {
-    useCanvasStore.getState().load(deserializeCanvas(initialDoc));
+    const hydrated = deserializeCanvas(initialDoc);
+    useCanvasStore.getState().load(hydrated);
+    // Si la zona está completamente vacía (sin objetos, trazos, imagen base ni productos),
+    // se ofrece el asistente de diseño. Cuenta TODO el contenido, no solo `objects`, para no
+    // pisar un plano calcado a mano (trazos/imagen) al cargar el doc del wizard.
+    if (isDocEmpty(hydrated)) setShowWizard(true);
 
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = useCanvasStore.subscribe((state, prev) => {
@@ -328,7 +336,30 @@ export function CanvasWorkspace({
         />
       ) : null}
       {doc3D ? <Plan3DOverlay doc={doc3D} onClose={() => setDoc3D(null)} /> : null}
+      {showWizard ? (
+        <DesignWizard
+          onSkip={() => setShowWizard(false)}
+          onCreate={(doc) => {
+            // Carga la sala generada en el editor y la PERSISTE de inmediato (flush sin
+            // debounce): el autosave por debounce podría cancelarse si el usuario navega o
+            // abre el 3D antes de los 800 ms, perdiendo la sala (red-team).
+            useCanvasStore.getState().load(doc);
+            void saveAction(projectId, serializeCanvas(doc));
+            setShowWizard(false);
+          }}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** ¿La zona no tiene ningún contenido? (objetos, trazos, imagen base ni productos). */
+function isDocEmpty(doc: CanvasDoc): boolean {
+  return (
+    doc.objects.length === 0 &&
+    doc.strokes.length === 0 &&
+    doc.products.length === 0 &&
+    doc.baseImage === null
   );
 }
 
