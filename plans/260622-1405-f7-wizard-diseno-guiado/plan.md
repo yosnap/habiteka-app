@@ -1,14 +1,14 @@
 ---
-title: "F7 Wizard de diseno guiado tipo Planner5D"
-description: ""
+title: F7 Wizard de diseno guiado tipo Planner5D
+description: ''
 status: pending
 priority: P2
-branch: "feat/canvas/f6-3d-navegable"
+branch: feat/canvas/f6-3d-navegable
 tags: []
 blockedBy: []
 blocks: []
-created: "2026-06-22T13:03:12.227Z"
-createdBy: "ck:plan"
+created: '2026-06-22T13:03:12.227Z'
+createdBy: 'ck:plan'
 source: skill
 ---
 
@@ -70,8 +70,8 @@ antes de dar el núcleo por bueno.** Es el trabajo real, no "sin cambios en 3D".
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Verificacion del flujo base](./phase-01-verificacion-del-flujo-base.md) | Pending |
-| 2 | [Draw Walls con cota en vivo](./phase-02-draw-walls-con-cota-en-vivo.md) | Pending |
+| 1 | [Verificacion del flujo base](./phase-01-verificacion-del-flujo-base.md) | Completed |
+| 2 | [Draw Walls con cota en vivo](./phase-02-draw-walls-con-cota-en-vivo.md) | Completed |
 | 3 | [Medidas y snap al dibujar](./phase-03-medidas-y-snap-al-dibujar.md) | Pending |
 | 4 | [Wizard guiado paso a paso](./phase-04-wizard-guiado-paso-a-paso.md) | Pending |
 | 5 | [Auto-amueblado procedural](./phase-05-auto-amueblado-procedural.md) | Pending |
@@ -91,8 +91,8 @@ Construye sobre F6 (3D navegable, completo). Sin dependencias bloqueantes de otr
 
 | # | Hallazgo | Sev | Disp | Aplicado a |
 |---|----------|-----|------|-----------|
-| 1 | Rotación 2D↔3D no coincide (Konva esquina vs docToScene centro AABB) | Critical | Accept | plan + Phase 1 + Phase 2 |
-| 2 | Usar `getRelativePointerPosition` (worldPointer), NO `getPointerPosition` de freehand | Critical | Accept | Phase 2 |
+| 1 | Rotación 2D↔3D no coincide (Konva esquina vs docToScene centro AABB) | Critical | Accept | Completed |
+| 2 | Usar `getRelativePointerPosition` (worldPointer), NO `getPointerPosition` de freehand | Critical | Accept | Completed |
 | 3 | Pérdida del doc del wizard: `load()` borra historial + autosave se cancela al navegar | Critical | Accept | Phase 4 |
 | 4 | Partir F7 en núcleo (1–3) entregable vs resto (4–8) | High | Accept | plan (corte de entrega) |
 | 5 | Colisión draw-wall vs botón "Muro" de la paleta (dos formas de crear wall) | High | Accept | Phase 2 |

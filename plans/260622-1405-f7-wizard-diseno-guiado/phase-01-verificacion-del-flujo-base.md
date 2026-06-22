@@ -1,8 +1,8 @@
 ---
 phase: 1
-title: "Verificacion del flujo base"
-status: pending
-effort: ""
+title: Verificacion del flujo base
+status: completed
+effort: ''
 ---
 
 # Phase 1: Verificacion del flujo base

@@ -1,8 +1,8 @@
 ---
 phase: 2
-title: "Draw Walls con cota en vivo"
-status: pending
-effort: ""
+title: Draw Walls con cota en vivo
+status: completed
+effort: ''
 ---
 
 # Phase 2: Draw Walls con cota en vivo
