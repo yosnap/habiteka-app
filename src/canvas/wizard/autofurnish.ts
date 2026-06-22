@@ -9,7 +9,7 @@
  */
 import type { CanvasDoc, StructObj, StructKind } from '../types';
 import { CATALOG_BY_KIND } from '../catalog';
-import { metersToPx } from '../scale';
+import { metersToPx, catalogSizePx } from '../scale';
 import { FURNISH_TEMPLATES, type FurniturePlacement } from './furnish-templates';
 import type { RoomType } from './room-types';
 
@@ -55,14 +55,12 @@ export function interiorRect(doc: CanvasDoc): InteriorRect | null {
   return { x, y, width, height };
 }
 
-/** Tamaño en px de un kind según sus medidas reales del catálogo y la escala. */
+/** Tamaño en px de un kind según sus medidas reales del catálogo y la escala. Reusa
+ *  `catalogSizePx` (misma fuente de verdad que el editor: redondeo + mínimo de 2 px). */
 function kindSizePx(kind: StructKind, pxPerMeter: number): { w: number; h: number } {
   const entry = CATALOG_BY_KIND[kind];
   if (!entry) return { w: 40, h: 40 };
-  return {
-    w: metersToPx(entry.realWidthM, { pxPerMeter }),
-    h: metersToPx(entry.realDepthM, { pxPerMeter }),
-  };
+  return catalogSizePx(entry, { pxPerMeter });
 }
 
 /**
