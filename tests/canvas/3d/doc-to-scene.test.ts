@@ -394,3 +394,65 @@ describe('doc-to-scene: el suelo respeta la rotación de los muros (Draw Walls)'
     expect(Math.abs(scene.floor.center[0])).toBeGreaterThan(1);
   });
 });
+
+describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin desplazarse)', () => {
+  // bbox (en XZ) de todas las cajas de muro, proyectando sus 4 esquinas con su rotationY.
+  function wallsBBox(scene: ReturnType<typeof docToScene>) {
+    let minX = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxZ = -Infinity;
+    for (const b of scene.walls) {
+      const [cx, , cz] = b.center;
+      const [w, , d] = b.size;
+      const cos = Math.cos(b.rotationY);
+      const sin = Math.sin(b.rotationY);
+      for (const [dx, dz] of [
+        [-w / 2, -d / 2],
+        [w / 2, -d / 2],
+        [w / 2, d / 2],
+        [-w / 2, d / 2],
+      ] as const) {
+        const x = cx + dx * cos - dz * sin;
+        const z = cz + dx * sin + dz * cos;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minZ = Math.min(minZ, z);
+        maxZ = Math.max(maxZ, z);
+      }
+    }
+    return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2 };
+  }
+
+  it('muros axis-aligned: su centro coincide con el centro del suelo', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 100, y: 385, width: 400, height: 15 }),
+        obj({ id: 'w-left', kind: 'wall', x: 100, y: 100, width: 15, height: 300 }),
+        obj({ id: 'w-right', kind: 'wall', x: 485, y: 100, width: 15, height: 300 }),
+      ]),
+    );
+    const wb = wallsBBox(scene);
+    expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
+    expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+  });
+
+  it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
+    // Mismo contorno 4×3 m dibujado con Draw Walls: width=longitud, height=grosor, rotation=ángulo.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0 }),
+        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90 }),
+        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180 }),
+        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270 }),
+      ]),
+    );
+    // El suelo mide la planta real (4×3 m) y los muros se centran en él (no desplazados media pared).
+    expect(scene.floor.size[0]).toBeCloseTo(4, 1);
+    expect(scene.floor.size[1]).toBeCloseTo(3, 1);
+    const wb = wallsBBox(scene);
+    expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
+    expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+  });
+});

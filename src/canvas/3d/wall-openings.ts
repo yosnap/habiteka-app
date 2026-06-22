@@ -165,9 +165,12 @@ export function splitWallWithOpenings(
   const rotationY = rotation2DToY(wall.rotation);
   const [wcx, wcz] = planPointToXZ(wall, planCenter, pxPerMeter);
 
-  // Centro en mundo (XZ) de una caja cuyo centro local sobre el eje es `ucPx` (px).
+  // Centro en mundo (XZ) de una caja cuyo punto medio a lo largo del eje es `ucPx`, medido
+  // desde el EXTREMO 0 del muro (rango 0..L). Como `wcx/wcz` es el CENTRO del muro, hay que
+  // referir `ucPx` al centro restándole L/2; si no, una caja en ucPx=L/2 (el centro) se
+  // desplazaría media longitud y el muro entero saldría descolocado de la planta.
   const worldCenterXZ = (ucPx: number): [number, number] => {
-    const ucM = pxToMeters(ucPx, { pxPerMeter });
+    const ucM = pxToMeters(ucPx - axis.L / 2, { pxPerMeter });
     return [wcx + axis.u[0] * ucM, wcz + axis.u[1] * ucM];
   };
 
