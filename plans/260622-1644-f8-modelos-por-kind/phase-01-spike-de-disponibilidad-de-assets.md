@@ -1,8 +1,8 @@
 ---
 phase: 1
-title: "Spike de disponibilidad de assets"
-status: pending
-effort: ""
+title: Spike de disponibilidad de assets
+status: completed
+effort: ''
 ---
 
 # Phase 1: Spike de disponibilidad de assets

@@ -1,14 +1,14 @@
 ---
-title: "F8 modelos 3D por kind (catalogo visual)"
-description: ""
-status: pending
+title: F8 modelos 3D por kind (catalogo visual)
+description: ''
+status: completed
 priority: P2
-branch: "feat/canvas/f6-3d-navegable"
+branch: feat/canvas/f6-3d-navegable
 tags: []
 blockedBy: []
 blocks: []
-created: "2026-06-22T15:01:50.003Z"
-createdBy: "ck:plan"
+created: '2026-06-22T15:01:50.003Z'
+createdBy: 'ck:plan'
 source: skill
 ---
 
@@ -50,9 +50,9 @@ El placeholder seguirá cubriendo lo que no se encuentre (honesto, sin bloquear)
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Spike de disponibilidad de assets](./phase-01-spike-de-disponibilidad-de-assets.md) | Pending |
-| 2 | [Integracion y compresion de modelos](./phase-02-integracion-y-compresion-de-modelos.md) | Pending |
-| 3 | [Verificacion y calibracion](./phase-03-verificacion-y-calibracion.md) | Pending |
+| 1 | [Spike de disponibilidad de assets](./phase-01-spike-de-disponibilidad-de-assets.md) | Completed |
+| 2 | [Integracion y compresion de modelos](./phase-02-integracion-y-compresion-de-modelos.md) | Completed |
+| 3 | [Verificacion y calibracion](./phase-03-verificacion-y-calibracion.md) | Completed |
 
 ## Dependencies
 

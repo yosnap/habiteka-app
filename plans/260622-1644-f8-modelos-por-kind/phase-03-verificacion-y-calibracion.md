@@ -1,8 +1,8 @@
 ---
 phase: 3
-title: "Verificacion y calibracion"
-status: pending
-effort: ""
+title: Verificacion y calibracion
+status: completed
+effort: ''
 ---
 
 # Phase 3: Verificacion y calibracion

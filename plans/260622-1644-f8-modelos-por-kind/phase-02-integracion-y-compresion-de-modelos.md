@@ -1,8 +1,8 @@
 ---
 phase: 2
-title: "Integracion y compresion de modelos"
-status: pending
-effort: ""
+title: Integracion y compresion de modelos
+status: completed
+effort: ''
 ---
 
 # Phase 2: Integracion y compresion de modelos
