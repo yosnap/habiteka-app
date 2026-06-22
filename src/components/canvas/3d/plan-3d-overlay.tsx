@@ -37,7 +37,7 @@ export function Plan3DOverlay({ doc, onClose }: { doc: CanvasDoc; onClose: () =>
         type="button"
         onClick={onClose}
         aria-label="Cerrar vista 3D"
-        className="absolute right-4 top-4 z-10 rounded-full bg-white/10 px-3 py-1.5 text-sm text-white backdrop-blur hover:bg-white/20"
+        className="absolute right-4 top-4 z-10 rounded-full bg-neutral-900/90 px-4 py-2 text-sm font-medium text-white shadow-lg ring-1 ring-white/20 hover:bg-neutral-800"
       >
         ✕ Cerrar
       </button>

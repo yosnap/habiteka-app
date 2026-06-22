@@ -72,10 +72,17 @@ export interface WallBox {
   rotationY: number;
 }
 
-/** Suelo rectangular en metros, centrado en el origen. */
+/** Suelo rectangular en metros. */
 export interface FloorRect {
   /** Tamaño del suelo en metros: [ancho(X), fondo(Z)]. */
   size: [number, number];
+  /**
+   * Centro del suelo en el plano XZ (metros), relativo al centro de la escena. No es
+   * siempre [0,0]: el suelo abarca solo los muros, cuyo bbox puede no coincidir con el
+   * centro del bbox de TODOS los objetos (el origen de la escena). Centrarlo aquí evita
+   * que el suelo aparezca desplazado respecto a las paredes.
+   */
+  center: [number, number];
 }
 
 /**
@@ -213,8 +220,33 @@ export function rotation2DToY(rotationDeg: number): number {
   return (-(rotationDeg || 0) * Math.PI) / 180;
 }
 
-/** Bounding box (px) de un conjunto de rectángulos en planta. */
-function boundingBoxPx(objects: readonly PlanRect[]): {
+/**
+ * Las 4 esquinas de un objeto en planta (px), COMO LO PINTA KONVA: el objeto rota sobre
+ * su ORIGEN (esquina sup-izq `x,y`), no sobre su centro. Para `rotation=0` son las
+ * esquinas axis-aligned habituales. Misma convención de pivote que `objectCenterPx`.
+ */
+function objectCornersPx(
+  obj: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+): Array<[number, number]> {
+  const rad = ((obj.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const offsets: Array<[number, number]> = [
+    [0, 0],
+    [obj.width, 0],
+    [obj.width, obj.height],
+    [0, obj.height],
+  ];
+  return offsets.map(([dx, dy]) => [obj.x + dx * cos - dy * sin, obj.y + dx * sin + dy * cos]);
+}
+
+/**
+ * Bounding box (px) de un conjunto de objetos en planta, RESPETANDO su rotación. Un muro
+ * dibujado con Draw Walls viene rotado (atan2 del segmento); usar `x..x+width` sin rotar
+ * inflaría y descentraría el bbox (suelo más grande que la sala). Por eso se expande sobre
+ * las esquinas rotadas, igual que `objectCenterPx` respeta el pivote para posicionar.
+ */
+function boundingBoxPx(objects: readonly StructObj[]): {
   minX: number;
   minY: number;
   maxX: number;
@@ -225,10 +257,12 @@ function boundingBoxPx(objects: readonly PlanRect[]): {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const o of objects) {
-    minX = Math.min(minX, o.x);
-    minY = Math.min(minY, o.y);
-    maxX = Math.max(maxX, o.x + o.width);
-    maxY = Math.max(maxY, o.y + o.height);
+    for (const [px, py] of objectCornersPx(o)) {
+      minX = Math.min(minX, px);
+      minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px);
+      maxY = Math.max(maxY, py);
+    }
   }
   return { minX, minY, maxX, maxY };
 }
@@ -306,15 +340,23 @@ export function docToScene(doc: CanvasDoc): Scene3D {
 
   // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
   // del contorno por diseño y estirarían el suelo). Si no hay muros, cae a todos los objetos.
+  // El bbox respeta la rotación de los muros (Draw Walls los rota), y el suelo se centra en
+  // el centro de ESE bbox (no en el origen de la escena), que puede diferir si hay objetos
+  // fuera del rectángulo de muros.
   const wallsForFloor = doc.objects.filter((o) => o.kind === 'wall');
   const ref = wallsForFloor.length > 0 ? wallsForFloor : doc.objects;
   const floor: FloorRect = (() => {
-    if (ref.length === 0) return { size: [0, 0] };
+    if (ref.length === 0) return { size: [0, 0], center: [0, 0] };
     const bb = boundingBoxPx(ref);
+    const floorCenterPx: [number, number] = [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2];
     return {
       size: [
         pxToMeters(Math.max(0, bb.maxX - bb.minX), { pxPerMeter }),
         pxToMeters(Math.max(0, bb.maxY - bb.minY), { pxPerMeter }),
+      ],
+      center: [
+        pxToMeters(floorCenterPx[0] - center[0], { pxPerMeter }),
+        pxToMeters(floorCenterPx[1] - center[1], { pxPerMeter }),
       ],
     };
   })();

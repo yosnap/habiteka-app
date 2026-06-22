@@ -62,7 +62,10 @@ function RoomMesh({ scene }: { scene: Scene3D }) {
   return (
     <group>
       {hasFloor ? (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <mesh
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[scene.floor.center[0], 0, scene.floor.center[1]]}
+        >
           <planeGeometry args={[scene.floor.size[0], scene.floor.size[1]]} />
           <meshStandardMaterial color="#d8d2c8" />
         </mesh>

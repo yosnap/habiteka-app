@@ -345,3 +345,39 @@ describe('doc-to-scene: el suelo ignora ventanas/puertas que sobresalen del cont
     expect(scene.floor.size[1]).toBeCloseTo(3.15, 2);
   });
 });
+
+describe('doc-to-scene: el suelo respeta la rotación de los muros (Draw Walls)', () => {
+  it('un muro rotado NO infla ni descentra el suelo (bbox sobre esquinas rotadas)', () => {
+    // Muro de 500×15 px rotado 90° sobre su esquina: ocupa ~15 px en X y ~500 en Y, NO 500×15.
+    // Con bbox sin rotar el suelo saldría 500 px de ancho; con bbox rotado, ~15.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-left', kind: 'wall', x: 100, y: 100, width: 500, height: 15, rotation: 90 }),
+        obj({ id: 'w-right', kind: 'wall', x: 400, y: 100, width: 500, height: 15, rotation: 90 }),
+        obj({ id: 'w-top', kind: 'wall', x: 100, y: 100, width: 300, height: 15, rotation: 0 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 100, y: 600, width: 300, height: 15, rotation: 0 }),
+      ]),
+    );
+    // Extensión real en X: de x=100 (muro izq/sup) a x=415 (muro der rota a x=400, +15 de grosor) → ~315 px.
+    // Si ignorara la rotación, maxX llegaría a 900 (400+500) → suelo erróneo de ~8 m.
+    expect(scene.floor.size[0]).toBeLessThan(4.0);
+    expect(scene.floor.size[0]).toBeGreaterThan(2.5);
+  });
+
+  it('el centro del suelo se desplaza del origen si hay muebles fuera del rectángulo de muros', () => {
+    // Sala 300×300 en la izquierda + un mueble lejos a la derecha: el centro global (de TODOS
+    // los objetos) se va a la derecha, pero el suelo debe seguir centrado en los muros.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-top', kind: 'wall', x: 0, y: 0, width: 300, height: 15 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 0, y: 300, width: 300, height: 15 }),
+        obj({ id: 'w-left', kind: 'wall', x: 0, y: 0, width: 15, height: 315 }),
+        obj({ id: 'w-right', kind: 'wall', x: 285, y: 0, width: 15, height: 315 }),
+        obj({ id: 'lejos', kind: 'silla', x: 1000, y: 150, width: 45, height: 45 }),
+      ]),
+    );
+    // El suelo abarca ~3×3 m; su centro NO es [0,0] porque el origen de la escena se
+    // desplazó hacia el mueble lejano. El offset debe ser apreciable (varios metros).
+    expect(Math.abs(scene.floor.center[0])).toBeGreaterThan(1);
+  });
+});
