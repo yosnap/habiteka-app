@@ -132,16 +132,22 @@ describe('doc-to-scene: altura de muros', () => {
 });
 
 describe('doc-to-scene: solo estructura forma el caparazón', () => {
-  it('cuenta wall/window/door como muros, ignora muebles', () => {
+  it('window/door abren huecos en su muro: NO emiten cajas macizas propias, el mueble se ignora', () => {
     const scene = docToScene(
       doc([
-        obj({ id: 'w', kind: 'wall' }),
-        obj({ id: 'win', kind: 'window' }),
-        obj({ id: 'd', kind: 'door' }),
+        obj({ id: 'w', kind: 'wall', x: 0, y: 0, width: 600, height: 15 }),
+        obj({ id: 'win', kind: 'window', x: 200, y: 0, width: 100, height: 15 }),
+        obj({ id: 'd', kind: 'door', x: 400, y: 0, width: 80, height: 15 }),
         obj({ id: 'sofa', kind: 'sofa' }),
       ]),
     );
-    expect(scene.walls.map((w) => w.id).sort()).toEqual(['d', 'w', 'win']);
+    // El muro se trocea (varias cajas), pero NINGUNA es una caja maciza con id 'win'/'d'/'sofa'.
+    const wallIds = scene.walls.map((b) => b.id);
+    expect(wallIds).not.toContain('win');
+    expect(wallIds).not.toContain('d');
+    expect(wallIds.every((id) => id.startsWith('w:') || id.startsWith('win:') || id.startsWith('d:'))).toBe(true);
+    // La ventana abre un vano con cristal; la puerta no genera cristal.
+    expect(scene.glassPanes.map((p) => p.id)).toEqual(['win:glass']);
   });
 });
 
@@ -310,8 +316,15 @@ describe('doc-to-scene: fixture EXAMPLE_SALON', () => {
     expect(scene.lights).toHaveLength(0);
   });
 
-  it('detecta los 6 elementos estructurales (4 muros + puerta + ventana)', () => {
-    expect(scene.walls).toHaveLength(6);
+  it('los muros se trocean alrededor de los huecos (ventana y puerta abren vanos)', () => {
+    // 4 muros; la ventana (w-top) y la puerta (w-left) abren huecos → esos muros se parten en
+    // varias cajas. NO hay cajas macizas con id 'win-1'/'door-1' (antes se fundían con la pared).
+    const ids = scene.walls.map((b) => b.id);
+    expect(ids).not.toContain('win-1');
+    expect(ids).not.toContain('door-1');
+    expect(scene.walls.length).toBeGreaterThan(4); // más cajas que muros por el troceado
+    // La ventana añade cristal; la puerta no.
+    expect(scene.glassPanes.map((p) => p.id)).toEqual(['win-1:glass']);
   });
 
   it('detecta los muebles del salón (tv, mesa, sofá, lámpara)', () => {

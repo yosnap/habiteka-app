@@ -19,6 +19,8 @@ import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { FurnitureLayer } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
+import { GlassLayer } from './glass-layer';
+import { OpeningFramesLayer } from './opening-frames-layer';
 
 /**
  * Muros con recorte por cámara (F6.4): cada frame se oculta el muro que queda entre la
@@ -157,6 +159,8 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
         <directionalLight position={[10, 15, 8]} intensity={hasDocLights ? 0.3 : 1.1} />
         <LightsLayer items={scene.lights} />
         <RoomMesh scene={scene} />
+        <GlassLayer panes={scene.glassPanes} />
+        <OpeningFramesLayer frames={scene.openingFrames} />
         <Suspense fallback={null}>
           <FurnitureLayer items={scene.furniture} />
         </Suspense>

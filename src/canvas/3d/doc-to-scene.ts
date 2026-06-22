@@ -16,6 +16,7 @@
 import type { CanvasDoc, StructKind, StructObj } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
+import { associateOpening, splitWallWithOpenings } from './wall-openings';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -70,6 +71,39 @@ export interface WallBox {
   size: [number, number, number];
   /** Rotación alrededor del eje vertical (Y), en radianes. */
   rotationY: number;
+}
+
+/**
+ * Panel de cristal de una ventana, en el hueco abierto del muro (plano XZ). Mismo
+ * sistema de coordenadas que `WallBox`: centro en metros, tamaño y rotación vertical.
+ * La puerta NO genera cristal, solo la ventana.
+ */
+export interface GlassPane {
+  id: string;
+  /** Centro del cristal en metros: [x, y, z] (y = centro del vano). */
+  center: [number, number, number];
+  /** Tamaño del cristal en metros: [ancho(X), alto(Y), fondo(Z)]. */
+  size: [number, number, number];
+  /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
+  rotationY: number;
+}
+
+/**
+ * Pieza sólida de carpintería de un hueco: perfiles del MARCO y travesaño de una ventana,
+ * o la HOJA de una puerta. Mismo sistema de coordenadas que `WallBox`. El `material`
+ * decide su aspecto en el render (carpintería clara vs madera de puerta). Esto es lo que
+ * hace que un hueco se lea como una VENTANA/PUERTA y no como un agujero.
+ */
+export interface OpeningFrame {
+  id: string;
+  /** Centro de la pieza en metros: [x, y, z]. */
+  center: [number, number, number];
+  /** Tamaño en metros: [ancho(X), alto(Y), fondo(Z)]. */
+  size: [number, number, number];
+  /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
+  rotationY: number;
+  /** Aspecto: `frame` = carpintería de ventana; `door` = hoja de puerta (madera). */
+  material: 'frame' | 'door';
 }
 
 /** Suelo rectangular en metros. */
@@ -134,6 +168,10 @@ export function intensity0to100ToPhysical(intensidad: number): number {
 export interface Scene3D {
   floor: FloorRect;
   walls: WallBox[];
+  /** Cristales de las ventanas, en los huecos abiertos de los muros. */
+  glassPanes: GlassPane[];
+  /** Carpintería de los huecos: marcos/travesaños de ventana y hojas de puerta. */
+  openingFrames: OpeningFrame[];
   /** Muebles (objetos no estructurales y no luz), ya posicionados en metros. */
   furniture: FurnitureItem[];
   /** Luces de primera clase (F-LUZ) del doc, como luces puntuales. */
@@ -225,7 +263,7 @@ export function rotation2DToY(rotationDeg: number): number {
  * su ORIGEN (esquina sup-izq `x,y`), no sobre su centro. Para `rotation=0` son las
  * esquinas axis-aligned habituales. Misma convención de pivote que `objectCenterPx`.
  */
-function objectCornersPx(
+export function objectCornersPx(
   obj: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
 ): Array<[number, number]> {
   const rad = ((obj.rotation || 0) * Math.PI) / 180;
@@ -324,19 +362,36 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   });
   const lights = limitLights(allLights);
 
-  const walls: WallBox[] = structural.map((o) => {
-    const [x, z] = planPointToXZ(o, center, pxPerMeter);
-    const w = pxToMeters(o.width, { pxPerMeter });
-    const d = pxToMeters(o.height, { pxPerMeter });
-    // Altura del muro: su heightM propio, o la de techo del plano (vía scale.ts).
-    const h = effectiveHeightM(o, ceilingHeightM);
-    return {
-      id: o.id,
-      center: [x, h / 2, z],
-      size: [w, h, d],
-      rotationY: rotation2DToY(o.rotation),
-    };
-  });
+  // Muros con HUECOS reales: cada ventana/puerta se asocia (por cercanía geométrica) al muro
+  // 'wall' que la contiene y abre un vano, troceando ese muro en cajas (izq/dcha/dintel/alféizar).
+  // Window/door ya NO emiten un WallBox macizo propio (antes se fundían con la pared). Un muro
+  // sin huecos sigue siendo una sola caja. Las ventanas añaden cristales (`glassPanes`).
+  const wallObjs = structural.filter((o) => o.kind === 'wall');
+  const openings = structural.filter((o) => o.kind === 'window' || o.kind === 'door');
+  // Agrupa los huecos por el muro al que se asocian (clave = id del muro).
+  const openingsByWall = new Map<string, StructObj[]>();
+  for (const op of openings) {
+    const wall = associateOpening(op, wallObjs);
+    if (!wall) continue; // hueco sin muro (inalcanzable con datos válidos): se omite, no caja maciza.
+    const list = openingsByWall.get(wall.id);
+    if (list) list.push(op);
+    else openingsByWall.set(wall.id, [op]);
+  }
+  const walls: WallBox[] = [];
+  const glassPanes: GlassPane[] = [];
+  const openingFrames: OpeningFrame[] = [];
+  for (const wall of wallObjs) {
+    const { boxes, panes, frames } = splitWallWithOpenings(
+      wall,
+      openingsByWall.get(wall.id) ?? [],
+      ceilingHeightM,
+      center,
+      pxPerMeter,
+    );
+    walls.push(...boxes);
+    glassPanes.push(...panes);
+    openingFrames.push(...frames);
+  }
 
   // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
   // del contorno por diseño y estirarían el suelo). Si no hay muros, cae a todos los objetos.
@@ -361,7 +416,17 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     };
   })();
 
-  return { floor, walls, furniture, lights, ceilingHeightM, pxPerMeter, planCenterPx: center };
+  return {
+    floor,
+    walls,
+    glassPanes,
+    openingFrames,
+    furniture,
+    lights,
+    ceilingHeightM,
+    pxPerMeter,
+    planCenterPx: center,
+  };
 }
 
 /**
