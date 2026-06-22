@@ -9,7 +9,7 @@
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import type { StructObj } from '@/canvas/types';
+import { setClipboard, hasClipboard, takeClipboardClones } from '@/canvas/canvas-clipboard';
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
@@ -73,9 +73,6 @@ export function CanvasWorkspace({
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-  // Portapapeles interno del editor (no el del SO): objetos copiados/cortados.
-  const clipboardRef = useRef<StructObj[]>([]);
-  const pasteSeq = useRef(0);
   // Menú contextual abierto (clic derecho): posición e items, o null si cerrado.
   const [menu, setMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
@@ -103,26 +100,22 @@ export function CanvasWorkspace({
       const ctrl = e.ctrlKey || e.metaKey;
 
       // Portapapeles interno: copiar/cortar/pegar/duplicar de los seleccionados.
+      // El portapapeles vive a nivel de módulo (canvas-clipboard), así que sobrevive
+      // al cambio de zona y permite copiar/cortar en una zona y pegar en otra.
       if (ctrl && e.key.toLowerCase() === 'c' && ids.length) {
         e.preventDefault();
-        clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+        setClipboard(store.doc.objects.filter((o) => ids.includes(o.id)));
         return;
       }
       if (ctrl && e.key.toLowerCase() === 'x' && ids.length) {
         e.preventDefault();
-        clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+        setClipboard(store.doc.objects.filter((o) => ids.includes(o.id)));
         store.removeObjects(ids);
         return;
       }
-      if (ctrl && e.key.toLowerCase() === 'v' && clipboardRef.current.length) {
+      if (ctrl && e.key.toLowerCase() === 'v' && hasClipboard()) {
         e.preventDefault();
-        let seq = pasteSeq.current;
-        const clones = clipboardRef.current.map((o) => {
-          seq += 1;
-          return { ...o, id: `obj-paste-${seq}`, x: o.x + 20, y: o.y + 20 };
-        });
-        pasteSeq.current = seq;
-        store.insertObjects(clones);
+        store.insertObjects(takeClipboardClones());
         return;
       }
       if (ctrl && e.key.toLowerCase() === 'd' && ids.length) {
@@ -202,19 +195,13 @@ export function CanvasWorkspace({
     const sel = store.doc.selection;
     const ids = sel?.type === 'object' ? sel.objectIds : [];
     const hasSel = ids.length > 0;
-    const hasClip = clipboardRef.current.length > 0;
+    const hasClip = hasClipboard();
 
     const copy = () => {
-      clipboardRef.current = store.doc.objects.filter((o) => ids.includes(o.id));
+      setClipboard(store.doc.objects.filter((o) => ids.includes(o.id)));
     };
     const paste = () => {
-      let seq = pasteSeq.current;
-      const clones = clipboardRef.current.map((o) => {
-        seq += 1;
-        return { ...o, id: `obj-paste-${seq}`, x: o.x + 20, y: o.y + 20 };
-      });
-      pasteSeq.current = seq;
-      store.insertObjects(clones);
+      store.insertObjects(takeClipboardClones());
     };
 
     return [

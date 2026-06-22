@@ -45,7 +45,11 @@ export default async function ProjectPage({ params, searchParams }: Props) {
     <main className="flex h-[calc(100vh-7rem)] flex-col gap-3 p-4">
       <ZoneSwitcher projectId={id} zones={zones} activeZoneId={activeZoneId} />
       <div className="min-h-0 flex-1">
+        {/* `key` por zona: fuerza re-montar el workspace al cambiar de zona para que
+            su store cargue el plano de la zona activa (si no, React reusa la
+            instancia y conserva el plano anterior). */}
         <CanvasWorkspace
+          key={activeZoneId ?? 'default'}
           projectId={id}
           initialDoc={initialDoc}
           saveAction={saveCanvasForZone}

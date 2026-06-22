@@ -35,6 +35,9 @@ export function ZoneSwitcher({
   const go = (zoneId: string | null) => {
     const url = zoneId ? `/projects/${projectId}?zona=${zoneId}` : `/projects/${projectId}`;
     router.push(url);
+    // Re-ejecuta el Server Component para traer el plano de la zona destino (evita
+    // servir el doc cacheado de la zona anterior).
+    router.refresh();
   };
 
   const submitNew = () => {
