@@ -15,10 +15,12 @@ const Plan2dViewer = dynamic(() => import('./plan2d-viewer').then((m) => m.Plan2
   ssr: false,
 });
 
-/** Entregable enriquecido para la vista: añade la URL de su imagen de origen. */
+/** Entregable enriquecido para la vista: añade la URL de origen y la zona. */
 export type DeliverableView = Deliverable & {
   /** URL de la imagen que el usuario subió y originó este diseño, si la hay. */
   sourceImageUrl: string | null;
+  /** Zona que originó el diseño (multi-zona); null = plano por defecto. */
+  zoneId: string | null;
 };
 
 export function DeliverablesPanel({
@@ -43,7 +45,7 @@ export function DeliverablesPanel({
           {d.sourceImageUrl && <SourceImageOrigin url={d.sourceImageUrl} />}
           {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} />}
           {d.payload.type === 'render3d' && (
-            <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} />
+            <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} zoneId={d.zoneId} />
           )}
           {d.payload.type === 'memoria' && <MaterialsMemo markdown={d.payload.markdown} />}
         </section>

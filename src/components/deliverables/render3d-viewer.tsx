@@ -9,9 +9,12 @@ import { UseAsBackgroundButton } from './use-as-background-button';
 export function Render3dViewer({
   assetUrl,
   projectId,
+  zoneId = null,
 }: {
   assetUrl: string;
   projectId: string;
+  /** Zona que originó el diseño; el fondo se aplica a su plano (null = por defecto). */
+  zoneId?: string | null;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -26,8 +29,8 @@ export function Render3dViewer({
         />
         <LegalSeal />
       </div>
-      {/* Cierra el ciclo IA → editor: trae el render al lienzo como fondo. */}
-      <UseAsBackgroundButton projectId={projectId} assetUrl={assetUrl} />
+      {/* Cierra el ciclo IA → editor: trae el render al plano de su zona como fondo. */}
+      <UseAsBackgroundButton projectId={projectId} assetUrl={assetUrl} zoneId={zoneId} />
     </div>
   );
 }

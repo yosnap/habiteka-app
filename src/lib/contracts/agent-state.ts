@@ -29,6 +29,15 @@ export interface StructuralElements {
 }
 
 /**
+ * Estilo/objetivo específicos de una zona, que prevalecen sobre los globales del
+ * inmueble (multi-zona). Ambos opcionales: una zona sin override hereda lo global.
+ */
+export interface ZoneStyleOverride {
+  estilo?: Estilo;
+  objetivo?: string;
+}
+
+/**
  * Requisitos consolidados durante la cualificación.
  * `estilo` y `entregables` son la condición del guard legal de entrega.
  */
@@ -38,6 +47,12 @@ export interface Collected {
   /** Tipos de entregable solicitados. Vacío ⇒ no se puede entregar. */
   entregables: DeliverableType[];
   detected?: StructuralElements;
+  /**
+   * Overrides de estilo/objetivo por zona (multi-zona), indexados por `zoneId`.
+   * El chat fija lo GLOBAL del inmueble; cada zona puede especializarlo desde el
+   * editor de su plano. Opcional: sin entrada, la zona usa el estilo global.
+   */
+  zoneOverrides?: Record<string, ZoneStyleOverride>;
 }
 
 /**

@@ -36,10 +36,23 @@ export async function exportOrganizationData(
           },
         },
       },
-      canvasState: { select: { data: true, updatedAt: true } },
+      // Multi-zona: un proyecto puede tener varios planos (uno por zona + el
+      // plano por defecto con zoneId null) y varias zonas. Se exportan todos.
+      canvasStates: { select: { zoneId: true, data: true, updatedAt: true } },
+      zones: {
+        where: { deletedAt: null },
+        select: { id: true, name: true, kind: true, order: true, createdAt: true },
+      },
       deliverables: {
         where: { deletedAt: null },
-        select: { id: true, type: true, payload: true, version: true, createdAt: true },
+        select: {
+          id: true,
+          type: true,
+          payload: true,
+          version: true,
+          createdAt: true,
+          zoneId: true,
+        },
       },
     },
     orderBy: { createdAt: 'asc' },

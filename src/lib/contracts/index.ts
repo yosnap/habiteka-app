@@ -35,6 +35,7 @@ export type {
   AgentPhase,
   Estilo,
   StructuralElements,
+  ZoneStyleOverride,
   Collected,
   ReadyForDelivery,
   AgentState,

@@ -25,6 +25,19 @@ export interface CreateSourceImageInput {
   faceBlurred: boolean;
 }
 
+export interface ZoneRow {
+  id: string;
+  name: string;
+  kind: string | null;
+  order: number;
+}
+
+export interface CreateZoneInput {
+  name: string;
+  kind?: string;
+  order?: number;
+}
+
 export interface SourceImageRow {
   id: string;
   /**
@@ -47,10 +60,10 @@ export interface ScopedRepo {
     delete(id: string): Promise<void>;
   };
   canvas: {
-    /** Lee el estado del canvas de un proyecto de la org, o null. */
-    load(projectId: string): Promise<unknown | null>;
-    /** Guarda el estado del canvas (upsert) verificando la pertenencia del proyecto. */
-    save(projectId: string, data: unknown): Promise<void>;
+    /** Lee el plano de un proyecto de la org (zoneId null = plano por defecto), o null. */
+    load(projectId: string, zoneId?: string | null): Promise<unknown | null>;
+    /** Guarda el plano (por proyecto+zona) verificando la pertenencia del proyecto. */
+    save(projectId: string, data: unknown, zoneId?: string | null): Promise<void>;
   };
   deliverables: {
     /** Lista los entregables de un proyecto de la org (los más recientes primero). */
@@ -64,6 +77,7 @@ export interface ScopedRepo {
         legalSeal: string;
         version: number;
         sourceImageId: string | null;
+        zoneId: string | null;
       }>
     >;
   };
@@ -74,6 +88,16 @@ export interface ScopedRepo {
     list(projectId: string): Promise<SourceImageRow[]>;
     /** Id de la imagen de origen PRIMARY más reciente de un proyecto de la org, o null. */
     latestPrimaryId(projectId: string): Promise<string | null>;
+  };
+  zones: {
+    /** Crea una zona verificando la pertenencia del proyecto (anti-IDOR). */
+    create(projectId: string, input: CreateZoneInput): Promise<ZoneRow>;
+    /** Lista las zonas vivas de un proyecto de la org (por `order`, luego antigüedad). */
+    list(projectId: string): Promise<ZoneRow[]>;
+    /** Renombra/recoloca una zona del proyecto. No-op si no es de ese proyecto+org. */
+    update(projectId: string, zoneId: string, input: Partial<CreateZoneInput>): Promise<void>;
+    /** Borra (hard, dispara Cascade del plano) una zona del proyecto. No-op si ajena. */
+    remove(projectId: string, zoneId: string): Promise<void>;
   };
 }
 
@@ -117,15 +141,18 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
     },
 
     canvas: {
-      async load(projectId) {
+      // `zoneId` opcional: null/omitido = plano por defecto del proyecto (v1);
+      // con valor = plano de esa zona. La unicidad por (proyecto, zona) la
+      // garantizan índices únicos parciales en BD (ver migración).
+      async load(projectId, zoneId = null) {
         // El join por organización impide leer el canvas de un proyecto ajeno.
         const row = await prisma.canvasState.findFirst({
-          where: { projectId, project: { organizationId, deletedAt: null } },
+          where: { projectId, zoneId, project: { organizationId, deletedAt: null } },
           select: { data: true },
         });
         return row?.data ?? null;
       },
-      async save(projectId, data) {
+      async save(projectId, data, zoneId = null) {
         // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR).
         const owned = await prisma.project.findFirst({
           where: { id: projectId, organizationId, deletedAt: null },
@@ -135,11 +162,19 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           throw new Error('Proyecto no encontrado en la organización');
         }
         const value = data as Prisma.InputJsonValue;
-        await prisma.canvasState.upsert({
-          where: { projectId },
-          create: { projectId, data: value },
-          update: { data: value },
+        // No se usa upsert: la unicidad de (projectId, zoneId) la dan índices
+        // PARCIALES, que Prisma no expone como clave de `where` en upsert. Se hace
+        // find-then-update/create; la concurrencia la cubre el índice único (un
+        // segundo insert simultáneo del mismo plano fallaría a nivel de BD).
+        const existing = await prisma.canvasState.findFirst({
+          where: { projectId, zoneId },
+          select: { id: true },
         });
+        if (existing) {
+          await prisma.canvasState.update({ where: { id: existing.id }, data: { data: value } });
+        } else {
+          await prisma.canvasState.create({ data: { projectId, zoneId, data: value } });
+        }
       },
     },
 
@@ -159,6 +194,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
             legalSeal: true,
             version: true,
             sourceImageId: true,
+            zoneId: true,
           },
           orderBy: { createdAt: 'desc' },
         });
@@ -225,6 +261,63 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         });
         return row?.id ?? null;
+      },
+    },
+
+    zones: {
+      // Verifica la pertenencia del proyecto antes de crear (anti-IDOR). El
+      // organizationId se denormaliza en la fila para filtrar barato en el resto.
+      async create(projectId, input) {
+        const owned = await prisma.project.findFirst({
+          where: { id: projectId, organizationId, deletedAt: null },
+          select: { id: true },
+        });
+        if (!owned) {
+          throw new Error('Proyecto no encontrado en la organización');
+        }
+        return prisma.projectZone.create({
+          data: {
+            organizationId,
+            projectId,
+            name: input.name,
+            kind: input.kind ?? null,
+            order: input.order ?? 0,
+          },
+          select: { id: true, name: true, kind: true, order: true },
+        });
+      },
+      // El join por organización impide listar zonas de un proyecto ajeno.
+      list(projectId) {
+        return prisma.projectZone.findMany({
+          where: {
+            projectId,
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
+          select: { id: true, name: true, kind: true, order: true },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+        });
+      },
+      // El filtro por (proyecto, org) evita tocar zonas de otra org o de otro
+      // proyecto de la misma org (integridad intra-org). No-op si no coincide.
+      async update(projectId, zoneId, input) {
+        await prisma.projectZone.updateMany({
+          where: { id: zoneId, projectId, organizationId, deletedAt: null },
+          data: {
+            ...(input.name !== undefined ? { name: input.name } : {}),
+            ...(input.kind !== undefined ? { kind: input.kind } : {}),
+            ...(input.order !== undefined ? { order: input.order } : {}),
+          },
+        });
+      },
+      // Hard-delete real de la zona: dispara el Cascade que elimina su plano
+      // (CanvasState), evitando planos huérfanos impurgables. Los diseños e imágenes
+      // de la zona quedan con zoneId=null (FK SetNull): no se pierden, se "desasignan".
+      // Acotado por (proyecto, org) para no tocar zonas ajenas.
+      async remove(projectId, zoneId) {
+        await prisma.projectZone.deleteMany({
+          where: { id: zoneId, projectId, organizationId },
+        });
       },
     },
   };

@@ -121,11 +121,18 @@ async function main() {
         data: { organizationId: member.organizationId, title: example.title },
       }));
     const canvasData = serializeCanvas(example.doc) as Prisma.InputJsonValue;
-    await prisma.canvasState.upsert({
-      where: { projectId: exampleProject.id },
-      update: { data: canvasData },
-      create: { projectId: exampleProject.id, data: canvasData },
+    // El plano por defecto del proyecto tiene zoneId null (multi-zona). No se usa
+    // upsert: projectId ya no es único (la unicidad de (projectId, zoneId) la dan
+    // índices parciales que Prisma no expone en where de upsert).
+    const existingCanvas = await prisma.canvasState.findFirst({
+      where: { projectId: exampleProject.id, zoneId: null },
+      select: { id: true },
     });
+    if (existingCanvas) {
+      await prisma.canvasState.update({ where: { id: existingCanvas.id }, data: { data: canvasData } });
+    } else {
+      await prisma.canvasState.create({ data: { projectId: exampleProject.id, data: canvasData } });
+    }
   }
 
   // Repara la config de modelos por si un test dejó datos corruptos en la BD.

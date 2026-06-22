@@ -18,6 +18,8 @@ import { applyBaseImageToCanvas } from '@/server/actions/canvas';
 interface Props {
   projectId: string;
   assetUrl: string;
+  /** Zona que originó el diseño; el fondo se aplica a SU plano (null = por defecto). */
+  zoneId?: string | null;
 }
 
 // Mide el ancho/alto natural de una imagen sin insertarla en el DOM.
@@ -30,7 +32,7 @@ function measureNaturalSize(url: string): Promise<{ width: number; height: numbe
   });
 }
 
-export function UseAsBackgroundButton({ projectId, assetUrl }: Props) {
+export function UseAsBackgroundButton({ projectId, assetUrl, zoneId = null }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +42,9 @@ export function UseAsBackgroundButton({ projectId, assetUrl }: Props) {
     setError(null);
     try {
       const { width, height } = await measureNaturalSize(assetUrl);
-      await applyBaseImageToCanvas(projectId, { url: assetUrl, width, height });
-      router.push(`/projects/${projectId}`);
+      await applyBaseImageToCanvas(projectId, { url: assetUrl, width, height }, zoneId);
+      // Abre el editor en la zona del diseño (sin zona, el plano por defecto).
+      router.push(zoneId ? `/projects/${projectId}?zona=${zoneId}` : `/projects/${projectId}`);
     } catch {
       setError('No se pudo aplicar el render como fondo. Inténtalo de nuevo.');
       setBusy(false);

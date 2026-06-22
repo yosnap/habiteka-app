@@ -50,6 +50,7 @@ function toDeliverableView(
     legalSeal: string;
     version: number;
     sourceImageId: string | null;
+    zoneId: string | null;
   },
   urlBySourceImageId: Map<string, string>,
 ): DeliverableView | null {
@@ -65,5 +66,6 @@ function toDeliverableView(
     legalSeal: row.legalSeal,
     version: row.version,
     sourceImageUrl,
+    zoneId: row.zoneId,
   };
 }
