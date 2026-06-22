@@ -5,10 +5,12 @@
  *
  * Licencias de los modelos actuales (en `public/models/cc0/`):
  *   - silla  → SheenChair (Wayfair, CC0)
- *   - lampara → Lantern (Microsoft, CC0)
  *   - sofa   → GlamVelvetSofa (Wayfair, CC-BY 4.0 — requiere atribución)
  * Modelos CC0 sueltos por decisión del usuario (jun-2026); el Kit de Kenney completo es
  * trabajo futuro. Mantener la atribución de los CC-BY al publicar.
+ *
+ * La `lampara` se retiró del mapa (su .glb era un modelo de FAROLA de calle, inadecuado para
+ * interior): por ahora usa placeholder, hasta integrar una lámpara de interior CC0 (Kenney).
  */
 import type { StructKind } from '../types';
 
@@ -27,7 +29,6 @@ export interface FurnitureModel {
 /** Modelos disponibles por kind. Parcial: lo no listado usa placeholder. */
 export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   silla: { url: '/models/cc0/silla.glb' },
-  lampara: { url: '/models/cc0/lampara.glb' },
   sofa: { url: '/models/cc0/sofa.glb' },
 };
 

@@ -1,0 +1,25 @@
+{
+  "_comment": "Procedencia, licencia e integridad de los modelos glTF de terceros del render 3D (F7.7, red-team #12). Los hashes son de los .glb COMPRIMIDOS versionados aquí (no del original descargado). Verificar con: shasum -a 256 <archivo>.",
+  "assets": [
+    {
+      "file": "silla.glb",
+      "kind": "silla",
+      "source": "https://github.com/KhronosGroup/glTF-Sample-Assets — Models/SheenChair",
+      "author": "Wayfair",
+      "license": "CC0-1.0",
+      "attributionRequired": false,
+      "sha256": "276b9b29df184c885fa70157012ba033e34ce2bd918f60402257d6de28f0bab1",
+      "processing": "gltf-transform optimize (WebP + meshopt, texturas 1024)"
+    },
+    {
+      "file": "sofa.glb",
+      "kind": "sofa",
+      "source": "https://github.com/KhronosGroup/glTF-Sample-Assets — Models/GlamVelvetSofa",
+      "author": "Wayfair (Eric Chadwick)",
+      "license": "CC-BY-4.0",
+      "attributionRequired": true,
+      "sha256": "64cc46950cdbbb7f9aaf46473428048da03144688ad1579fc19e9ca6c2368776",
+      "processing": "gltf-transform optimize (WebP + meshopt, texturas 1024)"
+    }
+  ]
+}
