@@ -304,8 +304,10 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     };
   });
 
-  // Suelo: bounding box del contorno estructural (o de todos si no hay muros).
-  const ref = structural.length > 0 ? structural : doc.objects;
+  // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
+  // del contorno por diseño y estirarían el suelo). Si no hay muros, cae a todos los objetos.
+  const wallsForFloor = doc.objects.filter((o) => o.kind === 'wall');
+  const ref = wallsForFloor.length > 0 ? wallsForFloor : doc.objects;
   const floor: FloorRect = (() => {
     if (ref.length === 0) return { size: [0, 0] };
     const bb = boundingBoxPx(ref);

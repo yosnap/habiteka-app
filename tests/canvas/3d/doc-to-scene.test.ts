@@ -318,12 +318,30 @@ describe('doc-to-scene: fixture EXAMPLE_SALON', () => {
     expect(scene.furniture.map((f) => f.kind).sort()).toEqual(['lampara', 'mesa', 'sofa', 'tv']);
   });
 
-  it('el suelo es ≈ 5,2 × 3,7 m (sala interior 5,2×3,6 + grosor de muro)', () => {
-    expect(scene.floor.size[0]).toBeCloseTo(5.2, 1);
-    expect(scene.floor.size[1]).toBeCloseTo(3.7, 1);
+  it('el suelo es el bbox de los MUROS: 5,2 × 3,6 m (la ventana que sobresale NO lo estira)', () => {
+    expect(scene.floor.size[0]).toBeCloseTo(5.2, 2);
+    expect(scene.floor.size[1]).toBeCloseTo(3.6, 2);
   });
 
   it('usa la escala del doc (100 px/m)', () => {
     expect(scene.pxPerMeter).toBe(100);
+  });
+});
+
+describe('doc-to-scene: el suelo ignora ventanas/puertas que sobresalen del contorno', () => {
+  it('una ventana fuera del muro NO agranda el suelo', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-top', kind: 'wall', x: 0, y: 0, width: 400, height: 15 }),
+        obj({ id: 'w-bottom', kind: 'wall', x: 0, y: 300, width: 400, height: 15 }),
+        obj({ id: 'w-left', kind: 'wall', x: 0, y: 0, width: 15, height: 315 }),
+        obj({ id: 'w-right', kind: 'wall', x: 385, y: 0, width: 15, height: 315 }),
+        // Ventana que sobresale 30 px por arriba del muro superior.
+        obj({ id: 'win', kind: 'window', x: 150, y: -30, width: 100, height: 18 }),
+      ]),
+    );
+    // Suelo = bbox de muros = 400×315 px = 4,0×3,15 m; la ventana (y:-30) NO lo estira.
+    expect(scene.floor.size[0]).toBeCloseTo(4.0, 2);
+    expect(scene.floor.size[1]).toBeCloseTo(3.15, 2);
   });
 });
