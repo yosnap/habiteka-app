@@ -61,8 +61,15 @@ function FurnitureModel({ item, url }: { item: FurnitureItem; url: string }) {
     };
   }, [scene, item.size, item.flipX]);
 
+  // El grupo se ancla en el SUELO (y=0), no en item.center[1] (=altura/2): el offset
+  // interior ya apoya la base del modelo en y=0 local. Usar item.center[1] sumaría
+  // media altura y dejaría el mueble flotando. La caja-placeholder sí usa center[1]
+  // porque boxGeometry se centra en su origen.
   return (
-    <group position={item.center} rotation={[0, item.rotationY + furnitureFrontOffset(item.kind), 0]}>
+    <group
+      position={[item.center[0], 0, item.center[2]]}
+      rotation={[0, item.rotationY + furnitureFrontOffset(item.kind), 0]}
+    >
       <group scale={transform.scale} position={transform.offset}>
         <Clone object={scene} />
       </group>
