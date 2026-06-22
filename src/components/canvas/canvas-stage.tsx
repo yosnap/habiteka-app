@@ -10,12 +10,14 @@ import { Stage } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { useFreehand } from '@/canvas/use-freehand';
+import { useDrawWall } from '@/canvas/use-draw-wall';
 import { pixelRectToZone } from '@/canvas/selection-math';
 import { GridLayer } from './layers/grid-layer';
 import { BackgroundLayer } from './layers/background-layer';
 import { StructureLayer } from './layers/structure-layer';
 import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
+import { DrawWallOverlay } from './layers/draw-wall-overlay';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { isLight, defaultLight } from '@/canvas/light';
@@ -46,6 +48,14 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
   const stageRef = useRef<Konva.Stage>(null);
   const freehand = useFreehand({ color: '#1f1b18', width: 3, enabled: tool === 'freehand' });
+  // Dibujo de muros (F7): lee el cursor en coordenadas de MUNDO del stage (zoom/pan).
+  const drawWall = useDrawWall({
+    enabled: tool === 'draw-wall',
+    worldPointer: () => stageRef.current?.getRelativePointerPosition() ?? null,
+  });
+  // `reset` es estable (useCallback sin deps); se extrae para usarlo en efectos sin
+  // re-suscribir cada render (el objeto `drawWall` cambia al variar su `preview`).
+  const resetDrawWall = drawWall.reset;
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   // Vista (zoom/pan) del stage. La escala es uniforme; (x,y) es el desplazamiento.
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
@@ -56,6 +66,8 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpaceDown(true);
+      // Escape termina la cadena de muros en curso (descarta el segmento, conserva los creados).
+      if (e.code === 'Escape') resetDrawWall();
     };
     const up = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpaceDown(false);
@@ -66,7 +78,12 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     };
-  }, []);
+  }, [resetDrawWall]);
+
+  // Al salir de la herramienta de dibujo de muros, descarta el segmento en curso.
+  useEffect(() => {
+    if (tool !== 'draw-wall') resetDrawWall();
+  }, [tool, resetDrawWall]);
 
   // Es herramienta de creación de objeto si el tool es un kind del catálogo.
   const catalogEntry = tool in CATALOG_BY_KIND ? CATALOG_BY_KIND[tool] : undefined;
@@ -145,7 +162,9 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         return;
       }
 
-      if (tool === 'freehand') {
+      if (tool === 'draw-wall') {
+        drawWall.handlers.onClick();
+      } else if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
         objectSeq += 1;
@@ -178,6 +197,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       catalogEntry,
       doc.scale,
       freehand.handlers,
+      drawWall.handlers,
       addObject,
       setSelection,
       onObjectCreated,
@@ -189,14 +209,16 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
   const onPointerMove = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
-      if (tool === 'freehand') {
+      if (tool === 'draw-wall') {
+        drawWall.handlers.onMove();
+      } else if (tool === 'freehand') {
         freehand.handlers.onPointerMove(e);
       } else if ((tool === 'zone' || tool === 'select') && marquee) {
         const pos = worldPointer(e.target.getStage());
         if (pos) setMarquee((m) => (m ? { ...m, width: pos.x - m.x, height: pos.y - m.y } : m));
       }
     },
-    [tool, marquee, freehand.handlers],
+    [tool, marquee, freehand.handlers, drawWall.handlers],
   );
 
   const onPointerUp = useCallback(() => {
@@ -302,6 +324,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
       <SelectionOverlay marquee={marquee} />
+      <DrawWallOverlay preview={drawWall.preview} scale={doc.scale} />
     </Stage>
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">

@@ -15,9 +15,16 @@ interface Props {
 }
 
 export function ObjectPalette({ tool, onPick }: Props) {
+  // Los muros se crean con la herramienta "Dibujar muro" (línea con cota en vivo, F7),
+  // no desde la paleta: se excluye 'wall' para no tener dos formas de crear el mismo kind.
+  const categories = CATALOG.map((cat) => ({
+    ...cat,
+    items: cat.items.filter((item) => item.kind !== 'wall'),
+  })).filter((cat) => cat.items.length > 0);
+
   return (
     <div className="border-line bg-surface w-44 shrink-0 overflow-y-auto border-r p-2">
-      {CATALOG.map((cat) => (
+      {categories.map((cat) => (
         <div key={cat.id} className="mb-3">
           <p className="text-ink-soft mb-1 px-1 text-xs font-medium tracking-wide uppercase">
             {cat.label}
