@@ -18,7 +18,9 @@ import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
+import { Plan3DOverlay } from './3d/plan-3d-overlay';
 import { Button } from '@/components/ui/button';
+import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
 import type { DeliverableType, Estilo, DecorRecommendation, DetectedObject } from '@/lib/contracts';
 
@@ -68,6 +70,8 @@ export function CanvasWorkspace({
   const [showSuggestions, setShowSuggestions] = useState(false);
   // Diálogo de detección desde foto (F5, BETA).
   const [showDetect, setShowDetect] = useState(false);
+  // Vista 3D navegable (F6): se captura el doc de la zona activa al abrir.
+  const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
   // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
@@ -266,6 +270,15 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant="ghost"
+            onClick={() => setDoc3D(useCanvasStore.getState().doc)}
+            title="Ver el plano de esta zona en 3D navegable"
+          >
+            Ver en 3D
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             onClick={() => setShowGenerate(true)}
             title="Usar la disposición del plano para generar un diseño con IA"
           >
@@ -314,6 +327,7 @@ export function CanvasWorkspace({
           onClose={() => setShowDetect(false)}
         />
       ) : null}
+      {doc3D ? <Plan3DOverlay doc={doc3D} onClose={() => setDoc3D(null)} /> : null}
     </div>
   );
 }
