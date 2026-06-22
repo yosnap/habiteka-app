@@ -15,6 +15,13 @@ import type { StructKind } from '../types';
 export interface FurnitureModel {
   /** URL pública del .glb (servido desde `public/`). */
   url: string;
+  /**
+   * Corrección de orientación del glTF en radianes (F7.6): se SUMA a la rotación del
+   * objeto. Compensa que el modelo venga girado respecto a su "frente" esperado (el doc
+   * orienta el mueble por su rotación; este offset alinea el modelo con esa intención).
+   * Calibrado por modelo mirando el render. 0 = el glTF ya viene bien orientado.
+   */
+  frontOffsetRad?: number;
 }
 
 /** Modelos disponibles por kind. Parcial: lo no listado usa placeholder. */
@@ -27,6 +34,11 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
 /** URL del modelo de un kind, o null si no hay (→ placeholder). */
 export function furnitureModelUrl(kind: StructKind): string | null {
   return FURNITURE_MODELS[kind]?.url ?? null;
+}
+
+/** Offset de orientación (rad) del modelo de un kind; 0 si no hay modelo o no se calibró. */
+export function furnitureFrontOffset(kind: StructKind): number {
+  return FURNITURE_MODELS[kind]?.frontOffsetRad ?? 0;
 }
 
 /** URLs de todos los modelos, para precargar (`useGLTF.preload`). */

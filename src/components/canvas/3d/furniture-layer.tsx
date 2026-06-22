@@ -10,7 +10,7 @@ import { Suspense, useMemo } from 'react';
 import { useGLTF, Clone } from '@react-three/drei';
 import { Box3, Vector3 } from 'three';
 import type { FurnitureItem } from '@/canvas/3d/doc-to-scene';
-import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
+import { furnitureModelUrl, furnitureFrontOffset } from '@/canvas/3d/furniture-models';
 import type { StructKind } from '@/canvas/types';
 import { CATALOG } from '@/canvas/catalog';
 
@@ -62,7 +62,7 @@ function FurnitureModel({ item, url }: { item: FurnitureItem; url: string }) {
   }, [scene, item.size, item.flipX]);
 
   return (
-    <group position={item.center} rotation={[0, item.rotationY, 0]}>
+    <group position={item.center} rotation={[0, item.rotationY + furnitureFrontOffset(item.kind), 0]}>
       <group scale={transform.scale} position={transform.offset}>
         <Clone object={scene} />
       </group>
