@@ -421,7 +421,12 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
         maxZ = Math.max(maxZ, z);
       }
     }
-    return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2 };
+    return {
+      cx: (minX + maxX) / 2,
+      cz: (minZ + maxZ) / 2,
+      w: maxX - minX,
+      d: maxZ - minZ,
+    };
   }
 
   it('muros axis-aligned: su centro coincide con el centro del suelo', () => {
@@ -436,6 +441,10 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+    // El CONTORNO mide ~4,15 × 3,15 m (planta + grosor de muro). Si un muro vertical saliera
+    // tumbado sobre X (bug de orientación), el ancho del bbox se dispararía (~6,85 m).
+    expect(wb.w).toBeCloseTo(4, 1);
+    expect(wb.d).toBeCloseTo(3, 1);
   });
 
   it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
@@ -454,5 +463,8 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+    // El contorno de los muros cierra el rectángulo de la planta (~4,15 × 3,15 m con grosor).
+    expect(wb.w).toBeCloseTo(4, 1);
+    expect(wb.d).toBeCloseTo(3, 1);
   });
 });

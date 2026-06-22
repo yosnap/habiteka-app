@@ -46,6 +46,13 @@ export interface WallAxis {
   t: number;
   /** Vector unitario del eje longitudinal en el plano (X, Y-2D): [ux, uy]. */
   u: [number, number];
+  /**
+   * Ángulo 2D (grados) del eje longitudinal. Para muros donde el lado largo es `width` es la
+   * propia `rotation`; si el lado largo es `height` (muros "verticales" del seed) es `rotation+90`.
+   * El render usa este ángulo (convertido a 3D) como `rotationY` para que el lado `L` de la caja
+   * quede ALINEADO con el eje `u`; usar `rotation` a secas dejaría un muro vertical tumbado en X.
+   */
+  angleDeg: number;
 }
 
 /**
@@ -54,7 +61,8 @@ export interface WallAxis {
  * largo es `height` (muro "vertical" del seed), el eje es el perpendicular `(−sinθ, cosθ)`.
  */
 export function wallAxis(wall: Pick<StructObj, 'width' | 'height' | 'rotation'>): WallAxis {
-  const rad = ((wall.rotation || 0) * Math.PI) / 180;
+  const baseDeg = wall.rotation || 0;
+  const rad = (baseDeg * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
   const widthIsLong = wall.width >= wall.height;
@@ -62,7 +70,8 @@ export function wallAxis(wall: Pick<StructObj, 'width' | 'height' | 'rotation'>)
   const t = widthIsLong ? wall.height : wall.width;
   // Eje de `width` = (cos, sin); eje de `height` = perpendicular (−sin, cos).
   const u: [number, number] = widthIsLong ? [cos, sin] : [-sin, cos];
-  return { L, t, u };
+  const angleDeg = widthIsLong ? baseDeg : baseDeg + 90;
+  return { L, t, u, angleDeg };
 }
 
 /**
@@ -162,7 +171,9 @@ export function splitWallWithOpenings(
   const axis = wallAxis(wall);
   const H = effectiveHeightM(wall, ceilingHeightM);
   const tM = pxToMeters(axis.t, { pxPerMeter });
-  const rotationY = rotation2DToY(wall.rotation);
+  // La rotación de la caja debe ser la del EJE LONGITUDINAL (no la `rotation` del objeto), para
+  // que su lado `L` quede alineado con `u`. Si no, un muro vertical del seed saldría tumbado.
+  const rotationY = rotation2DToY(axis.angleDeg);
   const [wcx, wcz] = planPointToXZ(wall, planCenter, pxPerMeter);
 
   // Centro en mundo (XZ) de una caja cuyo punto medio a lo largo del eje es `ucPx`, medido
