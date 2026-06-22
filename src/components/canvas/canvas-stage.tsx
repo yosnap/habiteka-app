@@ -18,6 +18,7 @@ import { StructureLayer } from './layers/structure-layer';
 import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
+import { DrawWallLengthInput } from './draw-wall-length-input';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { isLight, defaultLight } from '@/canvas/light';
@@ -326,6 +327,8 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       <SelectionOverlay marquee={marquee} />
       <DrawWallOverlay preview={drawWall.preview} scale={doc.scale} />
     </Stage>
+      {/* Entrada de longitud exacta del muro en curso (F7.3). */}
+      <DrawWallLengthInput visible={tool === 'draw-wall' && drawWall.drawing} onConfirm={drawWall.confirmWithLengthM} />
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
         <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">

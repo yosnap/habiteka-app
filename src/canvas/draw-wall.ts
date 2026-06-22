@@ -43,6 +43,44 @@ export function isValidSegment(p1: Point, p2: Point): boolean {
   return segmentLengthPx(p1, p2) >= MIN_WALL_LENGTH_PX;
 }
 
+/** Paso de snap angular y tolerancia (grados), alineados con el Transformer del editor. */
+export const ANGLE_SNAP_STEP_DEG = 45;
+export const ANGLE_SNAP_TOLERANCE_DEG = 8;
+
+/**
+ * Ajusta el punto final para que el ángulo del segmento caiga en un múltiplo de
+ * `stepDeg` (0/45/90/…) cuando está dentro de `toleranceDeg`, conservando la longitud.
+ * Permite trazar muros perfectamente horizontales/verticales/diagonales. Puro.
+ */
+export function snapAngle(
+  p1: Point,
+  p2: Point,
+  stepDeg: number = ANGLE_SNAP_STEP_DEG,
+  toleranceDeg: number = ANGLE_SNAP_TOLERANCE_DEG,
+): Point {
+  const len = segmentLengthPx(p1, p2);
+  if (len < 1e-6) return p2;
+  const angle = segmentAngleDeg(p1, p2);
+  const snapped = Math.round(angle / stepDeg) * stepDeg;
+  if (Math.abs(angle - snapped) > toleranceDeg) return p2;
+  const rad = (snapped * Math.PI) / 180;
+  return { x: p1.x + len * Math.cos(rad), y: p1.y + len * Math.sin(rad) };
+}
+
+/**
+ * Devuelve el punto final que da un muro de longitud EXACTA `lengthPx` en la dirección
+ * actual `p1→p2`. Para la entrada de medida tecleada: ignora el snap a rejilla (la longitud
+ * pedida manda). Si la dirección es indefinida (p1==p2), extiende sobre el eje X.
+ */
+export function applyExactLength(p1: Point, p2: Point, lengthPx: number): Point {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy);
+  const ux = len < 1e-6 ? 1 : dx / len;
+  const uy = len < 1e-6 ? 0 : dy / len;
+  return { x: p1.x + ux * lengthPx, y: p1.y + uy * lengthPx };
+}
+
 /**
  * Convierte un segmento `p1→p2` en un `StructObj` muro. El grosor sale de la escala
  * (`thicknessM` → px) o de un valor por defecto si no hay escala usable. Devuelve null si

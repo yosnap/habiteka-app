@@ -4,6 +4,8 @@ import {
   segmentLengthPx,
   segmentAngleDeg,
   isValidSegment,
+  snapAngle,
+  applyExactLength,
   MIN_WALL_LENGTH_PX,
   DEFAULT_WALL_THICKNESS_M,
 } from '@/canvas/draw-wall';
@@ -77,6 +79,50 @@ describe('draw-wall: el muro casa con el pivote 3D (centro sobre el punto medio 
       expect(cy).toBeCloseTo(midY, 1);
     });
   }
+});
+
+describe('draw-wall: snap de ángulo', () => {
+  it('un ángulo cercano a horizontal (3°) se fuerza a 0°, conservando longitud', () => {
+    const p1 = { x: 100, y: 100 };
+    // 300 px casi horizontal, ligero desvío hacia abajo.
+    const p2 = { x: 400, y: 116 }; // ~3,05°
+    const s = snapAngle(p1, p2);
+    expect(segmentAngleDeg(p1, s)).toBeCloseTo(0);
+    expect(segmentLengthPx(p1, s)).toBeCloseTo(segmentLengthPx(p1, p2), 0);
+  });
+
+  it('un ángulo cercano a vertical (87°) se fuerza a 90°', () => {
+    const p1 = { x: 100, y: 100 };
+    const p2 = { x: 116, y: 400 }; // ~87°
+    expect(segmentAngleDeg(p1, snapAngle(p1, p2))).toBeCloseTo(90);
+  });
+
+  it('un ángulo fuera de tolerancia (30°) NO se fuerza', () => {
+    const p1 = { x: 0, y: 0 };
+    const p2 = { x: 100, y: 58 }; // ~30°
+    const s = snapAngle(p1, p2);
+    expect(s.x).toBeCloseTo(p2.x);
+    expect(s.y).toBeCloseTo(p2.y);
+  });
+});
+
+describe('draw-wall: longitud exacta', () => {
+  it('extiende el muro a la longitud pedida en la dirección actual', () => {
+    const p1 = { x: 100, y: 100 };
+    const p2 = { x: 200, y: 100 }; // dirección +X
+    const s = applyExactLength(p1, p2, 400);
+    expect(s.x).toBeCloseTo(500);
+    expect(s.y).toBeCloseTo(100);
+    expect(segmentLengthPx(p1, s)).toBeCloseTo(400);
+  });
+
+  it('mantiene la dirección diagonal al fijar la longitud', () => {
+    const p1 = { x: 0, y: 0 };
+    const p2 = { x: 10, y: 10 }; // 45°
+    const s = applyExactLength(p1, p2, Math.hypot(100, 100));
+    expect(s.x).toBeCloseTo(100);
+    expect(s.y).toBeCloseTo(100);
+  });
 });
 
 describe('draw-wall: defaults', () => {
