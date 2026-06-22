@@ -28,11 +28,27 @@ const Plan3DView = dynamic(
 
 // Salón de ejemplo + un foco central (luz cálida intensa) para ver F6.3 en acción.
 // Con `?luz=0` se omite el foco, para comparar A/B el efecto de la luz.
-function demoDoc(withLight: boolean): CanvasDoc {
+// Fila de muebles para verificar los modelos glTF nuevos (F8): se activa con `?kinds=1`.
+// Cada uno a 1,2 m de separación dentro de la sala, en una rejilla simple.
+const KINDS_DEMO = ['nevera', 'armario', 'horno', 'inodoro', 'lavabo', 'ducha', 'cama', 'tv'] as const;
+function kindsRow() {
+  return KINDS_DEMO.map((kind, i) => ({
+    id: `k-${kind}`,
+    kind,
+    x: 240 + (i % 4) * 120,
+    y: 200 + Math.floor(i / 4) * 120,
+    width: 80,
+    height: 80,
+    rotation: 0,
+  }));
+}
+
+function demoDoc(withLight: boolean, withKinds: boolean): CanvasDoc {
   return {
     ...EXAMPLE_SALON,
     objects: [
       ...EXAMPLE_SALON.objects,
+      ...(withKinds ? kindsRow() : []),
       ...(withLight
         ? [
             {
@@ -54,9 +70,10 @@ function demoDoc(withLight: boolean): CanvasDoc {
 function Dev3DContent() {
   const params = useSearchParams();
   const withLight = params.get('luz') !== '0';
+  const withKinds = params.get('kinds') === '1';
   return (
     <main className="h-dvh w-dvw bg-neutral-100">
-      <Plan3DView doc={demoDoc(withLight)} />
+      <Plan3DView doc={demoDoc(withLight, withKinds)} />
     </main>
   );
 }

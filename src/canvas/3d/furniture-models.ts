@@ -3,14 +3,11 @@
  * un modelo real; el resto cae a un placeholder (caja etiquetada) en el render. Añadir
  * un modelo nuevo = una entrada aquí + su `.glb` en `public/models/`.
  *
- * Licencias de los modelos actuales (en `public/models/cc0/`):
- *   - silla  → SheenChair (Wayfair, CC0)
- *   - sofa   → GlamVelvetSofa (Wayfair, CC-BY 4.0 — requiere atribución)
- * Modelos CC0 sueltos por decisión del usuario (jun-2026); el Kit de Kenney completo es
- * trabajo futuro. Mantener la atribución de los CC-BY al publicar.
+ * Modelos en `public/models/cc0/` con su procedencia/licencia en `manifest.json`. La mayoría
+ * son CC0 de Quaternius (mismo estilo low-poly, coherente) vía Poly Pizza; silla/ducha de otros
+ * autores CC0; sofa es CC-BY (atribución). Comprimidos con `@gltf-transform/cli` (WebP+meshopt).
  *
- * La `lampara` se retiró del mapa (su .glb era un modelo de FAROLA de calle, inadecuado para
- * interior): por ahora usa placeholder, hasta integrar una lámpara de interior CC0 (Kenney).
+ * La `lampara` sigue como placeholder (no se encontró una lámpara de interior CC0 adecuada).
  */
 import type { StructKind } from '../types';
 
@@ -28,8 +25,23 @@ export interface FurnitureModel {
 
 /** Modelos disponibles por kind. Parcial: lo no listado usa placeholder. */
 export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
+  // Mobiliario
   silla: { url: '/models/cc0/silla.glb' },
   sofa: { url: '/models/cc0/sofa.glb' },
+  cama: { url: '/models/cc0/cama.glb' },
+  armario: { url: '/models/cc0/armario.glb' },
+  mesa: { url: '/models/cc0/mesa.glb' },
+  // Cocina
+  nevera: { url: '/models/cc0/nevera.glb' },
+  horno: { url: '/models/cc0/horno.glb' },
+  fregadero: { url: '/models/cc0/fregadero.glb' },
+  // Sanitarios
+  inodoro: { url: '/models/cc0/inodoro.glb' },
+  lavabo: { url: '/models/cc0/lavabo.glb' },
+  ducha: { url: '/models/cc0/ducha.glb' },
+  // Electrónica / decoración
+  tv: { url: '/models/cc0/tv.glb' },
+  planta: { url: '/models/cc0/planta.glb' },
 };
 
 /** URL del modelo de un kind, o null si no hay (→ placeholder). */

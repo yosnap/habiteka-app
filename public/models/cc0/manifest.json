@@ -1,25 +1,18 @@
 {
-  "_comment": "Procedencia, licencia e integridad de los modelos glTF de terceros del render 3D (F7.7, red-team #12). Los hashes son de los .glb COMPRIMIDOS versionados aquí (no del original descargado). Verificar con: shasum -a 256 <archivo>.",
+  "_comment": "Procedencia, licencia e integridad de los modelos glTF de terceros del render 3D (F7.7/F8, red-team #12). Los hashes son de los .glb COMPRIMIDOS versionados aquí (WebP+meshopt vía @gltf-transform/cli). Verificar con: shasum -a 256 <archivo>. La mayoría son CC0 de Quaternius vía Poly Pizza (estilo low-poly coherente).",
   "assets": [
-    {
-      "file": "silla.glb",
-      "kind": "silla",
-      "source": "https://github.com/KhronosGroup/glTF-Sample-Assets — Models/SheenChair",
-      "author": "Wayfair",
-      "license": "CC0-1.0",
-      "attributionRequired": false,
-      "sha256": "276b9b29df184c885fa70157012ba033e34ce2bd918f60402257d6de28f0bab1",
-      "processing": "gltf-transform optimize (WebP + meshopt, texturas 1024)"
-    },
-    {
-      "file": "sofa.glb",
-      "kind": "sofa",
-      "source": "https://github.com/KhronosGroup/glTF-Sample-Assets — Models/GlamVelvetSofa",
-      "author": "Wayfair (Eric Chadwick)",
-      "license": "CC-BY-4.0",
-      "attributionRequired": true,
-      "sha256": "64cc46950cdbbb7f9aaf46473428048da03144688ad1579fc19e9ca6c2368776",
-      "processing": "gltf-transform optimize (WebP + meshopt, texturas 1024)"
-    }
+    { "file": "silla.glb", "kind": "silla", "source": "KhronosGroup/glTF-Sample-Assets — SheenChair", "author": "Wayfair", "license": "CC0-1.0", "attributionRequired": false, "sha256": "276b9b29df184c885fa70157012ba033e34ce2bd918f60402257d6de28f0bab1" },
+    { "file": "sofa.glb", "kind": "sofa", "source": "KhronosGroup/glTF-Sample-Assets — GlamVelvetSofa", "author": "Wayfair (Eric Chadwick)", "license": "CC-BY-4.0", "attributionRequired": true, "sha256": "64cc46950cdbbb7f9aaf46473428048da03144688ad1579fc19e9ca6c2368776" },
+    { "file": "cama.glb", "kind": "cama", "source": "poly.pizza/m/ianC28eMOF (Bed Single)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "927f74c10b694b0ae7affd50f969d947f0d8adfcf2e8c51eec6d7931b1fdf5e6" },
+    { "file": "armario.glb", "kind": "armario", "source": "poly.pizza/m/BHEVb1DIuH (Closet)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "156f3f4fd6c3b9bb98cafa7c0dfe5cb01909c381aac8bd33d34e42dd0212636d" },
+    { "file": "mesa.glb", "kind": "mesa", "source": "poly.pizza/m/oEArSZykyi (Table Round Small)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "37253e0ed987fb037f10a5e282c442ba19c870a3204d5efdd64e065c8265b9e3" },
+    { "file": "nevera.glb", "kind": "nevera", "source": "poly.pizza/m/8sjRm8fnHh (Kitchen Fridge)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "78ab948496a454ed6af7c17ef502530f315708f780c37b33d9f70754abbc4395" },
+    { "file": "horno.glb", "kind": "horno", "source": "poly.pizza/m/VNjPRwui7t (Oven)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "6ca149a97a61569b07db3a580fb6f01c7b01d43a836973327f9d4db51b9f5191" },
+    { "file": "fregadero.glb", "kind": "fregadero", "source": "poly.pizza/m/VZCFQj3C7Q (Kitchen Sink)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "cf9bbc3faa6b1f6c64ddccfd4e38de17da10c679908da491da8892046167fe1b" },
+    { "file": "inodoro.glb", "kind": "inodoro", "source": "poly.pizza/m/WAu50yGFVt (Toilet)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "2049f4fa6ed08f9d145a2db85e436b43a30b9c4c81822380bf445a5c4363df5a" },
+    { "file": "lavabo.glb", "kind": "lavabo", "source": "poly.pizza/m/OMCJDgMUui (Bathroom Sink)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "b2986e5e73be9efe61839855796ff2c6ab23beb0b0e1e54adf37479a9019f157" },
+    { "file": "ducha.glb", "kind": "ducha", "source": "poly.pizza/m/eleYtAGZuA (Shower Round)", "author": "Kenney", "license": "CC0-1.0", "attributionRequired": false, "sha256": "d691f5cdbec7d1bd5e88a9dd8da1e7e8fac0a3168602dc4084eac063e71d08af" },
+    { "file": "tv.glb", "kind": "tv", "source": "poly.pizza/m/tdXTODKZlx (TV)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "230619041b3e245536e2a7575e85158162a9cb861985f89c17680d1751c48b89" },
+    { "file": "planta.glb", "kind": "planta", "source": "poly.pizza/m/f6GPjbEgg0 (Houseplant)", "author": "Quaternius", "license": "CC0-1.0", "attributionRequired": false, "sha256": "51228efa0b0e3ed6119a8f2b0f22fca9cec82c6d668a7430a471481b6a00bb35" }
   ]
 }
