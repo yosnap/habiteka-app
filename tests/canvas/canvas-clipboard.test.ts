@@ -3,7 +3,7 @@ import { setClipboard, hasClipboard, takeClipboardClones } from '@/canvas/canvas
 import type { StructObj } from '@/canvas/types';
 
 function obj(id: string, x = 0, y = 0): StructObj {
-  return { id, kind: 'muro', x, y, width: 10, height: 10, rotation: 0 } as StructObj;
+  return { id, kind: 'wall', x, y, width: 10, height: 10, rotation: 0 };
 }
 
 describe('canvas-clipboard — portapapeles del editor (module-level)', () => {
