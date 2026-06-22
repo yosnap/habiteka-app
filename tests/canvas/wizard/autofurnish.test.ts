@@ -96,6 +96,16 @@ describe('autofurnish: colocación sin solapes', () => {
     expect(anyOverlap(objects)).toBeNull();
   });
 
+  it('los muebles miran al INTERIOR según su pared (armario en pared S → rotación 180)', () => {
+    const { objects } = autofurnish(room(5, 4), 'dormitorio');
+    const armario = objects.find((o) => o.kind === 'armario')!;
+    // El armario va anclado a la pared sur; debe rotar 180° para no quedar de espaldas al interior.
+    expect(armario.rotation).toBe(180);
+    // La cama (pared norte) mira al sur/interior con rotación 0.
+    const cama = objects.find((o) => o.kind === 'cama')!;
+    expect(cama.rotation).toBe(0);
+  });
+
   it('los muebles caen dentro del recinto interior', () => {
     const doc = room(5, 4);
     const inner = interiorRect(doc)!;

@@ -3,9 +3,12 @@
 /**
  * Overlay del muro en curso al dibujar (F7.2): la línea del segmento + su LONGITUD REAL en
  * vivo (cota), como en Planner5D. La cota se calcula con `scale.ts` (px→m) y se muestra junto
- * al punto medio del segmento. Capa no interactiva (no captura eventos).
+ * al punto medio del segmento. No interactivo (no captura eventos).
+ *
+ * Devuelve un `Group` (no un `Layer` propio): va dentro de la capa de overlays compartida con
+ * la marquesina de selección, para no exceder el máximo de capas recomendado por Konva.
  */
-import { Layer, Line, Label, Tag, Text } from 'react-konva';
+import { Group, Line, Label, Tag, Text } from 'react-konva';
 import type { DrawWallPreview } from '@/canvas/use-draw-wall';
 import { isValidScale, pxToMeters, formatLength } from '@/canvas/scale';
 import type { CanvasScale } from '@/canvas/types';
@@ -17,7 +20,7 @@ export function DrawWallOverlay({
   preview: DrawWallPreview | null;
   scale: CanvasScale | undefined;
 }) {
-  if (!preview) return <Layer listening={false} />;
+  if (!preview) return null;
   const { start, end } = preview;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -32,7 +35,7 @@ export function DrawWallOverlay({
   const midY = (start.y + end.y) / 2;
 
   return (
-    <Layer listening={false}>
+    <Group listening={false}>
       <Line points={[start.x, start.y, end.x, end.y]} stroke="#b5532f" strokeWidth={2} dash={[6, 4]} />
       {lengthPx > 1 ? (
         <Label x={midX} y={midY} offsetY={18}>
@@ -40,6 +43,6 @@ export function DrawWallOverlay({
           <Text text={cota} fontSize={12} fill="#ffffff" padding={4} fontFamily="monospace" />
         </Label>
       ) : null}
-    </Layer>
+    </Group>
   );
 }

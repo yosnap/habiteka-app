@@ -155,11 +155,17 @@ export function autofurnish(
     if (row.length === 0) return;
 
     const horizontal = anchor === 'N' || anchor === 'S';
+    // Rotación (Konva, rotation=0 → el frente mira al sur) para que el mueble MIRE AL INTERIOR.
+    // En N/S basta 0/180: la rotación de 180° sobre la esquina mantiene el MISMO AABB (footprint
+    // intacto), así que no hay que compensar la posición. El armario en la pared sur ya no sale
+    // de espaldas. En paredes laterales (E/O) se deja 0: girarlos 90° desplazaría el objeto sobre
+    // su esquina (pivote de Konva) y habría que recolocarlo; los muebles de E/O son pequeños o
+    // cuadrados (lámpara, planta, inodoro, ducha) y apenas tienen "frente", así que no compensa.
+    const rotation = anchor === 'S' ? 180 : 0;
     // Longitud útil a lo largo de la pared, descontando las esquinas (fondo de las perpendiculares).
     const usable = horizontal
       ? inner.width - depthO - depthE - 2 * gap
       : inner.height - depthN - depthS - 2 * gap;
-    // Longitud que ocupa la fila (suma de tamaños a lo largo + gaps entre ítems).
     const along = (it: Item) => (horizontal ? it.w : it.h);
     const totalLen = row.reduce((s, it) => s + along(it), 0) + itemGap * (row.length - 1);
 
@@ -183,7 +189,7 @@ export function autofurnish(
         y = cursor;
         x = anchor === 'O' ? inner.x + gap : inner.x + inner.width - it.w - gap;
       }
-      objects.push({ id: nextId(), kind: it.kind, x, y, width: it.w, height: it.h, rotation: 0 });
+      objects.push({ id: nextId(), kind: it.kind, x, y, width: it.w, height: it.h, rotation });
       cursor += len + itemGap;
     }
   };

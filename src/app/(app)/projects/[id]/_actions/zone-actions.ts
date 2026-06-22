@@ -7,6 +7,7 @@
  * del agente (`collected.zoneOverrides`) escrito desde el editor del plano, no
  * desde el chat (el chat fija el estilo global del inmueble).
  */
+import { revalidatePath } from 'next/cache';
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg, type ZoneRow } from '@/server/db/scoped-repo';
@@ -14,6 +15,11 @@ import { loadState, saveState } from '@/server/agent/persistence/state-repo';
 import { setZoneOverride } from '@/lib/zone-style';
 import { isValidEstilo } from '@/lib/design-options';
 import type { Estilo } from '@/lib/contracts';
+
+/** Invalida la caché de la página del proyecto para que la lista de zonas se refresque sin recargar. */
+function revalidateProject(projectId: string): void {
+  revalidatePath(`/projects/${projectId}`);
+}
 
 async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<void> {
   const project = await withOrg(ctx).projects.findById(projectId);
@@ -34,7 +40,9 @@ export async function createZone(projectId: string, name: string): Promise<ZoneR
   const clean = String(name ?? '').trim().slice(0, 80);
   if (!clean) throw new Error('La zona necesita un nombre');
   const existing = await withOrg(ctx).zones.list(projectId);
-  return withOrg(ctx).zones.create(projectId, { name: clean, order: existing.length });
+  const zone = await withOrg(ctx).zones.create(projectId, { name: clean, order: existing.length });
+  revalidateProject(projectId);
+  return zone;
 }
 
 /** Comprueba que la zona pertenece al proyecto (integridad intra-org). */
@@ -56,6 +64,7 @@ export async function renameZone(projectId: string, zoneId: string, name: string
   const clean = String(name ?? '').trim().slice(0, 80);
   if (!clean) throw new Error('La zona necesita un nombre');
   await withOrg(ctx).zones.update(projectId, zoneId, { name: clean });
+  revalidateProject(projectId);
 }
 
 /**
@@ -67,6 +76,7 @@ export async function deleteZone(projectId: string, zoneId: string): Promise<voi
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await withOrg(ctx).zones.remove(projectId, zoneId);
+  revalidateProject(projectId);
 }
 
 /** Lista las zonas borradas (papelera) del proyecto. */
@@ -81,6 +91,7 @@ export async function restoreZone(projectId: string, zoneId: string): Promise<vo
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await withOrg(ctx).zones.restore(projectId, zoneId);
+  revalidateProject(projectId);
 }
 
 /**
@@ -95,6 +106,7 @@ export async function purgeZone(projectId: string, zoneId: string): Promise<void
   const state = await loadState(projectId);
   const nextCollected = setZoneOverride(state.collected, zoneId, {});
   await saveState(projectId, state.version, { phase: state.phase, collected: nextCollected });
+  revalidateProject(projectId);
 }
 
 /**

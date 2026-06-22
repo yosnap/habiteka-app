@@ -10,7 +10,7 @@ import { Suspense, useMemo } from 'react';
 import { useGLTF, Clone } from '@react-three/drei';
 import { Box3, Vector3 } from 'three';
 import type { FurnitureItem } from '@/canvas/3d/doc-to-scene';
-import { furnitureModelUrl, furnitureFrontOffset } from '@/canvas/3d/furniture-models';
+import { furnitureModelUrl, furnitureFrontAngle, hasFront } from '@/canvas/3d/furniture-models';
 import type { StructKind } from '@/canvas/types';
 import { CATALOG } from '@/canvas/catalog';
 
@@ -49,29 +49,53 @@ function FurnitureModel({ item, url }: { item: FurnitureItem; url: string }) {
     const box = new Box3().setFromObject(scene);
     const dim = box.getSize(new Vector3());
     const center = box.getCenter(new Vector3());
-    // Escala no uniforme a las medidas del doc (ancho X, alto Y, fondo Z); X negativa
-    // si el objeto está volteado en el plano.
-    const sx = (dim.x > 0 ? item.size[0] / dim.x : 1) * (item.flipX ? -1 : 1);
+
+    // Orientación del modelo (giro en Y, múltiplo de 90°) para que quede colocado correctamente:
+    //  - Si el modelo DECLARA su frente (`front`), se usa ese dato: el frente del glTF se lleva a
+    //    +Z (la dirección que el editor toma como "de frente"). Esto fija también el SENTIDO
+    //    (cabecero vs piecero), que la sola proporción del bbox no puede distinguir.
+    //  - Si no lo declara, se infiere por PROPORCIÓN: se gira 90° si la apaisadura del modelo y la
+    //    del objeto del plano discrepan, para alinear los lados largos. Orienta el eje, no el sentido.
+    // En ambos casos es automático: ningún ángulo se calibra a mano en el render.
+    let modelRot: number; // rad, múltiplo de π/2
+    if (hasFront(item.kind)) {
+      modelRot = -furnitureFrontAngle(item.kind);
+    } else {
+      const modelLandscape = dim.x >= dim.z;
+      const itemLandscape = item.size[0] >= item.size[2];
+      modelRot = modelLandscape !== itemLandscape ? Math.PI / 2 : 0;
+    }
+    // ¿El giro intercambia los ejes X↔Z del modelo? (90° o 270°). Afecta a qué medida del modelo
+    // se escala con el ancho del objeto y cuál con el fondo.
+    const swap = Math.abs(Math.round(Math.sin(modelRot))) === 1;
+    const modelW = swap ? dim.z : dim.x;
+    const modelD = swap ? dim.x : dim.z;
+    const sx = (modelW > 0 ? item.size[0] / modelW : 1) * (item.flipX ? -1 : 1);
     const sy = dim.y > 0 ? item.size[1] / dim.y : 1;
-    const sz = dim.z > 0 ? item.size[2] / dim.z : 1;
-    // Tras escalar, recentrar en X/Z y apoyar la base en y=0.
+    const sz = modelD > 0 ? item.size[2] / modelD : 1;
+
     return {
-      scale: [sx, sy, sz] as [number, number, number],
-      offset: [-center.x * sx, -box.min.y * sy, -center.z * sz] as [number, number, number],
+      modelRot,
+      // Escala en los ejes del MODELO (antes del giro): si intercambia ejes, el ancho del objeto
+      // escala el eje Z del modelo y el fondo el eje X.
+      scale: (swap ? [sz, sy, sx] : [sx, sy, sz]) as [number, number, number],
+      // Recentrar en X/Z (ejes del modelo) y apoyar la base en y=0.
+      offset: (swap
+        ? [-center.z * sz, -box.min.y * sy, -center.x * sx]
+        : [-center.x * sx, -box.min.y * sy, -center.z * sz]) as [number, number, number],
     };
-  }, [scene, item.size, item.flipX]);
+  }, [scene, item.size, item.flipX, item.kind]);
 
   // El grupo se ancla en el SUELO (y=0), no en item.center[1] (=altura/2): el offset
   // interior ya apoya la base del modelo en y=0 local. Usar item.center[1] sumaría
   // media altura y dejaría el mueble flotando. La caja-placeholder sí usa center[1]
   // porque boxGeometry se centra en su origen.
   return (
-    <group
-      position={[item.center[0], 0, item.center[2]]}
-      rotation={[0, item.rotationY + furnitureFrontOffset(item.kind), 0]}
-    >
-      <group scale={transform.scale} position={transform.offset}>
-        <Clone object={scene} />
+    <group position={[item.center[0], 0, item.center[2]]} rotation={[0, item.rotationY, 0]}>
+      <group rotation={[0, transform.modelRot, 0]}>
+        <group scale={transform.scale} position={transform.offset}>
+          <Clone object={scene} />
+        </group>
       </group>
     </group>
   );

@@ -6,7 +6,7 @@
  * puntero según la herramienta activa: dibujar, crear objetos, o marcar una zona.
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Stage } from 'react-konva';
+import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { useFreehand } from '@/canvas/use-freehand';
@@ -324,8 +324,12 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
-      <SelectionOverlay marquee={marquee} />
-      <DrawWallOverlay preview={drawWall.preview} scale={doc.scale} />
+      {/* Una sola capa de overlays efímeros (marquesina + muro en curso): ambos son ligeros y
+          no interactivos, así se mantiene el nº de capas de Konva en el máximo recomendado. */}
+      <Layer listening={false}>
+        <SelectionOverlay marquee={marquee} />
+        <DrawWallOverlay preview={drawWall.preview} scale={doc.scale} />
+      </Layer>
     </Stage>
       {/* Entrada de longitud exacta del muro en curso (F7.3). */}
       <DrawWallLengthInput visible={tool === 'draw-wall' && drawWall.drawing} onConfirm={drawWall.confirmWithLengthM} />
