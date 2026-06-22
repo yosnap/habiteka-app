@@ -61,11 +61,19 @@ propuestas"): spike → pipeline assets → doc→escena → luces → cámara �
 
 ## Estado de git al arrancar
 
-- Rama actual: `feat/multizona/p3-zonas` (P1/P2/P3 commiteadas, SIN push — decisión del usuario:
-  cerrar fases antes de publicar). Para F6: rama nueva `feat/canvas/f6-3d-navegable` desde donde
-  corresponda (¿desde p3-zonas o tras mergear a develop? — decidir al arrancar).
+- **Rama YA CREADA y lista: `feat/canvas/f6-3d-navegable`** (sale de `feat/multizona/p3-zonas`
+  porque F6 renderiza por zona, necesita el código de multi-zona). El plan de F6 (validado con
+  /ck:predict) ya está commiteado en ella. Solo hay que empezar a codear F6.0.
+- Multi-zona P1/P2/P3 commiteado, SIN push (decisión del usuario: cerrar fases antes de publicar).
 - Convenciones: BUN (no npm), commits convencionales en español sin refs a IA, verificar en dev
   server con chrome-devtools, tests focales con `bunx vitest run`.
+
+## Validación del plan (hecha)
+- **/ck:predict: veredicto GO** con 3 ajustes ya incorporados al plan (ver plan.md "Ajustes del
+  predict"): (1) el spike carga ≥1 glTF real, (2) umbral ≥30 FPS escritorio / móvil best-effort,
+  (3) tests de conversión px→m + ejes en F6.1.
+- Red-team/security descartado formalmente (render cliente, sin superficie nueva).
+- Validación de coherencia del plan: hecha (fases ordenadas, cada una con verificación).
 
 ## Prompt sugerido para el chat nuevo
 
