@@ -72,7 +72,7 @@ antes de dar el núcleo por bueno.** Es el trabajo real, no "sin cambios en 3D".
 |-------|------|--------|
 | 1 | [Verificacion del flujo base](./phase-01-verificacion-del-flujo-base.md) | Completed |
 | 2 | [Draw Walls con cota en vivo](./phase-02-draw-walls-con-cota-en-vivo.md) | Completed |
-| 3 | [Medidas y snap al dibujar](./phase-03-medidas-y-snap-al-dibujar.md) | Pending |
+| 3 | [Medidas y snap al dibujar](./phase-03-medidas-y-snap-al-dibujar.md) | Completed |
 | 4 | [Wizard guiado paso a paso](./phase-04-wizard-guiado-paso-a-paso.md) | Pending |
 | 5 | [Auto-amueblado procedural](./phase-05-auto-amueblado-procedural.md) | Pending |
 | 6 | [Orientacion de muebles 3D](./phase-06-orientacion-de-muebles-3d.md) | Pending |
@@ -93,7 +93,7 @@ Construye sobre F6 (3D navegable, completo). Sin dependencias bloqueantes de otr
 |---|----------|-----|------|-----------|
 | 1 | Rotación 2D↔3D no coincide (Konva esquina vs docToScene centro AABB) | Critical | Accept | Completed |
 | 2 | Usar `getRelativePointerPosition` (worldPointer), NO `getPointerPosition` de freehand | Critical | Accept | Completed |
-| 3 | Pérdida del doc del wizard: `load()` borra historial + autosave se cancela al navegar | Critical | Accept | Phase 4 |
+| 3 | Pérdida del doc del wizard: `load()` borra historial + autosave se cancela al navegar | Critical | Accept | Completed |
 | 4 | Partir F7 en núcleo (1–3) entregable vs resto (4–8) | High | Accept | plan (corte de entrega) |
 | 5 | Colisión draw-wall vs botón "Muro" de la paleta (dos formas de crear wall) | High | Accept | Phase 2 |
 | 6 | autofurnish asume sala rectangular axis-aligned (rompe con muros dibujados/L) | High | Accept | Phase 5 |

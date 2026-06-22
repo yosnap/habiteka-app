@@ -1,8 +1,8 @@
 ---
 phase: 3
-title: "Medidas y snap al dibujar"
-status: pending
-effort: ""
+title: Medidas y snap al dibujar
+status: completed
+effort: ''
 ---
 
 # Phase 3: Medidas y snap al dibujar
