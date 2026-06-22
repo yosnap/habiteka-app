@@ -1,8 +1,8 @@
 ---
 phase: 4
-title: "Wizard guiado paso a paso"
-status: pending
-effort: ""
+title: Wizard guiado paso a paso
+status: completed
+effort: ''
 ---
 
 # Phase 4: Wizard guiado paso a paso
