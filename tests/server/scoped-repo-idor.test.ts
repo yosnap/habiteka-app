@@ -111,16 +111,53 @@ describe('Scoping estructural por organización (anti-IDOR)', () => {
       expect(await withOrg(ctx(orgB)).zones.list(projB.id)).toHaveLength(1);
     });
 
-    it('remove (de la propia org) hard-borra la zona y su plano por cascade', async () => {
+    it('remove (de la propia org) es SOFT: la zona sale de la lista pero conserva su plano', async () => {
       const orgA = await makeOrg();
       const projA = await withOrg(ctx(orgA)).projects.create({ title: 'A' });
       const zone = await withOrg(ctx(orgA)).zones.create(projA.id, { name: 'Cocina' });
       await withOrg(ctx(orgA)).canvas.save(projA.id, { x: 1 }, zone.id);
 
       await withOrg(ctx(orgA)).zones.remove(projA.id, zone.id);
+      // Sale de la lista de zonas vivas y aparece en la papelera; su plano sigue (recuperable).
       expect(await withOrg(ctx(orgA)).zones.list(projA.id)).toHaveLength(0);
+      expect(await withOrg(ctx(orgA)).zones.listDeleted(projA.id)).toHaveLength(1);
+      expect(await withOrg(ctx(orgA)).canvas.load(projA.id, zone.id)).toEqual({ x: 1 });
+    });
+
+    it('restore devuelve una zona borrada a la lista', async () => {
+      const orgA = await makeOrg();
+      const projA = await withOrg(ctx(orgA)).projects.create({ title: 'A' });
+      const zone = await withOrg(ctx(orgA)).zones.create(projA.id, { name: 'Cocina' });
+
+      await withOrg(ctx(orgA)).zones.remove(projA.id, zone.id);
+      await withOrg(ctx(orgA)).zones.restore(projA.id, zone.id);
+      expect(await withOrg(ctx(orgA)).zones.list(projA.id)).toHaveLength(1);
+      expect(await withOrg(ctx(orgA)).zones.listDeleted(projA.id)).toHaveLength(0);
+    });
+
+    it('purge (de la propia org) hard-borra la zona y su plano por cascade', async () => {
+      const orgA = await makeOrg();
+      const projA = await withOrg(ctx(orgA)).projects.create({ title: 'A' });
+      const zone = await withOrg(ctx(orgA)).zones.create(projA.id, { name: 'Cocina' });
+      await withOrg(ctx(orgA)).canvas.save(projA.id, { x: 1 }, zone.id);
+
+      await withOrg(ctx(orgA)).zones.remove(projA.id, zone.id);
+      await withOrg(ctx(orgA)).zones.purge(projA.id, zone.id);
+      expect(await withOrg(ctx(orgA)).zones.listDeleted(projA.id)).toHaveLength(0);
       // El plano de la zona se fue por Cascade (no queda huérfano).
       expect(await withOrg(ctx(orgA)).canvas.load(projA.id, zone.id)).toBeNull();
+    });
+
+    it('restore de otra org es no-op (no recupera la zona ajena)', async () => {
+      const orgA = await makeOrg();
+      const orgB = await makeOrg();
+      const projB = await withOrg(ctx(orgB)).projects.create({ title: 'B' });
+      const zoneB = await withOrg(ctx(orgB)).zones.create(projB.id, { name: 'Cocina' });
+      await withOrg(ctx(orgB)).zones.remove(projB.id, zoneB.id);
+
+      await withOrg(ctx(orgA)).zones.restore(projB.id, zoneB.id); // no debe afectar a B
+      expect(await withOrg(ctx(orgB)).zones.list(projB.id)).toHaveLength(0);
+      expect(await withOrg(ctx(orgB)).zones.listDeleted(projB.id)).toHaveLength(1);
     });
   });
 

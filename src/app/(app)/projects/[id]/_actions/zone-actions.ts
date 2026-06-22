@@ -59,13 +59,38 @@ export async function renameZone(projectId: string, zoneId: string, name: string
 }
 
 /**
- * Borra una zona del proyecto (hard-delete: arrastra su plano por Cascade) y limpia
- * su override de estilo en el estado del agente (no deja residuo en el JSONB).
+ * Borra una zona del proyecto en SOFT (marca `deletedAt`): desaparece de la lista pero es
+ * recuperable desde la papelera, con su plano e imágenes intactos. El override de estilo se
+ * conserva (para restaurar con su estilo); se limpia solo al borrar definitivamente (`purgeZone`).
  */
 export async function deleteZone(projectId: string, zoneId: string): Promise<void> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await withOrg(ctx).zones.remove(projectId, zoneId);
+}
+
+/** Lista las zonas borradas (papelera) del proyecto. */
+export async function listDeletedZones(projectId: string): Promise<ZoneRow[]> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  return withOrg(ctx).zones.listDeleted(projectId);
+}
+
+/** Restaura una zona borrada (vuelve a la lista con su contenido). */
+export async function restoreZone(projectId: string, zoneId: string): Promise<void> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await withOrg(ctx).zones.restore(projectId, zoneId);
+}
+
+/**
+ * Borra DEFINITIVAMENTE una zona de la papelera (hard-delete: arrastra su plano por Cascade) y
+ * limpia su override de estilo en el estado del agente (no deja residuo en el JSONB).
+ */
+export async function purgeZone(projectId: string, zoneId: string): Promise<void> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await withOrg(ctx).zones.purge(projectId, zoneId);
   // Limpia el override huérfano (pasar {} elimina la entrada de esa zona).
   const state = await loadState(projectId);
   const nextCollected = setZoneOverride(state.collected, zoneId, {});

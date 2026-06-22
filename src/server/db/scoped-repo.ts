@@ -96,8 +96,14 @@ export interface ScopedRepo {
     list(projectId: string): Promise<ZoneRow[]>;
     /** Renombra/recoloca una zona del proyecto. No-op si no es de ese proyecto+org. */
     update(projectId: string, zoneId: string, input: Partial<CreateZoneInput>): Promise<void>;
-    /** Borra (hard, dispara Cascade del plano) una zona del proyecto. No-op si ajena. */
+    /** Borra una zona en SOFT (marca `deletedAt`): recuperable desde la papelera. No-op si ajena. */
     remove(projectId: string, zoneId: string): Promise<void>;
+    /** Lista las zonas BORRADAS (papelera) de un proyecto de la org. */
+    listDeleted(projectId: string): Promise<ZoneRow[]>;
+    /** Restaura una zona borrada (deletedAt = null). No-op si ajena. */
+    restore(projectId: string, zoneId: string): Promise<void>;
+    /** Borra DEFINITIVAMENTE (hard, dispara Cascade del plano) una zona. No-op si ajena. */
+    purge(projectId: string, zoneId: string): Promise<void>;
   };
 }
 
@@ -310,11 +316,38 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           },
         });
       },
-      // Hard-delete real de la zona: dispara el Cascade que elimina su plano
-      // (CanvasState), evitando planos huérfanos impurgables. Los diseños e imágenes
-      // de la zona quedan con zoneId=null (FK SetNull): no se pierden, se "desasignan".
-      // Acotado por (proyecto, org) para no tocar zonas ajenas.
+      // Borrado de USUARIO = SOFT-delete (marca `deletedAt`): la zona desaparece de la
+      // lista pero es recuperable desde la papelera, junto con su plano e imágenes (que
+      // NO se tocan hasta el purge). Acotado por (proyecto, org) para no tocar zonas ajenas.
       async remove(projectId, zoneId) {
+        await prisma.projectZone.updateMany({
+          where: { id: zoneId, projectId, organizationId, deletedAt: null },
+          data: { deletedAt: new Date() },
+        });
+      },
+      // Papelera: zonas borradas (deletedAt != null) de un proyecto vivo de la org.
+      listDeleted(projectId) {
+        return prisma.projectZone.findMany({
+          where: {
+            projectId,
+            deletedAt: { not: null },
+            project: { organizationId, deletedAt: null },
+          },
+          select: { id: true, name: true, kind: true, order: true },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+        });
+      },
+      // Restaura una zona borrada (deletedAt = null). Acotado por (proyecto, org).
+      async restore(projectId, zoneId) {
+        await prisma.projectZone.updateMany({
+          where: { id: zoneId, projectId, organizationId, deletedAt: { not: null } },
+          data: { deletedAt: null },
+        });
+      },
+      // Borrado DEFINITIVO (hard): dispara el Cascade que elimina su plano (CanvasState),
+      // evitando planos huérfanos impurgables. Los diseños e imágenes de la zona quedan
+      // con zoneId=null (FK SetNull). Solo desde la papelera. Acotado por (proyecto, org).
+      async purge(projectId, zoneId) {
         await prisma.projectZone.deleteMany({
           where: { id: zoneId, projectId, organizationId },
         });
