@@ -1,8 +1,8 @@
 ---
 phase: 8
-title: "Verificacion y pulido"
-status: pending
-effort: ""
+title: Verificacion y pulido
+status: completed
+effort: ''
 ---
 
 # Phase 8: Verificacion y pulido
