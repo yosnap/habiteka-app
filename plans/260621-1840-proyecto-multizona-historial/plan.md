@@ -41,19 +41,25 @@ imagen": es crear la entidad `SourceImage` correcta + la trazabilidad origen→d
 
 ## Decisiones CERRADAS (brainstorm jun-2026)
 
-1. **Jerarquía = entidad `Zone` delgada.** `Project 1:N Zone`. `Zone` es un agrupador esbelto
+1. **Jerarquía = entidad `ProjectZone` delgada.** `Project 1:N ProjectZone`. Es un agrupador esbelto
    (id, org, project, name, kind, order); el plano (`CanvasState`), la imagen (`SourceImage`) y los
    diseños (`Deliverable`) le cuelgan con FK `zoneId` **nullable**. Aditivo: v1 vive con `zoneId=null`
    (= zona por defecto implícita, NO una fila fantasma).
+   - **Nombre = `ProjectZone` (NO `Zone`), corrección del /ck:predict:** "zone" ya significa "región
+     de inpainting" en 18 archivos (`CanvasZone`/`PlanZone`/`feedback/`); `ProjectZone` evita la
+     colisión. En la UI se llama "Zona".
    - Descartado: `Project → Plano (1:N)` sin entidad Zona (agrupación implícita frágil).
-   - Descartado: big-bang moviendo todas las FK a Zone.
+   - Descartado: big-bang moviendo todas las FK.
 
 2. **Estilo distinto por zona (decisión del usuario).** Cada zona puede tener su propio
    estilo/objetivo (cocina industrial + dormitorio nórdico en el mismo inmueble). Implicación:
    - **`AgentState` sigue 1:1 con `Project`** (una sola conversación del inmueble), PERO su `collected`
      admite **overrides por zona** (estructura Json: estilo/objetivo por `zoneId`). NO se rompe el
-     `@unique` de AgentState; el chat es del inmueble, el estilo se especializa por zona dentro del
-     estado. Esto es P3 (cuando existan zonas reales); en P1/P2 el estilo sigue global.
+     `@unique` de AgentState. Esto es P3 (cuando existan zonas reales); en P1/P2 el estilo sigue global.
+   - **El override por zona lo escribe el EDITOR DEL PLANO de cada zona, no el chat (corrección del
+     /ck:predict):** el chat sigue global al inmueble; cada zona fija su estilo desde su propio
+     formulario (`generate-from-canvas-dialog`, que ya recoge estilo). Evita la confusión "chat
+     global / estilo por zona".
 
 3. **Imagen de origen = entidad nueva `SourceImage`** con `organizationId` obligatorio (cierra IDOR),
    `projectId`, `zoneId?` (null en P1). Reusa el **storage backend** de MediaAsset, NO su tabla.
@@ -71,12 +77,13 @@ imagen": es crear la entidad `SourceImage` correcta + la trazabilidad origen→d
    por proyecto). El backfill a Zone explícita, si alguna vez se necesita, es un job idempotente
    posterior, no requisito de la migración.
 
-6. **Nombre de la entidad = `Zone`; renombrar lo viejo (decisión del usuario).** Ya existe
-   `Iteration.zone` (Json = región de inpainting del feedback). Para que la entidad nueva se llame
-   `Zone` (nombre limpio), se renombra el campo viejo `Iteration.zone` → `region`. Blast radius
-   acotado y verificado: columna BD + ~4 sitios de escritura (`feedback/iteration-repo.ts`,
-   `feedback/feedback-orchestrator.ts`, `feedback/directed-inpaint.ts`, `app/api/iterations/route.ts`).
-   Es una migración de rename de columna (parte de P3).
+6. **Nombre de la entidad = `ProjectZone`; NO se renombra nada (REVISADO por /ck:predict).**
+   La decisión inicial (entidad `Zone` + renombrar `Iteration.zone`→`region`) se DESCARTÓ: el predict
+   verificó que "zone" ya es un vocabulario consolidado para "región de inpainting" en 18 archivos
+   (`CanvasZone`/`PlanZone` en contracts, `resolveZone`/`replaceZone`/`regenerateZone`, todo el módulo
+   `src/server/agent/feedback/`). `Iteration.zone` guarda un `CanvasZone`, no una toma del inmueble.
+   Renombrar era riesgo puro (migración de columna + 18 archivos) sin beneficio (el usuario nunca ve
+   el nombre interno). Solución: entidad = `ProjectZone`, `Iteration.zone` se queda. UI = "Zona".
 
 ## Esquema objetivo (referencia; el detalle por fase en los phase-*.md)
 
@@ -110,8 +117,9 @@ enum SourceImageRole { PRIMARY  DETAIL }
 //   sourceImageId String?  + relación SetNull
 //   zoneId        String?  + relación SetNull
 
-// ===== P3 (ADITIVO + 1 cambio de índice + 1 rename) =====
-model Zone {
+// ===== P3 (ADITIVO + 1 cambio de índice; SIN rename — revisado por /ck:predict) =====
+// Entidad = ProjectZone (NO Zone): "zone" ya es "región de inpainting" en 18 archivos.
+model ProjectZone {
   id             String       @id @default(cuid())
   organizationId String                                   // denormalizado para filtrar IDOR barato
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -126,11 +134,13 @@ model Zone {
   sourceImages   SourceImage[]
   deliverables   Deliverable[]
   @@index([projectId]); @@index([organizationId])
-  @@map("zone")
+  @@map("project_zone")
 }
+// SourceImage/Deliverable: la FK `zone ProjectZone?` se añade sobre el `zoneId?` ya existente de P1.
 // CanvasState: ELIMINAR @unique de projectId, AÑADIR zoneId String? (null = plano por defecto v1).
-// AgentState:  SIN cambio de cardinalidad. collected (Json) gana overrides por zona (decisión 2).
-// Iteration:   RENOMBRAR campo `zone` Json → `region` Json (decisión 6).
+// AgentState:  SIN cambio de cardinalidad. collected (Json) gana overrides por zona (decisión 2),
+//              escritos desde el editor del plano, no desde el chat.
+// Iteration:   NO se toca (el rename zone→region queda descartado, corrección del predict).
 ```
 
 ## Fases (cada una es un PR independiente; orden = riesgo creciente)
@@ -142,12 +152,13 @@ model Zone {
 - **P2 · Galería de historial origen↔diseño** (aditivo, casi gratis).
   Vista de solo lectura sobre lo de P1: imágenes subidas + diseños generados, qué produjo qué.
   → `phase-p2-galeria-historial.md`
-- **P3 · Multi-zona** (aditivo + 1 cambio de índice + 1 rename; el cambio grande).
-  Entidad `Zone`; `zoneId?` nullable en CanvasState/Deliverable/SourceImage; quitar `@unique` de
-  `CanvasState.projectId`; overrides de estilo por zona en `AgentState.collected`; rename
-  `Iteration.zone`→`region`. Migración v1→v2 aditiva (zoneId=null = zona por defecto). UX de
-  navegación por zonas. **Requiere `/ck:predict` (migración + UX) antes de implementar.**
-  → `phase-p3-multizona.md`
+- **P3 · Multi-zona** (aditivo + 1 cambio de índice diferible; SIN rename — el cambio grande).
+  Entidad `ProjectZone`; FK sobre `zoneId?` ya nullable en CanvasState/Deliverable/SourceImage; quitar
+  `@unique` de `CanvasState.projectId` (al crear 2ª zona); overrides de estilo por zona en
+  `AgentState.collected` escritos desde el editor del plano. Migración v1→v2 aditiva (zoneId=null =
+  zona por defecto). UX de navegación por zonas. **`/ck:predict` HECHO (CAUTION→GO con 2 correcciones,
+  jun-2026): entidad ProjectZone en vez de Zone, sin rename de Iteration, estilo por zona desde el
+  editor.** → `phase-p3-multizona.md`
 
 ## Riesgos
 

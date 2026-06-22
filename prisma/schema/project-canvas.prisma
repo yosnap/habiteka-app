@@ -19,10 +19,40 @@ model Project {
   deliverables  Deliverable[]
   votingRooms   VotingRoom[]
   sourceImages  SourceImage[]
+  zones         ProjectZone[]
 
   @@index([organizationId])
   @@index([deletedAt])
   @@map("project")
+}
+
+// Zona/toma de un inmueble (multi-zona): aérea, entrada, cocina… Agrupador delgado
+// del que cuelgan el plano (CanvasState), las imágenes de origen y los diseños de
+// esa zona. Se llama ProjectZone (no Zone) porque "zone" ya nombra la región de
+// inpainting del feedback (CanvasZone/PlanZone); de cara al usuario es "Zona".
+// Aditivo: un proyecto v1 vive sin filas aquí (sus recursos tienen zoneId=null).
+model ProjectZone {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  // Taxonomía opcional de la toma (aerea/entrada/interior/trasera…), libre por ahora.
+  kind           String?
+  order          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt      DateTime?
+
+  canvasStates CanvasState[]
+  sourceImages SourceImage[]
+  deliverables Deliverable[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([deletedAt])
+  @@map("project_zone")
 }
 
 model Conversation {
@@ -49,15 +79,21 @@ model Message {
   @@map("message")
 }
 
-// Objetos del canvas (Konva) serializados. Una fila por proyecto.
+// Objetos del canvas (Konva) serializados. Hoy una fila por proyecto (@unique); el
+// @unique se eliminará al soportar varios planos por proyecto (una fila por zona).
+// `zoneId` nullable: null = plano por defecto del proyecto (v1); con valor = plano
+// de esa zona.
 model CanvasState {
-  id        String   @id @default(cuid())
-  projectId String   @unique
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  projectId String       @unique
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  zoneId    String?
+  zone      ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   data      Json
-  version   Int      @default(1)
-  updatedAt DateTime @updatedAt
+  version   Int          @default(1)
+  updatedAt DateTime     @updatedAt
 
+  @@index([zoneId])
   @@map("canvas_state")
 }
 
@@ -93,8 +129,10 @@ model Deliverable {
   // SetNull (no Cascade): borrar la imagen no borra el diseño, solo rompe el vínculo.
   sourceImageId String?
   sourceImage   SourceImage? @relation(fields: [sourceImageId], references: [id], onDelete: SetNull)
-  // Zona del inmueble (multi-zona, P3). Nullable; sin FK hasta que exista la entidad Zone.
+  // Zona del inmueble (multi-zona). Nullable; SetNull para no perder el diseño al
+  // borrar la zona (queda como diseño sin zona, recuperable).
   zoneId        String?
+  zone          ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
 
   iterations       Iteration[]
   marketplaceItems MarketplaceItem[]
@@ -102,6 +140,7 @@ model Deliverable {
   @@index([projectId])
   @@index([deletedAt])
   @@index([sourceImageId])
+  @@index([zoneId])
   @@map("deliverable")
 }
 
@@ -115,8 +154,10 @@ model SourceImage {
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   projectId      String
   project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  // Zona del inmueble (multi-zona, P3). Nullable; sin FK hasta que exista Zone.
+  // Zona del inmueble (multi-zona). Nullable; SetNull para no perder la imagen al
+  // borrar la zona (queda como imagen sin zona del proyecto).
   zoneId         String?
+  zone           ProjectZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   // Clave en el object storage (reusa el backend, no la tabla MediaAsset). Es la
   // única fuente de verdad: la URL para mostrar la imagen se genera presignada al
   // servir (no se persiste, caducaría). Ver M1 del code-review.
