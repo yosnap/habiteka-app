@@ -171,18 +171,36 @@ export function planCenterPx(objects: readonly PlanRect[]): [number, number] {
 }
 
 /**
+ * Centro geométrico de un objeto en píxeles de plano, calculado COMO LO PINTA KONVA: el
+ * objeto rota sobre su ORIGEN (esquina sup-izq `x,y`), así que el centro es la esquina más
+ * el offset `(w/2, h/2)` ROTADO por `rotation`. Para `rotation=0` se reduce a `(x+w/2, y+h/2)`.
+ * Esto es lo que evita el desfase 2D↔3D en objetos rotados (un muro a 90° caía a ~2 m de
+ * donde el usuario lo ve). Lógica pura, testeable.
+ */
+export function objectCenterPx(
+  obj: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+): [number, number] {
+  const rad = ((obj.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const hw = obj.width / 2;
+  const hh = obj.height / 2;
+  return [obj.x + hw * cos - hh * sin, obj.y + hw * sin + hh * cos];
+}
+
+/**
  * Mapea el centro (en planta, px) de un objeto a su posición en metros en el plano
  * XZ, relativa al centro del plano:
  *   X(3D) = (centroX_px − centroPlanoX) / pxPerMeter
  *   Z(3D) = (centroY_px − centroPlanoY) / pxPerMeter   (Y-2D → Z-3D)
+ * Usa `objectCenterPx`, que respeta el pivote de rotación de Konva (rota sobre la esquina).
  */
 export function planPointToXZ(
-  obj: PlanRect,
+  obj: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
   center: readonly [number, number],
   pxPerMeter: number,
 ): [number, number] {
-  const cx = obj.x + obj.width / 2;
-  const cy = obj.y + obj.height / 2;
+  const [cx, cy] = objectCenterPx(obj);
   return [pxToMeters(cx - center[0], { pxPerMeter }), pxToMeters(cy - center[1], { pxPerMeter })];
 }
 
