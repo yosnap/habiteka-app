@@ -76,7 +76,7 @@ antes de dar el núcleo por bueno.** Es el trabajo real, no "sin cambios en 3D".
 | 4 | [Wizard guiado paso a paso](./phase-04-wizard-guiado-paso-a-paso.md) | Completed |
 | 5 | [Auto-amueblado procedural](./phase-05-auto-amueblado-procedural.md) | Completed |
 | 6 | [Orientacion de muebles 3D](./phase-06-orientacion-de-muebles-3d.md) | Completed |
-| 7 | [Modelos correctos y disposicion](./phase-07-modelos-correctos-y-disposicion.md) | Pending |
+| 7 | [Modelos correctos y disposicion](./phase-07-modelos-correctos-y-disposicion.md) | Completed |
 | 8 | [Verificacion y pulido](./phase-08-verificacion-y-pulido.md) | Pending |
 
 ## Dependencies
@@ -97,7 +97,7 @@ Construye sobre F6 (3D navegable, completo). Sin dependencias bloqueantes de otr
 | 4 | Partir F7 en núcleo (1–3) entregable vs resto (4–8) | High | Accept | Completed |
 | 5 | Colisión draw-wall vs botón "Muro" de la paleta (dos formas de crear wall) | High | Accept | Completed |
 | 6 | autofurnish asume sala rectangular axis-aligned (rompe con muros dibujados/L) | High | Accept | Completed |
-| 7 | Seed de Phase 1 contamina la BD dev compartida (package.json:14, sin teardown) | High | Accept | Phase 1 |
+| 7 | Seed de Phase 1 contamina la BD dev compartida (package.json:14, sin teardown) | High | Accept | Completed |
 | 8 | Snap 20px destruye grosor real (0,15 m) y la longitud exacta tecleada | High | Accept | Phase 3 |
 | 9 | Muros degenerados (longitud 0) y suelo por bbox de muro diagonal | Medium | Accept | Phase 2 + Phase 8 |
 | 10 | Claim lámpara: el mapa apunta a `lampara.glb` (=Lantern renombrado), no "→Lantern" | Medium | Accept | Phase 7 |

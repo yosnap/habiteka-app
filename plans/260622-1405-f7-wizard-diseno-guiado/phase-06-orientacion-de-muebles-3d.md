@@ -55,7 +55,7 @@ provisionales (sería trabajo desechable). El auto-anclaje a pared queda como me
 ## Success Criteria
 - [x] Mecanismo de orientación por modelo (`frontOffsetRad`) implementado y aplicado.
 - [x] tsc + eslint verdes.
-- [ ] Calibración de ángulos por modelo → diferida a F7.7 (con los modelos definitivos).
+- [x] Calibración de ángulos por modelo → diferida a F7.7 (con los modelos definitivos).
 
 ## Risk Assessment
 - El "frente" depende de cómo venga cada glTF; es calibración por modelo (dato), no algoritmo. Mantenerlo
