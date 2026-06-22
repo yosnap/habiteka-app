@@ -45,9 +45,9 @@ medida exacta** (teclear la longitud del muro mientras se dibuja). Cierra el nú
 4. Verificar: dibujar un muro de "4 m" exacto tecleando; snap a 90° al hacer una L.
 
 ## Success Criteria
-- [ ] Snap a rejilla y ángulo funcionando (tests verdes).
-- [ ] Se puede fijar la longitud exacta de un muro (teclear o, fallback, editar Largo).
-- [ ] tsc + eslint + vitest verdes. **Núcleo F7 (fases 2–3) verificado en navegador antes de seguir.**
+- [x] Snap a rejilla y ángulo funcionando (tests verdes).
+- [x] Se puede fijar la longitud exacta de un muro (teclear o, fallback, editar Largo).
+- [x] tsc + eslint + vitest verdes. **Núcleo F7 (fases 2–3) verificado en navegador antes de seguir.**
 
 ## Risk Assessment
 - Input flotante + canvas: cuidar foco/teclado (que Enter no dispare atajos del editor). Reusar el

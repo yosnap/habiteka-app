@@ -63,10 +63,10 @@ correcta" es falso para todo muro no axis-aligned.
    3D salen como paredes a escala.
 
 ## Success Criteria
-- [ ] `segmentToWall` puro y testeado (longitud, ángulo, grosor).
-- [ ] Se dibujan muros por línea con cota en vivo; encadenado; Esc termina.
-- [ ] Los muros dibujados aparecen en 3D a escala correcta.
-- [ ] tsc + eslint + vitest verdes; sin romper las otras herramientas (select/pan/freehand).
+- [x] `segmentToWall` puro y testeado (longitud, ángulo, grosor).
+- [x] Se dibujan muros por línea con cota en vivo; encadenado; Esc termina.
+- [x] Los muros dibujados aparecen en 3D a escala correcta.
+- [x] tsc + eslint + vitest verdes; sin romper las otras herramientas (select/pan/freehand).
 
 ## Risk Assessment
 - Coordenadas con zoom/pan: usar `getRelativePointerPosition()` (`worldPointer`, canvas-stage.tsx:120),

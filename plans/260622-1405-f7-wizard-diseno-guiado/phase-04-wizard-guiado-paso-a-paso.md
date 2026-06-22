@@ -50,9 +50,9 @@ carga en el editor. Reusa el modelo de datos y el render existentes.
 4. Verificar: proyecto nuevo → wizard → sala a medidas → editable → "Ver en 3D".
 
 ## Success Criteria
-- [ ] `buildRoomDoc` puro y testeado (sala a las medidas pedidas).
-- [ ] Wizard genera la sala y la carga en el editor; se puede saltar.
-- [ ] tsc + eslint + vitest verdes.
+- [x] `buildRoomDoc` puro y testeado (sala a las medidas pedidas).
+- [x] Wizard genera la sala y la carga en el editor; se puede saltar.
+- [x] tsc + eslint + vitest verdes.
 
 ## Risk Assessment
 - No romper el flujo de proyectos ya existentes (con objetos): el wizard SOLO se ofrece en vacío.

@@ -39,11 +39,11 @@ dibujado, partiendo de un proyecto NUEVO. Documenta el estado base antes de aña
 4. Reporte de línea base en `plans/.../reports/`: qué coincide y qué no (desfase rotación, orientación, modelos).
 
 ## Success Criteria
-- [ ] Flujo verificado con proyecto nuevo, de forma repetible e IDEMPOTENTE (no clics manuales, sin
+- [x] Flujo verificado con proyecto nuevo, de forma repetible e IDEMPOTENTE (no clics manuales, sin
   residuos en la BD dev compartida).
-- [ ] **Caso rotado medido:** documentado si un muro a 90° cae en el MISMO punto físico en 2D y 3D, o
+- [x] **Caso rotado medido:** documentado si un muro a 90° cae en el MISMO punto físico en 2D y 3D, o
   el desfase exacto (esto define el trabajo de pivote de la fase 2).
-- [ ] Reporte de estado base en `plans/.../reports/` (desfase de rotación, orientación, modelos, draw walls).
+- [x] Reporte de estado base en `plans/.../reports/` (desfase de rotación, orientación, modelos, draw walls).
 
 ## Risk Assessment
 - Automatización de UI sobre canvas Konva/WebGL es frágil → seed idempotente para el doc; reservar la
