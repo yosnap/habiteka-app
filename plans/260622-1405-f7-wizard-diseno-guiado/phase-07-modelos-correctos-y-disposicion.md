@@ -29,6 +29,9 @@ disposición coherente. Placeholder honesto donde no haya modelo.
 - **Disposición**: revisar `examples.ts`/seed para que las disposiciones sean realistas (apoyarse en
   las plantillas de la fase 5 para regenerarlas con sentido).
 - Reusar el pipeline de compresión de F6.5 (`@gltf-transform/cli` WebP+meshopt) para todo asset nuevo.
+- **Calibrar la orientación (de F7.6):** por cada modelo (los actuales silla/sofa/lampara y los nuevos),
+  fijar su `frontOffsetRad` en `furniture-models.ts` mirando el render, para que el "frente" del glTF
+  coincida con la rotación del doc. La infraestructura ya está; aquí se ajustan los ángulos.
 
 ## Related Code Files
 - Modify: `src/canvas/3d/furniture-models.ts` (corregir lámpara; añadir entradas).

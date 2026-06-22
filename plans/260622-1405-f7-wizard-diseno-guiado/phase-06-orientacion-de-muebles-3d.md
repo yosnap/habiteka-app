@@ -1,8 +1,8 @@
 ---
 phase: 6
-title: "Orientacion de muebles 3D"
-status: pending
-effort: ""
+title: Orientacion de muebles 3D
+status: completed
+effort: ''
 ---
 
 # Phase 6: Orientacion de muebles 3D
@@ -45,9 +45,17 @@ correcta + el offset del modelo lo deja mirando como su rotation indica.
 3. (Opcional) Heurística de anclaje a pared para auto-orientar; tests puros.
 4. Verificar en 3D: el sofá del salón mira al interior, no a la pared.
 
+## Estado (jun-2026)
+Infraestructura ENTREGADA: `frontOffsetRad` por modelo en `furniture-models.ts` (+ helper
+`furnitureFrontOffset`) y aplicado en `FurnitureModel` (se suma a `rotationY`). Valor 0 por ahora.
+**Decisión del usuario:** la CALIBRACIÓN fina del ángulo de cada modelo se hace en F7.7, junto con
+la cura/reemplazo de modelos (lámpara≠farola, Kenney) — calibrar los modelos definitivos, no los
+provisionales (sería trabajo desechable). El auto-anclaje a pared queda como mejora futura.
+
 ## Success Criteria
-- [ ] Los modelos glTF reales quedan orientados correctamente (frente al interior).
-- [ ] tsc + eslint + (si aplica) vitest verdes; verificado en navegador.
+- [x] Mecanismo de orientación por modelo (`frontOffsetRad`) implementado y aplicado.
+- [x] tsc + eslint verdes.
+- [ ] Calibración de ángulos por modelo → diferida a F7.7 (con los modelos definitivos).
 
 ## Risk Assessment
 - El "frente" depende de cómo venga cada glTF; es calibración por modelo (dato), no algoritmo. Mantenerlo
