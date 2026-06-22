@@ -34,11 +34,33 @@ navegable fiel desde cualquier ángulo. La escala (F0) da las dimensiones reales
 
 ## Incógnitas que quedan (para el research propio antes de implementar)
 
-- Cobertura real catálogo↔Kenney: ¿qué kinds NO tienen modelo y necesitan placeholder o sustituto?
-- Altura de techo y grosor de muro: ¿se infieren de la escala o el usuario los fija? (relación con F0).
-- ¿v1 con OrbitControls basta para el valor de negocio, o se necesita primera persona ya?
-- Peso del bundle 3D y los assets: ¿lazy-load del módulo 3D y de los glTF bajo demanda?
-- ¿El 3D navegable sustituye o complementa al render fotorrealista de imagen (CRL-4)? (producto).
+Estado actualizado (jun-2026, revisión de planificación). Resueltas las que se pueden verificar en
+el código; quedan 3 de producto/medición para el spike.
+
+**RESUELTAS (verificadas en el código):**
+- ✅ **Cobertura catálogo↔Kenney.** El catálogo (`src/canvas/catalog.ts`) tiene ~30 kinds: estructura
+  (wall, window, door), sanitarios (inodoro, lavabo, ducha, banera, bidet), cocina (fregadero,
+  encimera, nevera, horno, isla), mobiliario (cama, sofa, mesa, silla, armario, estanteria, mesilla),
+  decoración (alfombra, planta, chimenea), electrónica (tv, ordenador, lampara), iluminación (foco).
+  Kenney Furniture Kit (140 modelos) cubre la mayoría de mobiliario/sanitario/cocina; faltarán
+  algunos (chimenea, foco como objeto). **Política: kind sin glTF → placeholder (caja a escala con
+  etiqueta), igual que el `default` de `object-shapes.tsx` en 2D.** El mapeo kind→glTF es declarativo
+  (extiende el patrón F-CAT).
+- ✅ **Altura de techo y grosor de muro.** YA existen en el modelo (`src/canvas/types.ts`):
+  `CanvasDoc.ceilingHeightM` (altura de techo, default de muros), `StructObj.heightM` (altura por
+  objeto), grosor de muro derivable de su dimensión en planta. `pxPerMeter` da la conversión. **F6 NO
+  necesita campos nuevos:** consume los de F0. (Confirmar valor por defecto de grosor si no hay campo
+  explícito de wallThickness.)
+
+**PENDIENTES (producto / medición — resolver en spike):**
+- ⏳ ¿v1 con OrbitControls basta para el valor de negocio, o se necesita primera persona (PointerLock)
+  desde el día 1? (Decisión de producto — recomendación: OrbitControls v1, es suficiente para "ver el
+  diseño en 3D" y mucho más barato.)
+- ⏳ Peso del bundle 3D + assets: medir en el spike. Plan: lazy-load del módulo 3D (dynamic ssr:false)
+  + glTF bajo demanda + Draco/meshopt. Objetivo: no inflar el main bundle.
+- ⏳ ¿El 3D navegable sustituye o complementa al render IA (CRL-4)? (Producto — recomendación:
+  COMPLEMENTAN. El 3D es la vista fiel navegable; el render IA es la propuesta fotorrealista. Ambos
+  como entregables distintos.)
 
 ## Fases internas propuestas (cuando se ejecute, en su propio plan)
 
