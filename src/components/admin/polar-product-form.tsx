@@ -41,7 +41,7 @@ export function PolarProductForm() {
       <label className="text-sm">
         Nombre
         <input
-          className="border-line bg-surface mt-1 w-full rounded-[var(--radius-control)] border px-2 py-1"
+          className="border-line bg-surface mt-1 w-full rounded-control border px-2 py-1"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -49,7 +49,7 @@ export function PolarProductForm() {
       <label className="text-sm">
         Precio (céntimos)
         <input
-          className="border-line bg-surface mt-1 w-full rounded-[var(--radius-control)] border px-2 py-1"
+          className="border-line bg-surface mt-1 w-full rounded-control border px-2 py-1"
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}

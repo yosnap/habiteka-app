@@ -1,12 +1,16 @@
 'use client';
 
 /**
- * Capa base: la imagen de origen aportada por el usuario, escalada para encajar
- * en el stage manteniendo proporción. Es el lienzo sobre el que se dibuja y se
- * sitúan los objetos.
+ * Contenido de la imagen base: la imagen de origen (o el render aplicado),
+ * escalada para encajar en el stage manteniendo proporción. Es el lienzo sobre el
+ * que se dibuja y se sitúan los objetos.
+ *
+ * Devuelve un `Group` (no un `Layer` propio) para poder compartir una única capa
+ * de fondo con los trazos: Konva recomienda 3-5 capas por stage, así que el
+ * contenido estático y sin interacción se agrupa en `BackgroundLayer`.
  */
 import { useMemo } from 'react';
-import { Layer, Image as KonvaImage } from 'react-konva';
+import { Group, Image as KonvaImage } from 'react-konva';
 import useImage from 'use-image';
 import type { BaseImage } from '@/canvas/types';
 
@@ -16,7 +20,7 @@ interface Props {
   stageHeight: number;
 }
 
-export function BaseImageLayer({ baseImage, stageWidth, stageHeight }: Props) {
+export function BaseImageContent({ baseImage, stageWidth, stageHeight }: Props) {
   const [image] = useImage(baseImage?.url ?? '', 'anonymous');
 
   const fit = useMemo(() => {
@@ -30,11 +34,18 @@ export function BaseImageLayer({ baseImage, stageWidth, stageHeight }: Props) {
     };
   }, [baseImage, stageWidth, stageHeight]);
 
-  if (!image || !fit) return <Layer />;
+  if (!image || !fit || !baseImage) return null;
 
   return (
-    <Layer listening={false}>
-      <KonvaImage image={image} x={fit.x} y={fit.y} width={fit.width} height={fit.height} />
-    </Layer>
+    <Group>
+      <KonvaImage
+        image={image}
+        x={fit.x}
+        y={fit.y}
+        width={fit.width}
+        height={fit.height}
+        opacity={baseImage.opacity ?? 1}
+      />
+    </Group>
   );
 }

@@ -28,6 +28,12 @@ export interface ChatMessage {
   content: MessagePart[];
   /** Presente en mensajes de rol `tool`: id de la tool-call que responde. */
   toolCallId?: string;
+  /**
+   * Presente en mensajes de rol `assistant` que invocan herramientas. Un mensaje
+   * `tool` debe ir precedido del `assistant` que contiene su `tool_calls`, o el
+   * proveedor rechaza la petición.
+   */
+  toolCalls?: ToolCall[];
 }
 
 /** Definición de una herramienta invocable por el modelo (function calling). */

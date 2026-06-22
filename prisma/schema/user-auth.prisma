@@ -106,6 +106,8 @@ model Organization {
   creditHolds   CreditHold[]
   creditLedger  CreditLedger[]
   consents      ConsentRecord[]
+  sourceImages  SourceImage[]
+  zones         ProjectZone[]
 
   @@map("organization")
 }

@@ -72,6 +72,15 @@ export async function purgeExpiredSoftDeletes(
       const key = toStorageKey(it.resultRef);
       if (key) keys.add(key);
     }
+    // Imágenes de origen de los proyectos vencidos: sus binarios en storage también.
+    const sourceImages = await prisma.sourceImage.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { key: true },
+    });
+    for (const img of sourceImages) {
+      const key = toStorageKey(img.key);
+      if (key) keys.add(key);
+    }
   }
 
   let storageObjectsDeleted = 0;

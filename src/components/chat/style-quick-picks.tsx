@@ -7,16 +7,7 @@
  */
 import { Button } from '@/components/ui/button';
 import type { Estilo } from '@/lib/contracts';
-
-const ESTILOS: Array<{ value: Estilo; label: string }> = [
-  { value: 'moderno', label: 'Moderno' },
-  { value: 'nordico', label: 'Nórdico' },
-  { value: 'industrial', label: 'Industrial' },
-  { value: 'clasico', label: 'Clásico' },
-  { value: 'minimalista', label: 'Minimalista' },
-  { value: 'rustico', label: 'Rústico' },
-  { value: 'mediterraneo', label: 'Mediterráneo' },
-];
+import { ESTILOS } from '@/lib/design-options';
 
 export function StyleQuickPicks({ onPick }: { onPick: (estilo: Estilo) => void }) {
   return (

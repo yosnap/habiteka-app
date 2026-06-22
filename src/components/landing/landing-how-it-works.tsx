@@ -30,7 +30,7 @@ export function LandingHowItWorks() {
         {STEPS.map((s) => (
           <div
             key={s.n}
-            className="border-line bg-surface rounded-[var(--radius-card)] border p-6 shadow-[var(--shadow-panel)]"
+            className="border-line bg-surface rounded-card border p-6 shadow-[var(--shadow-panel)]"
           >
             <div className="bg-brand-500 mb-4 flex size-9 items-center justify-center rounded-full text-sm font-semibold text-white">
               {s.n}

@@ -50,7 +50,7 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
   it('cambiar la selección NO entra en el historial', () => {
     const s = useCanvasStore.getState();
     s.addObject(wall('o1'));
-    s.setSelection({ type: 'object', objectId: 'o1' });
+    s.setSelection({ type: 'object', objectIds: ['o1'] });
 
     useCanvasStore.getState().undo(); // revierte el addObject, no la selección
     expect(useCanvasStore.getState().doc.objects).toHaveLength(0);
@@ -59,8 +59,36 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
   it('eliminar el objeto seleccionado limpia la selección', () => {
     const s = useCanvasStore.getState();
     s.addObject(wall('o1'));
-    s.setSelection({ type: 'object', objectId: 'o1' });
+    s.setSelection({ type: 'object', objectIds: ['o1'] });
     s.removeObject('o1');
     expect(useCanvasStore.getState().doc.selection).toBeNull();
+  });
+
+  it('setBaseImage fija el fondo y entra en el historial (undo lo quita)', () => {
+    const img = { url: 'https://cdn.test/r.png', width: 1024, height: 768 };
+    useCanvasStore.getState().setBaseImage(img);
+    expect(useCanvasStore.getState().doc.baseImage).toEqual(img);
+
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().doc.baseImage).toBeNull();
+  });
+
+  it('setBaseImage(null) quita el fondo existente', () => {
+    const s = useCanvasStore.getState();
+    s.setBaseImage({ url: 'https://cdn.test/r.png', width: 100, height: 100 });
+    s.setBaseImage(null);
+    expect(useCanvasStore.getState().doc.baseImage).toBeNull();
+  });
+
+  it('setBaseImageOpacity acota a [0,1] y no hace nada sin fondo', () => {
+    const s = useCanvasStore.getState();
+    s.setBaseImageOpacity(0.5); // sin fondo: no rompe ni crea baseImage
+    expect(useCanvasStore.getState().doc.baseImage).toBeNull();
+
+    s.setBaseImage({ url: 'https://cdn.test/r.png', width: 100, height: 100 });
+    s.setBaseImageOpacity(2); // fuera de rango por arriba
+    expect(useCanvasStore.getState().doc.baseImage?.opacity).toBe(1);
+    s.setBaseImageOpacity(-1); // fuera de rango por abajo
+    expect(useCanvasStore.getState().doc.baseImage?.opacity).toBe(0);
   });
 });

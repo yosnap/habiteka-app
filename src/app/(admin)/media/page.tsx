@@ -18,7 +18,7 @@ export default async function MediaPage() {
           {assets.map((a) => (
             <li
               key={a.id}
-              className="border-line overflow-hidden rounded-[var(--radius-card)] border"
+              className="border-line overflow-hidden rounded-card border"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.url} alt="" className="aspect-square w-full object-cover" />

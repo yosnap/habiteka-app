@@ -18,7 +18,7 @@ export function AdminNav() {
         <Link
           key={s.href}
           href={s.href}
-          className="text-ink hover:bg-surface-muted rounded-[var(--radius-control)] px-3 py-2 text-sm"
+          className="text-ink hover:bg-surface-muted rounded-control px-3 py-2 text-sm"
         >
           {s.label}
         </Link>

@@ -3,6 +3,7 @@ import { advance, type AgentDeps } from '@/server/agent/orchestrator';
 import { prisma } from '@/server/db/prisma';
 import { resetDb, makeOrg, makeUser } from '../helpers/db';
 import { recordConsent } from '@/server/privacy/consent-service';
+import { acceptTos } from '@/server/legal/tos-acceptance-service';
 import type { ChatVisionAdapter, ImageAdapter, DebitService, Hold } from '@/lib/contracts';
 
 // Adaptadores de IA mockeados: structured outputs deterministas, sin red.
@@ -54,6 +55,7 @@ async function makeProject(): Promise<{ pid: string; deps: AgentDeps }> {
     debit: noopDebit,
     userId: user.id,
     newDeliverableId: () => `del-${++seq}`,
+    resolveSourceImageId: async () => null,
   };
   return { pid: project.id, deps };
 }
@@ -97,6 +99,7 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
       debit: noopDebit,
       userId: user.id,
       newDeliverableId: () => `del-${++seq}`,
+      resolveSourceImageId: async () => null,
     };
 
     await expect(
@@ -105,6 +108,59 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
         image: [{ type: 'text', text: 'img' }],
       }),
     ).rejects.toMatchObject({ purpose: 'IMAGE_PROCESSING' });
+  });
+
+  it('generate-from-canvas: pide explicación solo si hay render3d y degrada si el chat falla', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId); // generate-from-canvas exige ToS aceptado.
+
+    // Chat que SIEMPRE falla: simula el fallo de la 2ª llamada (explicación).
+    // La rama render3d solo usa el chat para la explicación, así que esto aísla (b).
+    const failingChat: ChatVisionAdapter = {
+      chat: async () => {
+        throw new Error('chat caído');
+      },
+      chatStream: async function* () {},
+    };
+    const depsFailExplain: AgentDeps = { ...deps, chat: failingChat };
+
+    const out = await advance(depsFailExplain, pid, {
+      action: 'generate-from-canvas',
+      estilo: 'nordico',
+      entregable: 'render3d',
+      objetivo: '',
+      promptLibre: 'haz la sala más cálida',
+      description: 'Sofá: junto a la pared del fondo',
+      referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+      aspectRatio: '3:2',
+      requestId: `req-${++seq}`,
+    });
+
+    // Degradación elegante: el render se entrega aunque la explicación falle.
+    expect(out.deliverables?.some((d) => d.payload.type === 'render3d')).toBe(true);
+    expect(out.explanation).toBeUndefined();
+  });
+
+  it('generate-from-canvas: un entregable no-render (memoria) no pide explicación', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId);
+
+    // chat global devuelve content 'texto'; si se pidiera explicación, saldría.
+    const out = await advance(deps, pid, {
+      action: 'generate-from-canvas',
+      estilo: 'nordico',
+      entregable: 'memoria',
+      objetivo: 'reformar',
+      promptLibre: '',
+      description: 'Sofá: junto a la pared del fondo',
+      referenceImage: { base64: 'QUJD', mimeType: 'image/png' },
+      aspectRatio: '3:2',
+      requestId: `req-${++seq}`,
+    });
+
+    // Sin render3d entre los entregables, no se genera explicación.
+    expect(out.deliverables?.some((d) => d.payload.type === 'render3d')).toBe(false);
+    expect(out.explanation).toBeUndefined();
   });
 
   it('dos avances concurrentes con la misma versión: uno gana, otro conflict', async () => {

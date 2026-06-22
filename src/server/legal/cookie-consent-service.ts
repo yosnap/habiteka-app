@@ -36,15 +36,27 @@ export async function recordCookieConsent(
 
 /** Devuelve la elección vigente del usuario; sin registro → todo denegado. */
 export async function getCookieConsent(userId: string): Promise<CookieConsentChoice> {
+  // La elección vigente la fija el registro con mayor `seq` (secuencia monotónica
+  // de inserción): garantiza "la última manda" aunque dos compartan createdAt al ms.
   const latest = await prisma.cookieConsent.findFirst({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { seq: 'desc' },
     select: { analytics: true, affiliate: true },
   });
   return {
     analytics: latest?.analytics ?? false,
     affiliate: latest?.affiliate ?? false,
   };
+}
+
+/**
+ * true si el usuario YA decidió sobre las cookies (existe algún registro), con
+ * independencia de qué eligió. "Solo necesarias" (todo a false) cuenta como una
+ * decisión: el banner no debe reaparecer tras ella.
+ */
+export async function hasCookieDecision(userId: string): Promise<boolean> {
+  const any = await prisma.cookieConsent.findFirst({ where: { userId }, select: { id: true } });
+  return any !== null;
 }
 
 /**

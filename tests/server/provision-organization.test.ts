@@ -56,7 +56,9 @@ describe('provisionOrganization', () => {
     expect(second.organizationId).toBe(first.organizationId);
     expect(await getBalance(first.organizationId)).toBe(100); // no re-acredita
 
-    const orgCount = await prisma.organization.count();
+    // Contar las orgs DE ESTE usuario (no del total: la BD de dev conserva el
+    // admin de desarrollo). Provisionar dos veces no debe crear una segunda.
+    const orgCount = await prisma.member.count({ where: { userId: user.id } });
     expect(orgCount).toBe(1);
   });
 

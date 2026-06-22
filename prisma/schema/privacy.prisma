@@ -16,6 +16,11 @@ enum ConsentPurpose {
 
 model ConsentRecord {
   id             String         @id @default(cuid())
+  // Secuencia monotónica de inserción: determina sin ambigüedad qué registro es
+  // el más reciente por (user, purpose), incluso si dos caen en el mismo
+  // milisegundo (createdAt tiene precisión de ms; un doble-clic/retry colisiona).
+  // Es lo que decide el estado actual del consentimiento (relevante para RGPD).
+  seq            BigInt         @default(autoincrement())
   userId         String
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId String
@@ -23,11 +28,11 @@ model ConsentRecord {
   purpose        ConsentPurpose
   // Versión de la política de privacidad vigente al consentir (trazabilidad).
   policyVersion  String
-  // true = consentimiento otorgado; false = revocado. La fila más reciente por
+  // true = consentimiento otorgado; false = revocado. La fila con mayor `seq` por
   // (user, purpose) determina el estado actual; las anteriores son el histórico.
   granted        Boolean
   createdAt      DateTime       @default(now())
 
-  @@index([userId, purpose, createdAt])
+  @@index([userId, purpose, seq])
   @@map("consent_record")
 }

@@ -3,10 +3,11 @@
  * organización. El borrado RGPD (art. 17) necesita la lista de objetos propios
  * en S3/MinIO para borrarlos de verdad, no solo las filas de la base de datos.
  *
- * Las refs viven en dos sitios: el `payload` de un Deliverable de tipo render
- * (`assetUrl`) y el `resultRef` de una Iteration. Se normaliza a "clave de
- * bucket": si es una URL, se toma su pathname sin la barra inicial; si ya es una
- * clave, se devuelve tal cual.
+ * Las refs viven en tres sitios: el `payload` de un Deliverable de tipo render
+ * (`assetUrl`), el `resultRef` de una Iteration y la `key` de una SourceImage
+ * (imagen de origen subida por el usuario). Se normaliza a "clave de bucket": si
+ * es una URL, se toma su pathname sin la barra inicial; si ya es una clave, se
+ * devuelve tal cual.
  */
 
 /** Normaliza una ref (URL o clave) a clave de bucket, o null si no aplica. */

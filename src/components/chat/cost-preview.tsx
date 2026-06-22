@@ -17,7 +17,7 @@ interface Props {
 export function CostPreview({ cost, onConfirm, pending }: Props) {
   const preview = costPreviewMessage(cost);
   return (
-    <div className="border-line bg-surface-muted flex items-center justify-between gap-3 rounded-[var(--radius-control)] border p-3">
+    <div className="border-line bg-surface-muted flex items-center justify-between gap-3 rounded-control border p-3">
       <span className={preview.free ? 'text-[--color-success] text-sm' : 'text-ink text-sm'}>
         {preview.message}
       </span>

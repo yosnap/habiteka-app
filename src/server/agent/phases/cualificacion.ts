@@ -37,6 +37,14 @@ export async function runQualification(
       return { collected: current, finalized: false };
     }
 
+    // El proveedor exige que los mensajes `tool` vayan precedidos del `assistant`
+    // que emitió esas `tool_calls`. Se añade primero ese mensaje del asistente.
+    messages.push({
+      role: 'assistant',
+      content: result.content ? [{ type: 'text', text: result.content }] : [],
+      toolCalls: calls,
+    });
+
     let finalize = false;
     for (const call of calls) {
       const outcome = applyToolCall(current, call);

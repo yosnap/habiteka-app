@@ -35,9 +35,12 @@ export async function recordConsent(input: RecordConsentInput): Promise<void> {
  * reciente y devuelve su `granted`. Sin registros → no consentido.
  */
 export async function hasConsent(userId: string, purpose: ConsentPurpose): Promise<boolean> {
+  // El estado actual lo fija el registro con mayor `seq` (secuencia monotónica de
+  // inserción): garantiza "el último manda" aunque dos registros compartan
+  // `createdAt` al milisegundo. Ordenar por fecha sola dejaría el ganador al azar.
   const latest = await prisma.consentRecord.findFirst({
     where: { userId, purpose },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { seq: 'desc' },
     select: { granted: true },
   });
   return latest?.granted ?? false;

@@ -23,7 +23,7 @@ interface Props {
 
 export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
   return (
-    <section className="border-line bg-surface-muted mx-auto mt-10 w-full max-w-md rounded-[var(--radius-card)] border p-5">
+    <section className="border-line bg-surface-muted mx-auto mt-10 w-full max-w-md rounded-card border p-5">
       <p className="text-ink-soft mb-3 text-xs font-medium tracking-wide uppercase">
         Modo desarrollo
       </p>
@@ -37,14 +37,14 @@ export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
         {canvasProjectId ? (
           <Link
             href={`/projects/${canvasProjectId}`}
-            className="bg-brand-500 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium text-white"
+            className="bg-brand-500 rounded-control px-3 py-2 text-sm font-medium text-white"
           >
             🎨 Abrir el canvas (proyecto de muestra)
           </Link>
         ) : null}
         <Link
           href="/proyectos"
-          className="border-brand-500 text-brand-700 hover:bg-brand-50 rounded-[var(--radius-control)] border px-3 py-2 text-sm font-medium"
+          className="border-brand-500 text-brand-700 hover:bg-brand-50 rounded-control border px-3 py-2 text-sm font-medium"
         >
           📁 Mis proyectos (frontend de usuario)
         </Link>
@@ -52,7 +52,7 @@ export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
           <Link
             key={n.href}
             href={n.href}
-            className="border-line hover:bg-surface rounded-[var(--radius-control)] border px-3 py-2 text-sm"
+            className="border-line hover:bg-surface rounded-control border px-3 py-2 text-sm"
           >
             {n.label}
           </Link>
@@ -68,7 +68,7 @@ export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
       ) : (
         <a
           href="/api/dev/login"
-          className="bg-brand-500 mt-1 inline-block rounded-[var(--radius-control)] px-4 py-2 text-sm text-white"
+          className="bg-brand-500 mt-1 inline-block rounded-control px-4 py-2 text-sm text-white"
         >
           Entrar como admin (dev)
         </a>

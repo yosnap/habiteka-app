@@ -27,9 +27,12 @@ export class ProviderImageAdapter implements ImageAdapter {
   }
 }
 
-/** Crea el proveedor según `IMAGE_PROVIDER` (flux por defecto). */
+/**
+ * Crea el proveedor según `IMAGE_PROVIDER`. Por defecto `nano-banana`, que va por
+ * OpenRouter y reutiliza `OPENROUTER_API_KEY` (no exige una key de imagen aparte).
+ */
 export function createActiveProvider(): ImageProvider {
-  const choice = process.env.IMAGE_PROVIDER ?? 'flux';
+  const choice = process.env.IMAGE_PROVIDER ?? 'nano-banana';
   switch (choice) {
     case 'flux': {
       const key = process.env.IMAGE_PROVIDER_KEY;

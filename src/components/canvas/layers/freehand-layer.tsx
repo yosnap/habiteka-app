@@ -1,10 +1,13 @@
 'use client';
 
 /**
- * Capa de trazos a mano alzada. Pinta los trazos confirmados del documento más
- * el trazo en curso (si lo hay) para feedback inmediato durante el arrastre.
+ * Contenido de trazos a mano alzada: los trazos confirmados del documento más el
+ * trazo en curso (si lo hay) para feedback inmediato durante el arrastre.
+ *
+ * Devuelve un `Group` (no un `Layer` propio) para compartir la capa de fondo con
+ * la imagen base — ver `BackgroundLayer`.
  */
-import { Layer, Line } from 'react-konva';
+import { Group, Line } from 'react-konva';
 import type { Stroke } from '@/canvas/types';
 
 interface Props {
@@ -12,10 +15,10 @@ interface Props {
   draft: Stroke | null;
 }
 
-export function FreehandLayer({ strokes, draft }: Props) {
+export function FreehandContent({ strokes, draft }: Props) {
   const all = draft ? [...strokes, draft] : strokes;
   return (
-    <Layer listening={false}>
+    <Group>
       {all.map((s) => (
         <Line
           key={s.id}
@@ -27,6 +30,6 @@ export function FreehandLayer({ strokes, draft }: Props) {
           tension={0.4}
         />
       ))}
-    </Layer>
+    </Group>
   );
 }

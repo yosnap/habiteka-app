@@ -13,7 +13,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
     <article
       draggable
       onDragStart={(e) => onProductDragStart(e, product.id)}
-      className="border-line flex w-40 cursor-grab flex-col gap-1 rounded-[var(--radius-card)] border p-2"
+      className="border-line flex w-40 cursor-grab flex-col gap-1 rounded-card border p-2"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={product.imageUrl} alt="" className="aspect-square w-full rounded object-cover" />

@@ -25,6 +25,13 @@ enum DeliverableType {
   MEMORIA
 }
 
+// Rol de una imagen de origen subida por el usuario. PRIMARY es la referencia que
+// alimenta el diseño; DETAIL son tomas adicionales del mismo espacio.
+enum SourceImageRole {
+  PRIMARY
+  DETAIL
+}
+
 // Estado de la suscripción gestionada por el proveedor de pagos.
 enum SubscriptionStatus {
   ACTIVE

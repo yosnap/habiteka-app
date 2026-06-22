@@ -127,5 +127,9 @@
   }
   html {
     @apply font-sans;
+    /* Tamaño de fuente raíz: 18px en vez de los 16px por defecto del navegador. Como
+       toda la UI usa unidades rem (text-xs/sm/base…), subir la raíz +2px agranda TODO
+       el texto de forma proporcional, sin tocar cada componente. */
+    font-size: 18px;
   }
 }

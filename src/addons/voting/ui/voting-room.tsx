@@ -40,7 +40,7 @@ export function VotingRoom({ roomId, elements }: Props) {
         {elements.map((e) => (
           <li
             key={e.targetRef}
-            className="border-line flex items-center justify-between rounded-[var(--radius-control)] border px-3 py-2"
+            className="border-line flex items-center justify-between rounded-control border px-3 py-2"
           >
             <span className="text-sm">{e.label}</span>
             <span className="flex items-center gap-2">

@@ -65,7 +65,7 @@ export function ImageUpload({ onUpload, disabled }: Props) {
   // Sin consentimiento de tratamiento de imágenes, no se permite subir (RGPD).
   if (consented === false) {
     return (
-      <div className="border-line bg-surface-muted flex flex-col gap-2 rounded-[var(--radius-control)] border p-3 text-sm">
+      <div className="border-line bg-surface-muted flex flex-col gap-2 rounded-control border p-3 text-sm">
         <p className="text-ink-soft">
           Para analizar tu foto con IA necesitamos tu consentimiento. La imagen se trata según
           nuestra política de privacidad (se eliminan los metadatos y se difuminan las caras antes

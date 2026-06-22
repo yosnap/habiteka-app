@@ -20,7 +20,7 @@ import { aiError } from '../../errors';
 // partir de mediciones reales del comparativo del spike).
 const NANO_BANANA_USD_PER_IMAGE = 0.04;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash-image';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
 
 interface ContentPart {
   type: 'text' | 'image_url';
@@ -40,6 +40,9 @@ export class NanoBananaImageProvider implements ImageProvider {
   constructor(
     private readonly apiKey: string,
     private readonly storage?: StorageAdapter,
+    // Slug del modelo de imagen en OpenRouter. Por defecto Gemini Flash Image; se
+    // puede inyectar otro modelo del mismo canal (p. ej. FLUX) sin duplicar cliente.
+    private readonly model: string = DEFAULT_MODEL,
   ) {}
 
   async generate(req: ImageGenRequest): Promise<ImageResult> {
@@ -69,18 +72,18 @@ export class NanoBananaImageProvider implements ImageProvider {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: this.model,
         modalities: ['text', 'image'],
         messages: [{ role: 'user', content }],
       }),
     });
     if (!res.ok) {
-      throw aiError('provider_down', `Nano Banana (OpenRouter) respondió ${res.status}`);
+      throw aiError('provider_down', `OpenRouter (${this.model}) respondió ${res.status}`);
     }
     const data = (await res.json()) as OpenRouterImageResponse;
     const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!url) {
-      throw aiError('provider_down', 'Nano Banana no devolvió imagen en la respuesta');
+      throw aiError('provider_down', `OpenRouter (${this.model}) no devolvió imagen`);
     }
 
     const assetUrl = await this.persist(url);

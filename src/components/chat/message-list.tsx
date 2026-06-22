@@ -33,7 +33,7 @@ function Bubble({ role, text }: { role: 'user' | 'assistant'; text: string }) {
   return (
     <div
       className={[
-        'max-w-[80%] rounded-[var(--radius-card)] px-3 py-2 text-sm whitespace-pre-wrap',
+        'max-w-[80%] rounded-card px-3 py-2 text-sm whitespace-pre-wrap',
         isUser ? 'bg-brand-500 self-end text-white' : 'bg-surface-muted text-ink self-start',
       ].join(' ')}
     >
