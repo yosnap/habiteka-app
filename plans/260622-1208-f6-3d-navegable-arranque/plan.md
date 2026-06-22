@@ -26,16 +26,34 @@ extruidos, suelo, muebles glTF colocados por geometría, cámara orbital. Es la 
 - Cámara v1 = OrbitControls (recomendado, suficiente). PointerLock (1ª persona) = v2 futuro.
 - 3D **complementa** el render IA (entregables distintos), no lo sustituye.
 
+## Ajustes del /ck:predict (jun-2026, veredicto GO con 3 ajustes)
+El debate de personas aprobó el enfoque (GO) con estos ajustes ya incorporados a las fases:
+1. **El spike F6.0 DEBE cargar ≥1 modelo glTF real de Kenney** (no solo muros/suelo). Lo que pesa y
+   baja FPS son los modelos+texturas+draw calls, no las cajas. Un spike de sala vacía daría un GO
+   falso. → incorporado a F6.0.
+2. **Fijar umbral de rendimiento ANTES del spike** para que el GO/NO-GO sea objetivo: **≥30 FPS en
+   portátil medio (escritorio); móvil = best-effort en v1**. → criterio de F6.0.
+3. **F6.1 incluye tests de la conversión pura px→m y del mapeo de ejes** (Konva Y-abajo → Three
+   Y-arriba/Z-profundidad). Es la fuente de bugs sutiles de desalineación 2D↔3D y es lógica pura
+   testeable sin render. → incorporado a F6.1.
+4. Menor: **sombras OFF por defecto en v1** (F6.3); activar solo si el FPS lo permite.
+Red-team/security: descartado formalmente — F6 es render cliente sin datos nuevos ni auth nueva; el
+code-review por fase basta.
+
 ## Fases (cada una = PR; orden estricto)
 
 ### F6.0 · Spike de viabilidad (GO/NO-GO del stack) → phase-f6-0-spike-viabilidad.md
-Sala vacía (muros + suelo) desde un `CanvasDoc` real con R3F + OrbitControls. Medir bundle y FPS.
-Verificar escala correcta contra las cotas del 2D. Decide si el stack es viable. **Desechable.**
+Sala (muros + suelo) desde un `CanvasDoc` real con R3F + OrbitControls **Y ≥1 modelo glTF real de
+Kenney cargado** (ajuste 1 del predict: probar lo caro, no solo cajas). Verificar escala correcta
+contra las cotas del 2D. **Umbral GO (ajuste 2): ≥30 FPS en portátil medio; móvil best-effort.**
+Medir bundle (peso que añaden three/R3F/drei + el glTF). Decide GO/NO-GO del stack. **Desechable.**
 
 ### F6.1 · doc→escena 3D (geometría base) → phase-f6-1-doc-a-escena.md
 Conversión robusta del `CanvasDoc` a escena: muros (cajas extruidas a `ceilingHeightM`, grosor),
 suelo del polígono, sistema de coordenadas px→metros. Sin muebles aún. Lógica pura testeable
-(mapeo doc→primitivas 3D) separada del render.
+(mapeo doc→primitivas 3D) separada del render. **Tests obligatorios (ajuste 3 del predict): conversión
+px→m y mapeo de ejes (Konva Y-abajo → Three Y-arriba/Z-profundidad)** — un punto del plano → su
+coordenada 3D esperada. Es la fuente de bugs de desalineación 2D↔3D.
 
 ### F6.2 · Pipeline de assets + muebles glTF → phase-f6-2-pipeline-muebles.md
 Integrar Kenney Kit; mapa declarativo kind→glTF; cargador cacheado (`useGLTF` + preload). Colocar
