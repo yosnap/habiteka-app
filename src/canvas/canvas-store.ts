@@ -62,8 +62,6 @@ interface CanvasState {
   redo(): void;
 }
 
-let cloneSeq = 0;
-
 const HISTORY_LIMIT = 50;
 
 export const useCanvasStore = create<CanvasState>((set) => {
@@ -130,8 +128,7 @@ export const useCanvasStore = create<CanvasState>((set) => {
         const clones = d.objects
           .filter((o) => ids.includes(o.id))
           .map((o) => {
-            cloneSeq += 1;
-            const id = `obj-clone-${cloneSeq}`;
+            const id = `obj-clone-${globalThis.crypto.randomUUID()}`;
             newIds.push(id);
             return { ...o, id, x: o.x + 20, y: o.y + 20 };
           });
@@ -174,8 +171,7 @@ export const useCanvasStore = create<CanvasState>((set) => {
 
     groupObjects: (ids) => {
       if (ids.length < 2) return;
-      cloneSeq += 1;
-      const groupId = `grp-${cloneSeq}`;
+      const groupId = `grp-${globalThis.crypto.randomUUID()}`;
       mutate((d) => ({
         ...d,
         objects: d.objects.map((o) => (ids.includes(o.id) ? { ...o, groupId } : o)),

@@ -24,7 +24,7 @@ describe('canvas-clipboard — portapapeles del editor (module-level)', () => {
     expect(clones[0]?.y).toBe(25);
   });
 
-  it('pegados sucesivos no colisionan en id (secuencia avanza)', () => {
+  it('pegados sucesivos no colisionan en id (UUID único por clon)', () => {
     setClipboard([obj('a')]);
     const first = takeClipboardClones();
     const second = takeClipboardClones();

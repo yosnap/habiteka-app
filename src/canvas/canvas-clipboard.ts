@@ -7,12 +7,13 @@
  * cortar en una zona y pegar en otra funciona (caso de uso natural del multi-zona).
  *
  * Solo guarda objetos (`StructObj`); es efímero en memoria de la pestaña (no se
- * persiste). `pasteSeq` da ids únicos a los pegados para no colisionar.
+ * persiste). Los pegados reciben ids por UUID para no colisionar con los originales
+ * ni entre pegados de distintas sesiones (un contador de módulo reiniciaría a 0 al
+ * recargar y repetiría ids ya usados).
  */
 import type { StructObj } from './types';
 
 let buffer: StructObj[] = [];
-let pasteSeq = 0;
 
 /** Copia un conjunto de objetos al portapapeles (reemplaza el contenido previo). */
 export function setClipboard(objects: StructObj[]): void {
@@ -26,12 +27,14 @@ export function hasClipboard(): boolean {
 
 /**
  * Devuelve clones de los objetos copiados, desplazados y con ids nuevos, listos
- * para insertar. Cada llamada avanza la secuencia para que pegados sucesivos no
- * colisionen en id ni se solapen exactamente.
+ * para insertar. Cada clon recibe un id único (UUID) para no colisionar ni
+ * solaparse exactamente con los originales ni con pegados anteriores.
  */
 export function takeClipboardClones(offset = 20): StructObj[] {
-  return buffer.map((o) => {
-    pasteSeq += 1;
-    return { ...o, id: `obj-paste-${pasteSeq}`, x: o.x + offset, y: o.y + offset };
-  });
+  return buffer.map((o) => ({
+    ...o,
+    id: `obj-paste-${globalThis.crypto.randomUUID()}`,
+    x: o.x + offset,
+    y: o.y + offset,
+  }));
 }

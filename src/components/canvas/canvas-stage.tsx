@@ -35,8 +35,10 @@ interface Props {
   onContextMenu?: (screenX: number, screenY: number, objectId: string | null) => void;
 }
 
-let objectSeq = 0;
-let zoneSeq = 0;
+// Ids únicos por UUID, no por contador de módulo: un contador arranca en 0 al
+// cargar el módulo y, al colocar el primer objeto, generaría `obj-1` chocando con
+// objetos ya presentes en el doc cargado (seed/detección usan ese patrón) → keys
+// duplicadas en React. El UUID es independiente del contenido del doc.
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
@@ -168,8 +170,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       } else if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
-        objectSeq += 1;
-        const id = `obj-${objectSeq}`;
+        const id = `obj-${globalThis.crypto.randomUUID()}`;
         // Con escala activa, el objeto nace con sus MEDIDAS REALES del catálogo
         // convertidas a px (una puerta de 0,9 m, no "lo que midan 60 px"). Sin
         // escala, usa el tamaño en px por defecto. Lógica pura en `catalogSizePx`.
@@ -235,8 +236,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       }
       setMarquee(null);
     } else if (tool === 'zone' && marquee) {
-      zoneSeq += 1;
-      const zone = pixelRectToZone(`zone-${zoneSeq}`, marquee, { width, height });
+      const zone = pixelRectToZone(`zone-${globalThis.crypto.randomUUID()}`, marquee, { width, height });
       const bbox = zone.bbox;
       if (bbox) {
         setSelection({
