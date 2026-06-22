@@ -20,6 +20,7 @@ import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
 import { DesignWizard } from './wizard/design-wizard';
+import { autofurnish } from '@/canvas/wizard/autofurnish';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
@@ -339,12 +340,16 @@ export function CanvasWorkspace({
       {showWizard ? (
         <DesignWizard
           onSkip={() => setShowWizard(false)}
-          onCreate={(doc) => {
-            // Carga la sala generada en el editor y la PERSISTE de inmediato (flush sin
-            // debounce): el autosave por debounce podría cancelarse si el usuario navega o
-            // abre el 3D antes de los 800 ms, perdiendo la sala (red-team).
-            useCanvasStore.getState().load(doc);
-            void saveAction(projectId, serializeCanvas(doc));
+          onCreate={(doc, roomType) => {
+            // Amuebla la sala según su tipo (procedural, sin IA) y la carga en el editor;
+            // la PERSISTE de inmediato (flush sin debounce): el autosave por debounce podría
+            // cancelarse si el usuario navega o abre el 3D antes de los 800 ms (red-team).
+            const furnished: CanvasDoc = {
+              ...doc,
+              objects: [...doc.objects, ...autofurnish(doc, roomType)],
+            };
+            useCanvasStore.getState().load(furnished);
+            void saveAction(projectId, serializeCanvas(furnished));
             setShowWizard(false);
           }}
         />

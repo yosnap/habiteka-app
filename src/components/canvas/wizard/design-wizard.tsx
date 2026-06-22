@@ -1,64 +1,96 @@
 'use client';
 
 /**
- * Asistente de diseño guiado (F7.4), estilo Planner5D. Desde un proyecto/zona vacío guía al
- * usuario por pasos: dimensiones de la sala → tipo de sala → crear. Genera un `CanvasDoc` con
- * el contorno de muros (lógica pura `buildRoomDoc`) y lo entrega al workspace, que lo carga y
- * lo persiste. El auto-amueblado por tipo de sala llega en F7.5; aquí el tipo solo se elige.
+ * Asistente de diseño guiado (F7.4/F7.8), estilo Planner5D. Desde una zona vacía guía al
+ * usuario: medidas de la sala (con sliders y previsualización en vivo) → tipo de sala → crear.
+ * Genera un `CanvasDoc` con el contorno de muros (lógica pura `buildRoomDoc`) y lo entrega al
+ * workspace, que lo amuebla según el tipo, lo carga y lo persiste.
  *
  * Diálogo accesible (rol dialog + Escape). Se puede saltar para dibujar a mano.
  */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { buildRoomDoc, isValidRoom } from '@/canvas/wizard/build-room-doc';
+import { ROOM_TYPES, type RoomType } from '@/canvas/wizard/room-types';
 import type { CanvasDoc } from '@/canvas/types';
 
-/** Tipos de sala ofrecidos (el set de auto-amueblado por tipo es F7.5). */
-export const ROOM_TYPES = [
-  { id: 'salon', label: 'Salón' },
-  { id: 'dormitorio', label: 'Dormitorio' },
-  { id: 'cocina', label: 'Cocina' },
-  { id: 'bano', label: 'Baño' },
-] as const;
+export type { RoomType };
 
-export type RoomType = (typeof ROOM_TYPES)[number]['id'];
+/** Icono (emoji) por tipo de sala, para hacer los chips reconocibles de un vistazo. */
+const ROOM_ICONS: Record<RoomType, string> = {
+  salon: '🛋️',
+  dormitorio: '🛏️',
+  cocina: '🍳',
+  bano: '🛁',
+};
+
+/** Límites de las medidas (m) para los sliders. */
+const MIN_M = 1.5;
+const MAX_M = 12;
+const MIN_H = 2;
+const MAX_H = 4;
 
 interface Props {
-  /** Recibe el doc generado (y el tipo elegido, para F7.5) y lo aplica en el editor. */
   onCreate: (doc: CanvasDoc, roomType: RoomType) => void;
-  /** Cierra el asistente sin crear (dibujar a mano). */
   onSkip: () => void;
 }
 
+/** Previsualización en vivo de la sala (planta a escala dentro de un recuadro fijo). */
+function RoomPreview({ widthM, lengthM }: { widthM: number; lengthM: number }) {
+  const BOX = 120; // lado del área de preview (px)
+  const PAD = 10;
+  const w = Number.isFinite(widthM) && widthM > 0 ? widthM : 1;
+  const l = Number.isFinite(lengthM) && lengthM > 0 ? lengthM : 1;
+  const scale = (BOX - 2 * PAD) / Math.max(w, l);
+  const rw = w * scale;
+  const rl = l * scale;
+  return (
+    <svg width={BOX} height={BOX} viewBox={`0 0 ${BOX} ${BOX}`} aria-hidden className="shrink-0">
+      <rect x={0} y={0} width={BOX} height={BOX} fill="#f0ebe1" rx={6} />
+      <rect
+        x={(BOX - rw) / 2}
+        y={(BOX - rl) / 2}
+        width={rw}
+        height={rl}
+        fill="#ffffff"
+        stroke="#6b6258"
+        strokeWidth={3}
+      />
+      <text x={BOX / 2} y={BOX - 3} textAnchor="middle" fontSize={9} fill="#6b6258" fontFamily="monospace">
+        {w} × {l} m
+      </text>
+    </svg>
+  );
+}
+
 export function DesignWizard({ onCreate, onSkip }: Props) {
-  const [widthM, setWidthM] = useState('4');
-  const [lengthM, setLengthM] = useState('3');
-  const [ceilingM, setCeilingM] = useState('2.5');
+  const [widthM, setWidthM] = useState(4);
+  const [lengthM, setLengthM] = useState(3);
+  const [ceilingM, setCeilingM] = useState(2.5);
   const [roomType, setRoomType] = useState<RoomType>('salon');
 
-  const params = {
-    widthM: parseFloat(widthM.replace(',', '.')),
-    lengthM: parseFloat(lengthM.replace(',', '.')),
-    ceilingHeightM: parseFloat(ceilingM.replace(',', '.')),
-  };
+  const params = { widthM, lengthM, ceilingHeightM: ceilingM };
   const valid = isValidRoom(params);
 
   const create = () => {
-    if (!valid) return;
-    onCreate(buildRoomDoc(params), roomType);
+    if (valid) onCreate(buildRoomDoc(params), roomType);
   };
 
-  const field = (label: string, value: string, set: (v: string) => void) => (
-    <label className="flex flex-1 flex-col gap-1">
-      <span className="text-ink-soft text-xs">{label}</span>
+  const slider = (label: string, value: number, set: (v: number) => void, min: number, max: number) => (
+    <label className="flex flex-col gap-1">
+      <span className="text-ink-soft flex justify-between text-xs">
+        <span>{label}</span>
+        <span className="tabular-nums">{value} m</span>
+      </span>
       <input
-        type="number"
-        inputMode="decimal"
-        step="0.1"
-        min="0"
+        type="range"
+        min={min}
+        max={max}
+        step={0.1}
         value={value}
-        onChange={(e) => set(e.target.value)}
-        className="border-line text-ink rounded-control border px-2 py-1 text-sm tabular-nums"
+        onChange={(e) => set(parseFloat(e.target.value))}
+        aria-label={label}
+        className="accent-brand-500"
       />
     </label>
   );
@@ -73,45 +105,44 @@ export function DesignWizard({ onCreate, onSkip }: Props) {
         if (e.key === 'Escape') onSkip();
       }}
     >
-      <div className="bg-surface w-full max-w-sm rounded-card border border-line p-4 shadow-lg">
+      <div className="bg-surface w-full max-w-md rounded-card border border-line p-4 shadow-lg">
         <h2 className="text-ink mb-1 text-base font-medium">Crear tu sala</h2>
         <p className="text-ink-soft mb-3 text-xs">
-          Indica las medidas y el tipo de sala; dibujaremos las paredes por ti. Luego puedes
-          editar el plano o añadir muebles.
+          Ajusta las medidas y elige el tipo; dibujamos las paredes y colocamos los muebles. Luego
+          puedes editarlo todo.
         </p>
 
-        <div className="mb-3 flex flex-col gap-3">
-          <div className="flex gap-2">
-            {field('Ancho (m)', widthM, setWidthM)}
-            {field('Largo (m)', lengthM, setLengthM)}
-            {field('Alto (m)', ceilingM, setCeilingM)}
+        <div className="mb-3 flex gap-4">
+          <RoomPreview widthM={widthM} lengthM={lengthM} />
+          <div className="flex flex-1 flex-col gap-2">
+            {slider('Ancho', widthM, setWidthM, MIN_M, MAX_M)}
+            {slider('Largo', lengthM, setLengthM, MIN_M, MAX_M)}
+            {slider('Alto', ceilingM, setCeilingM, MIN_H, MAX_H)}
           </div>
+        </div>
 
-          <div>
-            <span className="text-ink-soft mb-1 block text-xs">Tipo de sala</span>
-            <div className="flex flex-wrap gap-1">
-              {ROOM_TYPES.map((rt) => (
-                <button
-                  key={rt.id}
-                  type="button"
-                  onClick={() => setRoomType(rt.id)}
-                  className={
-                    roomType === rt.id
-                      ? 'bg-brand-500 rounded-control px-2 py-1 text-sm text-white'
-                      : 'text-ink hover:bg-surface-muted rounded-control px-2 py-1 text-sm'
-                  }
-                >
-                  {rt.label}
-                </button>
-              ))}
-            </div>
+        <div className="mb-4">
+          <span className="text-ink-soft mb-1 block text-xs">Tipo de sala</span>
+          <div className="grid grid-cols-4 gap-1">
+            {ROOM_TYPES.map((rt) => (
+              <button
+                key={rt.id}
+                type="button"
+                onClick={() => setRoomType(rt.id)}
+                className={
+                  'flex flex-col items-center gap-1 rounded-control border px-1 py-2 text-xs transition-colors ' +
+                  (roomType === rt.id
+                    ? 'border-brand-500 bg-brand-500/10 text-ink'
+                    : 'border-line text-ink-soft hover:bg-surface-muted')
+                }
+              >
+                <span className="text-lg" aria-hidden>
+                  {ROOM_ICONS[rt.id]}
+                </span>
+                {rt.label}
+              </button>
+            ))}
           </div>
-
-          {!valid ? (
-            <p className="text-destructive text-xs" role="alert">
-              Introduce medidas positivas para ancho, largo y alto.
-            </p>
-          ) : null}
         </div>
 
         <div className="flex justify-between gap-2">
