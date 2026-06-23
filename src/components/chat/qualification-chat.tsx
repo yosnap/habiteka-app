@@ -72,8 +72,8 @@ export function QualificationChat({
       setTosAccepted(true);
     });
 
-  const pushTurn = (role: 'user' | 'assistant', text: string) =>
-    setTurns((prev) => [...prev, { id: `t${++turnSeq}`, role, text }]);
+  const pushTurn = (role: 'user' | 'assistant', text: string, imageUrl?: string) =>
+    setTurns((prev) => [...prev, { id: `t${++turnSeq}`, role, text, ...(imageUrl ? { imageUrl } : {}) }]);
 
   // Ejecuta una acción del agente y refleja la fase y el estado resultantes; ante
   // un error de guarda, lo muestra como mensaje en vez de romper la pantalla.
@@ -92,13 +92,16 @@ export function QualificationChat({
     });
   };
 
-  const onUploadImage = (image: UploadedImage) =>
+  const onUploadImage = (image: UploadedImage) => {
+    // Muestra la imagen subida en el chat (data URL) para que el usuario compruebe qué
+    // envió sin abrir el explorador. El `run` va sin echo para no duplicar el turno.
+    pushTurn('user', '📷 Imagen del espacio subida', `data:${image.mimeType};base64,${image.base64}`);
     run(
       {
         action: 'ingest',
         image: [{ type: 'image_url', base64: image.base64, mimeType: image.mimeType }],
       },
-      '📷 Imagen del espacio subida',
+      undefined,
       (out) => {
         if (out.detected) {
           const d = out.detected;
@@ -111,6 +114,7 @@ export function QualificationChat({
         if (out.disclaimer) pushTurn('assistant', out.disclaimer);
       },
     );
+  };
 
   const onConfirmDetection = () =>
     run({ action: 'confirm-detection' }, '✅ Confirmo lo detectado', () =>
