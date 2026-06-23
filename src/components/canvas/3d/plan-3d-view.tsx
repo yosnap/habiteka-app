@@ -19,6 +19,7 @@ import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
 import { cameraForAngle, type ViewAngle } from '@/canvas/3d/camera-views';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import type { SelectionMode } from './use-3d-selection';
+import { TransformGizmo } from './transform-gizmo';
 import { FurnitureLayer } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
 import { GlassLayer } from './glass-layer';
@@ -319,6 +320,15 @@ export function Plan3DView({
             onSetMode={onSetMode ?? (() => {})}
           />
         </Suspense>
+        {/* Gizmo de transformación (F2): monta cuando hay modo activo. OrbitControls ya
+            tiene makeDefault → TransformControls lo silencia automáticamente al arrastrar. */}
+        {selectedId && mode && mode !== 'none' ? (
+          <TransformGizmo
+            selectedId={selectedId}
+            mode={mode}
+            scene={{ planCenterPx: scene.planCenterPx, pxPerMeter: scene.pxPerMeter }}
+          />
+        ) : null}
         <Grid
           args={[span * 3, span * 3]}
           cellSize={1}
