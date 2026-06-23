@@ -17,6 +17,7 @@ import type { CanvasDoc, StructKind, StructObj } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
 import { associateOpening, splitWallWithOpenings } from './wall-openings';
+import { floorPolygonFromWalls } from './floor-from-walls';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -421,16 +422,23 @@ export function docToScene(doc: CanvasDoc): Scene3D {
         pxToMeters(floorCenterPx[1] - center[1], { pxPerMeter }),
       ],
     };
-    // Suelo poligonal (formas no rectangulares): el doc trae el contorno interior en px.
-    // Se mapea a XZ relativo al centro de la escena (X-2D→X, Y-2D→Z), igual que los muros.
-    // El `size`/`center` rectangular se conservan (cámara y grid los usan).
+    // Suelo poligonal: el contorno se DERIVA de los muros ACTUALES (huella encerrada por
+    // ellos), de modo que el 3D sigue siempre al 2D aunque el usuario edite muros. Solo si
+    // esa derivación no es posible (pocos muros, huella degenerada) se cae al `floorOutline`
+    // del doc (foto al crear la sala) y, en último término, al suelo rectangular del bbox.
+    // El `size`/`center` rectangular se conservan (cámara y grid los usan). Mapeo px→XZ
+    // relativo al centro de la escena (X-2D→X, Y-2D→Z), igual que los muros.
+    const toXZ = (p: { x: number; y: number }): [number, number] => [
+      pxToMeters(p.x - center[0], { pxPerMeter }),
+      pxToMeters(p.y - center[1], { pxPerMeter }),
+    ];
+    const derived = floorPolygonFromWalls(wallsForFloor);
+    if (derived && derived.length >= 3) {
+      return { ...rect, polygon: derived.map(toXZ) };
+    }
     const outline = doc.floorOutline;
     if (outline && outline.length >= 3) {
-      const polygon: Array<[number, number]> = outline.map((p) => [
-        pxToMeters(p.x - center[0], { pxPerMeter }),
-        pxToMeters(p.y - center[1], { pxPerMeter }),
-      ]);
-      return { ...rect, polygon };
+      return { ...rect, polygon: outline.map(toXZ) };
     }
     return rect;
   })();

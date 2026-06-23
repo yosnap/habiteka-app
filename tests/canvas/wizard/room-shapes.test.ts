@@ -178,21 +178,26 @@ describe('room-shapes: formas no rectangulares', () => {
 });
 
 describe('build-room-doc: suelo poligonal en formas no rectangulares', () => {
-  it('el rectángulo NO lleva floorOutline (suelo por bbox, sin regresión)', () => {
+  it('el rectángulo no guarda floorOutline; el suelo 3D se deriva de los muros (4 vértices)', () => {
     const doc = buildShapeDoc({ shape: { shape: 'rect', widthM: 5, lengthM: 4 }, ceilingHeightM: 2.5 });
     expect(doc.floorOutline).toBeUndefined();
-    expect(docToScene(doc).floor.polygon).toBeUndefined();
+    // El suelo 3D ahora SIEMPRE se deriva de los muros (sigue al 2D): un rect da 4 vértices.
+    const poly = docToScene(doc).floor.polygon;
+    expect(poly).toBeDefined();
+    expect(poly).toHaveLength(4);
   });
 
-  it('la L lleva floorOutline y docToScene expone el polígono del suelo', () => {
+  it('la L guarda floorOutline y el suelo 3D (derivado de muros) tiene forma de L', () => {
     const doc = buildShapeDoc({
       shape: { shape: 'l', widthM: 5, lengthM: 4, cutWidthM: 2, cutLengthM: 2 },
       ceilingHeightM: 2.5,
     });
     expect(doc.floorOutline).toHaveLength(6);
     const scene = docToScene(doc);
+    // El suelo se deriva de la huella de muros (no del floorOutline congelado): una L tiene
+    // un escalón → más de 4 vértices.
     expect(scene.floor.polygon).toBeDefined();
-    expect(scene.floor.polygon).toHaveLength(6);
+    expect(scene.floor.polygon!.length).toBeGreaterThan(4);
     // El bbox del suelo (size) sigue siendo el del interior (≈5×4 m).
     expect(scene.floor.size[0]).toBeGreaterThanOrEqual(5);
     expect(scene.floor.size[1]).toBeGreaterThanOrEqual(4);
