@@ -60,6 +60,8 @@ export const CATALOG: CatalogCategory[] = [
       { kind: 'nevera', label: 'Nevera', defaultWidth: 70, defaultHeight: 70, realWidthM: 0.7, realDepthM: 0.7 },
       { kind: 'horno', label: 'Horno', defaultWidth: 60, defaultHeight: 60, realWidthM: 0.6, realDepthM: 0.6 },
       { kind: 'isla', label: 'Isla', defaultWidth: 160, defaultHeight: 90, realWidthM: 1.6, realDepthM: 0.9 },
+      { kind: 'vitroceramica', label: 'Vitrocerámica', defaultWidth: 60, defaultHeight: 60, realWidthM: 0.6, realDepthM: 0.6 },
+      { kind: 'microondas', label: 'Microondas', defaultWidth: 55, defaultHeight: 38, realWidthM: 0.55, realDepthM: 0.38 },
     ],
   },
   {

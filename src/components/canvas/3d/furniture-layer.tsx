@@ -158,7 +158,7 @@ function FurnitureModel({
   return (
     <group
       name={item.id}
-      position={[item.center[0], 0, item.center[2]]}
+      position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => {
         e.stopPropagation();
@@ -195,7 +195,7 @@ function FurniturePlaceholder({
   return (
     <group
       name={item.id}
-      position={[item.center[0], 0, item.center[2]]}
+      position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => {
         e.stopPropagation();

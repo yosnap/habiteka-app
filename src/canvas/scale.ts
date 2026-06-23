@@ -149,6 +149,9 @@ const TYPICAL_HEIGHT_M: Partial<Record<StructKind, number>> = {
   banera: 0.6,
   ducha: 2.0,
   bidet: 0.4,
+  // Cocina (nuevos)
+  vitroceramica: 0.05, // placa de inducción: superficie de cristal muy plana
+  microondas: 0.35,
   // Electrónica / decoración
   tv: 0.7,
   ordenador: 0.5,

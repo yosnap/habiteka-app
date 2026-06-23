@@ -23,6 +23,8 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   nevera: true,
   horno: true,
   isla: true,
+  vitroceramica: true,
+  microondas: true,
   // mobiliario
   cama: true,
   sofa: true,

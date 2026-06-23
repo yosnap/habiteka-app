@@ -141,7 +141,10 @@ export interface FloorRect {
 export interface FurnitureItem {
   id: string;
   kind: StructKind;
-  /** Centro en metros: [x, y, z], con y = altura/2 (apoyado en el suelo). */
+  /**
+   * Centro en metros: [x, y, z], con y = floorElevationM + altura/2.
+   * El SelectionOverlay usa center[1] para colocar la caja wireframe.
+   */
   center: [number, number, number];
   /** Tamaño real en metros: [ancho(X), alto(Y), fondo(Z)]. */
   size: [number, number, number];
@@ -149,6 +152,11 @@ export interface FurnitureItem {
   rotationY: number;
   /** Volteo horizontal (espejo en X): refleja el objeto, como en el plano 2D. */
   flipX: boolean;
+  /**
+   * Altura de la base del mueble sobre el suelo (metros). 0 = apoyado en el suelo.
+   * Ejemplos: vitrocerámica sobre encimera (0.85), microondas en estante (1.35).
+   */
+  floorElevationM: number;
 }
 
 /**
@@ -336,6 +344,16 @@ export function limitLights(lights: SceneLight[], max = MAX_LIGHTS): SceneLight[
 }
 
 /**
+ * Altura de la BASE del mueble sobre el suelo (metros) por kind.
+ * 0 = apoyado en el suelo (valor por defecto para los que no aparecen aquí).
+ * Se usa para colocar verticalmente ítems que descansan sobre otros muebles.
+ */
+const FLOOR_ELEVATION_M: Partial<Record<StructKind, number>> = {
+  vitroceramica: 0.85, // descansa sobre la encimera (~0.85m de alto)
+  microondas: 1.35,    // en estante por encima de la encimera
+};
+
+/**
  * Construye la escena 3D (suelo + muros) a partir del doc. Los muros/ventanas/puertas
  * se tratan como cajas estructurales (sin huecos: refinamiento posterior). El suelo es
  * el bounding box del contorno estructural (o de todos los objetos si no hay muros).
@@ -352,13 +370,15 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     const w = pxToMeters(o.width, { pxPerMeter });
     const d = pxToMeters(o.height, { pxPerMeter });
     const h = effectiveHeightM(o, ceilingHeightM);
+    const elevM = FLOOR_ELEVATION_M[o.kind] ?? 0;
     return {
       id: o.id,
       kind: o.kind,
-      center: [x, h / 2, z],
+      center: [x, elevM + h / 2, z],
       size: [w, h, d],
       rotationY: rotation2DToY(o.rotation),
       flipX: o.flipX === true,
+      floorElevationM: elevM,
     };
   });
 

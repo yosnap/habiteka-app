@@ -30,7 +30,14 @@ export interface Stroke {
 // Transformer sirven para todos; solo cambia cómo se dibuja cada uno.
 export type StructuralKind = 'wall' | 'window' | 'door';
 export type SanitaryKind = 'inodoro' | 'lavabo' | 'ducha' | 'banera' | 'bidet';
-export type KitchenKind = 'fregadero' | 'encimera' | 'nevera' | 'horno' | 'isla';
+export type KitchenKind =
+  | 'fregadero'
+  | 'encimera'
+  | 'nevera'
+  | 'horno'
+  | 'isla'
+  | 'vitroceramica'
+  | 'microondas';
 export type FurnitureKind =
   | 'cama'
   | 'sofa'
