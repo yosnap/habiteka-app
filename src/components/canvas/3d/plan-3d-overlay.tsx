@@ -14,14 +14,14 @@
  * bundle del editor 2D y solo se descargan cuando el usuario abre el 3D.
  */
 import dynamic from 'next/dynamic';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { CanvasDoc } from '@/canvas/types';
 import type { Estilo } from '@/lib/contracts';
 import { ESTILOS } from '@/lib/design-options';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import { useMountEffect } from '@/lib/use-mount-effect';
 import { generateViewFrom3D } from '@/app/(app)/projects/[id]/_actions/agent-actions';
+import { use3DSelection } from './use-3d-selection';
 
 const Plan3DView = dynamic(() => import('./plan-3d-view').then((m) => m.Plan3DView), {
   ssr: false,
@@ -55,14 +55,24 @@ export function Plan3DOverlay({
   // Menú contextual de pared: id del muro + posición en pantalla del clic derecho.
   const [wallMenu, setWallMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  // Cerrar con Escape (listener de montaje con limpieza, patrón del menú contextual).
-  useMountEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+  // Selección 3D: id del mueble seleccionado + modo activo (translate/rotate para F2).
+  const { selectedId, select, clear, mode, setMode } = use3DSelection();
+
+  // Escape: si hay un modo activo (gizmo), lo cancela primero (no cierra el overlay).
+  // Solo si mode === 'none', Escape cierra el overlay completo (RR3).
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (mode !== 'none') {
+        setMode('none');
+        e.stopPropagation();
+      } else {
+        onClose();
+      }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [mode, setMode, onClose]);
 
   // Clic derecho sobre una pared en el 3D: abre el menú de pintura en esa posición.
   const onPickWall = (sourceId: string, x: number, y: number) => {
@@ -176,6 +186,11 @@ export function Plan3DOverlay({
         doc={doc}
         onGenerateView={pending ? undefined : onGenerateView}
         onPickWall={onPickWall}
+        selectedId={selectedId}
+        onSelect={select}
+        onDeselect={clear}
+        mode={mode}
+        onSetMode={setMode}
       />
     </div>
   );

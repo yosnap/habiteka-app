@@ -18,6 +18,7 @@ import { docToScene, shouldHideWallXZ, type Scene3D, type WallBox } from '@/canv
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
 import { cameraForAngle, type ViewAngle } from '@/canvas/3d/camera-views';
 import { useMountEffect } from '@/lib/use-mount-effect';
+import type { SelectionMode } from './use-3d-selection';
 import { FurnitureLayer } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
 import { GlassLayer } from './glass-layer';
@@ -203,12 +204,23 @@ export function Plan3DView({
   doc,
   onGenerateView,
   onPickWall,
+  selectedId,
+  onSelect,
+  onDeselect,
+  mode,
+  onSetMode,
 }: {
   doc: CanvasDoc;
   /** Si se pasa, habilita capturar vistas por ángulo y entregar el data URL al caller. */
   onGenerateView?: (dataUrl: string, angle: ViewAngle) => void;
   /** Clic derecho sobre un muro: id del muro + posición en pantalla (para editar en 3D). */
   onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
+  /** Selección 3D (F1 editor). */
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+  onDeselect?: () => void;
+  mode?: SelectionMode;
+  onSetMode?: (m: SelectionMode) => void;
 }) {
   // La escena depende solo del doc: memoizar evita recalcular en cada render.
   const scene = useMemo(() => docToScene(doc), [doc]);
@@ -284,6 +296,8 @@ export function Plan3DView({
         // Necesario para capturar el frame a imagen (toDataURL); sin esto el buffer se
         // limpia tras pintar y la captura saldría en negro.
         gl={{ preserveDrawingBuffer: true }}
+        // Clic en espacio vacío deselecciona el mueble seleccionado (F1).
+        onPointerMissed={onDeselect}
       >
         <color attach="background" args={['#eef1f4']} />
         {/* Ambiente base: hemisférica (cielo/suelo) + ambiental + direccional suave. Da
@@ -296,7 +310,14 @@ export function Plan3DView({
         <GlassLayer panes={scene.glassPanes} />
         <OpeningFramesLayer frames={scene.openingFrames} />
         <Suspense fallback={null}>
-          <FurnitureLayer items={scene.furniture} />
+          <FurnitureLayer
+            items={scene.furniture}
+            selectedId={selectedId ?? null}
+            onSelect={onSelect ?? (() => {})}
+            onDeselect={onDeselect ?? (() => {})}
+            mode={mode ?? 'none'}
+            onSetMode={onSetMode ?? (() => {})}
+          />
         </Suspense>
         <Grid
           args={[span * 3, span * 3]}
