@@ -117,6 +117,13 @@ export interface FloorRect {
    * que el suelo aparezca desplazado respecto a las paredes.
    */
   center: [number, number];
+  /**
+   * Polígono del suelo en el plano XZ (metros, relativo al centro de la escena), cuando el
+   * doc trae `floorOutline` (formas no rectangulares L/U/T). Ausente ⇒ el render dibuja un
+   * suelo rectangular con `size`/`center` (comportamiento previo). Cuando está presente,
+   * `size` sigue siendo el bbox del polígono (sirve para la cámara y el grid).
+   */
+  polygon?: Array<[number, number]>;
 }
 
 /**
@@ -404,7 +411,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     if (ref.length === 0) return { size: [0, 0], center: [0, 0] };
     const bb = boundingBoxPx(ref);
     const floorCenterPx: [number, number] = [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2];
-    return {
+    const rect: FloorRect = {
       size: [
         pxToMeters(Math.max(0, bb.maxX - bb.minX), { pxPerMeter }),
         pxToMeters(Math.max(0, bb.maxY - bb.minY), { pxPerMeter }),
@@ -414,6 +421,18 @@ export function docToScene(doc: CanvasDoc): Scene3D {
         pxToMeters(floorCenterPx[1] - center[1], { pxPerMeter }),
       ],
     };
+    // Suelo poligonal (formas no rectangulares): el doc trae el contorno interior en px.
+    // Se mapea a XZ relativo al centro de la escena (X-2D→X, Y-2D→Z), igual que los muros.
+    // El `size`/`center` rectangular se conservan (cámara y grid los usan).
+    const outline = doc.floorOutline;
+    if (outline && outline.length >= 3) {
+      const polygon: Array<[number, number]> = outline.map((p) => [
+        pxToMeters(p.x - center[0], { pxPerMeter }),
+        pxToMeters(p.y - center[1], { pxPerMeter }),
+      ]);
+      return { ...rect, polygon };
+    }
+    return rect;
   })();
 
   return {

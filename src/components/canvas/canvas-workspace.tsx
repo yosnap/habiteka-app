@@ -360,7 +360,14 @@ export function CanvasWorkspace({
               const labels = [...new Set(omitted)]
                 .map((k) => CATALOG_BY_KIND[k]?.label ?? k)
                 .join(', ');
-              setFurnishNotice(`No cabían en la sala: ${labels}. Agranda la sala o colócalos a mano.`);
+              // Formas no rectangulares: el auto-amueblado se omite por diseño (se amuebla a
+              // mano), no porque no quepa. El doc lo señala con `floorOutline`.
+              const isNonRect = (furnished.floorOutline?.length ?? 0) >= 3;
+              setFurnishNotice(
+                isNonRect
+                  ? `Esta forma se amuebla a mano: añade los muebles desde el catálogo (${labels}).`
+                  : `No cabían en la sala: ${labels}. Agranda la sala o colócalos a mano.`,
+              );
             } else {
               setFurnishNotice(null);
             }

@@ -8,9 +8,10 @@
  *
  * Diálogo accesible (rol dialog + Escape). Se puede saltar para dibujar a mano.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { buildRoomDoc, isValidRoom } from '@/canvas/wizard/build-room-doc';
+import { buildShapeDoc, isValidShapeRoom } from '@/canvas/wizard/build-room-doc';
+import type { RoomShape, RoomShapeParams } from '@/canvas/wizard/room-shapes';
 import { ROOM_TYPES, type RoomType } from '@/canvas/wizard/room-types';
 import {
   ROOM_FURNITURE,
@@ -18,6 +19,7 @@ import {
   type FurnitureSelection,
 } from '@/canvas/wizard/room-furniture-options';
 import type { CanvasDoc } from '@/canvas/types';
+import { RoomShapePreview } from './room-shape-preview';
 
 export type { RoomType };
 
@@ -29,58 +31,64 @@ const ROOM_ICONS: Record<RoomType, string> = {
   bano: '🛁',
 };
 
+/** Formas de sala ofrecidas, con su etiqueta e icono esquemático. */
+const SHAPES: { id: RoomShape; label: string; icon: string }[] = [
+  { id: 'rect', label: 'Rectángulo', icon: '▭' },
+  { id: 'l', label: 'L', icon: '⌐' },
+  { id: 'u', label: 'U', icon: '⊔' },
+  { id: 't', label: 'T', icon: '⊤' },
+];
+
 /** Límites de las medidas (m) para los sliders. */
 const MIN_M = 1.5;
 const MAX_M = 12;
 const MIN_H = 2;
 const MAX_H = 4;
+/** Mínimo para recortes/entrantes/vástagos (m). */
+const MIN_CUT_M = 0.5;
 
 interface Props {
   onCreate: (doc: CanvasDoc, roomType: RoomType, selection: FurnitureSelection) => void;
   onSkip: () => void;
 }
 
-/** Previsualización en vivo de la sala (planta a escala dentro de un recuadro fijo). */
-function RoomPreview({ widthM, lengthM }: { widthM: number; lengthM: number }) {
-  const BOX = 120; // lado del área de preview (px)
-  const PAD = 10;
-  const w = Number.isFinite(widthM) && widthM > 0 ? widthM : 1;
-  const l = Number.isFinite(lengthM) && lengthM > 0 ? lengthM : 1;
-  const scale = (BOX - 2 * PAD) / Math.max(w, l);
-  const rw = w * scale;
-  const rl = l * scale;
-  return (
-    <svg width={BOX} height={BOX} viewBox={`0 0 ${BOX} ${BOX}`} aria-hidden className="shrink-0">
-      <rect x={0} y={0} width={BOX} height={BOX} fill="#f0ebe1" rx={6} />
-      <rect
-        x={(BOX - rw) / 2}
-        y={(BOX - rl) / 2}
-        width={rw}
-        height={rl}
-        fill="#ffffff"
-        stroke="#6b6258"
-        strokeWidth={3}
-      />
-      <text x={BOX / 2} y={BOX - 3} textAnchor="middle" fontSize={9} fill="#6b6258" fontFamily="monospace">
-        {w} × {l} m
-      </text>
-    </svg>
-  );
-}
-
 export function DesignWizard({ onCreate, onSkip }: Props) {
   const [step, setStep] = useState<'room' | 'furniture'>('room');
+  const [shape, setShape] = useState<RoomShape>('rect');
   const [widthM, setWidthM] = useState(4);
   const [lengthM, setLengthM] = useState(3);
   const [ceilingM, setCeilingM] = useState(2.5);
+  // Parámetros secundarios por forma (recorte L, entrante U, barra/vástago T). Tienen
+  // defaults sensatos y se acotan dentro de width/length por `isValidShape`.
+  const [cutWidthM, setCutWidthM] = useState(1.5);
+  const [cutLengthM, setCutLengthM] = useState(1.5);
+  const [notchWidthM, setNotchWidthM] = useState(1.5);
+  const [notchLengthM, setNotchLengthM] = useState(1.5);
+  const [barLengthM, setBarLengthM] = useState(1.5);
+  const [stemWidthM, setStemWidthM] = useState(1.5);
   const [roomType, setRoomType] = useState<RoomType>('salon');
   const [selection, setSelection] = useState<FurnitureSelection>(() => defaultSelection('salon'));
   // Tipo con el que se calculó la selección: resetear la selección SOLO al cambiar de tipo (no al
   // cambiar medidas), para no descartar lo que el usuario marcó.
   const [selectionType, setSelectionType] = useState<RoomType>('salon');
 
-  const params = { widthM, lengthM, ceilingHeightM: ceilingM };
-  const valid = isValidRoom(params);
+  // Parámetros de la forma activa, derivados del estado (sin efectos): cada forma toma sus
+  // medidas secundarias; el rectángulo solo usa width/length.
+  const shapeParams = useMemo<RoomShapeParams>(() => {
+    switch (shape) {
+      case 'rect':
+        return { shape: 'rect', widthM, lengthM };
+      case 'l':
+        return { shape: 'l', widthM, lengthM, cutWidthM, cutLengthM };
+      case 'u':
+        return { shape: 'u', widthM, lengthM, notchWidthM, notchLengthM };
+      case 't':
+        return { shape: 't', widthM, lengthM, barLengthM, stemWidthM };
+    }
+  }, [shape, widthM, lengthM, cutWidthM, cutLengthM, notchWidthM, notchLengthM, barLengthM, stemWidthM]);
+
+  const roomParams = { shape: shapeParams, ceilingHeightM: ceilingM };
+  const valid = isValidShapeRoom(roomParams);
 
   // Avanza al paso de muebles; si cambió el tipo desde la última selección, la recalcula.
   const goToFurniture = () => {
@@ -99,7 +107,7 @@ export function DesignWizard({ onCreate, onSkip }: Props) {
     setSelection((s) => ({ ...s, [kind]: Math.max(0, Math.min(qty, max)) }));
 
   const create = () => {
-    if (valid) onCreate(buildRoomDoc(params), roomType, selection);
+    if (valid) onCreate(buildShapeDoc(roomParams), roomType, selection);
   };
 
   const slider = (label: string, value: number, set: (v: number) => void, min: number, max: number) => (
@@ -136,17 +144,66 @@ export function DesignWizard({ onCreate, onSkip }: Props) {
           <>
             <h2 className="text-ink mb-1 text-base font-medium">Crear tu sala</h2>
             <p className="text-ink-soft mb-3 text-xs">
-              Ajusta las medidas y elige el tipo. En el siguiente paso eliges los muebles.
+              Elige la forma, ajusta las medidas y el tipo. En el siguiente paso eliges los muebles.
             </p>
 
+            <div className="mb-3">
+              <span className="text-ink-soft mb-1 block text-xs">Forma</span>
+              <div className="grid grid-cols-4 gap-1">
+                {SHAPES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setShape(s.id)}
+                    aria-pressed={shape === s.id}
+                    className={
+                      'flex flex-col items-center gap-1 rounded-control border px-1 py-2 text-xs transition-colors ' +
+                      (shape === s.id
+                        ? 'border-brand-500 bg-brand-500/10 text-ink'
+                        : 'border-line text-ink-soft hover:bg-surface-muted')
+                    }
+                  >
+                    <span className="text-lg leading-none" aria-hidden>
+                      {s.icon}
+                    </span>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-3 flex gap-4">
-              <RoomPreview widthM={widthM} lengthM={lengthM} />
+              <RoomShapePreview params={shapeParams} label={`${widthM} × ${lengthM} m`} />
               <div className="flex flex-1 flex-col gap-2">
                 {slider('Ancho', widthM, setWidthM, MIN_M, MAX_M)}
                 {slider('Largo', lengthM, setLengthM, MIN_M, MAX_M)}
                 {slider('Alto', ceilingM, setCeilingM, MIN_H, MAX_H)}
+                {shape === 'l' ? (
+                  <>
+                    {slider('Recorte ancho', cutWidthM, setCutWidthM, MIN_CUT_M, MAX_M)}
+                    {slider('Recorte largo', cutLengthM, setCutLengthM, MIN_CUT_M, MAX_M)}
+                  </>
+                ) : null}
+                {shape === 'u' ? (
+                  <>
+                    {slider('Entrante ancho', notchWidthM, setNotchWidthM, MIN_CUT_M, MAX_M)}
+                    {slider('Entrante fondo', notchLengthM, setNotchLengthM, MIN_CUT_M, MAX_M)}
+                  </>
+                ) : null}
+                {shape === 't' ? (
+                  <>
+                    {slider('Barra (largo)', barLengthM, setBarLengthM, MIN_CUT_M, MAX_M)}
+                    {slider('Vástago (ancho)', stemWidthM, setStemWidthM, MIN_CUT_M, MAX_M)}
+                  </>
+                ) : null}
               </div>
             </div>
+
+            {!valid ? (
+              <p className="mb-3 text-xs text-red-500">
+                Las medidas del recorte deben ser menores que el ancho y el largo de la sala.
+              </p>
+            ) : null}
 
             <div className="mb-4">
               <span className="text-ink-soft mb-1 block text-xs">Tipo de sala</span>

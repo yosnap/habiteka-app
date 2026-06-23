@@ -125,12 +125,22 @@ export function autofurnish(
   roomType: RoomType,
   selection?: FurnitureSelection,
 ): { objects: StructObj[]; omitted: StructKind[] } {
-  const inner = interiorRect(doc);
-  if (!inner) return { objects: [], omitted: [] };
   const pxPerMeter = doc.scale?.pxPerMeter ?? 100;
   const sel = selection ?? defaultSelection(roomType);
   const options = ROOM_FURNITURE[roomType] ?? [];
   const items = buildItems(sel, options, pxPerMeter);
+
+  // Salas NO rectangulares (L/U/T): el doc trae el polígono del suelo. El reparto por filas
+  // asume un rectángulo (bbox de muros), así que sobre una forma con recorte colocaría muebles
+  // FUERA del contorno. Decisión de alcance: no auto-amueblar; se devuelven todos los kinds
+  // seleccionados como omitidos para que la UI avise ("se amuebla a mano"). El sub-rectángulo
+  // inscrito amueblado queda como mejora futura.
+  if (doc.floorOutline && doc.floorOutline.length >= 3) {
+    return { objects: [], omitted: items.map((it) => it.kind) };
+  }
+
+  const inner = interiorRect(doc);
+  if (!inner) return { objects: [], omitted: [] };
 
   const gap = metersToPx(WALL_GAP_M, { pxPerMeter });
   const itemGap = metersToPx(ITEM_GAP_M, { pxPerMeter });

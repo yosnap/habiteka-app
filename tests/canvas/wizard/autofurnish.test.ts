@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { autofurnish, interiorRect } from '@/canvas/wizard/autofurnish';
-import { buildRoomDoc } from '@/canvas/wizard/build-room-doc';
+import { buildRoomDoc, buildShapeDoc } from '@/canvas/wizard/build-room-doc';
 import {
   ROOM_FURNITURE,
   defaultSelection,
@@ -162,5 +162,27 @@ describe('room-furniture-options: catálogo de opciones', () => {
         expect(anchors.has(o.anchor)).toBe(true);
       }
     }
+  });
+});
+
+describe('autofurnish: formas no rectangulares se omiten con aviso', () => {
+  it('una sala en L no coloca muebles y devuelve los kinds seleccionados como omitidos', () => {
+    const doc = buildShapeDoc({
+      shape: { shape: 'l', widthM: 6, lengthM: 5, cutWidthM: 2, cutLengthM: 2 },
+      ceilingHeightM: 2.5,
+    });
+    const { objects, omitted } = autofurnish(doc, 'salon');
+    expect(objects).toHaveLength(0);
+    // El salón por defecto selecciona algún mueble → debe avisarse de todos.
+    expect(omitted.length).toBeGreaterThan(0);
+  });
+
+  it('el rectángulo SÍ se auto-amuebla (sin regresión)', () => {
+    const doc = buildShapeDoc({
+      shape: { shape: 'rect', widthM: 6, lengthM: 5 },
+      ceilingHeightM: 2.5,
+    });
+    const { objects } = autofurnish(doc, 'salon');
+    expect(objects.length).toBeGreaterThan(0);
   });
 });
