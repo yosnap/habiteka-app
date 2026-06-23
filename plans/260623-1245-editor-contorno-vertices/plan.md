@@ -1,7 +1,7 @@
 ---
 title: Editor de contorno por vértices (ortogonal)
 description: ''
-status: pending
+status: done
 priority: P1
 branch: feat/canvas/editor-contorno
 tags: []
