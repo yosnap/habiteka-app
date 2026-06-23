@@ -13,12 +13,13 @@
  * historial por edición). Sin `useEffect` directo.
  */
 import { useMemo, useState } from 'react';
-import { Group, Line, Circle } from 'react-konva';
+import { Group, Line, Circle, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { FloorVertex } from '@/canvas/types';
 import { moveVertexOrtho, insertVertexOnEdge, removeVertex } from '@/canvas/wizard/outline-edit';
 import { floorPolygonFromWalls } from '@/canvas/3d/floor-from-walls';
+import { pxToMeters, formatLength, isValidScale } from '@/canvas/scale';
 import { snap } from './grid-layer';
 
 const HANDLE_R = 7;
@@ -42,6 +43,7 @@ function snapCoord(v: number, coords: number[]): number {
 export function OutlineEditorLayer() {
   const storedOutline = useCanvasStore((s) => s.doc.floorOutline);
   const objects = useCanvasStore((s) => s.doc.objects);
+  const scale = useCanvasStore((s) => s.doc.scale);
   const setFloorOutline = useCanvasStore((s) => s.setFloorOutline);
   // El contorno editable: el `floorOutline` del doc (salas del wizard) o, si no existe (sala
   // dibujada/editada a mano), el contorno DERIVADO de los muros actuales — así el editor
@@ -103,10 +105,41 @@ export function OutlineEditorLayer() {
     setFloorOutline(insertVertexOnEdge(outline, edgeIndex));
   };
 
+  // Cota de cada arista (longitud en metros) en su punto medio; se actualiza en vivo al
+  // arrastrar. Las dos aristas que tocan el vértice en arrastre se resaltan (son las que
+  // cambian de medida). Solo con escala usable; sin ella no hay medida real que mostrar.
+  const showDims = isValidScale(scale);
+  const draggedEdges = dragging
+    ? new Set([dragging.i, (dragging.i - 1 + shown.length) % shown.length])
+    : new Set<number>();
+
   return (
     <Group>
       {/* Contorno resaltado mientras se edita. */}
       <Line points={flatPoints} closed stroke="#2a8cf0" strokeWidth={1.5} dash={[6, 4]} />
+
+      {/* Cotas de las aristas (longitud real); resaltadas las que cambian al arrastrar. */}
+      {showDims
+        ? shown.map((a, i) => {
+            const b = shown[(i + 1) % shown.length]!;
+            const lenPx = Math.hypot(b.x - a.x, b.y - a.y);
+            const meters = pxToMeters(lenPx, scale!);
+            const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+            const active = draggedEdges.has(i);
+            return (
+              <Label key={`dim-${i}`} x={mid.x} y={mid.y} offsetY={9} listening={false}>
+                <Tag fill={active ? '#2a8cf0' : '#1f1b18'} cornerRadius={3} />
+                <Text
+                  text={formatLength(meters)}
+                  fontSize={12}
+                  fill="#ffffff"
+                  padding={4}
+                  fontFamily="monospace"
+                />
+              </Label>
+            );
+          })
+        : null}
 
       {/* Aristas clicables (doble-clic añade un vértice en esa arista). */}
       {outline.map((a, i) => {
