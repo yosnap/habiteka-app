@@ -33,9 +33,15 @@ ESCENA 3D navegable (fiel al plano), en vez de depender de que la IA adivine la 
 - Ángulos predefinidos (perspectiva, isométrica, cenital) + guardar la vista asociada a la
   zona/Deliverable (coherente con Fase 2).
 
-## SPIKE previo (riesgo proveedor)
-Confirmar que el proveedor de imagen acepta imagen base para img2img. Si no, el primer PR es
-captura cruda del 3D y el estilizado IA queda para cuando haya proveedor img2img.
+## SPIKE RESUELTO (2026-06-23): el proveedor YA soporta img2img
+`ImageGenRequest.referenceImage` existe y `NanoBananaImageProvider.generate` ya hace
+`content.unshift(image_url)` cuando hay `referenceImage` (lo usa `generate-from-canvas`).
+→ Estilizar la captura del 3D con IA es viable SIN tocar el proveedor.
+
+## Alcance UI (decidido): ángulos predefinidos + generar
+Botones de ángulo (perspectiva/isométrica/cenital) que colocan la cámara en el overlay 3D,
+captura con `preserveDrawingBuffer` + `toDataURL`, y generación estilizada por IA pasando la
+captura como `referenceImage` (reusa el camino de `generate-from-canvas` del orchestrator).
 
 ## Tests / validación
 - Lógica pura de cámaras/ángulos testeable; captura verificada en navegador.

@@ -159,6 +159,48 @@ export async function generateDesignFromCanvas(
 }
 
 /**
+ * Genera una VISTA estilizada a partir de una captura de la escena 3D (Fase 3). La captura
+ * (data URL base64 del canvas WebGL, tal cual la entrega el visor) se pasa como imagen base
+ * al proveedor (img2img) junto al estilo elegido, para que el render herede el encuadre y la
+ * geometría de la sala. Reusa el camino `generate-from-canvas` del orquestador. La vista se
+ * asocia a la zona activa.
+ */
+export async function generateViewFrom3D(
+  projectId: string,
+  captureDataUrl: string,
+  estilo: Estilo,
+  aspectRatio: string,
+  zoneId: string | null = null,
+): Promise<AgentOutcome> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+
+  // La captura llega como data URL ("data:image/png;base64,XXXX"); se extrae el base64.
+  const base64 = captureDataUrl.includes(',') ? captureDataUrl.split(',')[1]! : captureDataUrl;
+  if (!base64) throw new Error('Captura de la vista 3D vacía');
+
+  const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
+  return agent.advance(
+    projectId,
+    {
+      action: 'generate-from-canvas',
+      estilo,
+      entregable: 'render3d',
+      objetivo: '',
+      promptLibre: '',
+      // La imagen base aporta la geometría; la descripción solo orienta al modelo.
+      description: 'Vista 3D de la sala capturada desde el editor.',
+      referenceImage: { base64, mimeType: 'image/png' },
+      aspectRatio,
+      requestId: globalThis.crypto.randomUUID(),
+    },
+    zid,
+  );
+}
+
+/**
  * Recomienda decoración para el plano (F4): la IA propone elementos del catálogo
  * según estilo + objetivo + lo ya colocado. El usuario las acepta/rechaza en la
  * UI; al aceptar se añaden como objetos editables del plano. Devuelve solo

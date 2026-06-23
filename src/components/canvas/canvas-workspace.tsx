@@ -339,7 +339,9 @@ export function CanvasWorkspace({
           onClose={() => setShowDetect(false)}
         />
       ) : null}
-      {doc3D ? <Plan3DOverlay doc={doc3D} onClose={() => setDoc3D(null)} /> : null}
+      {doc3D ? (
+        <Plan3DOverlay doc={doc3D} projectId={projectId} onClose={() => setDoc3D(null)} />
+      ) : null}
       {showWizard ? (
         <DesignWizard
           onSkip={() => setShowWizard(false)}

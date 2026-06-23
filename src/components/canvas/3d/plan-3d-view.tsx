@@ -12,10 +12,11 @@
 import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF } from '@react-three/drei';
-import { Mesh, Shape } from 'three';
+import { Mesh, Shape, type PerspectiveCamera } from 'three';
 import type { CanvasDoc } from '@/canvas/types';
 import { docToScene, shouldHideWallXZ, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
+import { cameraForAngle, type ViewAngle } from '@/canvas/3d/camera-views';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { FurnitureLayer } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
@@ -142,7 +143,49 @@ function PerfProbe({ onStats }: { onStats: (s: PerfStats) => void }) {
   return null;
 }
 
-export function Plan3DView({ doc }: { doc: CanvasDoc }) {
+/** Orden de captura: el ángulo a fijar + a quién devolver el data URL del frame. */
+interface CaptureOrder {
+  angle: ViewAngle;
+  span: number;
+  ceiling: number;
+  resolve: (dataUrl: string) => void;
+}
+
+/**
+ * Coloca la cámara en el ángulo pedido y captura el canvas WebGL a data URL (PNG). Vive
+ * DENTRO del Canvas para acceder a `gl`/`camera` con `useThree`. La captura se hace en el
+ * `useFrame` siguiente a recibir la orden, tras recolocar la cámara y forzar un render, para
+ * que el buffer tenga el encuadre correcto (requiere `preserveDrawingBuffer` en el Canvas).
+ */
+function CaptureRig({ order }: { order: CaptureOrder | null }) {
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const scene = useThree((s) => s.scene);
+  // Marca de la orden ya servida, para no capturar dos veces la misma. Se actualiza DENTRO
+  // del frame (no en render), evitando el anti-patrón de mutar un ref durante el render.
+  const servedRef = useRef<CaptureOrder | null>(null);
+
+  useFrame(() => {
+    if (!order || servedRef.current === order) return;
+    servedRef.current = order;
+    const view = cameraForAngle(order.angle, order.span, order.ceiling);
+    camera.position.set(...view.position);
+    camera.lookAt(...view.target);
+    camera.updateProjectionMatrix();
+    gl.render(scene, camera); // re-render con el encuadre fijado antes de leer el buffer
+    order.resolve(gl.domElement.toDataURL('image/png'));
+  });
+  return null;
+}
+
+export function Plan3DView({
+  doc,
+  onGenerateView,
+}: {
+  doc: CanvasDoc;
+  /** Si se pasa, habilita capturar vistas por ángulo y entregar el data URL al caller. */
+  onGenerateView?: (dataUrl: string, angle: ViewAngle) => void;
+}) {
   // La escena depende solo del doc: memoizar evita recalcular en cada render.
   const scene = useMemo(() => docToScene(doc), [doc]);
   const [stats, setStats] = useState<PerfStats>({ fps: 0, calls: 0, tris: 0 });
@@ -165,6 +208,22 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
   // luces del doc, la base ilumina la escena por completo (no queda a oscuras).
   const hasDocLights = scene.lights.length > 0;
 
+  // Captura de vista por ángulo: se fija una "orden" que el CaptureRig ejecuta en el
+  // siguiente frame (recoloca la cámara + lee el buffer). El data URL se entrega al caller.
+  const [captureOrder, setCaptureOrder] = useState<CaptureOrder | null>(null);
+  const captureView = (angle: ViewAngle) => {
+    if (!onGenerateView) return;
+    setCaptureOrder({
+      angle,
+      span,
+      ceiling: scene.ceilingHeightM,
+      resolve: (dataUrl) => {
+        setCaptureOrder(null);
+        onGenerateView(dataUrl, angle);
+      },
+    });
+  };
+
   return (
     <div className="relative h-full w-full">
       <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/70 px-3 py-1.5 font-mono text-sm text-white">
@@ -178,10 +237,29 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
           {stats.calls} draw calls · {stats.tris.toLocaleString()} tris
         </span>
       </div>
+      {/* Barra de captura de vistas (solo si el caller pide vistas). Sobre el Canvas. */}
+      {onGenerateView ? (
+        <div className="absolute right-3 top-3 z-10 flex gap-1.5">
+          {(['perspectiva', 'isometrica', 'cenital'] as const).map((angle) => (
+            <button
+              key={angle}
+              type="button"
+              onClick={() => captureView(angle)}
+              disabled={captureOrder !== null}
+              className="rounded-md bg-black/70 px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85 disabled:opacity-50"
+            >
+              {angle === 'perspectiva' ? 'Perspectiva' : angle === 'isometrica' ? 'Isométrica' : 'Cenital'}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <Canvas
         shadows={false}
         camera={{ position: [span * 0.9, span * 0.8, span * 0.9], fov: 50 }}
         dpr={[1, 2]}
+        // Necesario para capturar el frame a imagen (toDataURL); sin esto el buffer se
+        // limpia tras pintar y la captura saldría en negro.
+        gl={{ preserveDrawingBuffer: true }}
       >
         <color attach="background" args={['#eef1f4']} />
         {/* Ambiente base: hemisférica (cielo/suelo) + ambiental + direccional suave. Da
@@ -207,6 +285,7 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
         />
         <OrbitControls makeDefault target={[0, scene.ceilingHeightM / 2, 0]} />
         <PerfProbe onStats={setStats} />
+        <CaptureRig order={captureOrder} />
       </Canvas>
     </div>
   );
