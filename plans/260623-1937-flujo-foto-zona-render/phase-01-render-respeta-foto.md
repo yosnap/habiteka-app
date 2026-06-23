@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "El render del chat respeta la foto (img2img)"
-status: pending
+status: done
 priority: P1
 dependencies: []
 ---
@@ -50,10 +50,10 @@ ciego. Resuelve la captura del usuario ("subí esto → me generó otra cosa").
 5. Regresión: idempotencia de cobro sin cambios; sin doble generación.
 
 ## Success Criteria
-- [ ] `handleDeliver` pasa `referenceImage` (la foto de la zona) al generador.
-- [ ] `renderPrompt` distingue interior/exterior por `kind`.
-- [ ] Tests nuevos verdes; suite completa verde; tsc+eslint+build limpios.
-- [ ] Verificación del usuario en navegador: el render se parece a la foto subida.
+- [x] `handleDeliver` pasa `referenceImage` (la foto de la zona) al generador.
+- [x] `renderPrompt` distingue interior/exterior por `kind`.
+- [x] Tests nuevos verdes; suite completa verde; tsc+eslint+build limpios.
+- [x] Verificación del usuario en navegador: el render se parece a la foto subida.
 
 ## Risk Assessment
 - Imagen grande en memoria del server: acotar/streamear; reusar el límite de subida.

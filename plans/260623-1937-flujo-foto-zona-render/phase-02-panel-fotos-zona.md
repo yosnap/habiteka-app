@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Panel de fotos por zona (reutilizable)"
-status: pending
+status: done
 priority: P1
 dependencies: [1]
 ---
@@ -45,10 +45,10 @@ render (Fase 1).
 5. **Verde:** suite verde; tsc+eslint+build limpios.
 
 ## Success Criteria
-- [ ] Subir varias fotos a una zona y verlas en miniaturas.
-- [ ] Elegir la foto activa; el render (Fase 1) usa esa.
-- [ ] El panel funciona desde asistente y plano.
-- [ ] Tests del repo verdes; suite verde.
+- [x] Subir varias fotos a una zona y verlas en miniaturas.
+- [x] Elegir la foto activa; el render (Fase 1) usa esa.
+- [x] El panel funciona desde asistente y plano.
+- [x] Tests del repo verdes; suite verde.
 
 ## Risk Assessment
 - Coherencia de "una sola PRIMARY": `setActive` debe ser atómico (transacción) para no dejar dos.

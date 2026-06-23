@@ -1,7 +1,7 @@
 ---
 title: Flujo foto → zona → render coherente
 description: ''
-status: pending
+status: in-progress
 priority: P1
 branch: feat/flujo-foto-zona-render
 tags: []
@@ -44,9 +44,31 @@ Brainstorm aprobado: `plans/reports/brainstorm-260623-1937-flujo-foto-zona-rende
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [El render del chat respeta la foto (img2img)](./phase-01-render-respeta-foto.md) | Pending |
-| 2 | [Panel de fotos por zona (reutilizable)](./phase-02-panel-fotos-zona.md) | Pending |
-| 3 | [Vía plano: foto→detección→plano→render (futuro)](./phase-03-via-plano-futuro.md) | Pending |
+| 1 | [El render del chat respeta la foto (img2img)](./phase-01-render-respeta-foto.md) | Done |
+| 2 | [Panel de fotos por zona (reutilizable)](./phase-02-panel-fotos-zona.md) | Done |
+| 3 | [Vía plano: foto→detección→plano→render (futuro)](./phase-03-via-plano-futuro.md) | Pending (fuera de alcance) |
+
+### Estado de implementación (260623)
+
+F1 y F2 IMPLEMENTADAS y verificadas (tsc+eslint+build limpios, 560 tests verdes).
+Pendiente: verificación manual del usuario en navegador + commit/push.
+
+- F1: `handleDeliver` carga los bytes de la foto PRIMARY de la zona (dep
+  `resolveZoneContext`, inyectada por la Server Action con scope org + storage) y los
+  pasa como `referenceImage` al render (img2img). `renderPrompt` distingue
+  interior/exterior por `ProjectZone.kind`. Renombrado de la dep
+  `resolveSourceImageId` → `resolveZoneContext` (todos los call sites actualizados).
+- F2: repo `sourceImages.listByZone`/`setActive` (transacción atómica, una sola
+  PRIMARY; resto DETAIL — el enum es PRIMARY|DETAIL, no SECONDARY). Acciones
+  `zone-photos-actions.ts` (list/upload/setActive con scope org anti-IDOR + consent
+  RGPD). Componente reutilizable `zone-photos-panel.tsx`, montado en el asistente y en
+  el plano (overlay con toggle).
+- Tipo de zona: vocabulario controlado `src/lib/zone-kinds.ts` (fuente única para el
+  selector y para `EXTERIOR_ZONE_KINDS`); acción `setZoneKind` + selector en el panel
+  (solo zonas reales) para que la distinción interior/exterior sea alcanzable.
+
+Code-review: DONE_WITH_CONCERNS → el único hallazgo High (kind inalcanzable) se cerró
+cableando el selector de tipo de zona.
 
 ## Acceptance criteria (global)
 
