@@ -46,6 +46,7 @@ export function Plan3DOverlay({
   const [estilo, setEstilo] = useState<Estilo>(ESTILOS[0]!.value);
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
   // Doc EN VIVO del store: editar el color de una pared (vía updateObject) se refleja al
   // instante en el 3D. Cae al snapshot inicial si el store aún no está hidratado.
   const storeDoc = useCanvasStore((s) => s.doc);
@@ -78,10 +79,17 @@ export function Plan3DOverlay({
   // viene aplicado en la imagen capturada, así que aquí solo importa el data URL.
   const onGenerateView = (dataUrl: string) => {
     setNotice(null);
+    setResultUrl(null);
     startTransition(async () => {
       try {
-        await generateViewFrom3D(projectId, dataUrl, estilo, '16:9', zoneId);
-        setNotice('Vista generada. Mírala en la pestaña «Diseños».');
+        const outcome = await generateViewFrom3D(projectId, dataUrl, estilo, '16:9', zoneId);
+        const url = outcome.deliverables?.find((d) => d.type === 'render3d')?.payload;
+        const assetUrl = url && 'assetUrl' in url ? url.assetUrl : null;
+        if (assetUrl) {
+          setResultUrl(assetUrl);
+        } else {
+          setNotice('Vista generada. Mírala en la pestaña «Diseños».');
+        }
       } catch (err) {
         setNotice(err instanceof Error ? err.message : 'No se pudo generar la vista.');
       }
@@ -116,9 +124,28 @@ export function Plan3DOverlay({
             ))}
           </select>
         </label>
-        {pending ? <span className="text-xs text-white/70">Generando…</span> : null}
+        {pending ? <span className="text-xs text-white/70">Generando… (~2 min)</span> : null}
         {notice ? <span className="text-xs text-green-300">{notice}</span> : null}
       </div>
+
+      {/* Render generado: se muestra inline en el overlay nada más terminar. */}
+      {resultUrl ? (
+        <div className="absolute bottom-16 left-4 z-10 w-72 overflow-hidden rounded-lg shadow-2xl ring-1 ring-white/20">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={resultUrl} alt="Vista estilizada generada" className="w-full object-cover" />
+          <div className="flex items-center justify-between bg-black/80 px-3 py-2">
+            <span className="text-xs text-green-300">Vista generada</span>
+            <button
+              type="button"
+              onClick={() => setResultUrl(null)}
+              aria-label="Cerrar resultado"
+              className="text-xs text-white/60 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Menú contextual de pared: elegir el color de pintura. Anclado al clic derecho. */}
       {wallMenu ? (
