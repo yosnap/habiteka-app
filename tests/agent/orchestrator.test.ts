@@ -163,6 +163,42 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     expect(out.explanation).toBeUndefined();
   });
 
+  it('si la generación falla, la fase NO avanza a feedback (el usuario puede reintentar)', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId);
+    // Lleva el estado a cualificación con estilo + entregables listos para entregar.
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    const st = await prisma.agentState.findUnique({ where: { projectId: pid } });
+    await prisma.agentState.update({
+      where: { projectId: pid },
+      data: {
+        collected: {
+          ...(st?.collected as object),
+          estilo: 'nordico',
+          entregables: ['render3d'],
+        },
+      },
+    });
+
+    // El generador de imagen falla: la entrega lanza y la fase debe quedarse en cualificación.
+    const failingImage: ImageAdapter = {
+      generate: async () => {
+        throw new Error('proveedor de imagen caído');
+      },
+      inpaint: async () => ({ assetUrl: '', cost: { amountUsd: 0, unit: 'image' } }),
+    };
+    const depsFailImage: AgentDeps = { ...deps, image: failingImage };
+
+    await expect(advance(depsFailImage, pid, { action: 'deliver' })).rejects.toBeTruthy();
+
+    const after = await prisma.agentState.findUnique({ where: { projectId: pid } });
+    expect(after?.phase).toBe('cualificacion'); // NO avanzó a feedback
+    // Y no quedó ningún entregable persistido a medias.
+    const dels = await prisma.deliverable.count({ where: { projectId: pid } });
+    expect(dels).toBe(0);
+  });
+
   it('dos avances concurrentes con la misma versión: uno gana, otro conflict', async () => {
     const { pid, deps } = await makeProject();
     // Estado inicial creado por la primera carga.

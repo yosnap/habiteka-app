@@ -43,6 +43,10 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
   const [entregables, setEntregables] = useState<DeliverableType[]>([]);
   // Aceptación de los Términos: condición para generar (gate del servidor).
   const [tosAccepted, setTosAccepted] = useState<boolean | null>(null);
+  // Error de la generación de diseños: si falla, la fase NO avanza (queda en
+  // cualificación) y se muestra un aviso con opción de REINTENTAR, en vez de dejar al
+  // usuario mirando el paso sin saber qué pasó (era el bug del "vuelve a salir el paso").
+  const [deliverError, setDeliverError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useMountEffect(() => {
@@ -121,10 +125,25 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
       `Entregables: ${types.join(', ')}`,
     );
 
-  const onDeliver = () =>
-    run({ action: 'deliver' }, '🎨 Generar mis diseños', () =>
-      pushTurn('assistant', 'Tus diseños se están generando. Míralos en la pestaña «Diseños».'),
-    );
+  // Generación de diseños: maneja el error de forma EXPLÍCITA. `advance` espera a que la
+  // generación termine, así que al resolver los diseños ya están listos (fase → feedback);
+  // si lanza, la fase no avanza y se ofrece reintentar (sin recargar).
+  const onDeliver = () => {
+    setDeliverError(null);
+    if (deliverError === null) pushTurn('user', '🎨 Generar mis diseños');
+    startTransition(async () => {
+      try {
+        const out = await advance(projectId, { action: 'deliver' });
+        setPhase(out.phase as Phase);
+        setEstilo(out.collected.estilo);
+        setEntregables(out.collected.entregables);
+        pushTurn('assistant', 'Tus diseños están listos en la pestaña «Diseños».');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'No se pudieron generar los diseños.';
+        setDeliverError(msg);
+      }
+    });
+  };
 
   const ready = estilo !== undefined && entregables.length > 0;
 
@@ -187,6 +206,15 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
                 </p>
                 <Button type="button" size="sm" onClick={acceptTos} disabled={pending}>
                   Acepto los Términos de Servicio
+                </Button>
+              </div>
+            ) : null}
+
+            {deliverError ? (
+              <div className="flex flex-col gap-2 rounded-control border border-red-300 bg-red-50 p-3 text-sm">
+                <p className="text-red-700">No se pudieron generar los diseños: {deliverError}</p>
+                <Button type="button" size="sm" onClick={onDeliver} disabled={pending}>
+                  Reintentar
                 </Button>
               </div>
             ) : null}
