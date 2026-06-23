@@ -16,7 +16,7 @@ import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
 import { selectionAabb, type WorldRect } from '@/canvas/floating-menu-anchor';
-import { computeSnap, type SnapResult } from '@/canvas/snap';
+import { computeSnap, wallStretchToClose, type SnapResult } from '@/canvas/snap';
 import { formatObjectSize, isValidScale } from '@/canvas/scale';
 import { LiveDimensionOverlay, type LiveDimension } from './live-dimension-overlay';
 import { SnapGuidesOverlay } from './snap-guides-overlay';
@@ -187,7 +187,30 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
                 }
               }
             } else {
-              updateObject(o.id, { x: nx, y: ny });
+              // Muros axis-aligned (rotación 0): tras fijar la posición, ESTIRA los extremos
+              // para tocar los muros perpendiculares cercanos y cerrar las esquinas (lo que el
+              // simple trasladar no logra en ambos extremos). Para muros rotados el AABB no
+              // representa su geometría, así que no se aplica. Otros objetos: solo posición.
+              // Solo rotación 0: para un muro sin rotar el AABB coincide con {x,y,w,h}, así
+              // que el ajuste de x/width (o y/height) se traslada 1:1 al objeto. Con rotación
+              // el AABB intercambia ejes y el patch sería incorrecto.
+              const isAxisWall = o.kind === 'wall' && o.rotation === 0;
+              let patch: Partial<StructObj> = { x: nx, y: ny };
+              if (isAxisWall && !snapDisabled.current) {
+                const wallAabb = selectionAabb([{ ...o, x: nx, y: ny }], [o.id]);
+                const wallCandidates = objects
+                  .filter((obj) => obj.id !== o.id && obj.kind === 'wall' && obj.rotation === 0)
+                  .map((obj) => selectionAabb([obj], [obj.id]))
+                  .filter((r): r is WorldRect => r !== null);
+                if (wallAabb) {
+                  const stretch = wallStretchToClose(
+                    { ...wallAabb, horizontal: wallAabb.width >= wallAabb.height },
+                    wallCandidates,
+                  );
+                  if (stretch) patch = { ...patch, ...stretch };
+                }
+              }
+              updateObject(o.id, patch);
             }
             dragStart.current = null;
             draggingSize.current = null;

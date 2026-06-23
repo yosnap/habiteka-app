@@ -110,3 +110,76 @@ export function computeSnap(
   }
   return result;
 }
+
+/** Rect de un muro en mundo + si es horizontal (más ancho que alto). */
+interface WallRect extends WorldRect {
+  horizontal: boolean;
+}
+
+/** Ajuste de extensión de un muro para cerrar esquinas: nuevos x/width o y/height. */
+export interface WallStretch {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+/** ¿El rect es de un muro horizontal? (su lado largo va en X). */
+function isHorizontal(r: WorldRect): boolean {
+  return r.width >= r.height;
+}
+
+/**
+ * Extiende/recorta los EXTREMOS de un muro axis-aligned para que toquen la cara de los muros
+ * PERPENDICULARES cercanos, cerrando las esquinas sin mover el extremo opuesto. A diferencia
+ * de `computeSnap` (que traslada y solo cierra un extremo por eje), aquí cada extremo se ajusta
+ * de forma independiente cambiando la longitud: así un muro horizontal puede tocar a la vez el
+ * muro vertical izquierdo y el derecho. Pura y testeable.
+ *
+ * `moving` es el rect del muro en mundo (tras el snap de traslación). `candidates` son los rects
+ * de los otros muros. Devuelve el ajuste (x/width para horizontales, y/height para verticales)
+ * o `null` si ningún extremo engancha. Solo actúa sobre muros perpendiculares que se solapan en
+ * el eje transversal (están "enfrente" del extremo).
+ */
+export function wallStretchToClose(
+  moving: WallRect,
+  candidates: WorldRect[],
+  threshold: number = SNAP_THRESHOLD_PX,
+): WallStretch | null {
+  const horizontal = moving.horizontal;
+  // Eje LONGITUDINAL (donde están los extremos) y TRANSVERSAL (donde debe haber solape).
+  const startEnd = horizontal
+    ? { lo: moving.x, hi: moving.x + moving.width, tLo: moving.y, tHi: moving.y + moving.height }
+    : { lo: moving.y, hi: moving.y + moving.height, tLo: moving.x, tHi: moving.x + moving.width };
+
+  // Caras candidatas perpendiculares: para cada muro perpendicular que se solapa en el eje
+  // transversal, sus dos caras en el eje longitudinal son posibles puntos de cierre.
+  let newLo = startEnd.lo;
+  let newHi = startEnd.hi;
+  let changed = false;
+  for (const c of candidates) {
+    const cHorizontal = isHorizontal(c);
+    if (cHorizontal === horizontal) continue; // solo muros PERPENDICULARES cierran esquinas
+    const cLongLo = horizontal ? c.x : c.y;
+    const cLongHi = horizontal ? c.x + c.width : c.y + c.height;
+    const cTransLo = horizontal ? c.y : c.x;
+    const cTransHi = horizontal ? c.y + c.height : c.x + c.width;
+    // Debe estar enfrente del muro en el eje transversal (su cara cruza la franja del muro).
+    if (!rangesOverlap(startEnd.tLo, startEnd.tHi, cTransLo, cTransHi)) continue;
+    // Cada cara del candidato es un posible cierre del extremo más cercano.
+    for (const face of [cLongLo, cLongHi]) {
+      if (Math.abs(face - startEnd.lo) <= threshold) {
+        newLo = face;
+        changed = true;
+      }
+      if (Math.abs(face - startEnd.hi) <= threshold) {
+        newHi = face;
+        changed = true;
+      }
+    }
+  }
+  if (!changed || newHi - newLo <= 0) return null;
+  return horizontal
+    ? { x: newLo, width: newHi - newLo }
+    : { y: newLo, height: newHi - newLo };
+}
