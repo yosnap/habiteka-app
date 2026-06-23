@@ -7,7 +7,7 @@
  * muestra su nombre (para saber qué es cada elemento). Los cambios geométricos se
  * confían al store (con historial).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
@@ -15,15 +15,25 @@ import type { StructObj } from '@/canvas/types';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
+import { selectionAabb, type WorldRect } from '@/canvas/floating-menu-anchor';
+import { formatObjectSize, isValidScale } from '@/canvas/scale';
+import { LiveDimensionOverlay, type LiveDimension } from './live-dimension-overlay';
+import { useTransformerNodes } from '@/canvas/use-transformer-nodes';
 
 export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const selection = useCanvasStore((s) => s.doc.selection);
   const setSelection = useCanvasStore((s) => s.setSelection);
   const updateObject = useCanvasStore((s) => s.updateObject);
+  const scale = useCanvasStore((s) => s.doc.scale);
 
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Cota en vivo durante el gesto (estado transitorio; NO toca el store por frame).
+  const [live, setLive] = useState<LiveDimension | null>(null);
+  // AABB de los vecinos (los NO seleccionados), precalculados en onDragStart para no
+  // recalcularlos en cada frame del arrastre (solo cambia el AABB del objeto movido).
+  const neighborsRef = useRef<WorldRect[]>([]);
   // Posición del objeto arrastrado al empezar, para calcular el delta y arrastrar
   // con él al resto de la selección (mover varios a la vez con el ratón).
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -33,16 +43,8 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
     [selection],
   );
 
-  useEffect(() => {
-    const tr = trRef.current;
-    const layer = layerRef.current;
-    if (!tr || !layer) return;
-    // El Transformer puede gobernar varios nodos a la vez (multiselección).
-    const nodes = selectedIds
-      .map((id) => layer.findOne(`#${id}`))
-      .filter((n): n is Konva.Node => Boolean(n));
-    tr.nodes(nodes);
-  }, [selectedIds, objects]);
+  // Sincroniza el Transformer con los nodos seleccionados (sin useEffect directo).
+  useTransformerNodes(trRef, layerRef, selectedIds, objects);
 
   // Resuelve a qué ids afecta un clic en `id`: si el objeto pertenece a un grupo,
   // se selecciona TODO el grupo; si no, solo ese objeto.
@@ -100,8 +102,24 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           }}
           onDragStart={() => {
             dragStart.current = { x: o.x, y: o.y };
+            // Precalcular los AABB de los vecinos (NO seleccionados) una sola vez.
+            const sel = new Set(selectedIds.length ? selectedIds : [o.id]);
+            neighborsRef.current = objects
+              .filter((obj) => !sel.has(obj.id))
+              .map((obj) => selectionAabb([obj], [obj.id]))
+              .filter((r): r is WorldRect => r !== null);
+          }}
+          onDragMove={(e) => {
+            // AABB actual del objeto arrastrado (su rect en la posición del nodo;
+            // rotación incluida vía las dimensiones rotadas del objeto).
+            const aabb = selectionAabb(
+              [{ ...o, x: e.target.x(), y: e.target.y() }],
+              [o.id],
+            );
+            if (aabb) setLive({ kind: 'move', rect: aabb, others: neighborsRef.current });
           }}
           onDragEnd={(e) => {
+            setLive(null);
             const nx = snap(e.target.x());
             const ny = snap(e.target.y());
             const others = selectedIds.filter((id) => id !== o.id);
@@ -125,7 +143,28 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
             }
             dragStart.current = null;
           }}
+          onTransform={(e) => {
+            // Cota de TAMAÑO en vivo durante el resize: tamaño actual = tamaño del
+            // objeto × la escala que el Transformer va aplicando al nodo.
+            if (!isValidScale(scale)) return;
+            const node = e.target;
+            const w = Math.max(8, o.width * node.scaleX());
+            const h = Math.max(8, o.height * node.scaleY());
+            const rect = selectionAabb(
+              [{ ...o, x: node.x(), y: node.y(), width: w, height: h, rotation: node.rotation() }],
+              [o.id],
+            );
+            if (rect) {
+              setLive({
+                kind: 'resize',
+                rect,
+                others: [],
+                sizeLabel: formatObjectSize({ width: w, height: h, rotation: node.rotation() }, scale),
+              });
+            }
+          }}
           onTransformEnd={(e) => {
+            setLive(null);
             const node = e.target;
             // El Group no expone un width/height intrínseco fiable: se parte del
             // tamaño conocido del objeto y se le aplica la escala del transform.
@@ -175,6 +214,9 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           />
         </Label>
       ) : null}
+
+      {/* Cota en vivo del gesto en curso (mover → huecos; resize → tamaño). */}
+      <LiveDimensionOverlay live={live} scale={scale} />
 
       <Transformer
         ref={trRef}

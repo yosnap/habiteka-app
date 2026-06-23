@@ -5,7 +5,7 @@
  * para poder cargarse sin SSR (Konva requiere `window`). Traduce los gestos del
  * puntero según la herramienta activa: dibujar, crear objetos, o marcar una zona.
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
@@ -19,11 +19,14 @@ import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
 import { DrawWallLengthInput } from './draw-wall-length-input';
+import { FloatingObjectMenu } from './floating-object-menu';
+import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { isLight, defaultLight } from '@/canvas/light';
 import { isValidScale, catalogSizePx } from '@/canvas/scale';
 import { fitToContent } from '@/canvas/fit-view';
+import { useWindowEvent } from '@/lib/use-window-event';
 
 interface Props {
   tool: Tool;
@@ -65,28 +68,23 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   // El pan solo se activa con la barra espaciadora (estilo editores de diseño): así
   // arrastrar el fondo SELECCIONA con un marco (marquee) en vez de mover el lienzo.
   const [spaceDown, setSpaceDown] = useState(false);
+  // Durante un drag/pan activo se OCULTA el menú flotante (evita recalcular su anclaje
+  // en cada frame y reduce ruido visual); reaparece al soltar.
+  const [dragging, setDragging] = useState(false);
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space') setSpaceDown(true);
-      // Escape termina la cadena de muros en curso (descarta el segmento, conserva los creados).
-      if (e.code === 'Escape') resetDrawWall();
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === 'Space') setSpaceDown(false);
-    };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
-    };
-  }, [resetDrawWall]);
-
-  // Al salir de la herramienta de dibujo de muros, descarta el segmento en curso.
-  useEffect(() => {
-    if (tool !== 'draw-wall') resetDrawWall();
-  }, [tool, resetDrawWall]);
+  // Atajos de teclado globales (sin useEffect directo: el efecto vive en useWindowEvent).
+  useWindowEvent('keydown', (e) => {
+    if (e.code === 'Space') setSpaceDown(true);
+    // Escape termina la cadena de muros en curso (descarta el segmento, conserva los creados)
+    // y deselecciona el objeto activo (cierra el menú flotante con teclado).
+    if (e.code === 'Escape') {
+      resetDrawWall();
+      setSelection(null);
+    }
+  });
+  useWindowEvent('keyup', (e) => {
+    if (e.code === 'Space') setSpaceDown(false);
+  });
 
   // Es herramienta de creación de objeto si el tool es un kind del catálogo.
   const catalogEntry = tool in CATALOG_BY_KIND ? CATALOG_BY_KIND[tool] : undefined;
@@ -103,24 +101,20 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   }, []);
 
   // Atajos de zoom por teclado: Ctrl/Cmd + (+, -, 0). El + y - hacen zoom al centro.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const center = { x: width / 2, y: height / 2 };
-      if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        zoomTo(view.scale * ZOOM_STEP, center);
-      } else if (e.key === '-') {
-        e.preventDefault();
-        zoomTo(view.scale / ZOOM_STEP, center);
-      } else if (e.key === '0') {
-        e.preventDefault();
-        setView({ scale: 1, x: 0, y: 0 });
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [view.scale, width, height, zoomTo]);
+  useWindowEvent('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const center = { x: width / 2, y: height / 2 };
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      zoomTo(view.scale * ZOOM_STEP, center);
+    } else if (e.key === '-') {
+      e.preventDefault();
+      zoomTo(view.scale / ZOOM_STEP, center);
+    } else if (e.key === '0') {
+      e.preventDefault();
+      setView({ scale: 1, x: 0, y: 0 });
+    }
+  });
 
   // Zoom con la rueda, centrado en el cursor.
   const onWheel = useCallback(
@@ -262,6 +256,19 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const fitView = () =>
     setView(fitToContent(doc.objects, width, height, { minScale: MIN_SCALE, maxScale: MAX_SCALE }));
 
+  // Anclaje del menú flotante de acciones: estado DERIVADO de selección + vista +
+  // geometría (no un efecto). Solo para selección de objetos, con la herramienta
+  // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
+  const selectedIds =
+    doc.selection?.type === 'object' ? doc.selection.objectIds : [];
+  const menuAabb =
+    tool === 'select' && !dragging && !drawWall.drawing && selectedIds.length > 0
+      ? selectionAabb(doc.objects, selectedIds)
+      : null;
+  const menuAnchor = menuAabb
+    ? anchorPosition(menuAabb, view, { width, height }, { width: 132, height: 32 })
+    : null;
+
   return (
     <div className="relative h-full w-full">
     <Stage
@@ -274,7 +281,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       y={view.y}
       draggable={panEnabled}
       onWheel={onWheel}
+      // Drag de objeto o pan del Stage: ocultar el menú flotante mientras dura.
+      onDragStart={() => setDragging(true)}
       onDragEnd={(e) => {
+        setDragging(false);
         // El pan mueve el PROPIO Stage. El drag de un objeto burbujea hasta aquí,
         // pero su target es el objeto (no el Stage): se ignora para no pisar su
         // posición ni el pan.
@@ -333,6 +343,9 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
     </Stage>
       {/* Entrada de longitud exacta del muro en curso (F7.3). */}
       <DrawWallLengthInput visible={tool === 'draw-wall' && drawWall.drawing} onConfirm={drawWall.confirmWithLengthM} />
+      {menuAnchor ? (
+        <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} />
+      ) : null}
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
         <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">
