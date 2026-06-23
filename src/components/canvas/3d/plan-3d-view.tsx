@@ -28,7 +28,16 @@ import { OpeningFramesLayer } from './opening-frames-layer';
  * cámara y el interior (estilo Planner5D/Sims), para poder ver dentro al orbitar. La
  * decisión es lógica pura (`shouldHideWall`); aquí solo se aplica `visible` por muro.
  */
-function Walls({ walls }: { walls: WallBox[] }) {
+const DEFAULT_WALL_COLOR = '#b7c3cf';
+
+function Walls({
+  walls,
+  onPick,
+}: {
+  walls: WallBox[];
+  /** Clic derecho sobre un muro: id del objeto muro + posición en pantalla (para el menú). */
+  onPick?: (sourceId: string, screenX: number, screenY: number) => void;
+}) {
   const refs = useRef<(Mesh | null)[]>([]);
   useFrame((state) => {
     const cam = state.camera.position;
@@ -49,9 +58,15 @@ function Walls({ walls }: { walls: WallBox[] }) {
           }}
           position={w.center}
           rotation={[0, w.rotationY, 0]}
+          onContextMenu={(e) => {
+            if (!onPick) return;
+            e.stopPropagation();
+            e.nativeEvent.preventDefault();
+            onPick(w.sourceId ?? w.id, e.nativeEvent.clientX, e.nativeEvent.clientY);
+          }}
         >
           <boxGeometry args={w.size} />
-          <meshStandardMaterial color="#b7c3cf" />
+          <meshStandardMaterial color={w.color ?? DEFAULT_WALL_COLOR} />
         </mesh>
       ))}
     </group>
@@ -101,11 +116,17 @@ function Floor({ floor }: { floor: Scene3D['floor'] }) {
 }
 
 /** Suelo + muros del plano, ya convertidos a metros por `docToScene`. */
-function RoomMesh({ scene }: { scene: Scene3D }) {
+function RoomMesh({
+  scene,
+  onPickWall,
+}: {
+  scene: Scene3D;
+  onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
+}) {
   return (
     <group>
       <Floor floor={scene.floor} />
-      <Walls walls={scene.walls} />
+      <Walls walls={scene.walls} onPick={onPickWall} />
     </group>
   );
 }
@@ -181,10 +202,13 @@ function CaptureRig({ order }: { order: CaptureOrder | null }) {
 export function Plan3DView({
   doc,
   onGenerateView,
+  onPickWall,
 }: {
   doc: CanvasDoc;
   /** Si se pasa, habilita capturar vistas por ángulo y entregar el data URL al caller. */
   onGenerateView?: (dataUrl: string, angle: ViewAngle) => void;
+  /** Clic derecho sobre un muro: id del muro + posición en pantalla (para editar en 3D). */
+  onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
 }) {
   // La escena depende solo del doc: memoizar evita recalcular en cada render.
   const scene = useMemo(() => docToScene(doc), [doc]);
@@ -268,7 +292,7 @@ export function Plan3DView({
         <ambientLight intensity={hasDocLights ? 0.12 : 0.6} />
         <directionalLight position={[10, 15, 8]} intensity={hasDocLights ? 0.3 : 1.1} />
         <LightsLayer items={scene.lights} />
-        <RoomMesh scene={scene} />
+        <RoomMesh scene={scene} onPickWall={onPickWall} />
         <GlassLayer panes={scene.glassPanes} />
         <OpeningFramesLayer frames={scene.openingFrames} />
         <Suspense fallback={null}>

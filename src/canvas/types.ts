@@ -90,6 +90,12 @@ export interface StructObj {
    * techo del plano; muebles → su altura habitual). Da contexto 3D al render.
    */
   heightM?: number;
+  /**
+   * Color del material en hex (#rrggbb), p. ej. la pintura de una pared elegida en el 3D.
+   * Opcional y aditivo: si falta, el render usa el color por defecto del elemento. Hoy lo
+   * aplica el render 3D a los muros; el 2D puede ignorarlo.
+   */
+  color?: string;
 }
 
 /** Producto del marketplace colocado en el canvas. */

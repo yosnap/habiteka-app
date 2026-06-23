@@ -19,6 +19,7 @@ import { useSearchParams } from 'next/navigation';
 import type { CanvasDoc } from '@/canvas/types';
 import type { Estilo } from '@/lib/contracts';
 import { ESTILOS } from '@/lib/design-options';
+import { useCanvasStore } from '@/canvas/canvas-store';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { generateViewFrom3D } from '@/app/(app)/projects/[id]/_actions/agent-actions';
 
@@ -32,7 +33,7 @@ const Plan3DView = dynamic(() => import('./plan-3d-view').then((m) => m.Plan3DVi
 });
 
 export function Plan3DOverlay({
-  doc,
+  doc: initialDoc,
   projectId,
   onClose,
 }: {
@@ -45,6 +46,13 @@ export function Plan3DOverlay({
   const [estilo, setEstilo] = useState<Estilo>(ESTILOS[0]!.value);
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
+  // Doc EN VIVO del store: editar el color de una pared (vía updateObject) se refleja al
+  // instante en el 3D. Cae al snapshot inicial si el store aún no está hidratado.
+  const storeDoc = useCanvasStore((s) => s.doc);
+  const updateObject = useCanvasStore((s) => s.updateObject);
+  const doc = storeDoc.objects.length ? storeDoc : initialDoc;
+  // Menú contextual de pared: id del muro + posición en pantalla del clic derecho.
+  const [wallMenu, setWallMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 
   // Cerrar con Escape (listener de montaje con limpieza, patrón del menú contextual).
   useMountEffect(() => {
@@ -54,6 +62,17 @@ export function Plan3DOverlay({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
+
+  // Clic derecho sobre una pared en el 3D: abre el menú de pintura en esa posición.
+  const onPickWall = (sourceId: string, x: number, y: number) => {
+    setWallMenu({ id: sourceId, x, y });
+  };
+
+  // Pinta la pared seleccionada con el color elegido (escribe en el store → undo/redo gratis,
+  // y el 3D lo refleja al leer el doc en vivo).
+  const paintWall = (color: string) => {
+    if (wallMenu) updateObject(wallMenu.id, { color });
+  };
 
   // Recibe la captura del ángulo elegido y la manda a la IA para estilizarla. El ángulo ya
   // viene aplicado en la imagen capturada, así que aquí solo importa el data URL.
@@ -101,8 +120,36 @@ export function Plan3DOverlay({
         {notice ? <span className="text-xs text-green-300">{notice}</span> : null}
       </div>
 
+      {/* Menú contextual de pared: elegir el color de pintura. Anclado al clic derecho. */}
+      {wallMenu ? (
+        <div
+          className="absolute z-20 flex items-center gap-2 rounded-md bg-neutral-800 px-3 py-2 text-xs text-white shadow-lg ring-1 ring-white/20"
+          style={{ left: wallMenu.x, top: wallMenu.y }}
+        >
+          <span>Pintar pared</span>
+          <input
+            type="color"
+            aria-label="Color de la pared"
+            onChange={(e) => paintWall(e.target.value)}
+            className="h-6 w-8 cursor-pointer rounded border-0 bg-transparent"
+          />
+          <button
+            type="button"
+            onClick={() => setWallMenu(null)}
+            aria-label="Cerrar"
+            className="text-white/60 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       {/* Mientras genera, se desactiva la captura para no encadenar peticiones. */}
-      <Plan3DView doc={doc} onGenerateView={pending ? undefined : onGenerateView} />
+      <Plan3DView
+        doc={doc}
+        onGenerateView={pending ? undefined : onGenerateView}
+        onPickWall={onPickWall}
+      />
     </div>
   );
 }

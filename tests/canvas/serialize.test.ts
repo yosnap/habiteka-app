@@ -52,6 +52,20 @@ describe('serialización del canvas', () => {
     expect(back.floorOutline).toBeUndefined();
   });
 
+  it('persiste el color (pintura) de un objeto solo si es hex válido', () => {
+    const withColor: CanvasDoc = {
+      ...sample,
+      objects: [
+        { id: 'w1', kind: 'wall', x: 0, y: 0, width: 100, height: 12, rotation: 0, color: '#aabbcc' },
+        { id: 'w2', kind: 'wall', x: 0, y: 0, width: 100, height: 12, rotation: 0, color: 'rojo' },
+      ],
+    };
+    const back = deserializeCanvas(JSON.parse(JSON.stringify(serializeCanvas(withColor))));
+    expect(back.objects.find((o) => o.id === 'w1')?.color).toBe('#aabbcc');
+    // Color inválido se descarta (no rompe el objeto).
+    expect(back.objects.find((o) => o.id === 'w2')?.color).toBeUndefined();
+  });
+
   it('deserializa de forma defensiva un payload corrupto sin romper', () => {
     const back = deserializeCanvas({
       strokes: [{ id: 's', points: ['x', 1, 2] }, 'basura'],

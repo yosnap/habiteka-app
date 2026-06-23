@@ -467,4 +467,17 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     expect(wb.w).toBeCloseTo(4, 1);
     expect(wb.d).toBeCloseTo(3, 1);
   });
+
+  it('el color de un muro se propaga a sus WallBox (pintura editada en 3D)', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-pintado', kind: 'wall', x: 100, y: 100, width: 300, height: 15, color: '#ff8800' }),
+        obj({ id: 'w-default', kind: 'wall', x: 100, y: 200, width: 300, height: 15 }),
+      ]),
+    );
+    const pintado = scene.walls.find((w) => w.sourceId === 'w-pintado');
+    const sinColor = scene.walls.find((w) => w.sourceId === 'w-default');
+    expect(pintado?.color).toBe('#ff8800');
+    expect(sinColor?.color).toBeUndefined(); // sin color → el render usa el default
+  });
 });

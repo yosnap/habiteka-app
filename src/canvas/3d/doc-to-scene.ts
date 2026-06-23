@@ -72,6 +72,10 @@ export interface WallBox {
   size: [number, number, number];
   /** Rotación alrededor del eje vertical (Y), en radianes. */
   rotationY: number;
+  /** Color del material en hex (#rrggbb), si el muro lo define; si no, el render usa el default. */
+  color?: string;
+  /** Id del objeto muro de origen (sin sufijo de hueco), para editarlo desde el 3D. */
+  sourceId?: string;
 }
 
 /**
@@ -396,7 +400,11 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       center,
       pxPerMeter,
     );
-    walls.push(...boxes);
+    // Anota cada caja con el id del muro de origen (para editarlo desde el 3D) y propaga su
+    // color (pintura), si lo define.
+    walls.push(
+      ...boxes.map((b) => ({ ...b, sourceId: wall.id, ...(wall.color ? { color: wall.color } : {}) })),
+    );
     glassPanes.push(...panes);
     openingFrames.push(...frames);
   }

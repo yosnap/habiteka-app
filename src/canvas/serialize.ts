@@ -138,7 +138,14 @@ function parseStruct(v: unknown): StructObj | null {
     ...(light ? { light } : {}),
     // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
     ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),
+    // Color del material (pintura de pared) opcional: solo un string hex válido.
+    ...(isHexColor(v.color) ? { color: v.color as string } : {}),
   };
+}
+
+/** ¿Es un color hex `#rgb`/`#rrggbb`? (validación básica del material persistido). */
+function isHexColor(v: unknown): boolean {
+  return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 }
 
 function parseLight(v: unknown): LightProps | null {

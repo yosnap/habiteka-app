@@ -37,5 +37,15 @@ material / pintar paredes, encender/apagar o ajustar luces, etc. — edición di
 - Lógica de selección/edición testeable donde sea pura; verificación en navegador.
 - tsc+eslint limpios; suite verde.
 
+## Estado (2026-06-23)
+- **HECHO: color de pared.** Campo `color?` aditivo en `StructObj` (persistido en serialize con
+  validación hex); `WallBox.color`/`sourceId` en docToScene; el render usa `w.color ?? default`.
+  Clic derecho sobre una pared en el 3D abre un menú con selector de color que escribe en el
+  store (`updateObject` → undo/redo gratis) y el 3D lo refleja en vivo (doc del store).
+  Tests: serialize (round-trip + hex inválido) y docToScene (color→WallBox). 549 verdes.
+- **PENDIENTE (continuación): editar LUCES desde el 3D** (encender/apagar + intensidad/color).
+  El modelo ya existe (`StructObj.light`) y hay panel 2D (`light-controls`); falta el clic
+  derecho sobre la luz en 3D + reusar ese panel. Va como siguiente entrega.
+
 ## Notas
-- Es el bloque más ambicioso; va en su propio PR, después de las fases 1-3.
+- Materiales/texturas ricas y luces-en-3D = continuación.
