@@ -21,6 +21,7 @@ function fakeStorage(): { storage: StorageAdapter; puts: string[]; deletes: stri
     delete: async (key) => {
       deletes.push(key);
     },
+    get: async () => Buffer.alloc(0),
     getPresignedUploadUrl: async (key) => `https://storage.test/upload/${key}`,
     getPresignedDownloadUrl: async (key) => `https://storage.test/${key}`,
   };

@@ -17,6 +17,12 @@ export interface PutObjectInput {
 export interface StorageAdapter {
   put(input: PutObjectInput): Promise<void>;
   delete(key: string): Promise<void>;
+  /**
+   * Lee los bytes de un objeto por su `key` (server-only). Lo usa el render por foto
+   * (img2img): el servidor necesita los BYTES de la foto de la zona para pasarla como
+   * referencia al proveedor, no solo una URL presignada.
+   */
+  get(key: string): Promise<Buffer>;
   /** URL temporal para que el cliente suba directo, acotada en tamaño. */
   getPresignedUploadUrl(key: string, maxBytes: number, contentType: string): Promise<string>;
   /** URL temporal de descarga (expira). No expone el bucket públicamente. */

@@ -24,6 +24,17 @@ describe('storageKeyFromDeliverablePayload', () => {
     expect(storageKeyFromDeliverablePayload(payload)).toBe('r/1.png');
   });
 
+  it('prefiere assetKey (clave exacta) a derivarla de la URL', () => {
+    // En path-style (MinIO) la URL lleva el bucket en el pathname; assetKey es la
+    // clave real del objeto, así que debe ganar.
+    const payload = {
+      type: 'render3d',
+      assetKey: 'renders/nano-banana/abc.png',
+      assetUrl: 'http://localhost:9000/habiteka-dev/renders/nano-banana/abc.png?X-Amz=...',
+    };
+    expect(storageKeyFromDeliverablePayload(payload)).toBe('renders/nano-banana/abc.png');
+  });
+
   it('ignora payloads que no son render (plano2d/memoria)', () => {
     expect(storageKeyFromDeliverablePayload({ type: 'memoria', markdown: '# x' })).toBeNull();
     expect(storageKeyFromDeliverablePayload({ type: 'plano2d', plano: {} })).toBeNull();

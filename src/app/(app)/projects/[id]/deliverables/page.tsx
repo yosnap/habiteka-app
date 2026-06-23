@@ -7,6 +7,7 @@
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
@@ -29,9 +30,9 @@ export default async function DeliverablesPage({ params }: Props) {
   // degrada mostrando el diseño SIN la miniatura de origen, no rompiendo la vista.
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
 
-  const deliverables = rows
-    .map((row) => toDeliverableView(row, urlBySourceImageId))
-    .filter((d): d is DeliverableView => d !== null);
+  const deliverables = (
+    await Promise.all(rows.map((row) => toDeliverableView(row, urlBySourceImageId)))
+  ).filter((d): d is DeliverableView => d !== null);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
@@ -42,7 +43,7 @@ export default async function DeliverablesPage({ params }: Props) {
 
 // Reconstruye el entregable desde la fila, validando el tipo de payload, y le
 // adjunta la URL de su imagen de origen si la hay.
-function toDeliverableView(
+async function toDeliverableView(
   row: {
     id: string;
     type: string;
@@ -53,16 +54,22 @@ function toDeliverableView(
     zoneId: string | null;
   },
   urlBySourceImageId: Map<string, string>,
-): DeliverableView | null {
+): Promise<DeliverableView | null> {
   const payload = row.payload as DeliverablePayload | null;
   if (!payload || typeof payload !== 'object' || !('type' in payload)) return null;
   const sourceImageUrl = row.sourceImageId
     ? (urlBySourceImageId.get(row.sourceImageId) ?? null)
     : null;
+  // El render se re-firma desde su `assetKey` (la presignada guardada caduca). Para
+  // el resto de tipos el payload viaja intacto.
+  const resolved =
+    payload.type === 'render3d'
+      ? { ...payload, assetUrl: (await resolveRenderUrl(payload)) ?? payload.assetUrl }
+      : payload;
   return {
     id: row.id,
     type: row.type as DeliverableType,
-    payload,
+    payload: resolved,
     legalSeal: row.legalSeal,
     version: row.version,
     sourceImageUrl,

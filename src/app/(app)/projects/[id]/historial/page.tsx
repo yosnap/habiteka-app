@@ -10,6 +10,7 @@
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { groupHistory } from '@/lib/history-grouping';
 import {
   HistoryGallery,
@@ -32,9 +33,9 @@ export default async function HistorialPage({ params }: Props) {
   ]);
 
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
-  const deliverables = rows
-    .map(toHistoryDeliverable)
-    .filter((d): d is HistoryDeliverable => d !== null);
+  const deliverables = (await Promise.all(rows.map(toHistoryDeliverable))).filter(
+    (d): d is HistoryDeliverable => d !== null,
+  );
 
   // La resolución de URLs vive en `@/server/storage/source-image-urls` y la
   // agrupación pura en `@/lib/history-grouping` (testeable sin IO).
@@ -47,19 +48,21 @@ export default async function HistorialPage({ params }: Props) {
   );
 }
 
-// Resume un entregable para la galería: tipo + (si es render) su URL.
-function toHistoryDeliverable(row: {
+// Resume un entregable para la galería: tipo + (si es render) su URL fresca.
+async function toHistoryDeliverable(row: {
   id: string;
   type: string;
   payload: unknown;
   sourceImageId: string | null;
-}): HistoryDeliverable | null {
+}): Promise<HistoryDeliverable | null> {
   const payload = row.payload as DeliverablePayload | null;
   if (!payload || typeof payload !== 'object' || !('type' in payload)) return null;
+  // El render se re-firma desde su `assetKey` (la presignada guardada caduca → imagen rota).
+  const renderUrl = payload.type === 'render3d' ? await resolveRenderUrl(payload) : null;
   return {
     id: row.id,
     type: row.type as DeliverableType,
-    renderUrl: payload.type === 'render3d' ? payload.assetUrl : null,
+    renderUrl,
     sourceImageId: row.sourceImageId,
   };
 }
