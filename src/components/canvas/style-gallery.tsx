@@ -37,20 +37,32 @@ export function StyleGallery({
             aria-label={s.label}
             disabled={disabled}
             onClick={() => onChange(s.value)}
-            className={`w-[46%] shrink-0 snap-start overflow-hidden rounded-card border text-left transition disabled:opacity-50 ${
-              selected ? 'border-accent ring-accent ring-2' : 'border-line hover:border-accent/60'
+            className={`relative w-[46%] shrink-0 snap-start overflow-hidden rounded-card text-left transition disabled:opacity-50 ${
+              selected
+                ? 'ring-accent shadow-[var(--shadow-float)] ring-[3px]'
+                : 'ring-line hover:ring-accent/50 opacity-80 ring-1 hover:opacity-100'
             }`}
           >
-            <Image
-              src={s.image}
-              alt={`Estilo ${s.label}`}
-              width={480}
-              height={320}
-              className="h-32 w-full object-cover"
-            />
+            <div className="relative">
+              <Image
+                src={s.image}
+                alt={`Estilo ${s.label}`}
+                width={480}
+                height={320}
+                className="h-32 w-full object-cover"
+              />
+              {/* Marca de selección clara en la esquina. */}
+              {selected ? (
+                <span className="bg-accent text-accent-foreground absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full shadow">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+              ) : null}
+            </div>
             <span
               className={`block px-2 py-1.5 text-sm ${
-                selected ? 'text-accent font-semibold' : 'text-ink-soft'
+                selected ? 'bg-accent text-accent-foreground font-semibold' : 'text-ink-soft bg-surface'
               }`}
             >
               {s.label}
