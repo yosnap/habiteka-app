@@ -17,6 +17,11 @@ export interface Option<T extends string> {
   label: string;
 }
 
+/** Opción de estilo con su miniatura realista (selector visual tipo Planner5D). */
+export interface EstiloOption extends Option<Estilo> {
+  image: string;
+}
+
 // Etiquetas en español. `Record<Estilo, string>` fuerza exhaustividad: si se añade
 // un `Estilo` al tipo y no se le pone etiqueta aquí, el build falla.
 const ESTILO_LABELS: Record<Estilo, string> = {
@@ -43,10 +48,14 @@ const ENTREGABLE_LABELS: Record<DeliverableType, string> = {
   memoria: 'Memoria de materiales',
 };
 
-/** Estilos como lista de opciones {value,label} para la UI. */
-export const ESTILOS: ReadonlyArray<Option<Estilo>> = (
+/**
+ * Estilos como lista de opciones {value,label,image} para la UI. La miniatura es una
+ * foto realista de un salón en ese estilo (en `public/styles/<slug>.webp`), para un
+ * selector visual tipo Planner5D. El nombre del archivo = el slug del estilo.
+ */
+export const ESTILOS: ReadonlyArray<EstiloOption> = (
   Object.keys(ESTILO_LABELS) as Estilo[]
-).map((value) => ({ value, label: ESTILO_LABELS[value] }));
+).map((value) => ({ value, label: ESTILO_LABELS[value], image: `/styles/${value}.webp` }));
 
 /** Entregables como lista de opciones {value,label} para la UI. */
 export const ENTREGABLES: ReadonlyArray<Option<DeliverableType>> = (

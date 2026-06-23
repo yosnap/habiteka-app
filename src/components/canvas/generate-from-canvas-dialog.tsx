@@ -14,7 +14,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas } from '@/canvas/serialize';
-import { ESTILOS, ENTREGABLES } from '@/lib/design-options';
+import { ENTREGABLES } from '@/lib/design-options';
+import { StyleGallery } from './style-gallery';
 import type { AgentOutcome } from '@/server/agent';
 import type { DeliverableType, Estilo } from '@/lib/contracts';
 
@@ -128,21 +129,10 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                 className="border-line bg-surface resize-none rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               />
             </label>
-            <label className="text-ink-soft flex flex-col gap-1 text-sm">
+            <div className="text-ink-soft flex flex-col gap-1 text-sm">
               Estilo
-              <select
-                value={estilo}
-                onChange={(e) => setEstilo(e.target.value as Estilo)}
-                disabled={busy}
-                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
-              >
-                {ESTILOS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <StyleGallery value={estilo} onChange={setEstilo} disabled={busy} />
+            </div>
             <label className="text-ink-soft flex flex-col gap-1 text-sm">
               Entregable
               <select
