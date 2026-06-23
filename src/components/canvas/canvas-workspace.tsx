@@ -20,6 +20,7 @@ import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
 import { DesignWizard } from './wizard/design-wizard';
+import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
 import { autofurnish } from '@/canvas/wizard/autofurnish';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,8 @@ const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasS
 
 interface Props {
   projectId: string;
+  /** Zona activa del plano; null = plano por defecto del proyecto. */
+  activeZoneId: string | null;
   initialDoc: unknown;
   saveAction: (projectId: string, payload: unknown) => Promise<void>;
   generateAction: (
@@ -60,6 +63,7 @@ const DEBOUNCE_MS = 800;
 
 export function CanvasWorkspace({
   projectId,
+  activeZoneId,
   initialDoc,
   saveAction,
   generateAction,
@@ -67,6 +71,9 @@ export function CanvasWorkspace({
   detectAction,
 }: Props) {
   const [tool, setTool] = useState<Tool>('select');
+  // Panel de fotos de la zona (F2): overlay para gestionar la foto activa (img2img)
+  // sin tapar el lienzo de Konva.
+  const [showPhotos, setShowPhotos] = useState(false);
   // Diálogo de generación de diseño desde el lienzo (CRL-4).
   const [showGenerate, setShowGenerate] = useState(false);
   // Diálogo de sugerencias de decoración por IA (F4).
@@ -264,6 +271,15 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant={showPhotos ? 'default' : 'ghost'}
+            onClick={() => setShowPhotos((v) => !v)}
+            title="Fotos del espacio: elige la que usa el render (img2img)"
+          >
+            Fotos del espacio
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             variant="ghost"
             onClick={() => setShowDetect(true)}
             title="Detectar elementos desde una foto o plano (beta)"
@@ -317,6 +333,11 @@ export function CanvasWorkspace({
       </div>
       {menu ? (
         <CanvasContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      ) : null}
+      {showPhotos ? (
+        <aside className="absolute right-2 top-12 z-10 w-72 max-w-[calc(100%-1rem)] shadow-lg">
+          <ZonePhotosPanel projectId={projectId} zoneId={activeZoneId} />
+        </aside>
       ) : null}
       {showGenerate ? (
         <GenerateFromCanvasDialog

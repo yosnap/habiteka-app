@@ -26,6 +26,15 @@ export function MessageList({ turns, streamingText }: Props) {
         <Bubble key={t.id} role={t.role} text={t.text} imageUrl={t.imageUrl} />
       ))}
       {streamingText && <Bubble role="assistant" text={streamingText} />}
+      {/* Centinela de auto-scroll: la `key` cambia con cada turno (y con el texto en
+          streaming), forzando su re-montaje; su ref-callback lleva la vista al último
+          mensaje. Evita que el resultado quede fuera de pantalla sin scroll manual.
+          (Sin useEffect: el callback de ref se dispara al montar.) */}
+      <div
+        key={`end-${turns.length}-${streamingText.length}`}
+        ref={(el) => el?.scrollIntoView({ block: 'end' })}
+        aria-hidden
+      />
     </div>
   );
 }

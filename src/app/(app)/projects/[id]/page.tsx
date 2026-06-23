@@ -51,6 +51,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
         <CanvasWorkspace
           key={activeZoneId ?? 'default'}
           projectId={id}
+          activeZoneId={activeZoneId}
           initialDoc={initialDoc}
           saveAction={saveCanvasForZone}
           generateAction={generateDesignFromCanvas}
