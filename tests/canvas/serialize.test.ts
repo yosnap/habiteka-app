@@ -28,6 +28,30 @@ describe('serialización del canvas', () => {
     expect(json.selection).toBeNull();
   });
 
+  it('persiste y rehidrata el contorno del suelo (formas no rectangulares)', () => {
+    const withOutline: CanvasDoc = {
+      ...sample,
+      floorOutline: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 50 },
+        { x: 50, y: 50 },
+        { x: 50, y: 100 },
+        { x: 0, y: 100 },
+      ],
+    };
+    const back = deserializeCanvas(JSON.parse(JSON.stringify(serializeCanvas(withOutline))));
+    expect(back.floorOutline).toEqual(withOutline.floorOutline);
+  });
+
+  it('descarta un floorOutline con menos de 3 vértices o vértices inválidos', () => {
+    const back = deserializeCanvas({
+      ...JSON.parse(JSON.stringify(serializeCanvas(sample))),
+      floorOutline: [{ x: 1, y: 2 }, { x: 'mal', y: 3 }],
+    });
+    expect(back.floorOutline).toBeUndefined();
+  });
+
   it('deserializa de forma defensiva un payload corrupto sin romper', () => {
     const back = deserializeCanvas({
       strokes: [{ id: 's', points: ['x', 1, 2] }, 'basura'],

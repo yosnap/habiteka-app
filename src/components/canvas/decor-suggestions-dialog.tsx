@@ -14,8 +14,8 @@ import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas } from '@/canvas/serialize';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
-import { ESTILOS } from '@/lib/design-options';
 import type { DecorRecommendation, Estilo } from '@/lib/contracts';
+import { StyleGallery } from './style-gallery';
 
 interface Props {
   projectId: string;
@@ -110,21 +110,10 @@ export function DecorSuggestionsDialog({ projectId, recommendAction, onClose }: 
                 className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
               />
             </label>
-            <label className="text-ink-soft flex flex-col gap-1 text-sm">
+            <div className="text-ink-soft flex flex-col gap-1 text-sm">
               Estilo
-              <select
-                value={estilo}
-                onChange={(e) => setEstilo(e.target.value as Estilo)}
-                disabled={busy}
-                className="border-line bg-surface rounded-control border px-2 py-1 text-sm disabled:opacity-50"
-              >
-                {ESTILOS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <StyleGallery value={estilo} onChange={setEstilo} disabled={busy} />
+            </div>
           </div>
         ) : suggestions.length === 0 ? (
           <p className="text-ink-soft mb-3 text-sm">

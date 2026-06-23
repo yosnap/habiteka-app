@@ -16,6 +16,7 @@ import { useCanvasStore } from './canvas-store';
 import { isValidScale, metersToPx } from './scale';
 import type { CanvasScale } from './types';
 import { segmentToWall, snapAngle, applyExactLength, type Point } from './draw-wall';
+import { useValueChangeEffect } from '@/lib/use-value-change-effect';
 
 let wallSeq = 0;
 
@@ -105,6 +106,12 @@ export function useDrawWall({ enabled, worldPointer }: UseDrawWallOptions) {
     },
     [preview, commit],
   );
+
+  // Al DESACTIVARSE la herramienta (cambio de tool), se descarta el muro en curso. Se
+  // hace con el primitivo de cambio de valor (no un useEffect suelto en el componente).
+  useValueChangeEffect(enabled, (active) => {
+    if (!active) reset();
+  });
 
   return {
     preview,

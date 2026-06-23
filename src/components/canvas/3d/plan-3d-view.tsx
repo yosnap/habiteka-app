@@ -12,13 +12,15 @@
 import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF } from '@react-three/drei';
-import type { Mesh } from 'three';
+import { Mesh, Shape } from 'three';
 import type { CanvasDoc } from '@/canvas/types';
 import { docToScene, shouldHideWallXZ, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { FurnitureLayer } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
+import { GlassLayer } from './glass-layer';
+import { OpeningFramesLayer } from './opening-frames-layer';
 
 /**
  * Muros con recorte por cámara (F6.4): cada frame se oculta el muro que queda entre la
@@ -55,18 +57,53 @@ function Walls({ walls }: { walls: WallBox[] }) {
   );
 }
 
+/**
+ * Suelo del plano: polígono exacto (formas L/U/T, vía `floor.polygon`) o rectángulo
+ * (caso por defecto). Ambos se tumban al plano XZ rotando −90° en X; con esa rotación un
+ * punto (u,v) de la `Shape` cae en (u, 0, −v) del mundo, así que la coordenada Z del
+ * polígono se NIEGA al construir la forma para que el suelo quede alineado con los muros.
+ * El polígono se memoiza por sus vértices para no reconstruir la geometría en cada frame.
+ */
+function Floor({ floor }: { floor: Scene3D['floor'] }) {
+  const shape = useMemo(() => {
+    const poly = floor.polygon;
+    if (!poly || poly.length < 3) return null;
+    const first = poly[0];
+    if (!first) return null;
+    const s = new Shape();
+    s.moveTo(first[0], -first[1]);
+    for (let i = 1; i < poly.length; i++) {
+      const p = poly[i];
+      if (p) s.lineTo(p[0], -p[1]);
+    }
+    s.closePath();
+    return s;
+  }, [floor.polygon]);
+
+  if (shape) {
+    return (
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <shapeGeometry args={[shape]} />
+        <meshStandardMaterial color="#d8d2c8" />
+      </mesh>
+    );
+  }
+  // Un doc sin objetos da suelo [0,0] (geometría degenerada): no lo renderizamos.
+  const hasFloor = floor.size[0] > 0 && floor.size[1] > 0;
+  if (!hasFloor) return null;
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[floor.center[0], 0, floor.center[1]]}>
+      <planeGeometry args={[floor.size[0], floor.size[1]]} />
+      <meshStandardMaterial color="#d8d2c8" />
+    </mesh>
+  );
+}
+
 /** Suelo + muros del plano, ya convertidos a metros por `docToScene`. */
 function RoomMesh({ scene }: { scene: Scene3D }) {
-  // Un doc sin objetos da suelo [0,0] (geometría degenerada): no lo renderizamos.
-  const hasFloor = scene.floor.size[0] > 0 && scene.floor.size[1] > 0;
   return (
     <group>
-      {hasFloor ? (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-          <planeGeometry args={[scene.floor.size[0], scene.floor.size[1]]} />
-          <meshStandardMaterial color="#d8d2c8" />
-        </mesh>
-      ) : null}
+      <Floor floor={scene.floor} />
       <Walls walls={scene.walls} />
     </group>
   );
@@ -154,6 +191,8 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
         <directionalLight position={[10, 15, 8]} intensity={hasDocLights ? 0.3 : 1.1} />
         <LightsLayer items={scene.lights} />
         <RoomMesh scene={scene} />
+        <GlassLayer panes={scene.glassPanes} />
+        <OpeningFramesLayer frames={scene.openingFrames} />
         <Suspense fallback={null}>
           <FurnitureLayer items={scene.furniture} />
         </Suspense>

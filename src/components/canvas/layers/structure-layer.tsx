@@ -7,7 +7,7 @@
  * muestra su nombre (para saber qué es cada elemento). Los cambios geométricos se
  * confían al store (con historial).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
@@ -15,34 +15,45 @@ import type { StructObj } from '@/canvas/types';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
+import { selectionAabb, type WorldRect } from '@/canvas/floating-menu-anchor';
+import { computeSnap, type SnapResult } from '@/canvas/snap';
+import { formatObjectSize, isValidScale } from '@/canvas/scale';
+import { LiveDimensionOverlay, type LiveDimension } from './live-dimension-overlay';
+import { SnapGuidesOverlay } from './snap-guides-overlay';
+import { useTransformerNodes } from '@/canvas/use-transformer-nodes';
 
 export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const selection = useCanvasStore((s) => s.doc.selection);
   const setSelection = useCanvasStore((s) => s.setSelection);
   const updateObject = useCanvasStore((s) => s.updateObject);
+  const scale = useCanvasStore((s) => s.doc.scale);
 
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Cota en vivo durante el gesto (estado transitorio; NO toca el store por frame).
+  const [live, setLive] = useState<LiveDimension | null>(null);
+  // AABB de los vecinos (los NO seleccionados), precalculados en onDragStart para no
+  // recalcularlos en cada frame del arrastre (solo cambia el AABB del objeto movido).
+  const neighborsRef = useRef<WorldRect[]>([]);
   // Posición del objeto arrastrado al empezar, para calcular el delta y arrastrar
   // con él al resto de la selección (mover varios a la vez con el ratón).
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  // Líneas-guía del snap en curso (coords de mundo), para dibujarlas durante el arrastre.
+  const [guides, setGuides] = useState<SnapResult | null>(null);
+  // ¿El snap está desactivado temporalmente? (tecla Alt mantenida durante el arrastre). Es un
+  // ref porque `dragBoundFunc` se ejecuta fuera del ciclo de render y necesita el valor vivo.
+  const snapDisabled = useRef(false);
+  // Tamaño (w,h) del objeto que se está arrastrando, para construir su AABB en dragBoundFunc.
+  const draggingSize = useRef<{ width: number; height: number } | null>(null);
 
   const selectedIds = useMemo(
     () => (selection?.type === 'object' ? selection.objectIds : []),
     [selection],
   );
 
-  useEffect(() => {
-    const tr = trRef.current;
-    const layer = layerRef.current;
-    if (!tr || !layer) return;
-    // El Transformer puede gobernar varios nodos a la vez (multiselección).
-    const nodes = selectedIds
-      .map((id) => layer.findOne(`#${id}`))
-      .filter((n): n is Konva.Node => Boolean(n));
-    tr.nodes(nodes);
-  }, [selectedIds, objects]);
+  // Sincroniza el Transformer con los nodos seleccionados (sin useEffect directo).
+  useTransformerNodes(trRef, layerRef, selectedIds, objects);
 
   // Resuelve a qué ids afecta un clic en `id`: si el objeto pertenece a un grupo,
   // se selecciona TODO el grupo; si no, solo ese objeto.
@@ -88,6 +99,28 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           height={o.height}
           rotation={o.rotation}
           draggable
+          dragBoundFunc={function (this: Konva.Node, pos) {
+            // pos es ABSOLUTA (coords de stage). Con Alt mantenido o sin escala usable,
+            // no se aplica magnetismo: la rejilla del onDragEnd hace de fallback.
+            if (snapDisabled.current) return pos;
+            const layer = layerRef.current;
+            const size = draggingSize.current;
+            if (!layer || !size) return pos;
+            // Absoluto → mundo (coords del documento/layer): la esquina del objeto.
+            const inv = layer.getAbsoluteTransform().copy().invert();
+            const world = inv.point(pos);
+            // AABB del objeto en esa posición (respeta su rotación), contra los vecinos.
+            const aabb = selectionAabb(
+              [{ ...o, x: world.x, y: world.y, width: size.width, height: size.height }],
+              [o.id],
+            );
+            if (!aabb) return pos;
+            const result = computeSnap(aabb, neighborsRef.current);
+            if (result.dx === 0 && result.dy === 0) return pos;
+            // Aplicar el enganche en mundo y reconvertir a absoluto para Konva.
+            const snappedWorld = { x: world.x + result.dx, y: world.y + result.dy };
+            return layer.getAbsoluteTransform().point(snappedWorld);
+          }}
           onClick={(e) => onObjectClick(e, o.id)}
           onTap={(e) => onObjectClick(e, o.id)}
           onMouseEnter={(e) => {
@@ -98,12 +131,45 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
             setHovered((h) => (h === o.id ? null : h));
             setCursor(e, 'default');
           }}
-          onDragStart={() => {
+          onDragStart={(e) => {
             dragStart.current = { x: o.x, y: o.y };
+            draggingSize.current = { width: o.width, height: o.height };
+            snapDisabled.current = 'altKey' in e.evt ? e.evt.altKey : false;
+            // Precalcular los AABB de los vecinos (NO seleccionados) una sola vez.
+            const sel = new Set(selectedIds.length ? selectedIds : [o.id]);
+            neighborsRef.current = objects
+              .filter((obj) => !sel.has(obj.id))
+              .map((obj) => selectionAabb([obj], [obj.id]))
+              .filter((r): r is WorldRect => r !== null);
+          }}
+          onDragMove={(e) => {
+            // Mantener vivo el estado de Alt (puede pulsarse/soltarse durante el arrastre).
+            snapDisabled.current = 'altKey' in e.evt ? e.evt.altKey : false;
+            // AABB actual del objeto arrastrado (su rect en la posición del nodo, ya
+            // enganchada por dragBoundFunc; rotación incluida vía dimensiones rotadas).
+            const aabb = selectionAabb([{ ...o, x: e.target.x(), y: e.target.y() }], [o.id]);
+            if (aabb) {
+              setLive({ kind: 'move', rect: aabb, others: neighborsRef.current });
+              // Guías de alineación del enganche en curso (vacío si no engancha o Alt activo).
+              setGuides(
+                snapDisabled.current ? null : computeSnap(aabb, neighborsRef.current),
+              );
+            }
           }}
           onDragEnd={(e) => {
-            const nx = snap(e.target.x());
-            const ny = snap(e.target.y());
+            setLive(null);
+            setGuides(null);
+            // La posición del nodo ya viene enganchada por dragBoundFunc. Si NO hubo enganche
+            // (sin guías), se cae a la rejilla; si hubo enganche, se respeta tal cual para no
+            // pelear el magnetismo con el snap de rejilla.
+            const aabbEnd = selectionAabb([{ ...o, x: e.target.x(), y: e.target.y() }], [o.id]);
+            const snappedNow =
+              !snapDisabled.current && aabbEnd
+                ? computeSnap(aabbEnd, neighborsRef.current)
+                : null;
+            const engaged = snappedNow != null && (snappedNow.dx !== 0 || snappedNow.dy !== 0);
+            const nx = engaged ? e.target.x() : snap(e.target.x());
+            const ny = engaged ? e.target.y() : snap(e.target.y());
             const others = selectedIds.filter((id) => id !== o.id);
             // Si el objeto arrastrado forma parte de una multiselección, el resto se
             // desplaza el mismo delta (mover varios a la vez con el ratón).
@@ -124,8 +190,30 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
               updateObject(o.id, { x: nx, y: ny });
             }
             dragStart.current = null;
+            draggingSize.current = null;
+          }}
+          onTransform={(e) => {
+            // Cota de TAMAÑO en vivo durante el resize: tamaño actual = tamaño del
+            // objeto × la escala que el Transformer va aplicando al nodo.
+            if (!isValidScale(scale)) return;
+            const node = e.target;
+            const w = Math.max(8, o.width * node.scaleX());
+            const h = Math.max(8, o.height * node.scaleY());
+            const rect = selectionAabb(
+              [{ ...o, x: node.x(), y: node.y(), width: w, height: h, rotation: node.rotation() }],
+              [o.id],
+            );
+            if (rect) {
+              setLive({
+                kind: 'resize',
+                rect,
+                others: [],
+                sizeLabel: formatObjectSize({ width: w, height: h, rotation: node.rotation() }, scale),
+              });
+            }
           }}
           onTransformEnd={(e) => {
+            setLive(null);
             const node = e.target;
             // El Group no expone un width/height intrínseco fiable: se parte del
             // tamaño conocido del objeto y se le aplica la escala del transform.
@@ -175,6 +263,12 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           />
         </Label>
       ) : null}
+
+      {/* Guías de alineación del snap en curso (líneas finas tipo CAD). */}
+      <SnapGuidesOverlay guides={guides} />
+
+      {/* Cota en vivo del gesto en curso (mover → huecos; resize → tamaño). */}
+      <LiveDimensionOverlay live={live} scale={scale} />
 
       <Transformer
         ref={trRef}

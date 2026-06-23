@@ -116,6 +116,17 @@ export interface CanvasScale {
   ratio?: number;
 }
 
+/**
+ * Vértice del contorno interior del suelo, en píxeles de plano. Una lista cerrada de
+ * estos describe el polígono del suelo para formas no rectangulares (L/U/T): el render
+ * 3D lo extruye/teselita en vez de asumir un rectángulo. Mismo sistema que los objetos
+ * (origen arriba-izquierda, Y hacia abajo).
+ */
+export interface FloorVertex {
+  x: number;
+  y: number;
+}
+
 /** Selección activa: un objeto por id, o una zona rectangular normalizada (0–1). */
 export type CanvasSelection =
   | { type: 'object'; objectIds: string[] }
@@ -136,6 +147,13 @@ export interface CanvasDoc {
    * se asume una altura estándar (~2,5 m) al describir el espacio.
    */
   ceilingHeightM?: number;
+  /**
+   * Contorno interior del suelo en píxeles (polígono cerrado, recorrido horario). Lo
+   * genera el wizard para formas no rectangulares (L/U/T) y permite al render 3D dibujar
+   * un suelo poligonal exacto en vez del bounding box de los muros. Ausente ⇒ el suelo se
+   * deriva del bounding box de los muros (comportamiento rectangular previo, sin cambios).
+   */
+  floorOutline?: FloorVertex[];
 }
 
 /** Documento vacío inicial (proyecto recién creado). */

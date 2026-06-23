@@ -16,6 +16,8 @@
 import type { CanvasDoc, StructKind, StructObj } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
+import { associateOpening, splitWallWithOpenings } from './wall-openings';
+import { floorPolygonFromWalls } from './floor-from-walls';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -72,10 +74,57 @@ export interface WallBox {
   rotationY: number;
 }
 
-/** Suelo rectangular en metros, centrado en el origen. */
+/**
+ * Panel de cristal de una ventana, en el hueco abierto del muro (plano XZ). Mismo
+ * sistema de coordenadas que `WallBox`: centro en metros, tamaño y rotación vertical.
+ * La puerta NO genera cristal, solo la ventana.
+ */
+export interface GlassPane {
+  id: string;
+  /** Centro del cristal en metros: [x, y, z] (y = centro del vano). */
+  center: [number, number, number];
+  /** Tamaño del cristal en metros: [ancho(X), alto(Y), fondo(Z)]. */
+  size: [number, number, number];
+  /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
+  rotationY: number;
+}
+
+/**
+ * Pieza sólida de carpintería de un hueco: perfiles del MARCO y travesaño de una ventana,
+ * o la HOJA de una puerta. Mismo sistema de coordenadas que `WallBox`. El `material`
+ * decide su aspecto en el render (carpintería clara vs madera de puerta). Esto es lo que
+ * hace que un hueco se lea como una VENTANA/PUERTA y no como un agujero.
+ */
+export interface OpeningFrame {
+  id: string;
+  /** Centro de la pieza en metros: [x, y, z]. */
+  center: [number, number, number];
+  /** Tamaño en metros: [ancho(X), alto(Y), fondo(Z)]. */
+  size: [number, number, number];
+  /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
+  rotationY: number;
+  /** Aspecto: `frame` = carpintería de ventana; `door` = hoja de puerta (madera). */
+  material: 'frame' | 'door';
+}
+
+/** Suelo rectangular en metros. */
 export interface FloorRect {
   /** Tamaño del suelo en metros: [ancho(X), fondo(Z)]. */
   size: [number, number];
+  /**
+   * Centro del suelo en el plano XZ (metros), relativo al centro de la escena. No es
+   * siempre [0,0]: el suelo abarca solo los muros, cuyo bbox puede no coincidir con el
+   * centro del bbox de TODOS los objetos (el origen de la escena). Centrarlo aquí evita
+   * que el suelo aparezca desplazado respecto a las paredes.
+   */
+  center: [number, number];
+  /**
+   * Polígono del suelo en el plano XZ (metros, relativo al centro de la escena), cuando el
+   * doc trae `floorOutline` (formas no rectangulares L/U/T). Ausente ⇒ el render dibuja un
+   * suelo rectangular con `size`/`center` (comportamiento previo). Cuando está presente,
+   * `size` sigue siendo el bbox del polígono (sirve para la cámara y el grid).
+   */
+  polygon?: Array<[number, number]>;
 }
 
 /**
@@ -127,6 +176,10 @@ export function intensity0to100ToPhysical(intensidad: number): number {
 export interface Scene3D {
   floor: FloorRect;
   walls: WallBox[];
+  /** Cristales de las ventanas, en los huecos abiertos de los muros. */
+  glassPanes: GlassPane[];
+  /** Carpintería de los huecos: marcos/travesaños de ventana y hojas de puerta. */
+  openingFrames: OpeningFrame[];
   /** Muebles (objetos no estructurales y no luz), ya posicionados en metros. */
   furniture: FurnitureItem[];
   /** Luces de primera clase (F-LUZ) del doc, como luces puntuales. */
@@ -213,8 +266,33 @@ export function rotation2DToY(rotationDeg: number): number {
   return (-(rotationDeg || 0) * Math.PI) / 180;
 }
 
-/** Bounding box (px) de un conjunto de rectángulos en planta. */
-function boundingBoxPx(objects: readonly PlanRect[]): {
+/**
+ * Las 4 esquinas de un objeto en planta (px), COMO LO PINTA KONVA: el objeto rota sobre
+ * su ORIGEN (esquina sup-izq `x,y`), no sobre su centro. Para `rotation=0` son las
+ * esquinas axis-aligned habituales. Misma convención de pivote que `objectCenterPx`.
+ */
+export function objectCornersPx(
+  obj: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+): Array<[number, number]> {
+  const rad = ((obj.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const offsets: Array<[number, number]> = [
+    [0, 0],
+    [obj.width, 0],
+    [obj.width, obj.height],
+    [0, obj.height],
+  ];
+  return offsets.map(([dx, dy]) => [obj.x + dx * cos - dy * sin, obj.y + dx * sin + dy * cos]);
+}
+
+/**
+ * Bounding box (px) de un conjunto de objetos en planta, RESPETANDO su rotación. Un muro
+ * dibujado con Draw Walls viene rotado (atan2 del segmento); usar `x..x+width` sin rotar
+ * inflaría y descentraría el bbox (suelo más grande que la sala). Por eso se expande sobre
+ * las esquinas rotadas, igual que `objectCenterPx` respeta el pivote para posicionar.
+ */
+function boundingBoxPx(objects: readonly StructObj[]): {
   minX: number;
   minY: number;
   maxX: number;
@@ -225,10 +303,12 @@ function boundingBoxPx(objects: readonly PlanRect[]): {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const o of objects) {
-    minX = Math.min(minX, o.x);
-    minY = Math.min(minY, o.y);
-    maxX = Math.max(maxX, o.x + o.width);
-    maxY = Math.max(maxY, o.y + o.height);
+    for (const [px, py] of objectCornersPx(o)) {
+      minX = Math.min(minX, px);
+      minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px);
+      maxY = Math.max(maxY, py);
+    }
   }
   return { minX, minY, maxX, maxY };
 }
@@ -290,36 +370,90 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   });
   const lights = limitLights(allLights);
 
-  const walls: WallBox[] = structural.map((o) => {
-    const [x, z] = planPointToXZ(o, center, pxPerMeter);
-    const w = pxToMeters(o.width, { pxPerMeter });
-    const d = pxToMeters(o.height, { pxPerMeter });
-    // Altura del muro: su heightM propio, o la de techo del plano (vía scale.ts).
-    const h = effectiveHeightM(o, ceilingHeightM);
-    return {
-      id: o.id,
-      center: [x, h / 2, z],
-      size: [w, h, d],
-      rotationY: rotation2DToY(o.rotation),
-    };
-  });
+  // Muros con HUECOS reales: cada ventana/puerta se asocia (por cercanía geométrica) al muro
+  // 'wall' que la contiene y abre un vano, troceando ese muro en cajas (izq/dcha/dintel/alféizar).
+  // Window/door ya NO emiten un WallBox macizo propio (antes se fundían con la pared). Un muro
+  // sin huecos sigue siendo una sola caja. Las ventanas añaden cristales (`glassPanes`).
+  const wallObjs = structural.filter((o) => o.kind === 'wall');
+  const openings = structural.filter((o) => o.kind === 'window' || o.kind === 'door');
+  // Agrupa los huecos por el muro al que se asocian (clave = id del muro).
+  const openingsByWall = new Map<string, StructObj[]>();
+  for (const op of openings) {
+    const wall = associateOpening(op, wallObjs);
+    if (!wall) continue; // hueco sin muro (inalcanzable con datos válidos): se omite, no caja maciza.
+    const list = openingsByWall.get(wall.id);
+    if (list) list.push(op);
+    else openingsByWall.set(wall.id, [op]);
+  }
+  const walls: WallBox[] = [];
+  const glassPanes: GlassPane[] = [];
+  const openingFrames: OpeningFrame[] = [];
+  for (const wall of wallObjs) {
+    const { boxes, panes, frames } = splitWallWithOpenings(
+      wall,
+      openingsByWall.get(wall.id) ?? [],
+      ceilingHeightM,
+      center,
+      pxPerMeter,
+    );
+    walls.push(...boxes);
+    glassPanes.push(...panes);
+    openingFrames.push(...frames);
+  }
 
   // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
   // del contorno por diseño y estirarían el suelo). Si no hay muros, cae a todos los objetos.
+  // El bbox respeta la rotación de los muros (Draw Walls los rota), y el suelo se centra en
+  // el centro de ESE bbox (no en el origen de la escena), que puede diferir si hay objetos
+  // fuera del rectángulo de muros.
   const wallsForFloor = doc.objects.filter((o) => o.kind === 'wall');
   const ref = wallsForFloor.length > 0 ? wallsForFloor : doc.objects;
   const floor: FloorRect = (() => {
-    if (ref.length === 0) return { size: [0, 0] };
+    if (ref.length === 0) return { size: [0, 0], center: [0, 0] };
     const bb = boundingBoxPx(ref);
-    return {
+    const floorCenterPx: [number, number] = [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2];
+    const rect: FloorRect = {
       size: [
         pxToMeters(Math.max(0, bb.maxX - bb.minX), { pxPerMeter }),
         pxToMeters(Math.max(0, bb.maxY - bb.minY), { pxPerMeter }),
       ],
+      center: [
+        pxToMeters(floorCenterPx[0] - center[0], { pxPerMeter }),
+        pxToMeters(floorCenterPx[1] - center[1], { pxPerMeter }),
+      ],
     };
+    // Suelo poligonal: el contorno se DERIVA de los muros ACTUALES (huella encerrada por
+    // ellos), de modo que el 3D sigue siempre al 2D aunque el usuario edite muros. Solo si
+    // esa derivación no es posible (pocos muros, huella degenerada) se cae al `floorOutline`
+    // del doc (foto al crear la sala) y, en último término, al suelo rectangular del bbox.
+    // El `size`/`center` rectangular se conservan (cámara y grid los usan). Mapeo px→XZ
+    // relativo al centro de la escena (X-2D→X, Y-2D→Z), igual que los muros.
+    const toXZ = (p: { x: number; y: number }): [number, number] => [
+      pxToMeters(p.x - center[0], { pxPerMeter }),
+      pxToMeters(p.y - center[1], { pxPerMeter }),
+    ];
+    const derived = floorPolygonFromWalls(wallsForFloor);
+    if (derived && derived.length >= 3) {
+      return { ...rect, polygon: derived.map(toXZ) };
+    }
+    const outline = doc.floorOutline;
+    if (outline && outline.length >= 3) {
+      return { ...rect, polygon: outline.map(toXZ) };
+    }
+    return rect;
   })();
 
-  return { floor, walls, furniture, lights, ceilingHeightM, pxPerMeter, planCenterPx: center };
+  return {
+    floor,
+    walls,
+    glassPanes,
+    openingFrames,
+    furniture,
+    lights,
+    ceilingHeightM,
+    pxPerMeter,
+    planCenterPx: center,
+  };
 }
 
 /**

@@ -132,16 +132,22 @@ describe('doc-to-scene: altura de muros', () => {
 });
 
 describe('doc-to-scene: solo estructura forma el caparazón', () => {
-  it('cuenta wall/window/door como muros, ignora muebles', () => {
+  it('window/door abren huecos en su muro: NO emiten cajas macizas propias, el mueble se ignora', () => {
     const scene = docToScene(
       doc([
-        obj({ id: 'w', kind: 'wall' }),
-        obj({ id: 'win', kind: 'window' }),
-        obj({ id: 'd', kind: 'door' }),
+        obj({ id: 'w', kind: 'wall', x: 0, y: 0, width: 600, height: 15 }),
+        obj({ id: 'win', kind: 'window', x: 200, y: 0, width: 100, height: 15 }),
+        obj({ id: 'd', kind: 'door', x: 400, y: 0, width: 80, height: 15 }),
         obj({ id: 'sofa', kind: 'sofa' }),
       ]),
     );
-    expect(scene.walls.map((w) => w.id).sort()).toEqual(['d', 'w', 'win']);
+    // El muro se trocea (varias cajas), pero NINGUNA es una caja maciza con id 'win'/'d'/'sofa'.
+    const wallIds = scene.walls.map((b) => b.id);
+    expect(wallIds).not.toContain('win');
+    expect(wallIds).not.toContain('d');
+    expect(wallIds.every((id) => id.startsWith('w:') || id.startsWith('win:') || id.startsWith('d:'))).toBe(true);
+    // La ventana abre un vano con cristal; la puerta no genera cristal.
+    expect(scene.glassPanes.map((p) => p.id)).toEqual(['win:glass']);
   });
 });
 
@@ -310,8 +316,15 @@ describe('doc-to-scene: fixture EXAMPLE_SALON', () => {
     expect(scene.lights).toHaveLength(0);
   });
 
-  it('detecta los 6 elementos estructurales (4 muros + puerta + ventana)', () => {
-    expect(scene.walls).toHaveLength(6);
+  it('los muros se trocean alrededor de los huecos (ventana y puerta abren vanos)', () => {
+    // 4 muros; la ventana (w-top) y la puerta (w-left) abren huecos → esos muros se parten en
+    // varias cajas. NO hay cajas macizas con id 'win-1'/'door-1' (antes se fundían con la pared).
+    const ids = scene.walls.map((b) => b.id);
+    expect(ids).not.toContain('win-1');
+    expect(ids).not.toContain('door-1');
+    expect(scene.walls.length).toBeGreaterThan(4); // más cajas que muros por el troceado
+    // La ventana añade cristal; la puerta no.
+    expect(scene.glassPanes.map((p) => p.id)).toEqual(['win-1:glass']);
   });
 
   it('detecta los muebles del salón (tv, mesa, sofá, lámpara)', () => {
@@ -343,5 +356,115 @@ describe('doc-to-scene: el suelo ignora ventanas/puertas que sobresalen del cont
     // Suelo = bbox de muros = 400×315 px = 4,0×3,15 m; la ventana (y:-30) NO lo estira.
     expect(scene.floor.size[0]).toBeCloseTo(4.0, 2);
     expect(scene.floor.size[1]).toBeCloseTo(3.15, 2);
+  });
+});
+
+describe('doc-to-scene: el suelo respeta la rotación de los muros (Draw Walls)', () => {
+  it('un muro rotado NO infla ni descentra el suelo (bbox sobre esquinas rotadas)', () => {
+    // Muro de 500×15 px rotado 90° sobre su esquina: ocupa ~15 px en X y ~500 en Y, NO 500×15.
+    // Con bbox sin rotar el suelo saldría 500 px de ancho; con bbox rotado, ~15.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-left', kind: 'wall', x: 100, y: 100, width: 500, height: 15, rotation: 90 }),
+        obj({ id: 'w-right', kind: 'wall', x: 400, y: 100, width: 500, height: 15, rotation: 90 }),
+        obj({ id: 'w-top', kind: 'wall', x: 100, y: 100, width: 300, height: 15, rotation: 0 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 100, y: 600, width: 300, height: 15, rotation: 0 }),
+      ]),
+    );
+    // Extensión real en X: de x=100 (muro izq/sup) a x=415 (muro der rota a x=400, +15 de grosor) → ~315 px.
+    // Si ignorara la rotación, maxX llegaría a 900 (400+500) → suelo erróneo de ~8 m.
+    expect(scene.floor.size[0]).toBeLessThan(4.0);
+    expect(scene.floor.size[0]).toBeGreaterThan(2.5);
+  });
+
+  it('el centro del suelo se desplaza del origen si hay muebles fuera del rectángulo de muros', () => {
+    // Sala 300×300 en la izquierda + un mueble lejos a la derecha: el centro global (de TODOS
+    // los objetos) se va a la derecha, pero el suelo debe seguir centrado en los muros.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-top', kind: 'wall', x: 0, y: 0, width: 300, height: 15 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 0, y: 300, width: 300, height: 15 }),
+        obj({ id: 'w-left', kind: 'wall', x: 0, y: 0, width: 15, height: 315 }),
+        obj({ id: 'w-right', kind: 'wall', x: 285, y: 0, width: 15, height: 315 }),
+        obj({ id: 'lejos', kind: 'silla', x: 1000, y: 150, width: 45, height: 45 }),
+      ]),
+    );
+    // El suelo abarca ~3×3 m; su centro NO es [0,0] porque el origen de la escena se
+    // desplazó hacia el mueble lejano. El offset debe ser apreciable (varios metros).
+    expect(Math.abs(scene.floor.center[0])).toBeGreaterThan(1);
+  });
+});
+
+describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin desplazarse)', () => {
+  // bbox (en XZ) de todas las cajas de muro, proyectando sus 4 esquinas con su rotationY.
+  function wallsBBox(scene: ReturnType<typeof docToScene>) {
+    let minX = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxZ = -Infinity;
+    for (const b of scene.walls) {
+      const [cx, , cz] = b.center;
+      const [w, , d] = b.size;
+      const cos = Math.cos(b.rotationY);
+      const sin = Math.sin(b.rotationY);
+      for (const [dx, dz] of [
+        [-w / 2, -d / 2],
+        [w / 2, -d / 2],
+        [w / 2, d / 2],
+        [-w / 2, d / 2],
+      ] as const) {
+        const x = cx + dx * cos - dz * sin;
+        const z = cz + dx * sin + dz * cos;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minZ = Math.min(minZ, z);
+        maxZ = Math.max(maxZ, z);
+      }
+    }
+    return {
+      cx: (minX + maxX) / 2,
+      cz: (minZ + maxZ) / 2,
+      w: maxX - minX,
+      d: maxZ - minZ,
+    };
+  }
+
+  it('muros axis-aligned: su centro coincide con el centro del suelo', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15 }),
+        obj({ id: 'w-bot', kind: 'wall', x: 100, y: 385, width: 400, height: 15 }),
+        obj({ id: 'w-left', kind: 'wall', x: 100, y: 100, width: 15, height: 300 }),
+        obj({ id: 'w-right', kind: 'wall', x: 485, y: 100, width: 15, height: 300 }),
+      ]),
+    );
+    const wb = wallsBBox(scene);
+    expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
+    expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+    // El CONTORNO mide ~4,15 × 3,15 m (planta + grosor de muro). Si un muro vertical saliera
+    // tumbado sobre X (bug de orientación), el ancho del bbox se dispararía (~6,85 m).
+    expect(wb.w).toBeCloseTo(4, 1);
+    expect(wb.d).toBeCloseTo(3, 1);
+  });
+
+  it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
+    // Mismo contorno 4×3 m dibujado con Draw Walls: width=longitud, height=grosor, rotation=ángulo.
+    const scene = docToScene(
+      doc([
+        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0 }),
+        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90 }),
+        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180 }),
+        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270 }),
+      ]),
+    );
+    // El suelo mide la planta real (4×3 m) y los muros se centran en él (no desplazados media pared).
+    expect(scene.floor.size[0]).toBeCloseTo(4, 1);
+    expect(scene.floor.size[1]).toBeCloseTo(3, 1);
+    const wb = wallsBBox(scene);
+    expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
+    expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
+    // El contorno de los muros cierra el rectángulo de la planta (~4,15 × 3,15 m con grosor).
+    expect(wb.w).toBeCloseTo(4, 1);
+    expect(wb.d).toBeCloseTo(3, 1);
   });
 });

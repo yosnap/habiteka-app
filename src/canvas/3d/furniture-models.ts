@@ -11,16 +11,20 @@
  */
 import type { StructKind } from '../types';
 
+/**
+ * Hacia dónde mira el "frente" del modelo glTF en su orientación original (ejes del modelo):
+ * `+z`/`-z`/`+x`/`-x`. Es un dato por modelo (el bounding box no lo codifica: la cama y el sofá
+ * tienen un frente que hay que declarar). El render lo combina con la alineación automática por
+ * proporción y con la rotación de colocación para orientar el mueble SIN ángulos calibrados a mano.
+ * Por defecto `+z` (la convención del editor: rotación 0 mira a +Z / sur).
+ */
+export type FrontAxis = '+z' | '-z' | '+x' | '-x';
+
 export interface FurnitureModel {
   /** URL pública del .glb (servido desde `public/`). */
   url: string;
-  /**
-   * Corrección de orientación del glTF en radianes (F7.6): se SUMA a la rotación del
-   * objeto. Compensa que el modelo venga girado respecto a su "frente" esperado (el doc
-   * orienta el mueble por su rotación; este offset alinea el modelo con esa intención).
-   * Calibrado por modelo mirando el render. 0 = el glTF ya viene bien orientado.
-   */
-  frontOffsetRad?: number;
+  /** Eje local hacia el que mira el frente del modelo. Por defecto '+z'. */
+  front?: FrontAxis;
 }
 
 /** Modelos disponibles por kind. Parcial: lo no listado usa placeholder. */
@@ -28,8 +32,11 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   // Mobiliario
   silla: { url: '/models/cc0/silla.glb' },
   sofa: { url: '/models/cc0/sofa.glb' },
-  cama: { url: '/models/cc0/cama.glb' },
-  armario: { url: '/models/cc0/armario.glb' },
+  // Frente medido de la geometría: el cabecero de la cama está en +Z, así que su frente (pies)
+  // mira a −Z. Declararlo fija el sentido (cabecero contra la pared), no solo el eje.
+  cama: { url: '/models/cc0/cama.glb', front: '-z' },
+  // El armario tiene el lado largo y las puertas en una cara X del modelo; el frente mira a +X.
+  armario: { url: '/models/cc0/armario.glb', front: '+x' },
   mesa: { url: '/models/cc0/mesa.glb' },
   // Cocina
   nevera: { url: '/models/cc0/nevera.glb' },
@@ -49,9 +56,26 @@ export function furnitureModelUrl(kind: StructKind): string | null {
   return FURNITURE_MODELS[kind]?.url ?? null;
 }
 
-/** Offset de orientación (rad) del modelo de un kind; 0 si no hay modelo o no se calibró. */
-export function furnitureFrontOffset(kind: StructKind): number {
-  return FURNITURE_MODELS[kind]?.frontOffsetRad ?? 0;
+/** ¿El modelo declara su `front`? Si sí, el render usa ese dato; si no, infiere la orientación
+ *  del eje por la proporción del bounding box. */
+export function hasFront(kind: StructKind): boolean {
+  return FURNITURE_MODELS[kind]?.front != null;
+}
+
+/** Ángulo (rad) en que el frente del modelo está girado respecto a +Z (la dirección que el
+ *  editor considera "de frente" con rotación 0). El render lo resta para que el frente quede
+ *  hacia donde la colocación pide. Deriva del `front` declarado por modelo (por defecto +z = 0). */
+export function furnitureFrontAngle(kind: StructKind): number {
+  switch (FURNITURE_MODELS[kind]?.front) {
+    case '-z':
+      return Math.PI;
+    case '+x':
+      return Math.PI / 2;
+    case '-x':
+      return -Math.PI / 2;
+    default:
+      return 0; // '+z' o sin declarar
+  }
 }
 
 /** URLs de todos los modelos, para precargar (`useGLTF.preload`). */

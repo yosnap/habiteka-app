@@ -21,6 +21,7 @@ import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
 import { DesignWizard } from './wizard/design-wizard';
 import { autofurnish } from '@/canvas/wizard/autofurnish';
+import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
@@ -76,6 +77,8 @@ export function CanvasWorkspace({
   const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
   // Asistente de diseño (F7): se ofrece al abrir una zona vacía (sin contenido alguno).
   const [showWizard, setShowWizard] = useState(false);
+  // Aviso temporal tras amueblar: qué muebles no cupieron en la sala (decisión: avisar, no solapar).
+  const [furnishNotice, setFurnishNotice] = useState<string | null>(null);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
   // real y se actualizan al redimensionar, para que el área de dibujo ocupe TODO
   // el espacio disponible (antes era un tamaño fijo que dejaba zonas muertas).
@@ -254,7 +257,7 @@ export function CanvasWorkspace({
   };
 
   return (
-    <div className="flex h-full flex-col gap-2">
+    <div className="relative flex h-full flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
         <CanvasToolbar tool={tool} onToolChange={setTool} />
         <div className="flex shrink-0 gap-2">
@@ -340,19 +343,49 @@ export function CanvasWorkspace({
       {showWizard ? (
         <DesignWizard
           onSkip={() => setShowWizard(false)}
-          onCreate={(doc, roomType) => {
-            // Amuebla la sala según su tipo (procedural, sin IA) y la carga en el editor;
+          onCreate={(doc, roomType, selection) => {
+            // Amuebla la sala con lo SELECCIONADO (procedural, sin IA) y la carga en el editor;
             // la PERSISTE de inmediato (flush sin debounce): el autosave por debounce podría
             // cancelarse si el usuario navega o abre el 3D antes de los 800 ms (red-team).
+            const { objects: placed, omitted } = autofurnish(doc, roomType, selection);
             const furnished: CanvasDoc = {
               ...doc,
-              objects: [...doc.objects, ...autofurnish(doc, roomType)],
+              objects: [...doc.objects, ...placed],
             };
             useCanvasStore.getState().load(furnished);
             void saveAction(projectId, serializeCanvas(furnished));
             setShowWizard(false);
+            // Si algo no cupo, avisar (no se solapa): lista los muebles omitidos por su etiqueta.
+            if (omitted.length > 0) {
+              const labels = [...new Set(omitted)]
+                .map((k) => CATALOG_BY_KIND[k]?.label ?? k)
+                .join(', ');
+              // Formas no rectangulares: el auto-amueblado se omite por diseño (se amuebla a
+              // mano), no porque no quepa. El doc lo señala con `floorOutline`.
+              const isNonRect = (furnished.floorOutline?.length ?? 0) >= 3;
+              setFurnishNotice(
+                isNonRect
+                  ? `Esta forma se amuebla a mano: añade los muebles desde el catálogo (${labels}).`
+                  : `No cabían en la sala: ${labels}. Agranda la sala o colócalos a mano.`,
+              );
+            } else {
+              setFurnishNotice(null);
+            }
           }}
         />
+      ) : null}
+      {furnishNotice ? (
+        <div className="absolute bottom-4 left-1/2 z-40 flex max-w-md -translate-x-1/2 items-center gap-3 rounded-card border border-line bg-surface px-3 py-2 text-sm text-ink shadow-lg">
+          <span>{furnishNotice}</span>
+          <button
+            type="button"
+            onClick={() => setFurnishNotice(null)}
+            aria-label="Cerrar aviso"
+            className="text-ink-soft hover:text-ink"
+          >
+            ✕
+          </button>
+        </div>
       ) : null}
     </div>
   );

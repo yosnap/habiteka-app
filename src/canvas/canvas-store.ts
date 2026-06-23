@@ -15,8 +15,12 @@ import {
   type ProductRef,
   type CanvasSelection,
   type CanvasScale,
+  type FloorVertex,
   emptyCanvasDoc,
 } from './types';
+import { outlineToWalls } from './wizard/room-shapes';
+import { DEFAULT_WALL_THICKNESS_M } from './draw-wall';
+import { metersToPx } from './scale';
 
 interface CanvasState {
   doc: CanvasDoc;
@@ -57,6 +61,13 @@ interface CanvasState {
   setScale(scale: CanvasScale | null): void;
   /** Fija (o quita, con null) la altura de techo del plano en metros. Entra en historial. */
   setCeilingHeight(meters: number | null): void;
+  /**
+   * Fija el contorno del suelo (vértices) y REGENERA los muros del contorno a partir de él.
+   * Es la operación del editor de contorno: al mover/añadir/quitar un vértice, los muros se
+   * reconstruyen para seguir el polígono (esquinas siempre cuadradas). Conserva muebles,
+   * ventanas/puertas y luces. Entra en historial.
+   */
+  setFloorOutline(vertices: FloorVertex[]): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
   redo(): void;
@@ -264,6 +275,27 @@ export const useCanvasStore = create<CanvasState>((set) => {
         const rest = { ...d };
         delete rest.ceilingHeightM;
         return rest;
+      }),
+
+    setFloorOutline: (vertices) =>
+      mutate((d) => {
+        if (vertices.length < 3) return d;
+        // Grosor de muro en px: se conserva el del contorno actual (el lado corto del primer
+        // muro existente) para no cambiarlo al editar; si no hay muros, el grosor por defecto.
+        const existingWalls = d.objects.filter((o) => o.kind === 'wall');
+        const pxPerMeter = d.scale?.pxPerMeter;
+        const defaultT =
+          typeof pxPerMeter === 'number' && pxPerMeter > 0
+            ? metersToPx(DEFAULT_WALL_THICKNESS_M, { pxPerMeter })
+            : 15;
+        const t = existingWalls.length
+          ? Math.min(...existingWalls.map((w) => Math.min(w.width, w.height)))
+          : defaultT;
+        const newWalls = outlineToWalls(vertices, t);
+        // Reemplaza SOLO los muros (conserva muebles, ventanas/puertas, luces y su z-order
+        // relativo: los no-muros se mantienen, los muros nuevos van al fondo del array).
+        const nonWalls = d.objects.filter((o) => o.kind !== 'wall');
+        return { ...d, objects: [...newWalls, ...nonWalls], floorOutline: vertices };
       }),
 
     // La selección no participa del historial: cambia sin tocar past/future.

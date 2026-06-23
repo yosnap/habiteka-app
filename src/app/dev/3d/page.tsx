@@ -13,6 +13,8 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { EXAMPLE_SALON } from '@/canvas/examples';
+import { buildShapeDoc } from '@/canvas/wizard/build-room-doc';
+import type { RoomShape, RoomShapeParams } from '@/canvas/wizard/room-shapes';
 import type { CanvasDoc } from '@/canvas/types';
 
 const Plan3DView = dynamic(
@@ -67,13 +69,29 @@ function demoDoc(withLight: boolean, withKinds: boolean): CanvasDoc {
   };
 }
 
+/** Parámetros de demo por forma no rectangular (para verificar el suelo poligonal). */
+const SHAPE_DEMOS: Record<Exclude<RoomShape, 'rect'>, RoomShapeParams> = {
+  l: { shape: 'l', widthM: 6, lengthM: 5, cutWidthM: 2.5, cutLengthM: 2.5 },
+  u: { shape: 'u', widthM: 6, lengthM: 5, notchWidthM: 2, notchLengthM: 3 },
+  t: { shape: 't', widthM: 6, lengthM: 6, barLengthM: 2.5, stemWidthM: 2.5 },
+};
+
 function Dev3DContent() {
   const params = useSearchParams();
   const withLight = params.get('luz') !== '0';
   const withKinds = params.get('kinds') === '1';
+  // `?forma=l|u|t` muestra una sala no rectangular generada por el wizard (suelo poligonal),
+  // para verificar el contorno de muros y el suelo en formas L/U/T. Sin el parámetro (o `rect`),
+  // se muestra el salón de ejemplo de siempre.
+  const forma = params.get('forma');
+  const shapeDemo =
+    forma === 'l' || forma === 'u' || forma === 't' ? SHAPE_DEMOS[forma] : null;
+  const doc = shapeDemo
+    ? buildShapeDoc({ shape: shapeDemo, ceilingHeightM: 2.6 })
+    : demoDoc(withLight, withKinds);
   return (
     <main className="h-dvh w-dvw bg-neutral-100">
-      <Plan3DView doc={demoDoc(withLight, withKinds)} />
+      <Plan3DView doc={doc} />
     </main>
   );
 }

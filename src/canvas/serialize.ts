@@ -14,6 +14,7 @@ import {
   type BaseImage,
   type CanvasScale,
   type LightProps,
+  type FloorVertex,
   CANVAS_SCHEMA_VERSION,
   emptyCanvasDoc,
 } from './types';
@@ -33,6 +34,11 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     // La escala solo se persiste si está definida (campo opcional v2 aditivo).
     ...(doc.scale ? { scale: doc.scale } : {}),
     ...(doc.ceilingHeightM ? { ceilingHeightM: doc.ceilingHeightM } : {}),
+    // Contorno del suelo (formas no rectangulares): se persiste para que el render 3D
+    // dibuje el suelo poligonal correcto tras recargar (campo opcional aditivo).
+    ...(doc.floorOutline && doc.floorOutline.length >= 3
+      ? { floorOutline: doc.floorOutline }
+      : {}),
   };
 }
 
@@ -50,7 +56,27 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
     selection: null,
     ...(scale ? { scale } : {}),
     ...(posMeters(raw.ceilingHeightM) ? { ceilingHeightM: raw.ceilingHeightM as number } : {}),
+    ...(() => {
+      const outline = parseFloorOutline(raw.floorOutline);
+      return outline ? { floorOutline: outline } : {};
+    })(),
   };
+}
+
+/**
+ * Parsea el contorno del suelo: una lista de vértices con `x,y` numéricos. Exige al menos
+ * 3 vértices para formar un polígono; si no es válida, se descarta (el render cae al suelo
+ * rectangular). No inventa vértices.
+ */
+function parseFloorOutline(v: unknown): FloorVertex[] | null {
+  if (!Array.isArray(v)) return null;
+  const pts: FloorVertex[] = [];
+  for (const p of v) {
+    if (isRecord(p) && typeof p.x === 'number' && typeof p.y === 'number' && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+      pts.push({ x: p.x, y: p.y });
+    }
+  }
+  return pts.length >= 3 ? pts : null;
 }
 
 /** true si el valor es un número de metros usable (positivo y finito). */

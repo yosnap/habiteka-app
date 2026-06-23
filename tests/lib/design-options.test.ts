@@ -6,12 +6,14 @@ import {
   ENTREGABLE_VALUES,
   isValidEstilo,
   isValidEntregable,
+  estiloLabel,
 } from '@/lib/design-options';
 
 describe('design-options (fuente única de opciones de interacción)', () => {
-  it('expone los 7 estilos con su etiqueta', () => {
+  it('expone los 15 estilos con su etiqueta', () => {
     expect(ESTILO_VALUES).toEqual(
       expect.arrayContaining([
+        // 7 originales
         'minimalista',
         'moderno',
         'clasico',
@@ -19,11 +21,26 @@ describe('design-options (fuente única de opciones de interacción)', () => {
         'rustico',
         'mediterraneo',
         'nordico',
+        // 8 nuevos (ampliación Tier 2 Planner5D)
+        'japandi',
+        'boho',
+        'midcentury',
+        'costero',
+        'contemporaneo',
+        'escandinavo',
+        'artdeco',
+        'tropical',
       ]),
     );
-    expect(ESTILO_VALUES).toHaveLength(7);
+    expect(ESTILO_VALUES).toHaveLength(15);
     // Cada estilo tiene una etiqueta no vacía (para la UI).
     for (const e of ESTILOS) expect(e.label.length).toBeGreaterThan(0);
+  });
+
+  it('estiloLabel traduce slug→etiqueta legible (y deja pasar lo desconocido)', () => {
+    expect(estiloLabel('midcentury')).toBe('Mid-century');
+    expect(estiloLabel('artdeco')).toBe('Art Déco');
+    expect(estiloLabel('desconocido')).toBe('desconocido');
   });
 
   it('expone los 3 entregables con su etiqueta', () => {
