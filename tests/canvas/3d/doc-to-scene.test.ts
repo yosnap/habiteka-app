@@ -480,4 +480,33 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     expect(pintado?.color).toBe('#ff8800');
     expect(sinColor?.color).toBeUndefined(); // sin color → el render usa el default
   });
+
+  it('hidden:true en un muro se propaga a sus WallBox', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-oculto', kind: 'wall', x: 100, y: 100, width: 300, height: 15, hidden: true }),
+        obj({ id: 'w-visible', kind: 'wall', x: 100, y: 200, width: 300, height: 15 }),
+      ]),
+    );
+    const oculto = scene.walls.find((w) => w.sourceId === 'w-oculto');
+    const visible = scene.walls.find((w) => w.sourceId === 'w-visible');
+    expect(oculto?.hidden).toBe(true);
+    expect(visible?.hidden).toBeFalsy(); // sin campo o false
+  });
+
+  it('ocultar un muro NO altera la geometría del suelo (hidden es presentacional)', () => {
+    const wallsBase = [
+      obj({ id: 'w1', kind: 'wall', x: 0, y: 0, width: 500, height: 15 }),
+      obj({ id: 'w2', kind: 'wall', x: 0, y: 300, width: 500, height: 15 }),
+      obj({ id: 'w3', kind: 'wall', x: 0, y: 0, width: 15, height: 300 }),
+      obj({ id: 'w4', kind: 'wall', x: 485, y: 0, width: 15, height: 300 }),
+    ];
+    const sceneBase = docToScene(doc(wallsBase));
+    const sceneConOculto = docToScene(
+      doc(wallsBase.map((w) => (w.id === 'w1' ? { ...w, hidden: true } : w))),
+    );
+    // El suelo debe ser idéntico independientemente de hidden
+    expect(sceneConOculto.floor.size[0]).toBeCloseTo(sceneBase.floor.size[0], 1);
+    expect(sceneConOculto.floor.size[1]).toBeCloseTo(sceneBase.floor.size[1], 1);
+  });
 });

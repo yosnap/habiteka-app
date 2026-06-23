@@ -125,10 +125,13 @@ function RoomMesh({
   scene: Scene3D;
   onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
 }) {
+  // Filtrar muros ocultos ANTES de pasar a <Walls> para preservar los índices del ref array
+  // interno (C4: si se filtrara dentro de Walls, el useFrame y los refs se desalinearían).
+  const visibleWalls = scene.walls.filter((w) => !w.hidden);
   return (
     <group>
       <Floor floor={scene.floor} />
-      <Walls walls={scene.walls} onPick={onPickWall} />
+      <Walls walls={visibleWalls} onPick={onPickWall} />
     </group>
   );
 }

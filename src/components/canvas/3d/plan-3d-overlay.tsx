@@ -14,14 +14,16 @@
  * bundle del editor 2D y solo se descargan cuando el usuario abre el 3D.
  */
 import dynamic from 'next/dynamic';
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { CanvasDoc } from '@/canvas/types';
 import type { Estilo } from '@/lib/contracts';
 import { ESTILOS } from '@/lib/design-options';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import { planCenterPx as computePlanCenter, resolvePxPerMeter } from '@/canvas/3d/doc-to-scene';
 import { generateViewFrom3D } from '@/app/(app)/projects/[id]/_actions/agent-actions';
 import { use3DSelection } from './use-3d-selection';
+import { ObjectPropertiesPanel } from './object-properties-panel';
 
 const Plan3DView = dynamic(() => import('./plan-3d-view').then((m) => m.Plan3DView), {
   ssr: false,
@@ -57,6 +59,15 @@ export function Plan3DOverlay({
 
   // Selección 3D: id del mueble seleccionado + modo activo (translate/rotate para F2).
   const { selectedId, select, clear, mode, setMode } = use3DSelection();
+
+  // Objeto seleccionado (para el panel de propiedades F3).
+  const selectedObj = selectedId ? (doc.objects.find((o) => o.id === selectedId) ?? null) : null;
+
+  // Coordenadas del plano para rotatePatch en el panel de propiedades.
+  const sceneCoords = useMemo(
+    () => ({ planCenterPx: computePlanCenter(doc.objects), pxPerMeter: resolvePxPerMeter(doc) }),
+    [doc],
+  );
 
   // Escape: si hay un modo activo (gizmo), lo cancela primero (no cierra el overlay).
   // Solo si mode === 'none', Escape cierra el overlay completo (RR3).
@@ -157,28 +168,51 @@ export function Plan3DOverlay({
         </div>
       ) : null}
 
-      {/* Menú contextual de pared: elegir el color de pintura. Anclado al clic derecho. */}
-      {wallMenu ? (
-        <div
-          className="absolute z-20 flex items-center gap-2 rounded-md bg-neutral-800 px-3 py-2 text-xs text-white shadow-lg ring-1 ring-white/20"
-          style={{ left: wallMenu.x, top: wallMenu.y }}
-        >
-          <span>Pintar pared</span>
-          <input
-            type="color"
-            aria-label="Color de la pared"
-            onChange={(e) => paintWall(e.target.value)}
-            className="h-6 w-8 cursor-pointer rounded border-0 bg-transparent"
-          />
-          <button
-            type="button"
-            onClick={() => setWallMenu(null)}
-            aria-label="Cerrar"
-            className="text-white/60 hover:text-white"
+      {/* Menú contextual de pared: pintura + ocultar/mostrar. Anclado al clic derecho. */}
+      {wallMenu ? (() => {
+        const wallObj = doc.objects.find((o) => o.id === wallMenu.id);
+        const isHidden = wallObj?.hidden ?? false;
+        return (
+          <div
+            className="absolute z-20 flex items-center gap-2 rounded-md bg-neutral-800 px-3 py-2 text-xs text-white shadow-lg ring-1 ring-white/20"
+            style={{ left: wallMenu.x, top: wallMenu.y }}
           >
-            ✕
-          </button>
-        </div>
+            <span>Pared</span>
+            <input
+              type="color"
+              aria-label="Color de la pared"
+              onChange={(e) => paintWall(e.target.value)}
+              className="h-6 w-8 cursor-pointer rounded border-0 bg-transparent"
+              title="Pintar"
+            />
+            <button
+              type="button"
+              onClick={() => updateObject(wallMenu.id, { hidden: !isHidden })}
+              className="rounded px-2 py-0.5 hover:bg-white/10"
+              title={isHidden ? 'Mostrar' : 'Ocultar'}
+            >
+              {isHidden ? '👁' : '🚫'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setWallMenu(null)}
+              aria-label="Cerrar"
+              className="text-white/60 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })() : null}
+
+      {/* Panel de propiedades del objeto seleccionado (F3). */}
+      {selectedObj ? (
+        <ObjectPropertiesPanel
+          obj={selectedObj}
+          pxPerMeter={sceneCoords.pxPerMeter}
+          scene={sceneCoords}
+          onChange={(patch) => updateObject(selectedObj.id, patch)}
+        />
       ) : null}
 
       {/* Mientras genera, se desactiva la captura para no encadenar peticiones. */}

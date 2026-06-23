@@ -96,6 +96,11 @@ export interface StructObj {
    * aplica el render 3D a los muros; el 2D puede ignorarlo.
    */
   color?: string;
+  /**
+   * Ocultar el elemento en la vista 3D sin borrarlo del doc (toggle de pared, F3 editor).
+   * Aditivo: docs sin el campo se comportan igual (elemento visible).
+   */
+  hidden?: boolean;
 }
 
 /** Producto del marketplace colocado en el canvas. */
