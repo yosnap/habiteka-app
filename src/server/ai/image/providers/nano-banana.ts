@@ -21,6 +21,14 @@ import { aiError } from '../../errors';
 const NANO_BANANA_USD_PER_IMAGE = 0.04;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
+// Tope de espera de la llamada al proveedor. La generación con imagen de referencia
+// (img2img) puede tardar, pero un cuelgue indefinido deja al usuario sin respuesta ni
+// error: se aborta y se devuelve un error accionable. Configurable por entorno.
+const DEFAULT_TIMEOUT_MS = 120_000;
+function resolveTimeoutMs(): number {
+  const fromEnv = Number(process.env.IMAGE_TIMEOUT_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_TIMEOUT_MS;
+}
 
 interface ContentPart {
   type: 'text' | 'image_url';
@@ -65,18 +73,34 @@ export class NanoBananaImageProvider implements ImageProvider {
   }
 
   private async call(content: ContentPart[]): Promise<ImageResult> {
-    const res = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        modalities: ['text', 'image'],
-        messages: [{ role: 'user', content }],
-      }),
-    });
+    const timeoutMs = resolveTimeoutMs();
+    let res: Response;
+    try {
+      res = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          modalities: ['text', 'image'],
+          messages: [{ role: 'user', content }],
+        }),
+        // Aborta si el proveedor tarda demasiado: convierte un cuelgue silencioso en
+        // un error claro y reintetable (no deja al usuario mirando el spinner sin fin).
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.name === 'TimeoutError';
+      throw aiError(
+        'provider_down',
+        isTimeout
+          ? `El proveedor de imagen tardó más de ${Math.round(timeoutMs / 1000)} s y se canceló. Inténtalo de nuevo.`
+          : `No se pudo contactar con el proveedor de imagen (${this.model}).`,
+        err,
+      );
+    }
     if (!res.ok) {
       throw aiError('provider_down', `OpenRouter (${this.model}) respondió ${res.status}`);
     }
@@ -86,17 +110,21 @@ export class NanoBananaImageProvider implements ImageProvider {
       throw aiError('provider_down', `OpenRouter (${this.model}) no devolvió imagen`);
     }
 
-    const assetUrl = await this.persist(url);
-    return { assetUrl, cost: imageCost(NANO_BANANA_USD_PER_IMAGE) };
+    const { assetUrl, assetKey } = await this.persist(url);
+    return { assetUrl, ...(assetKey ? { assetKey } : {}), cost: imageCost(NANO_BANANA_USD_PER_IMAGE) };
   }
 
-  /** Sube la imagen (data URL) al storage y devuelve su URL; sin storage, el data URL. */
-  private async persist(dataUrl: string): Promise<string> {
+  /**
+   * Sube la imagen (data URL) al storage y devuelve la URL presignada + la `key`
+   * estable (para re-firmar al servir). Sin storage o sin data URL, devuelve la URL
+   * tal cual sin key (no vive en nuestro storage).
+   */
+  private async persist(dataUrl: string): Promise<{ assetUrl: string; assetKey?: string }> {
     if (!this.storage || !dataUrl.startsWith('data:')) {
-      return dataUrl;
+      return { assetUrl: dataUrl };
     }
     const parsed = parseDataUrl(dataUrl);
-    if (!parsed) return dataUrl;
+    if (!parsed) return { assetUrl: dataUrl };
     const ext = parsed.mimeType.includes('png') ? 'png' : 'jpg';
     const key = `renders/nano-banana/${globalThis.crypto.randomUUID()}.${ext}`;
     await this.storage.put({
@@ -104,7 +132,7 @@ export class NanoBananaImageProvider implements ImageProvider {
       body: Buffer.from(parsed.base64, 'base64'),
       contentType: parsed.mimeType,
     });
-    return this.storage.getPresignedDownloadUrl(key);
+    return { assetUrl: await this.storage.getPresignedDownloadUrl(key), assetKey: key };
   }
 }
 

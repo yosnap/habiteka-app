@@ -14,6 +14,7 @@ import { withOrg, type ZoneRow } from '@/server/db/scoped-repo';
 import { loadState, saveState } from '@/server/agent/persistence/state-repo';
 import { setZoneOverride } from '@/lib/zone-style';
 import { isValidEstilo } from '@/lib/design-options';
+import { isValidZoneKind } from '@/lib/zone-kinds';
 import type { Estilo } from '@/lib/contracts';
 
 /** Invalida la caché de la página del proyecto para que la lista de zonas se refresque sin recargar. */
@@ -55,6 +56,29 @@ async function assertZoneInProject(
   if (!zones.some((z) => z.id === zoneId)) {
     throw new Error('Zona no encontrada en el proyecto');
   }
+}
+
+/**
+ * Fija el TIPO de una zona (interior/exterior, vocabulario controlado). Determina la
+ * variante del prompt del render por foto (img2img): un interior y una fachada/jardín
+ * se describen distinto. Pasar '' limpia el tipo (vuelve a interior por defecto).
+ */
+export async function setZoneKind(
+  projectId: string,
+  zoneId: string,
+  kind: string,
+): Promise<void> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertZoneInProject(ctx, projectId, zoneId);
+  const clean = String(kind ?? '').trim();
+  // Solo se acepta un valor del vocabulario o '' (limpiar). Un valor libre no llega
+  // al render (que asume valores normalizados) ni a la BD.
+  if (clean !== '' && !isValidZoneKind(clean)) throw new Error('Tipo de zona no válido');
+  // El repo no distingue '' de no-tocar: para "limpiar" se guarda 'interior' (default
+  // semántico) en vez de dejar un kind huérfano; ambos producen un render interior.
+  await withOrg(ctx).zones.update(projectId, zoneId, { kind: clean === '' ? 'interior' : clean });
+  revalidateProject(projectId);
 }
 
 /** Renombra una zona del proyecto (validada por proyecto+org en el repo). */

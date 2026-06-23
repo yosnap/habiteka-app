@@ -76,6 +76,71 @@ describe('Scoping estructural por organización (anti-IDOR)', () => {
       // La más reciente gana; ambas son válidas pero debe ser una de las creadas.
       expect([first.id, second.id]).toContain(latest);
     });
+
+    it('latestPrimary devuelve id+key+mime de la PRIMARY (para leer sus bytes), o null', async () => {
+      const orgA = await makeOrg();
+      const projA = await withOrg(ctx(orgA)).projects.create({ title: 'A' });
+      expect(await withOrg(ctx(orgA)).sourceImages.latestPrimary(projA.id)).toBeNull();
+
+      const created = await withOrg(ctx(orgA)).sourceImages.create(projA.id, img);
+      const ref = await withOrg(ctx(orgA)).sourceImages.latestPrimary(projA.id);
+      expect(ref).toMatchObject({ id: created.id, key: img.key, mime: img.mime });
+    });
+
+    it('listByZone devuelve solo las fotos de esa (proyecto, zona)', async () => {
+      const orgA = await makeOrg();
+      const repo = withOrg(ctx(orgA));
+      const projA = await repo.projects.create({ title: 'A' });
+      const zona = await repo.zones.create(projA.id, { name: 'Cocina' });
+
+      await repo.sourceImages.create(projA.id, { ...img, zoneId: zona.id });
+      await repo.sourceImages.create(projA.id, { ...img, zoneId: zona.id });
+      await repo.sourceImages.create(projA.id, { ...img, zoneId: null }); // otra zona (defecto)
+
+      const enZona = await repo.sourceImages.listByZone(projA.id, zona.id);
+      expect(enZona).toHaveLength(2);
+      const porDefecto = await repo.sourceImages.listByZone(projA.id, null);
+      expect(porDefecto).toHaveLength(1);
+    });
+
+    it('setActive deja UNA PRIMARY y el resto DETAIL en la zona', async () => {
+      const orgA = await makeOrg();
+      const repo = withOrg(ctx(orgA));
+      const projA = await repo.projects.create({ title: 'A' });
+      const zona = await repo.zones.create(projA.id, { name: 'Salón' });
+
+      const a = await repo.sourceImages.create(projA.id, { ...img, zoneId: zona.id });
+      const b = await repo.sourceImages.create(projA.id, { ...img, zoneId: zona.id });
+
+      const changed = await repo.sourceImages.setActive(projA.id, zona.id, a.id);
+      expect(changed).toBe(true);
+
+      const fotos = await repo.sourceImages.listByZone(projA.id, zona.id);
+      const primarias = fotos.filter((f) => f.role === 'PRIMARY');
+      expect(primarias).toHaveLength(1);
+      expect(primarias[0]?.id).toBe(a.id);
+      expect(fotos.find((f) => f.id === b.id)?.role).toBe('DETAIL');
+      // Y la activa coincide con latestPrimary.
+      expect((await repo.sourceImages.latestPrimary(projA.id, zona.id))?.id).toBe(a.id);
+    });
+
+    it('setActive de una imagen ajena (otra org) no cambia nada (anti-IDOR)', async () => {
+      const orgA = await makeOrg();
+      const orgB = await makeOrg();
+      const repoA = withOrg(ctx(orgA));
+      const repoB = withOrg(ctx(orgB));
+      const projB = await repoB.projects.create({ title: 'B' });
+      const zonaB = await repoB.zones.create(projB.id, { name: 'B-zona' });
+      const fotoB = await repoB.sourceImages.create(projB.id, { ...img, zoneId: zonaB.id });
+
+      // orgA intenta activar una foto del proyecto de orgB conociendo los ids: no-op.
+      const changed = await repoA.sourceImages.setActive(projB.id, zonaB.id, fotoB.id);
+      expect(changed).toBe(false);
+      // La foto de B sigue intacta (PRIMARY por creación).
+      expect(await repoB.sourceImages.latestPrimary(projB.id, zonaB.id)).toMatchObject({
+        id: fotoB.id,
+      });
+    });
   });
 
   describe('zones (multi-zona)', () => {

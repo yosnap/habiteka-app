@@ -18,6 +18,7 @@ import type {
   StructuralElements,
 } from '@/lib/contracts';
 import { estiloLabel } from '@/lib/design-options';
+import { EXTERIOR_ZONE_KINDS } from '@/lib/zone-kinds';
 import { DELIVERABLE_LEGAL_SEAL } from '../legal/seal';
 import { agentError } from '../errors';
 
@@ -49,6 +50,19 @@ export interface DeliveryInput {
      */
     promptLibre?: string;
   };
+  /**
+   * Imagen de referencia para img2img cuando la entrega parte de una FOTO de la
+   * zona (flujo del chat), no de un lienzo. El render se condiciona a su estructura.
+   * Si hay `sketch`, su `referenceImage` tiene prioridad (la disposición del plano
+   * manda). Función del orquestador: cargar los bytes de la foto PRIMARY de la zona.
+   */
+  referenceImage?: { base64: string; mimeType: string };
+  /**
+   * Tipo de la zona (interior/exterior). Adapta el prompt del render: un interior y
+   * una fachada/jardín se describen distinto. `null` = sin zona o sin tipo → interior
+   * por defecto.
+   */
+  zoneKind?: string | null;
   /** Clave idempotente de ESTA operación de entrega. */
   idempotencyKey: string;
   /** Créditos estimados a reservar. */
@@ -101,14 +115,27 @@ async function generateOne(
     return { ...base, payload: { type: 'plano2d', plano } };
   }
   if (type === 'render3d') {
+    // Referencia para img2img: el lienzo tiene prioridad (la disposición del plano
+    // manda); si no hay lienzo, la foto de la zona (flujo del chat). Sin ninguna de
+    // las dos, el render parte solo del estilo (comportamiento previo).
+    const referenceImage = input.sketch?.referenceImage ?? input.referenceImage;
     const result = await deps.image.generate({
       prompt: renderPrompt(input),
       // Desde el lienzo: su proporción y disposición condicionan el render. Sin
       // lienzo (entrada por foto/chat), se usa el encuadre panorámico por defecto.
       aspectRatio: input.sketch?.aspectRatio ?? '16:9',
-      ...(input.sketch ? { referenceImage: input.sketch.referenceImage } : {}),
+      ...(referenceImage ? { referenceImage } : {}),
     });
-    return { ...base, payload: { type: 'render3d', assetUrl: result.assetUrl } };
+    return {
+      ...base,
+      // `assetKey` (si el render vive en nuestro storage) permite re-firmar la URL al
+      // mostrar: la presignada de `assetUrl` caduca y dejaría la imagen rota.
+      payload: {
+        type: 'render3d',
+        assetUrl: result.assetUrl,
+        ...(result.assetKey ? { assetKey: result.assetKey } : {}),
+      },
+    };
   }
   // memoria de materiales (texto)
   const memoria = await deps.chat.chat({
@@ -191,11 +218,42 @@ function basePlano(elements?: StructuralElements): Plano2dPayload {
   };
 }
 
-function renderPrompt(input: DeliveryInput): string {
-  const base = `Render 3D conceptual, estilo ${estiloLabel(input.collected.estilo)}. ${input.collected.objetivo ?? ''}`;
+/** True si la zona es un espacio exterior (decide la variante del prompt del render). */
+export function isExteriorZone(kind?: string | null): boolean {
+  if (!kind) return false;
+  const normalized = kind
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return EXTERIOR_ZONE_KINDS.has(normalized);
+}
+
+/**
+ * Prompt del render 3D. Adapta la descripción del espacio a interior/exterior según
+ * el tipo de zona y, cuando parte de una foto de referencia (img2img sin lienzo),
+ * pide explícitamente respetar su estructura para que NO invente otro inmueble.
+ * Función pura (testeable).
+ */
+export function renderPrompt(input: DeliveryInput): string {
+  const espacio = isExteriorZone(input.zoneKind)
+    ? 'del EXTERIOR de la vivienda (fachada/jardín, con entorno y vegetación coherentes)'
+    : 'del INTERIOR del espacio';
+  const base = `Render 3D conceptual ${espacio}, estilo ${estiloLabel(input.collected.estilo)}. ${input.collected.objetivo ?? ''}`;
   // Cuando el render parte del lienzo, su descripción estructurada guía la
   // disposición de los elementos (complementa a la imagen de referencia).
-  if (!input.sketch) return base;
+  if (!input.sketch) {
+    // Sin lienzo pero CON foto de la zona: img2img. Se ancla el render a la foto
+    // para que respete su estructura/perspectiva en vez de inventar otra escena.
+    if (input.referenceImage) {
+      return (
+        `${base}\n\nPARTE de la foto adjunta del espacio real: respeta su estructura, ` +
+        `geometría, perspectiva, ventanas y puertas; aplica únicamente el estilo, los ` +
+        `acabados y la decoración pedidos SIN inventar otro inmueble ni reubicar las paredes.`
+      );
+    }
+    return base;
+  }
   const parts = [base, input.sketch.description];
   const libre = input.sketch.promptLibre?.trim();
   if (libre) {

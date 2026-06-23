@@ -55,7 +55,7 @@ async function makeProject(): Promise<{ pid: string; deps: AgentDeps }> {
     debit: noopDebit,
     userId: user.id,
     newDeliverableId: () => `del-${++seq}`,
-    resolveSourceImageId: async () => null,
+    resolveZoneContext: async () => ({ zoneKind: null, reference: null }),
   };
   return { pid: project.id, deps };
 }
@@ -72,6 +72,79 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
 
     const confirm = await advance(deps, pid, { action: 'confirm-detection' });
     expect(confirm.phase).toBe('cualificacion');
+  });
+
+  it('correct-detection sobrescribe los números detectados sin avanzar de fase', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+
+    const out = await advance(deps, pid, {
+      action: 'correct-detection',
+      detected: { walls: 6, doors: 2, windows: 3, pillars: 1 },
+    });
+    expect(out.phase).toBe('ingesta'); // no avanza
+    expect(out.detected).toEqual({ walls: 6, doors: 2, windows: 3, pillars: 1 });
+    const st = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
+    expect((st?.collected as { detected?: unknown }).detected).toEqual({
+      walls: 6,
+      doors: 2,
+      windows: 3,
+      pillars: 1,
+    });
+  });
+
+  it('correct-detection sanea valores inválidos del cliente (enteros ≥ 0)', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+
+    const out = await advance(deps, pid, {
+      action: 'correct-detection',
+      // Valores hostiles: negativo, decimal, NaN.
+      detected: { walls: -5, doors: 2.9, windows: Number.NaN, pillars: 1 } as never,
+    });
+    expect(out.detected).toEqual({ walls: 0, doors: 2, windows: 0, pillars: 1 });
+  });
+
+  it('skip-detection avanza a cualificación aunque no haya habido análisis (foto por panel)', async () => {
+    const { pid, deps } = await makeProject();
+    // Estado inicial creado sin pasar por ingest (no hay collected.detected).
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    // Forzar detected ausente para simular la subida por el panel (sin análisis del chat).
+    await prisma.agentState.updateMany({
+      where: { projectId: pid, zoneId: null },
+      data: { collected: { entregables: [] } },
+    });
+
+    const out = await advance(deps, pid, { action: 'skip-detection' });
+    expect(out.phase).toBe('cualificacion');
+    // Se rellenó una detección vacía para satisfacer el guard de fase.
+    const st = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
+    expect((st?.collected as { detected?: unknown }).detected).toEqual({
+      walls: 0,
+      doors: 0,
+      windows: 0,
+      pillars: 0,
+    });
+  });
+
+  it('go-back retrocede de cualificación a ingesta conservando lo recogido', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' }); // → cualificación
+
+    const out = await advance(deps, pid, { action: 'go-back' });
+    expect(out.phase).toBe('ingesta');
+    // La detección confirmada se conserva (no se pierde al retroceder).
+    expect(out.collected.detected).toBeTruthy();
+  });
+
+  it('go-back desde ingesta (sin anterior) lanza phase_guard', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+
+    await expect(advance(deps, pid, { action: 'go-back' })).rejects.toMatchObject({
+      kind: 'phase_guard',
+    });
   });
 
   it('entregar sin estilo lanza legal_block sin generar', async () => {
@@ -99,7 +172,7 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
       debit: noopDebit,
       userId: user.id,
       newDeliverableId: () => `del-${++seq}`,
-      resolveSourceImageId: async () => null,
+      resolveZoneContext: async () => ({ zoneKind: null, reference: null }),
     };
 
     await expect(
@@ -197,6 +270,58 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     // Y no quedó ningún entregable persistido a medias.
     const dels = await prisma.deliverable.count({ where: { projectId: pid } });
     expect(dels).toBe(0);
+  });
+
+  it('entrega por chat con foto PRIMARY en la zona: el render recibe referenceImage (img2img)', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId);
+    // Estado listo para entregar un render.
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    const st = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
+    await prisma.agentState.updateMany({
+      where: { projectId: pid, zoneId: null },
+      data: {
+        collected: { ...(st?.collected as object), estilo: 'nordico', entregables: ['render3d'] },
+      },
+    });
+
+    // Foto PRIMARY real de la zona: su id se vincula como trazabilidad (FK real).
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: pid } });
+    const photo = await prisma.sourceImage.create({
+      data: { organizationId: project.organizationId, projectId: pid, key: 'k', mime: 'image/png' },
+    });
+
+    // Captura la request al generador y simula que la zona tiene foto PRIMARY (interior).
+    const imageRequests: Array<{ referenceImage?: unknown; prompt: string }> = [];
+    const capturingImage: ImageAdapter = {
+      generate: async (req) => {
+        imageRequests.push(req);
+        return { assetUrl: 'https://cdn/x.png', cost: { amountUsd: 0.04, unit: 'image' } };
+      },
+      inpaint: async () => ({ assetUrl: '', cost: { amountUsd: 0, unit: 'image' } }),
+    };
+    const depsWithPhoto: AgentDeps = {
+      ...deps,
+      image: capturingImage,
+      resolveZoneContext: async () => ({
+        zoneKind: 'interior',
+        reference: {
+          sourceImageId: photo.id,
+          image: { base64: 'QUJD', mimeType: 'image/png' },
+        },
+      }),
+    };
+
+    const out = await advance(depsWithPhoto, pid, { action: 'deliver' });
+    expect(out.phase).toBe('feedback');
+    // La foto de la zona se pasó como referencia (antes era undefined → render ciego).
+    expect(imageRequests[0]?.referenceImage).toEqual({ base64: 'QUJD', mimeType: 'image/png' });
+    // El prompt se ancla a la foto y describe un INTERIOR.
+    expect(imageRequests[0]?.prompt).toContain('INTERIOR');
+    // Y la trazabilidad quedó vinculada al id de la foto resuelta.
+    const del = await prisma.deliverable.findFirst({ where: { projectId: pid } });
+    expect(del?.sourceImageId).toBe(photo.id);
   });
 
   it('dos avances concurrentes: solo uno confirma, el otro falla (no hay doble avance)', async () => {

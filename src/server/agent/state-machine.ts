@@ -22,6 +22,23 @@ export function canTransition(from: AgentPhase, to: AgentPhase): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
+/**
+ * Paso anterior al que el usuario puede VOLVER desde cada fase de reposo. No es la
+ * inversa de `TRANSITIONS` (que es el avance con guardas y cobro): retroceder es una
+ * acción del usuario para corregir, no una transición de dominio. Solo las fases
+ * "de reposo" tienen anterior; `entrega` es transitoria (ocurre durante la
+ * generación) y `ingesta` es el inicio (sin anterior).
+ */
+const PREVIOUS_PHASE: Partial<Record<AgentPhase, AgentPhase>> = {
+  cualificacion: 'ingesta',
+  feedback: 'cualificacion',
+};
+
+/** Fase anterior a la que se puede volver desde `phase`, o null si es el inicio. */
+export function previousPhase(phase: AgentPhase): AgentPhase | null {
+  return PREVIOUS_PHASE[phase] ?? null;
+}
+
 /** Verdadero si `collected` cumple el guard legal de entrega (estilo + entregables). */
 export function isReadyForDelivery(collected: Collected): collected is ReadyForDelivery {
   return collected.estilo !== undefined && collected.entregables.length > 0;

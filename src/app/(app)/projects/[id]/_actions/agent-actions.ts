@@ -11,7 +11,12 @@ import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
-import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
+import {
+  getAgent,
+  type AgentInput,
+  type AgentOutcome,
+  type ZoneDeliveryContext,
+} from '@/server/agent';
 import { getChatVisionAdapter } from '@/server/ai';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
@@ -74,10 +79,50 @@ export async function advanceAgent(
     await persistIngestImages(ctx, projectId, input.image, zid);
   }
 
-  const agent = await getAgent(ctx.organizationId, ctx.userId, (pid, zoneIdArg) =>
-    withOrg(ctx).sourceImages.latestPrimaryId(pid, zoneIdArg),
-  );
+  const agent = await getAgent(ctx.organizationId, ctx.userId, makeZoneContextResolver(ctx));
   return agent.advance(projectId, input, zid);
+}
+
+/**
+ * Resuelve el contexto de zona que la entrega por chat necesita: el tipo de zona
+ * (interior/exterior, para el prompt) y la foto PRIMARY de la zona cargada como
+ * referencia img2img (bytes desde el storage) + su id (trazabilidad). Pasa por la
+ * puerta anti-IDOR (`withOrg`) y por el storage server-only, manteniendo el agente
+ * org-agnóstico. Si la foto no puede leerse del storage, degrada a `reference: null`
+ * (el render parte solo del estilo) en vez de tumbar una entrega que ya se cobra.
+ */
+/** Resolver de contexto vacío: para flujos que aportan su propia referencia (lienzo/3D). */
+async function noZoneContext(): Promise<ZoneDeliveryContext> {
+  return { zoneKind: null, reference: null };
+}
+
+function makeZoneContextResolver(
+  ctx: OrgContext,
+): (projectId: string, zoneId: string | null) => Promise<ZoneDeliveryContext> {
+  return async (projectId, zoneId) => {
+    const repo = withOrg(ctx);
+    const zoneKind = zoneId
+      ? ((await repo.zones.list(projectId)).find((z) => z.id === zoneId)?.kind ?? null)
+      : null;
+
+    const primary = await repo.sourceImages.latestPrimary(projectId, zoneId);
+    if (!primary) return { zoneKind, reference: null };
+
+    try {
+      const body = await getStorageAdapter().get(primary.key);
+      return {
+        zoneKind,
+        reference: {
+          sourceImageId: primary.id,
+          image: { base64: body.toString('base64'), mimeType: primary.mime },
+        },
+      };
+    } catch {
+      // La foto existe en BD pero no se pudo leer del storage: no se rompe la
+      // entrega; se genera sin referencia (comportamiento previo a img2img).
+      return { zoneKind, reference: null };
+    }
+  };
 }
 
 /** Persiste las imágenes embebidas de la ingesta como SourceImage de la zona (scope org). */
@@ -133,9 +178,9 @@ export async function generateDesignFromCanvas(
   }
   const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
 
-  // El lienzo rasterizado no es una imagen de origen del usuario, así que la
-  // generación desde el lienzo no vincula trazabilidad (resolver a null).
-  const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
+  // El lienzo rasterizado no es una imagen de origen del usuario, y este flujo
+  // aporta su propia referencia (el sketch): no resuelve contexto de zona.
+  const agent = await getAgent(ctx.organizationId, ctx.userId, noZoneContext);
   return agent.advance(
     projectId,
     {
@@ -181,7 +226,8 @@ export async function generateViewFrom3D(
   const base64 = captureDataUrl.includes(',') ? captureDataUrl.split(',')[1]! : captureDataUrl;
   if (!base64) throw new Error('Captura de la vista 3D vacía');
 
-  const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
+  // La captura 3D es la propia referencia (sketch): no resuelve contexto de zona.
+  const agent = await getAgent(ctx.organizationId, ctx.userId, noZoneContext);
   return agent.advance(
     projectId,
     {

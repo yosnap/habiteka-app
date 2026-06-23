@@ -4,6 +4,7 @@ import {
   isReadyForDelivery,
   isDetectionConfirmed,
   assertTransition,
+  previousPhase,
 } from '@/server/agent/state-machine';
 import type { Collected } from '@/lib/contracts';
 
@@ -65,5 +66,14 @@ describe('state-machine — transiciones y guardas', () => {
   it('assertTransition válida no lanza', () => {
     expect(() => assertTransition('cualificacion', 'entrega', confirmed)).not.toThrow();
     expect(() => assertTransition('ingesta', 'cualificacion', confirmed)).not.toThrow();
+  });
+
+  it('previousPhase devuelve el paso anterior de las fases de reposo (o null)', () => {
+    expect(previousPhase('cualificacion')).toBe('ingesta');
+    expect(previousPhase('feedback')).toBe('cualificacion');
+    // Sin anterior: ingesta es el inicio; entrega/addons no son puntos de retorno.
+    expect(previousPhase('ingesta')).toBeNull();
+    expect(previousPhase('entrega')).toBeNull();
+    expect(previousPhase('addons')).toBeNull();
   });
 });

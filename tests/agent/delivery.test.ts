@@ -3,6 +3,8 @@ import {
   runDelivery,
   explanationPrompt,
   memoriaPrompt,
+  renderPrompt,
+  isExteriorZone,
   type DeliveryDeps,
 } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
@@ -97,6 +99,19 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(imageRequests[0]?.referenceImage).toBeUndefined();
   });
 
+  it('sin sketch pero CON foto de la zona, el render usa esa foto como referencia (img2img)', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      referenceImage: { base64: 'Rk9P', mimeType: 'image/png' },
+    });
+    const req = imageRequests[0];
+    expect(req?.referenceImage).toEqual({ base64: 'Rk9P', mimeType: 'image/png' });
+    // El prompt pide respetar la estructura de la foto (no inventar otro inmueble).
+    expect(req?.prompt.toLowerCase()).toContain('respeta');
+  });
+
   it('con sketch (lienzo), el render recibe referenceImage y la descripción en el prompt', async () => {
     const { deps, imageRequests } = makeDeps();
     await runDelivery(deps, {
@@ -146,6 +161,38 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(prompt.toLowerCase()).toContain('sin cambiar la disposición');
     // La descripción del plano sigue presente (la disposición manda).
     expect(prompt).toContain('Sofá: junto a la pared del fondo');
+  });
+});
+
+describe('renderPrompt — variante interior/exterior por tipo de zona', () => {
+  // renderPrompt solo lee estilo/objetivo/zoneKind/sketch/referenceImage; `input`
+  // (con `ready`) basta como base, sin tocar la lista de entregables.
+  const base = input;
+
+  it('por defecto (sin zona) describe un INTERIOR', () => {
+    const out = renderPrompt(base);
+    expect(out).toContain('INTERIOR');
+    expect(out).not.toContain('EXTERIOR');
+  });
+
+  it('con una zona exterior (entrada/fachada) describe un EXTERIOR', () => {
+    const out = renderPrompt({ ...base, zoneKind: 'entrada' });
+    expect(out).toContain('EXTERIOR');
+    expect(out).not.toContain('INTERIOR del espacio');
+  });
+
+  it('interior y exterior producen prompts distintos', () => {
+    const interior = renderPrompt({ ...base, zoneKind: 'interior' });
+    const exterior = renderPrompt({ ...base, zoneKind: 'trasera' });
+    expect(interior).not.toEqual(exterior);
+  });
+
+  it('isExteriorZone tolera tildes y mayúsculas (Aérea → exterior)', () => {
+    expect(isExteriorZone('Aérea')).toBe(true);
+    expect(isExteriorZone('TRASERA')).toBe(true);
+    expect(isExteriorZone('interior')).toBe(false);
+    expect(isExteriorZone(null)).toBe(false);
+    expect(isExteriorZone('salon')).toBe(false);
   });
 });
 
