@@ -16,14 +16,18 @@
 import dynamic from 'next/dynamic';
 import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import type { CanvasDoc } from '@/canvas/types';
+import type { CanvasDoc, StructKind } from '@/canvas/types';
 import type { Estilo } from '@/lib/contracts';
 import { ESTILOS } from '@/lib/design-options';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { planCenterPx as computePlanCenter, resolvePxPerMeter } from '@/canvas/3d/doc-to-scene';
 import { generateViewFrom3D } from '@/app/(app)/projects/[id]/_actions/agent-actions';
+import { CATALOG } from '@/canvas/catalog';
+import { catalogSizePx } from '@/canvas/scale';
+import { isLight, defaultLight } from '@/canvas/light';
 import { use3DSelection } from './use-3d-selection';
 import { ObjectPropertiesPanel } from './object-properties-panel';
+import { CatalogPanel3D } from './catalog-panel-3d';
 
 const Plan3DView = dynamic(() => import('./plan-3d-view').then((m) => m.Plan3DView), {
   ssr: false,
@@ -53,6 +57,7 @@ export function Plan3DOverlay({
   // instante en el 3D. Cae al snapshot inicial si el store aún no está hidratado.
   const storeDoc = useCanvasStore((s) => s.doc);
   const updateObject = useCanvasStore((s) => s.updateObject);
+  const addObject = useCanvasStore((s) => s.addObject);
   const doc = storeDoc.objects.length ? storeDoc : initialDoc;
   // Menú contextual de pared: id del muro + posición en pantalla del clic derecho.
   const [wallMenu, setWallMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -68,6 +73,27 @@ export function Plan3DOverlay({
     () => ({ planCenterPx: computePlanCenter(doc.objects), pxPerMeter: resolvePxPerMeter(doc) }),
     [doc],
   );
+
+  // Añade un nuevo mueble del catálogo en el centro de la sala y activa el gizmo de mover.
+  const handleAdd = (kind: StructKind) => {
+    const entry = CATALOG.flatMap((c) => c.items).find((i) => i.kind === kind);
+    if (!entry) return;
+    const { w, h } = catalogSizePx(entry, { pxPerMeter: sceneCoords.pxPerMeter });
+    const [cx, cy] = sceneCoords.planCenterPx;
+    const id = `obj-${crypto.randomUUID()}`;
+    addObject({
+      id,
+      kind,
+      x: cx - w / 2,
+      y: cy - h / 2,
+      width: w,
+      height: h,
+      rotation: 0,
+      ...(isLight(kind) ? { light: defaultLight() } : {}),
+    });
+    select(id);
+    setMode('translate');
+  };
 
   // Escape: si hay un modo activo (gizmo), lo cancela primero (no cierra el overlay).
   // Solo si mode === 'none', Escape cierra el overlay completo (RR3).
@@ -127,6 +153,9 @@ export function Plan3DOverlay({
       >
         ✕ Cerrar
       </button>
+
+      {/* Panel de catálogo: añadir muebles desde la vista 3D. */}
+      <CatalogPanel3D onAdd={handleAdd} />
 
       {/* Selector de estilo para la vista a generar + estado (abajo a la izquierda). */}
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-md bg-black/70 px-3 py-2">
