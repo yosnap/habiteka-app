@@ -235,60 +235,64 @@ function outwardNormal(a: Pt, b: Pt): Pt {
 }
 
 /**
+ * Producto cruzado (z) del giro en el vértice `b` al venir de `a` y seguir hacia `c`. Para el
+ * contorno que genera `roomOutline` (vértices en sentido horario en el sistema de Konva, Y hacia
+ * abajo): una esquina CONVEXA (las 4 esquinas exteriores de un rectángulo) da cross > 0, y una
+ * CÓNCAVA (el ángulo entrante de una L/U/T) da cross < 0. Verificado contra la forma L.
+ */
+function turnCross(a: Pt, b: Pt, c: Pt): number {
+  return (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+}
+
+/**
  * Convierte el contorno interior (vértices horarios, axis-aligned) en los muros que lo
- * rodean: un muro por arista, de grosor `t`, colocado por FUERA del interior y extendido
- * medio grosor en cada extremo para CERRAR las esquinas sin huecos. Cada muro es una caja
- * axis-aligned (`rotation:0`); las formas L/U/T no requieren muros rotados.
+ * rodean: un muro por arista, de grosor `t`, colocado por FUERA del interior. Cada extremo se
+ * extiende `t` SOLO en las esquinas CONVEXAS (donde el muro debe cubrir la esquina) y nada en
+ * las CÓNCAVAS (el ángulo entrante de una L/U/T), donde extenderse crearía un saliente hacia el
+ * interior. Así el contorno cierra sin huecos ni desbordamientos en cualquier forma rectilínea.
  *
- * El muro se devuelve como `StructObj{kind:'wall'}` con `x,y` en la esquina sup-izq de su
- * caja. Para una arista horizontal el muro tiene alto `t`; para una vertical, ancho `t`.
+ * El muro se devuelve como `StructObj{kind:'wall'}` con `x,y` en la esquina sup-izq de su caja.
  */
 export function outlineToWalls(vertices: Pt[], t: number, idPrefix = 'wall'): StructObj[] {
   const n = vertices.length;
   if (n < 4) return [];
   const walls: StructObj[] = [];
   for (let i = 0; i < n; i++) {
+    const prev = vertices[(i - 1 + n) % n];
     const a = vertices[i];
     const b = vertices[(i + 1) % n];
-    if (!a || !b) continue; // inalcanzable (i < n); guarda para el indexado estricto
+    const next = vertices[(i + 2) % n];
+    if (!prev || !a || !b || !next) continue; // guarda para el indexado estricto
+
     const nrm = outwardNormal(a, b);
     const horizontal = Math.abs(a.y - b.y) < 1e-6; // arista horizontal (varía X)
+    // Convención de cierre (preserva la del rectángulo original y la generaliza a formas
+    // cóncavas): las aristas HORIZONTALES cubren las esquinas CONVEXAS extendiéndose `t`; las
+    // VERTICALES nunca se extienden (las cierran las horizontales). En las esquinas CÓNCAVAS
+    // (ángulo entrante de una L/U/T) NADIE se extiende: extenderse ahí mete un saliente hacia
+    // el interior (el bug que se veía en el escalón). Convexa: cross > 0; cóncava: cross < 0.
+    const startConvex = turnCross(prev, a, b) > 0; // esquina en el vértice `a`
+    const endConvex = turnCross(a, b, next) > 0; // esquina en el vértice `b`
+    const extStart = horizontal && startConvex ? t : 0;
+    const extEnd = horizontal && endConvex ? t : 0;
 
-    // Convención de cierre de esquinas (la misma del rect original): las aristas
-    // HORIZONTALES (top/bottom) abarcan también las esquinas, extendiéndose un grosor
-    // completo `t` en CADA extremo; las VERTICALES (left/right) no se extienden y quedan
-    // entre las horizontales. Así dos muros adyacentes se solapan exactamente en el
-    // cuadrado de esquina, sin huecos ni dobles conteos.
     if (horizontal) {
-      const x0 = Math.min(a.x, b.x) - t;
-      const len = Math.abs(b.x - a.x) + 2 * t;
-      // La normal en Y indica el lado: +Y abajo, −Y arriba. El muro arranca en el
-      // borde de la arista y se extiende `t` en el sentido de la normal.
-      const yEdge = a.y;
-      const y0 = nrm.y > 0 ? yEdge : yEdge - t;
-      walls.push({
-        id: `${idPrefix}-${i}`,
-        kind: 'wall',
-        x: x0,
-        y: y0,
-        width: len,
-        height: t,
-        rotation: 0,
-      });
+      const goingRight = b.x > a.x; // sentido de la arista en X
+      const loExt = goingRight ? extStart : extEnd; // extensión en el extremo de menor X
+      const hiExt = goingRight ? extEnd : extStart; // extensión en el extremo de mayor X
+      const x0 = Math.min(a.x, b.x) - loExt;
+      const len = Math.abs(b.x - a.x) + loExt + hiExt;
+      // La normal en Y indica el lado: +Y abajo (muro arranca en el borde), −Y arriba.
+      const y0 = nrm.y > 0 ? a.y : a.y - t;
+      walls.push({ id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: len, height: t, rotation: 0 });
     } else {
-      const y0 = Math.min(a.y, b.y);
-      const len = Math.abs(b.y - a.y); // las verticales NO se extienden (las cierran las horizontales)
-      const xEdge = a.x;
-      const x0 = nrm.x > 0 ? xEdge : xEdge - t;
-      walls.push({
-        id: `${idPrefix}-${i}`,
-        kind: 'wall',
-        x: x0,
-        y: y0,
-        width: t,
-        height: len,
-        rotation: 0,
-      });
+      const goingDown = b.y > a.y; // sentido de la arista en Y
+      const loExt = goingDown ? extStart : extEnd; // extensión en el extremo de menor Y
+      const hiExt = goingDown ? extEnd : extStart; // extensión en el extremo de mayor Y
+      const y0 = Math.min(a.y, b.y) - loExt;
+      const len = Math.abs(b.y - a.y) + loExt + hiExt;
+      const x0 = nrm.x > 0 ? a.x : a.x - t;
+      walls.push({ id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: t, height: len, rotation: 0 });
     }
   }
   return walls;

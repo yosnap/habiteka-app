@@ -155,6 +155,26 @@ describe('room-shapes: formas no rectangulares', () => {
       [],
     );
   });
+
+  it('los muros NO desbordan hacia el interior en las esquinas cóncavas (regresión del escalón)', () => {
+    // En la L, el muro del escalón se extendía `t` hacia el interior pasado el vértice cóncavo,
+    // dejando un saliente impresentable. El borde INTERIOR de cada muro no debe cruzar al
+    // interior del polígono: ningún punto del muro debe quedar estrictamente DENTRO del contorno.
+    const t = 15;
+    const local = roomOutline({ shape: 'l', widthM: 6, lengthM: 5, cutWidthM: 2.5, cutLengthM: 2.5 }, 100);
+    const walls = outlineToWalls(local, t);
+    // Punto interior de prueba bien adentro de la zona del recorte (que NO es parte de la sala):
+    // ningún muro debe cubrir el centro del rectángulo recortado.
+    const cutCenter = { x: (600 + 350) / 2, y: (500 + 250) / 2 }; // (475, 375), zona recortada
+    const covers = (w: ReturnType<typeof outlineToWalls>[number], p: { x: number; y: number }) =>
+      p.x > w.x && p.x < w.x + w.width && p.y > w.y && p.y < w.y + w.height;
+    expect(walls.some((w) => covers(w, cutCenter))).toBe(false);
+    // Y el centro del cuadrado de la esquina cóncava interior tampoco lo invade un muro de más:
+    // el muro del escalón debe arrancar en el vértice cóncavo (x≈350), no antes.
+    const stepWall = walls.find((w) => Math.abs(w.y - 250) < 1 && w.width > w.height);
+    expect(stepWall).toBeDefined();
+    expect(stepWall!.x).toBeGreaterThanOrEqual(350 - 1e-6); // no desborda al interior izquierdo
+  });
 });
 
 describe('build-room-doc: suelo poligonal en formas no rectangulares', () => {

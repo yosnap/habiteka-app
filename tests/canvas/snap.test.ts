@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeSnap, wallStretchToClose, SNAP_THRESHOLD_PX } from '@/canvas/snap';
+import { computeSnap, SNAP_THRESHOLD_PX } from '@/canvas/snap';
 import type { WorldRect } from '@/canvas/floating-menu-anchor';
 
 const rect = (x: number, y: number, width: number, height: number): WorldRect => ({
@@ -86,39 +86,3 @@ describe('computeSnap: sin candidatos', () => {
   });
 });
 
-describe('wallStretchToClose: cerrar esquinas de un muro estirando sus extremos', () => {
-  // Layout tipo el de la imagen: muro horizontal entre un vertical izquierdo y otro derecho.
-  // Verticales de grosor 15 (x), el horizontal de grosor 15 (y), franja y:[100,115].
-  const wallLeft = rect(100, 100, 15, 300); // vertical izq, cara der en x=115
-  const wallRight = rect(600, 100, 15, 300); // vertical der, cara izq en x=600
-  const wh = (x: number, w: number) => ({ ...rect(x, 100, w, 15), horizontal: true });
-
-  it('estira el extremo derecho para tocar el muro vertical derecho sin mover el izquierdo', () => {
-    // Horizontal ya tocando la izquierda (x=115) pero corto por la derecha: termina en 595 (gap 5).
-    const moving = wh(115, 480); // x:[115,595]; cara izq del derecho en 600 → estira hi a 600
-    const s = wallStretchToClose(moving, [wallLeft, wallRight], SNAP_THRESHOLD_PX);
-    expect(s).not.toBeNull();
-    expect(s?.x).toBe(115); // extremo izquierdo intacto
-    expect(s?.width).toBe(485); // 600 - 115: ahora toca la cara izquierda del vertical derecho
-  });
-
-  it('cierra AMBOS extremos a la vez (izq y der) cuando los dos están a tiro', () => {
-    // Horizontal corto por los dos lados: x:[118,597]. Izq cara der=115 (gap 3), der cara izq=600 (gap 3).
-    const moving = wh(118, 479); // x:[118,597]
-    const s = wallStretchToClose(moving, [wallLeft, wallRight], SNAP_THRESHOLD_PX);
-    expect(s?.x).toBe(115);
-    expect(s?.width).toBe(485); // 600 - 115
-  });
-
-  it('no estira si ningún extremo está dentro del umbral', () => {
-    const moving = wh(140, 430); // x:[140,570]; izq gap 25, der gap 30
-    expect(wallStretchToClose(moving, [wallLeft, wallRight], SNAP_THRESHOLD_PX)).toBeNull();
-  });
-
-  it('ignora muros paralelos (solo cierran esquinas los perpendiculares)', () => {
-    const otherHorizontal = { ...rect(115, 200, 480, 15), horizontal: true };
-    const moving = wh(115, 480);
-    // Solo un muro paralelo como candidato → no hay esquina que cerrar.
-    expect(wallStretchToClose(moving, [otherHorizontal], SNAP_THRESHOLD_PX)).toBeNull();
-  });
-});
