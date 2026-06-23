@@ -10,7 +10,7 @@
  * una caja wireframe de selección y un menú flotante (via <Html> de drei) con acciones
  * Mover, Rotar, Duplicar, Eliminar.
  */
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, memo } from 'react';
 import { useGLTF, Clone, Html } from '@react-three/drei';
 import { Box3, Vector3 } from 'three';
 import type { FurnitureItem } from '@/canvas/3d/doc-to-scene';
@@ -224,8 +224,14 @@ function FurniturePlaceholder({
   );
 }
 
-/** Renderiza todos los muebles: modelo glTF si existe, si no placeholder. */
-export function FurnitureLayer({
+/**
+ * Renderiza todos los muebles: modelo glTF si existe, si no placeholder.
+ * memo() evita re-renders causados por actualizaciones de estado externas (p.ej. el
+ * contador de FPS en Plan3DView), que de otro modo harían que R3F sobreescribiera la
+ * rotación aplicada por TransformControls durante un drag, devolviendo el mueble a su
+ * posición original antes de que el gesto terminara.
+ */
+export const FurnitureLayer = memo(function FurnitureLayer({
   items,
   selectedId,
   onSelect,
@@ -257,4 +263,4 @@ export function FurnitureLayer({
       })}
     </group>
   );
-}
+});
