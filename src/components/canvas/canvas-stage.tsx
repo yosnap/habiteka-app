@@ -18,6 +18,7 @@ import { StructureLayer } from './layers/structure-layer';
 import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
+import { OutlineEditorLayer } from './layers/outline-editor-layer';
 import { DrawWallLengthInput } from './draw-wall-length-input';
 import { FloatingObjectMenu } from './floating-object-menu';
 import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
@@ -334,6 +335,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
+      {/* Modo "Editar contorno": handles de los vértices del suelo (capa interactiva propia).
+          Solo visible/activa en ese modo, para no interferir con la selección de objetos. */}
+      {tool === 'edit-outline' ? (
+        <Layer>
+          <OutlineEditorLayer />
+        </Layer>
+      ) : null}
       {/* Una sola capa de overlays efímeros (marquesina + muro en curso): ambos son ligeros y
           no interactivos, así se mantiene el nº de capas de Konva en el máximo recomendado. */}
       <Layer listening={false}>

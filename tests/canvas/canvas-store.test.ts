@@ -91,4 +91,54 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
     s.setBaseImageOpacity(-1); // fuera de rango por abajo
     expect(useCanvasStore.getState().doc.baseImage?.opacity).toBe(0);
   });
+
+  it('setFloorOutline regenera los muros del contorno y guarda el polígono', () => {
+    const s = useCanvasStore.getState();
+    // Parte de una sala con muros viejos + un mueble que NO debe tocarse.
+    s.load({
+      ...emptyCanvasDoc(),
+      scale: { pxPerMeter: 100 },
+      objects: [
+        wall('viejo-1'),
+        wall('viejo-2'),
+        { id: 'cama', kind: 'cama', x: 200, y: 200, width: 80, height: 120, rotation: 0 },
+      ],
+    });
+    // Nuevo contorno: un cuadrado (4 vértices → 4 muros).
+    const outline = [
+      { x: 100, y: 100 },
+      { x: 400, y: 100 },
+      { x: 400, y: 400 },
+      { x: 100, y: 400 },
+    ];
+    useCanvasStore.getState().setFloorOutline(outline);
+    const doc = useCanvasStore.getState().doc;
+    // Los muros viejos se reemplazan por los regenerados del contorno (4).
+    const walls = doc.objects.filter((o) => o.kind === 'wall');
+    expect(walls).toHaveLength(4);
+    expect(walls.some((w) => w.id === 'viejo-1')).toBe(false);
+    // El mueble se conserva.
+    expect(doc.objects.some((o) => o.id === 'cama')).toBe(true);
+    // El contorno se guarda.
+    expect(doc.floorOutline).toEqual(outline);
+  });
+
+  it('setFloorOutline es deshacible (undo restaura los muros previos)', () => {
+    const s = useCanvasStore.getState();
+    s.load({
+      ...emptyCanvasDoc(),
+      scale: { pxPerMeter: 100 },
+      objects: [wall('viejo-1'), wall('viejo-2')],
+    });
+    useCanvasStore.getState().setFloorOutline([
+      { x: 0, y: 0 },
+      { x: 300, y: 0 },
+      { x: 300, y: 300 },
+      { x: 0, y: 300 },
+    ]);
+    useCanvasStore.getState().undo();
+    const objs = useCanvasStore.getState().doc.objects;
+    expect(objs.some((o) => o.id === 'viejo-1')).toBe(true);
+    expect(useCanvasStore.getState().doc.floorOutline).toBeUndefined();
+  });
 });

@@ -15,7 +15,15 @@ import { NumberInput } from './number-input';
 
 // La herramienta activa: modos generales o la creación de un objeto del catálogo.
 // 'pan' = mover la vista (arrastrar el lienzo); 'zoom' = acercar al clicar.
-export type Tool = 'select' | 'pan' | 'zoom' | 'freehand' | 'draw-wall' | 'zone' | StructKind;
+export type Tool =
+  | 'select'
+  | 'pan'
+  | 'zoom'
+  | 'freehand'
+  | 'draw-wall'
+  | 'edit-outline'
+  | 'zone'
+  | StructKind;
 
 // Modos del editor de planos. La herramienta 'zone' existe en el modelo (se usa
 // para el feedback dirigido sobre un render), pero no se expone aquí: en el editor
@@ -27,6 +35,7 @@ const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'pan', label: 'Mover' },
   { tool: 'zoom', label: 'Zoom' },
   { tool: 'draw-wall', label: 'Dibujar muro' },
+  { tool: 'edit-outline', label: 'Editar contorno' },
   { tool: 'freehand', label: 'Dibujar libre' },
 ];
 
