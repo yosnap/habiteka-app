@@ -23,6 +23,8 @@ export interface CreateSourceImageInput {
   height?: number;
   role?: SourceImageRole;
   faceBlurred: boolean;
+  /** Zona del inmueble a la que pertenece la imagen; null = por defecto del proyecto. */
+  zoneId?: string | null;
 }
 
 export interface ZoneRow {
@@ -86,8 +88,11 @@ export interface ScopedRepo {
     create(projectId: string, input: CreateSourceImageInput): Promise<{ id: string }>;
     /** Lista las imágenes de origen vivas de un proyecto de la org (recientes primero). */
     list(projectId: string): Promise<SourceImageRow[]>;
-    /** Id de la imagen de origen PRIMARY más reciente de un proyecto de la org, o null. */
-    latestPrimaryId(projectId: string): Promise<string | null>;
+    /**
+     * Id de la imagen de origen PRIMARY más reciente de una (proyecto, zona) de la org, o null.
+     * `zoneId` null = imagen del flujo por defecto del proyecto.
+     */
+    latestPrimaryId(projectId: string, zoneId?: string | null): Promise<string | null>;
   };
   zones: {
     /** Crea una zona verificando la pertenencia del proyecto (anti-IDOR). */
@@ -222,6 +227,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           data: {
             organizationId,
             projectId,
+            zoneId: input.zoneId ?? null,
             key: input.key,
             mime: input.mime,
             width: input.width ?? null,
@@ -252,10 +258,11 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           orderBy: { createdAt: 'desc' },
         });
       },
-      async latestPrimaryId(projectId) {
+      async latestPrimaryId(projectId, zoneId = null) {
         const row = await prisma.sourceImage.findFirst({
           where: {
             projectId,
+            zoneId,
             role: 'PRIMARY',
             deletedAt: null,
             project: { organizationId, deletedAt: null },

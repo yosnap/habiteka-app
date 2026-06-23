@@ -35,11 +35,11 @@ export interface AgentDeps {
   userId: string;
   newDeliverableId: (projectId: string, type: string) => string;
   /**
-   * Resuelve la imagen de origen (PRIMARY) que alimentó la entrega por chat, para
-   * la trazabilidad origen→diseño. Devuelve null si el proyecto no tiene imagen
+   * Resuelve la imagen de origen (PRIMARY) que alimentó la entrega por chat de una
+   * (proyecto, zona), para la trazabilidad origen→diseño. Devuelve null si no hay imagen
    * persistida. Ya viene acotado a la organización (lo inyecta la capa con scope).
    */
-  resolveSourceImageId: (projectId: string) => Promise<string | null>;
+  resolveSourceImageId: (projectId: string, zoneId: string | null) => Promise<string | null>;
 }
 
 // Inputs posibles de un turno, discriminados por acción.
@@ -87,40 +87,44 @@ export async function advance(
   deps: AgentDeps,
   projectId: string,
   input: AgentInput,
+  zoneId: string | null = null,
 ): Promise<AgentOutcome> {
-  const state = await loadState(projectId);
+  const state = await loadState(projectId, zoneId);
 
   switch (input.action) {
     case 'ingest':
       return handleIngest(
         deps,
         projectId,
+        zoneId,
         state.phase,
         state.collected,
         state.version,
         input.image,
       );
     case 'confirm-detection':
-      return handleConfirm(projectId, state.phase, state.collected, state.version);
+      return handleConfirm(projectId, zoneId, state.phase, state.collected, state.version);
     case 'qualify':
       return handleQualify(
         deps,
         projectId,
+        zoneId,
         state.phase,
         state.collected,
         state.version,
         input.history,
       );
     case 'deliver':
-      return handleDeliver(deps, projectId, state.phase, state.collected, state.version);
+      return handleDeliver(deps, projectId, zoneId, state.phase, state.collected, state.version);
     case 'generate-from-canvas':
-      return handleGenerateFromCanvas(deps, projectId, state.collected, input);
+      return handleGenerateFromCanvas(deps, projectId, zoneId, state.collected, input);
   }
 }
 
 async function handleIngest(
   deps: AgentDeps,
   projectId: string,
+  zoneId: string | null,
   phase: string,
   collected: Collected,
   version: number,
@@ -133,25 +137,27 @@ async function handleIngest(
   const { detected, disclaimer } = await runIngesta(deps.chat, image);
   const nextCollected: Collected = { ...collected, detected };
   // Permanece en ingesta hasta que el usuario confirme lo detectado.
-  await saveState(projectId, version, { phase: 'ingesta', collected: nextCollected });
+  await saveState(projectId, zoneId, version, { phase: 'ingesta', collected: nextCollected });
   await appendMessage(projectId, 'assistant', [{ type: 'text', text: disclaimer }]);
   return { phase: 'ingesta', collected: nextCollected, detected, disclaimer };
 }
 
 async function handleConfirm(
   projectId: string,
+  zoneId: string | null,
   phase: string,
   collected: Collected,
   version: number,
 ): Promise<AgentOutcome> {
   assertTransition(phase as never, 'cualificacion', collected);
-  await saveState(projectId, version, { phase: 'cualificacion', collected });
+  await saveState(projectId, zoneId, version, { phase: 'cualificacion', collected });
   return { phase: 'cualificacion', collected };
 }
 
 async function handleQualify(
   deps: AgentDeps,
   projectId: string,
+  zoneId: string | null,
   phase: string,
   collected: Collected,
   version: number,
@@ -159,13 +165,14 @@ async function handleQualify(
 ): Promise<AgentOutcome> {
   if (phase !== 'cualificacion') throw agentError('phase_guard', 'No se está cualificando');
   const { collected: next } = await runQualification(deps.chat, history, collected);
-  await saveState(projectId, version, { phase: 'cualificacion', collected: next });
+  await saveState(projectId, zoneId, version, { phase: 'cualificacion', collected: next });
   return { phase: 'cualificacion', collected: next };
 }
 
 async function handleDeliver(
   deps: AgentDeps,
   projectId: string,
+  zoneId: string | null,
   phase: string,
   collected: Collected,
   version: number,
@@ -195,18 +202,19 @@ async function handleDeliver(
     },
   );
   // Trazabilidad origen→diseño: vincula la entrega con la imagen de origen que el
-  // usuario subió en la ingesta (PRIMARY más reciente del proyecto), si la hay.
-  const sourceImageId = (await deps.resolveSourceImageId(projectId)) ?? undefined;
-  // Persistir los entregables ANTES de avanzar de fase: la vista de «Diseños» los
-  // lee de la base de datos; sin esto, la generación se perdería.
-  await persistDeliverables(projectId, deliverables, sourceImageId);
-  await saveState(projectId, version, { phase: 'feedback', collected });
+  // usuario subió en la ingesta de ESTA zona (PRIMARY más reciente), si la hay.
+  const sourceImageId = (await deps.resolveSourceImageId(projectId, zoneId)) ?? undefined;
+  // Persistir los entregables (de esta zona) ANTES de avanzar de fase: la vista de
+  // «Diseños» los lee de la base de datos; sin esto, la generación se perdería.
+  await persistDeliverables(projectId, deliverables, sourceImageId, zoneId);
+  await saveState(projectId, zoneId, version, { phase: 'feedback', collected });
   return { phase: 'feedback', collected, deliverables };
 }
 
 async function handleGenerateFromCanvas(
   deps: AgentDeps,
   projectId: string,
+  zoneId: string | null,
   collected: Collected,
   input: Extract<AgentInput, { action: 'generate-from-canvas' }>,
 ): Promise<AgentOutcome> {
@@ -253,7 +261,7 @@ async function handleGenerateFromCanvas(
     deliveryInput,
   );
 
-  await persistDeliverables(projectId, deliverables);
+  await persistDeliverables(projectId, deliverables, undefined, zoneId);
 
   // Si se generó un render, la IA explica sus decisiones (2ª llamada de chat,
   // barata). Es un extra: si falla, se devuelve el render igual (sin explicación).

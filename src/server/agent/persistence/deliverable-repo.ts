@@ -29,6 +29,7 @@ export async function persistDeliverables(
   projectId: string,
   deliverables: Deliverable[],
   sourceImageId?: string,
+  zoneId: string | null = null,
 ): Promise<void> {
   for (const d of deliverables) {
     const type = TYPE_TO_ENUM[d.type];
@@ -44,6 +45,7 @@ export async function persistDeliverables(
         legalSeal: d.legalSeal,
         version: d.version,
         ...(sourceImageId ? { sourceImageId } : {}),
+        ...(zoneId ? { zoneId } : {}),
       },
       update: { payload, version: d.version },
     });

@@ -39,30 +39,53 @@ async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<v
   if (!project) throw new Error('Proyecto no encontrado en tu organización');
 }
 
-export async function advanceAgent(projectId: string, input: AgentInput): Promise<AgentOutcome> {
+/**
+ * Verifica que la zona (si se indica) pertenece al proyecto de la org. Devuelve el zoneId
+ * validado o null. Anti-IDOR: un zoneId de otro proyecto/org no se acepta (cae a error).
+ */
+async function assertZoneInProject(
+  ctx: OrgContext,
+  projectId: string,
+  zoneId: string | null,
+): Promise<string | null> {
+  if (!zoneId) return null;
+  const zones = await withOrg(ctx).zones.list(projectId);
+  if (!zones.some((z) => z.id === zoneId)) {
+    throw new Error('Zona no encontrada en el proyecto');
+  }
+  return zoneId;
+}
+
+export async function advanceAgent(
+  projectId: string,
+  input: AgentInput,
+  zoneId: string | null = null,
+): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
 
   // La imagen de origen se persiste en esta capa (la que posee el scope de org),
   // no en el orquestador (deliberadamente org-agnóstico). Solo en la ingesta y
   // solo si trae bytes embebidos; el gate de consentimiento del orquestador corta
-  // el procesamiento aguas abajo si falta base legal.
+  // el procesamiento aguas abajo si falta base legal. La imagen se asocia a la zona.
   if (input.action === 'ingest') {
     await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
-    await persistIngestImages(ctx, projectId, input.image);
+    await persistIngestImages(ctx, projectId, input.image, zid);
   }
 
-  const agent = await getAgent(ctx.organizationId, ctx.userId, (pid) =>
-    withOrg(ctx).sourceImages.latestPrimaryId(pid),
+  const agent = await getAgent(ctx.organizationId, ctx.userId, (pid, zoneIdArg) =>
+    withOrg(ctx).sourceImages.latestPrimaryId(pid, zoneIdArg),
   );
-  return agent.advance(projectId, input);
+  return agent.advance(projectId, input, zid);
 }
 
-/** Persiste las imágenes embebidas de la ingesta como SourceImage (scope org). */
+/** Persiste las imágenes embebidas de la ingesta como SourceImage de la zona (scope org). */
 async function persistIngestImages(
   ctx: OrgContext,
   projectId: string,
   parts: MessagePart[],
+  zoneId: string | null,
 ): Promise<void> {
   const repo = withOrg(ctx);
   const storage = getStorageAdapter();
@@ -72,6 +95,7 @@ async function persistIngestImages(
     await persistSourceImage(repo, storage, {
       organizationId: ctx.organizationId,
       projectId,
+      zoneId,
       body,
     });
   }
@@ -90,9 +114,11 @@ export async function generateDesignFromCanvas(
   entregable: DeliverableType,
   objetivo = '',
   promptLibre = '',
+  zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
   // selección de rama de generación.
@@ -110,22 +136,26 @@ export async function generateDesignFromCanvas(
   // El lienzo rasterizado no es una imagen de origen del usuario, así que la
   // generación desde el lienzo no vincula trazabilidad (resolver a null).
   const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
-  return agent.advance(projectId, {
-    action: 'generate-from-canvas',
-    estilo,
-    entregable,
-    // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
-    // Coerción a string defensiva: el cliente puede enviar cualquier valor pese al tipo.
-    objetivo: String(objetivo ?? '').slice(0, 200),
-    // Instrucción libre del usuario; se acota para no inflar el prompt del render.
-    promptLibre: String(promptLibre ?? '').slice(0, 500),
-    description,
-    referenceImage: { base64, mimeType: 'image/png' },
-    aspectRatio,
-    // Cada invocación es una operación de pago distinta: id único para la clave
-    // idempotente del cobro (evita regeneración gratis por clave constante).
-    requestId: globalThis.crypto.randomUUID(),
-  });
+  return agent.advance(
+    projectId,
+    {
+      action: 'generate-from-canvas',
+      estilo,
+      entregable,
+      // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
+      // Coerción a string defensiva: el cliente puede enviar cualquier valor pese al tipo.
+      objetivo: String(objetivo ?? '').slice(0, 200),
+      // Instrucción libre del usuario; se acota para no inflar el prompt del render.
+      promptLibre: String(promptLibre ?? '').slice(0, 500),
+      description,
+      referenceImage: { base64, mimeType: 'image/png' },
+      aspectRatio,
+      // Cada invocación es una operación de pago distinta: id único para la clave
+      // idempotente del cobro (evita regeneración gratis por clave constante).
+      requestId: globalThis.crypto.randomUUID(),
+    },
+    zid,
+  );
 }
 
 /**

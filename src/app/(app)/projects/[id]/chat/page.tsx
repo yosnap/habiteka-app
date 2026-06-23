@@ -9,14 +9,19 @@ import { advanceAgent } from '../_actions/agent-actions';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ zona?: string }>;
 }
 
-export default async function ChatPage({ params }: Props) {
+export default async function ChatPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { zona } = await searchParams;
+  const zoneId = zona ?? null;
   // El layout del proyecto ya validó la sesión y la pertenencia. Se lee la fase
-  // persistida para que el asistente arranque donde el proyecto se quedó.
-  const state = await prisma.agentState.findUnique({
-    where: { projectId: id },
+  // persistida de ESTA zona para que el asistente arranque donde la zona se quedó
+  // (estado por zona; zona null = flujo por defecto del proyecto). `findFirst` porque la
+  // unicidad por (proyecto, zona) la dan índices parciales, no una clave compuesta simple.
+  const state = await prisma.agentState.findFirst({
+    where: { projectId: id, zoneId },
     select: { phase: true },
   });
   const initialPhase = (state?.phase ?? 'ingesta') as
@@ -30,7 +35,12 @@ export default async function ChatPage({ params }: Props) {
         Sube una foto o un boceto de tu espacio y cuéntame qué quieres conseguir.
       </p>
       <div className="min-h-0 flex-1">
-        <QualificationChat projectId={id} advance={advanceAgent} initialPhase={initialPhase} />
+        <QualificationChat
+          projectId={id}
+          advance={advanceAgent}
+          initialPhase={initialPhase}
+          zoneId={zoneId}
+        />
       </div>
     </main>
   );

@@ -102,10 +102,12 @@ export async function purgeZone(projectId: string, zoneId: string): Promise<void
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await withOrg(ctx).zones.purge(projectId, zoneId);
-  // Limpia el override huérfano (pasar {} elimina la entrada de esa zona).
-  const state = await loadState(projectId);
+  // Limpia el override huérfano (pasar {} elimina la entrada de esa zona). Los overrides de
+  // estilo por zona viven en el estado por DEFECTO del proyecto (zoneId null), no en el de
+  // cada zona.
+  const state = await loadState(projectId, null);
   const nextCollected = setZoneOverride(state.collected, zoneId, {});
-  await saveState(projectId, state.version, { phase: state.phase, collected: nextCollected });
+  await saveState(projectId, null, state.version, { phase: state.phase, collected: nextCollected });
   revalidateProject(projectId);
 }
 
@@ -126,9 +128,9 @@ export async function setZoneStyle(
   // Validación en el boundary: un estilo no vacío debe ser válido.
   if (estilo !== '' && !isValidEstilo(estilo)) throw new Error('Estilo no válido');
 
-  const state = await loadState(projectId);
+  const state = await loadState(projectId, null);
   const nextCollected = setZoneOverride(state.collected, zoneId, {
     estilo: estilo === '' ? undefined : estilo,
   });
-  await saveState(projectId, state.version, { phase: state.phase, collected: nextCollected });
+  await saveState(projectId, null, state.version, { phase: state.phase, collected: nextCollected });
 }

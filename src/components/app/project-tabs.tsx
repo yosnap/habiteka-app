@@ -6,7 +6,7 @@
  * tres pantallas, que antes existían pero estaban aisladas.
  */
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -16,13 +16,19 @@ interface Props {
 
 export function ProjectTabs({ projectId, title }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const base = `/projects/${projectId}`;
+  // Conserva la zona activa al navegar entre pestañas: el trabajo (asistente, plano,
+  // diseños) es por zona, así que cambiar de pestaña no debe perder la zona seleccionada.
+  const zona = searchParams.get('zona');
+  const suffix = zona ? `?zona=${zona}` : '';
 
+  // `path` es la ruta sin query (para resaltar la pestaña activa); `href` lleva la zona.
   const tabs = [
-    { href: `${base}/chat`, label: 'Asistente' },
-    { href: base, label: 'Plano', exact: true },
-    { href: `${base}/deliverables`, label: 'Diseños' },
-    { href: `${base}/historial`, label: 'Historial' },
+    { path: `${base}/chat`, href: `${base}/chat${suffix}`, label: 'Asistente' },
+    { path: base, href: `${base}${suffix}`, label: 'Plano', exact: true },
+    { path: `${base}/deliverables`, href: `${base}/deliverables${suffix}`, label: 'Diseños' },
+    { path: `${base}/historial`, href: `${base}/historial${suffix}`, label: 'Historial' },
   ];
 
   return (
@@ -34,10 +40,10 @@ export function ProjectTabs({ projectId, title }: Props) {
         <span className="text-ink mr-4 truncate text-sm font-medium">{title}</span>
         <nav className="flex gap-1">
           {tabs.map((t) => {
-            const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
+            const active = t.exact ? pathname === t.path : pathname.startsWith(t.path);
             return (
               <Link
-                key={t.href}
+                key={t.path}
                 href={t.href}
                 className={cn(
                   'border-b-2 px-3 py-3 text-sm transition-colors',

@@ -66,7 +66,7 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
   it('ingesta → confirmar → cualificar persiste el avance de fase', async () => {
     const { pid, deps } = await makeProject();
     await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
-    const afterIngest = await prisma.agentState.findUnique({ where: { projectId: pid } });
+    const afterIngest = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
     expect(afterIngest?.phase).toBe('ingesta');
     expect((afterIngest?.collected as { detected?: unknown }).detected).toBeTruthy();
 
@@ -169,9 +169,9 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     // Lleva el estado a cualificación con estilo + entregables listos para entregar.
     await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
     await advance(deps, pid, { action: 'confirm-detection' });
-    const st = await prisma.agentState.findUnique({ where: { projectId: pid } });
-    await prisma.agentState.update({
-      where: { projectId: pid },
+    const st = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
+    await prisma.agentState.updateMany({
+      where: { projectId: pid, zoneId: null },
       data: {
         collected: {
           ...(st?.collected as object),
@@ -192,14 +192,14 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
 
     await expect(advance(depsFailImage, pid, { action: 'deliver' })).rejects.toBeTruthy();
 
-    const after = await prisma.agentState.findUnique({ where: { projectId: pid } });
+    const after = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
     expect(after?.phase).toBe('cualificacion'); // NO avanzó a feedback
     // Y no quedó ningún entregable persistido a medias.
     const dels = await prisma.deliverable.count({ where: { projectId: pid } });
     expect(dels).toBe(0);
   });
 
-  it('dos avances concurrentes con la misma versión: uno gana, otro conflict', async () => {
+  it('dos avances concurrentes: solo uno confirma, el otro falla (no hay doble avance)', async () => {
     const { pid, deps } = await makeProject();
     // Estado inicial creado por la primera carga.
     await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
@@ -209,8 +209,13 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
       advance(deps, pid, { action: 'confirm-detection' }),
       advance(deps, pid, { action: 'confirm-detection' }),
     ]);
+    // La garantía clave es que SOLO UNO avanza; el otro falla por concurrencia. Según el
+    // entrelazado, el perdedor o bien choca con la versión (`conflict`) o bien lee el estado
+    // ya confirmado y la transición no aplica (`phase_guard`). Ambos son fallos correctos.
     const rejected = results.filter((r) => r.status === 'rejected');
     expect(rejected.length).toBe(1);
-    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({ kind: 'conflict' });
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+      kind: expect.stringMatching(/^(conflict|phase_guard)$/),
+    });
   });
 });

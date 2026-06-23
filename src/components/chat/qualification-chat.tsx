@@ -25,13 +25,24 @@ type Phase = 'ingesta' | 'cualificacion' | 'entrega' | 'feedback';
 
 interface Props {
   projectId: string;
-  advance: (projectId: string, input: AgentInput) => Promise<AgentOutcome>;
+  advance: (
+    projectId: string,
+    input: AgentInput,
+    zoneId?: string | null,
+  ) => Promise<AgentOutcome>;
   initialPhase?: Phase;
+  /** Zona activa del proyecto; null = flujo por defecto. El asistente es por zona. */
+  zoneId?: string | null;
 }
 
 let turnSeq = 0;
 
-export function QualificationChat({ projectId, advance, initialPhase = 'ingesta' }: Props) {
+export function QualificationChat({
+  projectId,
+  advance,
+  initialPhase = 'ingesta',
+  zoneId = null,
+}: Props) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [phase, setPhase] = useState<Phase>(initialPhase);
   // La detección debe confirmarse antes de pasar a cualificación. Si el proyecto
@@ -70,7 +81,7 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
     if (echo) pushTurn('user', echo);
     startTransition(async () => {
       try {
-        const out = await advance(projectId, input);
+        const out = await advance(projectId, input, zoneId);
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);
@@ -133,7 +144,7 @@ export function QualificationChat({ projectId, advance, initialPhase = 'ingesta'
     if (deliverError === null) pushTurn('user', '🎨 Generar mis diseños');
     startTransition(async () => {
       try {
-        const out = await advance(projectId, { action: 'deliver' });
+        const out = await advance(projectId, { action: 'deliver' }, zoneId);
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);

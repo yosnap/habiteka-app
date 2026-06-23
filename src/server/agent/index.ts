@@ -12,7 +12,11 @@ import { createDebitService } from './debit-service-impl';
 let deliverableSeq = 0;
 
 export interface AgentSession {
-  advance(projectId: string, input: AgentInput): Promise<AgentOutcome>;
+  advance(
+    projectId: string,
+    input: AgentInput,
+    zoneId?: string | null,
+  ): Promise<AgentOutcome>;
 }
 
 /**
@@ -26,7 +30,7 @@ export interface AgentSession {
 export async function getAgent(
   organizationId: string,
   userId: string,
-  resolveSourceImageId: (projectId: string) => Promise<string | null>,
+  resolveSourceImageId: (projectId: string, zoneId: string | null) => Promise<string | null>,
 ): Promise<AgentSession> {
   // El modelo de chat se resuelve por la acción 'chat'; las fases que necesiten
   // otra acción (visión) la piden a su propio adaptador en el futuro.
@@ -35,7 +39,7 @@ export async function getAgent(
   const debit = createDebitService(organizationId);
 
   return {
-    advance(projectId, input) {
+    advance(projectId, input, zoneId = null) {
       return advance(
         {
           chat,
@@ -50,6 +54,7 @@ export async function getAgent(
         },
         projectId,
         input,
+        zoneId,
       );
     },
   };

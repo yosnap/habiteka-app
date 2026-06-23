@@ -21,6 +21,8 @@ import { scrubImageForAi } from '@/server/privacy/pii-scrub';
 export interface PersistSourceImageInput {
   organizationId: string;
   projectId: string;
+  /** Zona del inmueble a la que pertenece la imagen; null = por defecto del proyecto. */
+  zoneId?: string | null;
   /** Bytes de la imagen subida por el usuario (sin sanear todavía). */
   body: Buffer;
 }
@@ -57,6 +59,7 @@ export async function persistSourceImage(
     height: sanitized.height,
     role: 'PRIMARY',
     faceBlurred,
+    zoneId: input.zoneId ?? null,
   });
 
   return { id, faceBlurred };
