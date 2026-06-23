@@ -17,6 +17,7 @@ import type {
   Plano2dPayload,
   StructuralElements,
 } from '@/lib/contracts';
+import { estiloLabel } from '@/lib/design-options';
 import { DELIVERABLE_LEGAL_SEAL } from '../legal/seal';
 import { agentError } from '../errors';
 
@@ -191,7 +192,7 @@ function basePlano(elements?: StructuralElements): Plano2dPayload {
 }
 
 function renderPrompt(input: DeliveryInput): string {
-  const base = `Render 3D conceptual, estilo ${input.collected.estilo}. ${input.collected.objetivo ?? ''}`;
+  const base = `Render 3D conceptual, estilo ${estiloLabel(input.collected.estilo)}. ${input.collected.objetivo ?? ''}`;
   // Cuando el render parte del lienzo, su descripción estructurada guía la
   // disposición de los elementos (complementa a la imagen de referencia).
   if (!input.sketch) return base;
@@ -216,10 +217,10 @@ function renderPrompt(input: DeliveryInput): string {
 export function explanationPrompt(input: DeliveryInput): string {
   const libre = input.sketch?.promptLibre?.trim();
   const objetivo = input.collected.objetivo?.trim();
-  const intencion = libre || objetivo || `un diseño de estilo ${input.collected.estilo}`;
+  const intencion = libre || objetivo || `un diseño de estilo ${estiloLabel(input.collected.estilo)}`;
   return [
     `Eres un interiorista. Acabas de generar un render para este espacio:`,
-    input.sketch?.description ?? `Estilo ${input.collected.estilo}.`,
+    input.sketch?.description ?? `Estilo ${estiloLabel(input.collected.estilo)}.`,
     '',
     `El usuario pidió: "${intencion}".`,
     `Explica en 1-2 frases, en primera persona y tono cercano, qué decisiones de diseño tomaste`,
@@ -236,7 +237,7 @@ export function memoriaPrompt(input: DeliveryInput): string {
   const objetivo = input.collected.objetivo?.trim();
   const lines = [
     `Eres un interiorista. Redacta una MEMORIA DE MATERIALES en español para un espacio`,
-    `de estilo ${input.collected.estilo}${objetivo ? `, con el objetivo: "${objetivo}"` : ''}.`,
+    `de estilo ${estiloLabel(input.collected.estilo)}${objetivo ? `, con el objetivo: "${objetivo}"` : ''}.`,
     '',
     `Propón materiales y acabados CONCRETOS, organizados por secciones:`,
     `- Suelo, Paredes y techo, Iluminación, Textiles y tapizados, Paleta de color.`,

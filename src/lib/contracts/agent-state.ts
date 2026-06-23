@@ -18,7 +18,15 @@ export type Estilo =
   | 'industrial'
   | 'rustico'
   | 'mediterraneo'
-  | 'nordico';
+  | 'nordico'
+  | 'japandi'
+  | 'boho'
+  | 'midcentury'
+  | 'costero'
+  | 'contemporaneo'
+  | 'escandinavo'
+  | 'artdeco'
+  | 'tropical';
 
 /** Elementos estructurales detectados por visión en la fase de ingesta. */
 export interface StructuralElements {

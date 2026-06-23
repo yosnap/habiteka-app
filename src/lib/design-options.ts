@@ -27,6 +27,14 @@ const ESTILO_LABELS: Record<Estilo, string> = {
   rustico: 'Rústico',
   mediterraneo: 'Mediterráneo',
   nordico: 'Nórdico',
+  japandi: 'Japandi',
+  boho: 'Bohemio',
+  midcentury: 'Mid-century',
+  costero: 'Costero',
+  contemporaneo: 'Contemporáneo',
+  escandinavo: 'Escandinavo',
+  artdeco: 'Art Déco',
+  tropical: 'Tropical',
 };
 
 const ENTREGABLE_LABELS: Record<DeliverableType, string> = {
@@ -51,6 +59,15 @@ export const ENTREGABLE_VALUES: ReadonlyArray<DeliverableType> = ENTREGABLES.map
 
 export function isValidEstilo(v: unknown): v is Estilo {
   return typeof v === 'string' && (ESTILO_VALUES as readonly string[]).includes(v);
+}
+
+/**
+ * Etiqueta legible de un estilo (p. ej. `midcentury` → "Mid-century"). Útil para los
+ * prompts de IA: el label se entiende mejor que el slug. Si el valor no es un estilo
+ * conocido se devuelve tal cual (no se pierde la intención del usuario).
+ */
+export function estiloLabel(estilo: string): string {
+  return isValidEstilo(estilo) ? ESTILO_LABELS[estilo] : estilo;
 }
 
 export function isValidEntregable(v: unknown): v is DeliverableType {

@@ -7,6 +7,7 @@
  * o posiciones absurdas; solo pasan los `kind` del catálogo con posición finita.
  */
 import type { ChatVisionAdapter, DecorRecommendation, Estilo, JsonSchema } from '@/lib/contracts';
+import { estiloLabel } from '@/lib/design-options';
 import { CATALOG } from '@/canvas/catalog';
 
 /** Kinds que tiene sentido RECOMENDAR como decoración (no estructura). */
@@ -24,7 +25,7 @@ export function decorRecommendationPrompt(
 ): string {
   const objetivoTxt = objetivo.trim() ? ` con el objetivo "${objetivo.trim()}"` : '';
   return [
-    `Eres un interiorista. Para este plano de estilo ${estilo}${objetivoTxt}, recomienda`,
+    `Eres un interiorista. Para este plano de estilo ${estiloLabel(estilo)}${objetivoTxt}, recomienda`,
     `entre 2 y 4 elementos de decoración que mejorarían el espacio.`,
     '',
     'Plano actual (vista en planta):',

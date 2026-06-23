@@ -7,7 +7,8 @@ import {
 describe('decorRecommendationPrompt', () => {
   it('incluye estilo, objetivo y la descripción del plano', () => {
     const out = decorRecommendationPrompt('nordico', 'sala acogedora', 'Sofá al fondo');
-    expect(out).toContain('nordico');
+    // El prompt usa la etiqueta legible, no el slug (la IA la entiende mejor).
+    expect(out).toContain('Nórdico');
     expect(out).toContain('sala acogedora');
     expect(out).toContain('Sofá al fondo');
   });

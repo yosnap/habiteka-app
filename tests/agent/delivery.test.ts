@@ -180,7 +180,8 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
       ...input,
       collected: { ...ready, estilo: 'nordico', objetivo: 'salón acogedor', entregables: ['memoria'] },
     });
-    expect(out).toContain('nordico');
+    // El prompt usa la etiqueta legible, no el slug.
+    expect(out).toContain('Nórdico');
     expect(out).toContain('salón acogedor');
     expect(out).toContain('Suelo');
     expect(out).toContain('Paleta de color');
