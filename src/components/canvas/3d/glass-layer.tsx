@@ -30,11 +30,10 @@ export function GlassLayer({ panes }: { panes: GlassPane[] }) {
       {panes.map((p, i) => (
         <mesh
           key={p.id}
-          ref={(m) => {
-            refs.current[i] = m;
-          }}
+          ref={(m) => { refs.current[i] = m; }}
           position={p.center}
           rotation={[0, p.rotationY, 0]}
+          userData={{ openingId: p.id.split(':')[0] }}
         >
           <boxGeometry args={p.size} />
           <meshStandardMaterial

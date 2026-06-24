@@ -147,6 +147,8 @@ interface LocalOpening {
   span: [number, number];
   /** Altura propia del hueco (m), si la trae (puerta con heightM). */
   heightM?: number;
+  /** Altura del alféizar desde el suelo (m). Por defecto SILL_M. Ignorado en puertas. */
+  sillM?: number;
 }
 
 /**
@@ -214,6 +216,7 @@ export function splitWallWithOpenings(
       kind: (o.kind === 'door' ? 'door' : 'window') as 'window' | 'door',
       span: openingSpanLocal(o, wall, axis),
       heightM: o.heightM,
+      sillM: o.elevationM, // undefined → cae a SILL_M por defecto
     }))
     .filter((o) => o.span[1] > o.span[0])
     .sort((a, b) => a.span[0] - b.span[0]);
@@ -251,7 +254,7 @@ export function splitWallWithOpenings(
     // Span vertical del vano (m): ventana [SILL, H−GAP]; puerta [0, heightM ?? H−GAP].
     const lintelBottom = Math.max(0, H - LINTEL_GAP_M);
     const vTop = op.kind === 'door' ? Math.min(op.heightM ?? lintelBottom, H) : lintelBottom;
-    const vBottom = op.kind === 'door' ? 0 : Math.min(SILL_M, vTop);
+    const vBottom = op.kind === 'door' ? 0 : Math.min(op.sillM ?? SILL_M, vTop);
 
     const widthM = pxToMeters(u1 - u0, { pxPerMeter });
     const [cx, cz] = worldCenterXZ((u0 + u1) / 2);

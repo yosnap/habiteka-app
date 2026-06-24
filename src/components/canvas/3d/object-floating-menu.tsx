@@ -10,6 +10,7 @@ export function ObjectFloatingMenu({
   onDuplicate,
   onDelete,
   onClose,
+  onSwap,
 }: {
   mode: SelectionMode;
   onMove: () => void;
@@ -17,6 +18,7 @@ export function ObjectFloatingMenu({
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
+  onSwap?: () => void;
 }) {
   return (
     <div
@@ -25,6 +27,7 @@ export function ObjectFloatingMenu({
     >
       <Btn onClick={onMove} title="Mover" active={mode === 'translate'}>↔</Btn>
       <Btn onClick={onRotate} title="Rotar" active={mode === 'rotate'}>↺</Btn>
+      {onSwap && <Btn onClick={onSwap} title="Cambiar tipo">⇄</Btn>}
       <Divider />
       <Btn onClick={onDuplicate} title="Duplicar">⧉</Btn>
       <Btn onClick={onDelete} title="Eliminar" danger>✕</Btn>

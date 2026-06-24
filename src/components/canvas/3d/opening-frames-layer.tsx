@@ -36,11 +36,10 @@ export function OpeningFramesLayer({ frames }: { frames: OpeningFrame[] }) {
       {frames.map((f, i) => (
         <mesh
           key={f.id}
-          ref={(m) => {
-            refs.current[i] = m;
-          }}
+          ref={(m) => { refs.current[i] = m; }}
           position={f.center}
           rotation={[0, f.rotationY, 0]}
+          userData={{ openingId: f.id.split(':')[0] }}
         >
           <boxGeometry args={f.size} />
           <meshStandardMaterial color={FRAME_COLOR[f.material]} />
