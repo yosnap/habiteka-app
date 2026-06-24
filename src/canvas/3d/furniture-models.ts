@@ -7,7 +7,7 @@
  * son CC0 de Quaternius (mismo estilo low-poly, coherente) vía Poly Pizza; silla/ducha de otros
  * autores CC0; sofa es CC-BY (atribución). Comprimidos con `@gltf-transform/cli` (WebP+meshopt).
  *
- * La `lampara` sigue como placeholder (no se encontró una lámpara de interior CC0 adecuada).
+ * Todos los kinds de tipo mueble tienen modelo; `foco` (luz puntual) no necesita .glb.
  */
 import type { StructKind } from '../types';
 
@@ -42,13 +42,27 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   nevera: { url: '/models/cc0/nevera.glb' },
   horno: { url: '/models/cc0/horno.glb' },
   fregadero: { url: '/models/cc0/fregadero.glb' },
+  encimera: { url: '/models/cc0/encimera.glb' },
+  vitroceramica: { url: '/models/cc0/vitroceramica.glb' },
+  microondas: { url: '/models/cc0/microondas.glb' },
+  // Cocina (isla y bidet adicionales)
+  isla: { url: '/models/cc0/isla.glb' },
   // Sanitarios
   inodoro: { url: '/models/cc0/inodoro.glb' },
   lavabo: { url: '/models/cc0/lavabo.glb' },
   ducha: { url: '/models/cc0/ducha.glb' },
+  banera: { url: '/models/cc0/banera.glb' },
+  bidet: { url: '/models/cc0/bidet.glb' },
+  // Mobiliario adicional
+  mesilla: { url: '/models/cc0/mesilla.glb' },
+  estanteria: { url: '/models/cc0/estanteria.glb' },
   // Electrónica / decoración
   tv: { url: '/models/cc0/tv.glb' },
+  ordenador: { url: '/models/cc0/ordenador.glb' },
+  lampara: { url: '/models/cc0/lampara.glb' },
   planta: { url: '/models/cc0/planta.glb' },
+  alfombra: { url: '/models/cc0/alfombra.glb' },
+  chimenea: { url: '/models/cc0/chimenea.glb' },
 };
 
 /** URL del modelo de un kind, o null si no hay (→ placeholder). */
