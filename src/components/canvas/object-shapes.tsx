@@ -392,6 +392,61 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string): React
       );
     }
 
+    case 'microondas':
+      return (
+        <>
+          {box(w, h, FIX, 3)}
+          <Rect x={w * 0.07} y={h * 0.15} width={w * 0.62} height={h * 0.7} fill="#2b2b2b" cornerRadius={2} />
+          <Rect x={w * 0.76} y={h * 0.2} width={w * 0.16} height={h * 0.6} fill="#9aa3ab" cornerRadius={2} />
+        </>
+      );
+    case 'vitroceramica':
+      return (
+        <>
+          {box(w, h, '#1a1a1a', 2)}
+          <Circle x={w * 0.25} y={h * 0.3} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.65} y={h * 0.3} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.25} y={h * 0.72} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.65} y={h * 0.72} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+        </>
+      );
+    case 'nevera_americana':
+      return (
+        <>
+          {box(w, h, FIX)}
+          {/* Dos puertas: congelador izquierda, frío derecha */}
+          <Line points={[w / 2, 0, w / 2, h]} stroke={STROKE} strokeWidth={1.5} />
+          <Line points={[0, h * 0.45, w * 0.5, h * 0.45]} stroke={STROKE} strokeWidth={1} />
+        </>
+      );
+    case 'nevera_mini':
+      return (
+        <>
+          {box(w, h, FIX, 3)}
+          <Line points={[0, h * 0.28, w, h * 0.28]} stroke={STROKE} strokeWidth={1} />
+        </>
+      );
+    case 'sofa_grande':
+      return (
+        <>
+          {box(w, h, SOFT, 8)}
+          {/* Respaldo */}
+          <Rect x={w * 0.04} y={h * 0.04} width={w * 0.92} height={h * 0.18} fill="#baa89a" cornerRadius={4} />
+          {/* Tres asientos */}
+          {[0.04, 0.36, 0.68].map((sx, i) => (
+            <Rect key={i} x={w * sx} y={h * 0.28} width={w * 0.28} height={h * 0.6} fill="#fff" stroke={STROKE} strokeWidth={1} cornerRadius={3} />
+          ))}
+        </>
+      );
+    case 'butaca':
+      return (
+        <>
+          {box(w, h, SOFT, 6)}
+          <Rect x={w * 0.08} y={h * 0.05} width={w * 0.84} height={h * 0.18} fill="#baa89a" cornerRadius={3} />
+          <Rect x={w * 0.12} y={h * 0.28} width={w * 0.76} height={h * 0.62} fill="#fff" stroke={STROKE} strokeWidth={1} cornerRadius={3} />
+        </>
+      );
+
     // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
     // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
     default:

@@ -32,6 +32,8 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   // Mobiliario
   silla: { url: '/models/cc0/silla.glb' },
   sofa: { url: '/models/cc0/sofa.glb' },
+  sofa_grande: { url: '/models/cc0/sofa_grande.glb' },
+  butaca: { url: '/models/cc0/butaca.glb' },
   // Frente medido de la geometría: el cabecero de la cama está en +Z, así que su frente (pies)
   // mira a −Z. Declararlo fija el sentido (cabecero contra la pared), no solo el eje.
   cama: { url: '/models/cc0/cama.glb', front: '-z' },
@@ -40,6 +42,8 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   mesa: { url: '/models/cc0/mesa.glb' },
   // Cocina
   nevera: { url: '/models/cc0/nevera.glb' },
+  nevera_americana: { url: '/models/cc0/nevera_americana.glb' },
+  nevera_mini: { url: '/models/cc0/nevera_mini.glb' },
   horno: { url: '/models/cc0/horno.glb' },
   fregadero: { url: '/models/cc0/fregadero.glb' },
   encimera: { url: '/models/cc0/encimera.glb' },
