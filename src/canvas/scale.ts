@@ -132,6 +132,8 @@ const TYPICAL_HEIGHT_M: Partial<Record<StructKind, number>> = {
   // Mobiliario
   cama: 0.6,
   sofa: 0.85,
+  sofa_grande: 0.85,
+  butaca: 0.85,
   mesa: 0.75,
   silla: 0.9,
   armario: 2.0,
@@ -149,6 +151,8 @@ const TYPICAL_HEIGHT_M: Partial<Record<StructKind, number>> = {
   banera: 0.6,
   ducha: 2.0,
   bidet: 0.4,
+  nevera_americana: 1.8,
+  nevera_mini: 0.85,
   // Cocina (nuevos)
   vitroceramica: 0.05, // placa de inducción: superficie de cristal muy plana
   microondas: 0.35,
@@ -159,6 +163,9 @@ const TYPICAL_HEIGHT_M: Partial<Record<StructKind, number>> = {
   planta: 1.0,
   chimenea: 1.2,
   foco: 0.1,
+  // Iluminación de techo
+  ceiling_light: 0.12, // plafón LED plano
+  pendant_lamp: 0.4,   // lámpara colgante
 };
 
 /** ¿El elemento toma su altura de la del techo (muros y aperturas)? */

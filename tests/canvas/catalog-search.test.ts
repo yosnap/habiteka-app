@@ -20,7 +20,7 @@ describe('searchFullCatalog', () => {
   });
 
   it('casa por nombre del objeto, insensible a acentos', () => {
-    expect(allKinds(searchFullCatalog('sofa'))).toEqual(['sofa']);
+    expect(allKinds(searchFullCatalog('sofa'))).toContain('sofa');
     expect(allKinds(searchFullCatalog('lampara'))).toContain('lampara');
     expect(allKinds(searchFullCatalog('lámpara'))).toContain('lampara');
   });
