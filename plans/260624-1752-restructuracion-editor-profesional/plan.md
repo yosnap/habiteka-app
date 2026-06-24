@@ -87,8 +87,8 @@ F1 empieza cuando F2 tiene el wall-child model estable.
 
 | Fase | Nombre | Dependencias | Esfuerzo est. | Estado |
 |------|--------|-------------|--------------|--------|
-| F0 | [Modelo de datos + WallSegment + migration SQL](fase-00-modelo-datos.md) | ninguna | 3–4 días | PENDIENTE |
-| F2 | [Interacción 3D correcta](fase-02-interaccion-3d.md) | F0 | 4–5 días | PENDIENTE |
+| F0 | [Modelo de datos + WallSegment + migration SQL](fase-00-modelo-datos.md) | ninguna | 3–4 días | ✅ HECHO (2026-06-24) |
+| F2 | [Interacción 3D correcta](fase-02-interaccion-3d.md) | F0 | 4–5 días | 🔶 PARCIAL (2026-06-24) |
 | F1 | [Catálogo extensible](fase-01-catalogo-extensible.md) | F0 | 4–5 días | PENDIENTE |
 | F3 | [Elementos avanzados (techo, pared)](fase-03-elementos-avanzados.md) | F1, F2 | 3–4 días | PENDIENTE |
 | F4 | [Vistas profesionales y exportación](fase-04-vistas-exportacion.md) | F2 | 3–4 días | PENDIENTE |

@@ -155,15 +155,34 @@ Propuesta: conservar `TransformControls` pero mostrar **solo los handles relevan
 
 ---
 
+## Estado de implementación (2026-06-24)
+
+### Hecho ✅
+- `placement.ts`: `objectCenterY()` + `isFloorCollidable()` — Y correcto por PlacementRule
+- `collision.ts`: `resolveFloorCollisions()` + `buildFloorAABB()` (AABB, 3 iter.)
+- `doc-to-scene.ts`: `ceilingItems` separado de `furniture`; usa `objectCenterY()`
+- `ceiling-layer.tsx`: render de `ceiling_light` (plafón disco) y `pendant_lamp` (semiesfera + cable)
+- `furniture-layer.tsx`: colisiones suaves integradas en `onPointerUp`
+- `plan-3d-view.tsx`: `CeilingLayer` montado en el canvas
+- Tests: `placement.test.ts` + `collision.test.ts` — 665 tests verdes
+
+### Pendiente ⏳
+- Wall-child automático por `parentId`: puertas/ventanas rotan con su muro
+- Menú contextual radial tipo Planner5D (el `ObjectFloatingMenu` actual cubre lo básico)
+- `wall-surface-layer.tsx`: enchufes, cuadros, etc. en superficie de pared (→ F3)
+- Drag de luz de techo restringido al plano XZ del techo (actualmente no es arrastrable)
+
+---
+
 ## Criterios de aceptación
 
 - [ ] Clic en marco de puerta → selecciona la puerta (no el muro)
 - [ ] Arrastrar puerta a lo largo del muro → se mueve solo en ese eje
 - [ ] Puerta rota automáticamente si el muro al que pertenece está rotado
-- [ ] Luz de techo colocada desde catálogo → aparece pegada al techo en 3D
+- [x] Luz de techo colocada desde catálogo → aparece pegada al techo en 3D
 - [ ] Drag de luz de techo restringido al plano XZ del techo
-- [ ] Al soltar un mueble sobre otro → se empuja a posición libre (sin solapamiento)
+- [x] Al soltar un mueble sobre otro → se empuja a posición libre (sin solapamiento)
 - [ ] Menú radial aparece al seleccionar cualquier objeto en 3D
 - [ ] Escape cierra el menú radial y deselecciona
-- [ ] Eliminar desde menú radial funciona
-- [ ] Copiar desde menú radial coloca copia desplazada 30 cm
+- [x] Eliminar desde menú flotante funciona
+- [x] Copiar desde menú flotante coloca copia desplazada

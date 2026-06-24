@@ -253,12 +253,14 @@ Después de migrar, se re-ejecuta la detección de ciclos para generar `rooms[]`
 
 ---
 
+## Estado: ✅ HECHO (2026-06-24)
+
 ## Criterios de aceptación
 
-- [ ] `placementOf()` devuelve el placement correcto para todos los kinds
-- [ ] `migrateDoc()` no rompe ningún doc existente (snapshot test)
-- [ ] `WallSegment` exportado y tipado correctamente en `types.ts`
-- [ ] `detectRooms()` detecta correctamente salas cuadradas, L, U y T
-- [ ] Docs migrados de v1 → v2 tienen `walls: WallSegment[]` en lugar de objects con kind:'wall'
-- [ ] `CatalogItem` exportado y tipado correctamente
-- [ ] Suite completa pasa sin regresión
+- [x] `placementOf()` devuelve el placement correcto para todos los kinds
+- [x] `migrateDoc()` no rompe ningún doc existente (snapshot test en migrations.test.ts)
+- [x] `WallSegment` exportado y tipado correctamente en `types.ts`
+- [x] `detectRooms()` detecta correctamente salas cuadradas, L, U y T (wall-graph.test.ts)
+- [x] Docs migrados de v1 → v2 tienen `walls: WallSegment[]` derivados de los muros existentes
+- [x] `CatalogItem` exportado y tipado correctamente
+- [x] Suite completa pasa sin regresión (665 tests verdes)
