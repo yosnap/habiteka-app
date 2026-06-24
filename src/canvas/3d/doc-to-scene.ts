@@ -14,10 +14,12 @@
  * px↔m y la altura efectiva ya viven allí, puras y testeadas. Aquí NO se duplican.
  */
 import type { CanvasDoc, StructKind, StructObj } from '../types';
+import { CEILING_KINDS } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
 import { associateOpening, splitWallWithOpenings } from './wall-openings';
 import { floorPolygonFromWalls } from './floor-from-walls';
+import { objectCenterY } from './placement';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -58,9 +60,14 @@ function isLight(o: StructObj): boolean {
   return o.kind === 'foco' || o.light != null;
 }
 
-/** ¿El objeto es un mueble colocable? (no estructural y no luz). */
+/** ¿El objeto es un mueble de techo (ceiling_light, pendant_lamp, ...)? */
+function isCeilingItem(o: StructObj): boolean {
+  return (CEILING_KINDS as Set<string>).has(o.kind);
+}
+
+/** ¿El objeto es un mueble colocable en suelo/pared? (no estructural, no luz, no techo). */
 function isFurniture(o: StructObj): boolean {
-  return !STRUCTURAL_KINDS.has(o.kind) && !isLight(o);
+  return !STRUCTURAL_KINDS.has(o.kind) && !isLight(o) && !isCeilingItem(o);
 }
 
 /** Caja de un muro en metros, ya centrada en el origen de la escena (plano XZ). */
@@ -194,8 +201,10 @@ export interface Scene3D {
   glassPanes: GlassPane[];
   /** Carpintería de los huecos: marcos/travesaños de ventana y hojas de puerta. */
   openingFrames: OpeningFrame[];
-  /** Muebles (objetos no estructurales y no luz), ya posicionados en metros. */
+  /** Muebles de suelo/pared (no estructurales, no luz, no techo), posicionados en metros. */
   furniture: FurnitureItem[];
+  /** Elementos de techo (ceiling_light, pendant_lamp), colgados desde arriba. */
+  ceilingItems: FurnitureItem[];
   /** Luces de primera clase (F-LUZ) del doc, como luces puntuales. */
   lights: SceneLight[];
   /** Altura de techo efectiva usada (m). */
@@ -365,22 +374,25 @@ export function docToScene(doc: CanvasDoc): Scene3D {
 
   const structural = doc.objects.filter((o) => STRUCTURAL_KINDS.has(o.kind));
 
-  const furniture: FurnitureItem[] = doc.objects.filter(isFurniture).map((o) => {
+  const buildFurnitureItem = (o: StructObj): FurnitureItem => {
     const [x, z] = planPointToXZ(o, center, pxPerMeter);
     const w = pxToMeters(o.width, { pxPerMeter });
     const d = pxToMeters(o.height, { pxPerMeter });
     const h = effectiveHeightM(o, ceilingHeightM);
-    const elevM = FLOOR_ELEVATION_M[o.kind] ?? 0;
+    const elevM = o.elevationM ?? FLOOR_ELEVATION_M[o.kind] ?? 0;
     return {
       id: o.id,
       kind: o.kind,
-      center: [x, elevM + h / 2, z],
+      center: [x, objectCenterY({ kind: o.kind, heightM: o.heightM, elevationM: elevM }, ceilingHeightM), z],
       size: [w, h, d],
       rotationY: rotation2DToY(o.rotation),
       flipX: o.flipX === true,
       floorElevationM: elevM,
     };
-  });
+  };
+
+  const furniture: FurnitureItem[] = doc.objects.filter(isFurniture).map(buildFurnitureItem);
+  const ceilingItems: FurnitureItem[] = doc.objects.filter(isCeilingItem).map(buildFurnitureItem);
 
   const allLights: SceneLight[] = doc.objects.filter(isLight).map((o) => {
     const [x, z] = planPointToXZ(o, center, pxPerMeter);
@@ -483,6 +495,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     glassPanes,
     openingFrames,
     furniture,
+    ceilingItems,
     lights,
     ceilingHeightM,
     pxPerMeter,
