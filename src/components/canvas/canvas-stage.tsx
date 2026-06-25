@@ -365,6 +365,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const menuAnchor = menuAabb
     ? anchorPosition(menuAabb, view, { width, height }, { width: 132, height: 32 })
     : null;
+  // ¿Todos los objetos seleccionados son muros? Cambia el conjunto de acciones del menú.
+  const allWalls =
+    selectedIds.length > 0 &&
+    selectedIds.every((id) => doc.objects.find((o) => o.id === id)?.kind === 'wall');
 
   return (
     <div className="relative h-full w-full" onDragOver={handleDragOver} onDrop={handleDrop}>
@@ -448,7 +452,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       {/* Entrada de longitud exacta del muro en curso (F7.3). */}
       <DrawWallLengthInput visible={tool === 'draw-wall' && drawWall.drawing} onConfirm={drawWall.confirmWithLengthM} />
       {menuAnchor ? (
-        <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} />
+        <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} allWalls={allWalls} />
       ) : null}
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">

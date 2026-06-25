@@ -8,6 +8,7 @@
  */
 import { Group, Rect, Circle, Line, Ellipse } from 'react-konva';
 import type { StructKind } from '@/canvas/types';
+import type { WallMiter } from './layers/wall-junction-caps';
 
 // Paleta de planta: trazo oscuro, rellenos suaves por familia.
 const STROKE = '#3a322e';
@@ -43,8 +44,9 @@ export function objectShape(
   flip = false,
   color?: string,
   drawn = false,
+  miter?: WallMiter,
 ): React.ReactNode {
-  const content = shapeFor(kind, w, h, color, drawn);
+  const content = shapeFor(kind, w, h, color, drawn, miter);
   if (!flip) return content;
   return (
     <Group scaleX={-1} x={w}>
@@ -53,18 +55,72 @@ export function objectShape(
   );
 }
 
+/**
+ * Calcula los 8 puntos (4 vértices × 2 coords) del polígono de un muro con inglete.
+ *
+ * En espacio LOCAL del Group de Konva:
+ *  - drawn=true:  x ∈ [-h/2, w+h/2]  (extensión de h/2 en cada extremo)
+ *  - drawn=false: x ∈ [0, w]
+ *  - y ∈ [0, h]  siempre
+ *
+ * Cada extremo con miter desplaza las dos esquinas de ese lado siguiendo la
+ * bisectriz proyectada en local: la recta pasa por (x_mid, h/2) con dirección
+ * (lbx, lby) y corta y=0 e y=h.
+ */
+function wallPolygon(w: number, h: number, drawn: boolean, miter?: WallMiter): number[] {
+  const xS = drawn ? -h / 2 : 0; // x inicio estándar
+  const xE = drawn ? w + h / 2 : w; // x fin estándar
+  const bound = xE - xS + h; // límite de clamp
+
+  let tlx = xS, trx = xE; // y = 0 (arriba en local)
+  let blx = xS, brx = xE; // y = h (abajo en local)
+
+  // Corte en p1 (x_mid = 0): bisectriz a través de (0, h/2)
+  if (miter?.p1 && Math.abs(miter.p1.lby) > 0.01) {
+    const { lbx, lby } = miter.p1;
+    const clamp = (v: number) => Math.max(xS - bound, Math.min(xE + bound, v));
+    tlx = clamp((-lbx * (h / 2)) / lby);
+    blx = clamp((lbx * (h / 2)) / lby);
+  }
+
+  // Corte en p2 (x_mid = w): bisectriz a través de (w, h/2)
+  if (miter?.p2 && Math.abs(miter.p2.lby) > 0.01) {
+    const { lbx, lby } = miter.p2;
+    const clamp = (v: number) => Math.max(xS - bound, Math.min(xE + bound, v));
+    trx = clamp(w - (lbx * (h / 2)) / lby);
+    brx = clamp(w + (lbx * (h / 2)) / lby);
+  }
+
+  // Orden: TL → TR → BR → BL (sentido horario en el espacio local de Konva)
+  return [tlx, 0, trx, 0, brx, h, blx, h];
+}
+
 /** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
-function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn = false): React.ReactNode {
+function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn = false, miter?: WallMiter): React.ReactNode {
   switch (kind) {
     // --- Estructura ---
-    case 'wall':
-      // Muros dibujados (drawn=true): el Group está en el punto de inicio del segmento;
-      // el Rect se extiende h/2 en cada extremo para cubrir el hueco en las uniones.
-      // Muros generados (drawn=false): outlineToWalls ya incluye la extensión de esquina
-      // en las dimensiones del Group, por lo que el Rect no necesita extensión adicional.
+    case 'wall': {
+      const wallFill = color ?? WALL;
+
+      // Con datos de inglete → polígono recortado diagonalmente en los extremos
+      if (miter?.p1 || miter?.p2) {
+        return (
+          <Line
+            points={wallPolygon(w, h, drawn, miter)}
+            closed
+            fill={wallFill}
+            stroke={STROKE}
+            strokeWidth={1}
+            listening={false}
+          />
+        );
+      }
+
+      // Sin inglete → rect estándar
       return drawn
-        ? <Rect x={-h / 2} width={w + h} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />
-        : <Rect width={w} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />;
+        ? <Rect x={-h / 2} width={w + h} height={h} fill={wallFill} stroke={STROKE} strokeWidth={1} />
+        : <Rect width={w} height={h} fill={wallFill} stroke={STROKE} strokeWidth={1} />;
+    }
     case 'window':
       return (
         <>
