@@ -447,6 +447,7 @@ export function Plan3DView({
           onDeselect={onDeselect ?? (() => {})}
           mode={mode ?? 'none'}
           onSetMode={onSetMode ?? (() => {})}
+          sceneCoords={scene}
         />
         <WallSurfaceLayer items={scene.wallSurfaceItems} />
         {/* Gizmo de transformación (F2): monta cuando hay modo activo. OrbitControls ya
