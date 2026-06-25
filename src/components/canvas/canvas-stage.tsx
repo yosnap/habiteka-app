@@ -59,12 +59,12 @@ const WALL_CHILD_KINDS = new Set(['door', 'window']);
  */
 function snapToWall(
   worldPt: { x: number; y: number },
-  walls: Array<{ x: number; y: number; width: number; height: number; rotation: number }>,
+  walls: Array<{ id: string; x: number; y: number; width: number; height: number; rotation: number }>,
   objWidth: number,
-): { x: number; y: number; height: number; rotation: number } | null {
+): { x: number; y: number; height: number; rotation: number; wallId: string } | null {
   const SNAP_PX = Math.max(60, (walls[0]?.height ?? 12) * 4);
   let bestDist = SNAP_PX;
-  let best: { x: number; y: number; height: number; rotation: number } | null = null;
+  let best: { x: number; y: number; height: number; rotation: number; wallId: string } | null = null;
 
   for (const wall of walls) {
     const θ = (wall.rotation * Math.PI) / 180;
@@ -87,6 +87,7 @@ function snapToWall(
         y: cy - (objWidth / 2) * sinθ - (H / 2) * cosθ,
         height: H,
         rotation: wall.rotation,
+        wallId: wall.id,
       };
     }
   }
@@ -215,10 +216,11 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         const { w, h } = catalogSizePx(catalogEntry, scale);
 
         let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
+        let parentWallId: string | undefined;
         if (WALL_CHILD_KINDS.has(catalogEntry.kind) || (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind)) {
           const walls = doc.objects.filter((o) => o.kind === 'wall');
           const snapped = snapToWall(pos, walls, w);
-          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; }
+          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; parentWallId = snapped.wallId; }
         }
 
         addObject({
@@ -229,6 +231,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
           width: w,
           height: objH,
           rotation: objRot,
+          ...(parentWallId ? { parentId: parentWallId } : {}),
           ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
         });
         setSelection({ type: 'object', objectIds: [id] });
@@ -338,17 +341,18 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         w = 60; h = 60;
       }
 
-      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación.
+      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación y parentId.
       let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
+      let parentWallId: string | undefined;
       if (WALL_CHILD_KINDS.has(parsed.kind) || (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind)) {
         const walls = doc.objects.filter((o) => o.kind === 'wall');
         const snapped = snapToWall({ x: worldX, y: worldY }, walls, w);
-        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; }
+        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; parentWallId = snapped.wallId; }
       }
 
       const id = `obj-${globalThis.crypto.randomUUID()}`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation });
+      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation, ...(parentWallId ? { parentId: parentWallId } : {}) });
       setSelection({ type: 'object', objectIds: [id] });
     },
     [view, doc.scale, doc.objects, addObject, setSelection],

@@ -444,10 +444,14 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   // sin huecos sigue siendo una sola caja. Las ventanas añaden cristales (`glassPanes`).
   const wallObjs = structural.filter((o) => o.kind === 'wall');
   const openings = structural.filter((o) => o.kind === 'window' || o.kind === 'door');
-  // Agrupa los huecos por el muro al que se asocian (clave = id del muro).
+  // Agrupa los huecos por el muro al que se asocian (clave = id del muro). Preferimos el
+  // `parentId` explícito (vínculo wall-child) y caemos a la asociación geométrica por distancia
+  // para aperturas antiguas sin parentId.
+  const wallById = new Map(wallObjs.map((w) => [w.id, w] as const));
   const openingsByWall = new Map<string, StructObj[]>();
   for (const op of openings) {
-    const wall = associateOpening(op, wallObjs);
+    const wall =
+      (op.parentId && wallById.get(op.parentId)) || associateOpening(op, wallObjs);
     if (!wall) continue; // hueco sin muro (inalcanzable con datos válidos): se omite, no caja maciza.
     const list = openingsByWall.get(wall.id);
     if (list) list.push(op);
@@ -534,7 +538,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   // a su altura de instalación. Sin muro cercano no se renderizan (un enchufe flotando no aporta).
   const wallSurfaceItems: WallSurfaceItem[] = [];
   for (const o of doc.objects.filter(isWallSurfaceItem)) {
-    const wall = associateOpening(o, wallObjs);
+    const wall = (o.parentId && wallById.get(o.parentId)) || associateOpening(o, wallObjs);
     if (!wall) continue;
     const axis = wallAxis(wall);
     const { p1, p2 } = wallEndpointsXZ(wall, center, pxPerMeter);

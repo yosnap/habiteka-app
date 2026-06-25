@@ -120,18 +120,29 @@ export const useCanvasStore = create<CanvasState>((set) => {
       })),
 
     removeObject: (id) =>
-      mutate((d) => ({
-        ...d,
-        objects: d.objects.filter((o) => o.id !== id),
-        selection: clearSelectionOf(d.selection, [id]),
-      })),
+      mutate((d) => {
+        // Cascade: al borrar un muro se borran sus aperturas/elementos de pared vinculados
+        // (parentId). Evita huecos colgando de un muro que ya no existe.
+        const ids = new Set([id]);
+        for (const o of d.objects) if (o.parentId === id) ids.add(o.id);
+        return {
+          ...d,
+          objects: d.objects.filter((o) => !ids.has(o.id)),
+          selection: clearSelectionOf(d.selection, [...ids]),
+        };
+      }),
 
     removeObjects: (ids) =>
-      mutate((d) => ({
-        ...d,
-        objects: d.objects.filter((o) => !ids.includes(o.id)),
-        selection: clearSelectionOf(d.selection, ids),
-      })),
+      mutate((d) => {
+        // Cascade de hijos (parentId) para cada id borrado.
+        const idsSet = new Set(ids);
+        for (const o of d.objects) if (o.parentId && ids.includes(o.parentId)) idsSet.add(o.id);
+        return {
+          ...d,
+          objects: d.objects.filter((o) => !idsSet.has(o.id)),
+          selection: clearSelectionOf(d.selection, [...idsSet]),
+        };
+      }),
 
     duplicateObjects: (ids) => {
       const newIds: string[] = [];
