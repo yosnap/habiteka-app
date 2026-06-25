@@ -110,10 +110,13 @@ describe('autofurnish: colocación sin solapes', () => {
     const doc = room(5, 4);
     const inner = interiorRect(doc)!;
     for (const o of autofurnish(doc, 'salon').objects) {
-      expect(o.x).toBeGreaterThanOrEqual(inner.x - 0.5);
-      expect(o.y).toBeGreaterThanOrEqual(inner.y - 0.5);
-      expect(o.x + o.width).toBeLessThanOrEqual(inner.x + inner.width + 0.5);
-      expect(o.y + o.height).toBeLessThanOrEqual(inner.y + inner.height + 0.5);
+      // rotation=180: Konva rota alrededor de (x,y), así bbox visual = [x-w,x]×[y-h,y].
+      const vx = o.rotation === 180 ? o.x - o.width : o.x;
+      const vy = o.rotation === 180 ? o.y - o.height : o.y;
+      expect(vx).toBeGreaterThanOrEqual(inner.x - 0.5);
+      expect(vy).toBeGreaterThanOrEqual(inner.y - 0.5);
+      expect(vx + o.width).toBeLessThanOrEqual(inner.x + inner.width + 0.5);
+      expect(vy + o.height).toBeLessThanOrEqual(inner.y + inner.height + 0.5);
     }
   });
 });
