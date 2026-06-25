@@ -215,14 +215,25 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           onTransformEnd={(e) => {
             setLive(null);
             const node = e.target;
-            // El Group no expone un width/height intrínseco fiable: se parte del
-            // tamaño conocido del objeto y se le aplica la escala del transform.
-            // Posición y tamaño se ajustan a la rejilla.
+            const rawX = node.x();
+            const rawY = node.y();
+            const rawW = o.width * node.scaleX();
+            const rawH = o.height * node.scaleY();
+            // boundBoxFunc ya snapeó los bordes en tiempo real.
+            // Solo aplicamos snap al borde que el usuario movió; el borde fijo
+            // se redondea a entero (limpia float) pero NO se desplaza al grid.
+            const xMoved = Math.abs(rawX - o.x) > 0.5;
+            const yMoved = Math.abs(rawY - o.y) > 0.5;
+            const newX = xMoved ? snap(rawX) : Math.round(rawX);
+            const newY = yMoved ? snap(rawY) : Math.round(rawY);
+            // El borde opuesto (der/inf) siempre snapea para que quede en rejilla.
+            const newW = Math.max(8, snap(rawX + rawW) - newX);
+            const newH = Math.max(8, snap(rawY + rawH) - newY);
             updateObject(o.id, {
-              x: snap(node.x()),
-              y: snap(node.y()),
-              width: Math.max(8, snap(o.width * node.scaleX())),
-              height: Math.max(8, snap(o.height * node.scaleY())),
+              x: newX,
+              y: newY,
+              width: newW,
+              height: newH,
               rotation: node.rotation(),
             });
             node.scaleX(1);
@@ -280,9 +291,38 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
         anchorStroke="#b5532f"
         anchorFill="#fff"
         borderStroke="#b5532f"
-        // El tirador de rotación, más separado y visible, para girar desde fuera
-        // de la esquina superior del objeto.
         rotateAnchorOffset={28}
+        boundBoxFunc={(oldBox, newBox) => {
+          // Los boxes están en coordenadas de MUNDO (layer). Solo snapeamos
+          // el borde que el usuario realmente movió (comparando con oldBox =
+          // estado en mousedown). Así el borde fijo no salta al soltar.
+          // Para rotaciones no múltiplo de 90° el AABB no corresponde al
+          // grid del plano, así que se omite el snap.
+          const allOnAxis = selectedIds.every((id) => {
+            const obj = objects.find((o) => o.id === id);
+            return !obj || Math.abs(obj.rotation % 90) <= 0.5;
+          });
+          if (!allOnAxis) return newBox;
+
+          const EPS = 0.5;
+          const oldRight  = oldBox.x + oldBox.width;
+          const oldBottom = oldBox.y + oldBox.height;
+          const newRight  = newBox.x + newBox.width;
+          const newBottom = newBox.y + newBox.height;
+
+          const snappedX      = Math.abs(newBox.x - oldBox.x) > EPS ? snap(newBox.x) : newBox.x;
+          const snappedY      = Math.abs(newBox.y - oldBox.y) > EPS ? snap(newBox.y) : newBox.y;
+          const snappedRight  = Math.abs(newRight  - oldRight)  > EPS ? snap(newRight)  : newRight;
+          const snappedBottom = Math.abs(newBottom - oldBottom) > EPS ? snap(newBottom) : newBottom;
+
+          return {
+            x: snappedX,
+            y: snappedY,
+            width:  Math.max(8, snappedRight  - snappedX),
+            height: Math.max(8, snappedBottom - snappedY),
+            rotation: newBox.rotation,
+          };
+        }}
       />
     </Layer>
   );
