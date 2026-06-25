@@ -6,7 +6,6 @@ import {
   rotation2DToY,
   resolvePxPerMeter,
   intensity0to100ToPhysical,
-  shouldHideWall,
   limitLights,
 } from '@/canvas/3d/doc-to-scene';
 import type { SceneLight } from '@/canvas/3d/doc-to-scene';
@@ -281,33 +280,6 @@ describe('doc-to-scene: límite de luces', () => {
   });
 });
 
-describe('doc-to-scene: recorte de muros por cámara', () => {
-  it('oculta el muro del MISMO lado que la cámara (entre cámara e interior)', () => {
-    // Cámara en +Z; el muro frontal (+Z) tapa el interior → se oculta.
-    expect(shouldHideWall([0, 1.7], [0, 8])).toBe(true);
-  });
-
-  it('mantiene el muro del lado OPUESTO a la cámara (el del fondo)', () => {
-    // Cámara en +Z; el muro del fondo (−Z) no tapa → visible.
-    expect(shouldHideWall([0, -1.7], [0, 8])).toBe(false);
-  });
-
-  it('un muro perpendicular (lateral) no se oculta con umbral por defecto', () => {
-    // Cámara en +Z, muro lateral en +X: coseno ≈ 0 < 0,35 → visible.
-    expect(shouldHideWall([2.6, 0], [0, 8])).toBe(false);
-  });
-
-  it('al girar la cámara cambia qué muro se oculta', () => {
-    // Cámara ahora en +X: el muro lateral +X pasa a ocultarse, el +Z deja de ocultarse.
-    expect(shouldHideWall([2.6, 0], [8, 0])).toBe(true);
-    expect(shouldHideWall([0, 1.7], [8, 0])).toBe(false);
-  });
-
-  it('no oculta nada si el muro o la cámara están en el centro', () => {
-    expect(shouldHideWall([0, 0], [0, 8])).toBe(false);
-    expect(shouldHideWall([0, 1.7], [0, 0])).toBe(false);
-  });
-});
 
 describe('doc-to-scene: fixture EXAMPLE_SALON', () => {
   const scene = docToScene(EXAMPLE_SALON);
@@ -441,20 +413,21 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
-    // El CONTORNO mide ~4,15 × 3,15 m (planta + grosor de muro). Si un muro vertical saliera
-    // tumbado sobre X (bug de orientación), el ancho del bbox se dispararía (~6,85 m).
-    expect(wb.w).toBeCloseTo(4, 1);
-    expect(wb.d).toBeCloseTo(3, 1);
+    // Muros wizard axis-aligned: se tocan exactamente en las esquinas (el vertical arranca en
+    // el mismo borde que el horizontal), así que NO necesitan extensión de junta 3D → contorno
+    // 4,0 × 3,0 m. Si un muro vertical saliera tumbado sobre X, el ancho se dispararía (~6,85 m).
+    expect(wb.w).toBeCloseTo(4.0, 1);
+    expect(wb.d).toBeCloseTo(3.0, 1);
   });
 
   it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
     // Mismo contorno 4×3 m dibujado con Draw Walls: width=longitud, height=grosor, rotation=ángulo.
     const scene = docToScene(
       doc([
-        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0 }),
-        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90 }),
-        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180 }),
-        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270 }),
+        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0, drawn: true }),
+        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90, drawn: true }),
+        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180, drawn: true }),
+        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270, drawn: true }),
       ]),
     );
     // El suelo mide la planta real (4×3 m) y los muros se centran en él (no desplazados media pared).
@@ -463,8 +436,50 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
-    // El contorno de los muros cierra el rectángulo de la planta (~4,15 × 3,15 m con grosor).
-    expect(wb.w).toBeCloseTo(4, 1);
-    expect(wb.d).toBeCloseTo(3, 1);
+    // Con extensión de juntas, los muros solapan ~7.5 px en cada esquina → 4.15 × 3.15 m.
+    expect(wb.w).toBeCloseTo(4.15, 1);
+    expect(wb.d).toBeCloseTo(3.15, 1);
+  });
+
+  it('el color de un muro se propaga a sus WallBox (pintura editada en 3D)', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-pintado', kind: 'wall', x: 100, y: 100, width: 300, height: 15, color: '#ff8800' }),
+        obj({ id: 'w-default', kind: 'wall', x: 100, y: 200, width: 300, height: 15 }),
+      ]),
+    );
+    const pintado = scene.walls.find((w) => w.sourceId === 'w-pintado');
+    const sinColor = scene.walls.find((w) => w.sourceId === 'w-default');
+    expect(pintado?.color).toBe('#ff8800');
+    expect(sinColor?.color).toBeUndefined(); // sin color → el render usa el default
+  });
+
+  it('hidden:true en un muro se propaga a sus WallBox', () => {
+    const scene = docToScene(
+      doc([
+        obj({ id: 'w-oculto', kind: 'wall', x: 100, y: 100, width: 300, height: 15, hidden: true }),
+        obj({ id: 'w-visible', kind: 'wall', x: 100, y: 200, width: 300, height: 15 }),
+      ]),
+    );
+    const oculto = scene.walls.find((w) => w.sourceId === 'w-oculto');
+    const visible = scene.walls.find((w) => w.sourceId === 'w-visible');
+    expect(oculto?.hidden).toBe(true);
+    expect(visible?.hidden).toBeFalsy(); // sin campo o false
+  });
+
+  it('ocultar un muro NO altera la geometría del suelo (hidden es presentacional)', () => {
+    const wallsBase = [
+      obj({ id: 'w1', kind: 'wall', x: 0, y: 0, width: 500, height: 15 }),
+      obj({ id: 'w2', kind: 'wall', x: 0, y: 300, width: 500, height: 15 }),
+      obj({ id: 'w3', kind: 'wall', x: 0, y: 0, width: 15, height: 300 }),
+      obj({ id: 'w4', kind: 'wall', x: 485, y: 0, width: 15, height: 300 }),
+    ];
+    const sceneBase = docToScene(doc(wallsBase));
+    const sceneConOculto = docToScene(
+      doc(wallsBase.map((w) => (w.id === 'w1' ? { ...w, hidden: true } : w))),
+    );
+    // El suelo debe ser idéntico independientemente de hidden
+    expect(sceneConOculto.floor.size[0]).toBeCloseTo(sceneBase.floor.size[0], 1);
+    expect(sceneConOculto.floor.size[1]).toBeCloseTo(sceneBase.floor.size[1], 1);
   });
 });

@@ -30,6 +30,12 @@ export interface InpaintRequest {
 export interface ImageResult {
   /** URL del asset generado (presigned o pública según el storage). */
   assetUrl: string;
+  /**
+   * Clave estable del asset en el object storage propio, si vive ahí. Permite
+   * re-firmar una URL fresca al mostrar (la presignada de `assetUrl` caduca).
+   * Ausente si el proveedor devuelve una URL remota/pública o un data URL.
+   */
+  assetKey?: string;
   cost: ProviderCost;
 }
 

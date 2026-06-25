@@ -13,6 +13,9 @@ function fakeStorage(): StorageAdapter & { deleted: string[] } {
     async delete(key: string) {
       deleted.push(key);
     },
+    async get() {
+      return Buffer.alloc(0);
+    },
     async getPresignedUploadUrl() {
       return 'x';
     },

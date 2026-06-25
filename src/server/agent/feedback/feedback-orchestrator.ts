@@ -88,7 +88,13 @@ async function regenerate(
       instruction: input.instruction,
     });
     return {
-      payload: { type: 'render3d', assetUrl: result.assetUrl } as Prisma.InputJsonValue,
+      // Igual que en la entrega: se guarda `assetKey` (si lo hay) para re-firmar la
+      // URL al servir; la presignada de `assetUrl` caduca.
+      payload: {
+        type: 'render3d',
+        assetUrl: result.assetUrl,
+        ...(result.assetKey ? { assetKey: result.assetKey } : {}),
+      } as Prisma.InputJsonValue,
       type: 'render3d',
     };
   }

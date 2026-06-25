@@ -11,7 +11,12 @@ import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
-import { getAgent, type AgentInput, type AgentOutcome } from '@/server/agent';
+import {
+  getAgent,
+  type AgentInput,
+  type AgentOutcome,
+  type ZoneDeliveryContext,
+} from '@/server/agent';
 import { getChatVisionAdapter } from '@/server/ai';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
@@ -39,30 +44,93 @@ async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<v
   if (!project) throw new Error('Proyecto no encontrado en tu organización');
 }
 
-export async function advanceAgent(projectId: string, input: AgentInput): Promise<AgentOutcome> {
+/**
+ * Verifica que la zona (si se indica) pertenece al proyecto de la org. Devuelve el zoneId
+ * validado o null. Anti-IDOR: un zoneId de otro proyecto/org no se acepta (cae a error).
+ */
+async function assertZoneInProject(
+  ctx: OrgContext,
+  projectId: string,
+  zoneId: string | null,
+): Promise<string | null> {
+  if (!zoneId) return null;
+  const zones = await withOrg(ctx).zones.list(projectId);
+  if (!zones.some((z) => z.id === zoneId)) {
+    throw new Error('Zona no encontrada en el proyecto');
+  }
+  return zoneId;
+}
+
+export async function advanceAgent(
+  projectId: string,
+  input: AgentInput,
+  zoneId: string | null = null,
+): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
 
   // La imagen de origen se persiste en esta capa (la que posee el scope de org),
   // no en el orquestador (deliberadamente org-agnóstico). Solo en la ingesta y
   // solo si trae bytes embebidos; el gate de consentimiento del orquestador corta
-  // el procesamiento aguas abajo si falta base legal.
+  // el procesamiento aguas abajo si falta base legal. La imagen se asocia a la zona.
   if (input.action === 'ingest') {
     await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
-    await persistIngestImages(ctx, projectId, input.image);
+    await persistIngestImages(ctx, projectId, input.image, zid);
   }
 
-  const agent = await getAgent(ctx.organizationId, ctx.userId, (pid) =>
-    withOrg(ctx).sourceImages.latestPrimaryId(pid),
-  );
-  return agent.advance(projectId, input);
+  const agent = await getAgent(ctx.organizationId, ctx.userId, makeZoneContextResolver(ctx));
+  return agent.advance(projectId, input, zid);
 }
 
-/** Persiste las imágenes embebidas de la ingesta como SourceImage (scope org). */
+/**
+ * Resuelve el contexto de zona que la entrega por chat necesita: el tipo de zona
+ * (interior/exterior, para el prompt) y la foto PRIMARY de la zona cargada como
+ * referencia img2img (bytes desde el storage) + su id (trazabilidad). Pasa por la
+ * puerta anti-IDOR (`withOrg`) y por el storage server-only, manteniendo el agente
+ * org-agnóstico. Si la foto no puede leerse del storage, degrada a `reference: null`
+ * (el render parte solo del estilo) en vez de tumbar una entrega que ya se cobra.
+ */
+/** Resolver de contexto vacío: para flujos que aportan su propia referencia (lienzo/3D). */
+async function noZoneContext(): Promise<ZoneDeliveryContext> {
+  return { zoneKind: null, reference: null };
+}
+
+function makeZoneContextResolver(
+  ctx: OrgContext,
+): (projectId: string, zoneId: string | null) => Promise<ZoneDeliveryContext> {
+  return async (projectId, zoneId) => {
+    const repo = withOrg(ctx);
+    const zoneKind = zoneId
+      ? ((await repo.zones.list(projectId)).find((z) => z.id === zoneId)?.kind ?? null)
+      : null;
+
+    const primary = await repo.sourceImages.latestPrimary(projectId, zoneId);
+    if (!primary) return { zoneKind, reference: null };
+
+    try {
+      const body = await getStorageAdapter().get(primary.key);
+      return {
+        zoneKind,
+        reference: {
+          sourceImageId: primary.id,
+          image: { base64: body.toString('base64'), mimeType: primary.mime },
+        },
+      };
+    } catch {
+      // La foto existe en BD pero no se pudo leer del storage: no se rompe la
+      // entrega; se genera sin referencia (comportamiento previo a img2img).
+      return { zoneKind, reference: null };
+    }
+  };
+}
+
+/** Persiste las imágenes embebidas de la ingesta como SourceImage de la zona (scope org). */
 async function persistIngestImages(
   ctx: OrgContext,
   projectId: string,
   parts: MessagePart[],
+  zoneId: string | null,
 ): Promise<void> {
   const repo = withOrg(ctx);
   const storage = getStorageAdapter();
@@ -72,6 +140,7 @@ async function persistIngestImages(
     await persistSourceImage(repo, storage, {
       organizationId: ctx.organizationId,
       projectId,
+      zoneId,
       body,
     });
   }
@@ -90,9 +159,11 @@ export async function generateDesignFromCanvas(
   entregable: DeliverableType,
   objetivo = '',
   promptLibre = '',
+  zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
   // selección de rama de generación.
@@ -107,25 +178,72 @@ export async function generateDesignFromCanvas(
   }
   const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
 
-  // El lienzo rasterizado no es una imagen de origen del usuario, así que la
-  // generación desde el lienzo no vincula trazabilidad (resolver a null).
-  const agent = await getAgent(ctx.organizationId, ctx.userId, async () => null);
-  return agent.advance(projectId, {
-    action: 'generate-from-canvas',
-    estilo,
-    entregable,
-    // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
-    // Coerción a string defensiva: el cliente puede enviar cualquier valor pese al tipo.
-    objetivo: String(objetivo ?? '').slice(0, 200),
-    // Instrucción libre del usuario; se acota para no inflar el prompt del render.
-    promptLibre: String(promptLibre ?? '').slice(0, 500),
-    description,
-    referenceImage: { base64, mimeType: 'image/png' },
-    aspectRatio,
-    // Cada invocación es una operación de pago distinta: id único para la clave
-    // idempotente del cobro (evita regeneración gratis por clave constante).
-    requestId: globalThis.crypto.randomUUID(),
-  });
+  // El lienzo rasterizado no es una imagen de origen del usuario, y este flujo
+  // aporta su propia referencia (el sketch): no resuelve contexto de zona.
+  const agent = await getAgent(ctx.organizationId, ctx.userId, noZoneContext);
+  return agent.advance(
+    projectId,
+    {
+      action: 'generate-from-canvas',
+      estilo,
+      entregable,
+      // Objetivo opcional del formulario (paridad con el chat); se acota en longitud.
+      // Coerción a string defensiva: el cliente puede enviar cualquier valor pese al tipo.
+      objetivo: String(objetivo ?? '').slice(0, 200),
+      // Instrucción libre del usuario; se acota para no inflar el prompt del render.
+      promptLibre: String(promptLibre ?? '').slice(0, 500),
+      description,
+      referenceImage: { base64, mimeType: 'image/png' },
+      aspectRatio,
+      // Cada invocación es una operación de pago distinta: id único para la clave
+      // idempotente del cobro (evita regeneración gratis por clave constante).
+      requestId: globalThis.crypto.randomUUID(),
+    },
+    zid,
+  );
+}
+
+/**
+ * Genera una VISTA estilizada a partir de una captura de la escena 3D (Fase 3). La captura
+ * (data URL base64 del canvas WebGL, tal cual la entrega el visor) se pasa como imagen base
+ * al proveedor (img2img) junto al estilo elegido, para que el render herede el encuadre y la
+ * geometría de la sala. Reusa el camino `generate-from-canvas` del orquestador. La vista se
+ * asocia a la zona activa.
+ */
+export async function generateViewFrom3D(
+  projectId: string,
+  captureDataUrl: string,
+  estilo: Estilo,
+  aspectRatio: string,
+  zoneId: string | null = null,
+): Promise<AgentOutcome> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  const zid = await assertZoneInProject(ctx, projectId, zoneId);
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+
+  // La captura llega como data URL ("data:image/png;base64,XXXX"); se extrae el base64.
+  const base64 = captureDataUrl.includes(',') ? captureDataUrl.split(',')[1]! : captureDataUrl;
+  if (!base64) throw new Error('Captura de la vista 3D vacía');
+
+  // La captura 3D es la propia referencia (sketch): no resuelve contexto de zona.
+  const agent = await getAgent(ctx.organizationId, ctx.userId, noZoneContext);
+  return agent.advance(
+    projectId,
+    {
+      action: 'generate-from-canvas',
+      estilo,
+      entregable: 'render3d',
+      objetivo: '',
+      promptLibre: '',
+      // La imagen base aporta la geometría; la descripción solo orienta al modelo.
+      description: 'Vista 3D de la sala capturada desde el editor.',
+      referenceImage: { base64, mimeType: 'image/png' },
+      aspectRatio,
+      requestId: globalThis.crypto.randomUUID(),
+    },
+    zid,
+  );
 }
 
 /**

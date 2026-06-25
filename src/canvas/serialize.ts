@@ -133,12 +133,23 @@ function parseStruct(v: unknown): StructObj | null {
     width: num(v.width),
     height: num(v.height),
     rotation: num(v.rotation),
+    ...(v.drawn === true ? { drawn: true } : {}),
     ...(v.flipX === true ? { flipX: true } : {}),
+    ...(v.hidden === true ? { hidden: true } : {}),
     ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
     ...(light ? { light } : {}),
     // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
     ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),
+    // Color del material (pintura de pared) opcional: solo un string hex válido.
+    ...(isHexColor(v.color) ? { color: v.color as string } : {}),
+    // Meta de muros de wizard (extLeft, extRight, topConvex, etc.): se preserva tal cual.
+    ...(isRecord(v.meta) ? { meta: v.meta } : {}),
   };
+}
+
+/** ¿Es un color hex `#rgb`/`#rrggbb`? (validación básica del material persistido). */
+function isHexColor(v: unknown): boolean {
+  return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 }
 
 function parseLight(v: unknown): LightProps | null {

@@ -56,6 +56,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const flipSelection = useCanvasStore((s) => s.flipSelection);
   const objects = useCanvasStore((s) => s.doc.objects);
   const docScale = useCanvasStore((s) => s.doc.scale);
+  // "Editar contorno" llama a setFloorOutline que regenera los muros desde el polígono.
+  // Con muros dibujados a mano eso los reemplaza por muros wizard → deshabilitado.
+  const outlineEditDisabled = objects.some((o) => o.kind === 'wall' && o.drawn);
   const baseImage = useCanvasStore((s) => s.doc.baseImage);
   const setBaseImage = useCanvasStore((s) => s.setBaseImage);
   const setBaseImageOpacity = useCanvasStore((s) => s.setBaseImageOpacity);
@@ -88,18 +91,27 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">
-      {MODES.map(({ tool: t, label }) => (
-        <Button
-          key={t}
-          type="button"
-          size="sm"
-          variant={tool === t ? 'default' : 'ghost'}
-          aria-pressed={tool === t}
-          onClick={() => onToolChange(t)}
-        >
-          {label}
-        </Button>
-      ))}
+      {MODES.map(({ tool: t, label }) => {
+        const isDisabled = t === 'edit-outline' && outlineEditDisabled;
+        return (
+          <Button
+            key={t}
+            type="button"
+            size="sm"
+            variant={tool === t ? 'default' : 'ghost'}
+            aria-pressed={tool === t}
+            disabled={isDisabled}
+            title={
+              isDisabled
+                ? 'Solo disponible para habitaciones creadas con el asistente. Edita los muros directamente con sus manijas.'
+                : undefined
+            }
+            onClick={() => !isDisabled && onToolChange(t)}
+          >
+            {label}
+          </Button>
+        );
+      })}
       <span className="bg-border mx-1 h-5 w-px" aria-hidden />
       <Button type="button" size="sm" variant="ghost" disabled={!canUndo} onClick={undo}>
         Deshacer

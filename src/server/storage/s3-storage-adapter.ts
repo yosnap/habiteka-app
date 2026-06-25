@@ -37,6 +37,15 @@ export class S3StorageAdapter implements StorageAdapter {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  async get(key: string): Promise<Buffer> {
+    const out = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!out.Body) throw new Error(`Objeto no encontrado en storage: ${key}`);
+    // El SDK v3 expone el cuerpo como stream web/node; `transformToByteArray` lo
+    // colecciona sin que tengamos que distinguir el runtime.
+    const bytes = await out.Body.transformToByteArray();
+    return Buffer.from(bytes);
+  }
+
   async getPresignedUploadUrl(key: string, maxBytes: number, contentType: string): Promise<string> {
     // El límite de tamaño se ata a la URL firmada (ContentLength), de modo que el
     // storage rechaza un upload mayor sin que el servidor intermedie.

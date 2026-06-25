@@ -12,47 +12,102 @@
 import { Suspense, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF } from '@react-three/drei';
-import { Mesh, Shape } from 'three';
+import { Mesh, Shape, type Object3D, type PerspectiveCamera } from 'three';
 import type { CanvasDoc } from '@/canvas/types';
-import { docToScene, shouldHideWallXZ, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
+import { docToScene, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
+import { cameraForAngle, type ViewAngle } from '@/canvas/3d/camera-views';
 import { useMountEffect } from '@/lib/use-mount-effect';
-import { FurnitureLayer } from './furniture-layer';
+import type { SelectionMode } from './use-3d-selection';
+import { TransformGizmo } from './transform-gizmo';
+import { FurnitureLayer, type SnapGuideData } from './furniture-layer';
 import { LightsLayer } from './lights-layer';
 import { GlassLayer } from './glass-layer';
 import { OpeningFramesLayer } from './opening-frames-layer';
+import { SnapGuideLayer } from './snap-guide-layer';
+import { OpeningInteractionLayer } from './opening-interaction-layer';
+import { CeilingLayer } from './ceiling-layer';
 
 /**
  * Muros con recorte por cámara (F6.4): cada frame se oculta el muro que queda entre la
  * cámara y el interior (estilo Planner5D/Sims), para poder ver dentro al orbitar. La
  * decisión es lógica pura (`shouldHideWall`); aquí solo se aplica `visible` por muro.
  */
-function Walls({ walls }: { walls: WallBox[] }) {
+const DEFAULT_WALL_COLOR = '#b7c3cf';
+
+function Walls({
+  walls,
+  onPick,
+  onSelectOpening,
+  pickWallMode,
+  onPickForOpening,
+}: {
+  walls: WallBox[];
+  onPick?: (sourceId: string, screenX: number, screenY: number) => void;
+  /** Seleccionar puerta/ventana cuando el clic cae sobre su marco. */
+  onSelectOpening?: (openingId: string) => void;
+  /** Cuando true: clic en muro llama onPickForOpening (modo colocar apertura). */
+  pickWallMode?: boolean;
+  onPickForOpening?: (wallId: string) => void;
+}) {
   const refs = useRef<(Mesh | null)[]>([]);
-  useFrame((state) => {
-    const cam = state.camera.position;
-    for (let i = 0; i < walls.length; i++) {
-      const mesh = refs.current[i];
-      const w = walls[i];
-      if (!mesh || !w) continue;
-      mesh.visible = !shouldHideWallXZ(w.center[0], w.center[2], cam.x, cam.z);
-    }
-  });
+  const [hoveredPickId, setHoveredPickId] = useState<string | null>(null);
   return (
     <group>
-      {walls.map((w, i) => (
-        <mesh
-          key={w.id}
-          ref={(m) => {
-            refs.current[i] = m;
-          }}
-          position={w.center}
-          rotation={[0, w.rotationY, 0]}
-        >
-          <boxGeometry args={w.size} />
-          <meshStandardMaterial color="#b7c3cf" />
-        </mesh>
-      ))}
+      {walls.map((w, i) => {
+        const srcId = w.sourceId ?? w.id;
+        const isManuallyHidden = !!w.hidden;
+        const isHoveredPick = pickWallMode && hoveredPickId === w.id;
+        return (
+          <mesh
+            key={w.id}
+            ref={(m) => { refs.current[i] = m; }}
+            position={w.center}
+            rotation={[0, w.rotationY, 0]}
+            onClick={(e) => {
+              // Modo selección de muro para colocar apertura
+              if (pickWallMode) {
+                e.stopPropagation();
+                onPickForOpening?.(srcId);
+                return;
+              }
+              // Si el rayo toca el marco/cristal de una puerta o ventana, seleccionarla.
+              if (onSelectOpening) {
+                for (const inter of e.intersections) {
+                  let obj: Object3D | null = inter.object;
+                  while (obj) {
+                    if (obj.userData?.openingId) {
+                      e.stopPropagation();
+                      onSelectOpening(obj.userData.openingId as string);
+                      return;
+                    }
+                    obj = obj.parent;
+                  }
+                }
+              }
+              if (!onPick) return;
+              // Si hay muebles en el rayo, dejar que el mueble gestione el clic.
+              const hasFurniture = e.intersections.some((inter) => {
+                let obj: Object3D | null = inter.object;
+                while (obj) { if (obj.userData?.isFurniture) return true; obj = obj.parent; }
+                return false;
+              });
+              if (hasFurniture) return;
+              e.stopPropagation();
+              onPick(srcId, e.nativeEvent.clientX, e.nativeEvent.clientY);
+            }}
+            onPointerEnter={() => { if (pickWallMode) setHoveredPickId(w.id); }}
+            onPointerLeave={() => { if (pickWallMode) setHoveredPickId(null); }}
+          >
+            <boxGeometry args={w.size} />
+            <meshStandardMaterial
+              color={isHoveredPick ? '#5bc4f5' : (w.color ?? DEFAULT_WALL_COLOR)}
+              transparent={isManuallyHidden || isHoveredPick}
+              opacity={isManuallyHidden ? 0.13 : isHoveredPick ? 0.65 : 1}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
@@ -100,11 +155,30 @@ function Floor({ floor }: { floor: Scene3D['floor'] }) {
 }
 
 /** Suelo + muros del plano, ya convertidos a metros por `docToScene`. */
-function RoomMesh({ scene }: { scene: Scene3D }) {
+function RoomMesh({
+  scene,
+  onPickWall,
+  onSelectOpening,
+  pickWallForOpening,
+  onPickWallForOpening,
+}: {
+  scene: Scene3D;
+  onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
+  onSelectOpening?: (openingId: string) => void;
+  pickWallForOpening?: boolean;
+  onPickWallForOpening?: (wallId: string) => void;
+}) {
   return (
     <group>
       <Floor floor={scene.floor} />
-      <Walls walls={scene.walls} />
+      {/* Se pasan TODAS las paredes — las ocultas manualmente se renderizan translúcidas */}
+      <Walls
+        walls={scene.walls}
+        onPick={onPickWall}
+        onSelectOpening={onSelectOpening}
+        pickWallMode={pickWallForOpening}
+        onPickForOpening={onPickWallForOpening}
+      />
     </group>
   );
 }
@@ -142,10 +216,75 @@ function PerfProbe({ onStats }: { onStats: (s: PerfStats) => void }) {
   return null;
 }
 
-export function Plan3DView({ doc }: { doc: CanvasDoc }) {
+/** Orden de captura: el ángulo a fijar + a quién devolver el data URL del frame. */
+interface CaptureOrder {
+  angle: ViewAngle;
+  span: number;
+  ceiling: number;
+  resolve: (dataUrl: string) => void;
+}
+
+/**
+ * Coloca la cámara en el ángulo pedido y captura el canvas WebGL a data URL (PNG). Vive
+ * DENTRO del Canvas para acceder a `gl`/`camera` con `useThree`. La captura se hace en el
+ * `useFrame` siguiente a recibir la orden, tras recolocar la cámara y forzar un render, para
+ * que el buffer tenga el encuadre correcto (requiere `preserveDrawingBuffer` en el Canvas).
+ */
+function CaptureRig({ order }: { order: CaptureOrder | null }) {
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const scene = useThree((s) => s.scene);
+  // Marca de la orden ya servida, para no capturar dos veces la misma. Se actualiza DENTRO
+  // del frame (no en render), evitando el anti-patrón de mutar un ref durante el render.
+  const servedRef = useRef<CaptureOrder | null>(null);
+
+  useFrame(() => {
+    if (!order || servedRef.current === order) return;
+    servedRef.current = order;
+    const view = cameraForAngle(order.angle, order.span, order.ceiling);
+    camera.position.set(...view.position);
+    camera.lookAt(...view.target);
+    camera.updateProjectionMatrix();
+    gl.render(scene, camera); // re-render con el encuadre fijado antes de leer el buffer
+    order.resolve(gl.domElement.toDataURL('image/png'));
+  });
+  return null;
+}
+
+export function Plan3DView({
+  doc,
+  onGenerateView,
+  onPickWall,
+  pickWallForOpening,
+  onPickWallForOpening,
+  selectedId,
+  onSelect,
+  onDeselect,
+  mode,
+  onSetMode,
+  onSwap,
+}: {
+  doc: CanvasDoc;
+  /** Si se pasa, habilita capturar vistas por ángulo y entregar el data URL al caller. */
+  onGenerateView?: (dataUrl: string, angle: ViewAngle) => void;
+  /** Clic sobre un muro para menú de color. */
+  onPickWall?: (sourceId: string, screenX: number, screenY: number) => void;
+  /** Cuando true, los muros se resaltan para que el usuario elija dónde colocar una apertura. */
+  pickWallForOpening?: boolean;
+  onPickWallForOpening?: (wallId: string) => void;
+  /** Selección 3D (F1 editor). */
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+  onDeselect?: () => void;
+  mode?: SelectionMode;
+  onSetMode?: (m: SelectionMode) => void;
+  onSwap?: (id: string) => void;
+}) {
   // La escena depende solo del doc: memoizar evita recalcular en cada render.
   const scene = useMemo(() => docToScene(doc), [doc]);
   const [stats, setStats] = useState<PerfStats>({ fps: 0, calls: 0, tris: 0 });
+  // Referencia compartida para guías de alineación: FurnitureLayer escribe, SnapGuideLayer lee.
+  const snapGuideRef = useRef<SnapGuideData>(null);
 
   // Precarga SOLO los modelos de los kinds presentes en esta escena (no todos), al
   // montar: evita bajar .glb que no se usan y mantiene el side-effect fuera del módulo.
@@ -165,6 +304,22 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
   // luces del doc, la base ilumina la escena por completo (no queda a oscuras).
   const hasDocLights = scene.lights.length > 0;
 
+  // Captura de vista por ángulo: se fija una "orden" que el CaptureRig ejecuta en el
+  // siguiente frame (recoloca la cámara + lee el buffer). El data URL se entrega al caller.
+  const [captureOrder, setCaptureOrder] = useState<CaptureOrder | null>(null);
+  const captureView = (angle: ViewAngle) => {
+    if (!onGenerateView) return;
+    setCaptureOrder({
+      angle,
+      span,
+      ceiling: scene.ceilingHeightM,
+      resolve: (dataUrl) => {
+        setCaptureOrder(null);
+        onGenerateView(dataUrl, angle);
+      },
+    });
+  };
+
   return (
     <div className="relative h-full w-full">
       <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md bg-black/70 px-3 py-1.5 font-mono text-sm text-white">
@@ -173,15 +328,37 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
           {stats.fps || '—'}
         </span>
         <span className="ml-2 text-white/60">
-          {scene.walls.length} muros · {scene.furniture.length} muebles · {scene.lights.length}{' '}
-          luces · suelo {scene.floor.size[0].toFixed(1)}×{scene.floor.size[1].toFixed(1)} m ·{' '}
+          {scene.walls.length} muros · {scene.furniture.length} muebles ·{' '}
+          {scene.ceilingItems.length > 0 ? `${scene.ceilingItems.length} techo · ` : ''}
+          {scene.lights.length} luces · suelo {scene.floor.size[0].toFixed(1)}×{scene.floor.size[1].toFixed(1)} m ·{' '}
           {stats.calls} draw calls · {stats.tris.toLocaleString()} tris
         </span>
       </div>
+      {/* Barra de captura de vistas (solo si el caller pide vistas). Sobre el Canvas. */}
+      {onGenerateView ? (
+        <div className="absolute right-3 top-14 z-10 flex gap-1.5">
+          {(['perspectiva', 'isometrica', 'cenital'] as const).map((angle) => (
+            <button
+              key={angle}
+              type="button"
+              onClick={() => captureView(angle)}
+              disabled={captureOrder !== null}
+              className="rounded-md bg-black/70 px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85 disabled:opacity-50"
+            >
+              {angle === 'perspectiva' ? 'Perspectiva' : angle === 'isometrica' ? 'Isométrica' : 'Cenital'}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <Canvas
         shadows={false}
         camera={{ position: [span * 0.9, span * 0.8, span * 0.9], fov: 50 }}
         dpr={[1, 2]}
+        // Necesario para capturar el frame a imagen (toDataURL); sin esto el buffer se
+        // limpia tras pintar y la captura saldría en negro.
+        gl={{ preserveDrawingBuffer: true }}
+        // Clic en espacio vacío deselecciona el mueble seleccionado (F1).
+        onPointerMissed={onDeselect}
       >
         <color attach="background" args={['#eef1f4']} />
         {/* Ambiente base: hemisférica (cielo/suelo) + ambiental + direccional suave. Da
@@ -190,12 +367,55 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
         <ambientLight intensity={hasDocLights ? 0.12 : 0.6} />
         <directionalLight position={[10, 15, 8]} intensity={hasDocLights ? 0.3 : 1.1} />
         <LightsLayer items={scene.lights} />
-        <RoomMesh scene={scene} />
+        <RoomMesh
+          scene={scene}
+          onPickWall={onPickWall}
+          onSelectOpening={onSelect}
+          pickWallForOpening={pickWallForOpening}
+          onPickWallForOpening={onPickWallForOpening}
+        />
         <GlassLayer panes={scene.glassPanes} />
         <OpeningFramesLayer frames={scene.openingFrames} />
+        <OpeningInteractionLayer
+          doc={doc}
+          scene={scene}
+          selectedId={selectedId ?? null}
+          onSelect={onSelect}
+          snapGuideRef={snapGuideRef}
+        />
+        <SnapGuideLayer snapGuideRef={snapGuideRef} ceilingH={scene.ceilingHeightM} />
         <Suspense fallback={null}>
-          <FurnitureLayer items={scene.furniture} />
+          <FurnitureLayer
+            items={scene.furniture}
+            selectedId={selectedId ?? null}
+            onSelect={onSelect ?? (() => {})}
+            onDeselect={onDeselect ?? (() => {})}
+            mode={mode ?? 'none'}
+            onSetMode={onSetMode ?? (() => {})}
+            sceneCoords={scene}
+            onSwap={onSwap}
+            walls={scene.walls}
+            snapGuideRef={snapGuideRef}
+          />
         </Suspense>
+        <CeilingLayer
+          items={scene.ceilingItems}
+          ceilingHeightM={scene.ceilingHeightM}
+          selectedId={selectedId ?? null}
+          onSelect={onSelect ?? (() => {})}
+          onDeselect={onDeselect ?? (() => {})}
+          mode={mode ?? 'none'}
+          onSetMode={onSetMode ?? (() => {})}
+        />
+        {/* Gizmo de transformación (F2): monta cuando hay modo activo. OrbitControls ya
+            tiene makeDefault → TransformControls lo silencia automáticamente al arrastrar. */}
+        {selectedId && mode && mode !== 'none' ? (
+          <TransformGizmo
+            selectedId={selectedId}
+            mode={mode}
+            scene={{ planCenterPx: scene.planCenterPx, pxPerMeter: scene.pxPerMeter }}
+          />
+        ) : null}
         <Grid
           args={[span * 3, span * 3]}
           cellSize={1}
@@ -207,6 +427,7 @@ export function Plan3DView({ doc }: { doc: CanvasDoc }) {
         />
         <OrbitControls makeDefault target={[0, scene.ceilingHeightM / 2, 0]} />
         <PerfProbe onStats={setStats} />
+        <CaptureRig order={captureOrder} />
       </Canvas>
     </div>
   );

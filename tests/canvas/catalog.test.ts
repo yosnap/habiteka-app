@@ -21,11 +21,17 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   fregadero: true,
   encimera: true,
   nevera: true,
+  nevera_americana: true,
+  nevera_mini: true,
   horno: true,
   isla: true,
+  vitroceramica: true,
+  microondas: true,
   // mobiliario
   cama: true,
   sofa: true,
+  sofa_grande: true,
+  butaca: true,
   mesa: true,
   silla: true,
   armario: true,
@@ -41,6 +47,8 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   chimenea: true,
   // iluminación
   foco: true,
+  ceiling_light: true,
+  pendant_lamp: true,
 };
 
 const expectedKinds = Object.keys(EXPECTED_KINDS).sort();

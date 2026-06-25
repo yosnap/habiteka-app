@@ -1,0 +1,48 @@
+// Items de catálogo personalizados (custom) o de tienda (store) por organización.
+// Los items builtin viven en código (src/canvas/catalog.ts) y no tienen fila aquí.
+// `organizationId` null → item de tienda global accesible a todas las orgs.
+// `organizationId` non-null → item subido por esa org (solo visible para ella).
+
+model CatalogItem {
+  id             String        @id @default(cuid())
+  // Scope de org. Null = item de tienda/global; non-null = custom de la org (anti-IDOR).
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Tipo semántico (StructKind del canvas). Se guarda como string para no acoplar
+  // el schema de BD a la union type de TypeScript.
+  kind     String
+  label    String
+  // 'custom' = subido por la org | 'store' = integración externa futura
+  source   String  @default("custom")
+  // Categoría y familia para navegación en el panel (e.g. 'iluminacion', 'Plafones').
+  category String
+  family   String?
+
+  // Claves en object storage (URL presignada al servir, igual que SourceImage).
+  thumbnailKey String?
+  modelKey     String?   // .glb 3D; null = geometría procedural en Three.js
+
+  // Dimensiones por defecto en metros.
+  widthM  Float
+  depthM  Float
+  heightM Float   @default(0)
+
+  // Campos de integración tienda (source = 'store'). Sin UI aún — columnas reservadas.
+  storeSlug       String?
+  storeProductId  String?
+  storePrice      Decimal? @db.Decimal(10, 2)
+  storeProductUrl String?
+
+  // Tags para búsqueda full-text. Array serializado como JSON.
+  tags Json @default("[]")
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([organizationId])
+  @@index([kind])
+  @@index([category])
+  @@index([deletedAt])
+  @@map("catalog_item")
+}

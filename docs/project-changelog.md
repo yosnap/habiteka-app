@@ -4,6 +4,19 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Added — 2026-06-23
+
+- **El render del chat respeta la foto del espacio (img2img):** al generar desde el
+  asistente, el render parte de la foto ACTIVA de la zona (no inventa otro inmueble).
+  El servidor carga los bytes de la foto y los pasa como referencia; el flujo del
+  lienzo (que ya pasaba referencia) y la idempotencia de cobro quedan intactos.
+- **Panel de fotos por zona (reutilizable):** subir varias fotos a una zona, verlas en
+  miniaturas y elegir la ACTIVA (la que usa el render). Disponible en el asistente y en
+  el plano (toggle «Fotos del espacio»). Subida con consentimiento RGPD y scope de
+  organización (anti-IDOR).
+- **Tipo de zona (interior/exterior):** selector en el panel de fotos que adapta la
+  descripción del render (un interior y una fachada/jardín se describen distinto).
+
 ### Added — 2026-06-16
 
 - **Bootstrap del proyecto:** especificación técnica leída y validada.
