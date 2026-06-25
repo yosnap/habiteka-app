@@ -17,7 +17,7 @@ import type { CanvasDoc, StructKind, StructObj } from '../types';
 import { CEILING_KINDS } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
-import { associateOpening, splitWallWithOpenings } from './wall-openings';
+import { associateOpening, splitWallWithOpenings, wallAxis, wallEndpointsXZ } from './wall-openings';
 import { floorPolygonFromWalls } from './floor-from-walls';
 import { objectCenterY } from './placement';
 
@@ -423,16 +423,55 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     if (list) list.push(op);
     else openingsByWall.set(wall.id, [op]);
   }
+  // Extensión de juntas 3D: cada extremo de muro que toca a otro recibe
+  // extendP1Px/P2Px ≈ t_vecino/2 para que las BoxGeometry se solapen en la esquina.
+  const JUNCTION_THRESH2 = 0.09; // (0.3 m)² — umbral de proximidad en XZ
+  type EndExt = { p1: number; p2: number };
+  const wallExtensions = new Map<string, EndExt>();
+  for (const w of wallObjs) wallExtensions.set(w.id, { p1: 0, p2: 0 });
+  const wEndpoints = wallObjs.map((w) => ({
+    id: w.id,
+    axis: wallAxis(w),
+    ...wallEndpointsXZ(w, center, pxPerMeter),
+  }));
+  for (let i = 0; i < wEndpoints.length; i++) {
+    const a = wEndpoints[i]!;
+    for (let j = i + 1; j < wEndpoints.length; j++) {
+      const b = wEndpoints[j]!;
+      for (const aEnd of ['p1', 'p2'] as const) {
+        const pa = a[aEnd];
+        for (const bEnd of ['p1', 'p2'] as const) {
+          const pb = b[bEnd];
+          const dx = pa[0] - pb[0], dz = pa[1] - pb[1];
+          if (dx * dx + dz * dz > JUNCTION_THRESH2) continue;
+          const sinTheta = Math.abs(
+            a.axis.u[0] * b.axis.u[1] - a.axis.u[1] * b.axis.u[0],
+          );
+          if (sinTheta < 0.1) continue; // casi paralelos: sin extensión
+          const eA = Math.min(1.5 * a.axis.t, b.axis.t / (2 * sinTheta));
+          const eB = Math.min(1.5 * b.axis.t, a.axis.t / (2 * sinTheta));
+          const extA = wallExtensions.get(a.id)!;
+          const extB = wallExtensions.get(b.id)!;
+          extA[aEnd] = Math.max(extA[aEnd], eA);
+          extB[bEnd] = Math.max(extB[bEnd], eB);
+        }
+      }
+    }
+  }
+
   const walls: WallBox[] = [];
   const glassPanes: GlassPane[] = [];
   const openingFrames: OpeningFrame[] = [];
   for (const wall of wallObjs) {
+    const ext = wallExtensions.get(wall.id) ?? { p1: 0, p2: 0 };
     const { boxes, panes, frames } = splitWallWithOpenings(
       wall,
       openingsByWall.get(wall.id) ?? [],
       ceilingHeightM,
       center,
       pxPerMeter,
+      ext.p1,
+      ext.p2,
     );
     // Anota cada caja con el id del muro de origen, propaga su color y su estado hidden.
     walls.push(

@@ -75,6 +75,28 @@ export function wallAxis(wall: Pick<StructObj, 'width' | 'height' | 'rotation'>)
 }
 
 /**
+ * Extremos del muro en espacio mundo XZ (metros, centrado en `planCenter`).
+ * p1 corresponde a u=0 en el eje del muro, p2 a u=L.
+ */
+export function wallEndpointsXZ(
+  wall: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+  planCenter: readonly [number, number],
+  pxPerMeter: number,
+): { p1: [number, number]; p2: [number, number] } {
+  const axis = wallAxis(wall);
+  const [wcx, wcz] = planPointToXZ(
+    wall as StructObj,
+    planCenter,
+    pxPerMeter,
+  );
+  const halfM = pxToMeters(axis.L / 2, { pxPerMeter });
+  return {
+    p1: [wcx - axis.u[0] * halfM, wcz - axis.u[1] * halfM],
+    p2: [wcx + axis.u[0] * halfM, wcz + axis.u[1] * halfM],
+  };
+}
+
+/**
  * Distancia perpendicular (px) del centro de un hueco al eje longitudinal (recta) del muro.
  * Se mide respecto a la recta que pasa por el centro del muro con dirección `u`.
  */
@@ -169,6 +191,8 @@ export function splitWallWithOpenings(
   ceilingHeightM: number,
   planCenter: readonly [number, number],
   pxPerMeter: number,
+  extendP1Px = 0,
+  extendP2Px = 0,
 ): { boxes: WallBox[]; panes: GlassPane[]; frames: OpeningFrame[] } {
   const axis = wallAxis(wall);
   const H = effectiveHeightM(wall, ceilingHeightM);
@@ -239,13 +263,13 @@ export function splitWallWithOpenings(
     });
   };
 
-  // Sin huecos: una sola caja igual que antes (segmento completo 0..L).
+  // Sin huecos: una sola caja extendida en los extremos de junta.
   if (locals.length === 0) {
-    pushFullSegment(0, axis.L, 'full');
+    pushFullSegment(-extendP1Px, axis.L + extendP2Px, 'full');
     return { boxes, panes, frames };
   }
 
-  let cursor = 0;
+  let cursor = -extendP1Px;
   locals.forEach((op, i) => {
     const [u0, u1] = op.span;
     // Tramo macizo a la izquierda del hueco (si lo hay).
@@ -312,8 +336,8 @@ export function splitWallWithOpenings(
     cursor = Math.max(cursor, u1);
   });
 
-  // Tramo macizo final a la derecha del último hueco.
-  if (cursor < axis.L) pushFullSegment(cursor, axis.L, 'segEnd');
+  // Tramo macizo final a la derecha del último hueco (con extensión de junta en p2).
+  if (cursor < axis.L + extendP2Px) pushFullSegment(cursor, axis.L + extendP2Px, 'segEnd');
 
   return { boxes, panes, frames };
 }

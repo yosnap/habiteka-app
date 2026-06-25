@@ -415,8 +415,9 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
     // El CONTORNO mide ~4,15 × 3,15 m (planta + grosor de muro). Si un muro vertical saliera
     // tumbado sobre X (bug de orientación), el ancho del bbox se dispararía (~6,85 m).
-    expect(wb.w).toBeCloseTo(4, 1);
-    expect(wb.d).toBeCloseTo(3, 1);
+    // Con extensión de juntas, los muros solapan ~7.5 px en cada esquina → 4.15 × 3.15 m.
+    expect(wb.w).toBeCloseTo(4.15, 1);
+    expect(wb.d).toBeCloseTo(3.15, 1);
   });
 
   it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
@@ -435,9 +436,9 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
-    // El contorno de los muros cierra el rectángulo de la planta (~4,15 × 3,15 m con grosor).
-    expect(wb.w).toBeCloseTo(4, 1);
-    expect(wb.d).toBeCloseTo(3, 1);
+    // Con extensión de juntas, los muros solapan ~7.5 px en cada esquina → 4.15 × 3.15 m.
+    expect(wb.w).toBeCloseTo(4.15, 1);
+    expect(wb.d).toBeCloseTo(3.15, 1);
   });
 
   it('el color de un muro se propaga a sus WallBox (pintura editada en 3D)', () => {

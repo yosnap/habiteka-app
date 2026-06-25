@@ -17,7 +17,7 @@
  */
 import type { StructObj } from '@/canvas/types';
 
-const SNAP_DIST = 10; // px — tolerancia de detección de junta
+const SNAP_DIST = 20; // px — tolerancia de detección de junta (cubre muros de plantilla hasta ~28px grosor a 90°)
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
