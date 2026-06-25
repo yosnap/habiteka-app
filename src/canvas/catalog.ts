@@ -138,6 +138,21 @@ export const CATALOG: CatalogCategory[] = [
       { kind: 'pendant_lamp', label: 'Colgante', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo' },
     ],
   },
+  {
+    id: 'pared',
+    label: 'Pared',
+    items: [
+      // Elementos de superficie de muro (WallSurfaceKind): placement = 'wall-surface', se anclan
+      // al muro más cercano en 3D a la altura `elevationM` (ver WALL_SURFACE_ELEVATION_M).
+      { kind: 'outlet', label: 'Enchufe', defaultWidth: 16, defaultHeight: 16, realWidthM: 0.08, realDepthM: 0.04, family: 'Eléctrico' },
+      { kind: 'switch', label: 'Interruptor', defaultWidth: 16, defaultHeight: 16, realWidthM: 0.08, realDepthM: 0.04, family: 'Eléctrico' },
+      { kind: 'thermostat', label: 'Termostato', defaultWidth: 24, defaultHeight: 24, realWidthM: 0.12, realDepthM: 0.04, family: 'Eléctrico' },
+      { kind: 'tv_mount', label: 'TV de pared', defaultWidth: 120, defaultHeight: 70, realWidthM: 1.2, realDepthM: 0.08, family: 'Entretenimiento' },
+      { kind: 'wall_sconce', label: 'Aplique', defaultWidth: 24, defaultHeight: 24, realWidthM: 0.12, realDepthM: 0.1, family: 'Iluminación' },
+      { kind: 'art_frame', label: 'Cuadro', defaultWidth: 60, defaultHeight: 80, realWidthM: 0.6, realDepthM: 0.04, family: 'Decoración' },
+      { kind: 'radiator', label: 'Radiador', defaultWidth: 60, defaultHeight: 90, realWidthM: 0.6, realDepthM: 0.1, family: 'Calefacción' },
+    ],
+  },
 ];
 
 /** Índice plano kind → entrada, para resolver el tamaño por defecto al crear. */
