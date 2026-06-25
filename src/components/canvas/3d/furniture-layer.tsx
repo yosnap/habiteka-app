@@ -28,6 +28,7 @@ import { CATALOG } from '@/canvas/catalog';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { SelectionMode } from './use-3d-selection';
 import type { SceneCoords } from '@/canvas/3d/scene-to-doc';
+import { ModelErrorBoundary } from './model-error-boundary';
 import { translatePatch } from '@/canvas/3d/scene-to-doc';
 import { buildFloorAABB, resolveFloorCollisions } from '@/canvas/3d/collision';
 import { isFloorCollidable } from '@/canvas/3d/placement';
@@ -688,10 +689,16 @@ export const FurnitureLayer = memo(function FurnitureLayer({
         if (!url) {
           return <FurniturePlaceholder key={item.id} item={item} sel={sel} sceneCoords={sceneCoords} />;
         }
+        // El GLB puede fallar al cargar (item custom sin .glb → 404, o .glb corrupto):
+        // ErrorBoundary aísla el fallo a este mueble y cae a placeholder; Suspense muestra
+        // placeholder mientras carga. Así un custom que no cargue no rompe el Canvas entero.
+        const placeholder = <FurniturePlaceholder item={item} sel={sel} sceneCoords={sceneCoords} />;
         return (
-          <Suspense key={item.id} fallback={<FurniturePlaceholder item={item} sel={sel} sceneCoords={sceneCoords} />}>
-            <FurnitureModel item={item} url={url} sel={sel} sceneCoords={sceneCoords} />
-          </Suspense>
+          <ModelErrorBoundary key={item.id} fallback={placeholder}>
+            <Suspense fallback={placeholder}>
+              <FurnitureModel item={item} url={url} sel={sel} sceneCoords={sceneCoords} />
+            </Suspense>
+          </ModelErrorBoundary>
         );
       })}
     </group>
