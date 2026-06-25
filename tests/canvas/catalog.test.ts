@@ -49,6 +49,14 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   foco: true,
   ceiling_light: true,
   pendant_lamp: true,
+  // pared (wall-surface)
+  outlet: true,
+  switch: true,
+  thermostat: true,
+  tv_mount: true,
+  wall_sconce: true,
+  art_frame: true,
+  radiator: true,
 };
 
 const expectedKinds = Object.keys(EXPECTED_KINDS).sort();

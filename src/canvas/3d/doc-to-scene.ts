@@ -13,13 +13,13 @@
  * Reúsa `scale.ts` (pxToMeters, effectiveHeightM, DEFAULT_CEILING_M): la conversión
  * px↔m y la altura efectiva ya viven allí, puras y testeadas. Aquí NO se duplican.
  */
-import type { CanvasDoc, StructKind, StructObj } from '../types';
-import { CEILING_KINDS } from '../types';
+import type { CanvasDoc, StructKind, StructObj, WallSurfaceKind } from '../types';
+import { CEILING_KINDS, WALL_SURFACE_KINDS } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
 import { clampIntensity, defaultLight } from '../light';
 import { associateOpening, splitWallWithOpenings, wallAxis, wallEndpointsXZ } from './wall-openings';
 import { floorPolygonFromWalls } from './floor-from-walls';
-import { objectCenterY } from './placement';
+import { objectCenterY, wallSurfaceElevationM, WALL_SURFACE_SIZE_M } from './placement';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -65,9 +65,19 @@ function isCeilingItem(o: StructObj): boolean {
   return (CEILING_KINDS as Set<string>).has(o.kind);
 }
 
-/** ¿El objeto es un mueble colocable en suelo/pared? (no estructural, no luz, no techo). */
+/** ¿El objeto es un mueble colocable en suelo/pared? (no estructural, no luz, no techo, no wall-surface). */
 function isFurniture(o: StructObj): boolean {
-  return !STRUCTURAL_KINDS.has(o.kind) && !isLight(o) && !isCeilingItem(o);
+  return (
+    !STRUCTURAL_KINDS.has(o.kind) &&
+    !isLight(o) &&
+    !isCeilingItem(o) &&
+    !(WALL_SURFACE_KINDS as Set<string>).has(o.kind)
+  );
+}
+
+/** ¿El objeto es un elemento de superficie de muro (enchufe, interruptor, TV…)? */
+function isWallSurfaceItem(o: StructObj): boolean {
+  return (WALL_SURFACE_KINDS as Set<string>).has(o.kind);
 }
 
 /** Caja de un muro en metros, ya centrada en el origen de la escena (plano XZ). */
@@ -167,6 +177,24 @@ export interface FurnitureItem {
 }
 
 /**
+ * Elemento anclado a la superficie de un muro (enchufe, interruptor, TV de pared…).
+ * El centro se calcula proyectando la posición 2D del objeto sobre el muro más cercano,
+ * a la altura `center[1]` (elevación + alto/2). `rotationY` alinea su cara ancha con el muro.
+ */
+export interface WallSurfaceItem {
+  id: string;
+  kind: WallSurfaceKind;
+  /** Centro en metros: [x, y, z], con y = elevación + alto/2. */
+  center: [number, number, number];
+  /** Tamaño real en metros: [ancho (a lo largo del muro), alto (vertical), profundidad]. */
+  size: [number, number, number];
+  /** Rotación alrededor de Y (rad) para alinear la cara ancha con el muro. */
+  rotationY: number;
+  /** Color del material opcional (p. ej. marco del cuadro); si no, el render usa un default. */
+  color?: string;
+}
+
+/**
  * Luz de la escena derivada de una luz de primera clase (F-LUZ) del doc. Se renderiza
  * como una luz puntual (PointLight) en `position`, con `color` e `intensity` físicos.
  */
@@ -205,6 +233,8 @@ export interface Scene3D {
   furniture: FurnitureItem[];
   /** Elementos de techo (ceiling_light, pendant_lamp), colgados desde arriba. */
   ceilingItems: FurnitureItem[];
+  /** Elementos anclados a la superficie de un muro (enchufes, interruptores, TV…). */
+  wallSurfaceItems: WallSurfaceItem[];
   /** Luces de primera clase (F-LUZ) del doc, como luces puntuales. */
   lights: SceneLight[];
   /** Altura de techo efectiva usada (m). */
@@ -499,6 +529,38 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     openingFrames.push(...frames);
   }
 
+  // Elementos de superficie de muro: se anclan al muro más cercano (asociación geométrica,
+  // igual que las aperturas). Su posición 2D se proyecta sobre la línea del muro y se elevan
+  // a su altura de instalación. Sin muro cercano no se renderizan (un enchufe flotando no aporta).
+  const wallSurfaceItems: WallSurfaceItem[] = [];
+  for (const o of doc.objects.filter(isWallSurfaceItem)) {
+    const wall = associateOpening(o, wallObjs);
+    if (!wall) continue;
+    const axis = wallAxis(wall);
+    const { p1, p2 } = wallEndpointsXZ(wall, center, pxPerMeter);
+    // Centro 2D del objeto en mundo XZ.
+    const [ox, oz] = planPointToXZ(o, center, pxPerMeter);
+    // Proyectar (ox,oz) sobre el segmento p1→p2 del muro (punto más cercano de la recta).
+    const segx = p2[0] - p1[0];
+    const segz = p2[1] - p1[1];
+    const segLen2 = segx * segx + segz * segz || 1;
+    let t = ((ox - p1[0]) * segx + (oz - p1[1]) * segz) / segLen2;
+    t = Math.max(0, Math.min(1, t)); // clamp al tramo del muro
+    const px = p1[0] + segx * t;
+    const pz = p1[1] + segz * t;
+    const kind = o.kind as WallSurfaceKind;
+    const [wM, hM, dM] = WALL_SURFACE_SIZE_M[kind];
+    const elevM = wallSurfaceElevationM(kind, o.elevationM);
+    wallSurfaceItems.push({
+      id: o.id,
+      kind,
+      center: [px, elevM + hM / 2, pz],
+      size: [wM, hM, dM],
+      rotationY: rotation2DToY(axis.angleDeg),
+      ...(o.color ? { color: o.color } : {}),
+    });
+  }
+
   // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
   // del contorno por diseño y estirarían el suelo). Si no hay muros, cae a todos los objetos.
   // El bbox respeta la rotación de los muros (Draw Walls los rota), y el suelo se centra en
@@ -548,6 +610,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     openingFrames,
     furniture,
     ceilingItems,
+    wallSurfaceItems,
     lights,
     ceilingHeightM,
     pxPerMeter,

@@ -27,6 +27,7 @@ import { OpeningFramesLayer } from './opening-frames-layer';
 import { SnapGuideLayer } from './snap-guide-layer';
 import { OpeningInteractionLayer } from './opening-interaction-layer';
 import { CeilingLayer } from './ceiling-layer';
+import { WallSurfaceLayer } from './wall-surface-layer';
 
 /** Punto del suelo (plano y=0) en coordenadas de mundo XZ, o null si el rayo no lo corta. */
 export type FloorPoint = { x: number; z: number } | null;
@@ -447,6 +448,7 @@ export function Plan3DView({
           mode={mode ?? 'none'}
           onSetMode={onSetMode ?? (() => {})}
         />
+        <WallSurfaceLayer items={scene.wallSurfaceItems} />
         {/* Gizmo de transformación (F2): monta cuando hay modo activo. OrbitControls ya
             tiene makeDefault → TransformControls lo silencia automáticamente al arrastrar. */}
         {selectedId && mode && mode !== 'none' ? (

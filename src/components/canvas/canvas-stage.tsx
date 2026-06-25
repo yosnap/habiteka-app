@@ -9,6 +9,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import { WALL_SURFACE_KINDS } from '@/canvas/types';
 import { useFreehand } from '@/canvas/use-freehand';
 import { useDrawWall } from '@/canvas/use-draw-wall';
 import { pixelRectToZone } from '@/canvas/selection-math';
@@ -214,7 +215,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         const { w, h } = catalogSizePx(catalogEntry, scale);
 
         let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
-        if (WALL_CHILD_KINDS.has(catalogEntry.kind)) {
+        if (WALL_CHILD_KINDS.has(catalogEntry.kind) || (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind)) {
           const walls = doc.objects.filter((o) => o.kind === 'wall');
           const snapped = snapToWall(pos, walls, w);
           if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; }
@@ -339,7 +340,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
       // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación.
       let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
-      if (WALL_CHILD_KINDS.has(parsed.kind)) {
+      if (WALL_CHILD_KINDS.has(parsed.kind) || (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind)) {
         const walls = doc.objects.filter((o) => o.kind === 'wall');
         const snapped = snapToWall({ x: worldX, y: worldY }, walls, w);
         if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; }

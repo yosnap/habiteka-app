@@ -67,7 +67,8 @@ export type StructKind =
   | ElectronicsKind
   | DecorKind
   | LightKind
-  | CeilingLightKind;
+  | CeilingLightKind
+  | WallSurfaceKind;
 
 // --- F0: Placement system (kinds futuros; no forman parte de StructKind aún) ---
 
