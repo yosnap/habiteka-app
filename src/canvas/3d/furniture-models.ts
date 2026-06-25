@@ -69,9 +69,19 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   chimenea: { url: '/models/cc0/chimenea.glb' },
 };
 
-/** URL del modelo de un kind, o null si no hay (→ placeholder). */
-export function furnitureModelUrl(kind: StructKind): string | null {
-  return FURNITURE_MODELS[kind]?.url ?? null;
+/**
+ * URL del modelo de un kind, o null si no hay (→ placeholder).
+ *
+ * Kinds builtin → ruta estática de `FURNITURE_MODELS` (public/models/cc0/*.glb).
+ * Kinds custom (`custom_*`, subidos por el usuario) → ruta estable
+ * `/api/catalog/<kind>/model`, que redirige a una URL presignada fresca de S3/MinIO.
+ * Así el render 3D (`useGLTF`) carga el .glb real del item custom sin gestionar caducidades.
+ */
+export function furnitureModelUrl(kind: StructKind | string): string | null {
+  if (typeof kind === 'string' && kind.startsWith('custom_')) {
+    return `/api/catalog/${encodeURIComponent(kind)}/model`;
+  }
+  return FURNITURE_MODELS[kind as StructKind]?.url ?? null;
 }
 
 /** ¿El modelo declara su `front`? Si sí, el render usa ese dato; si no, infiere la orientación
