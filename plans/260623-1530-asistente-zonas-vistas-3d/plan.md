@@ -43,10 +43,10 @@ separado. Orden por valor/riesgo: el bug primero (desbloquea), el 3D interactivo
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | [Fix: el asistente no se atasca si la generación falla](./phase-01-fix-asistente-atasco.md) | Pending |
-| 2 | [Flujo zona→imagen: subir imagen a una zona, gestionar zonas](./phase-02-flujo-zona-imagen.md) | Pending |
-| 3 | [Vistas de diseño desde la escena 3D (capturas por ángulo)](./phase-03-vistas-desde-3d.md) | Pending |
-| 4 | [Edición en 3D: clic derecho para pintar / luces / material](./phase-04-edicion-3d.md) | Pending |
+| 1 | [Fix: el asistente no se atasca si la generación falla](./phase-01-fix-asistente-atasco.md) | ✅ HECHO (PR #40) |
+| 2 | [Flujo zona→imagen: subir imagen a una zona, gestionar zonas](./phase-02-flujo-zona-imagen.md) | ✅ HECHO (PR #40) |
+| 3 | [Vistas de diseño desde la escena 3D (capturas por ángulo)](./phase-03-vistas-desde-3d.md) | ✅ HECHO (PR #40) |
+| 4 | [Edición en 3D: clic derecho para pintar / luces / material](./phase-04-edicion-3d.md) | ✅ HECHO (PR #40) |
 
 ## Acceptance criteria (global)
 
