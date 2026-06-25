@@ -82,6 +82,10 @@ export function CanvasWorkspace({
   const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
   // Asistente de diseño (F7): se ofrece al abrir una zona vacía (sin contenido alguno).
   const [showWizard, setShowWizard] = useState(false);
+  // Confirmación antes de regenerar la sala sobre un plano que ya tiene contenido:
+  // el wizard reemplaza muros y disposición, así que pedimos confirmación para no perder
+  // el trabajo actual por accidente.
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   // Aviso temporal tras amueblar: qué muebles no cupieron en la sala (decisión: avisar, no solapar).
   const [furnishNotice, setFurnishNotice] = useState<string | null>(null);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
@@ -210,6 +214,16 @@ export function CanvasWorkspace({
     };
   });
 
+  // Abrir el asistente de sala: si la zona ya tiene contenido, pedir confirmación antes
+  // (el wizard reemplaza muros y disposición). En vacío, abre directo.
+  const handleOpenWizard = () => {
+    if (isDocEmpty(useCanvasStore.getState().doc)) {
+      setShowWizard(true);
+    } else {
+      setConfirmRegenerate(true);
+    }
+  };
+
   // Construye los items del menú contextual según la selección actual.
   const buildMenuItems = (): ContextMenuItem[] => {
     const store = useCanvasStore.getState();
@@ -313,7 +327,7 @@ export function CanvasWorkspace({
         </div>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <CatalogSidebar tool={tool} onPick={setTool} onOpenWizard={() => setShowWizard(true)} />
+        <CatalogSidebar tool={tool} onPick={setTool} onOpenWizard={handleOpenWizard} />
         <div
           ref={containerRef}
           className="border-line bg-surface flex-1 overflow-hidden rounded-card border"
@@ -360,6 +374,44 @@ export function CanvasWorkspace({
       ) : null}
       {doc3D ? (
         <Plan3DOverlay doc={doc3D} projectId={projectId} onClose={() => setDoc3D(null)} />
+      ) : null}
+      {confirmRegenerate ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="regenerate-title"
+        >
+          <div className="border-line bg-surface rounded-card w-80 border p-4 shadow-xl">
+            <h2 id="regenerate-title" className="text-ink mb-1 text-base font-semibold">
+              Regenerar la sala
+            </h2>
+            <p className="text-ink-soft mb-4 text-sm">
+              El asistente reemplazará los muros y la disposición actual de esta zona.
+              ¿Quieres continuar?
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmRegenerate(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setConfirmRegenerate(false);
+                  setShowWizard(true);
+                }}
+              >
+                Regenerar
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
       {showWizard ? (
         <SmartWizard
