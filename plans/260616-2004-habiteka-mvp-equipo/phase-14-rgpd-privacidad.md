@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** ARQ/Legal + Backend
 - **Prioridad:** P1 (**bloqueante para lanzar en la UE**)
-- **Estado:** Planificado
+- **Estado:** ✅ Hecho (soft-delete global + `ConsentRecord`; `src/server/privacy/**`: consent, deletion DB+S3, retention TTL, export, jurisdiction-allowlist, pii-scrub con blur de caras; `docs/legal/**`; 25 tests). Blur de matrículas y disparo del cron de retención → post-MVP/F-INT. Marco de roles F9 fijado en el RAT.
 - **Depende de:** F2 (modelo de datos, auth, scoping; donde viven los datos personales)
 - **Paralela con:** F8, F9, F10, F13 (M3/M4)
 - **Descripción:** Cumplimiento RGPD/privacidad. Las **fotos de viviendas son dato personal** (pueden revelar domicilio, situación patrimonial, e incluso personas). Cubre base legal y consentimiento, DPA con subencargados (OpenRouter y proveedor de imagen), política de retención/borrado, derecho de supresión, minimización/anonimización y registro de actividades de tratamiento (RAT).
@@ -77,18 +77,18 @@ src/server/privacy/
 10. Tests: ver sección **TDD / Pruebas primero** (escribir antes de cada servicio).
 
 ## Todo List
-- [ ] Inventario de PII + RAT (`records-of-processing.md`)
-- [ ] Política de privacidad + DPA (subencargados OpenRouter/imagen)
-- [ ] Política de retención + TTL por tipo de dato
-- [ ] Distinción supresión garantizada (propio) vs best-effort (subencargados) en política
-- [ ] `jurisdiction-allowlist` (modelos por jurisdicción con SCCs, coord. routing F3)
-- [ ] `consent-service` (registro de consentimiento + info transferencia art. 13.1.f)
-- [ ] `pii-scrub` (strip EXIF/geo + blurring personas/caras/matrículas, coord. F3)
-- [ ] `deletion-service` (cascada propio sin huérfanos + best-effort subencargados)
-- [ ] `retention-job` (purga por TTL, disparo coord. F11)
-- [ ] `data-export` (portabilidad)
-- [ ] Marco F9 votación: roles responsable/encargado + contrato art. 28 + control de edad (detalle en F9)
-- [ ] Tests de consentimiento/supresión/minimización/retención — verdes
+- [x] Inventario de PII + RAT (`records-of-processing.md`)
+- [x] Política de privacidad + DPA (subencargados OpenRouter/imagen)
+- [x] Política de retención + TTL por tipo de dato
+- [x] Distinción supresión garantizada (propio) vs best-effort (subencargados) en política
+- [x] `jurisdiction-allowlist` (modelos por jurisdicción con SCCs, coord. routing F3)
+- [x] `consent-service` (registro de consentimiento + info transferencia art. 13.1.f)
+- [x] `pii-scrub` (strip EXIF/geo [sanitizer F3] + blur de CARAS con detector inyectable; matrículas → post-MVP documentado)
+- [x] `deletion-service` (cascada propio sin huérfanos + best-effort subencargados)
+- [x] `retention-job` (purga por TTL; disparo del cron coord. F11/F-INT)
+- [x] `data-export` (portabilidad)
+- [ ] Marco F9 votación: roles responsable/encargado + contrato art. 28 + control de edad (marco fijado en el RAT; detalle de implementación en F9)
+- [x] Tests de consentimiento/supresión/minimización/retención — verdes (25)
 
 ## Success Criteria
 - Subida de imagen sin consentimiento registrado → bloqueada; la captura **informa la transferencia internacional** (art. 13.1.f).

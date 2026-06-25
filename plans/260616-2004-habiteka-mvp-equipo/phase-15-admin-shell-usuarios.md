@@ -7,7 +7,7 @@
 ## Overview
 - **Rol primario:** FE+BE (back-office)
 - **Prioridad:** P1 (puerta de entrada al dashboard admin)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #16)
 - **Depende de:** F2 (auth, modelo `User`, `permissions.ts`, organization plugin)
 - **Paralela con:** F16, F17, F18 (todas comparten árbol `(admin)` pero subrutas distintas)
 - **Descripción:** Shell del back-office: layout, navegación lateral, **guardia de ruta solo-admin** (server-side), y CRUD de gestión de **usuarios** (listar, ver, editar, suspender, gestionar accesos/roles). Define el rol **admin** distinto de B2B/B2C vía Better Auth. NO toca el FE de usuario `src/app/(app)/**` (F4/F6).
@@ -66,18 +66,18 @@ src/server/admin/
 4. `users/actions.ts`: Server Actions que revalidan `requireAdmin()` y delegan en Better Auth admin API (`listUsers`, `setRole`, `banUser`, `unbanUser`, `revokeSessions`) + `updateUser` vía Prisma.
 5. `audit.ts`: `writeAudit({actorId, action, targetType, targetId, meta})` → `AuditLog`.
 6. UI: `user-table` (paginado/filtros), `user-detail` con botones de acción (confirm dialogs en destructivas).
-7. `pnpm typecheck` + `build` verdes.
+7. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] Plugin `admin()` consumido (coordinado con F2)
-- [ ] `requireAdmin()` server-side guard
-- [ ] `(admin)/layout.tsx` con shell + nav + guardia
-- [ ] Lista de usuarios paginada con filtros
-- [ ] Detalle de usuario + editar
-- [ ] Suspender/reactivar (ban/unban) + forzar logout
-- [ ] Asignar/quitar rol admin
-- [ ] `writeAudit()` en toda mutación destructiva
-- [ ] Tests TDD rojo→verde
+- [x] Plugin `admin()` consumido (de F2; rol leído de la sesión)
+- [x] `requireAdmin()` server-side guard (revalidado en cada Server Action)
+- [x] `(admin)/layout.tsx` con shell + nav + guardia (redirect si no admin)
+- [x] Lista de usuarios paginada con filtros (email/estado, server-side)
+- [x] Detalle de usuario + acciones
+- [x] Suspender/reactivar (ban/unban) + forzar logout (invalida sesiones)
+- [x] Asignar/quitar rol admin (con guard "no auto-degradarse")
+- [x] `writeAudit()` en toda mutación destructiva (AuditLog append-only)
+- [x] Tests TDD rojo→verde (ops, no-self-action, auditoría inmutable, paginación)
 
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor):

@@ -8,7 +8,7 @@
 ## Overview
 - **Rol primario:** BE+FE (back-office)
 - **Prioridad:** P2
-- **Estado:** Planificado
+- **Estado:** Completado (PR #18) — import por URL + StorageAdapter; presigned upload de dispositivo (route) pendiente al cablear UI
 - **Depende de:** F2 (metadatos en Postgres), F0 (patrón de adaptador/contratos), F15 (`requireAdmin`/`writeAudit`/shell). Reusa criterios de sanitizado de F3.
 - **Paralela con:** F15, F16, F18
 - **Descripción:** Media manager del back-office: subir imágenes al servidor por (1) **URL**, (2) **dispositivo** (upload), (3) elegir de **biblioteca** preconfigurada; organizar en **carpetas** (jerarquía). Storage abstraído tras un `StorageAdapter` (mismo patrón que adaptadores IA), impl S3-compatible: **S3 gestionado en producción (deploy oficial)** y **MinIO en self-host** (mismo adaptador, backend por env). Metadatos en Postgres (`MediaAsset`, `MediaFolder`).
@@ -71,18 +71,18 @@ src/app/api/admin/media/upload/route.ts # presigned upload / confirm
 6. `media.actions.ts` + `folder.actions.ts`: CRUD con `requireAdmin()` + `writeAudit()`; anti-ciclo al mover carpeta.
 7. `api/admin/media/upload/route.ts`: emitir presigned + confirmar+validar.
 8. UI explorador (carpetas/grid, subida por las 3 vías).
-9. `pnpm typecheck` + `build` verdes.
+9. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] Modelos propuestos a F2 (`MediaAsset`/`MediaFolder`)
-- [ ] `StorageAdapter` interfaz + impl S3-compatible (S3 gestionado prod / MinIO self-host) + presigned URLs (con límite content-length)
-- [ ] `upload-validator` (magic bytes/tamaño/EXIF/re-encode, DRY con F3)
-- [ ] `url-import` anti-SSRF (bloqueo IP interna/metadata, límite/timeout)
-- [ ] Cuotas (lee SystemSetting)
-- [ ] CRUD assets (URL/upload/biblioteca) + carpetas jerárquicas anti-ciclo
-- [ ] Endpoint presigned upload + confirm/validate
-- [ ] `writeAudit()` en mutaciones
-- [ ] Tests TDD rojo→verde
+- [x] Modelos `MediaAsset`/`MediaFolder` (de F2; consumidos)
+- [x] `StorageAdapter` interfaz + impl S3-compatible (S3 gestionado / MinIO por env) + presigned URLs (upload con límite content-length, download con expiración)
+- [x] `upload-validator` reutilizando el saneador de F3 (magic bytes/dimensiones/EXIF/re-encode, DRY)
+- [x] `url-safety` anti-SSRF (bloqueo IP privada/loopback/metadata 169.254.169.254, solo http/https) + fetch con timeout/límite
+- [x] Cuotas (`quota.ts`, lee SystemSetting; tamaño total + nº de assets)
+- [x] Import por URL + borrado de assets + carpetas jerárquicas anti-ciclo
+- [~] Endpoint presigned upload de dispositivo: el adaptador expone `getPresignedUploadUrl`; el route + UI de upload directo se cablean al añadir esa vía (import por URL ya operativo)
+- [x] `writeAudit()` en mutaciones
+- [x] Tests TDD rojo→verde (anti-SSRF, validator, import completo, borrado, anti-ciclo, cuota)
 
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor):

@@ -1,0 +1,143 @@
+// Tablas de identidad y pertenencia. Las gestiona Better Auth (prismaAdapter);
+// aquí se declaran para que Prisma las migre y para relacionarlas con el resto
+// del dominio. Los plugins añaden campos: admin() → User.role/banned/...,
+// organization() → Organization/Member/Invitation, Session.activeOrganizationId.
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Plugin admin(): rol de PLATAFORMA (admin|user), distinto del rol B2B/B2C.
+  role       String?
+  banned     Boolean?  @default(false)
+  banReason  String?
+  banExpires DateTime?
+
+  sessions    Session[]
+  accounts    Account[]
+  members        Member[]
+  invitations    Invitation[]
+  consents       ConsentRecord[]
+  tosAcceptances TosAcceptance[]
+  cookieConsents CookieConsent[]
+
+  @@index([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Plugin organization(): organización activa de la sesión.
+  activeOrganizationId String?
+  // Plugin admin(): id del admin que está suplantando a este usuario.
+  impersonatedBy       String?
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// Organización = unidad de tenancy. Toda cuenta tiene una: la personal (B2C) es
+// una organización implícita de un solo miembro creada al registrarse.
+model Organization {
+  id        String   @id
+  name      String
+  slug      String?  @unique
+  logo      String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  // Metadatos de negocio (no gestionados por Better Auth).
+  accountType       AccountType @default(B2C)
+  // Origen del alta para la cadena anti-sybil (el gate de gasto vive en billing).
+  originEmailDomain String?
+  originIp          String?
+
+  members       Member[]
+  invitations   Invitation[]
+  projects      Project[]
+  subscription  Subscription?
+  creditBalance CreditBalance?
+  creditHolds   CreditHold[]
+  creditLedger  CreditLedger[]
+  consents      ConsentRecord[]
+  sourceImages  SourceImage[]
+  zones         ProjectZone[]
+  catalogItems  CatalogItem[]
+
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  inviterId      String
+  inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("invitation")
+}

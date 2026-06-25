@@ -1,0 +1,38 @@
+// Privacidad / RGPD: registro de consentimiento del interesado.
+//
+// El consentimiento se registra como histórico append-only (qué se consintió,
+// cuándo y con qué versión de política), no como un único flag mutable: el RAT
+// (art. 30) y la prueba de consentimiento (art. 7.1) exigen trazar la versión y
+// el momento exacto en que el interesado dio cada consentimiento.
+
+// Propósito del consentimiento. Se modela explícito para poder revocar uno sin
+// afectar a los demás (granularidad del art. 7.3).
+enum ConsentPurpose {
+  // Tratamiento de imágenes de vivienda por IA (incluye transferencia intl.).
+  IMAGE_PROCESSING
+  // Comunicaciones de producto / marketing.
+  MARKETING
+}
+
+model ConsentRecord {
+  id             String         @id @default(cuid())
+  // Secuencia monotónica de inserción: determina sin ambigüedad qué registro es
+  // el más reciente por (user, purpose), incluso si dos caen en el mismo
+  // milisegundo (createdAt tiene precisión de ms; un doble-clic/retry colisiona).
+  // Es lo que decide el estado actual del consentimiento (relevante para RGPD).
+  seq            BigInt         @default(autoincrement())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  purpose        ConsentPurpose
+  // Versión de la política de privacidad vigente al consentir (trazabilidad).
+  policyVersion  String
+  // true = consentimiento otorgado; false = revocado. La fila con mayor `seq` por
+  // (user, purpose) determina el estado actual; las anteriores son el histórico.
+  granted        Boolean
+  createdAt      DateTime       @default(now())
+
+  @@index([userId, purpose, seq])
+  @@map("consent_record")
+}

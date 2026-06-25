@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** FE + BE
 - **Prioridad:** P2 (add-on de negocio, no bloquea flujo core)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #20)
 - **Depende de:** F4 (canvas: elementos seleccionables), F6 (panel de entregables: punto de entrada al add-on). Usa modelos de F2 y registry/slots de F0.
 - **Paralela con:** F10 (marketplace) — globs disjuntos.
 - **Descripción:** Add-on de **votación comunitaria** registrado contra la interfaz del registry de add-ons (F0). Salas compartidas con login, **polling ~2s** (WebSocket = post-MVP), enlaces compartibles, votos y comentarios sobre **elementos del diseño** (puertas, azulejos, colores, ascensor). Se enchufa en el slot `agent.postEntrega` (Fase 5 del agente) y opcionalmente `canvas.layers`.
@@ -74,19 +74,19 @@ src/app/(app)/voting/[roomId]/
 7. `ui/use-room-poll.ts`: polling ~2s con pausa por `document.hidden`; backoff ante error.
 8. `ui/voting-room.tsx` + `element-vote-list.tsx` + `comment-thread.tsx` + `share-link.tsx`: sala, lista votable, hilos, copia de enlace.
 9. `app/(app)/voting/[roomId]/page.tsx`: vista que monta la sala; sin sesión → CTA login y retorno.
-10. Tests (delegados a F12): upsert no duplica voto; deltas devuelven solo lo nuevo; sala requiere auth para mutar. `pnpm typecheck`/`build` verdes.
+10. Tests (delegados a F12): upsert no duplica voto; deltas devuelven solo lo nuevo; sala requiere auth para mutar. `bun run typecheck`/`bun run build` verdes.
 
 ## Todo List
-- [ ] `AddonDefinition` de votación registrado en el registry (slots)
-- [ ] `room-repo`: crear sala desde deliverable + materializar elementos votables
-- [ ] `vote-service` con unique voto/usuario/elemento + recuento
-- [ ] `comment-service` por elemento
-- [ ] Endpoint de deltas (`?since=`)
-- [ ] Route handlers `api/voting/**` con auth + scoping de sala
-- [ ] Hook polling ~2s (pausa por visibilidad)
-- [ ] UI: sala, lista votable, hilo de comentarios, enlace compartible
-- [ ] Vista `(app)/voting/[roomId]` con flujo login→retorno
-- [ ] Tests verdes (delegados a F12)
+- [x] `AddonDefinition` de votación registrado en el registry (slots agent.postEntrega/canvas.layers)
+- [x] `room-repo`: crear sala desde deliverable + materializar elementos votables (del payload)
+- [x] `vote-service` con unique voto/usuario/elemento (upsert) + recuento agregado
+- [x] `comment-service` por elemento (texto plano, anti-XSS)
+- [x] Endpoint de deltas (`?since=`) — votos agregados + comentarios nuevos
+- [x] Route handlers `api/voting/**` con auth (votar requiere sesión)
+- [x] Hook polling ~2s (pausa por `document.hidden`, vía `useMountEffect`)
+- [x] UI: sala, lista votable con recuento en vivo, comentarios
+- [x] Vista `(app)/voting/[roomId]`
+- [x] Tests verdes (upsert no duplica, agregación, deltas por since, registro add-on)
 
 ## Success Criteria
 - Desde un entregable aprobado se crea una sala con enlace compartible.

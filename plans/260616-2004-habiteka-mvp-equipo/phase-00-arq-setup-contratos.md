@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** ARQ / Tech Lead
 - **Prioridad:** P1 (bloqueante de todo el equipo)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #6)
 - **Depende de:** — (raíz del grafo)
 - **Paralela con:** — (debe completarse antes de F1/F2/F3/F11)
 - **Descripción:** Bootstrap Next.js 16 + TS5 + Tailwind v4 + shadcn. Define la estructura de carpetas, estándares (ESLint/Prettier) y los **contratos TypeScript transversales** que todos los roles importan: `ChatVisionAdapter`, `ImageAdapter`, tipos del estado de fase del agente, interfaz del registry de add-ons y tipos de entregables. Estos contratos son el "API freeze" del equipo: BE/FE/IA programan contra ellos en paralelo.
@@ -19,7 +19,7 @@
 
 ## Requirements
 **Funcionales**
-- Proyecto Next.js 16.2 App Router arranca (`pnpm dev`) con página raíz placeholder.
+- Proyecto Next.js 16.2 App Router arranca con `bun run dev` en el **puerto 3040** (script `dev` con `-p 3040`), página raíz placeholder.
 - `src/lib/contracts/` exporta todas las interfaces transversales con barrel `index.ts`.
 - `src/lib/addons/registry/` exporta interfaz `AddonDefinition`, tipos de slots y un `createAddonRegistry()` puro (sin lógica de UI).
 - Path alias `@/*` configurado en tsconfig.
@@ -78,30 +78,30 @@ Contratos como **capa de tipos pura** (zero runtime salvo el registry). Diseño 
 **NO tocar (otros owners):** `prisma/**`, `src/server/**`, `src/app/(app)/**`, `src/components/**`, `.github/**`.
 
 ## Implementation Steps
-1. `pnpm create next-app` con TS, App Router, Tailwind v4; fijar versiones exactas del stack en `package.json`.
+1. `bun create next-app` (o `bunx create-next-app`) con TS, App Router, Tailwind v4; fijar versiones exactas del stack en `package.json`. Commitear `bun.lock` (no usar npm/pnpm lockfiles). Definir script `"dev": "next dev -p 3040"`.
 2. `tsconfig.json`: `strict`, `noUncheckedIndexedAccess`, alias `@/*`.
 3. Configurar ESLint + Prettier (no estricto en formato; sí en errores de compilación).
 4. Inicializar shadcn/ui (CLI) — solo config base; tokens los define UX en F1.
 5. Crear `.env.example` con nombres de secrets (sin valores): `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`.
 6. Escribir cada contrato en `src/lib/contracts/` (un fichero por dominio) + barrel. Incluir los 5 nuevos (`plano2d-payload`, `canvas-zone`, `design-element`, `product-drop-payload`, `agent-stream`) y el `Collected` tipado en `agent-state`.
 7. Escribir `registry/types.ts` + `create-registry.ts` (Map id→def, `register`/`get`/`list`, valida `sdkVersion`).
-8. `pnpm typecheck` y `pnpm build` deben pasar en verde con contratos importados desde un módulo de prueba.
+8. `bun run typecheck` y `bun run build` deben pasar en verde con contratos importados desde un módulo de prueba.
 9. Documentar en `docs/code-standards.md` la regla: comentarios explican el *porqué*, nunca el nº de fase del plan.
 
 ## Todo List
-- [ ] Next.js 16.2 + React 19.2 + TS5 + Tailwind v4 arrancan
-- [ ] tsconfig strict + alias `@/*`
-- [ ] ESLint/Prettier configurados
-- [ ] shadcn/ui base inicializado
-- [ ] `.env.example` con todos los nombres de secrets
-- [ ] 10 ficheros de contrato + barrel en `src/lib/contracts/` (incl. plano2d-payload, canvas-zone, design-element, product-drop-payload, agent-stream)
-- [ ] `Collected` tipado en `agent-state` (fuente del guard legal)
-- [ ] `targetRef` estable entre versiones en `design-element`
-- [ ] Registry de add-ons (types + factory + barrel)
-- [ ] `typecheck` + `build` en verde
+- [x] Next.js 16.2 + React 19.2 + TS5 + Tailwind v4 arrancan
+- [x] tsconfig strict + alias `@/*`
+- [x] ESLint/Prettier configurados
+- [x] shadcn/ui base inicializado
+- [x] `.env.example` con todos los nombres de secrets
+- [x] 10 ficheros de contrato + barrel en `src/lib/contracts/` (incl. plano2d-payload, canvas-zone, design-element, product-drop-payload, agent-stream)
+- [x] `Collected` tipado en `agent-state` (fuente del guard legal)
+- [x] `targetRef` estable entre versiones en `design-element`
+- [x] Registry de add-ons (types + factory + barrel)
+- [x] `bun run typecheck` + `bun run build` en verde
 
 ## Success Criteria
-- `pnpm install && pnpm build` sin errores.
+- `bun install && bun run build` sin errores.
 - Cualquier rol puede `import { ChatVisionAdapter, AgentState, Deliverable, AddonDefinition } from '@/lib/contracts'`.
 - Registry registra/lista una `AddonDefinition` de ejemplo en un test unitario.
 - Cero `any` en `src/lib/contracts/**`.

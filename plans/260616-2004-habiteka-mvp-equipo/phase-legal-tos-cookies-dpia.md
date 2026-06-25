@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** ARQ/Legal + BE + FE
 - **Prioridad:** P1 (**bloqueante de lanzamiento UE**, junto a F14)
-- **Estado:** Planificado
+- **Estado:** ✅ Hecho (`docs/legal/tos/**`: ToS/EULA + DPIA; `src/server/legal/**`: tos-acceptance + cookie-consent + actions; `src/components/legal/**`: banner cookies + gate ToS + cookie-gate; modelos `TosAcceptance`/`CookieConsent`; banner montado en layout; página `/legal/terminos`; 9 tests). El cableado de tracking F10/F18 → consulta de consentimiento va en F-INT.
 - **Depende de:** F14 (RGPD: política de privacidad, RAT, base legal; F19 complementa sin solapar)
 - **Paralela con:** F14 (M4 cumplimiento)
 - **Descripción:** Cubre los **huecos legales que F14 (RGPD) NO cubre**, identificados por el red team legal: (a) **Términos de Servicio/EULA** con limitación de responsabilidad, exclusión de garantía sobre la validez técnica/estructural del output y validación profesional como condición contractual; (b) **banner/gestión de consentimiento de cookies** (ePrivacy) para tracking de afiliación (F10) y analítica (F18); (c) **DPIA art. 35** (evaluación de impacto). F14 hace RAT art. 30; F19 hace la DPIA art. 35, distinta y exigible aquí.
@@ -61,12 +61,12 @@ src/server/legal/
 6. Tests: ver sección **TDD / Pruebas primero**.
 
 ## Todo List
-- [ ] `terms-of-service.md` (limitación resp., exclusión garantía, validación profesional, indemnización) + revisión legal
-- [ ] `tos-acceptance-service` + `tos-acceptance-gate` (aceptación antes de generar)
-- [ ] `cookie-consent-banner` + `cookie-consent-service` (opt-in granular, bloqueo previo)
-- [ ] Cableado F10/F18 → consultan consentimiento antes de tracking (coord.)
-- [ ] `dpia.md` (DPIA art. 35)
-- [ ] Tests: banner bloquea cookies no esenciales; ToS aceptado antes de generar — verdes
+- [x] `terms-of-service.md` (limitación resp., exclusión garantía, validación profesional, indemnización) — base, requiere revisión legal
+- [x] `tos-acceptance-service` + `tos-acceptance-gate` (aceptación antes de generar) + página pública `/legal/terminos`
+- [x] `cookie-consent-banner` + `cookie-consent-service` (opt-in granular, bloqueo previo) + `cookie-gate` (lógica pura cliente)
+- [ ] Cableado F10/F18 → consultan `cookieCategoryAllowed` antes de tracking (servicio listo; el wiring a sus globs va en F-INT)
+- [x] `dpia.md` (DPIA art. 35)
+- [x] Tests: gating de cookies (fail-closed/granular) + ToS aceptado antes de generar — verdes (9)
 
 ## Success Criteria
 - ToS/EULA publicado y revisado legalmente; **generación bloqueada** sin aceptación registrada (versión+ts).

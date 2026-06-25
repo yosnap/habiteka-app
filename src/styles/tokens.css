@@ -1,0 +1,44 @@
+/*
+ * Tokens de diseño de Habiteka (fuente única de verdad).
+ *
+ * Definidos con `@theme` de Tailwind v4 (configuración CSS-first): cada token se
+ * convierte en utilidades (`bg-*`, `text-*`, …) y queda disponible como variable
+ * CSS para shadcn. Ningún componente debe usar hex hardcodeado: cambiar un color
+ * es editar aquí y solo aquí (DRY).
+ *
+ * Paleta cálida acorde al dominio (hogar/interiorismo). Los pares de texto/fondo
+ * cumplen contraste WCAG 2.2 AA (≥ 4.5:1); el test de contraste lo verifica.
+ */
+@theme {
+  /* Marca: terracota cálida. */
+  --color-brand-50: oklch(0.97 0.02 40);
+  --color-brand-100: oklch(0.93 0.05 40);
+  --color-brand-500: oklch(0.62 0.16 40);
+  --color-brand-600: oklch(0.52 0.15 40);
+  --color-brand-700: oklch(0.43 0.13 40);
+
+  /* Neutros (texto y superficies). */
+  --color-ink: oklch(0.22 0.01 60);
+  --color-ink-soft: oklch(0.44 0.01 60);
+  --color-surface: oklch(0.99 0.005 80);
+  --color-surface-muted: oklch(0.96 0.008 80);
+  --color-line: oklch(0.9 0.008 80);
+
+  /* Estados semánticos. */
+  --color-success: oklch(0.55 0.13 150);
+  --color-warning: oklch(0.62 0.14 75);
+  --color-danger: oklch(0.55 0.2 27);
+  --color-info: oklch(0.55 0.12 240);
+
+  /* Tipografía. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radios. */
+  --radius-card: 0.75rem;
+  --radius-control: 0.5rem;
+
+  /* Sombras. */
+  --shadow-panel: 0 1px 3px oklch(0.22 0.01 60 / 0.1);
+  --shadow-float: 0 8px 24px oklch(0.22 0.01 60 / 0.14);
+}

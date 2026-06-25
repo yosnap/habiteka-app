@@ -1,0 +1,9 @@
+[
+  {
+    "id": "input-01",
+    "file": "input-01.jpg",
+    "kind": "boceto",
+    "prompt": "Render 3D realista de este espacio con estilo nórdico, luz natural",
+    "groundTruth": { "walls": 4, "doors": 1, "windows": 2, "pillars": 0 }
+  }
+]

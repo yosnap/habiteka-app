@@ -5,14 +5,15 @@
 ## Overview
 - **Rol primario:** IA + Producto
 - **Prioridad:** P1 (**GATE bloqueante: si NO pasa, M2 no arranca**)
-- **Estado:** Planificado
+- **Estado:** 🟡 Andamiaje listo — arnés (`tests/spikes/**`), docs (`docs/spikes/calidad-ia/**`), script `spike:calidad` y vars de entorno preparados (tests se omiten sin `RUN_SPIKE`). **La EJECUCIÓN y la DECISIÓN GO/NO-GO requieren dev-keys reales + juicio humano** (no autónomo). Nota: solo FLUX está implementado; Nano Banana/Imagen son stubs.
 - **Depende de:** F0 (contratos, repo), F3 (adaptadores mínimos: `ImageAdapter.generate`/`inpaint` conmutables por env + `ChatVisionAdapter` para visión sobre bocetos)
 - **Paralela con:** — (es un spike previo; corre tras F3 y antes de cualquier fase de M2)
 - **Descripción:** Validar empíricamente que la **calidad del entregable IA** (render 3D + plano 2D, y la fiabilidad de la detección de visión sobre boceto) es suficiente para que un usuario objetivo pague — ANTES de construir el resto del producto. Cierra la decisión §9.1 (proveedor de imagen) y da luz verde (o no) a M2. Sin este gate, las 18 fases se construyen sobre una apuesta no verificada (el valor central del producto).
 
 ## Key Insights
 - **El valor entero del producto es la calidad del output.** Todo lo demás (créditos, Polar, add-ons, back-office) es andamiaje. Si el render es feo/irreal o el plano impreciso, el andamiaje no importa. Este es el riesgo nº1 del red team de producto.
-- **§9.1 sigue abierta:** proveedor de imagen sin decidir (FLUX vs Nano Banana vs Imagen). F3 deja el adaptador conmutable por `IMAGE_PROVIDER` justamente para que este spike pruebe candidatos reales y **decida con datos**, no por intuición.
+- **§9.1 sigue abierta — proveedor NO fijado a priori:** FLUX vs Nano Banana vs Imagen se comparan **de igual a igual**; ningún proveedor se asume ganador antes del spike. F3 deja el adaptador conmutable por `IMAGE_PROVIDER` justamente para probar los **tres** candidatos reales y **decidir con datos** (go/no-go por evidencia), no por intuición.
+- **Criterios de calidad explícitos del comparativo:** (1) **realismo del render 3D**, (2) **precisión/fidelidad del plano 2D** (dimensional + fiel al boceto), (3) **calidad del inpainting** para el feedback por zona (edición selectiva limpia, sin artefactos en bordes de máscara — capacidad central de F7), **y** (4) **coste por imagen** + latencia. La decisión pondera calidad **y** coste, no calidad sola.
 - **La detección de visión sobre boceto a mano alzada es técnicamente frágil:** detectar muros/ventanas de un dibujo a mano falla a menudo. El spike mide la tasa real de acierto para saber si el paso "confirma detección" (F5) es una mejora de coste o una sesión de corrección manual que mata la promesa.
 - **Es un spike, no producción:** código exploratorio, fuera del flujo de usuario. Su entregable es una **decisión documentada** (GO/NO-GO + proveedor elegido), no features.
 
@@ -21,9 +22,9 @@
 - Generar **15-20 muestras reales** por candidato de proveedor de imagen: render 3D + plano 2D a partir de **bocetos a mano y fotos reales** representativos de los casos de uso (no prompts sintéticos ideales).
 - Ejecutar las mismas entradas contra **cada candidato** (FLUX, Nano Banana, Imagen) bajo el adaptador conmutable de F3.
 - Medir **fiabilidad de detección de visión** sobre los mismos bocetos (tasa de muros/ventanas/zonas detectados correctamente).
-- Evaluar las muestras con **criterios objetivos** (realismo, fidelidad al boceto, precisión dimensional del plano, ausencia de artefactos) **y con usuarios objetivo** (¿pagarían por esto?).
-- Registrar **coste y latencia** por candidato (insumo para pricing de F8 y UX de espera de F6).
-- Documentar **criterio GO/NO-GO explícito** (umbral cuantitativo de aceptación) y el **proveedor elegido**.
+- Evaluar las muestras con **criterios objetivos** por proveedor: **realismo del render 3D**, **fidelidad al boceto + precisión dimensional del plano 2D**, **calidad del inpainting** (feedback por zona: edición selectiva limpia, sin artefactos en bordes de máscara), ausencia de artefactos generales — **y con usuarios objetivo** (¿pagarían por esto?).
+- Registrar **coste por imagen y latencia** por candidato (insumo para pricing de F8 y UX de espera de F6); el comparativo pondera **calidad Y coste**.
+- Documentar una **decisión go/no-go por evidencia** (umbral cuantitativo de aceptación) y el **proveedor elegido** entre los tres (no fijado a priori).
 
 **No funcionales**
 - Resultados reproducibles: entradas, prompts y outputs versionados en `docs/spikes/**`.
@@ -37,9 +38,9 @@ docs/spikes/
     README.md                  # objetivo, protocolo, criterio GO/NO-GO
     inputs/                     # bocetos a mano + fotos reales (anonimizadas)
     samples/                    # outputs por candidato (flux/, nano-banana/, imagen/)
-    rubric.md                   # criterios objetivos + escala de evaluación
+    rubric.md                   # criterios objetivos por proveedor: realismo 3D, precisión plano 2D, calidad inpainting (feedback zona), coste/imagen + escala
     user-eval-results.md        # resultados de evaluación con usuarios objetivo
-    decision.md                 # GO/NO-GO + proveedor elegido + justificación (cierra §9.1)
+    decision.md                 # GO/NO-GO por evidencia + proveedor elegido (FLUX|Nano Banana|Imagen) + justificación calidad+coste (cierra §9.1)
 tests/spikes/
   vision-detection-accuracy.test.ts  # mide tasa de acierto de detección sobre el set de bocetos
   image-quality-harness.test.ts      # arnés que dispara cada proveedor sobre inputs/ y vuelca a samples/
@@ -61,23 +62,28 @@ tests/spikes/
 3. Escribir `image-quality-harness.test.ts`: itera `IMAGE_PROVIDER` ∈ {flux, nano-banana, imagen}, dispara `generate`/`inpaint` por input, vuelca a `samples/<proveedor>/` + registra coste/latencia.
 4. Escribir `vision-detection-accuracy.test.ts`: dispara visión sobre bocetos, compara con ground-truth, reporta tasa de acierto.
 5. Redactar `rubric.md` (criterios objetivos) y ejecutar evaluación interna + **sesión con usuarios objetivo**.
-6. Consolidar `decision.md`: tabla calidad/coste/latencia/detección por candidato → **proveedor elegido** (cierra §9.1) + **GO/NO-GO** contra el umbral.
+6. Consolidar `decision.md`: tabla por candidato (realismo 3D / precisión plano 2D / calidad inpainting / coste por imagen / latencia / detección) → **proveedor elegido entre los tres** (cierra §9.1) + **go/no-go por evidencia** contra el umbral.
 7. Comunicar el veredicto al equipo: si GO, M2 arranca con el proveedor fijado en `IMAGE_PROVIDER`; si NO-GO, M2 se detiene y se replantea (pricing/segmento/proveedor).
 
 ## Todo List
-- [ ] Set de entradas reales (bocetos+fotos) anonimizado
-- [ ] Ground-truth anotado para detección de visión
-- [ ] `image-quality-harness` (dispara cada proveedor → samples + coste/latencia)
-- [ ] `vision-detection-accuracy` (tasa de acierto sobre bocetos)
-- [ ] `rubric.md` + evaluación interna
-- [ ] Sesión de evaluación con usuarios objetivo
-- [ ] `decision.md`: proveedor elegido (§9.1) + GO/NO-GO documentado
-- [ ] Veredicto comunicado al equipo (gate a M2)
+**Andamiaje (hecho, listo para ejecutar):**
+- [x] `image-quality-harness` (dispara el proveedor activo → samples + coste/latencia; skip sin `RUN_SPIKE`)
+- [x] `vision-detection-accuracy` (tasa de acierto sobre bocetos vs ground-truth)
+- [x] `rubric.md` (criterios + umbral GO a fijar) + `decision.md` (plantilla) + READMEs de inputs/samples
+- [x] Script `spike:calidad` + vars `.env.example` (`RUN_SPIKE`, `SPIKE_VISION_MODEL`)
+
+**Ejecución (requiere dev-keys reales + juicio humano):**
+- [ ] Set de entradas reales (bocetos+fotos) anonimizado → `inputs/` (formato en `inputs/README.md`)
+- [ ] Ground-truth anotado en `inputs/cases.json`
+- [ ] Ejecutar el arnés por proveedor (FLUX real hoy; Nano Banana/Imagen son stubs, implementar antes de comparar los 3)
+- [ ] Evaluación interna con `rubric.md` + **sesión con usuarios objetivo** (`user-eval-results.md`)
+- [ ] `decision.md`: proveedor elegido (§9.1) + GO/NO-GO por evidencia
+- [ ] Veredicto comunicado (gate a M2)
 
 ## Success Criteria
 - 15-20 muestras reales generadas por **cada** candidato de proveedor, versionadas en `samples/`.
 - Tasa de acierto de detección de visión medida sobre bocetos reales (no sintéticos).
-- `decision.md` con **proveedor de imagen elegido** (§9.1 cerrada) y **criterio GO/NO-GO** cuantitativo aplicado.
+- `decision.md` compara los **tres** proveedores por realismo 3D / precisión plano 2D / calidad inpainting / coste por imagen, con **proveedor elegido** (§9.1 cerrada, no fijado a priori) y **go/no-go por evidencia** cuantitativo aplicado.
 - Veredicto explícito: **GO** (M2 arranca) o **NO-GO** (M2 detenido, replanteo) comunicado al equipo.
 
 ## Risk Assessment

@@ -5,7 +5,7 @@
 ## Overview
 - **Rol primario:** IA Engineer
 - **Prioridad:** P1 (cuello de botella: F5 agente depende de esto)
-- **Estado:** Planificado
+- **Estado:** Completado (PR #9)
 - **Depende de:** F0 (contratos congelados)
 - **Paralela con:** F1, F2, F11
 - **Descripción:** Implementa las dos clases concretas que satisfacen los contratos de F0: `OpenRouterChatVisionAdapter` (OpenAI SDK con `baseURL` OpenRouter — streaming, tool-calling, structured outputs `json_schema`, routing/fallback de modelos) y `ProviderImageAdapter` (render 3D + inpainting). Claves SOLO server-side. Cada operación reporta coste→créditos.
@@ -81,22 +81,22 @@ src/server/ai/
 10. `image/provider-image-adapter.ts`: fachada que delega al proveedor activo, **aplica `call-limits` (dimensiones/tamaño)** y normaliza `ImageResult`.
 11. `index.ts`: factories singleton-por-proceso seguras (sin estado por request), que cablean `spend-guard` antes de cada llamada IA.
 12. Tests unitarios con SDK mockeado (HTTP interceptado): json_schema válido, fallback al 2º modelo, parse de `usage`/coste-imagen, error de refusal, cap de gasto dispara circuit-breaker, sanitizer rechaza magic bytes inválidos / `image_url` externa. Smoke test real opcional tras una key de dev (no en CI).
-13. `pnpm typecheck` + `pnpm build` verdes.
+13. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] `gateway-client` (baseURL+key server-side, fail-fast) + `gateway-fallback` (conmuta a secundario si primario cae; OpenRouter es SPOF)
-- [ ] `model-config-loader` lee `ModelConfig` de BD (modelo+fallbacks **+ provider/baseURL**) + caché + `invalidate()` + default seguro si vacío
-- [ ] `model-routing` resuelve por acción consultando el loader (no hardcode); fallbacks ≤3; provider/baseURL desde allowlist
-- [ ] `call-limits` (techo por-llamada: `max_tokens` chat + tamaño/dimensiones imagen)
-- [ ] `chat()` + `chatStream()` con tools + json_schema strict (aplica `call-limits`)
-- [ ] Soporte de visión (image_url / base64)
-- [ ] Errores tipados (`AiError`, incl. `spend_cap`, `call_limit`, `gateway_down`)
-- [ ] `usage`→coste neutro (tokens Y coste-por-imagen)
-- [ ] `spend-guard` (rate-limit + cap diario + circuit-breaker) previo a IA
-- [ ] `input-sanitizer` (magic bytes + dimensiones + EXIF + re-encode, anti-SSRF)
-- [ ] `ImageAdapter` generate + inpaint (proveedor activo + stubs)
-- [ ] Factories sin estado por request (cablean spend-guard)
-- [ ] Tests unitarios con SDK mockeado verdes (incl. cap de gasto y sanitizer)
+- [x] `gateway-client` (baseURL+key server-side, fail-fast) + `gateway-fallback` (conmuta a secundario si primario cae; OpenRouter es SPOF)
+- [x] `model-config-loader` lee `ModelConfig` de BD (modelo+fallbacks **+ provider/baseURL**) + caché + `invalidate()` + default seguro si vacío
+- [x] `model-routing` resuelve por acción consultando el loader (no hardcode); fallbacks ≤3; provider/baseURL desde allowlist
+- [x] `call-limits` (techo por-llamada: `max_tokens` chat + tamaño/dimensiones imagen)
+- [x] `chat()` + `chatStream()` con tools + json_schema strict (aplica `call-limits`)
+- [x] Soporte de visión (image_url / base64)
+- [x] Errores tipados (`AiError`, incl. `spend_cap`, `call_limit`, `gateway_down`)
+- [x] `usage`→coste neutro (tokens Y coste-por-imagen)
+- [x] `spend-guard` (rate-limit + cap diario + circuit-breaker) previo a IA
+- [x] `input-sanitizer` (magic bytes + dimensiones + EXIF + re-encode, anti-SSRF)
+- [x] `ImageAdapter` generate + inpaint (proveedor activo + stubs)
+- [x] Factories sin estado por request (cablean spend-guard)
+- [x] Tests unitarios con SDK mockeado verdes (incl. cap de gasto y sanitizer)
 
 ## Success Criteria
 - `getChatVisionAdapter().chat({ responseSchema })` devuelve objeto validado contra el schema o `AiError` claro.

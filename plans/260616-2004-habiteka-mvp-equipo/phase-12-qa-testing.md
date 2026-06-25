@@ -54,7 +54,7 @@ Una fase está "hecha" solo si:
 1. Sus tests de la sección "TDD / Pruebas primero" se escribieron **antes** del código y pasaron de rojo a verde.
 2. Unit + integration de la fase verdes en CI **sin red** a IA/Polar.
 3. Invariantes legales aplicables (sello/disclaimer/consentimiento) cubiertas por test.
-4. `pnpm typecheck` + `build` verdes.
+4. `bun run typecheck` + `bun run build` verdes.
 5. Cobertura del hito cumplida para la lógica de negocio de la fase.
 
 ## Architecture
@@ -110,7 +110,7 @@ playwright/
 
 ## Success Criteria
 - Cada fase entrega con sus tests escritos ANTES del código y en verde (DoD test-first).
-- `pnpm test` (unit) verde y determinista **sin red**; integration verde contra Postgres efímero con migraciones reales.
+- `bun test` (unit) verde y determinista **sin red**; integration verde contra Postgres efímero con migraciones reales.
 - Test del agente cubre las 5 transiciones y guards usando **solo mocks** de adaptadores IA — cero llamadas reales en CI.
 - Webhook Polar: firma válida sincroniza, inválida rechaza, reenvío no duplica.
 - E2E cubre ingesta→entrega, checkout y votar; visual sin diffs no aprobados; axe sin violaciones críticas.

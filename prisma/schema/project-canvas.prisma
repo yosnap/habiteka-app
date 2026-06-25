@@ -1,0 +1,211 @@
+// Proyecto y todo lo que cuelga de él: diálogo del agente, estado del canvas,
+// estado de la máquina de 5 fases y entregables con su historial de iteraciones.
+// Todo recurso cuelga de `organizationId` (tenancy uniforme).
+
+model Project {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  // Soft-delete: marca de borrado lógico (papelera/retención). El borrado RGPD
+  // (art. 17) y la purga por TTL hacen hard-delete real; esto NO los sustituye.
+  deletedAt      DateTime?
+
+  conversations Conversation[]
+  canvasStates  CanvasState[]
+  agentStates   AgentState[]
+  deliverables  Deliverable[]
+  votingRooms   VotingRoom[]
+  sourceImages  SourceImage[]
+  zones         ProjectZone[]
+
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("project")
+}
+
+// Zona/toma de un inmueble (multi-zona): aérea, entrada, cocina… Agrupador delgado
+// del que cuelgan el plano (CanvasState), las imágenes de origen y los diseños de
+// esa zona. Se llama ProjectZone (no Zone) porque "zone" ya nombra la región de
+// inpainting del feedback (CanvasZone/PlanZone); de cara al usuario es "Zona".
+// Aditivo: un proyecto v1 vive sin filas aquí (sus recursos tienen zoneId=null).
+model ProjectZone {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  // Taxonomía opcional de la toma (aerea/entrada/interior/trasera…), libre por ahora.
+  kind           String?
+  order          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt      DateTime?
+
+  canvasStates CanvasState[]
+  sourceImages SourceImage[]
+  deliverables Deliverable[]
+  agentStates  AgentState[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([deletedAt])
+  @@map("project_zone")
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@index([projectId])
+  @@map("conversation")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  // Partes del mensaje (texto/imagen) serializadas; mapea a jsonb.
+  content        Json
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@map("message")
+}
+
+// Objetos del canvas (Konva) serializados. Un plano por (proyecto, zona):
+// `zoneId` null = plano por defecto del proyecto (v1); con valor = plano de esa zona.
+// La unicidad real la garantizan dos índices únicos PARCIALES creados a mano en la
+// migración (uno para zoneId NOT NULL, otro para el default con zoneId IS NULL),
+// porque en SQL NULL != NULL y un @@unique([projectId, zoneId]) normal dejaría
+// colar varios planos-default. Por eso aquí NO se declara @unique ni @@unique.
+model CanvasState {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  zoneId    String?
+  zone      ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  data      Json
+  version   Int          @default(1)
+  updatedAt DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([zoneId])
+  @@map("canvas_state")
+}
+
+// Estado persistido de la máquina de 5 fases. `version` habilita lock optimista
+// para que el orquestador no pise una actualización concurrente.
+// Estado del asistente por (proyecto, zona): `zoneId` null = asistente por defecto del
+// proyecto (v1); con valor = asistente de esa zona. Igual que CanvasState, la unicidad la
+// garantizan dos índices únicos PARCIALES creados a mano en la migración (uno para zoneId
+// NOT NULL, otro para el default con zoneId IS NULL), porque en SQL NULL != NULL y un
+// @@unique([projectId, zoneId]) normal dejaría colar varios estados-default. Por eso aquí
+// NO se declara @unique ni @@unique.
+model AgentState {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  zoneId    String?
+  zone      ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  phase     String
+  // `Collected` (objetivo/estilo/entregables/detectados) serializado.
+  collected Json
+  version   Int          @default(1)
+  updatedAt DateTime     @updatedAt
+
+  @@index([projectId])
+  @@index([zoneId])
+  @@map("agent_state")
+}
+
+model Deliverable {
+  id        String          @id @default(cuid())
+  projectId String
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      DeliverableType
+  // Payload tipado según el tipo (plano 2D / render / memoria); mapea a jsonb.
+  payload   Json
+  legalSeal String
+  version   Int             @default(1)
+  createdAt DateTime        @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt DateTime?
+
+  // Trazabilidad origen→diseño: la imagen de origen que produjo este entregable.
+  // SetNull (no Cascade): borrar la imagen no borra el diseño, solo rompe el vínculo.
+  sourceImageId String?
+  sourceImage   SourceImage? @relation(fields: [sourceImageId], references: [id], onDelete: SetNull)
+  // Zona del inmueble (multi-zona). Nullable; SetNull para no perder el diseño al
+  // borrar la zona (queda como diseño sin zona, recuperable).
+  zoneId        String?
+  zone          ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  iterations       Iteration[]
+  marketplaceItems MarketplaceItem[]
+
+  @@index([projectId])
+  @@index([deletedAt])
+  @@index([sourceImageId])
+  @@index([zoneId])
+  @@map("deliverable")
+}
+
+// Imagen de origen subida por el usuario (foto del espacio en la ingesta). Persiste
+// el dato personal con scope de organización (anti-IDOR por construcción, como el
+// resto de recursos de negocio) y engancha la retención/borrado RGPD por `deletedAt`.
+// No reutiliza `MediaAsset` (catálogo del back-office, sin tenant) a propósito.
+model SourceImage {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Zona del inmueble (multi-zona). Nullable; SetNull para no perder la imagen al
+  // borrar la zona (queda como imagen sin zona del proyecto).
+  zoneId         String?
+  zone           ProjectZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  // Clave en el object storage (reusa el backend, no la tabla MediaAsset). Es la
+  // única fuente de verdad: la URL para mostrar la imagen se genera presignada al
+  // servir (no se persiste, caducaría). Ver M1 del code-review.
+  key            String
+  mime           String
+  width          Int?
+  height         Int?
+  role           SourceImageRole @default(PRIMARY)
+  // Marca si se difuminaron caras al ingerir (minimización RGPD). Ver privacy/face-blur.
+  faceBlurred    Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  // Soft-delete: ver nota en Project. Hard-delete real lo hacen RGPD/retención.
+  deletedAt      DateTime?
+
+  deliverables Deliverable[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([zoneId])
+  @@index([deletedAt])
+  @@map("source_image")
+}
+
+// Feedback dirigido sobre una zona del entregable (inpainting / regeneración).
+model Iteration {
+  id            String      @id @default(cuid())
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  // Zona normalizada seleccionada en el canvas; mapea a jsonb.
+  zone          Json
+  instruction   String
+  resultRef     String?
+  createdAt     DateTime    @default(now())
+
+  @@index([deliverableId])
+  @@map("iteration")
+}

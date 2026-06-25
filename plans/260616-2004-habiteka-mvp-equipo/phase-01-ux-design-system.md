@@ -8,18 +8,19 @@
 ## Overview
 - **Rol primario:** UX/Diseño
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #10)
 - **Depende de:** F0 (setup, Tailwind v4 + shadcn instalados)
 - **Paralela con:** F2, F3, F11
 - **Descripción:** Define flujos de las 5 fases, wireframes conceptuales, design system (tokens, tipografía, color), componentes base, estados (carga/error/vacío), ubicación de disclaimers legales y accesibilidad. Entrega specs en `docs/ux/**` y tokens reales en `src/styles/**`. No implementa lógica de negocio.
 
 ## Key Insights
 - Disclaimer legal de Fase 1 y sello en entregables son **obligatorios** (sección 4 arquitectura). Su ubicación se diseña aquí, su render en F4/F6.
-- 2 audiencias: B2B (profesional, denso) y B2C (gratis/limitado, guiado). Mismo design system, distinto onboarding.
+- **Segmento primario del MVP = B2C** (cliente final / inquilino, no técnico). El flujo, el tono y el onboarding se optimizan para B2C. El onboarding **comercial B2B es post-MVP**: el design system y el modelo de datos lo soportan (mismo sistema, `organizationId` multi-tenant intacto), pero la EXPERIENCIA B2B no se diseña en este MVP.
+- **Disclaimer "conceptual" presentado para generar confianza, no miedo:** el B2C no técnico necesita entender que el render es una guía conceptual sin que el aviso lo asuste; tono claro, cercano y tranquilizador (no jurídico-alarmista).
 - El canvas domina la pantalla; chat y entregables son paneles laterales colapsables → layout de 3 zonas.
 - **Onboarding del canvas:** el lienzo en blanco causa parálisis → ofrecer plantillas/ejemplos de arranque y un estado vacío guiado (no un canvas desnudo).
 - **Affordance de feedback por zona:** la edición selectiva no es descubrible sola → hover-highlight de zonas + hint ("haz clic en una pared para modificarla").
-- **Equilibrio de disclaimers:** legales y transparentes, pero sin minar la confianza B2C (tono claro, no alarmista; ubicación que informa sin bloquear el flujo).
+- **Equilibrio de disclaimers:** legales y transparentes, pero presentados para **generar confianza** en el B2C no técnico (tono claro y tranquilizador, no alarmista; el aviso "conceptual" informa sin asustar ni bloquear el flujo).
 - **Sin jerga interna de fases en la UI:** el usuario no ve "Fase 3"/"Ingesta"; usar lenguaje de producto ("Sube tu plano", "Define tu estilo", "Tus diseños").
 - Tailwind v4 usa configuración CSS-first (`@theme` en CSS, no `tailwind.config.js`). Tokens viven en `src/styles/`.
 
@@ -33,7 +34,9 @@
 - **Onboarding del canvas:** plantillas/ejemplos de arranque + estado vacío guiado (anti-parálisis del lienzo en blanco).
 - **Affordance de feedback por zona:** hover-highlight + hint ("haz clic en una pared") para descubrir la edición selectiva.
 - Copy de producto sin jerga de fases (mapear las 5 fases internas a lenguaje de usuario).
-- Specs de los 2 disclaimers legales: posición, contraste, persistencia, no-dismissible, **tono equilibrado** (transparente sin alarmar al B2C).
+- Specs de los 2 disclaimers legales: posición, contraste, persistencia, no-dismissible, **tono que genera confianza** (transparente y tranquilizador para el B2C no técnico; el "conceptual" informa sin asustar).
+- Onboarding y copy optimizados para **B2C** (cliente final no técnico) como segmento primario; el flujo B2B comercial queda fuera del MVP.
+- **Auth UI (3 métodos):** botones OAuth Google + Meta + formulario email (password o código OTP). El formulario **no-OAuth muestra el widget Turnstile**; los botones OAuth **no** lo muestran. Estados de OTP (envío de código, reintento, código incorrecto/expirado) y mensaje cuando social sin email verificado debe completar verificación antes de usar cupo gratis.
 
 **No funcionales**
 - WCAG 2.2 AA: contraste ≥ 4.5:1, foco visible, navegación por teclado, roles ARIA.
@@ -92,17 +95,18 @@
 9. Checklist accesibilidad WCAG 2.2 AA en `accessibility.md` (contraste, foco, teclado, ARIA, motion-reduce).
 
 ## Todo List
-- [ ] User flows de las 5 fases documentados
-- [ ] Wireframes ASCII de 5 pantallas
-- [ ] Design system (tokens, tipografía, color, espaciado)
-- [ ] `tokens.css` con `@theme` Tailwind v4 funcional
-- [ ] Catálogo de componentes base → shadcn
-- [ ] Estados loading/error/vacío definidos
-- [ ] Onboarding del canvas (plantillas/ejemplos + estado vacío guiado)
-- [ ] Affordance de feedback por zona (hover-highlight + hint)
-- [ ] Copy de producto sin jerga de fases (mapa fase→lenguaje usuario)
-- [ ] Specs de ambos disclaimers legales (tono equilibrado B2C)
-- [ ] Checklist accesibilidad WCAG 2.2 AA
+- [x] User flows de las 5 fases documentados
+- [x] Wireframes ASCII de 5 pantallas
+- [x] Design system (tokens, tipografía, color, espaciado)
+- [x] `tokens.css` con `@theme` Tailwind v4 funcional
+- [x] Catálogo de componentes base → shadcn
+- [x] Estados loading/error/vacío definidos
+- [x] Onboarding del canvas (plantillas/ejemplos + estado vacío guiado)
+- [x] Affordance de feedback por zona (hover-highlight + hint)
+- [x] Copy de producto sin jerga de fases (mapa fase→lenguaje usuario)
+- [x] Specs de ambos disclaimers legales (tono equilibrado B2C)
+- [x] Auth UI (spec): OAuth Google+Meta + email (password/OTP); Turnstile solo en formulario no-OAuth; estados OTP/verificación social — render en F4/F6
+- [x] Checklist accesibilidad WCAG 2.2 AA
 
 ## Success Criteria
 - 5 flujos + 5 wireframes revisables sin ambigüedad por FE.

@@ -11,6 +11,8 @@ Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas 
 
 | Capa | Tecnología | Versión |
 |---|---|---|
+| Package manager / scripts / tests | Bun (`bun install`, `bun run`, `bun test`) | 1.x |
+| Runtime servidor (prod/Docker) | Node.js (servidor de Next standalone) | 22 LTS |
 | Framework | Next.js (App Router, RSC, Server Actions) | 16.2.x |
 | UI runtime | React | 19.2.x |
 | Lenguaje | TypeScript | 5.x |
@@ -23,6 +25,10 @@ Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas 
 | Imagen/Render 3D | Proveedor de imagen (FLUX/Nano Banana/Imagen) vía adaptador | — |
 | Pagos | Polar.sh (Merchant of Record) | — |
 | Tiempo real (votación) | Polling MVP → WebSocket post-MVP | — |
+
+> **Runtime — Bun como herramienta, Node como servidor:** Bun es el package manager y ejecutor de scripts/tests del repo (sustituye a npm/pnpm: `bun install`, `bun run dev`, `bun test`). El **servidor de Next en producción/Docker corre sobre Node.js** (servidor `standalone` oficial), porque servir Next sobre el runtime de Bun aún arrastra incompatibilidades con Next 16 standalone, Prisma y libs nativas. Decisión de menor riesgo: velocidad de Bun en dev/CI, estabilidad de Node en prod.
+>
+> **Puerto de desarrollo:** la app arranca por defecto en el **puerto 3040** (`bun run dev`, configurado vía script `-p 3040`). Es solo para dev local; producción/Docker usa su propia config de puerto (`PORT` por env, normalmente tras proxy).
 
 ## 3. Arquitectura de alto nivel
 

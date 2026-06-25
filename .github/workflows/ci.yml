@@ -1,0 +1,90 @@
+name: CI
+
+# Gate de calidad de cada cambio: ningún PR se mergea si lint, typecheck, tests
+# o build fallan. Corre en push a las ramas integradoras y en cada PR hacia ellas.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+# Cancela ejecuciones previas del mismo ref para no malgastar runners.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Permisos mínimos: solo leer el contenido del repo.
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Postgres efímero para los tests de integración (migraciones Prisma de BE).
+    # La app de test se conecta por DATABASE_URL; ningún secreto real se expone.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: habiteka
+          POSTGRES_PASSWORD: habiteka
+          POSTGRES_DB: habiteka_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U habiteka"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Conexión a la Postgres de servicio. NO es un secreto: credenciales
+      # efímeras del runner, nunca un entorno real.
+      DATABASE_URL: postgresql://habiteka:habiteka@localhost:5432/habiteka_test
+      # Valor de relleno para que el build no falle por env ausente; el CI
+      # nunca usa el secreto real (cero red a IA/pagos en CI).
+      BETTER_AUTH_SECRET: ci-placeholder-not-a-real-secret
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Cache Next build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ hashFiles('src/**/*.[jt]s', 'src/**/*.[jt]sx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
+
+      - name: Install dependencies
+        # `postinstall` genera el cliente Prisma; lo necesitan typecheck y build.
+        run: bun install --frozen-lockfile
+
+      - name: Apply migrations + seed
+        # Los tests de integración corren contra la Postgres de servicio: se
+        # aplican las migraciones (valida que son correctas) y el seed de defaults.
+        run: |
+          bun run db:deploy
+          bun run db:seed
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build

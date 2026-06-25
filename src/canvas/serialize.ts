@@ -1,0 +1,207 @@
+/**
+ * Serialización del documento del canvas hacia/desde JSONB.
+ *
+ * El estado en cliente es la fuente de verdad; al persistir se vuelca tal cual a
+ * `CanvasState.data`. Al rehidratar se valida de forma defensiva (el payload pudo
+ * venir de una versión anterior o estar corrupto): cualquier campo ausente cae a
+ * un valor seguro en lugar de romper el render.
+ */
+import {
+  type CanvasDoc,
+  type Stroke,
+  type StructObj,
+  type ProductRef,
+  type BaseImage,
+  type CanvasScale,
+  type LightProps,
+  type FloorVertex,
+  CANVAS_SCHEMA_VERSION,
+  emptyCanvasDoc,
+} from './types';
+import { CATALOG_BY_KIND } from './catalog';
+import { clampIntensity } from './light';
+
+/** Vuelca el documento a un valor JSON serializable (para JSONB). */
+export function serializeCanvas(doc: CanvasDoc): unknown {
+  return {
+    schemaVersion: doc.schemaVersion,
+    baseImage: doc.baseImage,
+    strokes: doc.strokes,
+    objects: doc.objects,
+    products: doc.products,
+    // La selección es estado de UI efímero: no se persiste.
+    selection: null,
+    // La escala solo se persiste si está definida (campo opcional v2 aditivo).
+    ...(doc.scale ? { scale: doc.scale } : {}),
+    ...(doc.ceilingHeightM ? { ceilingHeightM: doc.ceilingHeightM } : {}),
+    // Contorno del suelo (formas no rectangulares): se persiste para que el render 3D
+    // dibuje el suelo poligonal correcto tras recargar (campo opcional aditivo).
+    ...(doc.floorOutline && doc.floorOutline.length >= 3
+      ? { floorOutline: doc.floorOutline }
+      : {}),
+  };
+}
+
+/** Reconstruye un `CanvasDoc` desde JSONB, tolerante a datos incompletos. */
+export function deserializeCanvas(raw: unknown): CanvasDoc {
+  if (!isRecord(raw)) return emptyCanvasDoc();
+  const scale = parseScale(raw.scale);
+  return {
+    schemaVersion:
+      typeof raw.schemaVersion === 'number' ? raw.schemaVersion : CANVAS_SCHEMA_VERSION,
+    baseImage: parseBaseImage(raw.baseImage),
+    strokes: asArray(raw.strokes).map(parseStroke).filter(isPresent),
+    objects: asArray(raw.objects).map(parseStruct).filter(isPresent),
+    products: asArray(raw.products).map(parseProduct).filter(isPresent),
+    selection: null,
+    ...(scale ? { scale } : {}),
+    ...(posMeters(raw.ceilingHeightM) ? { ceilingHeightM: raw.ceilingHeightM as number } : {}),
+    ...(() => {
+      const outline = parseFloorOutline(raw.floorOutline);
+      return outline ? { floorOutline: outline } : {};
+    })(),
+  };
+}
+
+/**
+ * Parsea el contorno del suelo: una lista de vértices con `x,y` numéricos. Exige al menos
+ * 3 vértices para formar un polígono; si no es válida, se descarta (el render cae al suelo
+ * rectangular). No inventa vértices.
+ */
+function parseFloorOutline(v: unknown): FloorVertex[] | null {
+  if (!Array.isArray(v)) return null;
+  const pts: FloorVertex[] = [];
+  for (const p of v) {
+    if (isRecord(p) && typeof p.x === 'number' && typeof p.y === 'number' && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+      pts.push({ x: p.x, y: p.y });
+    }
+  }
+  return pts.length >= 3 ? pts : null;
+}
+
+/** true si el valor es un número de metros usable (positivo y finito). */
+function posMeters(v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
+}
+
+// --- parsers defensivos ---
+
+function parseBaseImage(v: unknown): BaseImage | null {
+  if (!isRecord(v)) return null;
+  // width/height deben ser positivos: la capa de fondo escala dividiendo por ellos
+  // (un 0 produciría Infinity → NaN en las dimensiones del KonvaImage).
+  if (
+    typeof v.url !== 'string' ||
+    typeof v.width !== 'number' ||
+    typeof v.height !== 'number' ||
+    v.width <= 0 ||
+    v.height <= 0
+  ) {
+    return null;
+  }
+  return {
+    url: v.url,
+    width: v.width,
+    height: v.height,
+    // Opacidad opcional, acotada a [0,1]; ausente o inválida ⇒ fondo opaco.
+    ...(typeof v.opacity === 'number' ? { opacity: Math.min(1, Math.max(0, v.opacity)) } : {}),
+  };
+}
+
+function parseStroke(v: unknown): Stroke | null {
+  if (!isRecord(v) || typeof v.id !== 'string' || !Array.isArray(v.points)) return null;
+  const points = v.points.filter((n): n is number => typeof n === 'number');
+  return {
+    id: v.id,
+    points,
+    color: typeof v.color === 'string' ? v.color : '#000000',
+    width: typeof v.width === 'number' ? v.width : 2,
+  };
+}
+
+function parseStruct(v: unknown): StructObj | null {
+  if (!isRecord(v) || typeof v.id !== 'string') return null;
+  // El `kind` debe ser uno del catálogo (estructura o mobiliario). Un kind
+  // desconocido (formato futuro) se descarta sin romper el resto del documento.
+  if (typeof v.kind !== 'string' || !(v.kind in CATALOG_BY_KIND)) return null;
+  const light = parseLight(v.light);
+  return {
+    id: v.id,
+    kind: v.kind as StructObj['kind'],
+    x: num(v.x),
+    y: num(v.y),
+    width: num(v.width),
+    height: num(v.height),
+    rotation: num(v.rotation),
+    ...(v.flipX === true ? { flipX: true } : {}),
+    ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
+    ...(light ? { light } : {}),
+    // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
+    ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),
+    // Color del material (pintura de pared) opcional: solo un string hex válido.
+    ...(isHexColor(v.color) ? { color: v.color as string } : {}),
+  };
+}
+
+/** ¿Es un color hex `#rgb`/`#rrggbb`? (validación básica del material persistido). */
+function isHexColor(v: unknown): boolean {
+  return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+}
+
+function parseLight(v: unknown): LightProps | null {
+  if (!isRecord(v)) return null;
+  // El color debe ser un string; si falta, se descarta la luz entera (no se
+  // inventa). La intensidad se acota a 0–100 (un valor inválido cae a 0).
+  if (typeof v.color !== 'string') return null;
+  return {
+    color: v.color,
+    intensidad: clampIntensity(typeof v.intensidad === 'number' ? v.intensidad : 0),
+  };
+}
+
+function parseProduct(v: unknown): ProductRef | null {
+  if (!isRecord(v) || typeof v.id !== 'string' || typeof v.marketplaceItemId !== 'string') {
+    return null;
+  }
+  return {
+    id: v.id,
+    marketplaceItemId: v.marketplaceItemId,
+    x: num(v.x),
+    y: num(v.y),
+    ...(typeof v.targetRef === 'string' ? { targetRef: v.targetRef } : {}),
+  };
+}
+
+function parseScale(v: unknown): CanvasScale | null {
+  if (!isRecord(v)) return null;
+  // `pxPerMeter` es la fuente de verdad de la conversión: debe ser positivo y
+  // finito (un 0 o negativo produciría medidas absurdas). Si no, se descarta la
+  // escala entera y el plano vuelve a píxeles abstractos.
+  if (typeof v.pxPerMeter !== 'number' || !Number.isFinite(v.pxPerMeter) || v.pxPerMeter <= 0) {
+    return null;
+  }
+  return {
+    pxPerMeter: v.pxPerMeter,
+    // El ratio es metadato presentacional opcional; solo se conserva si es válido.
+    ...(typeof v.ratio === 'number' && Number.isFinite(v.ratio) && v.ratio > 0
+      ? { ratio: v.ratio }
+      : {}),
+  };
+}
+
+// --- helpers ---
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
+function asArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+function num(v: unknown): number {
+  // Exige finitud: NaN/Infinity romperían el render (división por cero en la capa
+  // de fondo, atributos SVG inválidos al rasterizar el lienzo). Caen a 0.
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+}
+function isPresent<T>(v: T | null): v is T {
+  return v !== null;
+}

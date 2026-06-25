@@ -8,7 +8,7 @@
 ## Overview
 - **Rol primario:** BE+FE (back-office)
 - **Prioridad:** P2
-- **Estado:** Planificado
+- **Estado:** Completado (PR #17) — incluye creación de productos Polar vía API desde el admin
 - **Depende de:** F2 (BD, modelos nuevos), F3 (adaptadores que consumen la config de modelos), F15 (`requireAdmin`/`writeAudit`/shell)
 - **Paralela con:** F15, F17, F18
 - **Descripción:** Panel admin para (a) **mapeo ACCIÓN→MODELO** de OpenRouter editable en BD (acciones: `vision`, `chat`, `plano2d`, `render3d`, `inpaint`, `memoria`; cada una con modelo primario + fallbacks); (b) **branding** completo (logo, logo móvil, colores/identidad) persistido y consumido por la app; (c) **config general** del sistema (feature flags, límites). El adaptador de F3 **lee** la tabla de config en runtime (no hardcodea).
@@ -21,6 +21,7 @@
 - **Provider/baseURL desde allowlist (fallback de gateway de F3):** `ModelConfig` puede fijar `provider`/`baseURL` por acción para el fallback de gateway de F3, pero **solo** de una allowlist de gateways permitidos — nunca un `baseURL` arbitrario (evita exfiltración de la key a un endpoint atacante).
 - **Branding consumido en runtime:** la app lee `BrandSettings` (logo URL en MinIO de F17, colores) en el layout raíz. Cachear; invalidar al guardar. Las URLs de logo apuntan a assets gestionados por el media manager (F17) — el admin de branding **selecciona** un asset existente, no sube directo (DRY con F17).
 - **Feature flags / límites en `SystemSetting`** (key-value tipado) → evita redeploy para togglear.
+- **Parámetros anti-abuso editables en `SystemSetting` (sin redeploy):** `welcome_credits` (saldo de bienvenida finito por cuenta, consumido por F2 al registrar), `free_iterations_per_deliverable` (N iteraciones gratis por entregable, **default 3**, consumido por F8) y `accounts_per_origin_limit` (límite de cuentas por origen, anti-sybil, consumido por F8). El admin los ajusta en caliente. F2/F8 **leen el valor actual en cada decisión** (no cachean stale) → cambiar `welcome_credits` afecta a **nuevos** registros (no retroactivo); cambiar `free_iterations_per_deliverable` afecta a la siguiente evaluación de iteración. Validación en escritura: enteros ≥0 (techo razonable para evitar fijar millones por error).
 - **Validación de color/contraste:** los colores de marca deben pasar validación básica (hex válido); el contraste AA es responsabilidad de UX, no bloqueante aquí.
 
 ## Requirements
@@ -28,7 +29,7 @@
 - CRUD de `ModelConfig`: por cada acción, editar `primaryModel` + `fallbacks[]` (≤3) + `enabled` (+ opcional `provider`/`baseURL`). La UI ofrece un **selector cerrado** desde la **allowlist** de modelos/gateways permitidos; rechaza model id/baseURL fuera de allowlist o por encima del **techo de precio** por acción.
 - F3 lee `ModelConfig` en runtime (loader con caché) **y valida contra la allowlist** antes de usar el modelo; admin invalida caché al guardar.
 - CRUD de `BrandSettings`: logo, logoMobile (refs a `MediaAsset` de F17), paleta de colores, nombre de marca.
-- CRUD de `SystemSetting`: feature flags + límites (key, value tipado, enabled).
+- CRUD de `SystemSetting`: feature flags + límites (key, value tipado, enabled). Incluye los parámetros anti-abuso editables: `welcome_credits` (consumido por F2), `free_iterations_per_deliverable` (default 3, consumido por F8), `accounts_per_origin_limit` (consumido por F8). Validar enteros ≥0 con techo razonable; seed con defaults. El editor expone estos campos con descripción de su efecto (afecta a nuevos registros / a la próxima iteración).
 - Toda mutación: `requireAdmin()` + `writeAudit()`.
 
 **No funcionales**
@@ -64,18 +65,19 @@ src/server/admin/branding/
 3. `models.actions.ts`: CRUD `ModelConfig` vía Prisma con validación (fallbacks≤3, action en enum, **modelo/provider en allowlist, precio ≤ techo por acción**) + `model-config-loader.invalidate()` (de F3) + `writeAudit()`. La allowlist y el techo viven en config (p.ej. `SystemSetting`/constante de servidor compartida), no en el cliente.
 4. Coordinar con F3: confirmar que `model-routing.ts` consume el loader en vez de constante **y valida contra la allowlist** antes de usar el modelo (un model id fuera de allowlist cae al default). (F3 edita su propio fichero.)
 5. `branding-loader.ts` + `branding.actions.ts`: CRUD `BrandSettings`, selección de assets de F17, caché+invalidación.
-6. `system.actions.ts`: CRUD `SystemSetting` (flags/límites).
+6. `system.actions.ts`: CRUD `SystemSetting` (flags/límites), incluidos `welcome_credits`, `free_iterations_per_deliverable` (default 3) y `accounts_per_origin_limit` (validación entero ≥0 + techo; `writeAudit()`). F2/F8 leen el valor actual en cada decisión (no se cachea stale) → cambio en caliente sin redeploy.
 7. UI editores (shadcn forms) en `(admin)/config/**`.
-8. `pnpm typecheck` + `build` verdes.
+8. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] Modelos propuestos a F2 (`ModelConfig`/`BrandSettings`/`SystemSetting`) + seed
-- [ ] Editor acción→modelo+fallbacks (validación ≤3 + allowlist + techo de precio; selector cerrado, no input libre) que escribe `ModelConfig` + llama `invalidate()` de F3
-- [ ] F3 implementa/consume el loader (coordinado, F3 edita su fichero)
-- [ ] `branding-loader` + editor brand kit (refs a assets F17)
-- [ ] Editor de feature flags / límites
-- [ ] `writeAudit()` en toda mutación de config
-- [ ] Tests TDD rojo→verde
+- [x] Modelos `ModelConfig`/`BrandSettings`/`SystemSetting` (de F2; consumidos) + seed
+- [x] Editor acción→modelo+fallbacks (validación ≤3 + allowlist + techo de precio) que escribe `ModelConfig` + llama `invalidateModelConfig()` de F3
+- [x] F3 consume el loader (ya existente de F3; invalidate cableado desde el admin)
+- [x] `branding-loader` (caché+invalidate) + ops de brand kit (validación hex)
+- [x] Editor de feature flags / límites + parámetros anti-abuso (`welcome_credits`, `free_iterations_per_deliverable`, `accounts_per_origin_limit`, `global_spend_cap_usd`) con validación entero ≥0 + techo
+- [x] `writeAudit()` en toda mutación de config
+- [x] **Creación de productos Polar vía API (`polar.products.create`) desde el admin** + id guardado en `SystemSetting`
+- [x] Tests TDD rojo→verde (validación, invalidación de caché, hex, producto Polar con mock)
 
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor):
@@ -83,6 +85,9 @@ Escribir ANTES del código (rojo→verde→refactor):
 - **Validación fallbacks≤3:** guardar 4 fallbacks → rechaza. Verde con validación.
 - **Allowlist + techo de precio:** guardar un `primaryModel`/`provider` fuera de la allowlist → rechaza; guardar un modelo por encima del techo de precio de la acción → rechaza. (Complementa el test en F3 de que `model-routing` valida la allowlist antes de usar el modelo.)
 - **Branding consumido:** `branding-loader.get()` devuelve logo/colores guardados; cambio en admin se refleja tras invalidar.
+- **`welcome_credits` afecta a nuevos registros (integration):** `system.actions.update('welcome_credits', X)` persiste; un registro **posterior** acredita X al `CreditBalance` (F2 lee el valor actual); un registro anterior no cambia (no retroactivo). Rojo si F2 hardcodea el valor.
+- **`free_iterations_per_deliverable` leído en caliente (integration):** cambiar N en `SystemSetting` → la siguiente evaluación de `freeIterationsRemaining` (F8) usa el nuevo N sin redeploy (el contador de iteraciones lee el valor actual). Rojo si se cachea stale.
+- **Validación entero ≥0:** guardar valor negativo o no-entero en `welcome_credits`/`free_iterations_per_deliverable`/`accounts_per_origin_limit` → rechaza. Verde con la validación.
 - **Auditoría:** cambiar config escribe `AuditLog`.
 - **Mock:** se mockea OpenRouter (F3 ya lo mockea). NO se mockea Prisma/Postgres.
 
@@ -90,6 +95,7 @@ Escribir ANTES del código (rojo→verde→refactor):
 - Admin cambia el modelo de una acción y F3 usa el nuevo en la siguiente llamada (sin redeploy).
 - Branding (logo/colores) editable y reflejado en la app tras guardar.
 - Feature flags togglean comportamiento sin redeploy.
+- `welcome_credits`/`free_iterations_per_deliverable`/`accounts_per_origin_limit` editables; cambiar `welcome_credits` afecta a nuevos registros y `free_iterations_per_deliverable` a la siguiente iteración, sin redeploy.
 - Tabla vacía no rompe (defaults). Toda mutación auditada.
 
 ## Risk Assessment

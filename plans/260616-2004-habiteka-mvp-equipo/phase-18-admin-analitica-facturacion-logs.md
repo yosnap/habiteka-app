@@ -8,7 +8,7 @@
 ## Overview
 - **Rol primario:** BE+FE (back-office)
 - **Prioridad:** P2
-- **Estado:** Planificado
+- **Estado:** Completado (PR #19) — queries read-only + reembolso delegado; emisión de UsageEvent vía helper que F3/F8 cablearán
 - **Depende de:** F2 (`CreditLedger`, recursos), F8 (billing/Polar: `Subscription`, pagos), F3 (usage/coste). F15 (`requireAdmin`/`writeAudit`/shell).
 - **Paralela con:** F15, F16, F17
 - **Descripción:** Panel admin de (a) **estadísticas de uso** (acciones, entregables generados, usuarios activos); (b) **consumo de tokens/créditos** por acción y por usuario (lee `CreditLedger`/usage); (c) **auditoría** de lo que los usuarios crean (proyectos, entregables, iteraciones) + `AuditLog` de acciones admin; (d) **vista de facturación** (admin sobre Polar de F8: suscripciones, transacciones, reembolsos).
@@ -64,17 +64,17 @@ src/app/api/admin/analytics/export/route.ts  # export CSV (opcional)
 6. `refund.action.ts`: `requireAdmin()` → invoca Server Action de reembolso de F8 → `writeAudit()`.
 7. UI dashboards (gráficas simples shadcn/tabla, rangos de fecha, paginación).
 8. (Opcional) export CSV en `api/admin/analytics/export`.
-9. `pnpm typecheck` + `build` verdes.
+9. `bun run typecheck` + `bun run build` verdes.
 
 ## Todo List
-- [ ] Modelos propuestos a F2 (`AuditLog`/`UsageEvent`) + índices
-- [ ] Punto de emisión de `UsageEvent` coordinado con F3/F8
-- [ ] Agregaciones de uso (acciones/entregables/usuarios activos)
-- [ ] Consumo tokens/créditos por acción y por usuario (unidad correcta)
-- [ ] Auditoría: `AuditLog` + creaciones de usuarios (metadatos)
-- [ ] Facturación: suscripciones/transacciones (read-only)
-- [ ] Reembolso vía delegación a F8 + `writeAudit`
-- [ ] Tests TDD rojo→verde
+- [x] Modelos `AuditLog`/`UsageEvent` (de F2; consumidos) + índices
+- [x] Punto de emisión único de `UsageEvent` (`usage-emitter`, append-only; F3/F8 lo invocan en su flujo)
+- [x] Agregaciones de uso (acciones por unidad, usuarios activos)
+- [x] Consumo de créditos por organización (unidad correcta: tokens e imágenes separados)
+- [x] Auditoría: lectura de `AuditLog` paginada + recuento de creaciones por org (metadatos)
+- [x] Facturación: suscripciones (read-only)
+- [x] Reembolso delegado en la capa de facturación (`refund-service` → Polar) + `writeAudit`
+- [x] Tests TDD rojo→verde (agregación token/imagen, créditos, read-only, auditoría, reembolso con mock)
 
 ## TDD / Pruebas primero
 Escribir ANTES del código (rojo→verde→refactor), integration/Vitest contra Postgres efímero:

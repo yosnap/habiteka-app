@@ -27,6 +27,18 @@ coverage/
 .cache/
 *.tsbuildinfo
 
+# Next.js (autogenerado)
+next-env.d.ts
+
+# Prisma Client generado
+src/generated/
+
 # Agent internal memory inside plans
 .claude/agent-memory/
 **/.claude/agent-memory/
+
+# Salidas de los spikes de IA (evidencia local, posible PII; nunca se commitean)
+tests/spikes/out-*.png
+
+# Capturas de verificación de planes (artefactos locales pesados; los reportes .md sí se versionan)
+plans/reports/*.png

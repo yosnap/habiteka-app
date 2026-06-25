@@ -7,7 +7,7 @@
 ## Overview
 - **Rol primario:** BE/Backend
 - **Prioridad:** P1
-- **Estado:** Planificado
+- **Estado:** Completado (PR #8)
 - **Depende de:** F0 (repo, tsconfig, contratos en `src/lib/contracts/**`)
 - **Paralela con:** F1, F3, F11
 - **Descripción:** Schema Prisma 7 completo + migraciones (incl. 7 modelos de plataforma que consume el back-office), Better Auth 1.6 (email/password + OAuth, sesiones, RBAC B2B/B2C + plugin `admin()` para rol plataforma), cliente Prisma singleton, y estructura base de Server Actions/route handlers. **No** implementa adaptadores IA, state machine ni el back-office (eso es `src/server/ai/**`, `src/server/agent/**` y `src/server/admin/**`/`src/app/(admin)/**`); aquí solo se **declaran** los modelos y el rol que aquellos consumen.
@@ -19,6 +19,9 @@
 - **Rol admin de plataforma ≠ B2B/B2C:** un `admin` (back-office) es rol de plataforma, distinto de la cuenta de negocio (org) o individual. Usar el plugin `admin()` de Better Auth 1.6 (roles app `admin`/`user` + `ban`/`impersonate`/`listUsers`) → el back-office solo lo consume; aquí se **declara** en `auth.ts`. No mezclar con `accountType` B2B/B2C.
 - **Config dinámica en BD (no redeploy):** mapeo acción→modelo, branding y flags en tablas editables (`ModelConfig`/`BrandSettings`/`SystemSetting`), leídas en runtime con caché. El back-office edita estas tablas pero **no** toca `prisma/**` — los modelos se declaran aquí. `AuditLog` (acciones admin) y `UsageEvent` (telemetría IA, separada del `CreditLedger` contable) son append-only: el productor escribe, el panel solo lee.
 - Better Auth genera sus tablas (user, session, account, verification, organization, member, invitation) → no duplicarlas manualmente; referenciarlas en relaciones.
+- **3 métodos de acceso (Better Auth 1.6 nativo):** (a) OAuth social `socialProviders.google` + `socialProviders.facebook` (Meta = `facebook`); (b) **email-OTP sin contraseña** vía plugin `emailOTP({sendVerificationOTP})` (tipos `sign-in`/`email-verification`/`forget-password`); (c) email+password clásico. Requiere proveedor de **envío de email** (OTP + verificación): Resend/SMTP a elegir, secret server-side.
+- **Turnstile (Cloudflare) como CAPTCHA solo en flujos NO-OAuth:** plugin nativo `captcha({provider:"cloudflare-turnstile", secretKey: TURNSTILE_SECRET_KEY})` — NO construir verificador custom. La verificación server-side ocurre ANTES de crear cuenta / enviar OTP en email/password y email-OTP. **OAuth NO lleva captcha** (el proveedor social ya es la barrera). Site key pública en cliente, secret server-only. Refuerza la cadena anti-sybil existente: Turnstile (no-OAuth) → email verificado → límite por IP → cupo bienvenida finito → cap global.
+- **Email verificado = invariante anti-sybil:** si el proveedor social (Meta especialmente) NO aporta email verificado, el usuario completa con email+OTP (`email-verification`) ANTES de poder gastar cupo gratis. El gate de gasto (free-quota-gate, F8) ya exige email verificado; el flujo social incompleto pide verificación.
 - **Saldo autoritativo = `CreditBalance` (fila bloqueable), no SUM():** `CreditBalance(organizationId UNIQUE, balance Int, updatedAt)`. Débito = tx: lock fila (`SELECT ... FOR UPDATE`) → verificar `balance ≥ coste` → decrementar → insertar fila en `CreditLedger`. Evita el `SUM()` concurrente que da saldo negativo bajo réplicas. `CreditLedger` queda **solo auditoría append-only** (movimientos), NO fuente del saldo. El test de concurrencia valida **multi-réplica** (lock de fila en DB), no un mutex de proceso (inútil con varias instancias).
 - **Idempotencia como máquina de estados — `CreditHold` (no columna UNIQUE suelta):** `CreditHold(idempotencyKey UNIQUE, organizationId, amount, state PENDING|SETTLED|REVERTED|EXPIRED, refType, refId, expiresAt, createdAt, updatedAt)`. `idempotencyKey` **por OPERACIÓN** (no solo `deliverableId+version`): reintento de iteración, regeneración, settle-tras-revert y doble webhook son operaciones distinguibles, cada una con su clave. **Transiciones válidas explícitas:** `PENDING→{SETTLED|REVERTED|EXPIRED}`; los tres son **terminales** (settle-tras-revert se **rechaza**). Reaplicar la misma `idempotencyKey` devuelve el estado sin re-efecto. El débito al `CreditBalance` ocurre en `hold` y se confirma/libera en la transición.
 - **Reaper de holds huérfanos:** `CreditHold.expiresAt`; job que revierte holds `PENDING` vencidos (proceso muerto entre `hold` y `settle`/`revert`): `PENDING→EXPIRED` + repone `CreditBalance` (misma tx). Sin reaper, el crédito queda reservado para siempre.
@@ -26,6 +29,7 @@
 - **Tenancy uniforme por `organizationId` (resuelve la contradicción saldo/subscription):** TODO recurso de negocio cuelga de `organizationId` — `Project`, `CreditBalance`, `CreditHold`, `CreditLedger`, `Subscription`. **Cuenta personal (B2C) = organización implícita de 1 miembro** creada al registrarse → un solo modelo de pertenencia. `Subscription` pasa a ser **por organización** (no 1:1 con User), coherente con que saldo y proyectos son de la org. `accountType` (B2B/B2C) es metadato de la org, no cambia el dueño.
 - **Ownership ESTRUCTURAL, no opcional:** repos/helpers que **exigen** `OrgContext` como parámetro obligatorio; no existe ruta de acceso a recurso sin él (la API del repo no ofrece método sin scoping → no compila). No es un `assertOwnership` *opcional* que el dev puede olvidar: el scoping es la única puerta → anti-IDOR por construcción.
 - **Congelar campos add-ons:** dejar `Subscription`/`VotingRoom`/`MarketplaceItem` con sus campos previstos por F8/F9/F10 ya en el schema inicial (aditivo) para no forzar migración tardía.
+- **Créditos de bienvenida FINITOS por cuenta (no "gratis por proyecto"):** al registrar, la org recibe `welcome_credits` (de `SystemSetting`, NO hardcodeado) en `CreditBalance`, **una sola vez**. El "primer entregable gratis" se paga con ese saldo finito → da igual cuántos `Project` cree el usuario; agotado, se cobra normal (cierra el abuso de multiplicar proyectos). **Idempotencia derivada (sin flag nuevo):** un `CreditLedger` entry `reason="welcome_grant"` con UNIQUE parcial `(organizationId) WHERE reason='welcome_grant'` garantiza que reintento/doble-registro no re-acredita (el ledger ya es la fuente append-only de movimientos, DRY). Crédito y ledger en la **misma tx** que crea la org. **Anti-sybil:** el cupo solo es **gastable** tras verificar email (Better Auth `verification`); se registra el `origin` (IP + dominio email) y un `accounts_per_origin_limit` (`SystemSetting`) frena altas del mismo origen. **En MVP el límite se cuenta por IP** (más costosa de rotar que el dominio); el dominio email se guarda como refuerzo post-MVP. Cadena: email verificado → límite por IP → cupo finito → cap global de F8 (el gating de gasto vive en F8).
 
 ## Requirements
 **Funcionales**
@@ -39,7 +43,7 @@
 - `CreditHold(idempotencyKey UNIQUE, organizationId, amount, state PENDING|SETTLED|REVERTED|EXPIRED, refType, refId, expiresAt, createdAt, updatedAt)`: idempotencyKey por OPERACIÓN; transiciones válidas explícitas (PENDING→SETTLED|REVERTED|EXPIRED; estados terminales).
 - `ProcessedWebhookEvent`: dedup idempotente de webhooks Polar (event id UNIQUE).
 - Campos de `Subscription`/`VotingRoom`/`MarketplaceItem` congelados en el schema inicial (previstos por F8/F9/F10, aditivo).
-- Auth: registro/login email+password (crea org implícita), OAuth (Google mínimo), sesión persistida, logout.
+- Auth: 3 métodos — email+password, **email-OTP sin contraseña**, OAuth social **Google + Meta (facebook)**; todos crean org implícita (`requireEmailVerification`); sesión persistida, logout. **Turnstile** server-side antes de crear cuenta / enviar OTP en flujos email/password y email-OTP (OAuth exento). Al registrar: acreditar `welcome_credits` (de `SystemSetting`) a `CreditBalance` una vez (`CreditLedger.reason="welcome_grant"` + UNIQUE parcial, idempotente) + registrar `origin` (IP + dominio email). Social sin email verificado → completar con OTP `email-verification` antes de gastar cupo gratis. Gate de gasto del cupo (email verificado + `accounts_per_origin_limit` por IP) lo aplica F8.
 - RBAC: distinguir cuenta B2B (organización multi-miembro) de B2C (org implícita de 1); gate de permisos en server.
 - **Scoping estructural:** repositorio/helper `withOrg(orgContext)` que exige `OrgContext` como parámetro obligatorio; toda query de recurso pasa por él *por construcción* (no hay método de acceso sin scoping → anti-IDOR no olvidable).
 - Cliente Prisma singleton (evita agotar conexiones en dev hot-reload).
@@ -65,7 +69,8 @@ Organization 1──1 Subscription (organizationId; plan, status; ids Polar; cyc
 Organization 1──1 CreditBalance (organizationId UNIQUE, balance:int, updatedAt)  # saldo AUTORITATIVO, fila bloqueable (FOR UPDATE)
 Organization 1──n CreditHold (idempotencyKey UNIQUE, amount:int,
                         state:PENDING|SETTLED|REVERTED|EXPIRED, refType, refId, expiresAt, createdAt, updatedAt)  # idem por OPERACIÓN
-Organization 1──n CreditLedger (delta:int, reason, refId, holdId?, createdAt)  # AUDITORÍA append-only (no fuente del saldo)
+Organization 1──n CreditLedger (delta:int, reason, refId, holdId?, createdAt)  # AUDITORÍA append-only; reason="welcome_grant" + UNIQUE parcial (organizationId) → cupo bienvenida 1 vez
+Organization (originEmailDomain?, originIp?)  # origen del alta → anti-sybil por origen (gate en F8)
 ProcessedWebhookEvent (eventId UNIQUE, type, processedAt)  # dedup webhooks Polar
 Project 1──n VotingRoom 1──n Vote ; VotingRoom 1──n Comment
 Deliverable 1──n MarketplaceItem (label, affiliateUrl, vendor; campos congelados p/ F10)
@@ -114,7 +119,8 @@ prisma/
 - `prisma/schema/addons.prisma` — VotingRoom, Vote, Comment, MarketplaceItem, Addon (campos congelados p/ F9/F10)
 - `prisma/schema/admin.prisma` — AuditLog, ModelConfig, BrandSettings, SystemSetting, MediaAsset, MediaFolder, UsageEvent (consumidos por el back-office; aquí solo se declaran)
 - `src/server/db/prisma.ts` — cliente singleton
-- `src/server/auth/auth.ts` — config Better Auth + prismaAdapter + organization() + admin() (rol plataforma)
+- `src/server/auth/auth.ts` — config Better Auth + prismaAdapter + `socialProviders.google`+`.facebook` + plugins `organization()`, `admin()`, `emailOTP({sendVerificationOTP})`, `captcha({provider:"cloudflare-turnstile"})`
+- `src/server/auth/send-email.ts` — interfaz `EmailSender` **enchufable** (`send({to,subject,body})`) con **Resend como impl por defecto** y SMTP conmutable (coherente con el patrón de adaptadores del proyecto, facilita self-host fair-code). Proveedor seleccionado por env; secret server-only
 - `src/server/auth/permissions.ts` — accessControl + roles B2B/B2C
 - `src/server/auth/org-context.ts` — resuelve `OrgContext` (organizationId) desde la sesión; crea org implícita al registrar
 - `src/server/db/scoped-repo.ts` — `withOrg(orgContext)`: repo que **exige** OrgContext; única puerta a queries de recurso (scoping estructural, anti-IDOR)
@@ -124,16 +130,16 @@ prisma/
 - `src/app/api/auth/[...all]/route.ts` — route handler auth
 - `src/app/api/health/route.ts` — healthcheck (app + DB) consumido por F11
 
-**Modificar:** `.env.example` (añadir `DATABASE_URL`, `BETTER_AUTH_SECRET`, OAuth ids) — coordinar con F0/F11.
+**Modificar:** `.env.example` (añadir `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `FACEBOOK_CLIENT_ID/SECRET`, `TURNSTILE_SITE_KEY` (público) + `TURNSTILE_SECRET_KEY` (server), proveedor email enchufable `EMAIL_PROVIDER` + su credencial — `RESEND_API_KEY` por defecto, o `SMTP_*` si se conmuta) — coordinar con F0/F11.
 **Sin solape:** `src/server/ai/**` y `src/server/agent/**` los crea rol IA. FE no toca `src/server/**`.
 
 ## Implementation Steps
 1. Configurar `prisma/schema/base.prisma`: datasource Postgres, generator con carpeta multi-file, enums (DeliverableType, AccountType, SubscriptionStatus, AddonKey, HoldState `PENDING|SETTLED|REVERTED|EXPIRED`, ModelAction `vision|chat|plano2d|render3d|inpaint|memoria`, UsageUnit `token|image`, MediaStatus).
-2. Modelar dominios en sus `.prisma` respectivos con relaciones, índices y `Json` para canvas/zona/extensionPoints. **Tenancy uniforme:** `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger. `CreditBalance(organizationId UNIQUE, balance Int)` (saldo autoritativo). `CreditHold(idempotencyKey UNIQUE, state HoldState, amount, refType, refId, expiresAt)`. `CreditLedger` append-only (auditoría, `holdId?`). Tabla `ProcessedWebhookEvent`. Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem.
+2. Modelar dominios en sus `.prisma` respectivos con relaciones, índices y `Json` para canvas/zona/extensionPoints. **Tenancy uniforme:** `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger. `CreditBalance(organizationId UNIQUE, balance Int)` (saldo autoritativo). `CreditHold(idempotencyKey UNIQUE, state HoldState, amount, refType, refId, expiresAt)`. `CreditLedger` append-only (auditoría, `holdId?`, `reason`) **+ índice UNIQUE parcial `@@unique([organizationId]) WHERE reason='welcome_grant'`** (o constraint SQL en la migración) → garantiza un único acreditado de bienvenida por org. Campos `originEmailDomain?`/`originIp?` en Organization (origen del alta, anti-sybil). Tabla `ProcessedWebhookEvent`. Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem.
 2b. Modelar `admin.prisma`: AuditLog (append-only, idx createdAt/actorId), ModelConfig (action UNIQUE, fallbacks `String[]`), BrandSettings (singleton), SystemSetting (key UNIQUE), MediaFolder (parentId self-ref), MediaAsset (idx folderId), UsageEvent (idx createdAt/action/userId). Seed de defaults para ModelConfig (mapeo acción→modelo de arranque).
 3. `prisma migrate dev` → generar migración inicial; verificar `jsonb` en SQL.
 4. Cliente singleton en `db/prisma.ts` (patrón global en dev).
-5. Better Auth: `auth.ts` con `prismaAdapter(prisma,{provider:"postgresql"})`, `emailAndPassword`, `socialProviders.google`, `plugins:[organization({...}), admin({...})]`. **Hook de registro:** crear org implícita de 1 miembro + `CreditBalance(balance=0)` para esa org al dar de alta un usuario (cuenta personal = org de 1). El plugin `admin()` añade rol plataforma `admin`/`user`.
+5. Better Auth: `auth.ts` con `prismaAdapter(prisma,{provider:"postgresql"})`, `emailAndPassword` (requireEmailVerification), `socialProviders:{google, facebook}` (Meta=`facebook`), `plugins:[organization({...}), admin({...}), emailOTP({sendVerificationOTP}), captcha({provider:"cloudflare-turnstile", secretKey:TURNSTILE_SECRET_KEY})]`. `sendVerificationOTP` enruta a `send-email.ts` por tipo (`sign-in`/`email-verification`/`forget-password`). El captcha nativo valida el token Turnstile **server-side antes** de crear cuenta/enviar OTP en flujos email/password y email-OTP; **OAuth queda exento** (el proveedor social es la barrera). **Hook de registro (misma tx):** crear org implícita de 1 miembro + `CreditBalance`; registrar `origin` (IP + dominio email); **acreditar `welcome_credits`** (de `SystemSetting`) al balance + `CreditLedger(reason="welcome_grant")` con UNIQUE parcial → idempotente. El plugin `admin()` añade rol plataforma `admin`/`user`. Social sin email verificado: el usuario completa OTP `email-verification` antes de que el gate de gasto (F8) permita cupo gratis.
 6. `permissions.ts` + `org-context.ts`: `createAccessControl` con recursos (project, deliverable, votingRoom); roles owner/admin/member + helper B2C. `org-context.ts` resuelve `OrgContext` (organizationId activo) desde la sesión.
 7. Route handler `toNextJsHandler(auth)` en `/api/auth/[...all]`.
 8. **Scoping estructural** `db/scoped-repo.ts`: `withOrg(orgContext)` retorna un repo cuyas queries inyectan `organizationId` por construcción; **no** existe método de acceso a recurso sin `OrgContext` (anti-IDOR no olvidable). Usarlo en TODA Server Action de recurso.
@@ -143,23 +149,23 @@ prisma/
 11. `prisma generate` y verificar tipos en contratos compartidos.
 
 ## Todo List
-- [ ] Schema multi-file Prisma 7 con modelos core (incl. ProcessedWebhookEvent) + 7 modelos admin (admin.prisma) + tablas Better Auth
-- [ ] Tenancy uniforme: `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger; campos add-ons congelados
-- [ ] `CreditBalance` (saldo autoritativo, fila bloqueable) + `CreditHold` (máquina de estados PENDING|SETTLED|REVERTED|EXPIRED, idempotencyKey por operación, expiresAt) + `CreditLedger` auditoría append-only
-- [ ] AuditLog (append-only) / ModelConfig (seed defaults) / BrandSettings / SystemSetting / MediaAsset / MediaFolder / UsageEvent con índices
-- [ ] Migración inicial aplicada; `jsonb` verificado
-- [ ] Cliente Prisma singleton
-- [ ] Better Auth: email/password + Google OAuth + sesión; hook que crea org implícita + CreditBalance al registrar
-- [ ] Plugin organization() + admin() (rol plataforma) + access control B2B/B2C
-- [ ] Scoping estructural `withOrg(orgContext)` (exige OrgContext) usado en todas las Server Actions de recurso
-- [ ] Débito con lock de fila (`FOR UPDATE`) + máquina de estados CreditHold + reaper de holds huérfanos
-- [ ] Route handler `/api/auth/[...all]` + `/api/health`
-- [ ] Server Actions base de Project con guard de permisos + scoping
-- [ ] `.env.example` actualizado (coordinado con OPS)
+- [x] Schema multi-file Prisma 7 con modelos core (incl. ProcessedWebhookEvent) + 7 modelos admin (admin.prisma) + tablas Better Auth
+- [x] Tenancy uniforme: `organizationId` en Project/Subscription/CreditBalance/CreditHold/CreditLedger; campos add-ons congelados
+- [x] `CreditBalance` (saldo autoritativo, fila bloqueable) + `CreditHold` (máquina de estados PENDING|SETTLED|REVERTED|EXPIRED, idempotencyKey por operación, expiresAt) + `CreditLedger` auditoría append-only
+- [x] AuditLog (append-only) / ModelConfig (seed defaults) / BrandSettings / SystemSetting / MediaAsset / MediaFolder / UsageEvent con índices
+- [x] Migración inicial aplicada; `jsonb` verificado
+- [x] Cliente Prisma singleton
+- [x] Better Auth: email/password (requireEmailVerification) + email-OTP + OAuth Google+Meta + sesión; `emailOTP()` (sendVerificationOTP→send-email) + `captcha()` Turnstile (server-side, solo no-OAuth); hook que crea org implícita + CreditBalance + acredita `welcome_credits` (idempotente, UNIQUE parcial `welcome_grant`) + registra `origin`; social sin email verificado pide OTP antes de cupo gratis
+- [x] Plugin organization() + admin() (rol plataforma) + access control B2B/B2C
+- [x] Scoping estructural `withOrg(orgContext)` (exige OrgContext) usado en todas las Server Actions de recurso
+- [x] Débito con lock de fila (`FOR UPDATE`) + máquina de estados CreditHold + reaper de holds huérfanos
+- [x] Route handler `/api/auth/[...all]` + `/api/health`
+- [x] Server Actions base de Project con guard de permisos + scoping
+- [x] `.env.example` actualizado (coordinado con OPS)
 
 ## Success Criteria
 - `prisma migrate` corre limpio; DB refleja modelos core + 7 modelos admin + tablas auth.
-- Registro/login email+password y Google funcionan; sesión persiste; **registro crea org implícita + `CreditBalance`**.
+- Registro/login email+password, email-OTP y OAuth (Google+Meta) funcionan; sesión persiste; **registro crea org implícita + `CreditBalance` + acredita `welcome_credits` (de `SystemSetting`) una sola vez** (`CreditLedger.reason="welcome_grant"`, UNIQUE parcial → reintento no re-acredita) **+ registra `origin`**. Flujos email/password y email-OTP rechazan sin token Turnstile válido; OAuth no lo exige. Social sin email verificado no gasta cupo gratis hasta verificar por OTP.
 - `CreditBalance` es la fuente del saldo (no `SUM(CreditLedger)`); débito bloquea la fila; saldo nunca negativo bajo concurrencia multi-réplica.
 - `CreditHold` respeta transiciones válidas (PENDING→terminal); settle-tras-revert rechazado; reaper revierte holds PENDING vencidos.
 - Server Action protegida rechaza sin sesión y respeta rol B2B/B2C; rol plataforma `admin` distinguible. Toda query de recurso pasa por `withOrg` (no hay acceso sin scoping).
@@ -171,7 +177,9 @@ prisma/
 | Riesgo | Prob×Imp | Mitigación |
 |---|---|---|
 | Solape tablas Better Auth vs modelos manuales | Med×Alto | No declarar tablas auth a mano; dejar que BA las gestione, solo relacionar |
-| API Better Auth 1.6 / organization plugin cambió | Med×Med | Confirmar exports con docs-seeker antes de codear; pin de versión |
+| API Better Auth 1.6 (organization/admin/emailOTP/captcha) cambió | Med×Med | Usar plugins NATIVOS (no custom); confirmar exports con docs-seeker; pin de versión |
+| Sybil vía OAuth social sin email verificado (Meta) | Med×Alto | Email verificado = invariante: social incompleto pide OTP `email-verification` antes de cupo gratis; gate de gasto (F8) exige verificado |
+| Bot/automatización en registro no-OAuth | Med×Med | Captcha nativo Turnstile server-side antes de crear cuenta/enviar OTP (OAuth exento; el proveedor social ya es barrera) |
 | Conexiones agotadas por hot-reload | Alto×Med | Singleton global de PrismaClient |
 | Saldo negativo bajo concurrencia (SUM no atómico) | Med×Alto | Saldo autoritativo en `CreditBalance` con lock de fila (`FOR UPDATE`); ledger solo auditoría; test de concurrencia valida multi-réplica (no mutex de proceso) |
 | Doble cobro / settle-tras-revert / doble webhook | Med×Alto | `CreditHold` como máquina de estados (idempotencyKey por OPERACIÓN; transiciones válidas explícitas; estados terminales) |
@@ -181,9 +189,10 @@ prisma/
 | IDOR: acceso a recurso de otro usuario/org | Med×Alto | Scoping **estructural** `withOrg(orgContext)`: el repo exige `OrgContext`; no existe ruta de acceso sin scoping (no olvidable por construcción) |
 | Migración tardía por campos de add-ons | Med×Med | Congelar campos previstos de Subscription/VotingRoom/MarketplaceItem en schema inicial (aditivo) |
 | Migración Json no mapea a jsonb | Bajo×Med | Verificar SQL generado en paso 3 |
+| Doble acreditado de bienvenida / "gratis por proyecto" infinito | Med×Alto | UNIQUE parcial `(organizationId) WHERE reason='welcome_grant'` + acreditado en la tx que crea la org; el gratis es saldo finito por cuenta, no por proyecto → crear proyectos no re-acredita |
 
 ## Security Considerations
-- `BETTER_AUTH_SECRET`, `DATABASE_URL`, OAuth secrets solo server-side.
+- `BETTER_AUTH_SECRET`, `DATABASE_URL`, OAuth secrets (Google/Meta), `TURNSTILE_SECRET_KEY`, key del proveedor de email solo server-side. `TURNSTILE_SITE_KEY` es público (cliente). Captcha (no-OAuth) + email verificado son barreras anti-sybil/anti-bot antes de gastar cupo gratis.
 - Toda Server Action valida sesión + permiso antes de tocar DB.
 - B2B/B2C aisla datos por organización: scoping **estructural** vía `withOrg(orgContext)` en toda query de recurso — el repo exige `OrgContext`, no hay ruta de acceso sin él (nunca confiar en id del cliente → anti-IDOR por construcción).
 - Hash de password gestionado por Better Auth (no manual).
@@ -195,13 +204,14 @@ Escribir ANTES del código (rojo→verde→refactor), integration/Vitest contra 
 - **CreditHold máquina de estados / idempotencia por operación**: reaplicar la misma `idempotencyKey` no re-efecta (devuelve estado); doble `settle` no duplica débito; `revert` libera; **`settle` tras `revert` se rechaza** (terminal); operaciones distintas (iteración vs regeneración vs webhook) usan claves distintas. Rojo sin la máquina de estados.
 - **Saldo autoritativo no negativo bajo concurrencia multi-réplica**: dos `hold` concurrentes sobre `CreditBalance` justo → uno falla; el saldo nunca baja de 0. El test simula **dos conexiones/transacciones** (no un mutex de proceso) → valida el lock de fila `FOR UPDATE`. Rojo sin lock.
 - **Reaper de holds huérfanos**: un hold PENDING con `expiresAt` vencido → el reaper lo pasa a EXPIRED y **repone el balance**; no toca holds vigentes ni terminales. Rojo sin reaper.
-- **Tenancy uniforme**: registrar un usuario crea org implícita + `CreditBalance(0)`; `Subscription`/`CreditBalance` cuelgan de `organizationId`. Verde con el hook de registro.
+- **Tenancy + bienvenida UNA sola vez (N proyectos no dan gratis infinito)**: registrar crea org implícita + `CreditBalance(welcome_credits de SystemSetting)` (`Subscription`/`CreditBalance` cuelgan de `organizationId`) + un `CreditLedger(reason="welcome_grant")`; reejecutar el hook o crear varios `Project` NO re-acredita (UNIQUE parcial → segundo insert falla; el cupo es por cuenta, no por proyecto). Registra `originEmailDomain`/`originIp` (consultable por F8; el gate de gasto vive en F8). Rojo sin el constraint.
 - **Scoping estructural/IDOR**: el repo `withOrg(orgA)` no devuelve recursos de `orgB`; **no existe** un método de acceso a recurso que omita `OrgContext` (verificado por la firma/tipos del repo). Verde con `withOrg`.
 - **Dedup webhook**: insertar dos veces el mismo `ProcessedWebhookEvent` (eventId) en la misma tx que el crédito → segundo insert falla, crédito no se re-emite.
 - **Auth**: Server Action sin sesión rechaza; con sesión respeta rol B2B/B2C; rol plataforma `admin` se distingue de `user`.
+- **Auth 3 métodos + Turnstile + email verificado**: registro email/password y email-OTP **rechazados sin token Turnstile válido**; OAuth NO requiere Turnstile; email-OTP inicia sesión con código válido y **rechaza código expirado/incorrecto**; social sin email verificado **no puede gastar cupo gratis** hasta verificar por OTP `email-verification`.
 - **AuditLog inmutable**: insertar registro OK; intento de `update`/`delete` rechazado (append-only) → garantiza traza fiable de acciones admin.
 - **ModelConfig**: `action` UNIQUE impide duplicar acción; seed de defaults presente tras migrar; lectura por acción devuelve `{primaryModel, fallbacks, enabled}`.
-- **Mock:** se mockea OAuth de Google (proveedor externo). NO se mockea Prisma ni Postgres (DB real de test valida migraciones y `jsonb`).
+- **Mock:** se mockean los servicios externos — OAuth (Google/Meta), verificación Turnstile y envío de email (OTP). NO se mockea Prisma ni Postgres (DB real de test valida migraciones y `jsonb`).
 
 ## Next Steps
 - F5 (IA agente) persiste Conversation/Message/CanvasState vía estos modelos.

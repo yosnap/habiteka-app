@@ -1,0 +1,80 @@
+// Datasource, generator y enums compartidos. El resto de modelos se reparten
+// por dominio en los demás ficheros de esta carpeta (schema multi-fichero).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Tipo de cuenta de la organización: empresa (multi-miembro) o personal
+// (organización implícita de un solo miembro creada al registrarse).
+enum AccountType {
+  B2B
+  B2C
+}
+
+// Tipos de entregable que produce el agente.
+enum DeliverableType {
+  PLANO_2D
+  RENDER_3D
+  MEMORIA
+}
+
+// Rol de una imagen de origen subida por el usuario. PRIMARY es la referencia que
+// alimenta el diseño; DETAIL son tomas adicionales del mismo espacio.
+enum SourceImageRole {
+  PRIMARY
+  DETAIL
+}
+
+// Estado de la suscripción gestionada por el proveedor de pagos.
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+// Máquina de estados de una reserva de créditos. PENDING es el único estado
+// no terminal; las tres transiciones de salida son definitivas.
+enum HoldState {
+  PENDING
+  SETTLED
+  REVERTED
+  EXPIRED
+}
+
+// Acción de IA cuyo modelo se configura dinámicamente en BD (ModelConfig).
+enum ModelAction {
+  vision
+  chat
+  plano2d
+  render3d
+  inpaint
+  memoria
+}
+
+// Unidad de consumo telemetrado (UsageEvent).
+enum UsageUnit {
+  token
+  image
+}
+
+// Estado de un asset de media gestionado por el back-office.
+enum MediaStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+// Identificador de un add-on de primera parte en el registry.
+enum AddonKey {
+  voting
+  marketplace
+}

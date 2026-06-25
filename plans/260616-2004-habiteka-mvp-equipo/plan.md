@@ -51,35 +51,36 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 
 ## Fases
 
-| # | Fase | Rol primario | Depende de | Paralela con | Detalle |
-|---|---|---|---|---|---|
-| F0 | Setup & 11 contratos (freeze gate) | ARQ | — | — | [phase-00](phase-00-arq-setup-contratos.md) |
-| F1 | Design system & UX | UX | F0 | F2,F3,F11 | [phase-01](phase-01-ux-design-system.md) |
-| F2 | Datos, auth, scoping & /api/health | BE | F0 | F1,F3,F11 | [phase-02](phase-02-be-datos-auth.md) |
-| F3 | Adaptadores IA (OpenRouter+imagen) | IA | F0 | F1,F2,F11 | [phase-03](phase-03-ia-adaptadores.md) |
-| **F-S0** | **Spike calidad IA (GATE GO/NO-GO, decide §9.1)** | **IA+Producto** | **F0,F3** | **—** | [phase-spike](phase-spike-validacion-calidad-ia.md) |
-| F4 | Canvas (Konva) | FE | F1,F2 | F5 | [phase-04](phase-04-fe-canvas-konva.md) |
-| F5 | Agente intérprete (5 fases) | IA | F2,F3 | F4 | [phase-05](phase-05-ia-agente-state-machine.md) |
-| F6 | UI chat + entregables | FE | F4,F5 | F8 | [phase-06](phase-06-fe-chat-entregables.md) |
-| F7 | Feedback por zona + render 3D/inpaint | IA+BE | F3,F5,F6 | F9,F10 | [phase-07](phase-07-feedback-render-3d.md) |
-| F8 | Créditos hold/settle & pagos (Polar) | BE | F2,F6 | F7 | [phase-08](phase-08-be-creditos-pagos.md) |
-| **F-INT** | **Integración end-to-end (flujo vivo, sin mocks)** | **Tech Lead/Fullstack** | **F5,F6,F7,F8** | **—** | [phase-int](phase-integracion-e2e.md) |
-| F9 | Add-on Votación comunitaria | FE+BE | F4,F6 | F10 | [phase-09](phase-09-addon-votacion.md) |
-| F10 | Add-on Marketplace | FE+BE | F4,F6 | F9 | [phase-10](phase-10-addon-marketplace.md) |
-| F11 | DevOps: CI/CD & despliegue | OPS | F0 | casi todas | [phase-11](phase-11-ops-cicd-despliegue.md) |
-| F12 | QA: suite de pruebas | QA | todas | continua | [phase-12](phase-12-qa-testing.md) |
-| F13 | Licencia fair-code (legal+operativo) | ARQ | F3,F8 | F14 | [phase-13](phase-13-arq-licencia-control.md) |
-| F14 | RGPD & privacidad (bloqueante UE) | ARQ/Legal+BE | F2 | F8,F9,F10,F13 | [phase-14](phase-14-rgpd-privacidad.md) |
-| **F19** | **Legal: ToS/EULA + cookies + DPIA (bloqueante UE)** | **ARQ/Legal+BE+FE** | **F14** | **F14** | [phase-legal](phase-legal-tos-cookies-dpia.md) |
-| F15 | Admin: shell + gestión de usuarios | FE+BE | F2 | F16,F17,F18 | [phase-15](phase-15-admin-shell-usuarios.md) |
-| F16 | Admin: config modelos (BD) + branding + flags | BE+FE | F2,F3,F15 | F17,F18 | [phase-16](phase-16-admin-config-modelos-branding.md) |
-| F17 | Admin: media manager + StorageAdapter (MinIO) | BE+FE | F2,F0,F15 | F16,F18 | [phase-17](phase-17-admin-media-manager.md) |
-| F18 | Admin: analítica, facturación & auditoría | BE+FE | F2,F3,F8,F15 | F16,F17 | [phase-18](phase-18-admin-analitica-facturacion-logs.md) |
+| # | Fase | Rol primario | Depende de | Paralela con | Estado | Detalle |
+|---|---|---|---|---|---|---|
+| F0 | Setup & 11 contratos (freeze gate) | ARQ | — | — | ✅ #6 | [phase-00](phase-00-arq-setup-contratos.md) |
+| F1 | Design system & UX | UX | F0 | F2,F3,F11 | ✅ #10 | [phase-01](phase-01-ux-design-system.md) |
+| F2 | Datos, auth, scoping & /api/health | BE | F0 | F1,F3,F11 | ✅ #8 | [phase-02](phase-02-be-datos-auth.md) |
+| F3 | Adaptadores IA (OpenRouter+imagen) | IA | F0 | F1,F2,F11 | ✅ #9 | [phase-03](phase-03-ia-adaptadores.md) |
+| **F-S0** | **Spike calidad IA (GATE GO/NO-GO, decide §9.1)** | **IA+Producto** | **F0,F3** | **—** | 🟡 andamiaje | [phase-spike](phase-spike-validacion-calidad-ia.md) |
+| F4 | Canvas (Konva) | FE | F1,F2 | F5 | ✅ #11 | [phase-04](phase-04-fe-canvas-konva.md) |
+| F5 | Agente intérprete (5 fases) | IA | F2,F3 | F4 | ✅ #12 | [phase-05](phase-05-ia-agente-state-machine.md) |
+| F6 | UI chat + entregables | FE | F4,F5 | F8 | ✅ #13 | [phase-06](phase-06-fe-chat-entregables.md) |
+| F7 | Feedback por zona + render 3D/inpaint | IA+BE | F3,F5,F6 | F9,F10 | ✅ #14 | [phase-07](phase-07-feedback-render-3d.md) |
+| F8 | Créditos hold/settle & pagos (Polar) | BE | F2,F6 | F7 | ✅ #15 | [phase-08](phase-08-be-creditos-pagos.md) |
+| **F-INT** | **Integración end-to-end (flujo vivo, sin mocks)** | **Tech Lead/Fullstack** | **F5,F6,F7,F8** | **—** | 🟡 wiring | [phase-int](phase-integracion-e2e.md) |
+| F9 | Add-on Votación comunitaria | FE+BE | F4,F6 | F10 | ✅ #20 | [phase-09](phase-09-addon-votacion.md) |
+| F10 | Add-on Marketplace | FE+BE | F4,F6 | F9 | ✅ #21 | [phase-10](phase-10-addon-marketplace.md) |
+| F11 | DevOps: CI/CD & despliegue | OPS | F0 | casi todas | ✅ #7 | [phase-11](phase-11-ops-cicd-despliegue.md) |
+| F12 | QA: suite de pruebas | QA | todas | continua | ⬜ | [phase-12](phase-12-qa-testing.md) |
+| F13 | Licencia fair-code (legal+operativo) | ARQ | F3,F8 | F14 | ✅ #24 | [phase-13](phase-13-arq-licencia-control.md) |
+| F14 | RGPD & privacidad (bloqueante UE) | ARQ/Legal+BE | F2 | F8,F9,F10,F13 | ✅ | [phase-14](phase-14-rgpd-privacidad.md) |
+| **F19** | **Legal: ToS/EULA + cookies + DPIA (bloqueante UE)** | **ARQ/Legal+BE+FE** | **F14** | **F14** | ✅ | [phase-legal](phase-legal-tos-cookies-dpia.md) |
+| F15 | Admin: shell + gestión de usuarios | FE+BE | F2 | F16,F17,F18 | ✅ #16 | [phase-15](phase-15-admin-shell-usuarios.md) |
+| F16 | Admin: config modelos (BD) + branding + flags + productos Polar | BE+FE | F2,F3,F15 | F17,F18 | ✅ #17 | [phase-16](phase-16-admin-config-modelos-branding.md) |
+| F17 | Admin: media manager + StorageAdapter (MinIO) | BE+FE | F2,F0,F15 | F16,F18 | ✅ #18 | [phase-17](phase-17-admin-media-manager.md) |
+| F18 | Admin: analítica, facturación & auditoría | BE+FE | F2,F3,F8,F15 | F16,F17 | ✅ #19 | [phase-18](phase-18-admin-analitica-facturacion-logs.md) |
 
 ## Dependencias clave externas
 
-- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL.
-- Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`.
+- OpenRouter (chat+visión) · proveedor de imagen (FLUX/Nano Banana/Imagen) · Polar.sh · PostgreSQL · MinIO/S3 (storage) · Cloudflare Turnstile (CAPTCHA) · proveedor de email (Resend/SMTP, OTP+verificación) · OAuth Google + Meta.
+- **Auth (3 métodos, Better Auth 1.6 nativo):** email+password, email-OTP sin contraseña, OAuth social Google+Meta. **Turnstile como CAPTCHA solo en flujos no-OAuth** (OAuth exento); email verificado es invariante anti-sybil antes de gastar cupo gratis.
+- Secrets server-side: `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET` (Meta), `TURNSTILE_SECRET_KEY`, email enchufable (`EMAIL_PROVIDER` + `RESEND_API_KEY` por defecto o `SMTP_*`), `STORAGE_*` (MinIO/S3). Público (cliente): `TURNSTILE_SITE_KEY`.
 
 ## Estrategia de ramas (branching avanzado)
 
@@ -108,6 +109,9 @@ F15 ─provee─> F16,F17,F18 (reusan requireAdmin/writeAudit/shell)
 
 ## Notas
 
+- **Segmento primario MVP = B2C** (cliente final / inquilino, no técnico): flujo, tono y onboarding se optimizan para B2C; el disclaimer "conceptual" se presenta para **generar confianza, no miedo** (F1). El **B2B se añade DESPUÉS (post-MVP)**: el modelo de datos ya soporta multi-tenant (`organizationId` intacto, sin recortes), pero la **experiencia/onboarding comercial B2B y el flujo de venta de licencia comercial son post-MVP** (F13). En el MVP, F13 queda solo como licencia fair-code + control operativo (capa técnica/legal), no venta B2B.
+- **Modelo de pricing = créditos + PRIMER RESULTADO GRATIS + GARANTÍA** (decisión de negocio, F8): (a) el **primer entregable** de una organización no consume créditos (onboarding gratis); (b) **garantía en feedback iterativo** — las **primeras `N` iteraciones** de un mismo entregable no se cobran ("si no te gusta, no se cobra"). Mecanismo sobre el patrón hold/settle existente: **hold de 0 / revert automático** mientras dure el cupo gratis; se cobra solo al agotarlo. `N` configurable en `SystemSetting`; **sin schema nuevo** (se deriva de `Iteration`/`CreditLedger` que F2 ya modela). El preview de coste de F6 marca **GRATIS** vs "~N créditos".
+- **Proveedor de imagen = decisión por SPIKE comparativo (F-S0), no fijado a priori:** FLUX vs Nano Banana vs Imagen se comparan de igual a igual por **realismo del render 3D, precisión del plano 2D, calidad del inpainting (feedback por zona)** Y **coste por imagen**; el spike produce una **decisión go/no-go documentada + proveedor elegido** (cierra §9.1). El adaptador F3 queda conmutable por `IMAGE_PROVIDER` hasta el veredicto.
 - **Plan test-first (TDD):** cada fase define sus pruebas ANTES del código en su sección "TDD / Pruebas primero" (rojo→verde→refactor). **F12 es la estrategia transversal** (pirámide, convención de nombres/ubicación, política de mocks de servicios externos, gates de cobertura por hito, DoD test-first, cableado CI). Ninguna fase se considera hecha sin sus tests rojos→verdes.
 - **Mocks:** OpenRouter/proveedor de imagen/Polar se mockean con fixtures deterministas — **cero llamadas reales a IA/pagos en CI**. La lógica propia (state machine, ledger, guards, sanitizer, licencia) NO se mockea; Postgres es DB real efímera.
 - **Gates de cobertura** (definidos en F12) alineados con los hitos: M1 contratos+datos, M2 flujo core, M3 negocio+add-ons, M4 hardening+cumplimiento (gate de release).
