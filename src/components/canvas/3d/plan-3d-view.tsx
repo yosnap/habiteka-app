@@ -14,7 +14,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF } from '@react-three/drei';
 import { Mesh, Shape, type Object3D, type PerspectiveCamera } from 'three';
 import type { CanvasDoc } from '@/canvas/types';
-import { docToScene, shouldHideWallXZ, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
+import { docToScene, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
 import { cameraForAngle, type ViewAngle } from '@/canvas/3d/camera-views';
 import { useMountEffect } from '@/lib/use-mount-effect';
@@ -52,18 +52,6 @@ function Walls({
 }) {
   const refs = useRef<(Mesh | null)[]>([]);
   const [hoveredPickId, setHoveredPickId] = useState<string | null>(null);
-
-  useFrame((state) => {
-    const cam = state.camera.position;
-    for (let i = 0; i < walls.length; i++) {
-      const mesh = refs.current[i];
-      const w = walls[i];
-      if (!mesh || !w) continue;
-      // Paredes ocultas manualmente: siempre visibles como fantasma para poder restaurarlas.
-      if (w.hidden) { mesh.visible = true; continue; }
-      mesh.visible = !shouldHideWallXZ(w.center[0], w.center[2], cam.x, cam.z);
-    }
-  });
   return (
     <group>
       {walls.map((w, i) => {

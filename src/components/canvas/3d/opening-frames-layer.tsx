@@ -9,10 +9,7 @@
  * madera para hojas de puerta. Siguen el MISMO recorte por cámara que los muros, para no
  * quedar flotando cuando se oculta el muro frontal al orbitar.
  */
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import type { Mesh } from 'three';
-import { shouldHideWallXZ, type OpeningFrame } from '@/canvas/3d/doc-to-scene';
+import { type OpeningFrame } from '@/canvas/3d/doc-to-scene';
 
 /** Color por tipo de carpintería. */
 const FRAME_COLOR: Record<OpeningFrame['material'], string> = {
@@ -21,22 +18,11 @@ const FRAME_COLOR: Record<OpeningFrame['material'], string> = {
 };
 
 export function OpeningFramesLayer({ frames }: { frames: OpeningFrame[] }) {
-  const refs = useRef<(Mesh | null)[]>([]);
-  useFrame((state) => {
-    const cam = state.camera.position;
-    for (let i = 0; i < frames.length; i++) {
-      const mesh = refs.current[i];
-      const f = frames[i];
-      if (!mesh || !f) continue;
-      mesh.visible = !shouldHideWallXZ(f.center[0], f.center[2], cam.x, cam.z);
-    }
-  });
   return (
     <group>
-      {frames.map((f, i) => (
+      {frames.map((f) => (
         <mesh
           key={f.id}
-          ref={(m) => { refs.current[i] = m; }}
           position={f.center}
           rotation={[0, f.rotationY, 0]}
           userData={{ openingId: f.id.split(':')[0] }}

@@ -29,6 +29,25 @@ export interface FloorPoint {
   y: number;
 }
 
+/**
+ * ¿El punto (cx, cy) está dentro del rectángulo real del muro?
+ *
+ * Para muros wizard (rotation≈0) equivale al test AABB.  Para muros drawn (diagonal),
+ * transforma el punto al espacio local del Group de Konva (traslación + rotación inversa)
+ * y comprueba si cae dentro del rect [0, width] × [0, height].
+ */
+function isPointInWall(cx: number, cy: number, o: StructObj): boolean {
+  const rad = (o.rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const dx = cx - o.x;
+  const dy = cy - o.y;
+  // Rotación inversa (world → local del group).
+  const lx = dx * cos + dy * sin;
+  const ly = -dx * sin + dy * cos;
+  return lx >= 0 && lx <= o.width && ly >= 0 && ly <= o.height;
+}
+
 /** AABB de un muro respetando su rotación (las 4 esquinas rotadas sobre su origen). */
 function wallAabb(o: StructObj): Rect {
   const rad = (o.rotation * Math.PI) / 180;
@@ -88,14 +107,19 @@ export function floorPolygonFromWalls(walls: StructObj[], cell = 5): FloorPoint[
   // Guardia de tamaño: salas enormes a resolución fina podrían crear rejillas gigantes.
   if (cols * rows > 1_000_000) return null;
 
-  // wall[i] = ¿la celda i está cubierta por algún muro? (centro de celda dentro de un rect)
+  // wall[i] = ¿la celda i está cubierta por algún muro?
+  // Se usa el test de punto-en-rectángulo-rotado (no el AABB) para que los muros
+  // diagonales (drawn) no inflen la huella con el rectángulo envolvente axis-aligned.
   const isWall = new Uint8Array(cols * rows);
   for (let r = 0; r < rows; r++) {
     const cy = oy + (r + 0.5) * cell;
     for (let c = 0; c < cols; c++) {
       const cx = ox + (c + 0.5) * cell;
-      for (const rect of rects) {
-        if (cx >= rect.minX && cx <= rect.maxX && cy >= rect.minY && cy <= rect.maxY) {
+      // Descarte rápido por AABB antes del test rotado (optimización).
+      for (let w = 0; w < walls.length; w++) {
+        const rect = rects[w]!;
+        if (cx < rect.minX || cx > rect.maxX || cy < rect.minY || cy > rect.maxY) continue;
+        if (isPointInWall(cx, cy, walls[w]!)) {
           isWall[r * cols + c] = 1;
           break;
         }

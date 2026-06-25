@@ -6,7 +6,6 @@ import {
   rotation2DToY,
   resolvePxPerMeter,
   intensity0to100ToPhysical,
-  shouldHideWall,
   limitLights,
 } from '@/canvas/3d/doc-to-scene';
 import type { SceneLight } from '@/canvas/3d/doc-to-scene';
@@ -281,33 +280,6 @@ describe('doc-to-scene: límite de luces', () => {
   });
 });
 
-describe('doc-to-scene: recorte de muros por cámara', () => {
-  it('oculta el muro del MISMO lado que la cámara (entre cámara e interior)', () => {
-    // Cámara en +Z; el muro frontal (+Z) tapa el interior → se oculta.
-    expect(shouldHideWall([0, 1.7], [0, 8])).toBe(true);
-  });
-
-  it('mantiene el muro del lado OPUESTO a la cámara (el del fondo)', () => {
-    // Cámara en +Z; el muro del fondo (−Z) no tapa → visible.
-    expect(shouldHideWall([0, -1.7], [0, 8])).toBe(false);
-  });
-
-  it('un muro perpendicular (lateral) no se oculta con umbral por defecto', () => {
-    // Cámara en +Z, muro lateral en +X: coseno ≈ 0 < 0,35 → visible.
-    expect(shouldHideWall([2.6, 0], [0, 8])).toBe(false);
-  });
-
-  it('al girar la cámara cambia qué muro se oculta', () => {
-    // Cámara ahora en +X: el muro lateral +X pasa a ocultarse, el +Z deja de ocultarse.
-    expect(shouldHideWall([2.6, 0], [8, 0])).toBe(true);
-    expect(shouldHideWall([0, 1.7], [8, 0])).toBe(false);
-  });
-
-  it('no oculta nada si el muro o la cámara están en el centro', () => {
-    expect(shouldHideWall([0, 0], [0, 8])).toBe(false);
-    expect(shouldHideWall([0, 1.7], [0, 0])).toBe(false);
-  });
-});
 
 describe('doc-to-scene: fixture EXAMPLE_SALON', () => {
   const scene = docToScene(EXAMPLE_SALON);
