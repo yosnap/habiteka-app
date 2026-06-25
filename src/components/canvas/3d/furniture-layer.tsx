@@ -29,10 +29,11 @@ import { useCanvasStore } from '@/canvas/canvas-store';
 import type { SelectionMode } from './use-3d-selection';
 import type { SceneCoords } from '@/canvas/3d/scene-to-doc';
 import { ModelErrorBoundary } from './model-error-boundary';
+import { RadialContextMenu } from './radial-context-menu';
 import { translatePatch } from '@/canvas/3d/scene-to-doc';
 import { buildFloorAABB, resolveFloorCollisions } from '@/canvas/3d/collision';
 import { isFloorCollidable } from '@/canvas/3d/placement';
-import { ObjectFloatingMenu } from './object-floating-menu';
+
 
 /** Color de placeholder por categoría del catálogo (cae a un gris neutro). */
 const CATEGORY_COLOR: Record<string, string> = {
@@ -497,7 +498,7 @@ function SelectionOverlay({
         zIndexRange={[100, 0]}
         style={{ pointerEvents: 'none' }}
       >
-        <ObjectFloatingMenu
+        <RadialContextMenu
           mode={mode}
           onMove={() => onSetMode('translate')}
           onRotate={() => onSetMode('rotate')}
