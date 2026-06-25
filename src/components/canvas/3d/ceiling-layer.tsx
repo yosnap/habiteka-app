@@ -15,7 +15,7 @@ import { memo } from 'react';
 import { Html } from '@react-three/drei';
 import type { FurnitureItem } from '@/canvas/3d/doc-to-scene';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import { ObjectFloatingMenu } from './object-floating-menu';
+import { RadialContextMenu } from './radial-context-menu';
 import type { SelectionMode } from './use-3d-selection';
 
 // ── Plafón enrasado ───────────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ function CeilingSelectionOverlay({
         zIndexRange={[100, 0]}
         style={{ pointerEvents: 'none' }}
       >
-        <ObjectFloatingMenu
+        <RadialContextMenu
           mode={mode}
           onMove={() => onSetMode('translate')}
           onRotate={() => onSetMode('rotate')}
