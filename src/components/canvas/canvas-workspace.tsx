@@ -13,16 +13,14 @@ import { setClipboard, hasClipboard, takeClipboardClones } from '@/canvas/canvas
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
-import { ObjectPalette } from './object-palette';
+import { CatalogSidebar } from '@/components/catalog/catalog-sidebar';
 import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
-import { DesignWizard } from './wizard/design-wizard';
+import { SmartWizard } from '@/components/wizard/smart-wizard';
 import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
-import { autofurnish } from '@/canvas/wizard/autofurnish';
-import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
@@ -315,7 +313,7 @@ export function CanvasWorkspace({
         </div>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <ObjectPalette tool={tool} onPick={setTool} />
+        <CatalogSidebar tool={tool} onPick={setTool} onOpenWizard={() => setShowWizard(true)} />
         <div
           ref={containerRef}
           className="border-line bg-surface flex-1 overflow-hidden rounded-card border"
@@ -364,32 +362,19 @@ export function CanvasWorkspace({
         <Plan3DOverlay doc={doc3D} projectId={projectId} onClose={() => setDoc3D(null)} />
       ) : null}
       {showWizard ? (
-        <DesignWizard
+        <SmartWizard
           onSkip={() => setShowWizard(false)}
-          onCreate={(doc, roomType, selection) => {
-            // Amuebla la sala con lo SELECCIONADO (procedural, sin IA) y la carga en el editor;
-            // la PERSISTE de inmediato (flush sin debounce): el autosave por debounce podría
-            // cancelarse si el usuario navega o abre el 3D antes de los 800 ms (red-team).
-            const { objects: placed, omitted } = autofurnish(doc, roomType, selection);
-            const furnished: CanvasDoc = {
-              ...doc,
-              objects: [...doc.objects, ...placed],
-            };
-            useCanvasStore.getState().load(furnished);
-            void saveAction(projectId, serializeCanvas(furnished));
+          onComplete={(doc) => {
+            // El doc ya viene amueblado desde el Smart Wizard (paso 3 ejecuta autofurnish).
+            // Persistir de inmediato (flush sin debounce) para evitar pérdida si el usuario
+            // navega o abre la vista 3D antes del debounce de 800 ms.
+            useCanvasStore.getState().load(doc);
+            void saveAction(projectId, serializeCanvas(doc));
             setShowWizard(false);
-            // Si algo no cupo, avisar (no se solapa): lista los muebles omitidos por su etiqueta.
-            if (omitted.length > 0) {
-              const labels = [...new Set(omitted)]
-                .map((k) => CATALOG_BY_KIND[k]?.label ?? k)
-                .join(', ');
-              // Formas no rectangulares: el auto-amueblado se omite por diseño (se amuebla a
-              // mano), no porque no quepa. El doc lo señala con `floorOutline`.
-              const isNonRect = (furnished.floorOutline?.length ?? 0) >= 3;
+            // Salas no rectangulares: el auto-amueblado interno se omite por diseño.
+            if ((doc.floorOutline?.length ?? 0) >= 3) {
               setFurnishNotice(
-                isNonRect
-                  ? `Esta forma se amuebla a mano: añade los muebles desde el catálogo (${labels}).`
-                  : `No cabían en la sala: ${labels}. Agranda la sala o colócalos a mano.`,
+                `Esta forma se amuebla a mano: añade los muebles desde el catálogo.`,
               );
             } else {
               setFurnishNotice(null);

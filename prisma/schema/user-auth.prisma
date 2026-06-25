@@ -108,6 +108,7 @@ model Organization {
   consents      ConsentRecord[]
   sourceImages  SourceImage[]
   zones         ProjectZone[]
+  catalogItems  CatalogItem[]
 
   @@map("organization")
 }

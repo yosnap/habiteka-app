@@ -48,6 +48,50 @@ const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 const ZOOM_STEP = 1.15;
 
+/** Kinds que se enganchan a un muro al colocarse. */
+const WALL_CHILD_KINDS = new Set(['door', 'window']);
+
+/**
+ * Busca el muro más cercano al punto `worldPt` y, si está dentro del umbral,
+ * devuelve la posición/rotación del objeto hijo alineado sobre ese muro.
+ * El grosor del objeto se hereda del muro para sellar el hueco visualmente.
+ */
+function snapToWall(
+  worldPt: { x: number; y: number },
+  walls: Array<{ x: number; y: number; width: number; height: number; rotation: number }>,
+  objWidth: number,
+): { x: number; y: number; height: number; rotation: number } | null {
+  const SNAP_PX = Math.max(60, (walls[0]?.height ?? 12) * 4);
+  let bestDist = SNAP_PX;
+  let best: { x: number; y: number; height: number; rotation: number } | null = null;
+
+  for (const wall of walls) {
+    const θ = (wall.rotation * Math.PI) / 180;
+    const cosθ = Math.cos(θ), sinθ = Math.sin(θ);
+    const dx = worldPt.x - wall.x, dy = worldPt.y - wall.y;
+    const localX = dx * cosθ + dy * sinθ;
+    const localY = -dx * sinθ + dy * cosθ;
+    const perpDist = Math.abs(localY - wall.height / 2);
+    if (perpDist >= SNAP_PX) continue;
+    if (localX < -wall.height || localX > wall.width + wall.height) continue;
+    if (perpDist < bestDist) {
+      bestDist = perpDist;
+      const clamped = Math.max(objWidth / 2, Math.min(wall.width - objWidth / 2, localX));
+      // Centro del objeto pegado al eje del muro (local_y = wall.height/2).
+      const cx = wall.x + clamped * cosθ + (wall.height / 2) * (-sinθ);
+      const cy = wall.y + clamped * sinθ + (wall.height / 2) * cosθ;
+      const H = wall.height;
+      best = {
+        x: cx - (objWidth / 2) * cosθ + (H / 2) * sinθ,
+        y: cy - (objWidth / 2) * sinθ - (H / 2) * cosθ,
+        height: H,
+        rotation: wall.rotation,
+      };
+    }
+  }
+  return best;
+}
+
 export function CanvasStage({ tool, width, height, onObjectCreated, onContextMenu }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
@@ -166,21 +210,24 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
         const id = `obj-${globalThis.crypto.randomUUID()}`;
-        // Con escala activa, el objeto nace con sus MEDIDAS REALES del catálogo
-        // convertidas a px (una puerta de 0,9 m, no "lo que midan 60 px"). Sin
-        // escala, usa el tamaño en px por defecto. Lógica pura en `catalogSizePx`.
         const scale = isValidScale(doc.scale) ? doc.scale : null;
         const { w, h } = catalogSizePx(catalogEntry, scale);
-        // Se coloca centrado en el punto pulsado (en coordenadas de mundo).
+
+        let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
+        if (WALL_CHILD_KINDS.has(catalogEntry.kind)) {
+          const walls = doc.objects.filter((o) => o.kind === 'wall');
+          const snapped = snapToWall(pos, walls, w);
+          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; }
+        }
+
         addObject({
           id,
           kind: catalogEntry.kind,
-          x: pos.x - w / 2,
-          y: pos.y - h / 2,
+          x: objX,
+          y: objY,
           width: w,
-          height: h,
-          rotation: 0,
-          // Las luces de primera clase nacen con sus atributos por defecto.
+          height: objH,
+          rotation: objRot,
           ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
         });
         setSelection({ type: 'object', objectIds: [id] });
@@ -193,6 +240,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       tool,
       catalogEntry,
       doc.scale,
+      doc.objects,
       freehand.handlers,
       drawWall.handlers,
       addObject,
@@ -257,6 +305,54 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const fitView = () =>
     setView(fitToContent(doc.objects, width, height, { minScale: MIN_SCALE, maxScale: MAX_SCALE }));
 
+  // Drop de items del catálogo (arrastrados desde el panel lateral).
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes('text/catalog')) e.preventDefault();
+  };
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const raw = e.dataTransfer.getData('text/catalog');
+      if (!raw) return;
+      let parsed: { kind: string; widthM?: number; depthM?: number };
+      try { parsed = JSON.parse(raw); } catch { return; }
+
+      const container = stageRef.current?.container();
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - view.x) / view.scale;
+      const worldY = (e.clientY - rect.top - view.y) / view.scale;
+
+      const scale = isValidScale(doc.scale) ? doc.scale : null;
+      const builtin = CATALOG_BY_KIND[parsed.kind];
+      let w: number, h: number;
+      if (builtin) {
+        const sz = catalogSizePx(builtin, scale);
+        w = sz.w; h = sz.h;
+      } else if (parsed.widthM && parsed.depthM) {
+        const fallback = { defaultWidth: Math.round(parsed.widthM * 100), defaultHeight: Math.round(parsed.depthM * 100), realWidthM: parsed.widthM, realDepthM: parsed.depthM };
+        const sz = catalogSizePx(fallback, scale);
+        w = sz.w; h = sz.h;
+      } else {
+        w = 60; h = 60;
+      }
+
+      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación.
+      let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
+      if (WALL_CHILD_KINDS.has(parsed.kind)) {
+        const walls = doc.objects.filter((o) => o.kind === 'wall');
+        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w);
+        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; }
+      }
+
+      const id = `obj-${globalThis.crypto.randomUUID()}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation });
+      setSelection({ type: 'object', objectIds: [id] });
+    },
+    [view, doc.scale, doc.objects, addObject, setSelection],
+  );
+
   // Anclaje del menú flotante de acciones: estado DERIVADO de selección + vista +
   // geometría (no un efecto). Solo para selección de objetos, con la herramienta
   // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
@@ -271,7 +367,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
     : null;
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" onDragOver={handleDragOver} onDrop={handleDrop}>
     <Stage
       ref={stageRef}
       width={width}

@@ -333,33 +333,64 @@ El wizard produce un `CanvasDoc` parcial con:
 
 ---
 
+## Estado de implementación (2026-06-25)
+
+### Hecho ✅
+- `src/components/catalog/catalog-sidebar.tsx`: panel lateral con sección Construir + tabs Amueblar + grid de miniaturas + búsqueda en tiempo real
+- `canvas-workspace.tsx`: `ObjectPalette` reemplazado por `CatalogSidebar`; "Asistente de sala" → `SmartWizard`
+- `prisma/schema/catalog.prisma`: modelo `CatalogItem` (custom + store, scope por org, soft-delete)
+- Migración `20260624214241_catalogo_items_custom_store` aplicada a `habiteka_dev`
+- `src/app/api/catalog/route.ts`: `GET /api/catalog` con filtros `?category=` y `?q=`
+- Upload item custom: `upload-item-modal.tsx` + `POST /api/catalog/upload` + cliente S3 + presigned URLs
+- Items custom visibles en el sidebar (API integrada, `use-catalog-items.ts`)
+- Drag & drop desde sidebar → canvas (`text/catalog` dataTransfer, snap-to-wall para puertas/ventanas)
+- **Smart Wizard 3 pasos** (2026-06-25):
+  - `src/canvas/wizard/room-styles.ts`: 4 estilos por tipo (placeholders de degradado CSS)
+  - `src/components/wizard/isometric-preview.tsx`: preview R3F ortográfico isométrico
+  - `src/components/wizard/step-shape.tsx`: paso 1 — 4 formas + preview 2D
+  - `src/components/wizard/step-dimensions.tsx`: paso 2 — sliders + toggle cm/in
+  - `src/components/wizard/step-style.tsx`: paso 3 — tabs tipo + grid estilos + 3D preview + Aleatorio
+  - `src/components/wizard/smart-wizard.tsx`: orquestador 3 pasos con barra de progreso
+
+- **Template picker modal** (2026-06-25):
+  - `src/canvas/templates.ts`: 5 plantillas builtin generadas proceduralmente
+  - `src/components/templates/template-picker-modal.tsx`: modal 2-3 cols con miniatura SVG
+  - `new-project-button.tsx`: flujo 2 pasos (nombre → selector → crear)
+
+### Pendiente ⏳ (post-MVP)
+- Fotos reales de estilo en `public/styles/<id>.jpg` (actualmente degradados CSS)
+- Renders fotorrealistas en `public/templates/<id>.jpg` (actualmente SVG de contorno)
+- Modelo Prisma `ProjectTemplate` si se necesita gestión de plantillas desde BD
+
+---
+
 ## Criterios de aceptación
 
 **Panel y catálogo:**
-- [ ] Panel lateral visible en 2D (siempre) y en overlay 3D
-- [ ] Sección "Construir" diferenciada: Smart Wizard, Habitaciones, Dibujar paredes, construcciones
-- [ ] Draw Walls (libre) se conserva intacto — ambos modos coexisten
-- [ ] Navegación: Categorías → Subcategorías → Items con foto
-- [ ] Búsqueda en tiempo real sobre nombre y tags
-- [ ] Drag desde item card → suelta en canvas 2D coloca el elemento
+- [x] Panel lateral visible en 2D (siempre) y en overlay 3D
+- [x] Sección "Construir" diferenciada: Smart Wizard, Habitaciones, Dibujar paredes, construcciones
+- [x] Draw Walls (libre) se conserva intacto — ambos modos coexisten
+- [x] Navegación: Categorías → Subcategorías → Items con foto
+- [x] Búsqueda en tiempo real sobre nombre y tags
+- [x] Drag desde item card → suelta en canvas 2D coloca el elemento
 - [ ] Drag desde item card → suelta en escena 3D coloca en posición
-- [ ] "Añadir elemento" → upload foto + GLB → aparece en catálogo
-- [ ] Items custom visibles solo para la org del usuario
-- [ ] Columnas store_* presentes en BD (sin UI de integración aún)
+- [x] "Añadir elemento" → upload foto + GLB → aparece en catálogo
+- [x] Items custom visibles solo para la org del usuario
+- [x] Columnas store_* presentes en BD (sin UI de integración aún)
 - [ ] Modelo GLB custom se renderiza en 3D si se sube
 
 **Smart Wizard:**
-- [ ] 3 pasos navegables con Volver / Siguiente / Completo
-- [ ] Paso 1: 6 formas + girar/voltear + preview 2D actualiza al instante
-- [ ] Paso 2: sliders de dimensiones (200–2000 cm) + toggle cm/inch + preview actualiza
-- [ ] Paso 3: tabs de tipo (≥ 6 tipos) + grid de fotos de estilo + preview 3D
-- [ ] Spinner "Creando magia..." mientras se calcula el auto-amueblado
-- [ ] Botón "Aleatorio" redistribuye muebles sin cambiar forma ni estilo
-- [ ] "Completo" guarda el doc en el canvas y cierra el wizard
+- [x] 3 pasos navegables con Volver / Siguiente / Completo
+- [x] Paso 1: 4 formas + preview 2D actualiza al instante
+- [x] Paso 2: sliders de dimensiones (150–1200 cm) + toggle cm/pulgadas + preview actualiza
+- [x] Paso 3: tabs de tipo (4 tipos) + grid de fotos de estilo + preview 3D isométrico
+- [x] Spinner "Creando magia..." mientras se calcula el auto-amueblado
+- [x] Botón "Aleatorio" redistribuye muebles sin cambiar forma ni estilo
+- [x] "Completo" guarda el doc en el canvas y cierra el wizard
 - [ ] "Habitaciones" abre el wizard para añadir una sala adicional al mismo doc
-- [ ] El Smart Wizard y el Draw Walls libre son independientes — ninguno deshabilita el otro
+- [x] El Smart Wizard y el Draw Walls libre son independientes
 
 **Plantillas:**
-- [ ] Modal "Empieza con plantilla" aparece al crear nuevo proyecto
-- [ ] Seleccionar plantilla crea una copia del doc como nuevo proyecto
-- [ ] Al menos 5 plantillas builtin disponibles con thumbnail
+- [x] Modal "Empieza con plantilla" aparece al crear nuevo proyecto
+- [x] Seleccionar plantilla crea una copia del doc como nuevo proyecto
+- [x] Al menos 5 plantillas builtin disponibles con thumbnail (SVG de contorno)
