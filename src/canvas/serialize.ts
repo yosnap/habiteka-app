@@ -137,6 +137,10 @@ function parseStruct(v: unknown): StructObj | null {
     ...(v.flipX === true ? { flipX: true } : {}),
     ...(v.hidden === true ? { hidden: true } : {}),
     ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
+    // parentId vincula aperturas/elementos de pared a su muro (wall-child); catalogId al
+    // item de catálogo. Se preservan para no perder la asociación al recargar.
+    ...(typeof v.parentId === 'string' ? { parentId: v.parentId } : {}),
+    ...(typeof v.catalogId === 'string' ? { catalogId: v.catalogId } : {}),
     ...(light ? { light } : {}),
     // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
     ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),

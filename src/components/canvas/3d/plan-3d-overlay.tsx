@@ -200,6 +200,7 @@ export function Plan3DOverlay({
       y: wall.y + wall.height / 2 - h / 2,
       width: w, height: h,
       rotation: wall.rotation ?? 0,
+      parentId: wallId,
     });
     select(id);
     setMode('translate');

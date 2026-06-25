@@ -142,3 +142,37 @@ describe('canvas-store (undo/redo y mutaciones)', () => {
     expect(useCanvasStore.getState().doc.floorOutline).toBeUndefined();
   });
 });
+
+describe('canvas-store: cascade delete de aperturas vinculadas (parentId)', () => {
+  beforeEach(() => {
+    useCanvasStore.getState().load(emptyCanvasDoc());
+  });
+
+  it('borrar un muro borra también las aperturas con parentId = ese muro', () => {
+    const s = useCanvasStore.getState();
+    s.addObject({ ...wall('w1'), width: 200, height: 15 });
+    s.addObject({
+      id: 'win1', kind: 'window', x: 80, y: 0, width: 60, height: 15, rotation: 0, parentId: 'w1',
+    });
+    s.addObject({
+      id: 'door1', kind: 'door', x: 10, y: 0, width: 40, height: 15, rotation: 0, parentId: 'w1',
+    });
+    // Un mueble sin parentId no se toca.
+    s.addObject({ id: 'sofa1', kind: 'sofa', x: 0, y: 0, width: 80, height: 60, rotation: 0 });
+    expect(useCanvasStore.getState().doc.objects).toHaveLength(4);
+
+    s.removeObject('w1');
+    const ids = useCanvasStore.getState().doc.objects.map((o) => o.id);
+    expect(ids).toEqual(['sofa1']); // muro + sus 2 aperturas borradas; sofá intacto
+  });
+
+  it('removeObjects también hace cascade de hijos', () => {
+    const s = useCanvasStore.getState();
+    s.addObject({ ...wall('w1'), width: 200 });
+    s.addObject({ ...wall('w2'), width: 200, x: 300 });
+    s.addObject({ id: 'win1', kind: 'window', x: 0, y: 0, width: 60, height: 15, rotation: 0, parentId: 'w1' });
+    s.addObject({ id: 'win2', kind: 'window', x: 300, y: 0, width: 60, height: 15, rotation: 0, parentId: 'w2' });
+    s.removeObjects(['w1', 'w2']);
+    expect(useCanvasStore.getState().doc.objects).toHaveLength(0);
+  });
+});
