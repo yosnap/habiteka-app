@@ -56,7 +56,7 @@ export function objectShape(
 }
 
 /**
- * Calcula los 8 puntos (4 vértices × 2 coords) del polígono de un muro con inglete.
+ * Polígono de inglete para muros con eje longitudinal en X (drawn o no-drawn horizontal).
  *
  * En espacio LOCAL del Group de Konva:
  *  - drawn=true:  x ∈ [-h/2, w+h/2]  (extensión de h/2 en cada extremo)
@@ -95,6 +95,34 @@ function wallPolygon(w: number, h: number, drawn: boolean, miter?: WallMiter): n
   return [tlx, 0, trx, 0, brx, h, blx, h];
 }
 
+/**
+ * Polígono de inglete para muros de PLANTILLA VERTICALES (no-drawn, height > width).
+ * Para estos muros el eje de longitud es Y (0..h) y el grosor es w.
+ * p1 = extremo superior (y=0), p2 = extremo inferior (y=h).
+ * La recta de corte en cada extremo pasa por (w/2, yEnd) con dirección (lbx, lby).
+ */
+function wallPolygonVertical(w: number, h: number, miter?: WallMiter): number[] {
+  const bound = h + w;
+  const clamp = (v: number) => Math.max(-bound, Math.min(h + bound, v));
+  let tly = 0, try_ = 0; // y de las esquinas superiores (p1)
+  let bly = h, bry = h;  // y de las esquinas inferiores (p2)
+
+  // Corte en p1 (y_mid=0): bisectriz a través de (w/2, 0); corta x=0 e x=w.
+  if (miter?.p1 && Math.abs(miter.p1.lbx) > 0.01) {
+    const { lbx, lby } = miter.p1;
+    tly  = clamp(-(w / 2) * lby / lbx); // x=0
+    try_ = clamp( (w / 2) * lby / lbx); // x=w
+  }
+  // Corte en p2 (y_mid=h): bisectriz a través de (w/2, h).
+  if (miter?.p2 && Math.abs(miter.p2.lbx) > 0.01) {
+    const { lbx, lby } = miter.p2;
+    bly = clamp(h - (w / 2) * lby / lbx); // x=0
+    bry = clamp(h + (w / 2) * lby / lbx); // x=w
+  }
+  // TL → TR → BR → BL (sentido horario)
+  return [0, tly, w, try_, w, bry, 0, bly];
+}
+
 /** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
 function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn = false, miter?: WallMiter): React.ReactNode {
   switch (kind) {
@@ -102,11 +130,16 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn 
     case 'wall': {
       const wallFill = color ?? WALL;
 
-      // Con datos de inglete → polígono recortado diagonalmente en los extremos
+      // Con datos de inglete → polígono recortado diagonalmente en los extremos.
+      // Para muros de plantilla verticales (no-drawn, h > w) el eje de longitud es Y,
+      // por lo que se usa wallPolygonVertical en lugar de wallPolygon.
       if (miter?.p1 || miter?.p2) {
+        const pts = (drawn || w >= h)
+          ? wallPolygon(w, h, drawn, miter)
+          : wallPolygonVertical(w, h, miter);
         return (
           <Line
-            points={wallPolygon(w, h, drawn, miter)}
+            points={pts}
             closed
             fill={wallFill}
             stroke={STROKE}
