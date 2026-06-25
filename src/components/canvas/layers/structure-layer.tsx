@@ -281,6 +281,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
             o.kind === 'wall' ? o.color : o.light?.color,
             o.drawn === true,
             o.kind === 'wall' ? wallMiters.get(o.id) : undefined,
+            o.meta,
           )}
           {/* Highlight verde semitransparente al pasar el ratón sobre un muro. */}
           {hovered === o.id && o.kind === 'wall' ? (

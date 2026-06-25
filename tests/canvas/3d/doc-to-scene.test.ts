@@ -413,21 +413,21 @@ describe('doc-to-scene: los muros 3D forman la MISMA planta que el suelo (sin de
     const wb = wallsBBox(scene);
     expect(wb.cx).toBeCloseTo(scene.floor.center[0], 1);
     expect(wb.cz).toBeCloseTo(scene.floor.center[1], 1);
-    // El CONTORNO mide ~4,15 × 3,15 m (planta + grosor de muro). Si un muro vertical saliera
-    // tumbado sobre X (bug de orientación), el ancho del bbox se dispararía (~6,85 m).
-    // Con extensión de juntas, los muros solapan ~7.5 px en cada esquina → 4.15 × 3.15 m.
-    expect(wb.w).toBeCloseTo(4.15, 1);
-    expect(wb.d).toBeCloseTo(3.15, 1);
+    // Muros wizard axis-aligned: se tocan exactamente en las esquinas (el vertical arranca en
+    // el mismo borde que el horizontal), así que NO necesitan extensión de junta 3D → contorno
+    // 4,0 × 3,0 m. Si un muro vertical saliera tumbado sobre X, el ancho se dispararía (~6,85 m).
+    expect(wb.w).toBeCloseTo(4.0, 1);
+    expect(wb.d).toBeCloseTo(3.0, 1);
   });
 
   it('muros DIBUJADOS a mano (rotados): forman el mismo rectángulo, centrados en el suelo', () => {
     // Mismo contorno 4×3 m dibujado con Draw Walls: width=longitud, height=grosor, rotation=ángulo.
     const scene = docToScene(
       doc([
-        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0 }),
-        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90 }),
-        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180 }),
-        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270 }),
+        obj({ id: 'd-top', kind: 'wall', x: 100, y: 100, width: 400, height: 15, rotation: 0, drawn: true }),
+        obj({ id: 'd-right', kind: 'wall', x: 500, y: 100, width: 300, height: 15, rotation: 90, drawn: true }),
+        obj({ id: 'd-bottom', kind: 'wall', x: 500, y: 400, width: 400, height: 15, rotation: 180, drawn: true }),
+        obj({ id: 'd-left', kind: 'wall', x: 100, y: 400, width: 300, height: 15, rotation: 270, drawn: true }),
       ]),
     );
     // El suelo mide la planta real (4×3 m) y los muros se centran en él (no desplazados media pared).

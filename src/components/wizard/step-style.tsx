@@ -42,11 +42,15 @@ function computeDoc(
   shapeState: ShapeState,
   roomType: RoomType,
   selection: FurnitureSelection,
+  wallColor?: string,
 ): CanvasDoc {
   const params = buildParams(shapeState);
   const roomDoc = buildShapeDoc({ shape: params, ceilingHeightM: shapeState.ceilingM });
   const { objects: placed } = autofurnish(roomDoc, roomType, selection);
-  return { ...roomDoc, objects: [...roomDoc.objects, ...placed] };
+  const wallObjects = wallColor
+    ? roomDoc.objects.map((o) => (o.kind === 'wall' ? { ...o, color: wallColor } : o))
+    : roomDoc.objects;
+  return { ...roomDoc, objects: [...wallObjects, ...placed] };
 }
 
 interface Props {
@@ -70,15 +74,14 @@ export function StepStyle({ shapeState, onBack, onComplete }: Props) {
     setSelectedStyle(null);
     const sel = defaultSelection(type);
     setSelection(sel);
-    runFurnish(sel, type);
+    runFurnish(sel, type, undefined);
   }
 
-  function runFurnish(sel: FurnitureSelection, type: RoomType = roomType) {
+  function runFurnish(sel: FurnitureSelection, type: RoomType = roomType, wallColor?: string) {
     setSpinning(true);
-    // Simulamos un breve delay para dar retroalimentación visual ("Creando magia…")
-    // mientras el cálculo procedural es síncrono y rápido.
+    // Breve delay para retroalimentación visual mientras el cálculo procedural es síncrono.
     setTimeout(() => {
-      const doc = computeDoc(shapeState, type, sel);
+      const doc = computeDoc(shapeState, type, sel, wallColor);
       setFurnishedDoc(doc);
       setSpinning(false);
     }, 400);
@@ -86,13 +89,13 @@ export function StepStyle({ shapeState, onBack, onComplete }: Props) {
 
   function handleStyle(style: RoomStyle) {
     setSelectedStyle(style);
-    runFurnish(selection);
+    runFurnish(selection, roomType, style.wallColor);
   }
 
   function handleAleatorio() {
     const randomSel = randomizeSelection(selection);
     setSelection(randomSel);
-    runFurnish(randomSel);
+    runFurnish(randomSel, roomType, selectedStyle?.wallColor);
   }
 
   // Calcular doc inicial al montar.

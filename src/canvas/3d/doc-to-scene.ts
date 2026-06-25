@@ -423,8 +423,18 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     if (list) list.push(op);
     else openingsByWall.set(wall.id, [op]);
   }
-  // Extensión de juntas 3D: cada extremo de muro que toca a otro recibe
+
+  // Muros de wizard horizontales llevan un bbox EXTENDIDO (loExt/hiExt en meta) para que el
+  // flood-fill del suelo cierre las esquinas. Esa misma extensión (+t en convexas, 0 en
+  // cóncavas) es la que CIERRA las esquinas en 3D: cubre el cuadrado t×t de la esquina con el
+  // muro perpendicular. NO hay que recortarla (dejaría hueco) ni añadirle la extensión de junta
+  // 3D por encima (se pasaría de medida: 1.5t). La extensión de junta 3D (~t/2) solo aplica a
+  // muros DIBUJADOS a mano (rotados, sin bbox extendido), que necesitan solaparse entre sí.
+  const wallObjMap = new Map<string, StructObj>(wallObjs.map((w) => [w.id, w]));
+
+  // Extensión de juntas 3D: cada extremo de muro DIBUJADO que toca a otro recibe
   // extendP1Px/P2Px ≈ t_vecino/2 para que las BoxGeometry se solapen en la esquina.
+  // Los muros de wizard (axis-aligned, bbox extendido) ya cierran solos → no reciben extensión.
   const JUNCTION_THRESH2 = 0.09; // (0.3 m)² — umbral de proximidad en XZ
   type EndExt = { p1: number; p2: number };
   const wallExtensions = new Map<string, EndExt>();
@@ -436,8 +446,10 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   }));
   for (let i = 0; i < wEndpoints.length; i++) {
     const a = wEndpoints[i]!;
+    const aObj = wallObjMap.get(a.id)!;
     for (let j = i + 1; j < wEndpoints.length; j++) {
       const b = wEndpoints[j]!;
+      const bObj = wallObjMap.get(b.id)!;
       for (const aEnd of ['p1', 'p2'] as const) {
         const pa = a[aEnd];
         for (const bEnd of ['p1', 'p2'] as const) {
@@ -450,10 +462,11 @@ export function docToScene(doc: CanvasDoc): Scene3D {
           if (sinTheta < 0.1) continue; // casi paralelos: sin extensión
           const eA = Math.min(1.5 * a.axis.t, b.axis.t / (2 * sinTheta));
           const eB = Math.min(1.5 * b.axis.t, a.axis.t / (2 * sinTheta));
+          // Solo los muros dibujados necesitan solape 3D; los wizard cierran con su bbox.
           const extA = wallExtensions.get(a.id)!;
           const extB = wallExtensions.get(b.id)!;
-          extA[aEnd] = Math.max(extA[aEnd], eA);
-          extB[bEnd] = Math.max(extB[bEnd], eB);
+          if (aObj.drawn) extA[aEnd] = Math.max(extA[aEnd], eA);
+          if (bObj.drawn) extB[bEnd] = Math.max(extB[bEnd], eB);
         }
       }
     }

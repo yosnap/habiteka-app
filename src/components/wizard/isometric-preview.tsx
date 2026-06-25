@@ -82,7 +82,7 @@ function buildBoxes(doc: CanvasDoc, ceilingH: number): { boxes: DocBox[]; roomW:
       w: wm,
       d: dm,
       h: isWall ? ceilingH : Math.min(1.0, Math.max(0.4, dm * 0.6)),
-      color: kindColor(obj.kind),
+      color: obj.color ?? kindColor(obj.kind),
       isWall,
     });
   }
