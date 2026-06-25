@@ -55,6 +55,8 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string): React
   switch (kind) {
     // --- Estructura ---
     case 'wall':
+      // outlineToWalls posiciona el Group con el offset de esquina ya incluido
+      // en width/height; el Rect no necesita extensión adicional.
       return <Rect width={w} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />;
     case 'window':
       return (

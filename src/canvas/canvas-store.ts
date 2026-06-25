@@ -203,34 +203,32 @@ export const useCanvasStore = create<CanvasState>((set) => {
     rotate90: (ids) =>
       mutate((d) => {
         const sel = d.objects.filter((o) => ids.includes(o.id));
+
         if (sel.length <= 1) {
           return {
             ...d,
-            objects: d.objects.map((o) =>
-              ids.includes(o.id) ? { ...o, rotation: (o.rotation + 90) % 360 } : o,
-            ),
+            objects: d.objects.map((o) => {
+              if (!ids.includes(o.id)) return o;
+              return rotate90InPlace(o);
+            }),
           };
         }
-        const c = bboxCenter(sel);
+
+        // Multiselección: cada objeto rota sobre el centroide visual del grupo.
+        const centers = sel.map(visualCenterOf);
+        const gc = {
+          x: centers.reduce((s, c) => s + c.x, 0) / centers.length,
+          y: centers.reduce((s, c) => s + c.y, 0) / centers.length,
+        };
         return {
           ...d,
           objects: d.objects.map((o) => {
             if (!ids.includes(o.id)) return o;
-            const ocx = o.x + o.width / 2;
-            const ocy = o.y + o.height / 2;
-            // 90° horaria del centro del objeto alrededor del centro común.
-            const rx = c.x - (ocy - c.y);
-            const ry = c.y + (ocx - c.x);
-            const nw = o.height;
-            const nh = o.width;
-            return {
-              ...o,
-              x: rx - nw / 2,
-              y: ry - nh / 2,
-              width: nw,
-              height: nh,
-              rotation: (o.rotation + 90) % 360,
-            };
+            const vc = visualCenterOf(o);
+            // Rotar el centro visual 90° CW alrededor del centroide del grupo.
+            const rx = gc.x - (vc.y - gc.y);
+            const ry = gc.y + (vc.x - gc.x);
+            return tlForVisualCenter(o, rx, ry);
           }),
         };
       }),
@@ -336,6 +334,44 @@ function clearSelectionOf(
 }
 
 /** Centro del bounding box conjunto de un conjunto de objetos. */
+/** Centro visual de un objeto en coordenadas de canvas.
+ *  La rotación es CW alrededor de (o.x, o.y) — el origen del Group de Konva. */
+function visualCenterOf(o: StructObj): { x: number; y: number } {
+  const rad = (o.rotation * Math.PI) / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+  return {
+    x: o.x + (o.width / 2) * cosR - (o.height / 2) * sinR,
+    y: o.y + (o.width / 2) * sinR + (o.height / 2) * cosR,
+  };
+}
+
+/** Devuelve el objeto con la esquina TL ajustada para que su centro visual
+ *  permanezca en (cx, cy) con la nueva rotación newRot. */
+function tlForVisualCenter(
+  o: StructObj,
+  cx: number,
+  cy: number,
+  newRot?: number,
+): StructObj {
+  const rot = newRot ?? (o.rotation + 90) % 360;
+  const rad = (rot * Math.PI) / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+  return {
+    ...o,
+    x: Math.round(cx - (o.width / 2) * cosR + (o.height / 2) * sinR),
+    y: Math.round(cy - (o.width / 2) * sinR - (o.height / 2) * cosR),
+    rotation: rot,
+  };
+}
+
+/** Rota un objeto 90° CW sobre su propio centro visual (sin desplazarlo). */
+function rotate90InPlace(o: StructObj): StructObj {
+  const vc = visualCenterOf(o);
+  return tlForVisualCenter(o, vc.x, vc.y);
+}
+
 function bboxCenter(objs: StructObj[]) {
   const minX = Math.min(...objs.map((o) => o.x));
   const minY = Math.min(...objs.map((o) => o.y));
