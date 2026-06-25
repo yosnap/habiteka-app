@@ -218,6 +218,14 @@ export interface StructObj {
   elevationM?: number;
   /** Datos específicos por kind: color de pintura, potencia de luz, etc. */
   meta?: Record<string, unknown>;
+  /**
+   * Muro dibujado manualmente con la herramienta draw-wall.
+   * Los muros generados por outlineToWalls NO llevan este flag: su posición y
+   * dimensiones ya incluyen la cobertura de esquina, por lo que el Rect no necesita
+   * extensión adicional. Los muros dibujados sí necesitan la extensión h/2 en cada
+   * extremo para cubrir el hueco en las uniones perpendiculares.
+   */
+  drawn?: true;
 }
 
 /** Producto del marketplace colocado en el canvas. */

@@ -33,6 +33,8 @@ function box(w: number, h: number, fill: string, radius = 2) {
 /**
  * Dibuja un objeto en planta. Si `flip`, lo espeja en horizontal envolviéndolo en
  * un único Group con `scaleX(-1)` y `x(w)` (un solo nivel de transform, fiable).
+ * `drawn` diferencia muros dibujados manualmente (necesitan extensión de esquina)
+ * de los generados por outlineToWalls (ya llevan la cobertura en sus dimensiones).
  */
 export function objectShape(
   kind: StructKind,
@@ -40,8 +42,9 @@ export function objectShape(
   h: number,
   flip = false,
   color?: string,
+  drawn = false,
 ): React.ReactNode {
-  const content = shapeFor(kind, w, h, color);
+  const content = shapeFor(kind, w, h, color, drawn);
   if (!flip) return content;
   return (
     <Group scaleX={-1} x={w}>
@@ -51,13 +54,17 @@ export function objectShape(
 }
 
 /** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
-function shapeFor(kind: StructKind, w: number, h: number, color?: string): React.ReactNode {
+function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn = false): React.ReactNode {
   switch (kind) {
     // --- Estructura ---
     case 'wall':
-      // outlineToWalls posiciona el Group con el offset de esquina ya incluido
-      // en width/height; el Rect no necesita extensión adicional.
-      return <Rect width={w} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />;
+      // Muros dibujados (drawn=true): el Group está en el punto de inicio del segmento;
+      // el Rect se extiende h/2 en cada extremo para cubrir el hueco en las uniones.
+      // Muros generados (drawn=false): outlineToWalls ya incluye la extensión de esquina
+      // en las dimensiones del Group, por lo que el Rect no necesita extensión adicional.
+      return drawn
+        ? <Rect x={-h / 2} width={w + h} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />
+        : <Rect width={w} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />;
     case 'window':
       return (
         <>

@@ -117,5 +117,6 @@ export function segmentToWall(
     width: length,
     height: thicknessPx,
     rotation: angle,
+    drawn: true,
   };
 }

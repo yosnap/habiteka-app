@@ -235,7 +235,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
               reflejada respecto al ancho. Se hace en el modelo de la forma (no con
               un Group scaleX anidado, que no compensaba bien dentro del Group que
               además rota). */}
-          {objectShape(o.kind, o.width, o.height, o.flipX === true, o.light?.color)}
+          {objectShape(o.kind, o.width, o.height, o.flipX === true, o.light?.color, o.drawn === true)}
           {/* Resalte individual de los objetos seleccionados, para distinguir cuáles
               están en la selección (el Transformer dibuja solo el recuadro conjunto). */}
           {selectedIds.includes(o.id) ? (
