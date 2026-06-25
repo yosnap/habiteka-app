@@ -10,7 +10,7 @@
  * envía a la IA (img2img) como imagen base.
  */
 import dynamic from 'next/dynamic';
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useState, useTransition, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { CanvasDoc, StructKind } from '@/canvas/types';
 import type { Estilo } from '@/lib/contracts';
@@ -23,7 +23,8 @@ import { catalogSizePx, DEFAULT_CEILING_M } from '@/canvas/scale';
 import { isLight, defaultLight } from '@/canvas/light';
 import { use3DSelection } from './use-3d-selection';
 import { ObjectPropertiesPanel } from './object-properties-panel';
-import { CatalogPanel3D } from './catalog-panel-3d';
+import { CatalogPanel3D, CATALOG_3D_MIME } from './catalog-panel-3d';
+import type { ScreenToFloor } from './plan-3d-view';
 
 const Plan3DView = dynamic(() => import('./plan-3d-view').then((m) => m.Plan3DView), {
   ssr: false,
@@ -111,6 +112,47 @@ export function Plan3DOverlay({
 
   const ceilingHeightM = doc.ceilingHeightM ?? DEFAULT_CEILING_M;
 
+  // Puente drag→3D: DropBridge (dentro del Canvas) registra aquí la conversión pantalla→suelo.
+  const dropToFloorRef = useRef<ScreenToFloor | null>(null);
+
+  /**
+   * Soltar un item del catálogo 3D sobre el escenario: raycast al suelo → posición 2D px →
+   * `addObject`. Coloca el mueble DONDE se suelta (no en el centro), evitando moverlo después.
+   * Las aperturas (ventana/puerta) entran en modo "elige muro" como el clic.
+   */
+  const handleDrop3D = (e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData(CATALOG_3D_MIME);
+    if (!raw) return;
+    e.preventDefault();
+    let kind: StructKind;
+    try {
+      kind = (JSON.parse(raw) as { kind: StructKind }).kind;
+    } catch {
+      return;
+    }
+    const entry = CATALOG.flatMap((c) => c.items).find((i) => i.kind === kind);
+    if (!entry) return;
+    const { w, h } = catalogSizePx(entry, { pxPerMeter: sceneCoords.pxPerMeter });
+    const id = `obj-${crypto.randomUUID()}`;
+    if (kind === 'window' || kind === 'door') {
+      setPendingOpening({ id, kind, w, h });
+      return;
+    }
+    const floor = dropToFloorRef.current?.(e.clientX, e.clientY);
+    if (!floor) return; // soltó fuera del escenario (p. ej. sobre el catálogo): no crear.
+    // Mundo XZ → px 2D (inverso de planPointToXZ): X-mundo = (px - center)/ppm.
+    const pxX = floor.x * sceneCoords.pxPerMeter + sceneCoords.planCenterPx[0];
+    const pxY = floor.z * sceneCoords.pxPerMeter + sceneCoords.planCenterPx[1];
+    addObject({
+      id, kind,
+      x: pxX - w / 2, y: pxY - h / 2,
+      width: w, height: h, rotation: 0,
+      ...(isLight(kind) ? { light: defaultLight() } : {}),
+    });
+    select(id);
+    setMode('translate');
+  };
+
   const handleAdd = (kind: StructKind) => {
     const entry = CATALOG.flatMap((c) => c.items).find((i) => i.kind === kind);
     if (!entry) return;
@@ -195,7 +237,11 @@ export function Plan3DOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-50 select-none bg-neutral-900">
+    <div
+      className="fixed inset-0 z-50 select-none bg-neutral-900"
+      onDragOver={(e) => { if (e.dataTransfer.types.includes(CATALOG_3D_MIME)) e.preventDefault(); }}
+      onDrop={handleDrop3D}
+    >
       <button
         type="button"
         onClick={onClose}
@@ -345,6 +391,7 @@ export function Plan3DOverlay({
         mode={mode}
         onSetMode={setMode}
         onSwap={(id) => setSwapId(id)}
+        dropToFloorRef={dropToFloorRef}
       />
     </div>
   );

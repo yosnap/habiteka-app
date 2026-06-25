@@ -9,10 +9,10 @@
  *
  * Cliente-only: WebGL necesita `window`; se monta con `dynamic` desde la página.
  */
-import { Suspense, useMemo, useRef, useState } from 'react';
+import { Suspense, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF } from '@react-three/drei';
-import { Mesh, Shape, type Object3D, type PerspectiveCamera } from 'three';
+import { Mesh, Shape, Plane, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
 import type { CanvasDoc } from '@/canvas/types';
 import { docToScene, type Scene3D, type WallBox } from '@/canvas/3d/doc-to-scene';
 import { furnitureModelUrl } from '@/canvas/3d/furniture-models';
@@ -27,6 +27,43 @@ import { OpeningFramesLayer } from './opening-frames-layer';
 import { SnapGuideLayer } from './snap-guide-layer';
 import { OpeningInteractionLayer } from './opening-interaction-layer';
 import { CeilingLayer } from './ceiling-layer';
+
+/** Punto del suelo (plano y=0) en coordenadas de mundo XZ, o null si el rayo no lo corta. */
+export type FloorPoint = { x: number; z: number } | null;
+/** Función expuesta por `DropBridge` para convertir coords de pantalla → punto del suelo. */
+export type ScreenToFloor = (clientX: number, clientY: number) => FloorPoint;
+
+/**
+ * Puente entre el evento HTML5 `drop` (fuera del Canvas) y el raycast de Three (dentro).
+ * Vive DENTRO del Canvas para acceder a `camera`/`gl`; registra en `dropToFloorRef` una
+ * función que el overlay llama al soltar un item del catálogo sobre el escenario.
+ */
+function DropBridge({ dropToFloorRef }: { dropToFloorRef: MutableRefObject<ScreenToFloor | null> }) {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const raycaster = useMemo(() => new Raycaster(), []);
+  // Plano del suelo (y=0). Los muebles se apoyan en él; colocar ahí el raycast da la posición
+  // natural para soltar, y luego se ajusta la elevación por kind (FLOOR_ELEVATION_M).
+  const floorPlane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), []);
+  const hitTarget = useMemo(() => new Vector3(), []);
+  useMountEffect(() => {
+    // camera/gl/raycaster/floorPlane/dropToFloorRef son estables (r3f + useMemo + ref),
+    // así que capturarlos al montar es seguro: no hace falta re-registrar en cada cambio.
+    dropToFloorRef.current = (clientX, clientY) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndc = new Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      );
+      raycaster.setFromCamera(ndc, camera);
+      const point = raycaster.ray.intersectPlane(floorPlane, hitTarget);
+      if (!point) return null;
+      return { x: point.x, z: point.z };
+    };
+    return () => { dropToFloorRef.current = null; };
+  });
+  return null;
+}
 
 /**
  * Muros con recorte por cámara (F6.4): cada frame se oculta el muro que queda entre la
@@ -263,6 +300,7 @@ export function Plan3DView({
   mode,
   onSetMode,
   onSwap,
+  dropToFloorRef,
 }: {
   doc: CanvasDoc;
   /** Si se pasa, habilita capturar vistas por ángulo y entregar el data URL al caller. */
@@ -279,6 +317,8 @@ export function Plan3DView({
   mode?: SelectionMode;
   onSetMode?: (m: SelectionMode) => void;
   onSwap?: (id: string) => void;
+  /** Ref donde el `DropBridge` registra la conversión pantalla→suelo (drag del catálogo 3D). */
+  dropToFloorRef?: MutableRefObject<ScreenToFloor | null>;
 }) {
   // La escena depende solo del doc: memoizar evita recalcular en cada render.
   const scene = useMemo(() => docToScene(doc), [doc]);
@@ -428,6 +468,7 @@ export function Plan3DView({
         <OrbitControls makeDefault target={[0, scene.ceilingHeightM / 2, 0]} />
         <PerfProbe onStats={setStats} />
         <CaptureRig order={captureOrder} />
+        {dropToFloorRef ? <DropBridge dropToFloorRef={dropToFloorRef} /> : null}
       </Canvas>
     </div>
   );
