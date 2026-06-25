@@ -92,10 +92,10 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
 
   const hoveredObj = objects.find((o) => o.id === hovered);
 
-  // Muro dibujado único seleccionado → muestra los handles de extremo.
+  // Muro único seleccionado (dibujado o de plantilla) → muestra los handles de extremo.
   const singleSelectedDrawnWall =
     selectedIds.length === 1
-      ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && o.drawn)
+      ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall')
       : undefined;
 
   /** Centro visual en coordenadas de mundo para una wall (u objeto genérico). */
