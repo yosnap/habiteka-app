@@ -407,6 +407,14 @@ function useDragOnFloor({
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
+      // Seleccionar al hacer clic SIEMPRE, pero solo arrastrar si el modo es 'translate'.
+      if (!isSelected) return; // Si no está seleccionado, el clic solo selecciona (lo maneja onClick).
+      const sel = useCanvasStore.getState();
+      const currentMode = sel.doc.selection?.type === 'object' ? null : null; // El modo vive en use3DSelection
+      // Leer el modo del store de selección 3D (no del canvas store):
+      // useDragOnFloor no tiene acceso al mode directamente, pero el caller (FurnitureModel)
+      // sí lo pasa via sel.mode. Lo simplificamos: si no hay modo translate activo, no arrastrar.
+      // El caller decide si pasar onPointerDown o no según el modo.
       const ne = e.nativeEvent;
       const xz = hitFloor(ne.clientX, ne.clientY);
       if (!xz) return;
@@ -420,12 +428,12 @@ function useDragOnFloor({
         startObjXZ: [item.center[0], item.center[2]],
       };
     },
-    [hitFloor, controls, gl, item.center],
+    [hitFloor, controls, gl, item.center, isSelected],
   );
 
   const onPointerEnter = useCallback(() => {
-    gl.domElement.style.cursor = 'grab';
-  }, [gl]);
+    if (isSelected) gl.domElement.style.cursor = 'grab';
+  }, [gl, isSelected]);
 
   const onPointerLeave = useCallback(() => {
     if (!dragRef.current?.active) gl.domElement.style.cursor = '';
@@ -560,10 +568,11 @@ function FurnitureModel({
   }, [scene, item.size, item.flipX, item.kind]);
 
   const isSelected = sel.selectedId === item.id;
+  const canDrag = isSelected && sel.mode === 'translate';
   const groupRef = useRef<Group>(null);
   const snapStateRef = useRef<SnapState>(null);
   const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnFloor({
-    groupRef, item, isSelected, sceneCoords,
+    groupRef, item, isSelected: canDrag, sceneCoords,
     walls: sel.walls, items: sel.items, snapStateRef, snapGuideRef: sel.snapGuideRef,
   });
 
@@ -575,9 +584,9 @@ function FurnitureModel({
       position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); sel.onSelect(item.id); }}
-      onPointerDown={isSelected ? onPointerDown : undefined}
-      onPointerEnter={isSelected ? onPointerEnter : undefined}
-      onPointerLeave={isSelected ? onPointerLeave : undefined}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       <group rotation={[0, transform.modelRot, 0]}>
         <group scale={transform.scale} position={transform.offset}>
@@ -611,10 +620,11 @@ function FurniturePlaceholder({
   sceneCoords: SceneCoords;
 }) {
   const isSelected = sel.selectedId === item.id;
+  const canDrag = isSelected && sel.mode === 'translate';
   const groupRef = useRef<Group>(null);
   const snapStateRef = useRef<SnapState>(null);
   const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnFloor({
-    groupRef, item, isSelected, sceneCoords,
+    groupRef, item, isSelected: canDrag, sceneCoords,
     walls: sel.walls, items: sel.items, snapStateRef, snapGuideRef: sel.snapGuideRef,
   });
 
@@ -626,9 +636,9 @@ function FurniturePlaceholder({
       position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); sel.onSelect(item.id); }}
-      onPointerDown={isSelected ? onPointerDown : undefined}
-      onPointerEnter={isSelected ? onPointerEnter : undefined}
-      onPointerLeave={isSelected ? onPointerLeave : undefined}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       <mesh position={[0, item.size[1] / 2, 0]}>
         <boxGeometry args={item.size} />
