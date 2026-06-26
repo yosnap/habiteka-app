@@ -583,10 +583,26 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn 
           </Group>
         );
       }
-      // Elementos de pared (wall-surface): rect pequeño semitransparente.
+      // Elementos de pared (wall-surface): rect con icono y etiqueta.
       if ((WALL_SURFACE_KINDS as Set<string>).has(kindStr)) {
+        const wsIcon = kind === 'outlet' ? '🔌'
+          : kind === 'switch' ? '🔘'
+          : kind === 'thermostat' ? '🌡'
+          : kind === 'tv_mount' ? '📺'
+          : kind === 'wall_sconce' ? '🪔'
+          : kind === 'art_frame' ? '🖼'
+          : kind === 'radiator' ? '♨'
+          : '▪';
+        const wsColor = kind === 'tv_mount' ? '#1a1a1f'
+          : kind === 'art_frame' ? '#8a6f4a'
+          : kind === 'radiator' ? '#c8ccd0'
+          : '#e8ecef';
+        const fontSize = Math.min(w, h, 20);
         return (
-          <Rect width={w} height={h} fill="#e8ecef" stroke="#9aa3ab" strokeWidth={1} dash={[3, 2]} opacity={0.8} />
+          <Group>
+            <Rect width={w} height={h} fill={wsColor} stroke="#9aa3ab" strokeWidth={1} dash={[3, 2]} opacity={0.85} cornerRadius={2} />
+            <Text text={wsIcon} x={w / 2 - fontSize / 2} y={h / 2 - fontSize / 2} fontSize={fontSize} listening={false} />
+          </Group>
         );
       }
       // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
