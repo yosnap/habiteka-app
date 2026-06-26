@@ -363,6 +363,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
   const selectedIds =
     doc.selection?.type === 'object' ? doc.selection.objectIds : [];
+  // Muro de plantilla (wizard) seleccionado → activa el editor de contorno (puntos en los
+  // vértices del polígono, tiempo real, guías H/V): al mover un vértice se regeneran los
+  // muros y el inglete se mantiene. Los muros dibujados a mano usan sus propios handles.
+  const selectedWizardWall =
+    selectedIds.length === 1
+      ? doc.objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && !o.drawn)
+      : undefined;
   const menuAabb =
     tool === 'select' && !dragging && !drawWall.drawing && selectedIds.length > 0
       ? selectionAabb(doc.objects, selectedIds)
@@ -440,9 +447,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
-      {/* Modo "Editar contorno": handles de los vértices del suelo (capa interactiva propia).
-          Solo visible/activa en ese modo, para no interferir con la selección de objetos. */}
-      {tool === 'edit-outline' ? (
+      {/* Editor de contorno (puntos en los vértices del polígono): en modo "Editar contorno"
+          o al seleccionar un muro de plantilla. Al mover un vértice se regeneran los muros
+          manteniendo el inglete; guías de alineación H/V en tiempo real (estilo Planner5D). */}
+      {tool === 'edit-outline' || selectedWizardWall ? (
         <Layer>
           <OutlineEditorLayer />
         </Layer>

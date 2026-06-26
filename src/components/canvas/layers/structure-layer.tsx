@@ -92,10 +92,11 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
 
   const hoveredObj = objects.find((o) => o.id === hovered);
 
-  // Muro único seleccionado (dibujado o de plantilla) → muestra los handles de extremo.
+  // Muro dibujado único seleccionado → handles de extremo (segmento libre + vecinos).
+  // Los muros de plantilla se editan con el editor de contorno (vértices del polígono).
   const singleSelectedDrawnWall =
     selectedIds.length === 1
-      ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall')
+      ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && o.drawn)
       : undefined;
 
   /** Centro visual en coordenadas de mundo para una wall (u objeto genérico). */
