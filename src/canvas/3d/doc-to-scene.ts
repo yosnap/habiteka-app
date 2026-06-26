@@ -538,13 +538,14 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       // Centro desplazado hacia fuera t/2 → grosor todo hacia fuera, eje en el borde interior.
       const cx = (ax + bx) / 2 + nx * (tM / 2);
       const cz = (az + bz) / 2 + nz * (tM / 2);
-      const wall = wallObjs[i] ?? wallObjs[i % wallObjs.length];
+      const wall = wallObjs[i];
       const angleDeg = wall ? wallAxis(wall).angleDeg : (Math.atan2(dz, dx) * 180) / Math.PI;
       walls.push({
-        id: wall?.id ?? `outline-${i}`,
+        id: `outline-${i}`,
         sourceId: wall?.id ?? `outline-${i}`,
         center: [cx, ceilingHeightM / 2, cz],
-        size: [len, ceilingHeightM, tM],
+        // Largo extendido t a cada extremo para cubrir el cuadrado de la esquina (como wizard).
+        size: [len + 2 * tM, ceilingHeightM, tM],
         rotationY: rotation2DToY(angleDeg),
         ...(wall?.color ? { color: wall.color } : {}),
         ...(wall?.hidden ? { hidden: true } : {}),
