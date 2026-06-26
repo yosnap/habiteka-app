@@ -18,9 +18,8 @@ import {
   type FloorVertex,
   emptyCanvasDoc,
 } from './types';
-import { outlineToWalls } from './wizard/room-shapes';
-import { DEFAULT_WALL_THICKNESS_M } from './draw-wall';
-import { metersToPx } from './scale';
+import { segmentToWall, DEFAULT_WALL_THICKNESS_M } from './draw-wall';
+import { isValidScale } from './scale';
 
 interface CanvasState {
   doc: CanvasDoc;
@@ -289,18 +288,24 @@ export const useCanvasStore = create<CanvasState>((set) => {
     setFloorOutline: (vertices) =>
       mutate((d) => {
         if (vertices.length < 3) return d;
-        // Grosor de muro en px: se conserva el del contorno actual (el lado corto del primer
-        // muro existente) para no cambiarlo al editar; si no hay muros, el grosor por defecto.
-        const existingWalls = d.objects.filter((o) => o.kind === 'wall');
-        const pxPerMeter = d.scale?.pxPerMeter;
-        const defaultT =
-          typeof pxPerMeter === 'number' && pxPerMeter > 0
-            ? metersToPx(DEFAULT_WALL_THICKNESS_M, { pxPerMeter })
-            : 15;
-        const t = existingWalls.length
-          ? Math.min(...existingWalls.map((w) => Math.min(w.width, w.height)))
-          : defaultT;
-        const newWalls = outlineToWalls(vertices, t);
+        // Muros generados como SEGMENTOS rotados (drawn) por cada arista del contorno: así el
+        // editor soporta formas NO ortogonales (triángulos, diagonales), no solo L/U/T. Las
+        // salas iniciales del wizard siguen usando outlineToWalls (axis-aligned con meta); al
+        // editar el contorno se reconstruyen como muros drawn, cuyo miter calcula computeWallMiters.
+        const scale: CanvasScale | null = isValidScale(d.scale) ? d.scale : null;
+        const newWalls = [];
+        for (let i = 0; i < vertices.length; i++) {
+          const a = vertices[i]!;
+          const b = vertices[(i + 1) % vertices.length]!;
+          const wall = segmentToWall(
+            `wall-${crypto.randomUUID()}`,
+            a,
+            b,
+            scale,
+            DEFAULT_WALL_THICKNESS_M,
+          );
+          if (wall) newWalls.push(wall);
+        }
         // Reemplaza SOLO los muros (conserva muebles, ventanas/puertas, luces y su z-order
         // relativo: los no-muros se mantienen, los muros nuevos van al fondo del array).
         const nonWalls = d.objects.filter((o) => o.kind !== 'wall');

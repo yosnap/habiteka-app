@@ -17,7 +17,7 @@ import { Group, Line, Circle, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { FloorVertex } from '@/canvas/types';
-import { moveVertexOrtho, insertVertexOnEdge, removeVertex } from '@/canvas/wizard/outline-edit';
+import { moveVertexFree, insertVertexOnEdge, removeVertex } from '@/canvas/wizard/outline-edit';
 import { floorPolygonFromWalls } from '@/canvas/3d/floor-from-walls';
 import { pxToMeters, formatLength, isValidScale } from '@/canvas/scale';
 import { snap } from './grid-layer';
@@ -61,7 +61,7 @@ export function OutlineEditorLayer() {
   const shown = useMemo<FloorVertex[]>(() => {
     if (!outline) return [];
     if (!dragging) return outline;
-    return moveVertexOrtho(outline, dragging.i, dragging.x, dragging.y);
+    return moveVertexFree(outline, dragging.i, dragging.x, dragging.y);
   }, [outline, dragging]);
 
   if (!outline || outline.length < 3) return null;
@@ -92,7 +92,7 @@ export function OutlineEditorLayer() {
     const { xs, ys } = otherCoords(i);
     const x = snapCoord(e.target.x(), xs);
     const y = snapCoord(e.target.y(), ys);
-    setFloorOutline(moveVertexOrtho(outline, i, x, y));
+    setFloorOutline(moveVertexFree(outline, i, x, y));
     setDragging(null);
   };
 
