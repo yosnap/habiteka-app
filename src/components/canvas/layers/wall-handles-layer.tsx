@@ -35,37 +35,21 @@ interface DragLabel { x: number; y: number; text: string }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Recupera los dos extremos del eje central de un muro (dibujado a mano o de plantilla).
- *
- * - Muros `drawn` (Draw Walls): la esquina (x,y) es el pivote; el eje longitudinal es
- *   `width` y el grosor `height`, con la normal rotada por `rotation`.
- * - Muros de wizard/plantilla (axis-aligned, rotation 0): el bbox es la caja; el eje
- *   longitudinal es el lado largo (width si es horizontal, height si es vertical) y el
- *   extremo se calcula sobre el centro del lado corto.
- */
+/** Recupera los dos extremos del eje central de un muro dibujado (drawn). */
 export function drawnWallEndpoints(
   o: StructObj,
 ): { p1: Pt; p2: Pt } | null {
-  if (o.drawn) {
-    const angle = (o.rotation * Math.PI) / 180;
-    const nx = Math.sin(angle);
-    const ny = -Math.cos(angle);
-    const half = o.height / 2;
-    const p1 = { x: o.x - nx * half, y: o.y - ny * half };
-    const p2 = {
-      x: p1.x + Math.cos(angle) * o.width,
-      y: p1.y + Math.sin(angle) * o.width,
-    };
-    return { p1, p2 };
-  }
-  // Muro axis-aligned de plantilla (rotation 0). Distinguir horizontal/vertical por proporción.
-  if (o.width >= o.height) {
-    const y = o.y + o.height / 2;
-    return { p1: { x: o.x, y }, p2: { x: o.x + o.width, y } };
-  }
-  const x = o.x + o.width / 2;
-  return { p1: { x, y: o.y }, p2: { x, y: o.y + o.height } };
+  if (!o.drawn) return null;
+  const angle = (o.rotation * Math.PI) / 180;
+  const nx = Math.sin(angle);
+  const ny = -Math.cos(angle);
+  const half = o.height / 2;
+  const p1 = { x: o.x - nx * half, y: o.y - ny * half };
+  const p2 = {
+    x: p1.x + Math.cos(angle) * o.width,
+    y: p1.y + Math.sin(angle) * o.width,
+  };
+  return { p1, p2 };
 }
 
 function d(a: Pt, b: Pt) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -195,7 +179,7 @@ export function WallHandlesLayer({ wall }: { wall: StructObj }) {
       // Vecinos ya conectados al extremo que se va a mover
       adjRef.current = [];
       for (const o of allObjects) {
-        if (o.id === wall.id || o.kind !== 'wall') continue;
+        if (o.id === wall.id || o.kind !== 'wall' || !o.drawn) continue;
         const eps = drawnWallEndpoints(o);
         if (!eps) continue;
         if (d(eps.p1, movingPt) < ADJ_DIST) {
@@ -205,10 +189,10 @@ export function WallHandlesLayer({ wall }: { wall: StructObj }) {
         }
       }
 
-      // Targets de snap: todos los extremos de muro que NO son el extremo movido
+      // Targets de snap: todos los extremos drawn que NO son el extremo movido
       targetsRef.current = [];
       for (const o of allObjects) {
-        if (o.kind !== 'wall') continue;
+        if (o.kind !== 'wall' || !o.drawn) continue;
         const eps = drawnWallEndpoints(o);
         if (!eps) continue;
         if (d(eps.p1, movingPt) >= ADJ_DIST) targetsRef.current.push(eps.p1);
