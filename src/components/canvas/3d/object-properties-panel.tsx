@@ -111,6 +111,46 @@ export function ObjectPropertiesPanel({
           </span>
         </button>
       )}
+      {obj.light ? (() => {
+        const lp = obj.light;
+        const isOn = lp.on !== false;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => onChange({ light: { ...lp, on: !isOn } })}
+              className="flex flex-col items-center gap-0.5"
+              title={isOn ? 'Apagar luz' : 'Encender luz'}
+            >
+              <span className="text-[10px] text-white/50">Luz</span>
+              <span className={`rounded px-2 py-1 text-xs ${isOn ? 'bg-yellow-600 text-white' : 'bg-neutral-800 text-white/50'}`}>
+                {isOn ? '💡' : '⬛'}
+              </span>
+            </button>
+            {isOn && (
+              <>
+                <label className="flex flex-col items-center gap-0.5 select-none">
+                  <span className="text-[10px] text-white/50">Intens. %</span>
+                  <input
+                    type="range" min={0} max={100} value={lp.intensidad}
+                    onChange={(e) => onChange({ light: { ...lp, intensidad: Number(e.target.value) } })}
+                    className="w-16 accent-yellow-500"
+                  />
+                </label>
+                <label className="flex flex-col items-center gap-0.5 select-none">
+                  <span className="text-[10px] text-white/50">Temp. K</span>
+                  <input
+                    type="range" min={2700} max={6500} step={100}
+                    value={lp.temperature ?? 4000}
+                    onChange={(e) => onChange({ light: { ...lp, temperature: Number(e.target.value) } })}
+                    className="w-16 accent-sky-500"
+                  />
+                </label>
+              </>
+            )}
+          </>
+        );
+      })() : null}
     </div>
   );
 }
