@@ -59,6 +59,32 @@ async function assertZoneInProject(
 }
 
 /**
+ * Duplica una zona: crea una zona nueva con el nombre dado y COPIA el canvas state
+ * (plano, muebles, trazos, notas) de la zona origen. Útil para diseños repetitivos
+ * (varias viviendas iguales, variantes de un mismo espacio).
+ */
+export async function duplicateZone(
+  projectId: string,
+  sourceZoneId: string,
+  newName: string,
+): Promise<ZoneRow> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertZoneInProject(ctx, projectId, sourceZoneId);
+  const clean = String(newName ?? '').trim().slice(0, 80) || 'Copia';
+  const existing = await withOrg(ctx).zones.list(projectId);
+  const newZone = await withOrg(ctx).zones.create(projectId, {
+    name: clean,
+    order: existing.length,
+  });
+  // Copiar el canvas state de la zona origen a la nueva.
+  const sourceState = await withOrg(ctx).canvas.load(projectId, sourceZoneId);
+  await withOrg(ctx).canvas.save(projectId, sourceState, newZone.id);
+  revalidateProject(projectId);
+  return newZone;
+}
+
+/**
  * Fija el TIPO de una zona (interior/exterior, vocabulario controlado). Determina la
  * variante del prompt del render por foto (img2img): un interior y una fachada/jardín
  * se describen distinto. Pasar '' limpia el tipo (vuelve a interior por defecto).
