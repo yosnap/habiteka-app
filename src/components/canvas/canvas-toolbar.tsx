@@ -20,16 +20,12 @@ export type Tool =
   | 'pan'
   | 'zoom'
   | 'freehand'
+  | 'note'
   | 'draw-wall'
   | 'edit-outline'
   | 'zone'
   | StructKind;
 
-// Modos del editor de planos. La herramienta 'zone' existe en el modelo (se usa
-// para el feedback dirigido sobre un render), pero no se expone aquí: en el editor
-// manual confunde, ya que está pensada para marcar áreas sobre un diseño generado.
-// 'draw-wall' dibuja muros como líneas rectas con cota en vivo (F7); reemplaza la
-// creación de muros por la paleta (que se excluye en object-palette).
 const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'select', label: 'Seleccionar' },
   { tool: 'pan', label: 'Mover' },
@@ -37,6 +33,7 @@ const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'draw-wall', label: 'Dibujar muro' },
   { tool: 'edit-outline', label: 'Editar contorno' },
   { tool: 'freehand', label: 'Dibujar libre' },
+  { tool: 'note', label: 'Nota' },
 ];
 
 interface Props {

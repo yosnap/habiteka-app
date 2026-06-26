@@ -316,6 +316,17 @@ export interface CanvasDoc {
    * Se recalculan al cargar el doc cuando `walls` está presente.
    */
   rooms?: DetectedRoom[];
+  /** Notas/anotaciones de texto en el plano (B4). */
+  notes?: CanvasNote[];
+}
+
+/** Nota de texto anclada a una posición del plano. */
+export interface CanvasNote {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  color?: string;
 }
 
 /** Documento vacío inicial (proyecto recién creado). */
@@ -329,5 +340,6 @@ export function emptyCanvasDoc(): CanvasDoc {
     objects: [],
     products: [],
     selection: null,
+    notes: [],
   };
 }

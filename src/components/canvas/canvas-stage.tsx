@@ -20,6 +20,7 @@ import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
 import { OutlineEditorLayer } from './layers/outline-editor-layer';
+import { NotesLayer } from './layers/notes-layer';
 import { DrawWallLengthInput } from './draw-wall-length-input';
 import { FloatingObjectMenu } from './floating-object-menu';
 import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
@@ -97,6 +98,7 @@ function snapToWall(
 export function CanvasStage({ tool, width, height, onObjectCreated, onContextMenu }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
+  const addNote = useCanvasStore((s) => s.addNote);
   const setSelection = useCanvasStore((s) => s.setSelection);
 
   const stageRef = useRef<Konva.Stage>(null);
@@ -208,6 +210,14 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
       if (tool === 'draw-wall') {
         drawWall.handlers.onClick();
+      } else if (tool === 'note') {
+        addNote({
+          id: `note-${globalThis.crypto.randomUUID()}`,
+          x: pos.x - 80,
+          y: pos.y - 40,
+          text: '',
+        });
+        onObjectCreated?.();
       } else if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
@@ -456,6 +466,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
           <OutlineEditorLayer />
         </Layer>
       ) : null}
+      {/* Notas/anotaciones de texto (B4). */}
+      <Layer>
+        <NotesLayer />
+      </Layer>
       {/* Una sola capa de overlays efímeros (marquesina + muro en curso): ambos son ligeros y
           no interactivos, así se mantiene el nº de capas de Konva en el máximo recomendado. */}
       <Layer listening={false}>

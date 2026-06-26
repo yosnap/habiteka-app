@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import {
   type CanvasDoc,
+  type CanvasNote,
   type BaseImage,
   type StructObj,
   type Stroke,
@@ -68,6 +69,10 @@ interface CanvasState {
    * ventanas/puertas y luces. Entra en historial.
    */
   setFloorOutline(vertices: FloorVertex[]): void;
+  // Notas (B4)
+  addNote(note: CanvasNote): void;
+  updateNote(id: string, patch: Partial<Omit<CanvasNote, 'id'>>): void;
+  removeNote(id: string): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
   redo(): void;
@@ -305,6 +310,21 @@ export const useCanvasStore = create<CanvasState>((set) => {
         const nonWalls = d.objects.filter((o) => o.kind !== 'wall');
         return { ...d, objects: [...newWalls, ...nonWalls], floorOutline: vertices };
       }),
+
+    addNote: (note) =>
+      mutate((d) => ({ ...d, notes: [...(d.notes ?? []), note] })),
+
+    updateNote: (id, patch) =>
+      mutate((d) => ({
+        ...d,
+        notes: (d.notes ?? []).map((n) => (n.id === id ? { ...n, ...patch } : n)),
+      })),
+
+    removeNote: (id) =>
+      mutate((d) => ({
+        ...d,
+        notes: (d.notes ?? []).filter((n) => n.id !== id),
+      })),
 
     // La selección no participa del historial: cambia sin tocar past/future.
     setSelection: (selection) => set((state) => ({ doc: { ...state.doc, selection } })),
