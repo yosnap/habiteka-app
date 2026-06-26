@@ -509,6 +509,48 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   const walls: WallBox[] = [];
   const glassPanes: GlassPane[] = [];
   const openingFrames: OpeningFrame[] = [];
+
+  // Contorno editado (muros drawn generados por setFloorOutline desde floorOutline): las
+  // cajas drawn tienen grosor CENTRADO y dejan huecos en las esquinas 3D. Si hay floorOutline
+  // y todos los muros son drawn, reconstruimos las cajas desde el contorno con grosor HACIA
+  // FUERA (orientadas), igual que los muros wizard → las esquinas cierran. Soporta diagonales.
+  const outline = doc.floorOutline;
+  const useOutlineFor3D =
+    outline && outline.length >= 3 && wallObjs.length >= 3 && wallObjs.every((w) => w.drawn);
+  if (useOutlineFor3D && outline) {
+    const tM = pxToMeters(wallObjs[0]?.height ?? 15, { pxPerMeter });
+    const toXZ = (v: { x: number; y: number }): [number, number] => [
+      pxToMeters(v.x - center[0], { pxPerMeter }),
+      pxToMeters(v.y - center[1], { pxPerMeter }),
+    ];
+    for (let i = 0; i < outline.length; i++) {
+      const a = outline[i]!;
+      const b = outline[(i + 1) % outline.length]!;
+      const [ax, az] = toXZ(a);
+      const [bx, bz] = toXZ(b);
+      const dx = bx - ax;
+      const dz = bz - az;
+      const len = Math.hypot(dx, dz);
+      if (len < 0.01) continue;
+      // Normal exterior del polígono (horario en Konva): (dz, −dx)/len en XZ.
+      const nx = dz / len;
+      const nz = -dx / len;
+      // Centro desplazado hacia fuera t/2 → grosor todo hacia fuera, eje en el borde interior.
+      const cx = (ax + bx) / 2 + nx * (tM / 2);
+      const cz = (az + bz) / 2 + nz * (tM / 2);
+      const wall = wallObjs[i] ?? wallObjs[i % wallObjs.length];
+      const angleDeg = wall ? wallAxis(wall).angleDeg : (Math.atan2(dz, dx) * 180) / Math.PI;
+      walls.push({
+        id: wall?.id ?? `outline-${i}`,
+        sourceId: wall?.id ?? `outline-${i}`,
+        center: [cx, ceilingHeightM / 2, cz],
+        size: [len, ceilingHeightM, tM],
+        rotationY: rotation2DToY(angleDeg),
+        ...(wall?.color ? { color: wall.color } : {}),
+        ...(wall?.hidden ? { hidden: true } : {}),
+      });
+    }
+  } else {
   for (const wall of wallObjs) {
     const ext = wallExtensions.get(wall.id) ?? { p1: 0, p2: 0 };
     const { boxes, panes, frames } = splitWallWithOpenings(
@@ -531,6 +573,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     );
     glassPanes.push(...panes);
     openingFrames.push(...frames);
+  }
   }
 
   // Elementos de superficie de muro: se anclan al muro más cercano (asociación geométrica,
