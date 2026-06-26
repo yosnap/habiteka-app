@@ -6,8 +6,9 @@
  * devuelve primitivas de Konva relativas a su origen (0,0); el contenedor las
  * posiciona/rota. Mantener el dibujo aquí desacopla el render del modelo de datos.
  */
-import { Group, Rect, Circle, Line, Ellipse } from 'react-konva';
+import { Group, Rect, Circle, Line, Ellipse, Text } from 'react-konva';
 import type { StructKind } from '@/canvas/types';
+import { CEILING_KINDS, WALL_SURFACE_KINDS } from '@/canvas/types';
 import type { WallMiter } from './layers/wall-junction-caps';
 
 // Paleta de planta: trazo oscuro, rellenos suaves por familia.
@@ -564,9 +565,33 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn 
         </>
       );
 
-    // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
-    // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
-    default:
+    // Elementos de techo (ceiling): círculo punteado semitransparente con icono.
+    // No ocupan "espacio de suelo" visualmente — se distinguen del amueblado.
+    default: {
+      const kindStr = String(kind);
+      if ((CEILING_KINDS as Set<string>).has(kindStr)) {
+        const r = Math.min(w, h) / 2;
+        const icon = kind === 'ceiling_light' || kind === 'recessed_light' ? '💡'
+          : kind === 'pendant_lamp' ? '🔆'
+          : kind === 'led_strip' ? '▬'
+          : kind === 'beam' ? '▮'
+          : '✦';
+        return (
+          <Group>
+            <Circle x={w / 2} y={h / 2} radius={r} fill="#fff3d0" opacity={0.35} stroke="#e0b040" strokeWidth={1} dash={[4, 3]} />
+            <Text text={icon} x={w / 2 - 6} y={h / 2 - 7} fontSize={12} listening={false} />
+          </Group>
+        );
+      }
+      // Elementos de pared (wall-surface): rect pequeño semitransparente.
+      if ((WALL_SURFACE_KINDS as Set<string>).has(kindStr)) {
+        return (
+          <Rect width={w} height={h} fill="#e8ecef" stroke="#9aa3ab" strokeWidth={1} dash={[3, 2]} opacity={0.8} />
+        );
+      }
+      // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
+      // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
       return box(w, h, WOOD);
+    }
   }
 }
