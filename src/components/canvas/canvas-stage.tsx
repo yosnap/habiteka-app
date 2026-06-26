@@ -9,7 +9,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import { WALL_SURFACE_KINDS } from '@/canvas/types';
+import { WALL_SURFACE_KINDS, type StructKind } from '@/canvas/types';
 import { useFreehand } from '@/canvas/use-freehand';
 import { useDrawWall } from '@/canvas/use-draw-wall';
 import { pixelRectToZone } from '@/canvas/selection-math';
@@ -367,8 +367,9 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       }
 
       const id = `obj-${globalThis.crypto.randomUUID()}`;
+      const isLightKind = isLight(parsed.kind as StructKind);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation, ...(parentWallId ? { parentId: parentWallId } : {}) });
+      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation, ...(parentWallId ? { parentId: parentWallId } : {}), ...(isLightKind ? { light: defaultLight() } : {}) });
       setSelection({ type: 'object', objectIds: [id] });
     },
     [view, doc.scale, doc.objects, addObject, setSelection],
