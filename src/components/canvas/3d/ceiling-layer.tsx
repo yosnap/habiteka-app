@@ -258,13 +258,14 @@ function CeilingItem({
   sceneCoords: SceneCoords;
 }) {
   const isSelected = selectedId === item.id;
+  const canDrag = isSelected && mode === 'translate';
   // Posición real: item.center ya tiene el Y correcto calculado por objectCenterY
   const [cx, cy, cz] = item.center;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupRef = useRef<any>(null);
   const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnCeiling(
     item,
-    isSelected,
+    canDrag,
     sceneCoords,
     groupRef,
   );
@@ -276,9 +277,9 @@ function CeilingItem({
       position={[cx, cy, cz]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}
-      onPointerDown={onPointerDown}
-      onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       {item.kind === 'pendant_lamp' ? (
         <PendantLampMesh item={item} ceilingLocalY={ceilingHeightM - cy} />
