@@ -23,6 +23,7 @@ import { OutlineEditorLayer } from './layers/outline-editor-layer';
 import { NotesLayer } from './layers/notes-layer';
 import { DrawWallLengthInput } from './draw-wall-length-input';
 import { FloatingObjectMenu } from './floating-object-menu';
+import { LightControlPanel } from './light-control-panel';
 import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
@@ -487,6 +488,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       {menuAnchor ? (
         <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} allWalls={allWalls} />
       ) : null}
+      {menuAnchor && selectedIds.length === 1 ? (() => {
+        const obj = doc.objects.find((o) => o.id === selectedIds[0]);
+        return obj?.light ? <LightControlPanel obj={obj} x={menuAnchor.x} y={menuAnchor.y} /> : null;
+      })() : null}
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
         <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">
