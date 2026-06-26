@@ -291,7 +291,7 @@ export function outlineToWalls(vertices: Pt[], t: number, idPrefix = 'wall'): St
       const len = Math.abs(b.x - a.x) + loExt + hiExt;
       const y0 = nrm.y > 0 ? a.y : a.y - t;
       walls.push({
-        id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: len, height: t, rotation: 0,
+        id: `${idPrefix}-${crypto.randomUUID()}`, kind: 'wall', x: x0, y: y0, width: len, height: t, rotation: 0,
         meta: { nx: nrm.x, ny: nrm.y, extLeft: loExt > 0, extRight: hiExt > 0, loExt, hiExt },
       });
     } else {
@@ -302,7 +302,7 @@ export function outlineToWalls(vertices: Pt[], t: number, idPrefix = 'wall'): St
       const topConvex = goingDown ? startConvex : endConvex;
       const bottomConvex = goingDown ? endConvex : startConvex;
       walls.push({
-        id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: t, height: len, rotation: 0,
+        id: `${idPrefix}-${crypto.randomUUID()}`, kind: 'wall', x: x0, y: y0, width: t, height: len, rotation: 0,
         meta: { nx: nrm.x, ny: nrm.y, topConvex, bottomConvex },
       });
     }
