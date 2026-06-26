@@ -64,7 +64,7 @@ export function useDrawWall({ enabled, worldPointer }: UseDrawWallOptions) {
     (end: Point) => {
       if (!start.current) return;
       wallSeq += 1;
-      const wall = segmentToWall(`wall-${wallSeq}`, start.current, end, currentScale());
+      const wall = segmentToWall(`wall-${crypto.randomUUID()}`, start.current, end, currentScale());
       if (wall) addObject(wall);
       start.current = { x: end.x, y: end.y };
       setPreview({ start: end, end });
