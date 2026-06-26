@@ -336,6 +336,19 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant="ghost"
+            onClick={() => {
+              const url = `${window.location.origin}/share/${projectId}`;
+              navigator.clipboard.writeText(url);
+              setFurnishNotice(`Link copiado: ${url}`);
+            }}
+            title="Copiar link de solo lectura para compartir con clientes"
+          >
+            🔗 Compartir
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             onClick={() => setShowGenerate(true)}
             title="Usar la disposición del plano para generar un diseño con IA"
           >
