@@ -640,7 +640,9 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       pxToMeters(p.x - center[0], { pxPerMeter }),
       pxToMeters(p.y - center[1], { pxPerMeter }),
     ];
-    const derived = floorPolygonFromWalls(wallsForFloor);
+    // Si el contorno está editado (useOutlineFor3D), el suelo usa el floorOutline directamente:
+    // las cajas orientadas se basan en él y floorPolygonFromWalls daría escalones (flood-fill).
+    const derived = useOutlineFor3D ? null : floorPolygonFromWalls(wallsForFloor);
     if (derived && derived.length >= 3) {
       return { ...rect, polygon: derived.map(toXZ) };
     }
