@@ -8,6 +8,7 @@
  */
 import {
   type CanvasDoc,
+  type CanvasNote,
   type Stroke,
   type StructObj,
   type ProductRef,
@@ -39,6 +40,8 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     ...(doc.floorOutline && doc.floorOutline.length >= 3
       ? { floorOutline: doc.floorOutline }
       : {}),
+    // Notas de texto en el plano (B4): se persisten si hay.
+    ...(doc.notes && doc.notes.length > 0 ? { notes: doc.notes } : {}),
   };
 }
 
@@ -60,6 +63,7 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
       const outline = parseFloorOutline(raw.floorOutline);
       return outline ? { floorOutline: outline } : {};
     })(),
+    notes: parseNotes(raw.notes),
   };
 }
 
@@ -215,4 +219,22 @@ function num(v: unknown): number {
 }
 function isPresent<T>(v: T | null): v is T {
   return v !== null;
+}
+
+/** Parsea las notas de texto del plano: lista de { id, x, y, text, color? }. */
+function parseNotes(v: unknown): CanvasNote[] {
+  if (!Array.isArray(v)) return [];
+  const notes: CanvasNote[] = [];
+  for (const n of v) {
+    if (!isRecord(n) || typeof n.id !== 'string' || typeof n.text !== 'string') continue;
+    if (typeof n.x !== 'number' || typeof n.y !== 'number') continue;
+    notes.push({
+      id: n.id,
+      x: n.x,
+      y: n.y,
+      text: n.text,
+      ...(typeof n.color === 'string' ? { color: n.color } : {}),
+    });
+  }
+  return notes;
 }
