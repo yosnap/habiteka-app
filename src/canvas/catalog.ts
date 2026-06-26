@@ -136,6 +136,7 @@ export const CATALOG: CatalogCategory[] = [
       // Luces de techo (CeilingLightKind): placement = 'ceiling', se renderizan en CeilingLayer.
       { kind: 'ceiling_light', label: 'Plafón', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.4, realDepthM: 0.4, family: 'Techo' },
       { kind: 'pendant_lamp', label: 'Colgante', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo' },
+      { kind: 'led_strip', label: 'Cenefa LED', defaultWidth: 60, defaultHeight: 10, realWidthM: 0.6, realDepthM: 0.1, family: 'Techo' },
     ],
   },
   {
