@@ -92,10 +92,12 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
 
   const hoveredObj = objects.find((o) => o.id === hovered);
 
-  // Muro dibujado único seleccionado → handles de extremo (segmento libre + vecinos).
-  // Los muros de plantilla se editan con el editor de contorno (vértices del polígono).
+  // Muro dibujado único seleccionado SIN contorno (floorOutline) → handles de extremo
+  // (segmento libre + vecinos). Si hay floorOutline, la edición se hace con el editor de
+  // contorno (vértices del polígono), así que aquí no mostramos handles para no duplicar.
+  const hasFloorOutline = !!useCanvasStore((s) => s.doc.floorOutline);
   const singleSelectedDrawnWall =
-    selectedIds.length === 1
+    selectedIds.length === 1 && !hasFloorOutline
       ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && o.drawn)
       : undefined;
 

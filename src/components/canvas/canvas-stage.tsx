@@ -363,12 +363,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
   const selectedIds =
     doc.selection?.type === 'object' ? doc.selection.objectIds : [];
-  // Muro de plantilla (wizard) seleccionado → activa el editor de contorno (puntos en los
-  // vértices del polígono, tiempo real, guías H/V): al mover un vértice se regeneran los
-  // muros y el inglete se mantiene. Los muros dibujados a mano usan sus propios handles.
-  const selectedWizardWall =
-    selectedIds.length === 1
-      ? doc.objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && !o.drawn)
+  // Muro seleccionado en una sala CON contorno (floorOutline) → activa el editor de contorno
+  // (puntos en los vértices del polígono, tiempo real, guías H/V), sea el muro de plantilla
+  // o drawn (tras editar). Al mover un vértice se regeneran los muros y el inglete se mantiene.
+  const hasOutline = !!doc.floorOutline && doc.floorOutline.length >= 3;
+  const selectedWallWithOutline =
+    selectedIds.length === 1 && hasOutline
+      ? doc.objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall')
       : undefined;
   const menuAabb =
     tool === 'select' && !dragging && !drawWall.drawing && selectedIds.length > 0
@@ -450,7 +451,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       {/* Editor de contorno (puntos en los vértices del polígono): en modo "Editar contorno"
           o al seleccionar un muro de plantilla. Al mover un vértice se regeneran los muros
           manteniendo el inglete; guías de alineación H/V en tiempo real (estilo Planner5D). */}
-      {tool === 'edit-outline' || selectedWizardWall ? (
+      {tool === 'edit-outline' || selectedWallWithOutline ? (
         <Layer>
           <OutlineEditorLayer />
         </Layer>
