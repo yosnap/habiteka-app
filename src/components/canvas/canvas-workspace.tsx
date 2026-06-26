@@ -319,6 +319,23 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant="ghost"
+            onClick={() => {
+              const stage = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement | null;
+              if (!stage) return;
+              const url = stage.toDataURL('image/png');
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `plano-${projectId}.png`;
+              a.click();
+            }}
+            title="Descargar el plano como imagen PNG"
+          >
+            ⬇ PNG
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             onClick={() => setShowGenerate(true)}
             title="Usar la disposición del plano para generar un diseño con IA"
           >
