@@ -69,7 +69,9 @@ export type StructKind =
   | LightKind
   | CeilingLightKind
   | WallSurfaceKind
-  | 'led_strip';
+  | 'led_strip'
+  | 'recessed_light'
+  | 'beam';
 
 // --- F0: Placement system (kinds futuros; no forman parte de StructKind aún) ---
 

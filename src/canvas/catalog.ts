@@ -137,6 +137,8 @@ export const CATALOG: CatalogCategory[] = [
       { kind: 'ceiling_light', label: 'Plafón', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.4, realDepthM: 0.4, family: 'Techo' },
       { kind: 'pendant_lamp', label: 'Colgante', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo' },
       { kind: 'led_strip', label: 'Cenefa LED', defaultWidth: 60, defaultHeight: 10, realWidthM: 0.6, realDepthM: 0.1, family: 'Techo' },
+      { kind: 'recessed_light', label: 'Foco empotrado', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo' },
+      { kind: 'beam', label: 'Viga', defaultWidth: 120, defaultHeight: 30, realWidthM: 1.2, realDepthM: 0.3, family: 'Estructura' },
     ],
   },
   {
