@@ -168,6 +168,11 @@ export interface LightProps {
   color: string;
   /** Intensidad relativa, 0–100. */
   intensidad: number;
+  /** Temperatura de color en Kelvin (2700 = cálido, 6500 = frío). Si está, el render 3D
+   *  usa kelvinToRGB para el color de la PointLight (más realista que el hex manual). */
+  temperature?: number;
+  /** ¿Encendida? Si false, el render 3D no emite PointLight. Por defecto true (ausente). */
+  on?: boolean;
 }
 
 /** Objeto colocable y editable del plano (estructura o mobiliario). */
