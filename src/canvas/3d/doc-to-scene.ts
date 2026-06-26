@@ -194,6 +194,8 @@ export interface WallSurfaceItem {
   rotationY: number;
   /** Color del material opcional (p. ej. marco del cuadro); si no, el render usa un default. */
   color?: string;
+  /** URL de imagen (data URL) para art_frame; si está, el render la usa como textura. */
+  imageUrl?: string;
 }
 
 /**
@@ -566,6 +568,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     const kind = o.kind as WallSurfaceKind;
     const [wM, hM, dM] = WALL_SURFACE_SIZE_M[kind];
     const elevM = wallSurfaceElevationM(kind, o.elevationM);
+    const meta = o.meta as { imageUrl?: string } | undefined;
     wallSurfaceItems.push({
       id: o.id,
       kind,
@@ -573,6 +576,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       size: [wM, hM, dM],
       rotationY: rotation2DToY(axis.angleDeg),
       ...(o.color ? { color: o.color } : {}),
+      ...(meta?.imageUrl ? { imageUrl: meta.imageUrl } : {}),
     });
   }
 

@@ -173,6 +173,32 @@ export function ObjectPropertiesPanel({
           </>
         );
       })() : null}
+      {obj.kind === 'art_frame' ? (() => {
+        const meta = (obj.meta ?? {}) as { imageUrl?: string };
+        return (
+          <label className="flex flex-col items-center gap-0.5 cursor-pointer select-none">
+            <span className="text-[10px] text-white/50">Imagen</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const url = reader.result as string;
+                  onChange({ meta: { ...obj.meta, imageUrl: url } });
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <span className={`rounded px-2 py-1 text-xs ${meta.imageUrl ? 'bg-green-700 text-white' : 'bg-neutral-800 text-white/60'}`}>
+              {meta.imageUrl ? '✓' : 'Subir'}
+            </span>
+          </label>
+        );
+      })() : null}
     </div>
   );
 }
