@@ -400,7 +400,20 @@ const FLOOR_ELEVATION_M: Partial<Record<StructKind, number>> = {
 export function docToScene(doc: CanvasDoc): Scene3D {
   const pxPerMeter = resolvePxPerMeter(doc);
   const ceilingHeightM = doc.ceilingHeightM ?? DEFAULT_CEILING_M;
-  const center = planCenterPx(doc.objects);
+  // Si hay floorOutline, el centro de la escena es el del contorno (no el de los muros drawn,
+  // cuyos bboxes rotados desplazan el centro). Así muros orientados, suelo y muebles alinean.
+  const outline = doc.floorOutline;
+  const center =
+    outline && outline.length >= 3
+      ? (() => {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const v of outline) {
+            minX = Math.min(minX, v.x); minY = Math.min(minY, v.y);
+            maxX = Math.max(maxX, v.x); maxY = Math.max(maxY, v.y);
+          }
+          return [(minX + maxX) / 2, (minY + maxY) / 2] as [number, number];
+        })()
+      : planCenterPx(doc.objects);
 
   const structural = doc.objects.filter((o) => STRUCTURAL_KINDS.has(o.kind));
 
@@ -514,7 +527,6 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   // cajas drawn tienen grosor CENTRADO y dejan huecos en las esquinas 3D. Si hay floorOutline
   // y todos los muros son drawn, reconstruimos las cajas desde el contorno con grosor HACIA
   // FUERA (orientadas), igual que los muros wizard → las esquinas cierran. Soporta diagonales.
-  const outline = doc.floorOutline;
   const useOutlineFor3D =
     outline && outline.length >= 3 && wallObjs.length >= 3 && wallObjs.every((w) => w.drawn);
   if (useOutlineFor3D && outline) {
@@ -538,13 +550,14 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       // Centro desplazado hacia fuera t/2 → grosor todo hacia fuera, eje en el borde interior.
       const cx = (ax + bx) / 2 + nx * (tM / 2);
       const cz = (az + bz) / 2 + nz * (tM / 2);
+      // Ángulo de la arista calculado directamente (no del muro drawn, que puede desfasar
+      // si hay aristas degeneradas que segmentToWall salta). atan2(dz,dx) = ángulo 2D.
+      const angleDeg = (Math.atan2(dz, dx) * 180) / Math.PI;
       const wall = wallObjs[i];
-      const angleDeg = wall ? wallAxis(wall).angleDeg : (Math.atan2(dz, dx) * 180) / Math.PI;
       walls.push({
         id: `outline-${i}`,
         sourceId: wall?.id ?? `outline-${i}`,
         center: [cx, ceilingHeightM / 2, cz],
-        // Largo extendido t a cada extremo para cubrir el cuadrado de la esquina (como wizard).
         size: [len + 2 * tM, ceilingHeightM, tM],
         rotationY: rotation2DToY(angleDeg),
         ...(wall?.color ? { color: wall.color } : {}),
