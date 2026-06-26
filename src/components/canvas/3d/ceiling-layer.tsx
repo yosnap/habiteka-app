@@ -113,6 +113,18 @@ function CeilingSelectionOverlay({
   );
 }
 
+// ── Viga (beam) ───────────────────────────────────────────────────────────────
+
+function BeamMesh({ item }: { item: FurnitureItem }) {
+  const [w, h, d] = item.size;
+  return (
+    <mesh position={[0, 0, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color="#a08060" />
+    </mesh>
+  );
+}
+
 // ── Item individual ───────────────────────────────────────────────────────────
 
 /**
@@ -270,6 +282,8 @@ function CeilingItem({
     >
       {item.kind === 'pendant_lamp' ? (
         <PendantLampMesh item={item} ceilingLocalY={ceilingHeightM - cy} />
+      ) : item.kind === 'beam' ? (
+        <BeamMesh item={item} />
       ) : (
         <CeilingLightMesh item={item} />
       )}
