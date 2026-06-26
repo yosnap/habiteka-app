@@ -400,20 +400,7 @@ const FLOOR_ELEVATION_M: Partial<Record<StructKind, number>> = {
 export function docToScene(doc: CanvasDoc): Scene3D {
   const pxPerMeter = resolvePxPerMeter(doc);
   const ceilingHeightM = doc.ceilingHeightM ?? DEFAULT_CEILING_M;
-  // Si hay floorOutline, el centro de la escena es el del contorno (no el de los muros drawn,
-  // cuyos bboxes rotados desplazan el centro). Así muros orientados, suelo y muebles alinean.
-  const outline = doc.floorOutline;
-  const center =
-    outline && outline.length >= 3
-      ? (() => {
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const v of outline) {
-            minX = Math.min(minX, v.x); minY = Math.min(minY, v.y);
-            maxX = Math.max(maxX, v.x); maxY = Math.max(maxY, v.y);
-          }
-          return [(minX + maxX) / 2, (minY + maxY) / 2] as [number, number];
-        })()
-      : planCenterPx(doc.objects);
+  const center = planCenterPx(doc.objects);
 
   const structural = doc.objects.filter((o) => STRUCTURAL_KINDS.has(o.kind));
 
@@ -523,48 +510,6 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   const glassPanes: GlassPane[] = [];
   const openingFrames: OpeningFrame[] = [];
 
-  // Contorno editado (muros drawn generados por setFloorOutline desde floorOutline): las
-  // cajas drawn tienen grosor CENTRADO y dejan huecos en las esquinas 3D. Si hay floorOutline
-  // y todos los muros son drawn, reconstruimos las cajas desde el contorno con grosor HACIA
-  // FUERA (orientadas), igual que los muros wizard → las esquinas cierran. Soporta diagonales.
-  const useOutlineFor3D =
-    outline && outline.length >= 3 && wallObjs.length >= 3 && wallObjs.every((w) => w.drawn);
-  if (useOutlineFor3D && outline) {
-    const tM = pxToMeters(wallObjs[0]?.height ?? 15, { pxPerMeter });
-    const toXZ = (v: { x: number; y: number }): [number, number] => [
-      pxToMeters(v.x - center[0], { pxPerMeter }),
-      pxToMeters(v.y - center[1], { pxPerMeter }),
-    ];
-    for (let i = 0; i < outline.length; i++) {
-      const a = outline[i]!;
-      const b = outline[(i + 1) % outline.length]!;
-      const [ax, az] = toXZ(a);
-      const [bx, bz] = toXZ(b);
-      const dx = bx - ax;
-      const dz = bz - az;
-      const len = Math.hypot(dx, dz);
-      if (len < 0.01) continue;
-      // Normal exterior del polígono (horario en Konva): (dz, −dx)/len en XZ.
-      const nx = dz / len;
-      const nz = -dx / len;
-      // Centro desplazado hacia fuera t/2 → grosor todo hacia fuera, eje en el borde interior.
-      const cx = (ax + bx) / 2 + nx * (tM / 2);
-      const cz = (az + bz) / 2 + nz * (tM / 2);
-      // Ángulo de la arista calculado directamente (no del muro drawn, que puede desfasar
-      // si hay aristas degeneradas que segmentToWall salta). atan2(dz,dx) = ángulo 2D.
-      const angleDeg = (Math.atan2(dz, dx) * 180) / Math.PI;
-      const wall = wallObjs[i];
-      walls.push({
-        id: `outline-${i}`,
-        sourceId: wall?.id ?? `outline-${i}`,
-        center: [cx, ceilingHeightM / 2, cz],
-        size: [len + 2 * tM, ceilingHeightM, tM],
-        rotationY: rotation2DToY(angleDeg),
-        ...(wall?.color ? { color: wall.color } : {}),
-        ...(wall?.hidden ? { hidden: true } : {}),
-      });
-    }
-  } else {
   for (const wall of wallObjs) {
     const ext = wallExtensions.get(wall.id) ?? { p1: 0, p2: 0 };
     const { boxes, panes, frames } = splitWallWithOpenings(
@@ -587,7 +532,6 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     );
     glassPanes.push(...panes);
     openingFrames.push(...frames);
-  }
   }
 
   // Elementos de superficie de muro: se anclan al muro más cercano (asociación geométrica,
@@ -653,9 +597,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
       pxToMeters(p.x - center[0], { pxPerMeter }),
       pxToMeters(p.y - center[1], { pxPerMeter }),
     ];
-    // Si el contorno está editado (useOutlineFor3D), el suelo usa el floorOutline directamente:
-    // las cajas orientadas se basan en él y floorPolygonFromWalls daría escalones (flood-fill).
-    const derived = useOutlineFor3D ? null : floorPolygonFromWalls(wallsForFloor);
+    const derived = floorPolygonFromWalls(wallsForFloor);
     if (derived && derived.length >= 3) {
       return { ...rect, polygon: derived.map(toXZ) };
     }
