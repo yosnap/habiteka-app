@@ -6,9 +6,13 @@
  * muro más cercano a su altura de instalación y los orienta; aquí solo se dibujan como
  * cajas coloreadas (placeholder) — sin glTF propio por ahora.
  *
- * MVP F2 wall-surface: render correcto anclado al muro. La selección/arrastre sobre la
- * superficie del muro queda como siguiente refinamiento.
+ * art_frame: si el StructObj tiene meta.imageUrl (data URL), se carga como textura del
+ * cuadro en vez del color placeholder.
  */
+import { useMemo } from 'react';
+import * as THREE from 'three';
+import { useLoader } from '@react-three/fiber';
+import { Suspense } from 'react';
 import type { WallSurfaceItem } from '@/canvas/3d/doc-to-scene';
 import type { WallSurfaceKind } from '@/canvas/types';
 
@@ -28,23 +32,48 @@ function colorFor(kind: WallSurfaceKind): string {
   }
 }
 
+/** Carga una textura desde data URL (para art_frame con imagen subida). */
+function ArtFrameMesh({ item, imageUrl }: { item: WallSurfaceItem; imageUrl: string }) {
+  const texture = useLoader(THREE.TextureLoader, imageUrl);
+  return (
+    <mesh
+      position={item.center}
+      rotation={[0, item.rotationY, 0]}
+      userData={{ isWallSurface: true, id: item.id }}
+    >
+      <boxGeometry args={item.size} />
+      <meshStandardMaterial map={texture} />
+    </mesh>
+  );
+}
+
 export function WallSurfaceLayer({ items }: { items: WallSurfaceItem[] }) {
   if (items.length === 0) return null;
   return (
     <group>
-      {items.map((it) => (
-        <mesh
-          key={it.id}
-          position={it.center}
-          rotation={[0, it.rotationY, 0]}
-          userData={{ isWallSurface: true, id: it.id }}
-          castShadow={false}
-          receiveShadow={false}
-        >
-          <boxGeometry args={it.size} />
-          <meshStandardMaterial color={it.color ?? colorFor(it.kind)} />
-        </mesh>
-      ))}
+      {items.map((it) => {
+        const imageUrl = it.imageUrl;
+        if (it.kind === 'art_frame' && imageUrl) {
+          return (
+            <Suspense key={it.id} fallback={null}>
+              <ArtFrameMesh item={it} imageUrl={imageUrl} />
+            </Suspense>
+          );
+        }
+        return (
+          <mesh
+            key={it.id}
+            position={it.center}
+            rotation={[0, it.rotationY, 0]}
+            userData={{ isWallSurface: true, id: it.id }}
+            castShadow={false}
+            receiveShadow={false}
+          >
+            <boxGeometry args={it.size} />
+            <meshStandardMaterial color={it.color ?? colorFor(it.kind)} />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
