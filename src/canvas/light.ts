@@ -49,3 +49,51 @@ function intensityLabel(intensidad: number): string {
 export function describeLight(props: LightProps): string {
   return `luz ${temperatureLabel(props.color)} ${intensityLabel(props.intensidad)}`;
 }
+
+/**
+ * Convierte temperatura de color (Kelvin) a RGB usando una aproximación del locus de Planck.
+ * Rango útil: 1000K (rojo vela) – 40000K (azul cielo). Valores típicos: 2700K (cálida),
+ * 4000K (neutra), 6500K (fría día). Algoritmo de Tanner Helland (aproximación polinómica).
+ * Devuelve { r, g, b } en 0–255.
+ */
+export function kelvinToRGB(kelvin: number): { r: number; g: number; b: number } {
+  const k = Math.min(40000, Math.max(1000, kelvin)) / 100;
+  let r: number, g: number, b: number;
+  if (k <= 66) {
+    r = 255;
+    g = 99.4708025861 * Math.log(k) - 161.1195681661;
+  } else {
+    r = 329.698727446 * Math.pow(k - 60, -0.1332047592);
+    g = 288.1221695283 * Math.pow(k - 60, -0.0755148492);
+  }
+  if (k >= 66) {
+    b = 255;
+  } else if (k <= 19) {
+    b = 0;
+  } else {
+    b = 138.5177312231 * Math.log(k - 10) - 305.0447927307;
+  }
+  return {
+    r: Math.min(255, Math.max(0, r)),
+    g: Math.min(255, Math.max(0, g)),
+    b: Math.min(255, Math.max(0, b)),
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const h = (v: number) => Math.round(v).toString(16).padStart(2, '0');
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+/**
+ * Color efectivo de una luz para el render 3D: si tiene `temperature` (K), usa kelvinToRGB
+ * (más realista); si no, usa el `color` hex manual. Si `on === false`, devuelve null (apagada).
+ */
+export function lightColor(props: LightProps): string | null {
+  if (props.on === false) return null;
+  if (typeof props.temperature === 'number' && Number.isFinite(props.temperature)) {
+    const { r, g, b } = kelvinToRGB(props.temperature);
+    return rgbToHex(r, g, b);
+  }
+  return props.color;
+}

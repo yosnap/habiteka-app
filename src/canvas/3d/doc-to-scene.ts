@@ -16,7 +16,7 @@
 import type { CanvasDoc, StructKind, StructObj, WallSurfaceKind } from '../types';
 import { CEILING_KINDS, WALL_SURFACE_KINDS } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
-import { clampIntensity, defaultLight } from '../light';
+import { clampIntensity, defaultLight, lightColor } from '../light';
 import { associateOpening, splitWallWithOpenings, wallAxis, wallEndpointsXZ } from './wall-openings';
 import { floorPolygonFromWalls } from './floor-from-walls';
 import { objectCenterY, wallSurfaceElevationM, WALL_SURFACE_SIZE_M } from './placement';
@@ -424,18 +424,23 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   const furniture: FurnitureItem[] = doc.objects.filter(isFurniture).map(buildFurnitureItem);
   const ceilingItems: FurnitureItem[] = doc.objects.filter(isCeilingItem).map(buildFurnitureItem);
 
-  const allLights: SceneLight[] = doc.objects.filter(isLight).map((o) => {
-    const [x, z] = planPointToXZ(o, center, pxPerMeter);
-    const props = o.light ?? defaultLight();
-    return {
-      id: o.id,
-      position: [x, ceilingHeightM * LIGHT_HEIGHT_FRACTION, z],
-      color: props.color,
-      intensity: intensity0to100ToPhysical(props.intensidad),
-      distance: DEFAULT_LIGHT_DISTANCE_M,
-      decay: DEFAULT_LIGHT_DECAY,
-    };
-  });
+  const allLights: SceneLight[] = doc.objects
+    .filter(isLight)
+    .map((o) => {
+      const [x, z] = planPointToXZ(o, center, pxPerMeter);
+      const props = o.light ?? defaultLight();
+      const color = lightColor(props);
+      if (!color) return null; // on === false → sin luz
+      return {
+        id: o.id,
+        position: [x, ceilingHeightM * LIGHT_HEIGHT_FRACTION, z],
+        color,
+        intensity: intensity0to100ToPhysical(props.intensidad),
+        distance: DEFAULT_LIGHT_DISTANCE_M,
+        decay: DEFAULT_LIGHT_DECAY,
+      };
+    })
+    .filter((l): l is SceneLight => l !== null);
   const lights = limitLights(allLights);
 
   // Muros con HUECOS reales: cada ventana/puerta se asocia (por cercanía geométrica) al muro

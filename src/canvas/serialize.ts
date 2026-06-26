@@ -158,12 +158,15 @@ function isHexColor(v: unknown): boolean {
 
 function parseLight(v: unknown): LightProps | null {
   if (!isRecord(v)) return null;
-  // El color debe ser un string; si falta, se descarta la luz entera (no se
-  // inventa). La intensidad se acota a 0–100 (un valor inválido cae a 0).
   if (typeof v.color !== 'string') return null;
   return {
     color: v.color,
     intensidad: clampIntensity(typeof v.intensidad === 'number' ? v.intensidad : 0),
+    // Temperatura de color (Kelvin) y on/off: opcionales, se preservan si son válidos.
+    ...(typeof v.temperature === 'number' && Number.isFinite(v.temperature)
+      ? { temperature: v.temperature }
+      : {}),
+    ...(typeof v.on === 'boolean' ? { on: v.on } : {}),
   };
 }
 
