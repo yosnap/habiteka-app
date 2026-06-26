@@ -4,6 +4,8 @@ import { prisma } from '@/server/db/prisma';
 import { LandingHeader } from '@/components/landing/landing-header';
 import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingHowItWorks } from '@/components/landing/landing-how-it-works';
+import { LandingFeatures } from '@/components/landing/landing-features';
+import { LandingCTA } from '@/components/landing/landing-cta';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { DevNavPanel } from '@/components/landing/dev-nav-panel';
 
@@ -38,6 +40,8 @@ export default async function Home() {
       <main className="flex-1">
         <LandingHero />
         <LandingHowItWorks />
+        <LandingFeatures />
+        <LandingCTA />
         {showDevPanel ? (
           <DevNavPanel
             userName={user?.name}
