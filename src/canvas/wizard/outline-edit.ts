@@ -18,6 +18,31 @@ function eq(a: number, b: number): boolean {
  * que compartía X con él lo sigue en X, y el que compartía Y lo sigue en Y, de modo que las
  * dos aristas siguen siendo axis-aligned. Devuelve un nuevo array (no muta el de entrada).
  */
+/**
+ * Mueve SOLO el vértice `i` a `(x, y)` sin tocar sus vecinos. Las aristas adyacentes quedan
+ * libres (pueden volverse diagonales): permite crear formas NO ortogonales (triángulos,
+ * polígonos libres). El snap H/V (guías) lo aplica la capa de UI de forma opcional, no aquí.
+ * Devuelve un nuevo array (no muta el de entrada).
+ */
+export function moveVertexFree(
+  outline: FloorVertex[],
+  i: number,
+  x: number,
+  y: number,
+): FloorVertex[] {
+  if (i < 0 || i >= outline.length) return outline;
+  const result = outline.map((p) => ({ ...p }));
+  result[i] = { x, y };
+  return result;
+}
+
+/**
+ * Mueve el vértice `i` a `(x, y)` manteniendo la ortogonalidad del contorno. En un polígono
+ * rectilíneo, el vértice `i` une una arista con su vecino ANTERIOR y otra con el SIGUIENTE;
+ * una es horizontal (comparten Y) y la otra vertical (comparten X). Al mover `i`, el vecino
+ * que compartía X con él lo sigue en X, y el que compartía Y lo sigue en Y, de modo que las
+ * dos aristas siguen siendo axis-aligned. Devuelve un nuevo array (no muta el de entrada).
+ */
 export function moveVertexOrtho(
   outline: FloorVertex[],
   i: number,
