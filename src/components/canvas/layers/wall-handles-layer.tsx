@@ -20,6 +20,7 @@ import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { StructObj } from '@/canvas/types';
 import { segmentToWall } from '@/canvas/draw-wall';
+import { moveVertexOrtho } from '@/canvas/wizard/outline-edit';
 import { formatLength, pxToMeters, isValidScale } from '@/canvas/scale';
 
 const ENDPOINT_SNAP_PX = 18; // imán de cierre (extremo a extremo)
@@ -35,21 +36,33 @@ interface DragLabel { x: number; y: number; text: string }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Recupera los dos extremos del eje central de un muro dibujado (drawn). */
+/**
+ * Recupera los dos extremos del eje central de un muro (dibujado a mano o de plantilla).
+ * - drawn: la esquina (x,y) es el pivote; eje longitudinal = width, grosor = height, normal rotada.
+ * - plantilla (axis-aligned, rotation 0): el eje longitudinal es el lado largo; extremos sobre
+ *   el centro del lado corto.
+ */
 export function drawnWallEndpoints(
   o: StructObj,
 ): { p1: Pt; p2: Pt } | null {
-  if (!o.drawn) return null;
-  const angle = (o.rotation * Math.PI) / 180;
-  const nx = Math.sin(angle);
-  const ny = -Math.cos(angle);
-  const half = o.height / 2;
-  const p1 = { x: o.x - nx * half, y: o.y - ny * half };
-  const p2 = {
-    x: p1.x + Math.cos(angle) * o.width,
-    y: p1.y + Math.sin(angle) * o.width,
-  };
-  return { p1, p2 };
+  if (o.drawn) {
+    const angle = (o.rotation * Math.PI) / 180;
+    const nx = Math.sin(angle);
+    const ny = -Math.cos(angle);
+    const half = o.height / 2;
+    const p1 = { x: o.x - nx * half, y: o.y - ny * half };
+    const p2 = {
+      x: p1.x + Math.cos(angle) * o.width,
+      y: p1.y + Math.sin(angle) * o.width,
+    };
+    return { p1, p2 };
+  }
+  if (o.width >= o.height) {
+    const y = o.y + o.height / 2;
+    return { p1: { x: o.x, y }, p2: { x: o.x + o.width, y } };
+  }
+  const x = o.x + o.width / 2;
+  return { p1: { x, y: o.y }, p2: { x, y: o.y + o.height } };
 }
 
 function d(a: Pt, b: Pt) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -58,14 +71,20 @@ function d(a: Pt, b: Pt) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
 export function WallHandlesLayer({ wall }: { wall: StructObj }) {
   const updateObject = useCanvasStore((s) => s.updateObject);
+  const setFloorOutline = useCanvasStore((s) => s.setFloorOutline);
   const scale        = useCanvasStore((s) => s.doc.scale);
   const allObjects   = useCanvasStore((s) => s.doc.objects);
+
+  // Muro de plantilla (wizard): arrastrar un extremo mueve el VÉRTICE del contorno
+  // y regenera todos los muros (setFloorOutline), de modo que vecinos, inglete y 3D
+  // se recalculan a la vez sin abrir esquinas. Muro drawn: segmento libre + vecinos.
+  const isWizard = !wall.drawn;
 
   // Extremo fijo capturado en dragStart para evitar drift de floating-point.
   const fixedRef   = useRef<Pt | null>(null);
   // Muros vecinos que comparten el extremo arrastrado.
   const adjRef     = useRef<AdjWall[]>([]);
-  // Targets de snap: extremos de muros drawn que NO comparten el extremo movido.
+  // Targets de snap: extremos de muros que NO comparten el extremo movido.
   const targetsRef = useRef<Pt[]>([]);
   // Guías calculadas en dragBoundFunc (sync) y leídas en onDragMove para setState.
   const guideBuf   = useRef<Guide[]>([]);
@@ -100,6 +119,26 @@ export function WallHandlesLayer({ wall }: { wall: StructObj }) {
       const { id: _i, kind: _k, ...patch } = upd;
       updateObject(adj.wall.id, patch);
     }
+  }
+
+  /**
+   * Muro de plantilla: mueve el VÉRTICE del contorno (`floorOutline`) más cercano al
+   * extremo arrastrado y regenera todos los muros. Así los vecinos se recalculan, el
+   * inglete se mantiene y el 3D replica. Se llama en dragEnd (una entrada de historial).
+   */
+  function applyWizardVertex(movingPt: Pt, which: 'p1' | 'p2') {
+    const outline = useCanvasStore.getState().doc.floorOutline;
+    if (!outline || outline.length < 3) return;
+    const extremo = which === 'p1' ? p1 : p2;
+    let idx = -1;
+    let bestD = Infinity;
+    outline.forEach((v, i) => {
+      const dd = Math.hypot(v.x - extremo.x, v.y - extremo.y);
+      if (dd < bestD) { bestD = dd; idx = i; }
+    });
+    if (idx < 0) return;
+    const newOutline = moveVertexOrtho(outline, idx, movingPt.x, movingPt.y);
+    setFloorOutline(newOutline);
   }
 
   function buildLabels(from: Pt, to: Pt): DragLabel[] {
@@ -176,23 +215,26 @@ export function WallHandlesLayer({ wall }: { wall: StructObj }) {
       const movingPt = which === 'p1' ? p1 : p2;
       fixedRef.current = which === 'p1' ? p2 : p1;
 
-      // Vecinos ya conectados al extremo que se va a mover
+      // Vecinos ya conectados al extremo que se va a mover (solo para muros drawn;
+      // los de plantilla se regeneran enteros vía setFloorOutline en dragEnd).
       adjRef.current = [];
-      for (const o of allObjects) {
-        if (o.id === wall.id || o.kind !== 'wall' || !o.drawn) continue;
-        const eps = drawnWallEndpoints(o);
-        if (!eps) continue;
-        if (d(eps.p1, movingPt) < ADJ_DIST) {
-          adjRef.current.push({ wall: o, movedEnd: 'p1', fixed: eps.p2 });
-        } else if (d(eps.p2, movingPt) < ADJ_DIST) {
-          adjRef.current.push({ wall: o, movedEnd: 'p2', fixed: eps.p1 });
+      if (!isWizard) {
+        for (const o of allObjects) {
+          if (o.id === wall.id || o.kind !== 'wall') continue;
+          const eps = drawnWallEndpoints(o);
+          if (!eps) continue;
+          if (d(eps.p1, movingPt) < ADJ_DIST) {
+            adjRef.current.push({ wall: o, movedEnd: 'p1', fixed: eps.p2 });
+          } else if (d(eps.p2, movingPt) < ADJ_DIST) {
+            adjRef.current.push({ wall: o, movedEnd: 'p2', fixed: eps.p1 });
+          }
         }
       }
 
-      // Targets de snap: todos los extremos drawn que NO son el extremo movido
+      // Targets de snap: extremos de todos los muros que NO son el extremo movido.
       targetsRef.current = [];
       for (const o of allObjects) {
-        if (o.kind !== 'wall' || !o.drawn) continue;
+        if (o.kind !== 'wall') continue;
         const eps = drawnWallEndpoints(o);
         if (!eps) continue;
         if (d(eps.p1, movingPt) >= ADJ_DIST) targetsRef.current.push(eps.p1);
@@ -206,25 +248,28 @@ export function WallHandlesLayer({ wall }: { wall: StructObj }) {
       const fixed = fixedRef.current;
       if (!fixed) return;
 
+      // Muro de plantilla: NO se actualiza en cada frame (regenera en dragEnd); solo
+      // mostramos guías/cotas. Muro drawn: actualiza el segmento y sus vecinos en vivo.
+      setGuides(guideBuf.current);
+      if (isWizard) return;
       const [from, to] = which === 'p1' ? [moving, fixed] : [fixed, moving];
-
       applyWall(from, to);
       applyAdj(moving);
-
-      setGuides(guideBuf.current);
       setLabels(buildLabels(from, to));
     },
 
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => {
-      // La posición final ya viene snappeada por dragBoundFunc (endpoint/alineación).
-      // No aplicar snap de grid aquí: causaría un salto visible respecto al último frame.
       const snapped: Pt = { x: e.target.x(), y: e.target.y() };
 
-      const fixed = fixedRef.current ?? (which === 'p1' ? p2 : p1);
-      const [from, to] = which === 'p1' ? [snapped, fixed] : [fixed, snapped];
-
-      applyWall(from, to);
-      applyAdj(snapped);
+      if (isWizard) {
+        // Plantilla: mover el vértice del contorno y regenerar (vecinos + inglete + 3D).
+        applyWizardVertex(snapped, which);
+      } else {
+        const fixed = fixedRef.current ?? (which === 'p1' ? p2 : p1);
+        const [from, to] = which === 'p1' ? [snapped, fixed] : [fixed, snapped];
+        applyWall(from, to);
+        applyAdj(snapped);
+      }
 
       fixedRef.current   = null;
       adjRef.current     = [];
