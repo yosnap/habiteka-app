@@ -28,6 +28,7 @@ import { SnapGuideLayer } from './snap-guide-layer';
 import { OpeningInteractionLayer } from './opening-interaction-layer';
 import { CeilingLayer } from './ceiling-layer';
 import { WallSurfaceLayer } from './wall-surface-layer';
+import { LedStripLayer } from './led-strip-layer';
 
 /** Punto del suelo (plano y=0) en coordenadas de mundo XZ, o null si el rayo no lo corta. */
 export type FloorPoint = { x: number; z: number } | null;
@@ -450,6 +451,9 @@ export function Plan3DView({
           sceneCoords={scene}
         />
         <WallSurfaceLayer items={scene.wallSurfaceItems} />
+        {scene.hasLedStrip ? (
+          <LedStripLayer polygon={scene.floor.polygon} ceilingHeightM={scene.ceilingHeightM} />
+        ) : null}
         {/* Gizmo de transformación (F2): monta cuando hay modo activo. OrbitControls ya
             tiene makeDefault → TransformControls lo silencia automáticamente al arrastrar. */}
         {selectedId && mode && mode !== 'none' ? (

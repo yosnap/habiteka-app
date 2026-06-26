@@ -243,6 +243,9 @@ export interface Scene3D {
   pxPerMeter: number;
   /** Centro del plano en px, para reusar al posicionar muebles del doc. */
   planCenterPx: [number, number];
+  /** ¿Hay una cenefa LED (led_strip) en el doc? Si true, el render dibuja una línea
+   *  perimetral a la altura del techo siguiendo el polígono del suelo. */
+  hasLedStrip: boolean;
 }
 
 /** Sub-tipo geométrico mínimo: posición (esquina sup-izq) + tamaño en planta (px). */
@@ -625,6 +628,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     ceilingHeightM,
     pxPerMeter,
     planCenterPx: center,
+    hasLedStrip: doc.objects.some((o) => o.kind === 'led_strip'),
   };
 }
 

@@ -49,6 +49,7 @@ const EXPECTED_KINDS: Record<StructKind, true> = {
   foco: true,
   ceiling_light: true,
   pendant_lamp: true,
+  led_strip: true,
   // pared (wall-surface)
   outlet: true,
   switch: true,
