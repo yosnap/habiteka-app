@@ -110,6 +110,8 @@ export interface GlassPane {
   size: [number, number, number];
   /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
   rotationY: number;
+  /** Tipo de vidrio: simple (claro), doble (azulado), oscurecido (gris). */
+  glassType?: 'simple' | 'doble' | 'oscurecido';
 }
 
 /**

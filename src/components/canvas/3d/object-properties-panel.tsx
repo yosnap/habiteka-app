@@ -98,6 +98,28 @@ export function ObjectPropertiesPanel({
           onLive={liveElev}
         />
       )}
+      {obj.kind === 'window' ? (() => {
+        const meta = (obj.meta ?? {}) as { glassType?: string };
+        const gt = meta.glassType ?? 'simple';
+        const setGlass = (t: string) => onChange({ meta: { ...obj.meta, glassType: t } });
+        return (
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px] text-white/50">Vidrio</span>
+            <div className="flex gap-0.5">
+              {(['simple', 'doble', 'oscurecido'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setGlass(t)}
+                  className={`rounded px-1.5 py-0.5 text-[10px] ${gt === t ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white/60'}`}
+                >
+                  {t === 'simple' ? 'Sim' : t === 'doble' ? 'Dob' : 'Osc'}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })() : null}
       {!isFurniture && obj.kind === 'wall' && (
         <button
           type="button"
