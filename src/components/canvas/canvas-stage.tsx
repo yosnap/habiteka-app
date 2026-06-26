@@ -62,8 +62,11 @@ function snapToWall(
   worldPt: { x: number; y: number },
   walls: Array<{ id: string; x: number; y: number; width: number; height: number; rotation: number }>,
   objWidth: number,
+  /** Si true, ignora el umbral de distancia y siempre pega al muro más cercano
+   *  (para wall-surface: enchufes, cuadros, etc. que DEBEN estar en un muro). */
+  force = false,
 ): { x: number; y: number; height: number; rotation: number; wallId: string } | null {
-  const SNAP_PX = Math.max(60, (walls[0]?.height ?? 12) * 4);
+  const SNAP_PX = force ? Infinity : Math.max(60, (walls[0]?.height ?? 12) * 4);
   let bestDist = SNAP_PX;
   let best: { x: number; y: number; height: number; rotation: number; wallId: string } | null = null;
 
@@ -74,7 +77,7 @@ function snapToWall(
     const localX = dx * cosθ + dy * sinθ;
     const localY = -dx * sinθ + dy * cosθ;
     const perpDist = Math.abs(localY - wall.height / 2);
-    if (perpDist >= SNAP_PX) continue;
+    if (!force && perpDist >= SNAP_PX) continue;
     if (localX < -wall.height || localX > wall.width + wall.height) continue;
     if (perpDist < bestDist) {
       bestDist = perpDist;
@@ -227,9 +230,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
         let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
         let parentWallId: string | undefined;
-        if (WALL_CHILD_KINDS.has(catalogEntry.kind) || (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind)) {
+        const isWallSurface = (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind);
+        if (WALL_CHILD_KINDS.has(catalogEntry.kind) || isWallSurface) {
           const walls = doc.objects.filter((o) => o.kind === 'wall');
-          const snapped = snapToWall(pos, walls, w);
+          const snapped = snapToWall(pos, walls, w, isWallSurface);
           if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; parentWallId = snapped.wallId; }
         }
 
@@ -354,9 +358,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación y parentId.
       let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
       let parentWallId: string | undefined;
-      if (WALL_CHILD_KINDS.has(parsed.kind) || (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind)) {
+      const isWsDrop = (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind);
+      if (WALL_CHILD_KINDS.has(parsed.kind) || isWsDrop) {
         const walls = doc.objects.filter((o) => o.kind === 'wall');
-        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w);
+        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w, isWsDrop);
         if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; parentWallId = snapped.wallId; }
       }
 
