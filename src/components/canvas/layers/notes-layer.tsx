@@ -16,8 +16,12 @@ const NOTE_H = 80;
 const NOTE_COLOR = '#fff9c4';
 const NOTE_BORDER = '#fbc02d';
 
+// Array vacío estable: `?? []` crea una referencia nueva en cada render → loop infinito
+// en useSyncExternalStore (Zustand). Esta constante se reutiliza.
+const EMPTY_NOTES: readonly CanvasNote[] = [];
+
 export function NotesLayer() {
-  const notes = useCanvasStore((s) => s.doc.notes ?? []);
+  const notes = useCanvasStore((s) => s.doc.notes ?? EMPTY_NOTES);
   const updateNote = useCanvasStore((s) => s.updateNote);
   const removeNote = useCanvasStore((s) => s.removeNote);
   const [editingId, setEditingId] = useState<string | null>(null);
