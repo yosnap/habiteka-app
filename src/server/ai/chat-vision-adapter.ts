@@ -98,7 +98,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     const body: RawRequestBody = {
       model: req.model,
       messages: req.messages.map(toOpenAIMessage),
-      max_tokens: resolveMaxTokens(this.options.maxTokens),
+      max_tokens: resolveMaxTokens(req.maxTokens ?? this.options.maxTokens),
       stream,
     };
     if (req.temperature !== undefined) body.temperature = req.temperature;
@@ -123,12 +123,43 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
 
   private parseStructured(req: ChatRequest, content: string | null): unknown {
     if (!req.responseSchema || !content) return undefined;
-    try {
-      return JSON.parse(content);
-    } catch (err) {
-      throw aiError('schema', 'La salida no es JSON válido contra el schema', err);
+    // Algunos modelos (Gemini con imágenes, o un respaldo sin soporte nativo de
+    // json_schema) ignoran el `response_format` y envuelven el JSON en vallas
+    // markdown o en prosa. Antes de fallar se intenta rescatar el JSON embebido;
+    // el validador de cada fase sigue siendo la frontera de confianza real.
+    for (const candidate of jsonCandidates(content)) {
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        // Siguiente candidato.
+      }
     }
+    throw aiError(
+      'schema',
+      'La salida no es JSON válido contra el schema',
+      new Error(`Inicio de la salida del modelo: ${content.slice(0, 200)}`),
+    );
   }
+}
+
+/**
+ * Candidatos a JSON dentro de la salida del modelo, del más literal al más
+ * agresivo: el texto tal cual, el interior de una valla ```…```, y el tramo
+ * entre la primera llave/corchete y su cierre final.
+ */
+function jsonCandidates(content: string): string[] {
+  const out = [content.trim()];
+  const fence = /```(?:json)?\s*([\s\S]*?)```/.exec(content);
+  if (fence?.[1]) out.push(fence[1].trim());
+  for (const [open, close] of [
+    ['{', '}'],
+    ['[', ']'],
+  ] as const) {
+    const start = content.indexOf(open);
+    const end = content.lastIndexOf(close);
+    if (start >= 0 && end > start) out.push(content.slice(start, end + 1));
+  }
+  return out;
 }
 
 // --- mapeo de tipos hacia/desde el SDK ---

@@ -210,6 +210,10 @@ export async function extractSketchGeometry(
     model: '',
     messages: [{ role: 'user', content: [{ type: 'text', text: sketchPrompt() }, ...imageParts] }],
     responseSchema: SKETCH_SCHEMA,
+    // La geometría de un boceto con muchos muros es un JSON largo, y los modelos
+    // con razonamiento gastan parte del presupuesto en pensar: con el tope por
+    // defecto el JSON puede salir truncado (y no valida contra el schema).
+    maxTokens: 8192,
   });
   return parseRawSketch(result.structured);
 }
