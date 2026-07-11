@@ -20,6 +20,8 @@ import {
 import { getChatVisionAdapter } from '@/server/ai';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
+import { extractSketchGeometry } from '@/server/ai/sketch/extract-sketch-geometry';
+import { normalizeSketch } from '@/server/ai/sketch/normalize-geometry';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { deserializeCanvas } from '@/canvas/serialize';
@@ -32,6 +34,7 @@ import type {
   DecorRecommendation,
   DetectedObject,
   MessagePart,
+  Plano2dPayload,
 } from '@/lib/contracts';
 
 /**
@@ -290,4 +293,28 @@ export async function detectPlanFromPhoto(
   // Usa el adaptador de VISIÓN (la detección lee una imagen), no el de chat texto.
   const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
   return detectLayout(chat, imageParts);
+}
+
+/**
+ * Convierte un boceto (foto de dibujo a mano o croquis) en un plano 2D métrico
+ * normalizado. La IA solo extrae la geometría; la ortogonalización, el cierre de
+ * esquinas y la escala a milímetros son deterministas (mismo boceto extraído →
+ * mismo plano). Mismo deber RGPD que la detección: consentimiento + ToS, y
+ * acotado por organización.
+ */
+export async function extractPlanFromSketch(
+  projectId: string,
+  imageParts: MessagePart[],
+): Promise<Plano2dPayload> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+  await assertTosAccepted(ctx.userId);
+
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+  const raw = await extractSketchGeometry(chat, imageParts);
+  if (raw.muros.length === 0) {
+    throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
+  }
+  return normalizeSketch(raw);
 }
