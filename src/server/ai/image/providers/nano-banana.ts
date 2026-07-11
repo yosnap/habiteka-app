@@ -127,12 +127,20 @@ export class NanoBananaImageProvider implements ImageProvider {
     if (!parsed) return { assetUrl: dataUrl };
     const ext = parsed.mimeType.includes('png') ? 'png' : 'jpg';
     const key = `renders/nano-banana/${globalThis.crypto.randomUUID()}.${ext}`;
-    await this.storage.put({
-      key,
-      body: Buffer.from(parsed.base64, 'base64'),
-      contentType: parsed.mimeType,
-    });
-    return { assetUrl: await this.storage.getPresignedDownloadUrl(key), assetKey: key };
+    try {
+      await this.storage.put({
+        key,
+        body: Buffer.from(parsed.base64, 'base64'),
+        contentType: parsed.mimeType,
+      });
+      return { assetUrl: await this.storage.getPresignedDownloadUrl(key), assetKey: key };
+    } catch (err) {
+      // La imagen ya está generada (y pagada): un storage caído o mal configurado
+      // (p. ej. credenciales inválidas) no debe perderla. Se sirve como data URL
+      // (sin `assetKey`: no vive en nuestro storage) y se deja rastro del motivo.
+      console.warn('[nano-banana] Falló la subida al storage; se sirve data URL.', err);
+      return { assetUrl: dataUrl };
+    }
   }
 }
 
