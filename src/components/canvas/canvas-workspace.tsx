@@ -18,13 +18,20 @@ import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
+import { SketchToPlanDialog } from './sketch-to-plan-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
 import { SmartWizard } from '@/components/wizard/smart-wizard';
 import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
-import type { DeliverableType, Estilo, DecorRecommendation, DetectedObject } from '@/lib/contracts';
+import type {
+  DeliverableType,
+  Estilo,
+  DecorRecommendation,
+  DetectedObject,
+  Plano2dPayload,
+} from '@/lib/contracts';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -55,6 +62,10 @@ interface Props {
     projectId: string,
     imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
   ) => Promise<DetectedObject[]>;
+  extractSketchAction: (
+    projectId: string,
+    imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
+  ) => Promise<Plano2dPayload>;
 }
 
 const DEBOUNCE_MS = 800;
@@ -67,6 +78,7 @@ export function CanvasWorkspace({
   generateAction,
   recommendAction,
   detectAction,
+  extractSketchAction,
 }: Props) {
   const [tool, setTool] = useState<Tool>('select');
   // Panel de fotos de la zona (F2): overlay para gestionar la foto activa (img2img)
@@ -78,6 +90,8 @@ export function CanvasWorkspace({
   const [showSuggestions, setShowSuggestions] = useState(false);
   // Diálogo de detección desde foto (F5, BETA).
   const [showDetect, setShowDetect] = useState(false);
+  // Diálogo de plano desde boceto (pivote planos IA).
+  const [showSketch, setShowSketch] = useState(false);
   // Vista 3D navegable (F6): se captura el doc de la zona activa al abrir.
   const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
   // Asistente de diseño (F7): se ofrece al abrir una zona vacía (sin contenido alguno).
@@ -302,6 +316,15 @@ export function CanvasWorkspace({
             type="button"
             size="sm"
             variant="ghost"
+            onClick={() => setShowSketch(true)}
+            title="Convertir la foto de un boceto en un plano con muros editables (beta)"
+          >
+            Plano desde boceto
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
             onClick={() => setShowSuggestions(true)}
             title="Pedir a la IA elementos de decoración para tu plano"
           >
@@ -400,6 +423,13 @@ export function CanvasWorkspace({
           projectId={projectId}
           detectAction={detectAction}
           onClose={() => setShowDetect(false)}
+        />
+      ) : null}
+      {showSketch ? (
+        <SketchToPlanDialog
+          projectId={projectId}
+          extractAction={extractSketchAction}
+          onClose={() => setShowSketch(false)}
         />
       ) : null}
       {doc3D ? (

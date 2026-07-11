@@ -12,6 +12,7 @@ import {
   generateDesignFromCanvas,
   recommendDecoration,
   detectPlanFromPhoto,
+  extractPlanFromSketch,
 } from './_actions/agent-actions';
 import { listZones } from './_actions/zone-actions';
 import { CanvasWorkspace } from '@/components/canvas/canvas-workspace';
@@ -57,6 +58,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
           generateAction={generateDesignFromCanvas}
           recommendAction={recommendDecoration}
           detectAction={detectPlanFromPhoto}
+          extractSketchAction={extractPlanFromSketch}
         />
       </div>
     </main>
