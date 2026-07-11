@@ -71,9 +71,27 @@ export async function getChatVisionAdapter(
   };
 }
 
-/** Adaptador de imagen con guardia de gasto y proveedor activo. */
+/**
+ * Adaptador de imagen con el MODELO resuelto por acción (config del back-office)
+ * además del guardia de gasto. Cierra la deuda de modelos de imagen hardcodeados:
+ * la acción (p. ej. `render3d`) decide el slug que usa el proveedor activo.
+ */
+export async function getImageAdapterForAction(
+  ctx: AiCallContext,
+  action: ModelAction,
+): Promise<ImageAdapter> {
+  const route = await resolveRoute(action);
+  enforceModelJurisdiction(route.primaryModel);
+  return wrapImageAdapter(ctx, new ProviderImageAdapter(createActiveProvider(route.primaryModel)));
+}
+
+/** Adaptador de imagen con guardia de gasto y proveedor activo (modelo por defecto). */
 export function getImageAdapter(ctx: AiCallContext): ImageAdapter {
-  const inner = new ProviderImageAdapter(createActiveProvider());
+  return wrapImageAdapter(ctx, new ProviderImageAdapter(createActiveProvider()));
+}
+
+// Envuelve un adaptador de imagen con el guardia de gasto y el cortacircuitos.
+function wrapImageAdapter(ctx: AiCallContext, inner: ProviderImageAdapter): ImageAdapter {
 
   return {
     async generate(req: ImageGenRequest): Promise<ImageResult> {

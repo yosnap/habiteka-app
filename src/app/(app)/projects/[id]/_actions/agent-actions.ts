@@ -17,7 +17,8 @@ import {
   type AgentOutcome,
   type ZoneDeliveryContext,
 } from '@/server/agent';
-import { getChatVisionAdapter } from '@/server/ai';
+import { getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
+import { generateCenital } from '@/server/ai/design/cenital-pipeline';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
 import { extractSketchGeometry } from '@/server/ai/sketch/extract-sketch-geometry';
@@ -317,4 +318,25 @@ export async function extractPlanFromSketch(
     throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
   }
   return normalizeSketch(raw);
+}
+
+/**
+ * Render cenital fotorrealista desde el plano métrico (F3): el plano viaja al
+ * modelo de imagen COMO RASTER de referencia (image-to-image), no como texto.
+ * El payload viene del cliente: el pipeline lo acota antes de rasterizar. El
+ * modelo se resuelve por la acción `render3d` (config del back-office).
+ */
+export async function generateCenitalFromPlano(
+  projectId: string,
+  plano: Plano2dPayload,
+  estilo: Estilo,
+): Promise<{ imageUrl: string }> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertTosAccepted(ctx.userId);
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const result = await generateCenital({ image }, plano, estilo);
+  return { imageUrl: result.assetUrl };
 }

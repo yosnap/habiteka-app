@@ -51,7 +51,7 @@ function roomBounds(doc: CanvasDoc) {
 }
 
 /** Aproxima la proporción a una fracción simple legible para el proveedor. */
-function toAspectRatio(w: number, h: number): string {
+export function toAspectRatio(w: number, h: number): string {
   const r = w / h;
   const candidates: Array<[string, number]> = [
     ['1:1', 1],
