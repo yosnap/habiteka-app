@@ -35,14 +35,17 @@ export const MODEL_DEFAULTS: Record<ModelAction, ModelRoute> = {
     provider: null,
     baseURL: null,
   },
+  // Modelos de IMAGEN: deben aceptar imagen de referencia por el canal de chat
+  // con modalidades de OpenRouter (el que usa el proveedor por defecto). Flux
+  // no lo soporta ahí: responde 400 en cuanto viaja una referencia.
   render3d: {
-    primaryModel: 'black-forest-labs/flux-1.1-pro',
+    primaryModel: 'google/gemini-2.5-flash-image',
     fallbacks: [],
     provider: null,
     baseURL: null,
   },
   inpaint: {
-    primaryModel: 'black-forest-labs/flux-1.1-pro',
+    primaryModel: 'google/gemini-2.5-flash-image',
     fallbacks: [],
     provider: null,
     baseURL: null,
