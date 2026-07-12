@@ -67,6 +67,10 @@ export function PlanoStudio({
     const svg = planoToSvg(plano, {
       pxPerMeter: 90,
       showDimensions: !escalaEstimada,
+      // Sin nombres ni rellenos de estancia (decisión de producto): el usuario
+      // etiqueta en el editor; los aproximados solo ensuciaban la vista.
+      showLabels: false,
+      theme: { floorFill: '#ffffff' },
       showAreas: !escalaEstimada,
     });
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
