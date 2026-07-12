@@ -30,7 +30,7 @@ import type {
   Estilo,
   DecorRecommendation,
   DetectedObject,
-  Plano2dPayload,
+  SketchPlanResult,
 } from '@/lib/contracts';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
@@ -65,7 +65,7 @@ interface Props {
   extractSketchAction: (
     projectId: string,
     imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
-  ) => Promise<Plano2dPayload>;
+  ) => Promise<SketchPlanResult>;
 }
 
 const DEBOUNCE_MS = 800;

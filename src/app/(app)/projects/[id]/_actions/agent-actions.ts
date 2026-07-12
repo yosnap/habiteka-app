@@ -36,6 +36,7 @@ import type {
   DetectedObject,
   MessagePart,
   Plano2dPayload,
+  SketchPlanResult,
 } from '@/lib/contracts';
 
 /**
@@ -306,7 +307,7 @@ export async function detectPlanFromPhoto(
 export async function extractPlanFromSketch(
   projectId: string,
   imageParts: MessagePart[],
-): Promise<Plano2dPayload> {
+): Promise<SketchPlanResult> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
@@ -317,7 +318,9 @@ export async function extractPlanFromSketch(
   if (raw.muros.length === 0) {
     throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
   }
-  return normalizeSketch(raw);
+  // La escala solo es un dato real si sale de medidas ESCRITAS en el boceto;
+  // en cualquier otro caso es conjetura y la UI no debe pintarla como cotas.
+  return { plano: normalizeSketch(raw), escalaEstimada: raw.escalaFiable !== true };
 }
 
 /**

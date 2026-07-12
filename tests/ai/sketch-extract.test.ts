@@ -65,6 +65,17 @@ describe('parseRawSketch', () => {
     expect(parseRawSketch({ ...base, anchoMetros: 5000 }).anchoMetros).toBeUndefined();
     expect(parseRawSketch({ ...base, anchoMetros: -3 }).anchoMetros).toBeUndefined();
   });
+
+  it('escalaFiable solo se acepta con una escala válida que respaldarla', () => {
+    const base = { muros: [], aberturas: [], habitaciones: [] };
+    expect(parseRawSketch({ ...base, anchoMetros: 8, escalaFiable: true }).escalaFiable).toBe(true);
+    // Fiabilidad declarada sin escala (o con escala descartada): no vale.
+    expect(parseRawSketch({ ...base, escalaFiable: true }).escalaFiable).toBeUndefined();
+    expect(
+      parseRawSketch({ ...base, anchoMetros: 5000, escalaFiable: true }).escalaFiable,
+    ).toBeUndefined();
+    expect(parseRawSketch({ ...base, anchoMetros: 8 }).escalaFiable).toBeUndefined();
+  });
 });
 
 describe('sketchPrompt', () => {

@@ -13,14 +13,14 @@ import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload'
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { planoToDoc } from '@/canvas/plano-to-doc';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
-import type { Plano2dPayload } from '@/lib/contracts';
+import type { Plano2dPayload, SketchPlanResult } from '@/lib/contracts';
 
 interface Props {
   projectId: string;
   extractAction: (
     projectId: string,
     imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
-  ) => Promise<Plano2dPayload>;
+  ) => Promise<SketchPlanResult>;
   onClose: () => void;
 }
 
@@ -31,13 +31,19 @@ export function SketchToPlanDialog({ projectId, extractAction, onClose }: Props)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plano, setPlano] = useState<Plano2dPayload | null>(null);
+  // Sin medidas escritas en el boceto, las cotas serían inventadas: no se pintan.
+  const [escalaEstimada, setEscalaEstimada] = useState(false);
 
   // Previsualización: el SVG es puro y determinista, se regenera solo si cambia el plano.
   const previewUrl = useMemo(() => {
     if (!plano) return null;
-    const svg = planoToSvg(plano, { pxPerMeter: 80 });
+    const svg = planoToSvg(plano, {
+      pxPerMeter: 80,
+      showDimensions: !escalaEstimada,
+      showAreas: !escalaEstimada,
+    });
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  }, [plano]);
+  }, [plano, escalaEstimada]);
 
   const onUpload = async (image: UploadedImage) => {
     setBusy(true);
@@ -46,7 +52,8 @@ export function SketchToPlanDialog({ projectId, extractAction, onClose }: Props)
       const result = await extractAction(projectId, [
         { type: 'image_url', base64: image.base64, mimeType: image.mimeType },
       ]);
-      setPlano(result);
+      setPlano(result.plano);
+      setEscalaEstimada(result.escalaEstimada);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo analizar el boceto.');
     } finally {

@@ -38,6 +38,11 @@ export interface PlanSvgOptions {
   theme?: Partial<PlanSvgTheme>;
   showDimensions?: boolean;
   showLabels?: boolean;
+  /**
+   * Superficies (m²) bajo el nombre de cada estancia. Apagarlas cuando la
+   * escala es estimada: un área inventada presentada como dato engaña.
+   */
+  showAreas?: boolean;
 }
 
 const DEFAULT_PX_PER_METER = 60;
@@ -47,6 +52,7 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
   const pxPerMeter = options.pxPerMeter ?? DEFAULT_PX_PER_METER;
   const showDimensions = options.showDimensions ?? true;
   const showLabels = options.showLabels ?? true;
+  const showAreas = options.showAreas ?? true;
 
   const walls = plano.zones.flatMap((z) => z.walls);
   const wallById = new Map(walls.map((w) => [w.id, w]));
@@ -97,7 +103,7 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
 
   // 5. Etiquetas de estancia: nombre + superficie.
   if (showLabels) {
-    for (const zone of plano.zones) layers.push(zoneLabel(zone, theme));
+    for (const zone of plano.zones) layers.push(zoneLabel(zone, theme, showAreas));
   }
 
   const minX = bounds.minX - theme.paddingMm;
@@ -169,12 +175,13 @@ function renderAperture(ap: PlanAperture, wall: PlanWall, planCenter: Pt, theme:
   return parts.join('');
 }
 
-/** Nombre de la estancia y su superficie, centrados en el contorno. */
-function zoneLabel(zone: PlanZone, theme: PlanSvgTheme): string {
+/** Nombre de la estancia y (opcionalmente) su superficie, centrados en el contorno. */
+function zoneLabel(zone: PlanZone, theme: PlanSvgTheme, showAreas: boolean): string {
   if (zone.outline.length < 3) return '';
   const c = centroid(zone.outline);
-  const areaM2 = polygonArea(zone.outline) / 1_000_000;
   const name = `<text x="${fmt(c.x)}" y="${fmt(c.y)}" text-anchor="middle" font-family="${theme.fontFamily}" font-size="${theme.labelFontMm}" font-weight="600" fill="${theme.textColor}">${escapeXml(zone.name)}</text>`;
+  if (!showAreas) return name;
+  const areaM2 = polygonArea(zone.outline) / 1_000_000;
   const area = `<text x="${fmt(c.x)}" y="${fmt(c.y + theme.areaFontMm * 1.4)}" text-anchor="middle" font-family="${theme.fontFamily}" font-size="${theme.areaFontMm}" fill="${theme.textColor}">${areaM2.toFixed(2).replace('.', ',')} m²</text>`;
   return name + area;
 }

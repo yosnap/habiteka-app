@@ -44,6 +44,12 @@ export interface RawSketch {
   anchoMetros?: number;
   /** Alto real estimado, en metros. */
   altoMetros?: number;
+  /**
+   * True SOLO si la escala sale de cotas o medidas ESCRITAS en el boceto.
+   * Con false/ausente la escala es una conjetura: las cotas derivadas no deben
+   * presentarse al usuario como medidas reales.
+   */
+  escalaFiable?: boolean;
   muros: SketchWall[];
   aberturas: SketchAperture[];
   habitaciones: SketchRoom[];

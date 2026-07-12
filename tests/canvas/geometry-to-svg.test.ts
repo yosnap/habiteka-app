@@ -93,6 +93,13 @@ describe('planoToSvg', () => {
     expect(svg).not.toContain('<text');
   });
 
+  it('con showAreas apagado mantiene el nombre pero oculta los m² (escala estimada)', () => {
+    const svg = planoToSvg(room(), { showDimensions: false, showAreas: false });
+    expect(svg).toContain('>Salón</text>');
+    expect(svg).not.toContain('m²');
+    expect(svg).not.toContain('4.00 m');
+  });
+
   it('es determinista y no rompe con un plano vacío', () => {
     expect(planoToSvg(room())).toBe(planoToSvg(room()));
     const empty = planoToSvg({ schemaVersion: 1, zones: [] });

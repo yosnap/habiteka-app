@@ -29,6 +29,11 @@ export const SKETCH_SCHEMA: JsonSchema = {
       type: 'number',
       description: 'Alto real total del plano en metros, si es deducible.',
     },
+    escalaFiable: {
+      type: 'boolean',
+      description:
+        'true SOLO si el boceto contiene cotas o medidas escritas de las que sale la escala; false si anchoMetros/altoMetros son una estimación.',
+    },
     muros: {
       type: 'array',
       items: {
@@ -105,8 +110,9 @@ export function sketchPrompt(): string {
     '- habitaciones: cada estancia con su nombre (el rotulado en el boceto, o dedúcelo del',
     '  mobiliario dibujado) y su contorno como polígono normalizado.',
     '- anchoMetros/altoMetros: estima SIEMPRE el ancho y alto reales del plano completo, en',
-    '  metros. Si hay cotas o medidas escritas, úsalas. Si no, deduce la escala de referencias',
-    '  estándar: una puerta mide ~0,8 m, un dormitorio 3–4 m de lado, un baño ~2 m.',
+    '  metros. Si hay cotas o medidas escritas, úsalas y devuelve escalaFiable=true. Si no,',
+    '  deduce la escala de referencias estándar (una puerta mide ~0,8 m, un dormitorio 3–4 m',
+    '  de lado, un baño ~2 m) y devuelve escalaFiable=false.',
     '',
     'No inventes elementos que no estén dibujados. Ignora mobiliario, texto decorativo y sombras.',
   ].join('\n');
@@ -199,6 +205,8 @@ export function parseRawSketch(structured: unknown): RawSketch {
   return {
     ...(anchoMetros !== undefined ? { anchoMetros } : {}),
     ...(altoMetros !== undefined ? { altoMetros } : {}),
+    // Solo se acepta la fiabilidad si además hay una escala que respaldarla.
+    ...(s.escalaFiable === true && anchoMetros !== undefined ? { escalaFiable: true } : {}),
     muros,
     aberturas: parseApertures(s.aberturas, muros.length),
     habitaciones: parseRooms(s.habitaciones),

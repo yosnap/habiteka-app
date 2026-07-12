@@ -12,14 +12,15 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
+import { rescalePlanoToWidth } from '@/lib/plan-svg/rescale-plano';
 import { ESTILOS } from '@/lib/design-options';
-import type { Estilo, Plano2dPayload } from '@/lib/contracts';
+import type { Estilo, Plano2dPayload, SketchPlanResult } from '@/lib/contracts';
 
 type ImagePart = { type: 'image_url'; base64: string; mimeType: string };
 
 interface Props {
   projectId: string;
-  extractAction: (projectId: string, imageParts: ImagePart[]) => Promise<Plano2dPayload>;
+  extractAction: (projectId: string, imageParts: ImagePart[]) => Promise<SketchPlanResult>;
   cenitalAction: (
     projectId: string,
     plano: Plano2dPayload,
@@ -31,13 +32,28 @@ type Tab = 'plano' | 'cenital';
 
 export function PlanoStudio({ projectId, extractAction, cenitalAction }: Props) {
   const [plano, setPlano] = useState<Plano2dPayload | null>(null);
+  // Escala estimada = el boceto no traía medidas escritas: las cotas y los m²
+  // serían números inventados, así que no se muestran hasta que el usuario
+  // aporte el ancho real.
+  const [escalaEstimada, setEscalaEstimada] = useState(false);
+  const [anchoRealInput, setAnchoRealInput] = useState('');
   const [cenitalUrl, setCenitalUrl] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('plano');
   const [estilo, setEstilo] = useState<Estilo>('moderno');
   const [busy, setBusy] = useState<'extract' | 'cenital' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const svg = useMemo(() => (plano ? planoToSvg(plano, { pxPerMeter: 90 }) : null), [plano]);
+  const svg = useMemo(
+    () =>
+      plano
+        ? planoToSvg(plano, {
+            pxPerMeter: 90,
+            showDimensions: !escalaEstimada,
+            showAreas: !escalaEstimada,
+          })
+        : null,
+    [plano, escalaEstimada],
+  );
   const svgUrl = useMemo(
     () => (svg ? `data:image/svg+xml;utf8,${encodeURIComponent(svg)}` : null),
     [svg],
@@ -50,7 +66,9 @@ export function PlanoStudio({ projectId, extractAction, cenitalAction }: Props) 
       const result = await extractAction(projectId, [
         { type: 'image_url', base64: image.base64, mimeType: image.mimeType },
       ]);
-      setPlano(result);
+      setPlano(result.plano);
+      setEscalaEstimada(result.escalaEstimada);
+      setAnchoRealInput('');
       setCenitalUrl(null);
       setTab('plano');
     } catch (e) {
@@ -86,8 +104,24 @@ export function PlanoStudio({ projectId, extractAction, cenitalAction }: Props) 
     URL.revokeObjectURL(url);
   };
 
+  /** Aplica el ancho real aportado por el usuario: la escala deja de ser conjetura. */
+  const applyRealWidth = () => {
+    if (!plano) return;
+    const meters = Number(anchoRealInput.replace(',', '.'));
+    if (!Number.isFinite(meters) || meters < 1 || meters > 100) {
+      setError('Indica un ancho en metros entre 1 y 100.');
+      return;
+    }
+    setError(null);
+    setPlano(rescalePlanoToWidth(plano, meters));
+    setEscalaEstimada(false);
+    setCenitalUrl(null); // el render anterior ya no corresponde a la escala nueva
+  };
+
   const reset = () => {
     setPlano(null);
+    setEscalaEstimada(false);
+    setAnchoRealInput('');
     setCenitalUrl(null);
     setError(null);
     setTab('plano');
@@ -157,6 +191,31 @@ export function PlanoStudio({ projectId, extractAction, cenitalAction }: Props) 
         </div>
 
         <aside className="flex w-64 shrink-0 flex-col gap-3">
+          {escalaEstimada ? (
+            <div className="border-line bg-surface rounded-card border p-4">
+              <p className="text-ink mb-1 text-sm font-medium">Medidas reales</p>
+              <p className="text-ink-soft mb-2 text-xs">
+                Tu boceto no trae medidas, así que no mostramos cotas ni superficies. Indica el
+                ancho total real del plano y las calculamos con tu dato.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={0.1}
+                  value={anchoRealInput}
+                  onChange={(e) => setAnchoRealInput(e.target.value)}
+                  placeholder="Ancho (m)"
+                  aria-label="Ancho total real en metros"
+                  className="border-line bg-surface text-ink w-full rounded-control border px-2 py-1.5 text-sm"
+                />
+                <Button type="button" size="sm" onClick={applyRealWidth}>
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <div className="border-line bg-surface rounded-card border p-4">
             <label htmlFor="estilo" className="text-ink mb-2 block text-sm font-medium">
               Estilo de interiorismo
