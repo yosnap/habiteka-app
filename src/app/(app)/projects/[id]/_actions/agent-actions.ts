@@ -371,19 +371,23 @@ async function extractPlanCore(
   const firstBase64 = imageParts.find(
     (p): p is Extract<MessagePart, { type: 'image_url' }> => p.type === 'image_url',
   )?.base64;
-  const [raw, pixelWalls] = await Promise.all([
+  const [raw, detected] = await Promise.all([
     extractSketchGeometry(chat, imageParts),
     firstBase64
-      ? detectWallsFromImage(Buffer.from(firstBase64, 'base64')).catch(() => [])
-      : Promise.resolve([]),
+      ? detectWallsFromImage(Buffer.from(firstBase64, 'base64')).catch(() => null)
+      : Promise.resolve(null),
   ]);
-  if (raw.muros.length === 0 && pixelWalls.length < 4) {
+  if (raw.muros.length === 0 && (detected?.walls.length ?? 0) < 4) {
     throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
   }
   // La escala solo es un dato real si sale de medidas ESCRITAS en el boceto;
   // en cualquier otro caso es conjetura y la UI no debe pintarla como cotas.
   return {
-    plano: normalizeSketch(raw, { wallsOverride: pixelWalls }),
+    plano: normalizeSketch(raw, {
+      wallsOverride: detected?.walls,
+      // El aspecto del plano es un DATO de la imagen, no una estimación.
+      imageHeightOverWidth: detected?.heightOverWidth,
+    }),
     escalaEstimada: raw.escalaFiable !== true,
   };
 }

@@ -39,7 +39,10 @@ describe('detectWallsFromImage', () => {
     const svg = planoToSvg(plan, { pxPerMeter: 70, showDimensions: false, showLabels: false });
     const png = await sharp(Buffer.from(svg)).png().toBuffer();
 
-    const walls: SketchWall[] = await detectWallsFromImage(png);
+    const { walls, heightOverWidth } = await detectWallsFromImage(png);
+    // Plano 10×8 m + margen: el aspecto de la imagen ronda 0.8.
+    expect(heightOverWidth).toBeGreaterThan(0.6);
+    expect(heightOverWidth).toBeLessThan(1.0);
 
     const verticals = walls.filter(isVertical);
     const horizontals = walls.filter(isHorizontal);
@@ -62,7 +65,7 @@ describe('detectWallsFromImage', () => {
     })
       .png()
       .toBuffer();
-    const walls = await detectWallsFromImage(flat);
+    const { walls } = await detectWallsFromImage(flat);
     expect(walls.length).toBeLessThan(4);
   });
 });

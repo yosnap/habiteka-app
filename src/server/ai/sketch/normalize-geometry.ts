@@ -59,6 +59,12 @@ export interface NormalizeOptions {
    * final, venga de donde venga.
    */
   wallsOverride?: SketchWall[];
+  /**
+   * Proporción alto/ancho de la IMAGEN medida. Con muros de píxeles, el
+   * aspecto del plano sale de aquí (dato) y no de la estimación de metros del
+   * modelo (conjetura que deformaba el plano).
+   */
+  imageHeightOverWidth?: number;
 }
 
 export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
@@ -311,7 +317,12 @@ const MAX_PLAUSIBLE_SIDE_M = 40;
  */
 function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOptions): Scale {
   const widthM = raw.anchoMetros ?? opts.fallbackWidthMeters;
-  const heightM = raw.altoMetros ?? widthM;
+  // Con la proporción real de la imagen (muros medidos), el alto se DERIVA del
+  // ancho: usar el alto estimado por el modelo deformaba la relación de aspecto.
+  const heightM =
+    opts.imageHeightOverWidth !== undefined
+      ? widthM * opts.imageHeightOverWidth
+      : (raw.altoMetros ?? widthM);
   let mmX = widthM * 1000;
   let mmY = heightM * 1000;
 
@@ -487,6 +498,9 @@ function seedsFromGaps(
   for (const seed of modelSeeds) {
     if (seed.tipo !== 'ventana') continue;
     if (gaps.some((g) => dist(g.center, seed.center) <= GAP_MATCH_DIST)) continue;
+    // Una ventana sin hueco medido solo es creíble en el PERÍMETRO: una
+    // "ventana" en mitad de un tabique interior es alucinación del modelo.
+    if (!nearPerimeter(seed.center)) continue;
     out.push(seed);
   }
   return out;

@@ -18,21 +18,37 @@ import type { SketchWall } from '@/server/ai/sketch/sketch-types';
 
 // Lado máximo del raster de análisis: suficiente resolución, coste acotado.
 const MAX_SIDE = 700;
-// Gris por debajo del cual un píxel cuenta como "tinta".
-const DARK_THRESHOLD = 120;
+// Gris por debajo del cual un píxel cuenta como "tinta". Tolerante: un trazo
+// fino queda gris medio tras reescalar (antialiasing) y aun así es muro.
+const DARK_THRESHOLD = 165;
 // Un tramo de pared ocupa al menos este porcentaje del lado de la imagen.
 const MIN_RUN_RATIO = 0.05;
 // Banda más gruesa que esto no es una pared (mancha, mueble relleno, foto).
 const MAX_THICKNESS_RATIO = 0.035;
-// Grosor mínimo (px) para descartar líneas capilares (cotas, tramas).
-const MIN_THICKNESS_PX = 2;
+// Grosor mínimo (px). 1: los tabiques dibujados finos quedan en ~1 px tras el
+// reescalado; el TEXTO no cuela porque sus trazos no superan el largo mínimo.
+const MIN_THICKNESS_PX = 1;
 
-/** Detecta muros como segmentos normalizados 0–1 (ejes X/Y de la imagen). */
-export async function detectWallsFromImage(image: Buffer): Promise<SketchWall[]> {
+export interface DetectedWalls {
+  /** Muros como segmentos normalizados 0–1 (cada eje respecto a su lado). */
+  walls: SketchWall[];
+  /**
+   * Proporción real de la imagen (alto/ancho). Imprescindible para reconstruir
+   * el plano sin deformarlo: las coordenadas normalizadas por eje pierden el
+   * aspecto, y el aspecto REAL lo da la imagen — no la estimación del modelo.
+   */
+  heightOverWidth: number;
+}
+
+/** Detecta muros por barrido de bandas oscuras sobre la imagen binarizada. */
+export async function detectWallsFromImage(image: Buffer): Promise<DetectedWalls> {
   const { data, info } = await sharp(image)
     .rotate() // aplica la orientación EXIF antes de medir
     .resize(MAX_SIDE, MAX_SIDE, { fit: 'inside' })
     .grayscale()
+    // Desenfoque leve: funde el antialiasing de los trazos finos en una banda
+    // continua de gris que el umbral tolerante sí captura.
+    .blur(0.6)
     .raw()
     .toBuffer({ resolveWithObject: true });
   const w = info.width;
@@ -51,7 +67,7 @@ export async function detectWallsFromImage(image: Buffer): Promise<SketchWall[]>
     const x = (band.startLine + band.endLine) / 2 / w;
     walls.push({ x1: x, y1: band.lo / h, x2: x, y2: band.hi / h });
   }
-  return walls;
+  return { walls, heightOverWidth: h / w };
 }
 
 interface Band {
