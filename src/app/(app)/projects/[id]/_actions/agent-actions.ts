@@ -23,6 +23,7 @@ import { recommendDecoration as runRecommend } from '@/server/agent/phases/decor
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
 import { extractSketchGeometry } from '@/server/ai/sketch/extract-sketch-geometry';
 import { normalizeSketch } from '@/server/ai/sketch/normalize-geometry';
+import { detectWallsFromImage } from '@/server/plan/detect-walls-raster';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { deserializeCanvas } from '@/canvas/serialize';
@@ -314,13 +315,28 @@ export async function extractPlanFromSketch(
   await assertTosAccepted(ctx.userId);
 
   const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
-  const raw = await extractSketchGeometry(chat, imageParts);
-  if (raw.muros.length === 0) {
+  // Geometría por dos vías en paralelo: el modelo (semántica: habitaciones,
+  // aberturas, escala) y la detección de píxeles (muros con posición EXACTA;
+  // el modelo estima coordenadas a ojo y desplaza habitaciones enteras). Si la
+  // imagen no es un plano nítido, la detección devuelve poco y se cae al modelo.
+  const firstBase64 = imageParts.find(
+    (p): p is Extract<MessagePart, { type: 'image_url' }> => p.type === 'image_url',
+  )?.base64;
+  const [raw, pixelWalls] = await Promise.all([
+    extractSketchGeometry(chat, imageParts),
+    firstBase64
+      ? detectWallsFromImage(Buffer.from(firstBase64, 'base64')).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+  if (raw.muros.length === 0 && pixelWalls.length < 4) {
     throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
   }
   // La escala solo es un dato real si sale de medidas ESCRITAS en el boceto;
   // en cualquier otro caso es conjetura y la UI no debe pintarla como cotas.
-  return { plano: normalizeSketch(raw), escalaEstimada: raw.escalaFiable !== true };
+  return {
+    plano: normalizeSketch(raw, { wallsOverride: pixelWalls }),
+    escalaEstimada: raw.escalaFiable !== true,
+  };
 }
 
 /**

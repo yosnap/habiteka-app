@@ -94,8 +94,18 @@ export function collapseDoubleWalls(
  * Fusiona cadenas de segmentos colineales que comparten un extremo (con
  * tolerancia) y se extienden a lados opuestos de ese punto: un muro recto que
  * el modelo troceó vuelve a ser un único segmento.
+ *
+ * `joinTol` admite ser grande para PUENTEAR huecos a lo largo del eje (los
+ * vanos de puerta/ventana parten un muro detectado por píxeles); en ese caso
+ * `maxPerpOffset` acota el desvío LATERAL para no fusionar dos muros paralelos
+ * distintos cuyos extremos quedan cerca.
  */
-export function mergeCollinear(walls: SketchWall[], tolDeg: number, joinTol: number): SketchWall[] {
+export function mergeCollinear(
+  walls: SketchWall[],
+  tolDeg: number,
+  joinTol: number,
+  maxPerpOffset: number = joinTol,
+): SketchWall[] {
   const out = [...walls];
   let merged = true;
   while (merged) {
@@ -112,6 +122,11 @@ export function mergeCollinear(walls: SketchWall[], tolDeg: number, joinTol: num
         const joint = sharedEndpoint(a, b, joinTol);
         if (!joint) continue;
         const [farA, farB, shared] = joint;
+        // Desvío lateral del otro muro respecto a la recta de `a`: si supera el
+        // tope, son dos muros paralelos distintos, no un muro con un vano.
+        const n = { x: -da.y, y: da.x };
+        const lateral = Math.abs((farB.x - a.x1) * n.x + (farB.y - a.y1) * n.y);
+        if (lateral > maxPerpOffset) continue;
         // Deben salir hacia lados opuestos del punto común; si salen hacia el
         // mismo lado son el mismo tramo duplicado, no una cadena.
         const dot =

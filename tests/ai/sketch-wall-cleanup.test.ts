@@ -138,6 +138,35 @@ describe('snapEndpointsToWalls', () => {
   });
 });
 
+describe('mergeCollinear con puenteo de vanos', () => {
+  it('puentea un hueco de puerta entre tramos colineales (joinTol grande)', () => {
+    const out = mergeCollinear(
+      [
+        { x1: 0.1, y1: 0.5, x2: 0.4, y2: 0.5 },
+        { x1: 0.52, y1: 0.5, x2: 0.9, y2: 0.5 }, // hueco de 0.12 (vano)
+      ],
+      12,
+      0.16,
+      0.03,
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual({ x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5 });
+  });
+
+  it('NO puentea dos muros paralelos distintos aunque sus extremos queden cerca', () => {
+    const out = mergeCollinear(
+      [
+        { x1: 0.1, y1: 0.5, x2: 0.4, y2: 0.5 },
+        { x1: 0.45, y1: 0.6, x2: 0.9, y2: 0.6 }, // desvío lateral 0.1 > tope 0.03
+      ],
+      12,
+      0.16,
+      0.03,
+    );
+    expect(out).toHaveLength(2);
+  });
+});
+
 describe('dropIsolatedShortWalls', () => {
   it('descarta el fragmento corto que flota sin tocar nada y conserva el conectado', () => {
     const out = dropIsolatedShortWalls(

@@ -49,6 +49,13 @@ export interface NormalizeOptions {
    * como muros; los diagonales reales (chaflanes) son largos.
    */
   minDiagonalLength: number;
+  /**
+   * Muros medidos por DETECCIÓN DE PÍXELES (precisos) que sustituyen a los del
+   * modelo de visión (estimados a ojo). Las aberturas y habitaciones del
+   * modelo se siguen usando: las semillas se anclan por geometría al muro
+   * final, venga de donde venga.
+   */
+  wallsOverride?: SketchWall[];
 }
 
 export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
@@ -70,6 +77,12 @@ const DEFAULT_APERTURE_WIDTH_MM: Record<PlanAperture['kind'], number> = {
 
 // Una abertura nunca ocupa más que esta fracción de su muro.
 const MAX_APERTURE_WALL_RATIO = 0.8;
+// Mínimo de muros detectados por píxeles para fiarse de ellos (menos = la
+// imagen no era un plano limpio y se cae a los muros del modelo).
+const MIN_OVERRIDE_WALLS = 4;
+// Hueco máximo (unidades de imagen) que se puentea entre tramos colineales
+// detectados por píxeles: cubre vanos de puerta/ventana típicos.
+const MAX_BRIDGE_GAP = 0.16;
 // Dos aberturas del mismo muro a menos de esta distancia son la misma (duplicado del modelo).
 const MIN_APERTURE_GAP_MM = 400;
 
@@ -86,10 +99,20 @@ export function normalizeSketch(
     .map((a) => apertureSeed(a, raw.muros))
     .filter((s): s is ApertureSeed => s !== null);
 
-  let walls = raw.muros.filter((w) => segmentLength(w) >= opts.minWallLength);
+  const fromPixels = (opts.wallsOverride?.length ?? 0) >= MIN_OVERRIDE_WALLS;
+  const sourceWalls = fromPixels ? opts.wallsOverride! : raw.muros;
+
+  let walls = sourceWalls.filter((w) => segmentLength(w) >= opts.minWallLength);
   walls = alignToGrid(walls, opts);
   walls = collapseDoubleWalls(walls, opts.snapDistance * 1.5, opts.angleToleranceDeg);
   walls = mergeCollinear(walls, opts.angleToleranceDeg, opts.snapDistance);
+  if (fromPixels) {
+    // Los vanos de puerta/ventana parten un muro detectado por píxeles en
+    // tramos colineales con hueco: se puentean (la abertura vuelve a colocarse
+    // encima al anclar las semillas). El desvío lateral queda acotado para no
+    // fusionar dos muros paralelos de verdad.
+    walls = mergeCollinear(walls, opts.angleToleranceDeg, MAX_BRIDGE_GAP, opts.snapDistance);
+  }
   // Re-enderezar tras la limpieza: fusionar dos tramos casi colineales con
   // desfase lateral produce un muro largo LIGERAMENTE inclinado; sin este paso
   // el plano sale con muros torcidos (visto con el primer plano real).

@@ -265,6 +265,52 @@ describe('normalizeSketch', () => {
     expect(tabique!.from.y).toBe(perimetral!.from.y);
   });
 
+  it('con wallsOverride usa los muros de píxeles y ancla las aberturas del modelo', () => {
+    const plano = normalizeSketch(
+      {
+        ...emptySketch,
+        anchoMetros: 10,
+        altoMetros: 10,
+        // Muros del MODELO, desplazados (coordenadas "a ojo").
+        muros: [{ x1: 0.15, y1: 0.32, x2: 0.85, y2: 0.32 }],
+        // La puerta referencia el muro del modelo; debe acabar sobre el muro real.
+        aberturas: [{ tipo: 'puerta', muro: 0, posicion: 0.5 }],
+      },
+      {
+        // Muros DETECTADOS por píxeles: el de verdad está en y=0.3, partido por
+        // el vano de la puerta (hueco de 0.1 que el puenteo debe cerrar).
+        wallsOverride: [
+          { x1: 0.1, y1: 0.3, x2: 0.45, y2: 0.3 },
+          { x1: 0.55, y1: 0.3, x2: 0.9, y2: 0.3 },
+          { x1: 0.1, y1: 0.3, x2: 0.1, y2: 0.9 },
+          { x1: 0.9, y1: 0.3, x2: 0.9, y2: 0.9 },
+          { x1: 0.1, y1: 0.9, x2: 0.9, y2: 0.9 },
+        ],
+      },
+    );
+    const zone = plano.zones[0]!;
+    // 4 muros finales: el horizontal superior puenteado + 2 verticales + inferior.
+    expect(zone.walls).toHaveLength(4);
+    const top = zone.walls.find((w) => w.from.y === w.to.y && w.from.y < 5000)!;
+    expect(Math.abs(top.to.x - top.from.x)).toBe(8000); // 0.8 unidades × 10 m
+    // La puerta del modelo quedó anclada al muro real puenteado.
+    expect(zone.apertures).toHaveLength(1);
+    expect(zone.apertures[0]!.wallId).toBe(top.id);
+  });
+
+  it('con pocos muros de píxeles cae a los muros del modelo', () => {
+    const plano = normalizeSketch(
+      {
+        ...emptySketch,
+        anchoMetros: 10,
+        muros: [{ x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5 }],
+      },
+      { wallsOverride: [{ x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.2 }] }, // solo 1: no fiable
+    );
+    // Usa el muro del modelo (y=0.5), no el de píxeles (y=0.2).
+    expect(plano.zones[0]!.walls[0]!.from.y).toBe(5000);
+  });
+
   it('es determinista: la misma extracción produce el mismo plano', () => {
     const raw: RawSketch = {
       anchoMetros: 9,
