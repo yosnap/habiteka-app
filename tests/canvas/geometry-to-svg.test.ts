@@ -39,11 +39,12 @@ function room(name = 'Salón'): Plano2dPayload {
 }
 
 describe('planoToSvg', () => {
-  it('produce un SVG con viewBox que envuelve el plano más el margen', () => {
+  it('produce un SVG con viewBox que envuelve el plano más el margen adaptativo', () => {
     const svg = planoToSvg(room());
-    // Plano de 4000×3000 mm + padding 1400 por lado (más el medio grosor de muro).
+    // Plano de 4000×3000 mm (bbox 4120 con grosor de muro). El margen escala con
+    // el tamaño del plano: factor = clamp(4120/9000, 0.7, 1.8) = 0.7 → 980 mm.
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-    expect(svg).toContain('viewBox="-1460 -1460 6920 5920"');
+    expect(svg).toContain('viewBox="-1040 -1040 6080 5080"');
     expect(svg.endsWith('</svg>')).toBe(true);
     expect(svg).not.toContain('NaN');
   });

@@ -148,6 +148,78 @@ describe('normalizeSketch', () => {
     expect(salon.dimensions).toHaveLength(1);
   });
 
+  it('sanea una escala implausible: un piso con estancias no mide 2 m de ancho', () => {
+    // El modelo estimó 2 m de ancho total para un plano con 3 habitaciones:
+    // el saneo reescala a un tamaño creíble (~10 m de lado mayor).
+    const room = (nombre: string, x0: number) => ({
+      nombre,
+      poligono: [
+        { x: x0, y: 0 },
+        { x: x0 + 0.3, y: 0 },
+        { x: x0 + 0.3, y: 1 },
+        { x: x0, y: 1 },
+      ],
+    });
+    const plano = normalizeSketch({
+      anchoMetros: 2,
+      altoMetros: 2,
+      muros: [
+        { x1: 0, y1: 0, x2: 1, y2: 0 },
+        { x1: 0, y1: 1, x2: 1, y2: 1 },
+      ],
+      aberturas: [],
+      habitaciones: [room('Dormitorio', 0), room('Salón', 0.35), room('Cocina', 0.7)],
+    });
+    const wall = plano.zones.flatMap((z) => z.walls)[0]!;
+    const widthM = Math.abs(wall.to.x - wall.from.x) / 1000;
+    expect(widthM).toBeGreaterThanOrEqual(7);
+  });
+
+  it('deduplica aberturas casi en el mismo punto del mismo muro', () => {
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      muros: [{ x1: 0, y1: 0, x2: 0.4, y2: 0 }],
+      aberturas: [
+        { tipo: 'puerta', muro: 0, posicion: 0.5 },
+        { tipo: 'puerta', muro: 0, posicion: 0.52 }, // duplicado (a 8 cm)
+        { tipo: 'ventana', muro: 0, posicion: 0.15 }, // distinta de verdad
+      ],
+    });
+    expect(plano.zones[0]!.apertures).toHaveLength(2);
+  });
+
+  it('funde caras dobles y tramos troceados antes de acotar', () => {
+    // Un muro grueso devuelto como dos caras + un muro recto troceado en dos.
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      altoMetros: 10,
+      muros: [
+        { x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5 },
+        { x1: 0.1, y1: 0.52, x2: 0.9, y2: 0.52 }, // cara doble del anterior
+        { x1: 0.1, y1: 0.1, x2: 0.5, y2: 0.1 },
+        { x1: 0.5, y1: 0.1, x2: 0.9, y2: 0.1 }, // continuación colineal
+      ],
+    });
+    expect(plano.zones[0]!.walls).toHaveLength(2);
+  });
+
+  it('no acota fragmentos interiores cortos: solo muros exteriores largos', () => {
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      altoMetros: 10,
+      muros: [
+        { x1: 0, y1: 0, x2: 1, y2: 0 }, // exterior 10 m → con cota
+        { x1: 0, y1: 1, x2: 1, y2: 1 }, // exterior 10 m → con cota
+        { x1: 0.45, y1: 0.48, x2: 0.55, y2: 0.48 }, // fragmento interior 1 m → sin cota
+      ],
+    });
+    const dims = plano.zones.flatMap((z) => z.dimensions);
+    expect(dims).toHaveLength(2);
+  });
+
   it('es determinista: la misma extracción produce el mismo plano', () => {
     const raw: RawSketch = {
       anchoMetros: 9,

@@ -3,9 +3,16 @@
  * imperfectos en coordenadas de imagen 0–1) en un `Plano2dPayload` métrico.
  *
  * 100 % determinista y pura (sin red, sin IA, sin aleatoriedad): mismo boceto
- * extraído → mismo plano. Pasos: ortogonalizar trazos casi rectos, cerrar
- * esquinas (snap de vértices), escalar a milímetros y anclar aberturas de forma
- * que quepan en su muro.
+ * extraído → mismo plano. Pasos:
+ *
+ *  1. Ortogonalizar y cerrar esquinas sobre un grafo de vértices compartidos.
+ *  2. Limpiar la topología (caras dobles de un muro grueso, tramos colineales
+ *     troceados) — defectos sistemáticos de la visión sobre dibujos a mano.
+ *  3. Escalar a milímetros con saneo de plausibilidad (un piso con varias
+ *     estancias no mide 3 m de ancho).
+ *  4. Anclar aberturas POR GEOMETRÍA (los índices de muro del modelo dejan de
+ *     valer tras fusionar/descartar segmentos).
+ *  5. Cotas solo donde informan: muros exteriores y largos, no cada fragmento.
  */
 import type {
   PlanAperture,
@@ -15,7 +22,8 @@ import type {
   PlanZone,
   Plano2dPayload,
 } from '@/lib/contracts';
-import type { RawSketch, SketchPoint, SketchWall } from './sketch-types';
+import type { RawSketch, SketchAperture, SketchPoint, SketchWall } from './sketch-types';
+import { collapseDoubleWalls, mergeCollinear } from './wall-cleanup';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -28,6 +36,8 @@ export interface NormalizeOptions {
   minWallLength: number;
   /** Grosor de muro asignado (mm). Coincide con el del plano base de entrega. */
   wallThicknessMm: number;
+  /** Longitud mínima (mm) de un muro para merecer cota. */
+  minDimensionMm: number;
 }
 
 export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
@@ -36,6 +46,7 @@ export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
   snapDistance: 0.03,
   minWallLength: 0.02,
   wallThicknessMm: 120,
+  minDimensionMm: 1200,
 };
 
 // Ancho por defecto de cada abertura (mm) cuando el boceto no lo insinúa.
@@ -47,6 +58,8 @@ const DEFAULT_APERTURE_WIDTH_MM: Record<PlanAperture['kind'], number> = {
 
 // Una abertura nunca ocupa más que esta fracción de su muro.
 const MAX_APERTURE_WALL_RATIO = 0.8;
+// Dos aberturas del mismo muro a menos de esta distancia son la misma (duplicado del modelo).
+const MIN_APERTURE_GAP_MM = 400;
 
 /** Convierte la extracción cruda de un boceto en un plano métrico normalizado. */
 export function normalizeSketch(
@@ -55,32 +68,30 @@ export function normalizeSketch(
 ): Plano2dPayload {
   const opts = { ...DEFAULT_NORMALIZE_OPTIONS, ...options };
 
-  // Índices originales conservados: las aberturas referencian muros por índice
-  // y el filtrado/snap no debe romper esa referencia.
-  let walls = raw.muros.map((w, index) => ({ ...w, index }));
-  walls = walls.filter((w) => segmentLength(w) >= opts.minWallLength);
+  // Semillas de abertura con geometría ABSOLUTA antes de tocar los muros: los
+  // índices del modelo dejan de valer tras filtrar/fusionar segmentos.
+  const seeds = raw.aberturas
+    .map((a) => apertureSeed(a, raw.muros))
+    .filter((s): s is ApertureSeed => s !== null);
+
+  let walls = raw.muros.filter((w) => segmentLength(w) >= opts.minWallLength);
   walls = alignToGrid(walls, opts);
-  // El snap puede colapsar un muro corto en un punto: sin dirección, fuera.
+  walls = collapseDoubleWalls(walls, opts.snapDistance * 1.5, opts.angleToleranceDeg);
+  walls = mergeCollinear(walls, opts.angleToleranceDeg, opts.snapDistance);
+  // La limpieza puede colapsar un muro corto en un punto: sin dirección, fuera.
   walls = walls.filter((w) => segmentLength(w) > 0);
 
-  const scale = resolveScale(raw, opts.fallbackWidthMeters);
-  const planWalls = walls.map((w, i) => ({
-    wall: toPlanWall(w, i, scale, opts.wallThicknessMm),
-    sourceIndex: w.index,
-  }));
+  const scale = resolveScale(raw, walls, opts);
+  const planWalls = walls.map((w, i) => toPlanWall(w, i, scale, opts.wallThicknessMm));
 
-  const apertures = buildApertures(raw, planWalls);
-  const dimensions = planWalls.map(({ wall }, i) => toDimension(wall, i));
-  const zones = buildZones(raw, planWalls, apertures, dimensions, scale);
+  const apertures = anchorApertures(seeds, walls, planWalls, scale, opts);
+  const dimByWallId = buildDimensions(planWalls, opts);
+  const zones = buildZones(raw, planWalls, apertures, dimByWallId, scale);
 
   return { schemaVersion: 1, zones };
 }
 
 // ── Geometría en unidades de imagen ──────────────────────────────────────────
-
-interface IndexedWall extends SketchWall {
-  index: number;
-}
 
 function segmentLength(w: SketchWall): number {
   return Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
@@ -111,7 +122,7 @@ function orientationOf(w: SketchWall, toleranceDeg: number): Orientation {
  * Así un vértice en una esquina en L recibe la `y` del muro horizontal y la `x`
  * del vertical a la vez, y la esquina queda cerrada y ortogonal.
  */
-function alignToGrid(walls: IndexedWall[], opts: NormalizeOptions): IndexedWall[] {
+function alignToGrid(walls: SketchWall[], opts: NormalizeOptions): SketchWall[] {
   // 1. Agrupado greedy determinista de extremos en vértices.
   const vertices: SketchPoint[] = [];
   const counts: number[] = [];
@@ -152,9 +163,9 @@ function alignToGrid(walls: IndexedWall[], opts: NormalizeOptions): IndexedWall[
     y: average(vertices, yGroup.members(i), 'y') ?? v.y,
   }));
 
-  return walls.map((w, i) => {
+  return walls.map((_, i) => {
     const { a, b } = ends[i]!;
-    return { index: w.index, x1: aligned[a]!.x, y1: aligned[a]!.y, x2: aligned[b]!.x, y2: aligned[b]!.y };
+    return { x1: aligned[a]!.x, y1: aligned[a]!.y, x2: aligned[b]!.x, y2: aligned[b]!.y };
   });
 }
 
@@ -200,14 +211,41 @@ interface Scale {
   mmPerUnitY: number;
 }
 
+// Lado mayor plausible de un plano: por debajo/encima se corrige la escala.
+const MAX_PLAUSIBLE_SIDE_M = 40;
+
 /**
- * Escala imagen→mm. Si el boceto solo da el ancho, el alto usa la misma escala
- * (asume imagen de proporción fiel al dibujo, suficiente para v1).
+ * Escala imagen→mm. Si el boceto solo da el ancho, el alto usa la misma escala.
+ * Saneo de plausibilidad: si la escala estimada (o el fallback) deja el plano
+ * implausiblemente pequeño para su número de estancias — dormitorios de 2 m² —
+ * se reescala a un tamaño creíble preservando proporciones.
  */
-function resolveScale(raw: RawSketch, fallbackWidthMeters: number): Scale {
-  const widthM = raw.anchoMetros ?? fallbackWidthMeters;
+function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOptions): Scale {
+  const widthM = raw.anchoMetros ?? opts.fallbackWidthMeters;
   const heightM = raw.altoMetros ?? widthM;
-  return { mmPerUnitX: widthM * 1000, mmPerUnitY: heightM * 1000 };
+  let mmX = widthM * 1000;
+  let mmY = heightM * 1000;
+
+  if (walls.length > 0) {
+    const xs = walls.flatMap((w) => [w.x1, w.x2]);
+    const ys = walls.flatMap((w) => [w.y1, w.y2]);
+    const sideM = Math.max(
+      ((Math.max(...xs) - Math.min(...xs)) * mmX) / 1000,
+      ((Math.max(...ys) - Math.min(...ys)) * mmY) / 1000,
+    );
+    const rooms = raw.habitaciones.length;
+    // Un plano multi-estancia mide al menos ~7 m de lado; uno simple, ~2,5 m.
+    const minSide = rooms >= 2 ? 7 : 2.5;
+    const targetSide = rooms >= 2 ? 10 : 4;
+    let factor = 1;
+    if (sideM > 0 && sideM < minSide) factor = targetSide / sideM;
+    else if (sideM > MAX_PLAUSIBLE_SIDE_M) factor = 15 / sideM;
+    factor = Math.min(Math.max(factor, 0.1), 10);
+    mmX *= factor;
+    mmY *= factor;
+  }
+
+  return { mmPerUnitX: mmX, mmPerUnitY: mmY };
 }
 
 function toMm(p: SketchPoint, s: Scale): PlanPoint {
@@ -229,25 +267,86 @@ function wallLengthMm(w: PlanWall): number {
 
 // ── Aberturas ────────────────────────────────────────────────────────────────
 
-function buildApertures(
-  raw: RawSketch,
-  planWalls: Array<{ wall: PlanWall; sourceIndex: number }>,
+interface ApertureSeed {
+  tipo: PlanAperture['kind'];
+  /** Centro de la abertura en coordenadas de imagen. */
+  center: SketchPoint;
+  /** Ancho en unidades de imagen (a lo largo del muro), si el modelo lo dio. */
+  widthUnit?: number;
+}
+
+/** Geometría absoluta de una abertura a partir del muro crudo que referencia. */
+function apertureSeed(a: SketchAperture, rawWalls: SketchWall[]): ApertureSeed | null {
+  const w = rawWalls[a.muro];
+  if (!w) return null;
+  const len = segmentLength(w);
+  if (len <= 0) return null;
+  return {
+    tipo: a.tipo,
+    center: {
+      x: w.x1 + (w.x2 - w.x1) * a.posicion,
+      y: w.y1 + (w.y2 - w.y1) * a.posicion,
+    },
+    ...(a.anchoSobreMuro ? { widthUnit: a.anchoSobreMuro * len } : {}),
+  };
+}
+
+/**
+ * Ancla cada semilla al muro FINAL más cercano (proyección perpendicular).
+ * Descarta las que quedan lejos de todo muro y deduplica las que caen casi en
+ * el mismo punto del mismo muro (el modelo repite aberturas con frecuencia).
+ */
+function anchorApertures(
+  seeds: ApertureSeed[],
+  walls: SketchWall[],
+  planWalls: PlanWall[],
+  scale: Scale,
+  opts: NormalizeOptions,
 ): PlanAperture[] {
-  const bySource = new Map(planWalls.map((pw) => [pw.sourceIndex, pw.wall]));
   const out: PlanAperture[] = [];
-  for (const a of raw.aberturas) {
-    const wall = bySource.get(a.muro);
-    if (!wall) continue; // Su muro se descartó como ruido.
-    const lengthMm = wallLengthMm(wall);
-    const requested = a.anchoSobreMuro
-      ? a.anchoSobreMuro * lengthMm
-      : DEFAULT_APERTURE_WIDTH_MM[a.tipo];
+  const maxPerp = opts.snapDistance * 2;
+
+  for (const seed of seeds) {
+    let best: { wall: PlanWall; t: number; perp: number } | null = null;
+    for (let i = 0; i < walls.length; i++) {
+      const w = walls[i]!;
+      const len = segmentLength(w);
+      if (len <= 0) continue;
+      const dx = (w.x2 - w.x1) / len;
+      const dy = (w.y2 - w.y1) / len;
+      const relX = seed.center.x - w.x1;
+      const relY = seed.center.y - w.y1;
+      const t = (relX * dx + relY * dy) / len;
+      if (t < -0.1 || t > 1.1) continue;
+      const perp = Math.abs(relX * -dy + relY * dx);
+      if (perp > maxPerp) continue;
+      if (!best || perp < best.perp) best = { wall: planWalls[i]!, t, perp };
+    }
+    if (!best) continue; // Lejos de todo muro: era ruido o su muro se descartó.
+
+    const lengthMm = wallLengthMm(best.wall);
+    if (lengthMm <= 0) continue;
+    // Ancho en mm: la semilla trae el ancho en unidades de imagen; se proyecta
+    // con la escala media (las aberturas viven sobre muros casi axis-aligned).
+    const requested = seed.widthUnit
+      ? seed.widthUnit * ((scale.mmPerUnitX + scale.mmPerUnitY) / 2)
+      : DEFAULT_APERTURE_WIDTH_MM[seed.tipo];
     const widthMm = Math.round(Math.min(requested, lengthMm * MAX_APERTURE_WALL_RATIO));
     if (widthMm <= 0) continue;
-    // La abertura debe caber entera dentro del muro: se acota el centro.
+
     const halfRatio = widthMm / lengthMm / 2;
-    const position = clamp(a.posicion, halfRatio, 1 - halfRatio);
-    out.push({ id: `a${out.length}`, kind: a.tipo, wallId: wall.id, position, widthMm });
+    const position = clamp(best.t, halfRatio, 1 - halfRatio);
+
+    // Deduplicado: otra abertura del mismo muro casi en el mismo sitio es un
+    // duplicado del modelo, no una segunda carpintería.
+    const duplicated = out.some(
+      (ap) =>
+        ap.wallId === best!.wall.id &&
+        Math.abs(ap.position - position) * lengthMm < MIN_APERTURE_GAP_MM,
+    );
+    if (duplicated) continue;
+
+    out.push({ id: `a${out.length}`, kind: seed.tipo, wallId: best.wall.id, position, widthMm });
   }
   return out;
 }
@@ -257,6 +356,53 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 // ── Cotas ────────────────────────────────────────────────────────────────────
+
+// Un muro se considera exterior si su punto medio queda a menos de esto del
+// borde del plano (bounding box de todos los muros).
+const EXTERIOR_TOLERANCE_MM = 300;
+
+/**
+ * Cotas SOLO donde informan: muros exteriores y de longitud significativa. Una
+ * cota por fragmento interior (el defecto del primer render real) entierra el
+ * plano en números. Si ningún muro califica, se acota el bounding box total.
+ */
+function buildDimensions(
+  planWalls: PlanWall[],
+  opts: NormalizeOptions,
+): Map<string, PlanDimension> {
+  const out = new Map<string, PlanDimension>();
+  if (planWalls.length === 0) return out;
+
+  const xs = planWalls.flatMap((w) => [w.from.x, w.to.x]);
+  const ys = planWalls.flatMap((w) => [w.from.y, w.to.y]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  let i = 0;
+  for (const wall of planWalls) {
+    if (wallLengthMm(wall) < opts.minDimensionMm) continue;
+    const mid = { x: (wall.from.x + wall.to.x) / 2, y: (wall.from.y + wall.to.y) / 2 };
+    const nearEdge =
+      Math.min(mid.x - minX, maxX - mid.x) <= EXTERIOR_TOLERANCE_MM ||
+      Math.min(mid.y - minY, maxY - mid.y) <= EXTERIOR_TOLERANCE_MM;
+    if (!nearEdge) continue;
+    out.set(wall.id, toDimension(wall, i++));
+  }
+
+  // Ningún muro califica (plano pequeño o todo interior): cota global del bbox.
+  if (out.size === 0 && maxX > minX) {
+    const first = planWalls[0]!;
+    out.set(first.id, {
+      id: 'dim0',
+      from: { x: minX, y: maxY },
+      to: { x: maxX, y: maxY },
+      label: `${((maxX - minX) / 1000).toFixed(2)} m`,
+    });
+  }
+  return out;
+}
 
 function toDimension(wall: PlanWall, i: number): PlanDimension {
   const meters = wallLengthMm(wall) / 1000;
@@ -278,14 +424,22 @@ function toDimension(wall: PlanWall, i: number): PlanDimension {
  */
 function buildZones(
   raw: RawSketch,
-  planWalls: Array<{ wall: PlanWall; sourceIndex: number }>,
+  planWalls: PlanWall[],
   apertures: PlanAperture[],
-  dimensions: PlanDimension[],
+  dimByWallId: Map<string, PlanDimension>,
   scale: Scale,
 ): PlanZone[] {
-  const walls = planWalls.map((pw) => pw.wall);
   if (raw.habitaciones.length === 0) {
-    return [{ id: 'z0', name: 'Estancia', outline: outlineFromWalls(walls), walls, apertures, dimensions }];
+    return [
+      {
+        id: 'z0',
+        name: 'Estancia',
+        outline: outlineFromWalls(planWalls),
+        walls: planWalls,
+        apertures,
+        dimensions: [...dimByWallId.values()],
+      },
+    ];
   }
 
   const zones: PlanZone[] = raw.habitaciones.map((room, i) => ({
@@ -299,13 +453,14 @@ function buildZones(
   const centroids = zones.map((z) => polygonCentroid(z.outline));
 
   const zoneOfWall = new Map<string, PlanZone>();
-  walls.forEach((wall, i) => {
+  for (const wall of planWalls) {
     const mid = { x: (wall.from.x + wall.to.x) / 2, y: (wall.from.y + wall.to.y) / 2 };
     const zone = zones[nearestIndex(mid, centroids)]!;
     zone.walls.push(wall);
-    zone.dimensions.push(dimensions[i]!);
+    const dim = dimByWallId.get(wall.id);
+    if (dim) zone.dimensions.push(dim);
     zoneOfWall.set(wall.id, zone);
-  });
+  }
   // Cada abertura viaja con su muro para que la zona sea autocontenida.
   for (const ap of apertures) zoneOfWall.get(ap.wallId)?.apertures.push(ap);
 
@@ -330,7 +485,7 @@ function outlineFromWalls(walls: PlanWall[]): PlanPoint[] {
 }
 
 function polygonCentroid(points: PlanPoint[]): PlanPoint {
-  const n = points.length;
+  const n = Math.max(1, points.length);
   const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
   return { x: sum.x / n, y: sum.y / n };
 }

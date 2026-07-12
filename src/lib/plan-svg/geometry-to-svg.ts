@@ -44,7 +44,6 @@ const DEFAULT_PX_PER_METER = 60;
 
 /** Proyecta el plano a un documento SVG completo (string). */
 export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}): string {
-  const theme = { ...DEFAULT_PLAN_SVG_THEME, ...options.theme };
   const pxPerMeter = options.pxPerMeter ?? DEFAULT_PX_PER_METER;
   const showDimensions = options.showDimensions ?? true;
   const showLabels = options.showLabels ?? true;
@@ -52,6 +51,11 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
   const walls = plano.zones.flatMap((z) => z.walls);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const bounds = planBounds(plano);
+  // Textos, cotas y márgenes escalan con el tamaño real del plano: valores fijos
+  // en mm quedan gigantes en un plano de 5 m y minúsculos en uno de 25 m. El
+  // factor 1 corresponde a un plano de referencia de ~9 m de lado.
+  const sizeFactor = Math.min(Math.max((bounds.maxX - bounds.minX) / 9000, 0.7), 1.8);
+  const theme = scaleTheme({ ...DEFAULT_PLAN_SVG_THEME, ...options.theme }, sizeFactor);
   // Referencia "interior" del plano para decidir lados: cotas hacia fuera,
   // barrido de puertas hacia dentro.
   const planCenter = centroid(walls.flatMap((w) => [w.from, w.to]));
@@ -109,6 +113,19 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
     ...layers,
     '</svg>',
   ].join('');
+}
+
+/** Escala las magnitudes tipográficas y de cota del tema al tamaño del plano. */
+function scaleTheme(theme: PlanSvgTheme, factor: number): PlanSvgTheme {
+  return {
+    ...theme,
+    labelFontMm: theme.labelFontMm * factor,
+    areaFontMm: theme.areaFontMm * factor,
+    dimFontMm: theme.dimFontMm * factor,
+    dimOffsetMm: theme.dimOffsetMm * factor,
+    dimTickMm: theme.dimTickMm * factor,
+    paddingMm: theme.paddingMm * factor,
+  };
 }
 
 /** Polígono macizo del muro: el segmento eje expandido medio grosor a cada lado. */
