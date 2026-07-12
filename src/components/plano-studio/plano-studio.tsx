@@ -26,7 +26,8 @@ type ImagePart = { type: 'image_url'; base64: string; mimeType: string };
 interface Props {
   projectId: string;
   redrawAction: (projectId: string, imageParts: ImagePart[]) => Promise<{ imageUrl: string }>;
-  extractAction: (projectId: string, imageParts: ImagePart[]) => Promise<SketchPlanResult>;
+  /** Extrae la geometría del plano REDIBUJADO (muros medidos por píxeles). */
+  extractAction: (projectId: string, imageUrl: string) => Promise<SketchPlanResult>;
   cenitalAction: (
     projectId: string,
     plano: Plano2dPayload,
@@ -106,9 +107,11 @@ export function PlanoStudio({
   };
 
   const onExtract = () => {
-    if (!source) return;
+    // Se extrae del REDIBUJADO, no de la foto original: es la versión con
+    // muros macizos que la detección de píxeles mide con exactitud.
+    if (!planImageUrl) return;
     return run('extract', async () => {
-      const result = await extractAction(projectId, parts(source));
+      const result = await extractAction(projectId, planImageUrl);
       setPlano(result.plano);
       setEscalaEstimada(result.escalaEstimada);
       setAnchoRealInput('');

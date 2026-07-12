@@ -5,7 +5,7 @@
  * reaplican el ámbito por organización.
  */
 import {
-  extractPlanFromSketch,
+  extractPlanFromRedrawn,
   generateCenitalFromPlano,
   redrawPlanFromImage,
   sendPlanoToEditor,
@@ -23,7 +23,7 @@ export default async function PlanoStudioPage({ params }: Props) {
       <PlanoStudio
         projectId={id}
         redrawAction={redrawPlanFromImage}
-        extractAction={extractPlanFromSketch}
+        extractAction={extractPlanFromRedrawn}
         cenitalAction={generateCenitalFromPlano}
         sendToEditorAction={sendPlanoToEditor}
       />

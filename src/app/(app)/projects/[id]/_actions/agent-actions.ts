@@ -315,8 +315,55 @@ export async function extractPlanFromSketch(
   await assertProjectInOrg(ctx, projectId);
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
   await assertTosAccepted(ctx.userId);
+  return extractPlanCore(ctx.organizationId, imageParts);
+}
 
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+/**
+ * Extrae la geometría desde el plano REDIBUJADO (no desde la foto original):
+ * el redibujado normaliza la imagen a muros negros macizos sobre fondo blanco,
+ * exactamente el formato donde la detección de píxeles es precisa — la foto
+ * original (líneas finas, ruido) forzaba el fallback al modelo, que estima
+ * coordenadas a ojo. Acepta solo data URLs o URLs de NUESTRO storage (nada de
+ * traer URLs arbitrarias al servidor).
+ */
+export async function extractPlanFromRedrawn(
+  projectId: string,
+  imageUrl: string,
+): Promise<SketchPlanResult> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+  await assertTosAccepted(ctx.userId);
+
+  const image = await imageBytesFromTrustedUrl(imageUrl);
+  return extractPlanCore(ctx.organizationId, [
+    { type: 'image_url', base64: image.base64, mimeType: image.mimeType },
+  ]);
+}
+
+/** Resuelve los bytes de la imagen redibujada: data URL o asset de nuestro storage. */
+async function imageBytesFromTrustedUrl(url: string): Promise<{ base64: string; mimeType: string }> {
+  const dataUrl = /^data:([^;]+);base64,(.+)$/.exec(url);
+  if (dataUrl?.[1] && dataUrl[2]) return { mimeType: dataUrl[1], base64: dataUrl[2] };
+
+  const storageEndpoint = process.env.STORAGE_ENDPOINT;
+  if (storageEndpoint && url.startsWith(storageEndpoint)) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('No se pudo recuperar el plano redibujado del storage.');
+    const bytes = Buffer.from(await res.arrayBuffer());
+    return {
+      base64: bytes.toString('base64'),
+      mimeType: res.headers.get('content-type') ?? 'image/png',
+    };
+  }
+  throw new Error('URL de imagen no permitida.');
+}
+
+async function extractPlanCore(
+  organizationId: string,
+  imageParts: MessagePart[],
+): Promise<SketchPlanResult> {
+  const chat = await getChatVisionAdapter({ organizationId }, 'vision');
   // Geometría por dos vías en paralelo: el modelo (semántica: habitaciones,
   // aberturas, escala) y la detección de píxeles (muros con posición EXACTA;
   // el modelo estima coordenadas a ojo y desplaza habitaciones enteras). Si la
