@@ -84,8 +84,20 @@ const MAX_APERTURE_WALL_RATIO = 0.8;
 // imagen no era un plano limpio y se cae a los muros del modelo).
 const MIN_OVERRIDE_WALLS = 4;
 // Hueco máximo (unidades de imagen) que se puentea entre tramos colineales
-// detectados por píxeles: cubre vanos de puerta/ventana típicos.
-const MAX_BRIDGE_GAP = 0.16;
+// detectados por píxeles. Amplio: una ventana puede partir la banda y dejar
+// además un tramito corto descartado — el hueco combinado supera el vano
+// nominal. El desvío lateral acotado evita fusionar muros paralelos reales.
+const MAX_BRIDGE_GAP = 0.24;
+// Para DETECTAR HABITACIONES se sella aún más: un boquete residual en el
+// perímetro fugaría el flood fill y colapsaría todo a una sola estancia.
+const SEAL_BRIDGE_GAP = 0.35;
+// Ancho máximo plausible de cada abertura (mm): un hueco mayor viene de una
+// banda mal partida, no de una puerta de 2,5 m — se acota centrado.
+const MAX_APERTURE_WIDTH_MM: Record<PlanAperture['kind'], number> = {
+  puerta: 1100,
+  ventana: 2600,
+  hueco: 2000,
+};
 // Dos aberturas del mismo muro a menos de esta distancia son la misma (duplicado del modelo).
 const MIN_APERTURE_GAP_MM = 400;
 
@@ -149,9 +161,14 @@ export function normalizeSketch(
   // (flood fill); los nombres del modelo se asignan a la región que los
   // contiene. Sin medición, se usan los polígonos del modelo tal cual.
   const thicknessUnit = opts.wallThicknessMm / ((scale.mmPerUnitX + scale.mmPerUnitY) / 2);
+  // Solo para buscar habitaciones: sellado extra de boquetes residuales (un
+  // leak en el perímetro haría "exterior" todo el interior y no habría zonas).
+  const sealedWalls = fromPixels
+    ? bridgeCollinearGaps(walls, opts.angleToleranceDeg, SEAL_BRIDGE_GAP, opts.snapDistance).walls
+    : walls;
   const zones = fromPixels
     ? buildZonesFromRegions(
-        detectRoomRegions(walls, thicknessUnit),
+        detectRoomRegions(sealedWalls, thicknessUnit),
         raw,
         planWalls,
         apertures,
@@ -403,7 +420,11 @@ function anchorApertures(
     const requested = seed.widthUnit
       ? seed.widthUnit * ((scale.mmPerUnitX + scale.mmPerUnitY) / 2)
       : DEFAULT_APERTURE_WIDTH_MM[seed.tipo];
-    const widthMm = Math.round(Math.min(requested, lengthMm * MAX_APERTURE_WALL_RATIO));
+    // Acotado por plausibilidad del tipo: un "hueco" de 2,5 m es una banda mal
+    // partida, no una puerta — la abertura se centra con un ancho creíble.
+    const widthMm = Math.round(
+      Math.min(requested, MAX_APERTURE_WIDTH_MM[seed.tipo], lengthMm * MAX_APERTURE_WALL_RATIO),
+    );
     if (widthMm <= 0) continue;
 
     const halfRatio = widthMm / lengthMm / 2;

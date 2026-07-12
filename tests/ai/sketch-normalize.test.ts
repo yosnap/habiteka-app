@@ -372,6 +372,34 @@ describe('normalizeSketch', () => {
     expect(centroidX(salon)).toBeGreaterThan(5000);
   });
 
+  it('un boquete en el perímetro no colapsa las habitaciones y las puertas se acotan', () => {
+    const plano = normalizeSketch(
+      { ...emptySketch, anchoMetros: 10, altoMetros: 10 },
+      {
+        wallsOverride: [
+          // Perímetro con un BOQUETE de 0.3 arriba (ventanas mal partidas):
+          // demasiado ancho para puentear como muro, pero el sellado extra
+          // debe permitir detectar las habitaciones igualmente.
+          { x1: 0.1, y1: 0.1, x2: 0.3, y2: 0.1 },
+          { x1: 0.6, y1: 0.1, x2: 0.9, y2: 0.1 },
+          { x1: 0.9, y1: 0.1, x2: 0.9, y2: 0.9 },
+          { x1: 0.9, y1: 0.9, x2: 0.1, y2: 0.9 },
+          { x1: 0.1, y1: 0.9, x2: 0.1, y2: 0.1 },
+          // Tabique con vano ANCHO (0.2 = 2 m): se puentea y la puerta se
+          // acota a un ancho creíble, no a 2 m.
+          { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.4 },
+          { x1: 0.5, y1: 0.6, x2: 0.5, y2: 0.9 },
+        ],
+      },
+    );
+    // Dos estancias detectadas pese al boquete del perímetro.
+    expect(plano.zones).toHaveLength(2);
+    // El vano del tabique es una puerta acotada (≤ 1,10 m), no de 2 m.
+    const puertas = plano.zones.flatMap((z) => z.apertures).filter((a) => a.kind === 'puerta');
+    expect(puertas).toHaveLength(1);
+    expect(puertas[0]!.widthMm).toBeLessThanOrEqual(1100);
+  });
+
   it('con pocos muros de píxeles cae a los muros del modelo', () => {
     const plano = normalizeSketch(
       {
