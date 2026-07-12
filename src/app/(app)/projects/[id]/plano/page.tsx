@@ -4,7 +4,11 @@
  * El layout del proyecto ya validó sesión y pertenencia; las Server Actions
  * reaplican el ámbito por organización.
  */
-import { extractPlanFromSketch, generateCenitalFromPlano } from '../_actions/agent-actions';
+import {
+  extractPlanFromSketch,
+  generateCenitalFromPlano,
+  redrawPlanFromImage,
+} from '../_actions/agent-actions';
 import { PlanoStudio } from '@/components/plano-studio/plano-studio';
 
 interface Props {
@@ -17,6 +21,7 @@ export default async function PlanoStudioPage({ params }: Props) {
     <main className="h-[calc(100vh-7rem)]">
       <PlanoStudio
         projectId={id}
+        redrawAction={redrawPlanFromImage}
         extractAction={extractPlanFromSketch}
         cenitalAction={generateCenitalFromPlano}
       />

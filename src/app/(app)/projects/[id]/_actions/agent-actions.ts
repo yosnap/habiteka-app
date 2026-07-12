@@ -19,6 +19,7 @@ import {
 } from '@/server/agent';
 import { getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
 import { generateCenital } from '@/server/ai/design/cenital-pipeline';
+import { redrawPlan } from '@/server/ai/design/redraw-plan-pipeline';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
 import { extractSketchGeometry } from '@/server/ai/sketch/extract-sketch-geometry';
@@ -337,6 +338,34 @@ export async function extractPlanFromSketch(
     plano: normalizeSketch(raw, { wallsOverride: pixelWalls }),
     escalaEstimada: raw.escalaFiable !== true,
   };
+}
+
+/**
+ * Redibuja el plano subido como plano de arquitectura profesional, imagen a
+ * imagen (una sola llamada al modelo de imagen; el modelo se resuelve por la
+ * acción `render3d` del back-office). Es la vía VISUAL principal: preserva la
+ * disposición mucho mejor que reconstruir la geometría en coordenadas.
+ */
+export async function redrawPlanFromImage(
+  projectId: string,
+  imageParts: MessagePart[],
+): Promise<{ imageUrl: string }> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
+  await assertTosAccepted(ctx.userId);
+
+  const source = imageParts.find(
+    (p): p is Extract<MessagePart, { type: 'image_url' }> => p.type === 'image_url',
+  );
+  if (!source?.base64) throw new Error('Falta la imagen del plano.');
+
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const result = await redrawPlan(
+    { image },
+    { base64: source.base64, ...(source.mimeType ? { mimeType: source.mimeType } : {}) },
+  );
+  return { imageUrl: result.assetUrl };
 }
 
 /**
