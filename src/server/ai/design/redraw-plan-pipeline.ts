@@ -29,7 +29,9 @@ export function redrawPlanPrompt(): string {
     '',
     'GEOMETRÍA: los muros y fachadas RECTOS del original deben mantenerse perfectamente rectos',
     'y continuos — no introduzcas quiebros, escalones ni retranqueos que el original no tenga,',
-    'y conserva exactamente los que sí tenga.',
+    'y conserva exactamente los que sí tenga. Cuenta los muros del original y dibuja EXACTAMENTE',
+    'esos: ante la duda de si algo es un muro, NO lo dibujes — es mejor que falte un detalle a',
+    'inventar un tabique.',
   ].join('\n');
 }
 

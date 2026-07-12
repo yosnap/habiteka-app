@@ -87,7 +87,7 @@ export function PlanoStudio({
     }
   };
 
-  const onUpload = (image: UploadedImage) =>
+  const redrawFrom = (image: UploadedImage) =>
     run('redraw', async () => {
       const { imageUrl } = await redrawAction(projectId, parts(image));
       setSource(image);
@@ -96,6 +96,14 @@ export function PlanoStudio({
       setCenitalUrl(null);
       setTab('plano');
     });
+
+  const onUpload = redrawFrom;
+
+  /** Repite la tirada con la MISMA imagen (varianza generativa: a veces la
+   *  siguiente sale sin el defecto), sin obligar a re-subir. */
+  const onRegenerate = () => {
+    if (source) void redrawFrom(source);
+  };
 
   const onExtract = () => {
     if (!source) return;
@@ -200,9 +208,21 @@ export function PlanoStudio({
             Vista cenital
           </TabButton>
         </div>
-        <Button type="button" size="sm" variant="ghost" onClick={reset} disabled={busy !== null}>
-          ← Nuevo plano
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onRegenerate}
+            disabled={busy !== null || !source}
+            title="Repite el redibujado con la misma imagen (cada tirada puede variar en detalles)"
+          >
+            {busy === 'redraw' ? 'Regenerando…' : '↻ Regenerar'}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={reset} disabled={busy !== null}>
+            ← Nuevo plano
+          </Button>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
