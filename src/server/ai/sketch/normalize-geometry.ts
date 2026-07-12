@@ -23,7 +23,12 @@ import type {
   Plano2dPayload,
 } from '@/lib/contracts';
 import type { RawSketch, SketchAperture, SketchPoint, SketchWall } from './sketch-types';
-import { collapseDoubleWalls, mergeCollinear } from './wall-cleanup';
+import {
+  collapseDoubleWalls,
+  dropIsolatedShortWalls,
+  mergeCollinear,
+  snapEndpointsToWalls,
+} from './wall-cleanup';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -38,6 +43,12 @@ export interface NormalizeOptions {
   wallThicknessMm: number;
   /** Longitud mínima (mm) de un muro para merecer cota. */
   minDimensionMm: number;
+  /**
+   * Longitud mínima (unidades de imagen) de un muro DIAGONAL. Los diagonales
+   * cortos son casi siempre arcos de barrido de puertas que el modelo leyó
+   * como muros; los diagonales reales (chaflanes) son largos.
+   */
+  minDiagonalLength: number;
 }
 
 export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
@@ -47,6 +58,7 @@ export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
   minWallLength: 0.02,
   wallThicknessMm: 120,
   minDimensionMm: 1200,
+  minDiagonalLength: 0.07,
 };
 
 // Ancho por defecto de cada abertura (mm) cuando el boceto no lo insinúa.
@@ -78,6 +90,20 @@ export function normalizeSketch(
   walls = alignToGrid(walls, opts);
   walls = collapseDoubleWalls(walls, opts.snapDistance * 1.5, opts.angleToleranceDeg);
   walls = mergeCollinear(walls, opts.angleToleranceDeg, opts.snapDistance);
+  // Re-enderezar tras la limpieza: fusionar dos tramos casi colineales con
+  // desfase lateral produce un muro largo LIGERAMENTE inclinado; sin este paso
+  // el plano sale con muros torcidos (visto con el primer plano real).
+  walls = alignToGrid(walls, opts);
+  // Diagonales cortos = arcos de puerta leídos como muros; fuera.
+  walls = walls.filter(
+    (w) =>
+      orientationOf(w, opts.angleToleranceDeg) !== 'diag' ||
+      segmentLength(w) >= opts.minDiagonalLength,
+  );
+  // Cerrar juntas en T: extremos que se quedan a un pelo de otro muro.
+  walls = snapEndpointsToWalls(walls, opts.snapDistance * 1.5);
+  // Fragmentos cortos que no tocan nada = ruido (mobiliario/sombra leída como muro).
+  walls = dropIsolatedShortWalls(walls, opts.minDiagonalLength * 2, opts.snapDistance);
   // La limpieza puede colapsar un muro corto en un punto: sin dirección, fuera.
   walls = walls.filter((w) => segmentLength(w) > 0);
 

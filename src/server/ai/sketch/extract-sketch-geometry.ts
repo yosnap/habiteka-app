@@ -115,6 +115,9 @@ export function sketchPrompt(): string {
     '  de lado, un baño ~2 m) y devuelve escalaFiable=false.',
     '',
     'No inventes elementos que no estén dibujados. Ignora mobiliario, texto decorativo y sombras.',
+    'MUY IMPORTANTE: los ARCOS DE BARRIDO de las puertas (el cuarto de círculo que indica hacia',
+    'dónde abre la hoja) NO son muros; no los devuelvas como muros. Cada muro debe llegar hasta',
+    'el muro con el que se encuentra (esquinas y juntas en T cerradas, sin dejar huecos).',
   ].join('\n');
 }
 

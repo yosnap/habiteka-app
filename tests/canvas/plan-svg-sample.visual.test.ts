@@ -83,10 +83,16 @@ describe.skipIf(!OUT)('muestra visual del plano SVG', () => {
         { x1: 0.5, y1: 0.9, x2: 0.9, y2: 0.9 },
         { x1: 0.1, y1: 0.1, x2: 0.1, y2: 0.9 },
         { x1: 0.9, y1: 0.1, x2: 0.9, y2: 0.9 },
-        // Tabiques interiores, uno troceado.
+        // Tabique central troceado CON DESFASE lateral (el muro torcido del caso real).
         { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.5 },
+        { x1: 0.508, y1: 0.5, x2: 0.508, y2: 0.88 }, // además se queda corto (junta en T)
+        // Tabique horizontal troceado.
         { x1: 0.1, y1: 0.5, x2: 0.3, y2: 0.5 },
         { x1: 0.3, y1: 0.5, x2: 0.5, y2: 0.5 },
+        // Racimo de trocitos de arco de puerta leídos como muros (el garabato).
+        { x1: 0.52, y1: 0.42, x2: 0.55, y2: 0.45 },
+        { x1: 0.55, y1: 0.45, x2: 0.56, y2: 0.49 },
+        { x1: 0.52, y1: 0.56, x2: 0.55, y2: 0.53 },
         // Fragmento de ruido.
         { x1: 0.62, y1: 0.48, x2: 0.7, y2: 0.485 },
       ],

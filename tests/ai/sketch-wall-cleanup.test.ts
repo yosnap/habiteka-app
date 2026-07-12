@@ -3,7 +3,12 @@
  * tramos colineales — los dos defectos sistemáticos vistos en bocetos reales.
  */
 import { describe, expect, it } from 'vitest';
-import { collapseDoubleWalls, mergeCollinear } from '@/server/ai/sketch/wall-cleanup';
+import {
+  collapseDoubleWalls,
+  dropIsolatedShortWalls,
+  mergeCollinear,
+  snapEndpointsToWalls,
+} from '@/server/ai/sketch/wall-cleanup';
 
 describe('collapseDoubleWalls', () => {
   it('funde las dos caras de un muro grueso en su eje central', () => {
@@ -73,6 +78,21 @@ describe('mergeCollinear', () => {
     expect(out).toHaveLength(2);
   });
 
+  it('un tramo con desfase lateral leve se fusiona sin dejar el muro torcido tras re-alinear', () => {
+    // Dos verticales casi colineales con 0.005 de desfase en x que comparten
+    // extremo: la fusión produce un segmento inclinado; el pipeline completo
+    // (normalize) lo re-endereza — aquí solo se comprueba que fusiona.
+    const out = mergeCollinear(
+      [
+        { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.5 },
+        { x1: 0.505, y1: 0.5, x2: 0.505, y2: 0.9 },
+      ],
+      12,
+      0.03,
+    );
+    expect(out).toHaveLength(1);
+  });
+
   it('respeta una junta en T: el travesaño no absorbe al montante', () => {
     const out = mergeCollinear(
       [
@@ -83,5 +103,53 @@ describe('mergeCollinear', () => {
       0.03,
     );
     expect(out).toHaveLength(2);
+  });
+});
+
+describe('snapEndpointsToWalls', () => {
+  it('cierra una junta en T: el montante se extiende hasta tocar el travesaño', () => {
+    const out = snapEndpointsToWalls(
+      [
+        { x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.2 }, // travesaño horizontal
+        { x1: 0.5, y1: 0.23, x2: 0.5, y2: 0.9 }, // montante que se queda a 0.03
+      ],
+      0.045,
+    );
+    expect(out[1]!.y1).toBeCloseTo(0.2, 9);
+    expect(out[1]!.x1).toBeCloseTo(0.5, 9);
+  });
+
+  it('NO desplaza lateralmente un muro hacia un paralelo cercano', () => {
+    const walls = [
+      { x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5 },
+      { x1: 0.1, y1: 0.53, x2: 0.9, y2: 0.53 }, // paralelo a 0.03: no debe pegarse
+    ];
+    const out = snapEndpointsToWalls(walls, 0.045);
+    expect(out[1]!.y1).toBeCloseTo(0.53, 9);
+    expect(out[1]!.y2).toBeCloseTo(0.53, 9);
+  });
+
+  it('no toca extremos que ya coinciden con otro muro', () => {
+    const walls = [
+      { x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.2 },
+      { x1: 0.5, y1: 0.2, x2: 0.5, y2: 0.9 }, // ya toca exactamente
+    ];
+    expect(snapEndpointsToWalls(walls, 0.045)).toEqual(walls);
+  });
+});
+
+describe('dropIsolatedShortWalls', () => {
+  it('descarta el fragmento corto que flota sin tocar nada y conserva el conectado', () => {
+    const out = dropIsolatedShortWalls(
+      [
+        { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 }, // muro largo
+        { x1: 0.4, y1: 0.5, x2: 0.48, y2: 0.5 }, // corto y AISLADO → fuera
+        { x1: 0.2, y1: 0.1, x2: 0.2, y2: 0.18 }, // corto pero toca el muro largo → se queda
+      ],
+      0.14,
+      0.03,
+    );
+    expect(out).toHaveLength(2);
+    expect(out.some((w) => w.y1 === 0.5)).toBe(false);
   });
 });

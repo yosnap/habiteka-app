@@ -220,6 +220,51 @@ describe('normalizeSketch', () => {
     expect(dims).toHaveLength(2);
   });
 
+  it('un muro fusionado de tramos con desfase queda vertical, no torcido', () => {
+    // Dos tramos verticales casi colineales (desfase 0.005) que comparten
+    // extremo: la fusión inclinaría el muro; el re-alineado lo endereza.
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      altoMetros: 10,
+      muros: [
+        { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.5 },
+        { x1: 0.505, y1: 0.5, x2: 0.505, y2: 0.9 },
+      ],
+    });
+    const wall = plano.zones[0]!.walls[0]!;
+    expect(plano.zones[0]!.walls).toHaveLength(1);
+    expect(wall.from.x).toBe(wall.to.x);
+  });
+
+  it('descarta diagonales cortos (arcos de puerta leídos como muros)', () => {
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      altoMetros: 10,
+      muros: [
+        { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 }, // muro real
+        { x1: 0.4, y1: 0.4, x2: 0.44, y2: 0.44 }, // trocito de arco a 45°
+        { x1: 0.5, y1: 0.5, x2: 0.9, y2: 0.9 }, // chaflán largo real: se queda
+      ],
+    });
+    expect(plano.zones[0]!.walls).toHaveLength(2);
+  });
+
+  it('cierra juntas en T: el tabique llega hasta el muro perimetral', () => {
+    const plano = normalizeSketch({
+      ...emptySketch,
+      anchoMetros: 10,
+      altoMetros: 10,
+      muros: [
+        { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 }, // perimetral
+        { x1: 0.5, y1: 0.135, x2: 0.5, y2: 0.9 }, // tabique que se queda corto
+      ],
+    });
+    const [perimetral, tabique] = plano.zones[0]!.walls;
+    expect(tabique!.from.y).toBe(perimetral!.from.y);
+  });
+
   it('es determinista: la misma extracción produce el mismo plano', () => {
     const raw: RawSketch = {
       anchoMetros: 9,

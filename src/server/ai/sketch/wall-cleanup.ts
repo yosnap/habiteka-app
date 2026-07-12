@@ -128,6 +128,76 @@ export function mergeCollinear(walls: SketchWall[], tolDeg: number, joinTol: num
   return out;
 }
 
+/**
+ * Cierra juntas en T: un extremo que se queda a poca distancia de otro muro se
+ * extiende hasta tocarlo (pie de la perpendicular). Solo si el movimiento va
+ * mayormente A LO LARGO del propio muro (alargarlo/acortarlo hasta la junta);
+ * un desplazamiento lateral significaría pegarse a un muro paralelo cercano,
+ * que es otra cosa.
+ */
+export function snapEndpointsToWalls(walls: SketchWall[], tol: number): SketchWall[] {
+  const snapPoint = (p: SketchPoint, self: number, selfDir: Vec): SketchPoint => {
+    let best: { q: SketchPoint; d: number } | null = null;
+    for (let j = 0; j < walls.length; j++) {
+      if (j === self) continue;
+      const w = walls[j]!;
+      const len = length(w);
+      if (len < 1e-9) continue;
+      const dx = (w.x2 - w.x1) / len;
+      const dy = (w.y2 - w.y1) / len;
+      const t = Math.min(Math.max(((p.x - w.x1) * dx + (p.y - w.y1) * dy) / len, 0), 1);
+      const q = { x: w.x1 + dx * len * t, y: w.y1 + dy * len * t };
+      const d = Math.hypot(p.x - q.x, p.y - q.y);
+      if (d <= tol && d > 1e-9 && (!best || d < best.d)) {
+        // El movimiento debe ser sobre el eje del muro que se extiende.
+        const along = Math.abs((q.x - p.x) * selfDir.x + (q.y - p.y) * selfDir.y);
+        if (along >= 0.7 * d) best = { q, d };
+      }
+    }
+    return best ? best.q : p;
+  };
+
+  return walls.map((w, i) => {
+    const d = unitDir(w);
+    if (!d) return w;
+    const p1 = snapPoint({ x: w.x1, y: w.y1 }, i, d);
+    const p2 = snapPoint({ x: w.x2, y: w.y2 }, i, d);
+    return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
+  });
+}
+
+/**
+ * Descarta muros CORTOS y AISLADOS (ningún extremo toca otro muro): son ruido
+ * de extracción — un trazo de mobiliario o sombra leído como pared. Un muro
+ * corto pero conectado (la pared de un armario empotrado) se conserva.
+ */
+export function dropIsolatedShortWalls(
+  walls: SketchWall[],
+  maxLength: number,
+  tol: number,
+): SketchWall[] {
+  return walls.filter((w, i) => {
+    if (length(w) >= maxLength) return true;
+    const ends: SketchPoint[] = [
+      { x: w.x1, y: w.y1 },
+      { x: w.x2, y: w.y2 },
+    ];
+    return ends.some((p) =>
+      walls.some((other, j) => j !== i && pointToSegment(p, other) <= tol),
+    );
+  });
+}
+
+/** Distancia de un punto a un segmento. */
+function pointToSegment(p: SketchPoint, w: SketchWall): number {
+  const len = length(w);
+  if (len < 1e-9) return Math.hypot(p.x - w.x1, p.y - w.y1);
+  const dx = (w.x2 - w.x1) / len;
+  const dy = (w.y2 - w.y1) / len;
+  const t = Math.min(Math.max(((p.x - w.x1) * dx + (p.y - w.y1) * dy) / len, 0), 1);
+  return Math.hypot(p.x - (w.x1 + dx * len * t), p.y - (w.y1 + dy * len * t));
+}
+
 /** Extremo compartido entre dos segmentos: [lejano de a, lejano de b, común]. */
 function sharedEndpoint(
   a: SketchWall,
