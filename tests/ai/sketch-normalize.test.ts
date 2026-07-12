@@ -298,6 +298,80 @@ describe('normalizeSketch', () => {
     expect(zone.apertures[0]!.wallId).toBe(top.id);
   });
 
+  it('ruta de píxeles: huecos = aberturas exactas, puertas fantasma fuera, zonas desde regiones', () => {
+    const plano = normalizeSketch(
+      {
+        anchoMetros: 10,
+        altoMetros: 10,
+        // Muros APROXIMADOS del modelo: solo sirven para situar sus semillas
+        // de abertura; la geometría real viene de la medición (override).
+        muros: [
+          { x1: 0.5, y1: 0.12, x2: 0.5, y2: 0.88 }, // tabique, a ojo
+          { x1: 0.12, y1: 0.1, x2: 0.88, y2: 0.1 }, // muro superior, a ojo
+        ],
+        aberturas: [
+          // Semilla cerca del hueco real: aporta el TIPO (puerta).
+          { tipo: 'puerta', muro: 0, posicion: 0.5 },
+          // Puerta fantasma lejos de todo hueco: debe descartarse.
+          { tipo: 'puerta', muro: 0, posicion: 0.1 },
+          // Ventana en el perímetro sin hueco detectado: se conserva anclada.
+          { tipo: 'ventana', muro: 1, posicion: 0.5 },
+        ],
+        habitaciones: [
+          {
+            nombre: 'Dormitorio',
+            poligono: [
+              { x: 0.15, y: 0.2 },
+              { x: 0.4, y: 0.2 },
+              { x: 0.4, y: 0.8 },
+              { x: 0.15, y: 0.8 },
+            ],
+          },
+          {
+            nombre: 'Salón',
+            poligono: [
+              { x: 0.6, y: 0.2 },
+              { x: 0.85, y: 0.2 },
+              { x: 0.85, y: 0.8 },
+              { x: 0.6, y: 0.8 },
+            ],
+          },
+        ],
+      },
+      {
+        wallsOverride: [
+          // Perímetro cerrado.
+          { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 },
+          { x1: 0.9, y1: 0.1, x2: 0.9, y2: 0.9 },
+          { x1: 0.9, y1: 0.9, x2: 0.1, y2: 0.9 },
+          { x1: 0.1, y1: 0.9, x2: 0.1, y2: 0.1 },
+          // Tabique central partido por el vano de una puerta.
+          { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.45 },
+          { x1: 0.5, y1: 0.55, x2: 0.5, y2: 0.9 },
+        ],
+      },
+    );
+    // Los muros del modelo eran para las semillas: la geometría es medida.
+    // Aberturas: el hueco del tabique (puerta) + la ventana conservada = 2.
+    const allApertures = plano.zones.flatMap((z) => z.apertures);
+    expect(allApertures).toHaveLength(2);
+    expect(allApertures.filter((a) => a.kind === 'puerta')).toHaveLength(1);
+    expect(allApertures.filter((a) => a.kind === 'ventana')).toHaveLength(1);
+    // La puerta cae en el centro del tabique puenteado (posición ≈ 0.5).
+    const puerta = allApertures.find((a) => a.kind === 'puerta')!;
+    expect(puerta.position).toBeGreaterThan(0.4);
+    expect(puerta.position).toBeLessThan(0.6);
+
+    // Zonas desde regiones: dos habitaciones con su nombre en el lado correcto.
+    expect(plano.zones).toHaveLength(2);
+    const dormitorio = plano.zones.find((z) => z.name === 'Dormitorio')!;
+    const salon = plano.zones.find((z) => z.name === 'Salón')!;
+    const centroidX = (z: typeof dormitorio) =>
+      z.outline.reduce((acc, p) => acc + p.x, 0) / z.outline.length;
+    expect(centroidX(dormitorio)).toBeLessThan(5000);
+    expect(centroidX(salon)).toBeGreaterThan(5000);
+  });
+
   it('con pocos muros de píxeles cae a los muros del modelo', () => {
     const plano = normalizeSketch(
       {

@@ -24,11 +24,14 @@ import type {
 } from '@/lib/contracts';
 import type { RawSketch, SketchAperture, SketchPoint, SketchWall } from './sketch-types';
 import {
+  bridgeCollinearGaps,
   collapseDoubleWalls,
   dropIsolatedShortWalls,
   mergeCollinear,
   snapEndpointsToWalls,
+  type WallGap,
 } from './wall-cleanup';
+import { detectRoomRegions, type RoomRegion } from './detect-room-regions';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -106,12 +109,14 @@ export function normalizeSketch(
   walls = alignToGrid(walls, opts);
   walls = collapseDoubleWalls(walls, opts.snapDistance * 1.5, opts.angleToleranceDeg);
   walls = mergeCollinear(walls, opts.angleToleranceDeg, opts.snapDistance);
+  let gaps: WallGap[] = [];
   if (fromPixels) {
     // Los vanos de puerta/ventana parten un muro detectado por píxeles en
-    // tramos colineales con hueco: se puentean (la abertura vuelve a colocarse
-    // encima al anclar las semillas). El desvío lateral queda acotado para no
-    // fusionar dos muros paralelos de verdad.
-    walls = mergeCollinear(walls, opts.angleToleranceDeg, MAX_BRIDGE_GAP, opts.snapDistance);
+    // tramos colineales con hueco: se puentean CAPTURANDO cada hueco — es la
+    // posición EXACTA de una abertura (el modelo solo decidirá el tipo).
+    const bridged = bridgeCollinearGaps(walls, opts.angleToleranceDeg, MAX_BRIDGE_GAP, opts.snapDistance);
+    walls = bridged.walls;
+    gaps = bridged.gaps;
   }
   // Re-enderezar tras la limpieza: fusionar dos tramos casi colineales con
   // desfase lateral produce un muro largo LIGERAMENTE inclinado; sin este paso
@@ -133,9 +138,27 @@ export function normalizeSketch(
   const scale = resolveScale(raw, walls, opts);
   const planWalls = walls.map((w, i) => toPlanWall(w, i, scale, opts.wallThicknessMm));
 
-  const apertures = anchorApertures(seeds, walls, planWalls, scale, opts);
+  // Con muros medidos, las aberturas salen de los HUECOS detectados (posición
+  // exacta); las semillas del modelo solo aportan el tipo. Sin medición, las
+  // semillas del modelo son la única fuente.
+  const finalSeeds = fromPixels ? seedsFromGaps(gaps, seeds, walls) : seeds;
+  const apertures = anchorApertures(finalSeeds, walls, planWalls, scale, opts);
   const dimByWallId = buildDimensions(planWalls, opts);
-  const zones = buildZones(raw, planWalls, apertures, dimByWallId, scale);
+
+  // Con muros medidos, las habitaciones son los espacios CERRADOS entre muros
+  // (flood fill); los nombres del modelo se asignan a la región que los
+  // contiene. Sin medición, se usan los polígonos del modelo tal cual.
+  const thicknessUnit = opts.wallThicknessMm / ((scale.mmPerUnitX + scale.mmPerUnitY) / 2);
+  const zones = fromPixels
+    ? buildZonesFromRegions(
+        detectRoomRegions(walls, thicknessUnit),
+        raw,
+        planWalls,
+        apertures,
+        dimByWallId,
+        scale,
+      )
+    : buildZones(raw, planWalls, apertures, dimByWallId, scale);
 
   return { schemaVersion: 1, zones };
 }
@@ -404,6 +427,50 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);
 }
 
+// Un hueco y una semilla del modelo a menos de esto son la misma abertura.
+const GAP_MATCH_DIST = 0.08;
+// Distancia al borde del plano por debajo de la cual un hueco sin tipo es ventana.
+const PERIMETER_TOL = 0.05;
+
+/**
+ * Convierte los HUECOS medidos en semillas de abertura. El tipo lo decide la
+ * semilla del modelo más cercana; sin candidata, la posición: un hueco en el
+ * perímetro es una ventana, uno interior es una puerta. Las semillas del
+ * modelo que no casan con ningún hueco solo se conservan si son ventanas (las
+ * ventanas no siempre abren hueco en la banda detectada); las puertas
+ * fantasma del modelo se descartan — la medición manda.
+ */
+function seedsFromGaps(
+  gaps: WallGap[],
+  modelSeeds: ApertureSeed[],
+  walls: SketchWall[],
+): ApertureSeed[] {
+  const xs = walls.flatMap((w) => [w.x1, w.x2]);
+  const ys = walls.flatMap((w) => [w.y1, w.y2]);
+  const nearPerimeter = (p: SketchPoint) =>
+    xs.length > 0 &&
+    (Math.min(p.x - Math.min(...xs), Math.max(...xs) - p.x) <= PERIMETER_TOL ||
+      Math.min(p.y - Math.min(...ys), Math.max(...ys) - p.y) <= PERIMETER_TOL);
+  const dist = (a: SketchPoint, b: SketchPoint) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  const out: ApertureSeed[] = gaps.map((gap) => {
+    const near = modelSeeds
+      .filter((s) => dist(s.center, gap.center) <= GAP_MATCH_DIST)
+      .sort((a, b) => dist(a.center, gap.center) - dist(b.center, gap.center))[0];
+    return {
+      tipo: near?.tipo ?? (nearPerimeter(gap.center) ? 'ventana' : 'puerta'),
+      center: gap.center,
+      widthUnit: gap.width,
+    };
+  });
+  for (const seed of modelSeeds) {
+    if (seed.tipo !== 'ventana') continue;
+    if (gaps.some((g) => dist(g.center, seed.center) <= GAP_MATCH_DIST)) continue;
+    out.push(seed);
+  }
+  return out;
+}
+
 // ── Cotas ────────────────────────────────────────────────────────────────────
 
 // Un muro se considera exterior si su punto medio queda a menos de esto del
@@ -499,8 +566,127 @@ function buildZones(
     apertures: [],
     dimensions: [],
   }));
-  const centroids = zones.map((z) => polygonCentroid(z.outline));
+  return distributeContent(zones, planWalls, apertures, dimByWallId);
+}
 
+/**
+ * Zonas desde las REGIONES medidas (flood fill entre muros): el contorno y la
+ * superficie salen de la geometría real, no de los polígonos aproximados del
+ * modelo. Los nombres del modelo se asignan a la región que contiene su
+ * centroide; una región con varios nombres (espacio abierto salón-cocina) se
+ * parte en franjas para que cada nombre tenga su sitio.
+ */
+function buildZonesFromRegions(
+  regions: RoomRegion[],
+  raw: RawSketch,
+  planWalls: PlanWall[],
+  apertures: PlanAperture[],
+  dimByWallId: Map<string, PlanDimension>,
+  scale: Scale,
+): PlanZone[] {
+  if (regions.length === 0) {
+    return buildZones({ ...raw, habitaciones: [] }, planWalls, apertures, dimByWallId, scale);
+  }
+
+  // Nombre del modelo → región que contiene su centroide (o la más cercana).
+  const anchorsByRegion = new Map<number, Array<{ name: string; anchor: SketchPoint }>>();
+  for (const room of raw.habitaciones) {
+    const c = unitCentroid(room.poligono);
+    let idx = regions.findIndex(
+      (r) => c.x >= r.bbox.minX && c.x <= r.bbox.maxX && c.y >= r.bbox.minY && c.y <= r.bbox.maxY,
+    );
+    if (idx < 0) idx = nearestRegion(c, regions);
+    const list = anchorsByRegion.get(idx) ?? [];
+    list.push({ name: room.nombre, anchor: c });
+    anchorsByRegion.set(idx, list);
+  }
+
+  const zones: PlanZone[] = [];
+  regions.forEach((region, i) => {
+    const named = anchorsByRegion.get(i) ?? [];
+    for (const slice of sliceRegion(region, named)) {
+      zones.push({
+        id: `z${zones.length}`,
+        name: slice.name,
+        outline: [
+          toMm({ x: slice.minX, y: slice.minY }, scale),
+          toMm({ x: slice.maxX, y: slice.minY }, scale),
+          toMm({ x: slice.maxX, y: slice.maxY }, scale),
+          toMm({ x: slice.minX, y: slice.maxY }, scale),
+        ],
+        walls: [],
+        apertures: [],
+        dimensions: [],
+      });
+    }
+  });
+  return distributeContent(zones, planWalls, apertures, dimByWallId);
+}
+
+interface RegionSlice {
+  name: string;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+/**
+ * Parte la caja de una región entre sus nombres: franjas por el eje donde los
+ * anclajes se separan más, cortadas en los puntos medios. Sin nombres, la
+ * región entera queda como "Estancia".
+ */
+function sliceRegion(
+  region: RoomRegion,
+  named: Array<{ name: string; anchor: SketchPoint }>,
+): RegionSlice[] {
+  const { bbox } = region;
+  if (named.length === 0) return [{ name: 'Estancia', ...bbox }];
+  if (named.length === 1) return [{ name: named[0]!.name, ...bbox }];
+
+  const spreadX = Math.max(...named.map((n) => n.anchor.x)) - Math.min(...named.map((n) => n.anchor.x));
+  const spreadY = Math.max(...named.map((n) => n.anchor.y)) - Math.min(...named.map((n) => n.anchor.y));
+  const axis: 'x' | 'y' = spreadX >= spreadY ? 'x' : 'y';
+  const sorted = [...named].sort((a, b) => a.anchor[axis] - b.anchor[axis]);
+
+  const lo = axis === 'x' ? bbox.minX : bbox.minY;
+  const hi = axis === 'x' ? bbox.maxX : bbox.maxY;
+  return sorted.map((n, i) => {
+    const from = i === 0 ? lo : (sorted[i - 1]!.anchor[axis] + n.anchor[axis]) / 2;
+    const to = i === sorted.length - 1 ? hi : (n.anchor[axis] + sorted[i + 1]!.anchor[axis]) / 2;
+    return axis === 'x'
+      ? { name: n.name, minX: from, maxX: to, minY: bbox.minY, maxY: bbox.maxY }
+      : { name: n.name, minX: bbox.minX, maxX: bbox.maxX, minY: from, maxY: to };
+  });
+}
+
+function unitCentroid(points: SketchPoint[]): SketchPoint {
+  const n = Math.max(1, points.length);
+  const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+  return { x: sum.x / n, y: sum.y / n };
+}
+
+function nearestRegion(p: SketchPoint, regions: RoomRegion[]): number {
+  let best = 0;
+  let bestDist = Infinity;
+  regions.forEach((r, i) => {
+    const d = Math.hypot(p.x - r.centroid.x, p.y - r.centroid.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** Reparte muros, cotas y aberturas entre zonas por cercanía de centroides. */
+function distributeContent(
+  zones: PlanZone[],
+  planWalls: PlanWall[],
+  apertures: PlanAperture[],
+  dimByWallId: Map<string, PlanDimension>,
+): PlanZone[] {
+  const centroids = zones.map((z) => polygonCentroid(z.outline));
   const zoneOfWall = new Map<string, PlanZone>();
   for (const wall of planWalls) {
     const mid = { x: (wall.from.x + wall.to.x) / 2, y: (wall.from.y + wall.to.y) / 2 };
@@ -512,7 +698,6 @@ function buildZones(
   }
   // Cada abertura viaja con su muro para que la zona sea autocontenida.
   for (const ap of apertures) zoneOfWall.get(ap.wallId)?.apertures.push(ap);
-
   return zones;
 }
 

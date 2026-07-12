@@ -143,6 +143,74 @@ export function mergeCollinear(
   return out;
 }
 
+/** Hueco detectado al puentear dos tramos colineales: un vano real del plano. */
+export interface WallGap {
+  center: SketchPoint;
+  /** Anchura del hueco a lo largo del muro (unidades de imagen). */
+  width: number;
+}
+
+/**
+ * Como `mergeCollinear` con puenteo, pero CAPTURANDO cada hueco puenteado:
+ * en un plano medido por píxeles, los tramos colineales con hueco son un muro
+ * con un VANO (puerta/ventana) — el hueco es la posición exacta de la abertura.
+ */
+export function bridgeCollinearGaps(
+  walls: SketchWall[],
+  tolDeg: number,
+  maxGap: number,
+  maxPerpOffset: number,
+): { walls: SketchWall[]; gaps: WallGap[] } {
+  const out = [...walls];
+  const gaps: WallGap[] = [];
+  let merged = true;
+  while (merged) {
+    merged = false;
+    outer: for (let i = 0; i < out.length; i++) {
+      const a = out[i]!;
+      const da = unitDir(a);
+      if (!da) continue;
+      for (let j = i + 1; j < out.length; j++) {
+        const b = out[j]!;
+        const db = unitDir(b);
+        if (!db || !isParallel(da, db, tolDeg)) continue;
+        const joint = sharedEndpoint(a, b, maxGap);
+        if (!joint) continue;
+        const [farA, farB, shared] = joint;
+        const dot =
+          (farA.x - shared.x) * (farB.x - shared.x) + (farA.y - shared.y) * (farB.y - shared.y);
+        if (dot >= 0) continue;
+        const n = { x: -da.y, y: da.x };
+        const lateral = Math.abs((farB.x - a.x1) * n.x + (farB.y - a.y1) * n.y);
+        if (lateral > maxPerpOffset) continue;
+
+        // El hueco es el tramo entre los dos extremos cercanos que se puentean.
+        const nearB = nearestEndpoint(b, shared);
+        const width = Math.hypot(nearB.x - shared.x, nearB.y - shared.y);
+        if (width > 1e-6) {
+          gaps.push({
+            center: { x: (shared.x + nearB.x) / 2, y: (shared.y + nearB.y) / 2 },
+            width,
+          });
+        }
+
+        out[i] = { x1: farA.x, y1: farA.y, x2: farB.x, y2: farB.y };
+        out.splice(j, 1);
+        merged = true;
+        break outer;
+      }
+    }
+  }
+  return { walls: out, gaps };
+}
+
+/** Extremo de `w` más cercano a `p`. */
+function nearestEndpoint(w: SketchWall, p: SketchPoint): SketchPoint {
+  const e1 = { x: w.x1, y: w.y1 };
+  const e2 = { x: w.x2, y: w.y2 };
+  return Math.hypot(e1.x - p.x, e1.y - p.y) <= Math.hypot(e2.x - p.x, e2.y - p.y) ? e1 : e2;
+}
+
 /**
  * Cierra juntas en T: un extremo que se queda a poca distancia de otro muro se
  * extiende hasta tocarlo (pie de la perpendicular). Solo si el movimiento va
