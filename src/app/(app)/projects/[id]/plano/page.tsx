@@ -8,6 +8,7 @@ import {
   extractPlanFromSketch,
   generateCenitalFromPlano,
   redrawPlanFromImage,
+  sendPlanoToEditor,
 } from '../_actions/agent-actions';
 import { PlanoStudio } from '@/components/plano-studio/plano-studio';
 
@@ -24,6 +25,7 @@ export default async function PlanoStudioPage({ params }: Props) {
         redrawAction={redrawPlanFromImage}
         extractAction={extractPlanFromSketch}
         cenitalAction={generateCenitalFromPlano}
+        sendToEditorAction={sendPlanoToEditor}
       />
     </main>
   );

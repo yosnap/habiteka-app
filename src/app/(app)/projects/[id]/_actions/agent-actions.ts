@@ -18,7 +18,8 @@ import {
   type ZoneDeliveryContext,
 } from '@/server/agent';
 import { getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
-import { generateCenital } from '@/server/ai/design/cenital-pipeline';
+import { assertPlanoRasterizable, generateCenital } from '@/server/ai/design/cenital-pipeline';
+import { planoToDoc } from '@/canvas/plano-to-doc';
 import { redrawPlan } from '@/server/ai/design/redraw-plan-pipeline';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
 import { detectLayout } from '@/server/agent/phases/deteccion-layout';
@@ -27,7 +28,7 @@ import { normalizeSketch } from '@/server/ai/sketch/normalize-geometry';
 import { detectWallsFromImage } from '@/server/plan/detect-walls-raster';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
-import { deserializeCanvas } from '@/canvas/serialize';
+import { deserializeCanvas, serializeCanvas } from '@/canvas/serialize';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { isValidEstilo, isValidEntregable } from '@/lib/design-options';
@@ -366,6 +367,24 @@ export async function redrawPlanFromImage(
     { base64: source.base64, ...(source.mimeType ? { mimeType: source.mimeType } : {}) },
   );
   return { imageUrl: result.assetUrl };
+}
+
+/**
+ * Materializa el plano extraído como documento del EDITOR: muros y aberturas
+ * editables (mismo camino que el dibujo a mano) más la escala. REEMPLAZA el
+ * plano por defecto del proyecto — la UI pide confirmación antes de llamar.
+ */
+export async function sendPlanoToEditor(projectId: string, plano: Plano2dPayload): Promise<void> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  // Mismas cotas de cordura que el resto de consumidores del payload cliente.
+  assertPlanoRasterizable(plano);
+
+  const { objects, scale } = planoToDoc(plano);
+  // Documento nuevo normalizado por el (de)serializador: solo entra lo válido.
+  const empty = deserializeCanvas(null);
+  const doc = serializeCanvas({ ...empty, objects, scale });
+  await withOrg(ctx).canvas.save(projectId, doc, null);
 }
 
 /**

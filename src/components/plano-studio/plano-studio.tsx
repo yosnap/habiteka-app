@@ -13,6 +13,7 @@
  *  3. "Vista cenital" (requiere la versión editable): render fotorrealista.
  */
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
@@ -31,12 +32,22 @@ interface Props {
     plano: Plano2dPayload,
     estilo: Estilo,
   ) => Promise<{ imageUrl: string }>;
+  sendToEditorAction: (projectId: string, plano: Plano2dPayload) => Promise<void>;
 }
 
 type Tab = 'plano' | 'editable' | 'cenital';
-type Busy = 'redraw' | 'extract' | 'cenital' | null;
+type Busy = 'redraw' | 'extract' | 'cenital' | 'send' | null;
 
-export function PlanoStudio({ projectId, redrawAction, extractAction, cenitalAction }: Props) {
+export function PlanoStudio({
+  projectId,
+  redrawAction,
+  extractAction,
+  cenitalAction,
+  sendToEditorAction,
+}: Props) {
+  const router = useRouter();
+  // Enviar al editor reemplaza el plano existente: se pide confirmación en dos pasos.
+  const [confirmSend, setConfirmSend] = useState(false);
   // La imagen original se conserva para las acciones bajo demanda.
   const [source, setSource] = useState<UploadedImage | null>(null);
   const [planImageUrl, setPlanImageUrl] = useState<string | null>(null);
@@ -103,6 +114,18 @@ export function PlanoStudio({ projectId, redrawAction, extractAction, cenitalAct
       const { imageUrl } = await cenitalAction(projectId, plano, estilo);
       setCenitalUrl(imageUrl);
       setTab('cenital');
+    });
+  };
+
+  const onSendToEditor = () => {
+    if (!plano) return;
+    if (!confirmSend) {
+      setConfirmSend(true);
+      return;
+    }
+    return run('send', async () => {
+      await sendToEditorAction(projectId, plano);
+      router.push(`/projects/${projectId}`); // pestaña Editor, con el plano ya cargado
     });
   };
 
@@ -216,6 +239,42 @@ export function PlanoStudio({ projectId, redrawAction, extractAction, cenitalAct
               >
                 {busy === 'extract' ? 'Extrayendo…' : 'Extraer geometría'}
               </Button>
+            </div>
+          ) : null}
+
+          {plano ? (
+            <div className="border-line bg-surface rounded-card border p-4">
+              <p className="text-ink mb-1 text-sm font-medium">Editar en la app</p>
+              <p className="text-ink-soft mb-2 text-xs">
+                {confirmSend
+                  ? 'Esto REEMPLAZA el plano actual del editor de este proyecto. ¿Continuar?'
+                  : 'Envía los muros y aberturas al editor para ajustarlos a mano.'}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant={confirmSend ? 'default' : 'outline'}
+                className="w-full"
+                onClick={onSendToEditor}
+                disabled={busy !== null}
+              >
+                {busy === 'send'
+                  ? 'Enviando…'
+                  : confirmSend
+                    ? 'Sí, reemplazar y abrir el editor'
+                    : 'Enviar al editor'}
+              </Button>
+              {confirmSend && busy === null ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1 w-full"
+                  onClick={() => setConfirmSend(false)}
+                >
+                  Cancelar
+                </Button>
+              ) : null}
             </div>
           ) : null}
 

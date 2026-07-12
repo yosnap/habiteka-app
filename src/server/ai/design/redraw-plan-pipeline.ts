@@ -26,6 +26,10 @@ export function redrawPlanPrompt(): string {
     'PROHIBIDO: inventar habitaciones, muebles o elementos que no estén en el original; añadir',
     'cotas o medidas que no estén escritas en el original (si las hay, respétalas); cuadrículas,',
     'cajetines, logotipos, marcas de agua o texto decorativo.',
+    '',
+    'GEOMETRÍA: los muros y fachadas RECTOS del original deben mantenerse perfectamente rectos',
+    'y continuos — no introduzcas quiebros, escalones ni retranqueos que el original no tenga,',
+    'y conserva exactamente los que sí tenga.',
   ].join('\n');
 }
 
