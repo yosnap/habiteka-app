@@ -6,7 +6,7 @@
  */
 import {
   extractPlanFromRedrawn,
-  generateCenitalFromPlano,
+  generateCenitalFromRedrawn,
   redrawPlanFromImage,
   sendPlanoToEditor,
 } from '../_actions/agent-actions';
@@ -24,7 +24,7 @@ export default async function PlanoStudioPage({ params }: Props) {
         projectId={id}
         redrawAction={redrawPlanFromImage}
         extractAction={extractPlanFromRedrawn}
-        cenitalAction={generateCenitalFromPlano}
+        cenitalAction={generateCenitalFromRedrawn}
         sendToEditorAction={sendPlanoToEditor}
       />
     </main>

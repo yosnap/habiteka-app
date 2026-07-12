@@ -18,7 +18,11 @@ import {
   type ZoneDeliveryContext,
 } from '@/server/agent';
 import { getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
-import { assertPlanoRasterizable, generateCenital } from '@/server/ai/design/cenital-pipeline';
+import {
+  assertPlanoRasterizable,
+  generateCenital,
+  generateCenitalFromImage,
+} from '@/server/ai/design/cenital-pipeline';
 import { planoToDoc } from '@/canvas/plano-to-doc';
 import { redrawPlan } from '@/server/ai/design/redraw-plan-pipeline';
 import { recommendDecoration as runRecommend } from '@/server/agent/phases/decoracion';
@@ -436,6 +440,27 @@ export async function sendPlanoToEditor(projectId: string, plano: Plano2dPayload
   const empty = deserializeCanvas(null);
   const doc = serializeCanvas({ ...empty, objects, scale });
   await withOrg(ctx).canvas.save(projectId, doc, null);
+}
+
+/**
+ * Render cenital directamente desde el plano REDIBUJADO (imagen→imagen): la
+ * misma vía que hace fiel el redibujado, sin depender de la extracción
+ * vectorial. Acepta solo data URLs o URLs de nuestro storage.
+ */
+export async function generateCenitalFromRedrawn(
+  projectId: string,
+  imageUrl: string,
+  estilo: Estilo,
+): Promise<{ imageUrl: string }> {
+  const ctx = await requireOrgContext();
+  await assertProjectInOrg(ctx, projectId);
+  await assertTosAccepted(ctx.userId);
+  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+
+  const source = await imageBytesFromTrustedUrl(imageUrl);
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const result = await generateCenitalFromImage({ image }, source, estilo);
+  return { imageUrl: result.assetUrl };
 }
 
 /**

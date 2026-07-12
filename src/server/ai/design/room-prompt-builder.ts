@@ -37,6 +37,28 @@ function outlineAreaM2(zone: PlanZone): number {
  * Prompt del render cenital fotorrealista. La imagen adjunta es la autoridad
  * sobre la disposición; el texto solo aporta el uso de cada estancia y el estilo.
  */
+/**
+ * Prompt del cenital cuando la referencia es la IMAGEN del plano (con las
+ * estancias ya rotuladas en ella): el modelo lee las etiquetas del propio
+ * plano; el texto solo fija el formato y el estilo.
+ */
+export function buildCenitalImagePrompt(estilo: Estilo): string {
+  const estiloLabel = ESTILOS.find((o) => o.value === estilo)?.label ?? estilo;
+  return [
+    'La imagen adjunta es un PLANO EN PLANTA de una vivienda con sus estancias rotuladas.',
+    'Genera un render cenital fotorrealista (vista "dollhouse" desde arriba, muros con altura',
+    'cortados en sección) que respete EXACTAMENTE esa disposición: mismas estancias, mismos',
+    'muros en la misma posición y proporción, mismas puertas y ventanas. No añadas ni muevas',
+    'habitaciones ni tabiques.',
+    '',
+    'Amuebla cada estancia según su rótulo en el plano (dormitorio → cama; cocina → mobiliario',
+    'de cocina; baño → sanitarios; salón → sofá y mesa). Sin textos, sin cotas, sin marcas de agua.',
+    '',
+    `Estilo de interiorismo: ${estiloLabel}. Iluminación natural cálida, suelos y materiales`,
+    'realistas, mobiliario proporcionado al tamaño de cada estancia.',
+  ].join('\n');
+}
+
 export function buildCenitalPrompt(plano: Plano2dPayload, estilo: Estilo): string {
   const zonas = plano.zones.map(describeZone).join('\n');
   const estiloLabel = ESTILOS.find((o) => o.value === estilo)?.label ?? estilo;

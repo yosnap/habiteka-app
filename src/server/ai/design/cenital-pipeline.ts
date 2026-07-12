@@ -10,7 +10,7 @@
  */
 import type { Estilo, ImageAdapter, ImageResult, Plano2dPayload } from '@/lib/contracts';
 import { rasterizePlano, type PlanRasterResult } from '@/server/plan/rasterize-plan-svg';
-import { buildCenitalPrompt } from './room-prompt-builder';
+import { buildCenitalImagePrompt, buildCenitalPrompt } from './room-prompt-builder';
 
 // Cotas de cordura del payload (un plano real está muy por debajo).
 const MAX_ZONES = 50;
@@ -60,5 +60,22 @@ export async function generateCenital(
     prompt: buildCenitalPrompt(plano, estilo),
     referenceImage: { base64: raster.base64, mimeType: 'image/png' },
     aspectRatio: raster.aspectRatio,
+  });
+}
+
+/**
+ * Cenital directamente desde la IMAGEN del plano (el redibujado): sin pasar
+ * por la geometría vectorial. Los nombres de las estancias están rotulados en
+ * la propia imagen y el modelo los lee — misma vía imagen→imagen que hizo
+ * fiel el redibujado.
+ */
+export async function generateCenitalFromImage(
+  deps: { image: CenitalDeps['image'] },
+  source: { base64: string; mimeType?: string },
+  estilo: Estilo,
+): Promise<ImageResult> {
+  return deps.image.generate({
+    prompt: buildCenitalImagePrompt(estilo),
+    referenceImage: { base64: source.base64, mimeType: source.mimeType ?? 'image/png' },
   });
 }

@@ -28,9 +28,10 @@ interface Props {
   redrawAction: (projectId: string, imageParts: ImagePart[]) => Promise<{ imageUrl: string }>;
   /** Extrae la geometría del plano REDIBUJADO (muros medidos por píxeles). */
   extractAction: (projectId: string, imageUrl: string) => Promise<SketchPlanResult>;
+  /** Cenital directamente desde la IMAGEN del plano redibujado. */
   cenitalAction: (
     projectId: string,
-    plano: Plano2dPayload,
+    imageUrl: string,
     estilo: Estilo,
   ) => Promise<{ imageUrl: string }>;
   sendToEditorAction: (projectId: string, plano: Plano2dPayload) => Promise<void>;
@@ -124,9 +125,10 @@ export function PlanoStudio({
   };
 
   const onGenerateCenital = () => {
-    if (!plano) return;
+    // Desde la IMAGEN redibujada (imagen→imagen): no requiere extraer geometría.
+    if (!planImageUrl) return;
     return run('cenital', async () => {
-      const { imageUrl } = await cenitalAction(projectId, plano, estilo);
+      const { imageUrl } = await cenitalAction(projectId, planImageUrl, estilo);
       setCenitalUrl(imageUrl);
       setTab('cenital');
     });
@@ -253,8 +255,8 @@ export function PlanoStudio({
             <div className="border-line bg-surface rounded-card border p-4">
               <p className="text-ink mb-1 text-sm font-medium">Versión editable</p>
               <p className="text-ink-soft mb-2 text-xs">
-                Extrae muros y aberturas como geometría editable (beta). Necesaria para la vista
-                cenital.
+                Extrae muros y aberturas como geometría editable (beta) para retocar el plano en
+                el editor.
               </p>
               <Button
                 type="button"
@@ -351,8 +353,7 @@ export function PlanoStudio({
               type="button"
               className="mt-3 w-full"
               onClick={onGenerateCenital}
-              disabled={busy !== null || !plano}
-              title={!plano ? 'Extrae antes la geometría editable' : undefined}
+              disabled={busy !== null}
             >
               {busy === 'cenital' ? 'Generando…' : 'Generar vista cenital'}
             </Button>
