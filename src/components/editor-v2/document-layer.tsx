@@ -14,6 +14,8 @@ import type { VertexPreview } from '@/canvas/editor-v2/vertex-preview';
 import { VertexHandles } from './vertex-handles';
 import { interiorPoint, moveEntity, snapPoint } from '@/canvas/editor-v2/editing-operations';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
+import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
+import { FurnitureSymbol } from './furniture-symbol';
 import { wallJunctions } from '@/canvas/editor-v2/wall-junctions';
 import { wallDimensionLayout } from '@/canvas/editor-v2/dimension-layout';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
@@ -82,10 +84,10 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
     {doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select' && !selected.includes(f.id)} onDragStart={() => store.getState().select([])}
       onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
-      <Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
+      {getFurnitureCatalogEntry(f.catalogId) ? <FurnitureSymbol item={f} scale={scale} selected={selected.includes(f.id)} /> : <><Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
         fill={f.color ?? '#d8e2de'} stroke={selected.includes(f.id) ? ACCENT : '#65776e'} strokeWidth={2 / scale} />
-      <Line points={[0, f.depthMm * .25, f.widthMm, f.depthMm * .25]} stroke="#65776e" strokeWidth={1 / scale} listening={false} />
-      <Text text={CATALOG_BY_KIND[f.kind]?.label ?? f.kind} x={0} y={f.depthMm / 2}
+      <Line points={[0, f.depthMm * .25, f.widthMm, f.depthMm * .25]} stroke="#65776e" strokeWidth={1 / scale} listening={false} /></>}
+      <Text text={getFurnitureCatalogEntry(f.catalogId)?.label ?? CATALOG_BY_KIND[f.kind]?.label ?? f.kind} x={0} y={f.depthMm / 2}
         width={f.widthMm} align="center" fontSize={11 / scale} fill={INK} listening={false} />
     </Group>)}
     {doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}

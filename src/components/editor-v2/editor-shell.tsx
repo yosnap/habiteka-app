@@ -15,6 +15,7 @@ import { SelectionPropertiesBar } from './selection-properties-bar';
 import { ElementDetailsPanel } from './element-details-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { BuildingLevelMenu } from './building-level-menu';
+import { FurnitureContextPanel } from './furniture-context-panel';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
 import styles from './editor.module.css';
@@ -85,6 +86,7 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
       <div className={styles.identity}><strong>{projectName}</strong><span role="status">{saveStatus ?? 'Guardado no conectado'}</span></div>
       <div className={styles.actions}>
         <BuildingLevelMenu store={store} />
+        <FurnitureContextPanel store={store} />
         <button type="button" disabled={readOnly || !past} onClick={() => store.getState().undo()} aria-label="Deshacer"><Undo2 size={20} aria-hidden="true" /></button>
         <button type="button" disabled={readOnly || !future} onClick={() => store.getState().redo()} aria-label="Rehacer"><Redo2 size={20} aria-hidden="true" /></button>
         <button type="button" onClick={onExport} disabled={!onExport} title={!onExport ? 'Exportación no disponible' : undefined}><Download size={18} aria-hidden="true" /><span>Exportar</span></button>
@@ -125,8 +127,8 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
           if (store.getState().readOnly) return;
           store.getState().apply(addWallPath(store.getState().document, shapePoints(shape, center), true)); chooseTool('select');
         })} onAddStair={insertStair} />}
-      <div className={styles.sidebar} data-open={inspector || catalog}>
-        {catalog ? <CatalogPanel onClose={() => setCatalog(false)} onAdd={(item) => run(() => {
+      <div className={styles.sidebar} data-open={inspector || catalog} style={catalog ? { width: 336 } : undefined}>
+        {catalog ? <CatalogPanel readOnly={readOnly} onClose={() => setCatalog(false)} onAdd={(item) => run(() => {
           if (store.getState().readOnly) return;
           const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
           store.getState().apply(placeNewObject(source, next, next.furniture.at(-1)!.id)); store.getState().setTool('select');

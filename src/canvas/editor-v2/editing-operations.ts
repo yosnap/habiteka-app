@@ -1,5 +1,6 @@
 import type { EditorDocument, Point, Opening } from '@/lib/editor-document/schema';
 import type { CatalogEntry } from '@/canvas/catalog';
+import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { distance } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -52,8 +53,10 @@ export function addOpening(doc: EditorDocument, wallId: string, p: Point, kind: 
       ...(next.schemaVersion >= 4 ? { colors: { frame: '#f4f1e9', leaf: '#bb956c' } } : {}) } : opening);
   });
 }
-export function addFurniture(doc: EditorDocument, item: CatalogEntry, p: Point) {
-  const widthMm = item.realWidthM * 1000, depthMm = item.realDepthM * 1000;
+export function addFurniture(doc: EditorDocument, item: CatalogEntry | FurnitureCatalogEntry, p: Point) {
+  const catalogItem = 'profile' in item ? item : undefined;
+  const widthMm = 'widthMm' in item ? item.widthMm : item.realWidthM * 1000;
+  const depthMm = 'depthMm' in item ? item.depthMm : item.realDepthM * 1000;
   let position = p;
   // A viewport center may fall in the missing corner of an L. Prefer a room interior.
   try {
@@ -66,10 +69,12 @@ export function addFurniture(doc: EditorDocument, item: CatalogEntry, p: Point) 
         insidePolygon({ x: candidate.x + x!, y: candidate.y + y! }, polygon))) position = candidate;
     }
   } catch { /* Ambiguous rooms do not block manually placing furniture in the viewport. */ }
-  return editDocument(doc, (next) => { const furniture = { id: newId(), kind: item.kind,
-    catalogId: `builtin:${item.kind}`, ...position, widthMm,
+  return editDocument(catalogItem ? upgradeSpatialDocument(doc) : doc, (next) => { const furniture = { id: newId(), kind: item.kind,
+    catalogId: catalogItem?.id ?? `builtin:${item.kind}`, ...position, widthMm,
     depthMm, rotation: 0, dimensionalOrigin: 'physical' as const };
-    next.furniture.push(next.schemaVersion >= 4 ? { ...furniture, ...furnitureSpatial(furniture) } : furniture);
+    next.furniture.push(catalogItem ? { ...furniture, heightMm: catalogItem.heightMm,
+      elevationMm: catalogItem.elevationMm, color: catalogItem.color }
+      : next.schemaVersion >= 4 ? { ...furniture, ...furnitureSpatial(furniture) } : furniture);
   });
 }
 

@@ -1,6 +1,17 @@
 import type { EditorDocument, Furniture, ElementComment } from './schema';
 import { upgradeSpatialDocument, transformAroundCenter } from './spatial-properties';
 import { parseEditorDocument } from './validation';
+import { surfaceMaterial } from './surface-materials';
+
+export function setWallSurface(input: EditorDocument, id: string, side: 'left' | 'right', materialId?: string): EditorDocument {
+  if (materialId && !surfaceMaterial(materialId)) throw new Error('Material desconocido');
+  const doc = upgradeSpatialDocument(input), wall = doc.walls.find((w) => w.id === id);
+  if (!wall) throw new Error('Muro no encontrado');
+  wall.materials![side] = materialId ?? 'plaster-white';
+  // Selecting a photographed material starts untinted, without touching the other face.
+  wall.colors![side] = materialId ? '#ffffff' : '#eeeae2';
+  return parseEditorDocument(doc);
+}
 
 export function updateFurniture(input: EditorDocument, id: string, patch: Partial<Omit<Furniture, 'id'>>): EditorDocument {
   const doc = upgradeSpatialDocument(input), index = doc.furniture.findIndex((f) => f.id === id);

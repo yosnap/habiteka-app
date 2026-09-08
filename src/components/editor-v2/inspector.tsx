@@ -64,7 +64,7 @@ export function Inspector({ store }: { store: EditorStore }) {
           v === wall.startVertexId || v === wall.endVertexId)).map((w, i) => <option key={w.id} value={w.id}>Contiguo {i + 1} ({Math.round(distance(...wallPoints(doc, w)))} mm)</option>)}
       </select></label>
       <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
-      <WallConstructionFields wall={wall} edit={apply} />
+      <WallConstructionFields wall={wall} document={doc} edit={apply} />
     </>}
     {furniture && <div className={styles.fields}>
       {([['x', 'X (mm)'], ['y', 'Y (mm)'], ['widthMm', 'Ancho (mm)'], ['depthMm', 'Fondo (mm)'],

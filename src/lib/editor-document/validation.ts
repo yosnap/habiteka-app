@@ -1,4 +1,5 @@
 import type { EditorDocument } from './schema';
+import { surfaceMaterial } from './surface-materials';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
 import { wallPath } from './wall-path';
@@ -75,7 +76,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (!Array.isArray(boundary) || boundary.length < 3 || boundary.some((id) => typeof id !== 'string' || !id)) throw new Error('Identidad de habitación inválida');
       if (rooms.has(finish.roomId)) throw new Error('Acabado de suelo duplicado');
       rooms.add(finish.roomId); color(finish.color); positive(finish.tileSizeMm); finite(finish.rotation);
-      if (!['none', 'wood', 'tile'].includes(finish.texture as string)) throw new Error('Textura de suelo desconocida');
+      if (!['none', 'wood', 'tile'].includes(finish.texture as string) && !surfaceMaterial(finish.texture as string)) throw new Error('Textura de suelo desconocida');
       if ((finish.tileSizeMm as number) < 50 || (finish.tileSizeMm as number) > 10000) throw new Error('Escala de textura fuera de rango');
     }
   }

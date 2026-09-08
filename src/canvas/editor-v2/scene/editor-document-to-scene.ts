@@ -36,7 +36,7 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
       return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: f.id, role: 'furniture' as const,
         position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
         size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
-        rotation: -f.rotation * Math.PI / 180, color: furnitureSpatial(f).color };
+        rotation: -f.rotation * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
     })),
   ] };
 }

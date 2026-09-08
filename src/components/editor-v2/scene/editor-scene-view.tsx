@@ -10,6 +10,8 @@ import { BoxMesh, PolygonMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
 import { CutawayWall } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
+import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
+import { FurnitureModel } from './furniture-model';
 
 const unavailable = <div role="alert" style={{ padding: 24 }}>No se puede mostrar WebGL. Tu plano sigue disponible en 2D.</div>;
 class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
@@ -20,6 +22,7 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: boo
 function SceneView({ store }: { store: EditorStore }) {
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const scene = useMemo(() => editorDocumentToScene(document), [document]);
+  const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
   const [request, setRequest] = useState<CameraRequest>({ sequence: 0, action: 'fit' });
   const [contextLost, setContextLost] = useState(false);
   const [cutaway, setCutaway] = useState(true);
@@ -48,14 +51,19 @@ function SceneView({ store }: { store: EditorStore }) {
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall>)}
-          {scene.boxes.map((box) => <CutawayWall key={box.id} enabled={cutaway && box.role === 'wall'}
+          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => <CutawayWall key={box.id} enabled={cutaway && box.role === 'wall'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === box.sourceEntityId)} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall>)}
+          {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <FurnitureModel key={item.id} item={item}
+            boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} />)}
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
           {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
-          {level.scene.boxes.map((box) => <BoxMesh key={box.id} box={box} selected={false} onSelect={() => {}} />)}
+          {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
+            .map((box) => <BoxMesh key={box.id} box={box} selected={false} onSelect={() => {}} />)}
+          {level.document.furniture.filter((item) => furnitureAsset(item)).map((item) => <FurnitureModel key={item.id} item={item}
+            boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
         </group>)}
         <SceneCamera request={request} onContextLost={lost} />
       </Bounds>

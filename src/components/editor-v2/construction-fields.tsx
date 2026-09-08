@@ -6,6 +6,9 @@ import { openingConstruction, wallConstruction } from '@/lib/editor-document/con
 import { stairLayout } from '@/lib/editor-document/stair-layout';
 import { NumberField } from './property-number-field';
 import styles from './editor.module.css';
+import { wallFaces } from '@/lib/editor-document/wall-faces';
+import { SurfaceMaterialPicker } from './surface-material-picker';
+import { setWallSurface } from '@/lib/editor-document/spatial-commands';
 
 type Edit = (operation: (document: EditorDocument) => EditorDocument) => boolean;
 const materials = [
@@ -19,16 +22,13 @@ function MaterialField({ label, value, change }: { label: string; value: string;
   </select></label>;
 }
 
-export function WallConstructionFields({ wall, edit }: { wall: Wall; edit: Edit }) {
+export function WallConstructionFields({ wall, document, edit }: { wall: Wall; document: EditorDocument; edit: Edit }) {
   const properties = wallConstruction(wall);
   return <>
     <NumberField label="Altura (mm)" value={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
-    {(['left', 'right'] as const).map((side) => <MaterialField key={side} label={`Material · cara ${side === 'left' ? 'izquierda' : 'derecha'}`}
-      value={properties.materials[side]} change={(value) => edit((doc) => {
-        const current = doc.walls.find((item) => item.id === wall.id)!;
-        return setWallConstruction(doc, wall.id, { materials: { ...wallConstruction(current).materials, [side]: value } });
-      })} />)}
-    <p className={styles.hint}>Las caras se refieren al sentido de la pared. Los materiales se muestran en 3D.</p>
+    {wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
+      value={properties.materials[side]} onChange={(value) => edit((doc) => setWallSurface(doc, wall.id, side, value))} />)}
+    <p className={styles.hint}>Acabados independientes en 3D. Cierra la habitación para identificar interior y exterior. Usa Pintar para cambiar el color.</p>
   </>;
 }
 

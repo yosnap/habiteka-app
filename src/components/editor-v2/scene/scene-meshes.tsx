@@ -1,9 +1,10 @@
 'use client';
 import { useMemo } from 'react';
-import { DoubleSide, Path, Shape } from 'three';
+import { Path, Shape } from 'three';
 import { Edges } from '@react-three/drei';
 import type { SceneBox, ScenePolygon } from '@/canvas/editor-v2/scene/types';
 import { FloorMaterial } from './floor-material';
+import { SurfaceMaterial } from './surface-material';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
@@ -12,7 +13,8 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
     <boxGeometry args={box.size} />
     {colors ? colors.map((color, index) => index === 2 && box.topColor
       ? <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
-      : <meshStandardMaterial key={index} attach={`material-${index}`} color={color} roughness={.82} />)
+      : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
+        width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
       : <meshStandardMaterial color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
         metalness={box.role === 'rail' ? .5 : 0} transparent={box.role === 'glass'} opacity={box.role === 'glass' ? .35 : 1}
         depthWrite={box.role !== 'glass'} />}
@@ -48,7 +50,8 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
         rotation={[0, -Math.atan2(b.y - a.y, b.x - a.x), 0]} castShadow receiveShadow
         onClick={(e) => { e.stopPropagation(); onSelect(finish.sourceEntityId); }}>
         <planeGeometry args={[Math.hypot(b.x - a.x, b.y - a.y), polygon.height]} />
-        <meshStandardMaterial color={finish.color} side={DoubleSide} roughness={.82} />
+        <SurfaceMaterial color={finish.color} id={finish.materialId} width={finish.spanX ?? Math.hypot(b.x - a.x, b.y - a.y)} height={polygon.height}
+          offsetX={finish.offsetX} offsetY={polygon.elevation} doubleSide />
       </mesh>;
     })}
   </group>;

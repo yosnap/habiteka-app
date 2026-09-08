@@ -2,7 +2,7 @@ import type { FloorFinish } from '@/lib/editor-document/schema';
 
 /** Shared world-scale repeat tile for Konva and Three; deterministic, no network assets. */
 export function createFloorPattern(finish: FloorFinish): HTMLCanvasElement | undefined {
-  if (finish.texture === 'none') return undefined;
+  if (finish.texture !== 'wood' && finish.texture !== 'tile') return undefined;
   const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext('2d'); if (!ctx) return undefined;
   ctx.fillStyle = finish.color; ctx.fillRect(0, 0, 256, 256);

@@ -22,6 +22,7 @@ export function wallMeshes(doc: EditorDocument, wall: Wall): SceneBox[] {
       size: [meters(to - from), meters(top - bottom), meters(wall.thicknessMm)], rotation: -angle,
       // Caps are structural, not either painted face. Left paint must not leak outside.
       color: '#d8d5ce',
+      sideMaterials: [construction.materials.left, construction.materials.right], textureOffset: [meters(from), meters(bottom)],
       topColor: top === height ? WALL_PLAN_COLOR : undefined,
       sideColors: [wall.colors?.left ?? materialColor(construction.materials.left), wall.colors?.right ?? materialColor(construction.materials.right)] });
   };

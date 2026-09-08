@@ -16,10 +16,12 @@ export function junctionFinishes(doc: EditorDocument, walls: Wall[], points: Poi
       const side = signedDistance >= 0 ? 'left' : 'right';
       const alignment = Math.abs(((b.x - a.x) * dx + (b.y - a.y) * dy) / length);
       return { sourceEntityId: wall.id, color: wall.colors?.[side] ?? materialColor(wallConstruction(wall).materials[side]),
+        materialId: wallConstruction(wall).materials[side],
+        offsetX: path.length * t / 1000 - length / 2000,
         // Parallel face first; distance disambiguates collinear unequal-width joins.
         score: (1 - alignment) * 1e6 + Math.abs(Math.abs(signedDistance) - wall.thicknessMm / 2) };
     });
     const match = matches.sort((x, y) => x.score - y.score || x.sourceEntityId.localeCompare(y.sourceEntityId))[0]!;
-    return { color: match.color, sourceEntityId: match.sourceEntityId };
+    return { color: match.color, sourceEntityId: match.sourceEntityId, materialId: match.materialId, offsetX: match.offsetX };
   });
 }

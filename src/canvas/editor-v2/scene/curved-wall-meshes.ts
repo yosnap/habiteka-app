@@ -19,7 +19,12 @@ export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[
     polygons.push({ id: `${wall.id}:curve:${polygons.length}`, sourceEntityId: wall.id, role: 'wall',
       points: points.map((p) => ({ x: meters(p.x), y: meters(p.y) })), elevation: meters(bottom), height: meters(top - bottom),
       color: '#d8d5ce', topColor: top === height ? WALL_PLAN_COLOR : '#d8d5ce',
-      edgeFinishes: points.map((_, i) => ({ sourceEntityId: wall.id, color: i === count - 1 || i === points.length - 1 ? '#d8d5ce'
+      edgeFinishes: points.map((_, i) => ({ sourceEntityId: wall.id,
+        materialId: i === count - 1 || i === points.length - 1 ? undefined : i < count ? construction.materials.left : construction.materials.right,
+        offsetX: meters(length * (from + (to - from) * (i < count ? i : points.length - 1 - i) / (count - 1))),
+        // Both faces share a continuous arc coordinate; the outer ring runs backwards.
+        spanX: meters(length * (to - from) / (count - 1)) * (i < count ? 1 : -1),
+        color: i === count - 1 || i === points.length - 1 ? '#d8d5ce'
         : i < count ? wall.colors?.left ?? materialColor(construction.materials.left) : wall.colors?.right ?? materialColor(construction.materials.right) })),
     });
   };

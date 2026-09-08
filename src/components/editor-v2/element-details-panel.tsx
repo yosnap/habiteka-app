@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import { paintElement, removeComment, saveComment } from '@/lib/editor-document/spatial-commands';
+import { paintElement, removeComment, saveComment, setWallSurface } from '@/lib/editor-document/spatial-commands';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 import { finishColor, furnitureSpatial } from '@/lib/editor-document/spatial-properties';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
+import { furnitureAsset, ORIGINAL_ASSET_COLOR } from '@/lib/editor-document/furniture-assets';
 
 export function ElementDetailsPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
@@ -32,10 +34,15 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
       {state.detailPanel === 'paint' && wall && <p style={{ fontSize: 12, marginBottom: 16 }}>
         {surfaces.length ? 'Acabados independientes, visibles solamente en 3D.' : 'Cierra la habitación para identificar su interior y exterior.'}
       </p>}
-      {state.detailPanel === 'paint' ? surfaces.map(([part, label, color]) => <label key={part}
+      {state.detailPanel === 'paint' && furniture && furnitureAsset(furniture) && <div style={{ fontSize: 12, marginBottom: 16 }}>
+        <p>Tinte global del modelo 3D: conserva texturas y transparencias. No edita materiales por partes.</p>
+        <button type="button" onClick={() => run((d) => paintElement(d, id, 'body', ORIGINAL_ASSET_COLOR))}>Restablecer materiales originales</button>
+      </div>}
+      {state.detailPanel === 'paint' ? surfaces.map(([part, label, color]) => <div key={part}><label
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>{label}
         <input type="color" aria-label={label} value={color} onChange={(e) => run((d) => paintElement(d, id, part, e.target.value))} />
-      </label>) : <>
+      </label>{wall && <SurfaceMaterialPicker label={label} value={wall.materials?.[part as 'left' | 'right']}
+        onChange={(material) => run((d) => setWallSurface(d, id, part as 'left' | 'right', material))} />}</div>) : <>
         <p style={{ fontSize: 12 }}>Notas del proyecto vinculadas a este elemento.</p>
         {(doc.comments ?? []).filter((c) => c.targetEntityId === id).map((c) => <article key={c.id} style={{ borderBottom: '1px solid #ddd', padding: '12px 0' }}>
           <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.text}</p>

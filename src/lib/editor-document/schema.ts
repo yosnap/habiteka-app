@@ -80,7 +80,7 @@ export interface Label extends Point {
 export interface FloorFinish {
   roomId: string;
   color: string;
-  texture: 'none' | 'wood' | 'tile';
+  texture: 'none' | 'wood' | 'tile' | `polyhaven:${string}`;
   tileSizeMm: number;
   rotation: number;
 }

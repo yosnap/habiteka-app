@@ -4,13 +4,15 @@ export interface SceneBox {
   id: string; sourceEntityId: string; role: 'wall' | 'frame' | 'leaf' | 'glass' | 'step' | 'landing' | 'rail' | 'furniture';
   position: Vector3Tuple; size: Vector3Tuple; rotation: number; color: string;
   sideColors?: [string, string];
+  sideMaterials?: [string, string];
+  textureOffset?: [number, number];
   topColor?: string;
 }
 export interface ScenePolygon {
   id: string; sourceEntityId: string; role: 'floor' | 'junction' | 'wall';
   points: Point[]; elevation: number; height: number; color: string;
   topColor?: string;
-  edgeFinishes?: { color: string; sourceEntityId: string }[];
+  edgeFinishes?: { color: string; sourceEntityId: string; materialId?: string; offsetX?: number; spanX?: number }[];
   holes?: Point[][];
   floorFinish?: FloorFinish;
 }
