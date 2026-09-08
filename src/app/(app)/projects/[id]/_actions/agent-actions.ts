@@ -9,6 +9,7 @@
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
+import { withLegacyAuthority } from '@/server/editor/authority';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
 import {
@@ -51,9 +52,15 @@ import type {
  * (`loadState`/`persistDeliverables`) opera por `projectId` sin acotar org, así que
  * la pertenencia se valida AQUÍ, en la única puerta de entrada, antes de delegar.
  */
-async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<void> {
+async function assertProjectInOrg(
+  ctx: OrgContext,
+  projectId: string,
+  zoneId: string | null = null,
+): Promise<void> {
   const project = await withOrg(ctx).projects.findById(projectId);
   if (!project) throw new Error('Proyecto no encontrado en tu organización');
+  // These actions still consume legacy documents. Reject migrated scopes before IA/cost.
+  await withLegacyAuthority(ctx, { projectId, zoneId }, async () => undefined);
 }
 
 /**
@@ -79,7 +86,7 @@ export async function advanceAgent(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId, zoneId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
 
   // La imagen de origen se persiste en esta capa (la que posee el scope de org),
@@ -174,7 +181,7 @@ export async function generateDesignFromCanvas(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId, zoneId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
@@ -230,7 +237,7 @@ export async function generateViewFrom3D(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId, zoneId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
 
@@ -346,7 +353,9 @@ export async function extractPlanFromRedrawn(
 }
 
 /** Resuelve los bytes de la imagen redibujada: data URL o asset de nuestro storage. */
-async function imageBytesFromTrustedUrl(url: string): Promise<{ base64: string; mimeType: string }> {
+async function imageBytesFromTrustedUrl(
+  url: string,
+): Promise<{ base64: string; mimeType: string }> {
   const dataUrl = /^data:([^;]+);base64,(.+)$/.exec(url);
   if (dataUrl?.[1] && dataUrl[2]) return { mimeType: dataUrl[1], base64: dataUrl[2] };
 
@@ -382,7 +391,9 @@ async function extractPlanCore(
       : Promise.resolve(null),
   ]);
   if (raw.muros.length === 0 && (detected?.walls.length ?? 0) < 4) {
-    throw new Error('No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.');
+    throw new Error(
+      'No se reconocieron muros en el boceto: prueba con una foto más nítida en planta.',
+    );
   }
   // La escala solo es un dato real si sale de medidas ESCRITAS en el boceto;
   // en cualquier otro caso es conjetura y la UI no debe pintarla como cotas.

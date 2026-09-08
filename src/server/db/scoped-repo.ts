@@ -11,6 +11,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { SourceImageRole } from '@/generated/prisma/enums';
 import { prisma } from './prisma';
 import type { OrgContext } from '@/server/auth/org-context';
+import { EditorScopeNotFoundError, withLegacyAuthority } from '@/server/editor/authority';
 
 export interface CreateProjectInput {
   title: string;
@@ -177,36 +178,23 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       // con valor = plano de esa zona. La unicidad por (proyecto, zona) la
       // garantizan índices únicos parciales en BD (ver migración).
       async load(projectId, zoneId = null) {
-        // El join por organización impide leer el canvas de un proyecto ajeno.
-        const row = await prisma.canvasState.findFirst({
-          where: { projectId, zoneId, project: { organizationId, deletedAt: null } },
-          select: { data: true },
-        });
-        return row?.data ?? null;
+        try {
+          return await withLegacyAuthority(ctx, { projectId, zoneId }, async tx => {
+            const row = await tx.canvasState.findFirst({ where: { projectId, zoneId }, select: { data: true } });
+            return row?.data ?? null;
+          }, { includeDeletedZone: true });
+        } catch (error) {
+          if (error instanceof EditorScopeNotFoundError) return null;
+          throw error;
+        }
       },
       async save(projectId, data, zoneId = null) {
-        // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR).
-        const owned = await prisma.project.findFirst({
-          where: { id: projectId, organizationId, deletedAt: null },
-          select: { id: true },
-        });
-        if (!owned) {
-          throw new Error('Proyecto no encontrado en la organización');
-        }
         const value = data as Prisma.InputJsonValue;
-        // No se usa upsert: la unicidad de (projectId, zoneId) la dan índices
-        // PARCIALES, que Prisma no expone como clave de `where` en upsert. Se hace
-        // find-then-update/create; la concurrencia la cubre el índice único (un
-        // segundo insert simultáneo del mismo plano fallaría a nivel de BD).
-        const existing = await prisma.canvasState.findFirst({
-          where: { projectId, zoneId },
-          select: { id: true },
+        await withLegacyAuthority(ctx, { projectId, zoneId }, async tx => {
+          const existing = await tx.canvasState.findFirst({ where: { projectId, zoneId }, select: { id: true } });
+          if (existing) await tx.canvasState.update({ where: { id: existing.id }, data: { data: value } });
+          else await tx.canvasState.create({ data: { projectId, zoneId, data: value } });
         });
-        if (existing) {
-          await prisma.canvasState.update({ where: { id: existing.id }, data: { data: value } });
-        } else {
-          await prisma.canvasState.create({ data: { projectId, zoneId, data: value } });
-        }
       },
     },
 
