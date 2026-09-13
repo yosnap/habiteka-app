@@ -25,6 +25,17 @@ describe('placement and vertex guides', () => {
     const snapped = snapObject(doc, { ...doc.furniture[0]!, y: 110 }, .08, true);
     expect(snapped.y).toBe(75);
   });
+  it('snaps movable objects to the 10 cm X/Y grid before wall alignment', () => {
+    const doc = fixture();
+    const snapped = snapObject(doc, { ...doc.furniture[0]!, x: 1234, y: 1500 }, .08, true);
+    expect(snapped).toMatchObject({ x: 1200, y: 1500 });
+    expect(snapObject(doc, { ...doc.furniture[0]!, x: 1234, y: 1566 }, .08, false)).toMatchObject({ x: 1234, y: 1566 });
+  });
+  it('snaps an object origin to the start or end of a wall', () => {
+    const doc = fixture();
+    expect(snapObject(doc, { ...doc.furniture[0]!, x: 90, y: 60 }, .08, true)).toMatchObject({ x: 0, y: 0 });
+    expect(snapObject(doc, { ...doc.furniture[0]!, x: 4910, y: 60 }, .08, true)).toMatchObject({ x: 5000, y: 0 });
+  });
   it('allows plan overlap only when vertical volumes are separate', () => {
     const doc = fixture(), next = structuredClone(doc);
     next.furniture.push({ ...next.furniture[0]!, id: 'f2', elevationMm: 550 });

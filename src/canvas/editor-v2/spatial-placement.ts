@@ -1,4 +1,4 @@
-import type { EditorDocument, Point, Furniture, Stair } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { wallMeshes } from './scene/wall-meshes';
@@ -36,13 +36,14 @@ function penetration(a: Solid, b: Solid): number {
   }
   return depth;
 }
-function objectSolids(item: Furniture | Stair): Solid[] {
+function objectSolids(item: Furniture | Stair | Ramp): Solid[] {
   if ('stepCount' in item) return stairMeshes(item).filter((b) => b.role !== 'rail').map((box) => {
     const widthMm = box.size[0] * 1000, depthMm = box.size[2] * 1000, rotation = -box.rotation * 180 / Math.PI;
     const offset = objectCenter({ x: 0, y: 0, widthMm, depthMm, rotation });
     return { id: item.id, polygon: footprint({ x: box.position[0] * 1000 - offset.x, y: box.position[2] * 1000 - offset.y, widthMm, depthMm, rotation }),
       bottom: (box.position[1] - box.size[1] / 2) * 1000, top: (box.position[1] + box.size[1] / 2) * 1000 };
   });
+  if ('riseMm' in item) return [{ id: item.id, polygon: footprint(item), bottom: item.elevationMm, top: item.elevationMm + item.riseMm }];
   return furnitureVolumes(item).map((volume) => ({ id: item.id, bottom: volume.bottom, top: volume.top,
     polygon: footprint({ ...item, ...volume, ...localToWorld(item, volume) }) }));
 }
@@ -61,7 +62,7 @@ function walls(doc: EditorDocument): Solid[] {
   })];
 }
 function collisions(doc: EditorDocument): Map<string, number> {
-  const objects = [...doc.furniture, ...(doc.stairs ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
+  const objects = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
   const result = new Map<string, number>();
   objects.forEach((a, index) => {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
@@ -72,6 +73,17 @@ function collisions(doc: EditorDocument): Map<string, number> {
   });
   return result;
 }
+function snapOriginToWallEndpoint(doc: EditorDocument, item: Furniture | Stair | Ramp, tolerance: number) {
+  let closest: Point | null = null, distance = tolerance;
+  for (const wall of doc.walls) {
+    const path = wallPath(doc, wall);
+    for (const point of [path.at(0), path.at(path.length)]) {
+      const next = Math.hypot(item.x - point.x, item.y - point.y);
+      if (next <= distance) { closest = point; distance = next; }
+    }
+  }
+  return closest ? { ...item, x: closest.x, y: closest.y } : item;
+}
 /** Legacy intersections remain repairable; edits cannot introduce or deepen one. */
 export function assertSpatialPlacement(previous: EditorDocument, candidate: EditorDocument): void {
   const before = collisions(previous), after = collisions(candidate);
@@ -80,23 +92,26 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
-  const item = candidate.furniture.find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id);
+  const item = candidate.furniture.find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id);
   if (!item) throw new Error('Elemento no encontrado');
-  const occupied = [...walls(previous), ...previous.furniture.flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids)];
+  const occupied = [...walls(previous), ...previous.furniture.flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids)];
   for (let ring = 0; ring <= 32; ring++) for (let direction = 0; direction < (ring ? 8 : 1); direction++) {
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };
     if (objectSolids(placed).some((a) => occupied.some((b) => penetration(a, b) > .1))) continue;
     return { ...candidate, furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
-      stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s) };
+      stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s),
+      ...(candidate.ramps ? { ramps: candidate.ramps.map((r) => r.id === id ? placed as Ramp : r) } : {}) };
   }
   throw new Error('No hay espacio libre cercano. Libera espacio antes de añadir el elemento.');
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
-export function snapObject(doc: EditorDocument, item: Furniture | Stair, scale: number, enabled: boolean) {
-  let result = item;
+export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp, scale: number, enabled: boolean) {
+  // Objects use the same 10 cm grid as drawing points, then can refine to a wall face.
+  let result = enabled ? { ...item, x: Math.round(item.x / 100) * 100, y: Math.round(item.y / 100) * 100 } : item;
   if (!enabled) return result;
   const tolerance = 12 / Math.max(.001, scale);
+  result = snapOriginToWallEndpoint(doc, result, tolerance);
   for (let pass = 0; pass < 2; pass++) {
     let best: { gap: number; delta: Point } | null = null;
     const corners = footprint(result), center = objectCenter(result);
@@ -113,5 +128,5 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair, scale: 
     }
     if (best) result = { ...result, x: result.x + best.delta.x, y: result.y + best.delta.y };
   }
-  return result;
+  return snapOriginToWallEndpoint(doc, result, tolerance);
 }

@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Panel de propiedades del objeto seleccionado en 3D (F3 editor): Ancho, Fondo (cm),
- * Altura (cm), Ángulo (°) y Elevación (cm). Cada campo soporta tipeo libre y scrub
+ * Panel de propiedades del objeto seleccionado en 3D (F3 editor): medidas en metros,
+ * ángulo (°) y elevación en metros. Cada campo soporta tipeo libre y scrub
  * (clic+arrastrar ←→). `onLive` escribe al store en cada frame del scrub para que la
  * vista 3D se actualice en vivo.
  */
@@ -31,31 +31,31 @@ export function ObjectPropertiesPanel({
   const scale = { pxPerMeter };
   const isFurniture = !STRUCTURAL_KINDS.has(obj.kind);
 
-  const [wCm, setWCm] = useState(() => toCm(obj.width, pxPerMeter));
-  const [hCm, setHCm] = useState(() => toCm(obj.height, pxPerMeter));
-  const [altCm, setAltCm] = useState(() => Math.round(effectiveHeightM(obj, ceilingHeightM) * 100));
+  const [widthM, setWidthM] = useState(() => toMeters(obj.width, pxPerMeter));
+  const [depthM, setDepthM] = useState(() => toMeters(obj.height, pxPerMeter));
+  const [heightM, setHeightM] = useState(() => effectiveHeightM(obj, ceilingHeightM));
   const [deg, setDeg] = useState(() => Math.round(obj.rotation || 0));
-  const [elevCm, setElevCm] = useState(() => Math.round((obj.elevationM ?? 0) * 100));
+  const [elevationM, setElevationM] = useState(() => obj.elevationM ?? 0);
 
   useEffect(() => {
-    setWCm(toCm(obj.width, pxPerMeter));
-    setHCm(toCm(obj.height, pxPerMeter));
-    setAltCm(Math.round(effectiveHeightM(obj, ceilingHeightM) * 100));
+    setWidthM(toMeters(obj.width, pxPerMeter));
+    setDepthM(toMeters(obj.height, pxPerMeter));
+    setHeightM(effectiveHeightM(obj, ceilingHeightM));
     setDeg(Math.round(obj.rotation || 0));
-    setElevCm(Math.round((obj.elevationM ?? 0) * 100));
+    setElevationM(obj.elevationM ?? 0);
   }, [obj.id, pxPerMeter, ceilingHeightM]);
 
   // ── Commits ────────────────────────────────────────────────────────────────
   const commitWidth = () => {
-    const px = Math.round(metersToPx(Math.max(1, wCm) / 100, scale));
+    const px = Math.round(metersToPx(Math.max(0.01, widthM), scale));
     if (Math.abs(px - obj.width) > 0.5) onChange({ width: px });
   };
   const commitHeight = () => {
-    const px = Math.round(metersToPx(Math.max(1, hCm) / 100, scale));
+    const px = Math.round(metersToPx(Math.max(0.01, depthM), scale));
     if (Math.abs(px - obj.height) > 0.5) onChange({ height: px });
   };
   const commitAlt = () => {
-    const m = Math.max(0.01, altCm) / 100;
+    const m = Math.max(0.01, heightM);
     if (Math.abs(m - effectiveHeightM(obj, ceilingHeightM)) < 0.005) return;
     onChange({ heightM: m });
   };
@@ -65,35 +65,35 @@ export function ObjectPropertiesPanel({
     onChange(rotatePatch(obj, rotation2DToY(normalized), scene));
   };
   const commitElev = () => {
-    const m = Math.max(0, elevCm) / 100;
+    const m = Math.max(0, elevationM);
     if (Math.abs(m - (obj.elevationM ?? 0)) < 0.005) return;
     onChange({ elevationM: m });
   };
 
   // ── Live (scrub en vivo → store) ───────────────────────────────────────────
-  const liveWidth = (v: number) => onChange({ width: Math.round(metersToPx(Math.max(1, v) / 100, scale)) });
-  const liveHeight = (v: number) => onChange({ height: Math.round(metersToPx(Math.max(1, v) / 100, scale)) });
-  const liveAlt = (v: number) => onChange({ heightM: Math.max(0.01, v) / 100 });
+  const liveWidth = (v: number) => onChange({ width: Math.round(metersToPx(Math.max(0.01, v), scale)) });
+  const liveHeight = (v: number) => onChange({ height: Math.round(metersToPx(Math.max(0.01, v), scale)) });
+  const liveAlt = (v: number) => onChange({ heightM: Math.max(0.01, v) });
   const liveAngle = (v: number) => {
     const normalized = ((v % 360) + 360) % 360;
     onChange(rotatePatch(obj, rotation2DToY(normalized), scene));
   };
-  const liveElev = (v: number) => onChange({ elevationM: Math.max(0, v) / 100 });
+  const liveElev = (v: number) => onChange({ elevationM: Math.max(0, v) });
 
   const isHidden = !!obj.hidden;
 
   return (
     <div className="absolute bottom-0 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-t-lg bg-neutral-900/95 px-4 py-2 shadow-xl ring-1 ring-white/20">
       <span className="text-xs text-white/50">Propiedades</span>
-      <NumInput label="Ancho cm" value={wCm} onChange={setWCm} onCommit={commitWidth} onLive={liveWidth} />
-      <NumInput label="Fondo cm" value={hCm} onChange={setHCm} onCommit={commitHeight} onLive={liveHeight} />
-      <NumInput label="Alt. cm"  value={altCm} onChange={setAltCm} onCommit={commitAlt} onLive={liveAlt} />
+      <NumInput label="Ancho m" value={widthM} onChange={setWidthM} onCommit={commitWidth} onLive={liveWidth} step={.01} />
+      <NumInput label="Fondo m" value={depthM} onChange={setDepthM} onCommit={commitHeight} onLive={liveHeight} step={.01} />
+      <NumInput label="Alt. m" value={heightM} onChange={setHeightM} onCommit={commitAlt} onLive={liveAlt} step={.01} />
       <NumInput label="Ángulo °" value={deg} onChange={setDeg} onCommit={commitAngle} onLive={liveAngle} step={15} />
       {(isFurniture || obj.kind === 'window') && (
         <NumInput
-          label={obj.kind === 'window' ? 'Alféizar cm' : 'Elev. cm'}
-          value={elevCm}
-          onChange={setElevCm}
+          label={obj.kind === 'window' ? 'Alféizar m' : 'Elev. m'}
+          value={elevationM}
+          onChange={setElevationM}
           onCommit={commitElev}
           onLive={liveElev}
         />
@@ -203,8 +203,8 @@ export function ObjectPropertiesPanel({
   );
 }
 
-function toCm(px: number, pxPerMeter: number): number {
-  return Math.round(pxToMeters(px, { pxPerMeter }) * 100);
+function toMeters(px: number, pxPerMeter: number): number {
+  return Math.round(pxToMeters(px, { pxPerMeter }) * 1000) / 1000;
 }
 
 /**
@@ -261,7 +261,7 @@ function NumInput({
             isDragging.current = true;
             e.currentTarget.blur();
           }
-          const newVal = Math.round(startVal.current + dx);
+          const newVal = Math.round((startVal.current + dx * step) * 1000) / 1000;
           onChange(newVal);
           onLive?.(newVal);
         }}

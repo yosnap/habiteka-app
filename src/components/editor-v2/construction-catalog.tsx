@@ -1,16 +1,17 @@
 'use client';
 import { Columns2, DoorOpen, MoveUpRight, RectangleHorizontal, ScanLine, Slash, Shapes } from 'lucide-react';
 import type { EditorTool } from '@/canvas/editor-v2/store';
-import type { Stair } from '@/lib/editor-document/schema';
+import type { Ramp, Stair } from '@/lib/editor-document/schema';
 import styles from './editor.module.css';
 
-export type ConstructionCategory = 'walls' | 'rooms' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs';
+export type ConstructionCategory = 'walls' | 'rooms' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps';
 export interface ConstructionCatalogProps {
   category: ConstructionCategory;
   readOnly: boolean;
   onTool: (tool: EditorTool) => void;
   onShape: (shape: 'L' | 'U' | 'T') => void;
   onAddStair?: (kind: Stair['kind']) => void;
+  onAddRamp?: () => void;
 }
 const entries = {
   walls: { title: 'Dibujar paredes', icon: Slash, label: 'Pared recta', detail: 'Dibuja el contorno de tu espacio', tool: 'wall' },
@@ -21,7 +22,7 @@ const entries = {
 } as const;
 
 /** Only offers construction actions backed by a real command or tool. */
-export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAddStair }: ConstructionCatalogProps) {
+export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAddStair, onAddRamp }: ConstructionCatalogProps) {
   if (category === 'shapes') return <div className={styles.constructionCatalog}>
     <h3>Formas de habitación</h3><p>Empieza con una forma y ajusta sus paredes.</p>
     <div className={styles.constructionCards}>{(['L', 'U', 'T'] as const).map((shape) =>
@@ -37,6 +38,12 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
         <MoveUpRight size={48} aria-hidden="true" /><strong>Escalera {kind === 'straight' ? 'recta' : `en ${kind}`}</strong>
         <small>Añadir al plano</small>
       </button>)}</div>}
+  </div>;
+  if (category === 'ramps') return <div className={styles.constructionCatalog}>
+    <h3>Rampas</h3><p>Superficie inclinada continua para salvar desniveles.</p>
+    {onAddRamp && <div className={styles.constructionCards}><button type="button" disabled={readOnly} onClick={onAddRamp}>
+      <MoveUpRight size={48} aria-hidden="true" /><strong>Rampa recta</strong><small>Añadir al plano</small>
+    </button></div>}
   </div>;
   const item = entries[category], Icon = item.icon;
   return <div className={styles.constructionCatalog}>

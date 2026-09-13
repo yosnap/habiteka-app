@@ -3,18 +3,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import type { EditorDocument, Furniture, Stair } from '@/lib/editor-document/schema';
+import type { EditorDocument, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, transformAroundCenter, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { assertSpatialPlacement, footprint, snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { objectClearances } from '@/canvas/editor-v2/object-clearances';
 import { DimensionMark } from './dimension-mark';
 
-type ObjectItem = Furniture | Stair;
+type ObjectItem = Furniture | Stair | Ramp;
 export function ObjectTransformControls({ store, source, id, scale, onPreview }: {
   store: EditorStore; source: EditorDocument; id: string; scale: number; onPreview: (doc: EditorDocument | null) => void;
 }) {
-  const item = source.furniture.find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id);
+  const item = source.furniture.find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id);
   const group = useRef<Konva.Group>(null);
   const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null } | null>(null);
   const [shown, setShown] = useState<{ item: ObjectItem; error: string | null } | null>(null);
@@ -32,15 +32,20 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   }, [store, source, id, onPreview]);
   if (!item) return null;
   const current = shown?.item ?? item, color = shown?.error ? '#ba302f' : '#087f75';
+  const position = `X ${(current.x / 1000).toFixed(3)} · Y ${(current.y / 1000).toFixed(3)} m`;
+  const measurement = 'riseMm' in current
+    ? `${position} · Ancho ${(current.widthMm / 1000).toFixed(3)} m · Longitud ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`
+    : `${position} · ${(current.widthMm / 1000).toFixed(3)} × ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`;
   const center = objectCenter(current), rotate = localToWorld(current, { x: current.widthMm / 2, y: -40 / scale });
   const begin = (node: Konva.Node) => {
-    const doc = upgradeSpatialDocument(source), base = doc.furniture.find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id)!;
+    const doc = upgradeSpatialDocument(source), base = doc.furniture.find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id) ?? doc.ramps!.find((r) => r.id === id)!;
     gesture.current = { node, doc, item: base, candidate: null, error: null };
   };
   const update = (nextItem: ObjectItem) => {
     const active = gesture.current; if (!active) return;
     const candidate = { ...active.doc, furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
-      stairs: active.doc.stairs!.map((s) => s.id === id ? nextItem as Stair : s) };
+      stairs: active.doc.stairs!.map((s) => s.id === id ? nextItem as Stair : s),
+      ...(active.doc.ramps ? { ramps: active.doc.ramps.map((r) => r.id === id ? nextItem as Ramp : r) } : {}) };
     let error: string | null = null;
     try { assertEditorDocument(candidate); assertSpatialPlacement(source, candidate); }
     catch (cause) { error = cause instanceof Error ? cause.message : 'Transformación inválida'; }
@@ -55,6 +60,10 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   return <Group ref={group}>
     {objectClearances(source, current).map((g, i) => <DimensionMark key={i} scale={scale}
       layout={{ ...g, sourceFrom: g.from, sourceTo: g.to }} />)}
+    <Line points={[center.x - 140 / scale, center.y, center.x + 140 / scale, center.y]} stroke={color} strokeWidth={1 / scale} dash={[5 / scale, 4 / scale]} listening={false} />
+    <Line points={[center.x, center.y - 140 / scale, center.x, center.y + 140 / scale]} stroke={color} strokeWidth={1 / scale} dash={[5 / scale, 4 / scale]} listening={false} />
+    <Text x={center.x + 145 / scale} y={center.y - 7 / scale} text="X" fontSize={11 / scale} fill={color} listening={false} />
+    <Text x={center.x + 5 / scale} y={center.y - 150 / scale} text="Y" fontSize={11 / scale} fill={color} listening={false} />
     <Line points={footprint(current).flatMap((p) => [p.x, p.y])} closed stroke={color} strokeWidth={2 / scale} listening={false} />
     <Group x={item.x} y={item.y} rotation={item.rotation} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
@@ -71,6 +80,7 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
         if (e.evt.shiftKey) rotation = Math.round(rotation / 15) * 15;
         update(transformAroundCenter(active.item, { rotation }));
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(rotate); end(); }} />
+    <Text x={rotate.x + 12 / scale} y={rotate.y - 7 / scale} text="Girar · Mayús: 15°" fontSize={10 / scale} fill={color} listening={false} />
     {footprint(current).map((p, i) => <Circle key={i} x={p.x} y={p.y} radius={6 / scale} fill="white" stroke={color} strokeWidth={2 / scale} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active || !pointer) return;
@@ -79,6 +89,6 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
           depthMm: Math.max(50, Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) * 2) }));
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(p); end(); }} />)}
     <Text x={center.x - 160 / scale} y={Math.max(...footprint(current).map((p) => p.y)) + 20 / scale} width={320 / scale} align="center"
-      fontSize={12 / scale} fill={color} listening={false} text={shown?.error ?? `${(current.widthMm / 10).toFixed(1)} × ${(current.depthMm / 10).toFixed(1)} cm · ${current.rotation.toFixed(1)}°`} />
+      fontSize={12 / scale} fill={color} listening={false} text={shown?.error ?? measurement} />
   </Group>;
 }

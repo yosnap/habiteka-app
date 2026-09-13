@@ -6,7 +6,7 @@ import { commentAnchor } from '@/lib/editor-document/comment-anchor';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
-import { BoxMesh, PolygonMesh } from './scene-meshes';
+import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
 import { CutawayWall } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -55,6 +55,7 @@ function SceneView({ store }: { store: EditorStore }) {
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === box.sourceEntityId)} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall>)}
+          {scene.ramps.map((ramp) => <RampMesh key={ramp.id} ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} />)}
           {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <FurnitureModel key={item.id} item={item}
             boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} />)}
         </group>
@@ -62,6 +63,7 @@ function SceneView({ store }: { store: EditorStore }) {
           {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
             .map((box) => <BoxMesh key={box.id} box={box} selected={false} onSelect={() => {}} />)}
+          {level.scene.ramps.map((ramp) => <RampMesh key={ramp.id} ramp={ramp} selected={false} onSelect={() => {}} />)}
           {level.document.furniture.filter((item) => furnitureAsset(item)).map((item) => <FurnitureModel key={item.id} item={item}
             boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
         </group>)}

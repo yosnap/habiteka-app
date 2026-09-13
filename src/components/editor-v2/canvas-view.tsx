@@ -39,6 +39,12 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       setWallDraw(idleWallDraw()); setGesture(null); setPointer(null);
     }
   }), [store]);
+  useEffect(() => {
+    const element = stage.current?.container();
+    if (element) element.style.cursor = tool === 'wall'
+      ? 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath fill=%27%23087f75%27 d=%27m5 27 3-8L23 4l5 5L13 24z%27/%3E%3Cpath fill=%27white%27 d=%27m10 20 2 2-4 3z%27/%3E%3C/svg%3E") 4 28, crosshair'
+      : '';
+  }, [tool]);
   // ResizeObserver is a real external subscription; callback-ref cleanup releases it on unmount.
   const container = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
@@ -56,7 +62,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       y: point.y - (point.y - view.y) / view.scale * scale });
   };
   const fit = () => {
-    const points = [...doc.vertices, ...[...doc.furniture, ...(doc.stairs ?? [])].flatMap((f) => {
+    const points = [...doc.vertices, ...[...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].flatMap((f) => {
       const angle = f.rotation * Math.PI / 180;
       return [[0, 0], [f.widthMm, 0], [f.widthMm, f.depthMm], [0, f.depthMm]].map(([x, y]) => ({
         x: f.x + x! * Math.cos(angle) - y! * Math.sin(angle),
@@ -177,7 +183,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}
     </div>}
     {!pan && <CanvasSelectionMenu store={store} view={view} size={size} />}
-    {!doc.walls.length && !doc.furniture.length && !doc.stairs?.length && <div className={styles.empty}>
+    {!doc.walls.length && !doc.furniture.length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">

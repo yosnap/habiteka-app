@@ -22,7 +22,7 @@ export function updateFurniture(input: EditorDocument, id: string, patch: Partia
 export function paintElement(input: EditorDocument, id: string, part: string, color: string): EditorDocument {
   const doc = upgradeSpatialDocument(input);
   const wall = doc.walls.find((w) => w.id === id), opening = doc.openings.find((o) => o.id === id);
-  const object = doc.furniture.find((f) => f.id === id) ?? doc.stairs?.find((s) => s.id === id);
+  const object = doc.furniture.find((f) => f.id === id) ?? doc.stairs?.find((s) => s.id === id) ?? doc.ramps?.find((r) => r.id === id);
   if (wall && (part === 'left' || part === 'right')) wall.colors![part] = color;
   else if (opening && (part === 'frame' || part === 'leaf')) opening.colors![part] = color;
   else if (object && part === 'body') object.color = color;

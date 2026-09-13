@@ -40,7 +40,7 @@ function CatalogCard({ variants, onAdd, readOnly }: { variants: FurnitureCatalog
   return <article className={styles.card}>
     <Thumbnail item={item} />
     <h3>{item.label}</h3>
-    <p className={styles.dimensions}>{[item.widthMm, item.depthMm, item.heightMm].map((n) => measure.format(n / 10)).join(' × ')} cm</p>
+    <p className={styles.dimensions}>{[item.widthMm, item.depthMm, item.heightMm].map((n) => measure.format(n / 1000)).join(' × ')} m</p>
     <p className={styles.material}>{item.material} · {item.style}</p>
     {asset && <details className={styles.material}><summary>Modelo GLB · créditos</summary>
       <p>{asset.author} · {asset.license}</p><p>{asset.source}</p>

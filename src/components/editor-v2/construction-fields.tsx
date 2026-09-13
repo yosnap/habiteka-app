@@ -1,10 +1,11 @@
 'use client';
 import { ArrowLeftRight, DoorClosed, DoorOpen, FlipHorizontal2, FlipVertical2 } from 'lucide-react';
-import type { EditorDocument, Opening, Stair, Wall } from '@/lib/editor-document/schema';
-import { setOpeningConstruction, setWallConstruction, updateStair } from '@/lib/editor-document/construction-commands';
+import type { EditorDocument, Opening, Ramp, Stair, Wall } from '@/lib/editor-document/schema';
+import { connectRampArrival, setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
+import { rampLayout } from '@/lib/editor-document/ramp-layout';
 import { openingConstruction, wallConstruction } from '@/lib/editor-document/construction-properties';
 import { stairLayout } from '@/lib/editor-document/stair-layout';
-import { NumberField } from './property-number-field';
+import { MeterField, NumberField } from './property-number-field';
 import styles from './editor.module.css';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { SurfaceMaterialPicker } from './surface-material-picker';
@@ -25,7 +26,7 @@ function MaterialField({ label, value, change }: { label: string; value: string;
 export function WallConstructionFields({ wall, document, edit }: { wall: Wall; document: EditorDocument; edit: Edit }) {
   const properties = wallConstruction(wall);
   return <>
-    <NumberField label="Altura (mm)" value={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
+    <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
     {wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
       value={properties.materials[side]} onChange={(value) => edit((doc) => setWallSurface(doc, wall.id, side, value))} />)}
     <p className={styles.hint}>Acabados independientes en 3D. Cierra la habitación para identificar interior y exterior. Usa Pintar para cambiar el color.</p>
@@ -36,8 +37,8 @@ export function OpeningConstructionFields({ opening, edit }: { opening: Opening;
   const properties = openingConstruction(opening), isDoor = opening.kind === 'puerta';
   return <>
     <div className={styles.fields}>
-      <NumberField label="Altura (mm)" value={properties.heightMm} change={(heightMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { heightMm }))} />
-      <NumberField label="Elevación (mm)" value={properties.elevationMm} change={(elevationMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { elevationMm }))} />
+      <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { heightMm }))} />
+      <MeterField label="Elevación" valueMm={properties.elevationMm} change={(elevationMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { elevationMm }))} />
       {isDoor && <NumberField label="Apertura (°)" value={properties.openAngleDeg} change={(openAngleDeg) => edit((doc) => setOpeningConstruction(doc, opening.id, { openAngleDeg }))} />}
     </div>
     {isDoor && <div className={styles.actions}>
@@ -59,21 +60,52 @@ export function OpeningConstructionFields({ opening, edit }: { opening: Opening;
 }
 
 export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: Edit }) {
-  const fields = [['x', 'X (mm)'], ['y', 'Y (mm)'], ['widthMm', 'Ancho (mm)'], ['depthMm', 'Fondo (mm)'],
-    ['heightMm', 'Altura total (mm)'], ['elevationMm', 'Elevación (mm)'], ['rotation', 'Rotación (°)'], ['stepCount', 'Subidas']] as const;
+  const dimensions = [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
+    ['heightMm', 'Altura total'], ['elevationMm', 'Elevación']] as const;
   const layout = stairLayout(stair);
   return <>
     <label className={styles.field}>Forma<select value={stair.kind} onChange={(event) => edit((doc) =>
       updateStair(doc, stair.id, { kind: event.target.value as Stair['kind'], catalogId: `builtin:stairs-${event.target.value}` }))}>
       <option value="straight">Recta</option><option value="L">En L</option><option value="U">En U</option>
     </select></label>
-    <div className={styles.fields}>{fields.map(([key, label]) => <NumberField key={key} label={label} value={stair[key]}
-      change={(value) => edit((doc) => updateStair(doc, stair.id, { [key]: value }))} />)}</div>
+    <div className={styles.fields}>{dimensions.map(([key, label]) => <MeterField key={key} label={label} valueMm={stair[key]}
+      change={(value) => edit((doc) => updateStair(doc, stair.id, { [key]: value }))} />)}
+      <NumberField label="Rotación (°)" value={stair.rotation} change={(rotation) => edit((doc) => updateStair(doc, stair.id, { rotation }))} />
+      <NumberField label="Subidas" value={stair.stepCount} change={(stepCount) => edit((doc) => updateStair(doc, stair.id, { stepCount }))} /></div>
     <MaterialField label="Material" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
     <button type="button" onClick={() => edit((doc) => {
       const current = doc.stairs!.find((item) => item.id === stair.id)!;
       return updateStair(doc, stair.id, { rotation: (current.rotation + 90) % 360 });
     })}><ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
     <p className={styles.hint}>{layout.steps.length} peldaños y {layout.landings.length} descansillos. Modelo espacial, no certificación constructiva.</p>
+  </>;
+}
+
+export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit }) {
+  const dimensions = [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Longitud'],
+    ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']] as const;
+  const layout = rampLayout(ramp);
+  const landingElevationMm = ramp.elevationMm + ramp.riseMm;
+  return <>
+    <div className={styles.fields}>{dimensions.map(([key, label]) => <MeterField key={key} label={label} valueMm={ramp[key]}
+      change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
+      <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
+    <MaterialField label="Material" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
+    {!ramp.route ? <div className={styles.actions}>{(['left', 'right', 'reverse'] as const).map((turn) => <button key={turn} type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, {
+      route: { landingMm: ramp.widthMm, turn, secondDepthMm: ramp.depthMm, secondRiseMm: ramp.riseMm / 2 },
+    }))}>Añadir descanso · girar {turn === 'left' ? 'izquierda' : turn === 'right' ? 'derecha' : '180°'}</button>)}</div>
+      : <div className={styles.fields}>
+        <MeterField label="Longitud tramo 2" valueMm={ramp.route.secondDepthMm} change={(secondDepthMm) => edit((doc) => updateRamp(doc, ramp.id, { route: { ...ramp.route!, secondDepthMm } }))} />
+        <MeterField label="Cota final tramo 2" valueMm={landingElevationMm + ramp.route.secondRiseMm} change={(finalElevationMm) => edit((doc) => {
+          const secondRiseMm = finalElevationMm - landingElevationMm;
+          if (secondRiseMm <= 0) throw new Error('La cota final debe ser superior a la cota del descanso.');
+          return updateRamp(doc, ramp.id, { route: { ...ramp.route!, secondRiseMm } });
+        })} />
+      </div>}
+    {ramp.route && <p className={styles.hint}>Cota del descanso e inicio del tramo 2: {(landingElevationMm / 1000).toFixed(2)} m. Cota final: {((landingElevationMm + ramp.route.secondRiseMm) / 1000).toFixed(2)} m.</p>}
+    <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { rotation: (ramp.rotation + 90) % 360 }))}>
+      <ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
+    <button type="button" onClick={() => edit((doc) => connectRampArrival(doc, ramp.id))}>Acoplar llegada: suelo + hueco</button>
+    <p className={styles.hint}>Pendiente {layout.slopePercent.toFixed(1)}% ({layout.angleDeg.toFixed(1)}°). Modelo espacial, no certificación constructiva.</p>
   </>;
 }

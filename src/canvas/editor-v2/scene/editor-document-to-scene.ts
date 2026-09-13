@@ -4,6 +4,7 @@ import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from '
 import { wallMeshes, junctionMeshes } from './wall-meshes';
 import { openingMeshes } from './opening-meshes';
 import { stairMeshes } from './stair-meshes';
+import { rampMesh } from './ramp-meshes';
 import { furnitureSpatial, localToWorld } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { floorMeshes } from './floor-meshes';
@@ -28,7 +29,7 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
     });
     floors = floorMeshes(doc, rooms, walls, [...joins, ...curves]);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
-  return { warnings, exteriorWalls, polygons: [...floors, ...joins, ...curves], boxes: [
+  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...floors, ...joins, ...curves], boxes: [
     ...walls, ...doc.openings.flatMap((o) => openingMeshes(doc, o)),
     ...(doc.stairs ?? []).flatMap(stairMeshes),
     ...doc.furniture.flatMap((f) => furnitureVolumes(f).map((volume, index) => {

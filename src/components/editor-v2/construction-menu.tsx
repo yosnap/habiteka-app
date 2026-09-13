@@ -17,6 +17,7 @@ const structureCategories = [
   { id: 'doors', label: 'Puertas', icon: DoorOpen },
   { id: 'windows', label: 'Ventanas', icon: Columns2 },
   { id: 'passages', label: 'Huecos', icon: ScanLine },
+  { id: 'ramps', label: 'Rampas', icon: MoveUpRight },
 ] as const;
 
 export function ConstructionMenu({ onClose, onImport, ...catalogProps }: ConstructionMenuProps) {

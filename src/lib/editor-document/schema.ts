@@ -8,10 +8,13 @@ export interface Vertex extends Point {
 }
 export interface Wall {
   id: string;
+  name?: string;
   startVertexId: string;
   endVertexId: string;
   thicknessMm: number;
   dimensionalOrigin: DimensionalOrigin;
+  /** Wall base level; its configured height is measured from this finished floor. */
+  baseElevationMm?: number;
   heightMm?: number;
   materials?: { left: string; right: string };
   colors?: { left: string; right: string };
@@ -20,6 +23,7 @@ export interface Wall {
 }
 export interface Opening {
   id: string;
+  name?: string;
   wallId: string;
   kind: 'puerta' | 'ventana' | 'hueco';
   /** Normalized center measured from the oriented wall start. */
@@ -35,9 +39,12 @@ export interface Opening {
   swing?: 'left' | 'right';
   openAngleDeg?: number;
   colors?: { frame: string; leaf: string };
+  /** Opening generated when a ramp is connected to a raised floor. */
+  sourceRampId?: string;
 }
 export interface Stair extends Point {
   id: string;
+  name?: string;
   kind: 'straight' | 'L' | 'U';
   catalogId: string;
   widthMm: number;
@@ -49,8 +56,33 @@ export interface Stair extends Point {
   materialId: string;
   color?: string;
 }
+/** A continuous inclined circulation surface, measured from its lower edge. */
+export interface RampRoute {
+  landingMm: number;
+  turn: 'left' | 'right' | 'reverse';
+  secondDepthMm: number;
+  secondRiseMm: number;
+  landingOffset?: Point;
+  secondOffset?: Point;
+}
+export interface Ramp extends Point {
+  id: string;
+  name?: string;
+  catalogId: string;
+  widthMm: number;
+  depthMm: number;
+  /** Rise of the first flight, measured from its lower edge. */
+  riseMm: number;
+  elevationMm: number;
+  rotation: number;
+  materialId: string;
+  color?: string;
+  /** Optional second flight joined by a square landing; its rise is additive. */
+  route?: RampRoute;
+}
 export interface Furniture extends Point {
   id: string;
+  name?: string;
   kind: string;
   catalogId?: string;
   widthMm: number;
@@ -83,6 +115,13 @@ export interface FloorFinish {
   texture: 'none' | 'wood' | 'tile' | `polyhaven:${string}`;
   tileSizeMm: number;
   rotation: number;
+  /** Finished floor level above the active level's base plane. */
+  elevationMm?: number;
+  /** Structural depth below the finished surface. Omit it to create a solid podium down to the level base. */
+  slabThicknessMm?: number;
+  /** Finish exposed on the underside and vertical faces of an elevated floor. */
+  undersideColor?: string;
+  undersideTexture?: 'none' | 'wood' | 'tile' | `polyhaven:${string}`;
 }
 /** Active level uses root collections; inactive levels retain an isolated document. */
 export interface BuildingLevel {
@@ -92,7 +131,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5;
+  schemaVersion: 2 | 3 | 4 | 5 | 6;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
@@ -103,6 +142,7 @@ export interface EditorDocument {
   dimensions: Dimension[];
   labels: Label[];
   stairs?: Stair[];
+  ramps?: Ramp[];
   comments?: ElementComment[];
   floorFinishes?: FloorFinish[];
   levels?: BuildingLevel[];

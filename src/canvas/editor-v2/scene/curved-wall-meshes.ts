@@ -7,7 +7,8 @@ import { meters, materialColor, type ScenePolygon } from './types';
 /** A continuous annular strip, with opening intervals removed by height band. */
 export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[] {
   if (!wall.curveHeightMm) return [];
-  const length = wallPath(doc, wall).length, construction = wallConstruction(wall), height = construction.heightMm;
+  const length = wallPath(doc, wall).length, construction = wallConstruction(wall), base = wall.baseElevationMm ?? 0,
+    height = construction.heightMm, ceiling = base + height;
   const openings = doc.openings.filter((o) => o.wallId === wall.id).map((o) => ({
     from: o.position - o.widthMm / length / 2, to: o.position + o.widthMm / length / 2,
     bottom: openingConstruction(o).elevationMm, top: openingConstruction(o).elevationMm + openingConstruction(o).heightMm,
@@ -18,7 +19,7 @@ export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[
     const points = wallStrip(doc, wall, from, to), count = points.length / 2;
     polygons.push({ id: `${wall.id}:curve:${polygons.length}`, sourceEntityId: wall.id, role: 'wall',
       points: points.map((p) => ({ x: meters(p.x), y: meters(p.y) })), elevation: meters(bottom), height: meters(top - bottom),
-      color: '#d8d5ce', topColor: top === height ? WALL_PLAN_COLOR : '#d8d5ce',
+      color: '#d8d5ce', topColor: top === ceiling ? WALL_PLAN_COLOR : '#d8d5ce',
       edgeFinishes: points.map((_, i) => ({ sourceEntityId: wall.id,
         materialId: i === count - 1 || i === points.length - 1 ? undefined : i < count ? construction.materials.left : construction.materials.right,
         offsetX: meters(length * (from + (to - from) * (i < count ? i : points.length - 1 - i) / (count - 1))),
@@ -29,7 +30,8 @@ export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[
     });
   };
   let cursor = 0;
-  for (const o of openings) { add(cursor, o.from, 0, height); add(o.from, o.to, 0, o.bottom); add(o.from, o.to, o.top, height); cursor = o.to; }
-  add(cursor, 1, 0, height);
+  for (const o of openings) { add(cursor, o.from, base, ceiling); add(o.from, o.to, base, Math.min(ceiling, Math.max(base, o.bottom)));
+    add(o.from, o.to, Math.max(base, o.top), ceiling); cursor = o.to; }
+  add(cursor, 1, base, ceiling);
   return polygons;
 }

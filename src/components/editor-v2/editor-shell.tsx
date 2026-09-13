@@ -5,7 +5,7 @@ import { useStore } from 'zustand';
 import { Box, Download, Save, SlidersHorizontal, Square, Type, Undo2, Redo2, X } from 'lucide-react';
 import type { EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import type { Point, Stair } from '@/lib/editor-document/schema';
-import { addStair } from '@/lib/editor-document/construction-commands';
+import { addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import { addFurniture, addWallPath, deleteEntities, editDocument, newId, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { Toolbar } from './toolbar';
 import { Inspector } from './inspector';
@@ -68,6 +68,14 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
     store.getState().apply(placeNewObject(source, candidate, id));
     store.getState().select([id]);
   });
+  const insertRamp = () => run(() => {
+    if (store.getState().readOnly) return;
+    chooseTool('select');
+    const id = newId(), source = store.getState().document;
+    const candidate = addRamp(source, { id, catalogId: 'builtin:ramp-straight', x: center.x - 600, y: center.y - 7500,
+      widthMm: 1200, depthMm: 15000, riseMm: 1200, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' });
+    store.getState().apply(placeNewObject(source, candidate, id)); store.getState().select([id]);
+  });
   const toolLabel = { select: 'Seleccionar', wall: 'Dibujar paredes', rectangle: 'Dibujar habitación',
     door: 'Colocar puerta', window: 'Colocar ventana', passage: 'Colocar hueco', measure: 'Medir distancia', 'split-wall': 'Añadir esquina' };
   return <section className={styles.shell} aria-label={`Editor de ${projectName}`} onKeyDown={(e) => {
@@ -117,7 +125,8 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
     <div className={styles.workspace}>
       <Toolbar store={store} constructionOpen={construction} catalogOpen={catalog} constructionButtonRef={constructionButton}
         onConstruction={() => { if (!construction) store.getState().setTool('select'); setConstruction(!construction); setCatalog(false); setInspector(false); }}
-        onCatalog={() => { if (!catalog) store.getState().setTool('select'); setCatalog(!catalog); setConstruction(false); setInspector(false); }} onSelectTool={() => chooseTool('select')} />
+        onCatalog={() => { if (!catalog) store.getState().setTool('select'); setCatalog(!catalog); setConstruction(false); setInspector(false); }}
+        onSelectTool={() => chooseTool('select')} />
       <div className={styles.canvasHost} hidden={mode !== '2d'} ref={canvasHost} onPointerDownCapture={() => { if (construction) setConstruction(false); }}>
         <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} />
       </div>
@@ -126,7 +135,7 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
         onTool={chooseTool} onShape={(shape) => run(() => {
           if (store.getState().readOnly) return;
           store.getState().apply(addWallPath(store.getState().document, shapePoints(shape, center), true)); chooseTool('select');
-        })} onAddStair={insertStair} />}
+        })} onAddStair={insertStair} onAddRamp={insertRamp} />}
       <div className={styles.sidebar} data-open={inspector || catalog} style={catalog ? { width: 336 } : undefined}>
         {catalog ? <CatalogPanel readOnly={readOnly} onClose={() => setCatalog(false)} onAdd={(item) => run(() => {
           if (store.getState().readOnly) return;

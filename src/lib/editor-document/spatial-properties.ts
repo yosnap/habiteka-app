@@ -20,6 +20,16 @@ export function upgradeSpatialDocument(input: EditorDocument): EditorDocument {
   doc.comments = [];
   return parseEditorDocument(doc);
 }
+
+/** Explicit edit migration for the ramp collection; old documents are unchanged until editing it. */
+export function upgradeRampDocument(input: EditorDocument): EditorDocument {
+  const doc = upgradeSpatialDocument(input);
+  if (doc.schemaVersion >= 6) return doc;
+  doc.schemaVersion = 6;
+  doc.floorFinishes ??= [];
+  doc.ramps = [];
+  return parseEditorDocument(doc);
+}
 export interface Footprint extends Point { widthMm: number; depthMm: number; rotation: number }
 export function localToWorld(item: Footprint, point: Point): Point {
   const a = item.rotation * Math.PI / 180;

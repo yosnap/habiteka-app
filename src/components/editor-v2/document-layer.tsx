@@ -21,6 +21,7 @@ import { wallDimensionLayout } from '@/canvas/editor-v2/dimension-layout';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { DimensionMark } from './dimension-mark';
 import { StairLayer } from './stair-layer';
+import { RampLayer } from './ramp-layer';
 import { OpeningLayer } from './opening-layer';
 import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
 import { floorFinish } from '@/lib/editor-document/floor-finishes';
@@ -81,6 +82,7 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
     })}
     <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
+    <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     {doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select' && !selected.includes(f.id)} onDragStart={() => store.getState().select([])}
       onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>

@@ -7,6 +7,7 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { wallConstruction, openingConstruction } from '@/lib/editor-document/construction-properties';
 import { finishColor, furnitureSpatial, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
+import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 
 export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
@@ -106,28 +107,30 @@ export function interiorPoint(polygon: Point[]): Point {
 export function deleteEntities(doc: EditorDocument, ids: string[]) {
   return editDocument(doc, (next) => {
     next.walls = next.walls.filter((w) => !ids.includes(w.id));
-    next.openings = next.openings.filter((o) => !ids.includes(o.id) && next.walls.some((w) => w.id === o.wallId));
+    next.openings = next.openings.filter((o) => !ids.includes(o.id) && !ids.includes(o.sourceRampId ?? '') && next.walls.some((w) => w.id === o.wallId));
     next.furniture = next.furniture.filter((o) => !ids.includes(o.id));
     next.labels = next.labels.filter((o) => !ids.includes(o.id));
     next.dimensions = next.dimensions.filter((o) => !ids.includes(o.id));
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));
+    if (next.ramps) next.ramps = next.ramps.filter((o) => !ids.includes(o.id));
     if (next.comments) {
-      const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? [])].map((e) => e.id));
+      const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? [])].map((e) => e.id));
       next.comments = next.comments.filter((c) => retained.has(c.targetEntityId));
     }
     next.vertices = next.vertices.filter((v) => next.walls.some((w) => w.startVertexId === v.id || w.endVertexId === v.id));
   });
 }
 export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
-  const spatial = [...doc.furniture, ...(doc.stairs ?? [])].some((f) => f.id === id);
-  return editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
+  const spatial = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((f) => f.id === id);
+  const moved = editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
     const wall = next.walls.find((w) => w.id === id);
     if (wall) next.vertices.filter((v) => v.id === wall.startVertexId || v.id === wall.endVertexId)
       .forEach((v) => { v.x += delta.x; v.y += delta.y; });
     const item = next.furniture.find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
-      ?? next.stairs?.find((f) => f.id === id);
+      ?? next.stairs?.find((f) => f.id === id) ?? next.ramps?.find((f) => f.id === id);
     if (item) { item.x += delta.x; item.y += delta.y; }
   });
+  return moved.ramps?.some((ramp) => ramp.id === id) ? syncRampArrival(moved, id) : moved;
 }
 export function shapePoints(kind: 'L' | 'U' | 'T', p: Point): Point[] {
   const paths = {

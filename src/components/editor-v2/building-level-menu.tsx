@@ -4,7 +4,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { addBuildingLevel, removeBuildingLevel, switchBuildingLevel, updateBuildingLevel } from '@/lib/editor-document/building-levels';
-import { NumberField } from './property-number-field';
+import { MeterField } from './property-number-field';
 
 export function BuildingLevelMenu({ store }: { store: EditorStore }) {
   const state = useStore(store), [open, setOpen] = useState(false), [confirm, setConfirm] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function BuildingLevelMenu({ store }: { store: EditorStore }) {
         {current && <>
           <label>Nombre <input key={`${current.id}:${current.name}`} aria-label="Nombre de planta" defaultValue={current.name} maxLength={80}
             onBlur={(e) => { if (e.target.value !== current.name) run((d) => updateBuildingLevel(d, current.id, { name: e.target.value })); }} /></label>
-          <NumberField label="Altura entre plantas (cm)" value={current.heightMm / 10} change={(height) => run((d) => updateBuildingLevel(d, current.id, { heightMm: height * 10 }))} />
+          <MeterField label="Altura entre plantas" valueMm={current.heightMm} change={(heightMm) => run((d) => updateBuildingLevel(d, current.id, { heightMm }))} />
         </>}
         <button onClick={() => run((d) => addBuildingLevel(d))}>Nueva planta vacía</button>
         <button onClick={() => run((d) => addBuildingLevel(d, true))}>Duplicar planta actual</button>

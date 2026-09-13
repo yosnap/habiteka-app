@@ -4,7 +4,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { FloorFinish } from '@/lib/editor-document/schema';
 import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { NumberField } from './property-number-field';
+import { MeterField, NumberField } from './property-number-field';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 
@@ -30,7 +30,14 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
         texture: (id ?? 'none') as FloorFinish['texture'], color: '#ffffff',
         tileSizeMm: surfaceMaterial(id)?.sizeMm[0] ?? 600,
       })} />
-      <NumberField label="Tamaño de repetición (cm)" value={finish.tileSizeMm / 10} change={(value) => update({ tileSizeMm: value * 10 })} />
+      <MeterField label="Cota del suelo" valueMm={finish.elevationMm ?? 0} change={(elevationMm) => update({ elevationMm })} />
+      {(finish.elevationMm ?? 0) > 0 && <>
+        <MeterField label="Grosor del forjado" valueMm={finish.slabThicknessMm ?? finish.elevationMm!} change={(slabThicknessMm) => update({ slabThicknessMm })} />
+        <small style={{ color: '#5d665f' }}>Reducirlo deja espacio para una planta o bodega inferior.</small>
+        <label>Color inferior <input type="color" aria-label="Color inferior del forjado" value={finish.undersideColor ?? '#756f66'} onChange={(e) => update({ undersideColor: e.target.value })} /></label>
+        <SurfaceMaterialPicker label="Cara inferior del forjado" value={finish.undersideTexture} onChange={(undersideTexture) => update({ undersideTexture: (undersideTexture ?? 'none') as FloorFinish['texture'] })} />
+      </>}
+      <MeterField label="Tamaño de repetición" valueMm={finish.tileSizeMm} change={(tileSizeMm) => update({ tileSizeMm })} />
       <NumberField label="Giro de textura (°)" value={finish.rotation} change={(rotation) => update({ rotation })} />
     </fieldset>
   </section>;

@@ -3,6 +3,8 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addOpening, addWallPath, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { polygonArea } from '@/lib/editor-document/geometry';
+import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
+import { deriveRooms } from '@/lib/editor-document/rooms';
 
 const rectangle = () => addWallPath(emptyEditorDocument(), [
   { x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 },
@@ -23,6 +25,15 @@ describe('interior finished floor', () => {
     const floor = editorDocumentToScene(doc).polygons.find((p) => p.role === 'floor')!;
     expect(Math.min(...floor.points.map((p) => p.y))).toBe(.15);
     expect(Math.min(...floor.points.map((p) => p.x))).toBe(.075);
+  });
+  it('projects an elevated room as a solid podium by default, or as an explicit structural slab', () => {
+    const source = rectangle(), room = deriveRooms(source)[0]!;
+    const solid = setFloorFinish(source, room.id, { elevationMm: 1800 });
+    const podium = editorDocumentToScene(solid).polygons.find((p) => p.sourceEntityId === room.id)!;
+    expect(podium).toMatchObject({ elevation: 0, height: 1.8 });
+    const slab = setFloorFinish(solid, room.id, { slabThicknessMm: 250, undersideColor: '#123456' });
+    const structural = editorDocumentToScene(slab).polygons.find((p) => p.sourceEntityId === room.id)!;
+    expect(structural).toMatchObject({ elevation: 1.55, height: .25, sideColor: '#123456' });
   });
   it('keeps door thresholds at floor level but clips solid window sills', () => {
     for (const kind of ['puerta', 'ventana'] as const) {

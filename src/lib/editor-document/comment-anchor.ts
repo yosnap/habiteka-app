@@ -12,9 +12,9 @@ export function commentAnchor(doc: EditorDocument, comment: ElementComment) {
     const props = openingConstruction(opening);
     return { ...wallPath(doc, host).at(opening.position), elevationMm: props.elevationMm + props.heightMm };
   }
-  const object = doc.furniture.find((f) => f.id === comment.targetEntityId) ?? doc.stairs?.find((s) => s.id === comment.targetEntityId);
+  const object = doc.furniture.find((f) => f.id === comment.targetEntityId) ?? doc.stairs?.find((s) => s.id === comment.targetEntityId) ?? doc.ramps?.find((r) => r.id === comment.targetEntityId);
   if (!object) return null;
-  const props = 'stepCount' in object ? object : furnitureSpatial(object);
+  const props = 'stepCount' in object ? object : 'riseMm' in object ? { elevationMm: object.elevationMm, heightMm: object.riseMm } : furnitureSpatial(object);
   return { ...localToWorld(object, { x: comment.anchor.x * object.widthMm, y: comment.anchor.y * object.depthMm }),
     elevationMm: props.elevationMm + props.heightMm };
 }

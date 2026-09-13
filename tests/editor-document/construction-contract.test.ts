@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { emptyEditorDocument, type Stair } from '@/lib/editor-document/schema';
+import { emptyEditorDocument, type Ramp, type Stair } from '@/lib/editor-document/schema';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
-import { addStair, setOpeningConstruction, setWallConstruction, updateStair, removeStair } from '@/lib/editor-document/construction-commands';
+import { addRamp, addStair, setOpeningConstruction, setWallConstruction, updateRamp, updateStair, removeRamp, removeStair } from '@/lib/editor-document/construction-commands';
 import { stairLayout } from '@/lib/editor-document/stair-layout';
+import { rampLayout } from '@/lib/editor-document/ramp-layout';
+import { rampParts } from '@/lib/editor-document/ramp-route';
+import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 
 function fixture() {
   const doc = emptyEditorDocument();
@@ -16,6 +19,8 @@ function fixture() {
 const stair: Stair = { id: 's', kind: 'U', catalogId: 'stair-U', x: 200, y: 300,
   widthMm: 2200, depthMm: 3000, heightMm: 2700, elevationMm: 0, rotation: 37,
   stepCount: 16, materialId: 'wood-oak' };
+const ramp: Ramp = { id: 'r', catalogId: 'builtin:ramp-straight', x: 200, y: 300,
+  widthMm: 1200, depthMm: 15000, riseMm: 1200, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' };
 
 describe('construction v3 contract', () => {
   it('reads immutable v2 exactly and upgrades only explicitly with deterministic defaults', () => {
@@ -72,5 +77,35 @@ describe('construction v3 contract', () => {
     expect(() => addStair(fixture(), { ...stair, stepCount: 2 })).toThrow();
     expect(() => addStair(fixture(), { ...stair, depthMm: 500 })).toThrow();
     expect(() => addStair(fixture(), { ...stair, heightMm: NaN })).toThrow();
+  });
+  it('stores a continuous ramp with its real rise and computed slope', () => {
+    const added = addRamp(fixture(), ramp);
+    expect(added.schemaVersion).toBe(6);
+    expect(added.ramps).toEqual([{ ...ramp, color: '#a6a6a0' }]);
+    expect(rampLayout(added.ramps![0]!).slopePercent).toBe(8);
+    expect(editorDocumentToScene(added).ramps[0]).toMatchObject({ sourceEntityId: 'r', width: 1.2, depth: 15, rise: 1.2 });
+    const updated = updateRamp(added, 'r', { depthMm: 12000, riseMm: 1200 });
+    expect(rampLayout(updated.ramps![0]!).slopePercent).toBe(10);
+    const routeCases = [
+      { turn: 'left' as const, rotation: -90, x: -6000, y: 0 },
+      { turn: 'right' as const, rotation: 90, x: 7200, y: -1200 },
+      { turn: 'reverse' as const, rotation: 180, x: 1200, y: 0 },
+    ];
+    for (const expected of routeCases) {
+      const routed = updateRamp(updated, 'r', { route: { landingMm: 1500, turn: expected.turn, secondDepthMm: 6000, secondRiseMm: 400 } });
+      expect(editorDocumentToScene(routed).ramps).toHaveLength(3);
+      const [first, landing, second] = rampParts(routed.ramps![0]!);
+      const routedScene = editorDocumentToScene(routed);
+      expect(landing).toMatchObject({ x: 0, y: -routed.ramps![0]!.widthMm });
+      expect(landing!.depthMm).toBe(routed.ramps![0]!.widthMm);
+      expect(landing!.elevationMm).toBe(routed.ramps![0]!.elevationMm + routed.ramps![0]!.riseMm);
+      expect(second!.elevationMm).toBe(landing!.elevationMm);
+      expect(second!.riseMm).toBe(400);
+      expect(routedScene.ramps[1]).toMatchObject({ position: expect.arrayContaining([expect.any(Number), 0]), baseHeight: 1.2 });
+      expect(routedScene.ramps[2]).toMatchObject({ position: expect.arrayContaining([expect.any(Number), 0]), baseHeight: 1.2 });
+      expect(second).toMatchObject({ rotation: expected.rotation, x: expected.x, y: expected.y });
+    }
+    expect(removeRamp(updated, 'r').ramps).toEqual([]);
+    expect(() => addRamp(fixture(), { ...ramp, riseMm: 0 })).toThrow('Dimensión no positiva');
   });
 });
