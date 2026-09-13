@@ -12,6 +12,8 @@
  */
 import sharp from 'sharp';
 import type { CanvasDoc, StructObj } from '@/canvas/types';
+import { selectionAabb } from '@/canvas/floating-menu-anchor';
+import { furnitureDetailSvg } from './furniture-svg';
 
 // Lado mayor del PNG; el otro se deriva de la proporción de la sala. Acotado para
 // no inflar el payload base64 enviado al proveedor.
@@ -43,11 +45,16 @@ function roomBounds(doc: CanvasDoc) {
   const src = doc.objects.filter((o) => o.kind === 'wall');
   const objs = src.length ? src : doc.objects;
   if (objs.length === 0) return { x: 0, y: 0, w: MAX_SIDE, h: MAX_SIDE };
-  const minX = Math.min(...objs.map((o) => o.x));
-  const minY = Math.min(...objs.map((o) => o.y));
-  const maxX = Math.max(...objs.map((o) => o.x + o.width));
-  const maxY = Math.max(...objs.map((o) => o.y + o.height));
-  return { x: minX - PADDING, y: minY - PADDING, w: maxX - minX + 2 * PADDING, h: maxY - minY + 2 * PADDING };
+  const bounds = selectionAabb(
+    objs,
+    objs.map((o) => o.id),
+  )!;
+  return {
+    x: bounds.x - PADDING,
+    y: bounds.y - PADDING,
+    w: bounds.width + 2 * PADDING,
+    h: bounds.height + 2 * PADDING,
+  };
 }
 
 /** Aproxima la proporción a una fracción simple legible para el proveedor. */
@@ -62,17 +69,14 @@ export function toAspectRatio(w: number, h: number): string {
     ['2:3', 2 / 3],
     ['9:16', 9 / 16],
   ];
-  return candidates.reduce((best, c) =>
-    Math.abs(c[1] - r) < Math.abs(best[1] - r) ? c : best,
-  )[0];
+  return candidates.reduce((best, c) => (Math.abs(c[1] - r) < Math.abs(best[1] - r) ? c : best))[0];
 }
 
 function docToSvg(doc: CanvasDoc, room: { x: number; y: number; w: number; h: number }): string {
   const rects = doc.objects
     .map((o) => {
-      const cx = o.x + o.width / 2;
-      const cy = o.y + o.height / 2;
-      return `<g transform="rotate(${o.rotation} ${cx} ${cy})"><rect x="${o.x}" y="${o.y}" width="${o.width}" height="${o.height}" fill="${fillFor(o.kind)}" stroke="#000" stroke-width="1.5" opacity="0.92"/></g>`;
+      // Konva rota sobre x/y: cambiar el pivote desplaza muros y mobiliario.
+      return `<g transform="rotate(${o.rotation} ${o.x} ${o.y})"><rect x="${o.x}" y="${o.y}" width="${o.width}" height="${o.height}" fill="${fillFor(o.kind)}" stroke="#000" stroke-width="1.5"/>${furnitureDetailSvg(o)}</g>`;
     })
     .join('');
   // El viewBox encuadra la sala: el PNG conserva su proporción real.

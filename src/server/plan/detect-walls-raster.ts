@@ -14,6 +14,7 @@
  * fallback a los muros del modelo.
  */
 import sharp from 'sharp';
+import { filterSheetFrame } from './filter-sheet-frame';
 import type { SketchWall } from '@/server/ai/sketch/sketch-types';
 
 // Lado máximo del raster de análisis: suficiente resolución, coste acotado.
@@ -24,7 +25,7 @@ const DARK_THRESHOLD = 165;
 // Un tramo de pared ocupa al menos este porcentaje del lado de la imagen.
 const MIN_RUN_RATIO = 0.05;
 // Banda más gruesa que esto no es una pared (mancha, mueble relleno, foto).
-const MAX_THICKNESS_RATIO = 0.035;
+const MAX_THICKNESS_RATIO = 0.08;
 // Grosor mínimo (px). 1: los tabiques dibujados finos quedan en ~1 px tras el
 // reescalado; el TEXTO no cuela porque sus trazos no superan el largo mínimo.
 const MIN_THICKNESS_PX = 1;
@@ -67,7 +68,7 @@ export async function detectWallsFromImage(image: Buffer): Promise<DetectedWalls
     const x = (band.startLine + band.endLine) / 2 / w;
     walls.push({ x1: x, y1: band.lo / h, x2: x, y2: band.hi / h });
   }
-  return { walls, heightOverWidth: h / w };
+  return { walls: filterSheetFrame(walls), heightOverWidth: h / w };
 }
 
 interface Band {
@@ -100,7 +101,13 @@ function scanBands(
       if (active[i]!.lastLine < s - 1) done.push(...active.splice(i, 1));
     }
     for (const run of findRuns((p) => isDark(p, s), primary, minRun)) {
-      const band = active.find((b) => Math.min(run.hi, b.hi) - Math.max(run.lo, b.lo) > 0);
+      const band = active.find((b) => {
+        const overlap = Math.min(run.hi, b.hi) - Math.max(run.lo, b.lo);
+        const longer = Math.max(run.hi - run.lo, b.hi - b.lo);
+        // Una fachada larga no debe continuar por el canto corto del muro
+        // perpendicular: fusionaría el marco entero en una mancha descartada.
+        return overlap > longer * 0.5;
+      });
       if (band) {
         band.lo = Math.min(band.lo, run.lo);
         band.hi = Math.max(band.hi, run.hi);
@@ -115,7 +122,11 @@ function scanBands(
 
   return done.filter((b) => {
     const thickness = b.endLine - b.startLine + 1;
-    return thickness >= MIN_THICKNESS_PX && thickness <= maxThickness && b.hi - b.lo >= minRun;
+    return (
+      thickness >= MIN_THICKNESS_PX &&
+      thickness <= maxThickness &&
+      b.hi - b.lo >= Math.max(minRun, thickness * 3)
+    );
   });
 }
 

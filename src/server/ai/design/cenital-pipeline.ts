@@ -71,11 +71,25 @@ export async function generateCenital(
  */
 export async function generateCenitalFromImage(
   deps: { image: CenitalDeps['image'] },
-  source: { base64: string; mimeType?: string },
+  source: { base64: string; mimeType?: string; aspectRatio?: string },
   estilo: Estilo,
+  /** Detalles del propietario (mobiliario real, singularidades por estancia). */
+  ownerNotes = '',
+  canvasDescription?: string,
 ): Promise<ImageResult> {
   return deps.image.generate({
-    prompt: buildCenitalImagePrompt(estilo),
+    prompt: canvasDescription
+      ? [
+          'Convierte esta planta AMUEBLADA en una fotografía cenital estricta, ortográfica, sin techo.',
+          'Mantén todos los objetos exactamente donde están, con la misma orientación y tamaño.',
+          'Solo las franjas oscuras perimetrales son muros. Los rectángulos beige son MUEBLES, nunca tabiques.',
+          'No añadas muros, habitaciones, puertas, ventanas ni muebles no dibujados. No copies líneas de dibujo ni textos.',
+          `Materiales e interiorismo de estilo ${estilo}.`,
+          canvasDescription,
+          ownerNotes.slice(0, 800),
+        ].join('\n')
+      : buildCenitalImagePrompt(estilo, ownerNotes),
     referenceImage: { base64: source.base64, mimeType: source.mimeType ?? 'image/png' },
+    ...(source.aspectRatio ? { aspectRatio: source.aspectRatio } : {}),
   });
 }

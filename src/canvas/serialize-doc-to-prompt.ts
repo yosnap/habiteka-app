@@ -17,6 +17,7 @@ import {
   DEFAULT_CEILING_M,
 } from './scale';
 import { isLight, describeLight } from './light';
+import { selectionAabb } from './floating-menu-anchor';
 
 /** Bounding box que envuelve un conjunto de objetos. */
 interface Bounds {
@@ -27,11 +28,12 @@ interface Bounds {
 }
 
 function boundsOf(objects: StructObj[]): Bounds {
+  const box = selectionAabb(objects, objects.map((o) => o.id))!;
   return {
-    minX: Math.min(...objects.map((o) => o.x)),
-    minY: Math.min(...objects.map((o) => o.y)),
-    maxX: Math.max(...objects.map((o) => o.x + o.width)),
-    maxY: Math.max(...objects.map((o) => o.y + o.height)),
+    minX: box.x,
+    minY: box.y,
+    maxX: box.x + box.width,
+    maxY: box.y + box.height,
   };
 }
 
@@ -39,8 +41,9 @@ function boundsOf(objects: StructObj[]): Bounds {
 function positionLabel(o: StructObj, room: Bounds): string {
   const w = room.maxX - room.minX || 1;
   const h = room.maxY - room.minY || 1;
-  const cx = (o.x + o.width / 2 - room.minX) / w; // 0..1 de izquierda a derecha
-  const cy = (o.y + o.height / 2 - room.minY) / h; // 0..1 de arriba a abajo
+  const box = selectionAabb([o], [o.id])!;
+  const cx = (box.x + box.width / 2 - room.minX) / w;
+  const cy = (box.y + box.height / 2 - room.minY) / h;
   const band = (v: number, low: string, mid: string, high: string) =>
     v < 0.33 ? low : v > 0.67 ? high : mid;
   // En planta: "arriba" es la pared del fondo; "abajo", la pared frontal (cercana).

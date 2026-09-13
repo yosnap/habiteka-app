@@ -12,6 +12,10 @@ describe('redrawPlanPrompt', () => {
     expect(p).toContain('EXACTAMENTE la misma distribución');
     expect(p).toContain('PROHIBIDO');
     expect(p).toContain('cotas o medidas que no estén escritas');
+    // Solo estructura: el mobiliario dibujado (fregaderos, camas) contaminaba
+    // la detección de muros al extraer la geometría.
+    expect(p).toContain('SOLO ESTRUCTURA');
+    expect(p).toContain('puramente');
   });
 });
 

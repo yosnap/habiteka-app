@@ -128,11 +128,21 @@ export function computeWallMiters(walls: StructObj[]): Map<string, WallMiter> {
           const pb = bEnd === 'p1' ? b.geom.p1 : b.geom.p2;
           if (Math.hypot(pa.x - pb.x, pa.y - pb.y) > SNAP_DIST) continue;
 
-          // Bisectriz mundial de las normales de ambos muros (convexa o cóncava)
-          const bx = a.geom.nx + b.geom.nx;
-          const by = a.geom.ny + b.geom.ny;
+          // Bisectriz desde las DIRECCIONES que se alejan del vértice, no desde
+          // las normales: la normal de un muro dibujado/importado tiene sentido
+          // arbitrario (según el orden p1→p2 del segmento) y una normal
+          // invertida espejaba el corte — esquinas rotas. La dirección "hacia el
+          // otro extremo" es inequívoca, y el corte resultante es invariante al
+          // signo global de la bisectriz (wallPolygon usa la pendiente lbx/lby).
+          const oa = aEnd === 'p1' ? a.geom.p2 : a.geom.p1;
+          const ob = bEnd === 'p1' ? b.geom.p2 : b.geom.p1;
+          const la = Math.hypot(oa.x - pa.x, oa.y - pa.y);
+          const lb = Math.hypot(ob.x - pb.x, ob.y - pb.y);
+          if (la < 1e-6 || lb < 1e-6) continue;
+          const bx = (oa.x - pa.x) / la + (ob.x - pb.x) / lb;
+          const by = (oa.y - pa.y) / la + (ob.y - pb.y) / lb;
           const len = Math.hypot(bx, by);
-          if (len < 0.01) continue; // muros antiparalelos: sin inglete
+          if (len < 0.01) continue; // continuación colineal: sin inglete
 
           const ubx = bx / len, uby = by / len;
 

@@ -42,17 +42,39 @@ function outlineAreaM2(zone: PlanZone): number {
  * estancias ya rotuladas en ella): el modelo lee las etiquetas del propio
  * plano; el texto solo fija el formato y el estilo.
  */
-export function buildCenitalImagePrompt(estilo: Estilo): string {
+// Tope de las instrucciones del propietario (evita prompts desbocados).
+const MAX_OWNER_NOTES_CHARS = 800;
+
+export function buildCenitalImagePrompt(estilo: Estilo, ownerNotes = ''): string {
   const estiloLabel = ESTILOS.find((o) => o.value === estilo)?.label ?? estilo;
+  const notes = ownerNotes.trim().slice(0, MAX_OWNER_NOTES_CHARS);
   return [
     'La imagen adjunta es un PLANO EN PLANTA de una vivienda con sus estancias rotuladas.',
     'Genera un render cenital fotorrealista (vista "dollhouse" desde arriba, muros con altura',
     'cortados en sección) que respete EXACTAMENTE esa disposición: mismas estancias, mismos',
-    'muros en la misma posición y proporción, mismas puertas y ventanas. No añadas ni muevas',
-    'habitaciones ni tabiques.',
+    'muros en la misma posición y proporción, mismas puertas y ventanas.',
     '',
-    'Amuebla cada estancia según su rótulo en el plano (dormitorio → cama; cocina → mobiliario',
-    'de cocina; baño → sanitarios; salón → sofá y mesa). Sin textos, sin cotas, sin marcas de agua.',
+    'LOS MUROS SON SAGRADOS: dibuja exactamente los muros del plano, ni uno más. PROHIBIDO',
+    'añadir tabiques, cerrar espacios abiertos o dividir una estancia en dos. Un pasillo o zona',
+    'de paso abierta en el plano permanece ABIERTA en el render.',
+    '',
+    'Amuebla cada estancia SEGÚN SU RÓTULO, sin excepciones:',
+    '- Dormitorio → cama, armario, mesillas.',
+    '- Cocina → bancada, fogones, fregadero.',
+    '- Baño → sanitarios. SOLO puede haber sanitarios (bañera, ducha, inodoro, lavabo) dentro',
+    '  de la estancia rotulada "Baño"; en ninguna otra parte.',
+    '- Salón → sofá, mesa de centro.',
+    '- Entrada → recibidor: perchero, consola, felpudo. JAMÁS sanitarios ni electrodomésticos.',
+    'Una estancia sin rótulo se amuebla de forma neutra (o se deja vacía). No inventes',
+    'habitaciones que el plano no rotula. Sin textos, sin cotas, sin marcas de agua.',
+    ...(notes
+      ? [
+          '',
+          'INSTRUCCIONES DEL PROPIETARIO (prevalecen sobre las reglas genéricas de mobiliario,',
+          'nunca sobre la geometría de los muros):',
+          notes,
+        ]
+      : []),
     '',
     `Estilo de interiorismo: ${estiloLabel}. Iluminación natural cálida, suelos y materiales`,
     'realistas, mobiliario proporcionado al tamaño de cada estancia.',

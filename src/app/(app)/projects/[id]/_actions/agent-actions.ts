@@ -451,6 +451,8 @@ export async function generateCenitalFromRedrawn(
   projectId: string,
   imageUrl: string,
   estilo: Estilo,
+  /** Detalles del propietario sobre su casa (mobiliario real por estancia). */
+  instrucciones = '',
 ): Promise<{ imageUrl: string }> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
@@ -459,7 +461,12 @@ export async function generateCenitalFromRedrawn(
 
   const source = await imageBytesFromTrustedUrl(imageUrl);
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
-  const result = await generateCenitalFromImage({ image }, source, estilo);
+  const result = await generateCenitalFromImage(
+    { image },
+    source,
+    estilo,
+    String(instrucciones ?? '').slice(0, 800),
+  );
   return { imageUrl: result.assetUrl };
 }
 

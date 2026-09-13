@@ -250,6 +250,53 @@ export function snapEndpointsToWalls(walls: SketchWall[], tol: number): SketchWa
 }
 
 /**
+ * Descarta COMPONENTES CONEXOS pequeños: iconos de mobiliario (fregadero,
+ * fogones, sanitarios) dibujados en el plano forman grupitos de trazos que se
+ * tocan ENTRE SÍ pero no conectan con la red de muros — el filtro de muros
+ * sueltos individuales no los caza. Un componente cuya longitud total no llega
+ * al mínimo no es estructura.
+ */
+export function dropSmallComponents(
+  walls: SketchWall[],
+  minTotalLength: number,
+  tol: number,
+): SketchWall[] {
+  // Union-find de muros por contacto (extremo de uno a ≤tol del segmento de otro).
+  const parent = walls.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]!]!;
+      i = parent[i]!;
+    }
+    return i;
+  };
+  const union = (a: number, b: number) => {
+    parent[find(a)] = find(b);
+  };
+
+  for (let i = 0; i < walls.length; i++) {
+    for (let j = i + 1; j < walls.length; j++) {
+      const a = walls[i]!;
+      const b = walls[j]!;
+      const touch =
+        pointToSegment({ x: a.x1, y: a.y1 }, b) <= tol ||
+        pointToSegment({ x: a.x2, y: a.y2 }, b) <= tol ||
+        pointToSegment({ x: b.x1, y: b.y1 }, a) <= tol ||
+        pointToSegment({ x: b.x2, y: b.y2 }, a) <= tol;
+      if (touch) union(i, j);
+    }
+  }
+
+  const totalByRoot = new Map<number, number>();
+  walls.forEach((w, i) => {
+    const root = find(i);
+    totalByRoot.set(root, (totalByRoot.get(root) ?? 0) + length(w));
+  });
+
+  return walls.filter((_, i) => (totalByRoot.get(find(i)) ?? 0) >= minTotalLength);
+}
+
+/**
  * Descarta muros CORTOS y AISLADOS (ningún extremo toca otro muro): son ruido
  * de extracción — un trazo de mobiliario o sombra leído como pared. Un muro
  * corto pero conectado (la pared de un armario empotrado) se conserva.
@@ -293,6 +340,8 @@ function sharedEndpoint(
   ];
   const [a1, a2] = ends(a);
   const [b1, b2] = ends(b);
+  let best: [SketchPoint, SketchPoint, SketchPoint] | null = null;
+  let bestDistance = tol;
   for (const [pa, farA] of [
     [a1, a2],
     [a2, a1],
@@ -301,8 +350,12 @@ function sharedEndpoint(
       [b1, b2],
       [b2, b1],
     ] as const) {
-      if (Math.hypot(pa.x - pb.x, pa.y - pb.y) <= tol) return [farA, farB, pa];
+      const distance = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+      if (distance <= bestDistance) {
+        bestDistance = distance;
+        best = [farA, farB, pa];
+      }
     }
   }
-  return null;
+  return best;
 }

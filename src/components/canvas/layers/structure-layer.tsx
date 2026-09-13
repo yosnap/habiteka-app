@@ -11,7 +11,8 @@ import { useMemo, useRef, useState } from 'react';
 import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import type { StructObj } from '@/canvas/types';
+import { placementOf, type StructObj } from '@/canvas/types';
+import { snapToWall } from '@/canvas/snap-to-wall';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
@@ -188,18 +189,41 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           onDragEnd={(e) => {
             setLive(null);
             setGuides(null);
-            // La posición del nodo ya viene enganchada por dragBoundFunc. Si NO hubo enganche
-            // (sin guías), se cae a la rejilla; si hubo enganche, se respeta tal cual para no
-            // pelear el magnetismo con el snap de rejilla.
-            const aabbEnd = selectionAabb([{ ...o, x: e.target.x(), y: e.target.y() }], [o.id]);
-            const snappedNow =
-              !snapDisabled.current && aabbEnd
-                ? computeSnap(aabbEnd, neighborsRef.current)
-                : null;
-            const engaged = snappedNow != null && (snappedNow.dx !== 0 || snappedNow.dy !== 0);
-            const nx = engaged ? e.target.x() : snap(e.target.x());
-            const ny = engaged ? e.target.y() : snap(e.target.y());
             const others = selectedIds.filter((id) => id !== o.id);
+
+            // Hijos de muro (puertas/ventanas) y elementos de superficie: al
+            // soltar se RE-ENGANCHAN a su muro más cercano — deslizan por el
+            // eje con precisión y nunca quedan flotando ni desalineados.
+            const placement = placementOf(o.kind);
+            if ((placement === 'wall-child' || placement === 'wall-surface') && !others.length) {
+              const walls = objects.filter((w) => w.kind === 'wall');
+              const angle = (o.rotation * Math.PI) / 180;
+              const cx =
+                e.target.x() + (Math.cos(angle) * o.width) / 2 - (Math.sin(angle) * o.height) / 2;
+              const cy =
+                e.target.y() + (Math.sin(angle) * o.width) / 2 + (Math.cos(angle) * o.height) / 2;
+              const snapped = snapToWall({ x: cx, y: cy }, walls, o.width, true);
+              if (snapped) {
+                updateObject(o.id, {
+                  x: snapped.x,
+                  y: snapped.y,
+                  height: snapped.height,
+                  rotation: snapped.rotation,
+                  parentId: snapped.wallId,
+                });
+                dragStart.current = null;
+                draggingSize.current = null;
+                return;
+              }
+            }
+
+            // Resto de objetos: la posición se respeta EXACTA donde se suelta.
+            // El redondeo a rejilla al soltar movía el objeto hasta medio paso
+            // (20 px = ~20 cm) después de colocarlo — había que ubicarlo dos
+            // veces. El magnetismo con vecinos (dragBoundFunc) sigue activo
+            // durante el arrastre; la rejilla queda como referencia visual.
+            const nx = e.target.x();
+            const ny = e.target.y();
             // Si el objeto arrastrado forma parte de una multiselección, el resto se
             // desplaza el mismo delta (mover varios a la vez con el ratón).
             if (others.length && dragStart.current) {
@@ -209,9 +233,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
                 if (selectedIds.includes(obj.id)) {
                   updateObject(
                     obj.id,
-                    obj.id === o.id
-                      ? { x: nx, y: ny }
-                      : { x: snap(obj.x + dx), y: snap(obj.y + dy) },
+                    obj.id === o.id ? { x: nx, y: ny } : { x: obj.x + dx, y: obj.y + dy },
                   );
                 }
               }

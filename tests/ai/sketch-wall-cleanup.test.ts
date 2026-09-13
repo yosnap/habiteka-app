@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collapseDoubleWalls,
   dropIsolatedShortWalls,
+  dropSmallComponents,
   mergeCollinear,
   snapEndpointsToWalls,
 } from '@/server/ai/sketch/wall-cleanup';
@@ -161,6 +162,38 @@ describe('mergeCollinear con puenteo de vanos', () => {
       ],
       12,
       0.16,
+      0.03,
+    );
+    expect(out).toHaveLength(2);
+  });
+});
+
+describe('dropSmallComponents', () => {
+  it('elimina el grupito de trazos de un icono (fregadero en L) y conserva la red de muros', () => {
+    const out = dropSmallComponents(
+      [
+        // Red de muros: perímetro parcial conectado (longitud total grande).
+        { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 },
+        { x1: 0.9, y1: 0.1, x2: 0.9, y2: 0.9 },
+        // Icono de fregadero: dos trazos en L que SE TOCAN entre sí pero no
+        // conectan con la red — el filtro de aislados individuales no los caza.
+        { x1: 0.6, y1: 0.6, x2: 0.68, y2: 0.6 },
+        { x1: 0.68, y1: 0.6, x2: 0.68, y2: 0.66 },
+      ],
+      0.25,
+      0.03,
+    );
+    expect(out).toHaveLength(2);
+    expect(out.every((w) => w.y1 <= 0.1 || w.x1 >= 0.9)).toBe(true);
+  });
+
+  it('conserva un tabique corto conectado a la red', () => {
+    const out = dropSmallComponents(
+      [
+        { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 },
+        { x1: 0.5, y1: 0.1, x2: 0.5, y2: 0.2 }, // corto pero toca el muro largo
+      ],
+      0.25,
       0.03,
     );
     expect(out).toHaveLength(2);

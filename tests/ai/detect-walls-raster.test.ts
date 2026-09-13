@@ -35,6 +35,13 @@ const isVertical = (w: SketchWall) => Math.abs(w.x1 - w.x2) < 0.01;
 const isHorizontal = (w: SketchWall) => Math.abs(w.y1 - w.y2) < 0.01;
 
 describe('detectWallsFromImage', () => {
+  it('conserva los cuatro lados con poché grueso y grosores distintos', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="800"><rect width="1000" height="800" fill="white"/><path d="M100 100H900V700H100Z" fill="none" stroke="black" stroke-width="50"/></svg>';
+    const { walls } = await detectWallsFromImage(await sharp(Buffer.from(svg)).png().toBuffer());
+    expect(walls.filter(isVertical)).toHaveLength(2);
+    expect(walls.filter(isHorizontal)).toHaveLength(2);
+  });
   it('recupera perímetro y tabique de un plano rasterizado por nuestro renderer', async () => {
     const svg = planoToSvg(plan, { pxPerMeter: 70, showDimensions: false, showLabels: false });
     const png = await sharp(Buffer.from(svg)).png().toBuffer();

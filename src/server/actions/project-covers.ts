@@ -8,6 +8,8 @@
  */
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { prisma } from '@/server/db/prisma';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
+import type { StudioState } from '@/lib/studio-state';
 
 export type ProjectCovers = Record<string, string | null>;
 
@@ -29,9 +31,22 @@ export async function getProjectCovers(projectIds: string[]): Promise<ProjectCov
 
   const covers: ProjectCovers = {};
   for (const id of projectIds) covers[id] = null;
+  const studios = await prisma.project.findMany({
+    where: { id: { in: projectIds }, organizationId: ctx.organizationId, deletedAt: null },
+    select: { id: true, studioState: true },
+  });
+  await Promise.all(
+    studios.map(async (project) => {
+      const state = project.studioState as StudioState | null;
+      const image = state?.cenital ?? state?.plan;
+      if (image) covers[project.id] = await resolveRenderUrl(image);
+    }),
+  );
   for (const row of rows) {
     if (covers[row.projectId]) continue; // ya tiene portada (la más reciente)
-    const url = (row.payload as { assetUrl?: string } | null)?.assetUrl;
+    const url = await resolveRenderUrl(
+      row.payload as { assetUrl?: string; assetKey?: string } | null,
+    );
     if (url) covers[row.projectId] = url;
   }
   return covers;

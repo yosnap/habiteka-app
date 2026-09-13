@@ -14,7 +14,24 @@ describe('buildCenitalImagePrompt', () => {
     expect(p).toContain('EXACTAMENTE');
     expect(p).toContain('rótulo');
     expect(p).toContain('Japandi');
-    expect(p).toContain('No añadas ni muevas');
+    expect(p).toContain('PROHIBIDO');
+    // Las reglas anti-alucinación del primer render real: sanitarios solo en el
+    // baño rotulado y la entrada jamás se convierte en otra estancia.
+    expect(p).toContain('rotulada "Baño"');
+    expect(p).toContain('JAMÁS sanitarios');
+  });
+
+  it('incluye las instrucciones del propietario acotadas y con prioridad declarada', () => {
+    const p = buildCenitalImagePrompt('rustico', '  cocina con isla; registros solares en la entrada  ');
+    expect(p).toContain('INSTRUCCIONES DEL PROPIETARIO');
+    expect(p).toContain('cocina con isla; registros solares en la entrada');
+    expect(p).toContain('nunca sobre la geometría');
+    // Sin instrucciones, la sección no aparece.
+    expect(buildCenitalImagePrompt('rustico')).not.toContain('INSTRUCCIONES DEL PROPIETARIO');
+    // Texto desbocado: se corta a 800 caracteres.
+    const long = buildCenitalImagePrompt('rustico', 'x'.repeat(2000));
+    expect(long).toContain('x'.repeat(800));
+    expect(long).not.toContain('x'.repeat(801));
   });
 });
 

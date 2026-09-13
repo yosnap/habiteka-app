@@ -13,6 +13,12 @@ export interface PlanSvgTheme {
   wallFill: string;
   /** Color de línea general (símbolos, cotas, jambas). */
   lineColor: string;
+  /**
+   * Color del símbolo de VENTANA. En el plano técnico clásico va en negro;
+   * en vistas de trabajo conviene azul para que una ventana no se confunda
+   * con un muro interrumpido.
+   */
+  windowColor: string;
   /** Color del texto (etiquetas y cotas). */
   textColor: string;
   /** Grosor de línea fina (cotas, vidrio de ventana). */
@@ -39,6 +45,7 @@ export const DEFAULT_PLAN_SVG_THEME: PlanSvgTheme = {
   floorFill: '#f6f4f0',
   wallFill: '#26221f',
   lineColor: '#26221f',
+  windowColor: '#26221f',
   textColor: '#26221f',
   thinLineMm: 15,
   symbolLineMm: 22,

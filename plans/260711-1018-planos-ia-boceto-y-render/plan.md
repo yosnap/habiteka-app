@@ -1,9 +1,21 @@
 # Pivote: planos IA — boceto → plano profesional → imagen cenital
 
-**Rama:** `feat/planos-ia` (desde `develop`) · **Estado:** PLANIFICADO
+**Rama:** `feat/planos-ia` (desde `develop`) · **Estado:** IMPLEMENTADO, EN VALIDACIÓN DE FIDELIDAD
 **Alcance:** SOLO 2D + IA. El 3D/tour/inmersivo queda congelado (no se toca, no se borra) para una fase posterior.
 
 ## Por qué esta arquitectura (lección del loop anterior)
+
+### Revalidación 2026-09-08
+
+- Dibujo y canvas se conservan sin reinterpretación generativa; dibujo ortogonal → editable offline.
+- Fotos se guardan primero; redibujado IA opcional, con original accesible para comparar.
+- Resultados, escala y detalles persisten en el proyecto. La cenital puede partir del canvas amueblado.
+- El benchmark real detectó alucinaciones en Gemini 2.5 y en el redibujado 3.1: una imagen bonita no acredita fidelidad.
+- No se justifica migrar el stack. La puerta pendiente es fidelidad en fotografías/planos variados,
+  no reconstruir infraestructura. [Resultados y próximos criterios](../reports/260908-estudio-validacion.md).
+
+La explicación siguiente registra la arquitectura histórica; las afirmaciones de fidelidad deben
+interpretarse como objetivos, no garantías verificadas para cualquier entrada.
 
 El bloqueo previo venía de pedirle al modelo de imagen que "dibuje el plano" directamente
 (texto→imagen): salida no determinista, imposible de iterar. La arquitectura correcta separa:
@@ -18,8 +30,25 @@ El bloqueo previo venía de pedirle al modelo de imagen que "dibuje el plano" di
 | Fase | Entregable | Estado |
 |------|-----------|--------|
 | [F1 — Boceto → geometría](phase-01-boceto-a-geometria.md) | Visión OpenRouter → JSON validado (muros, puertas, ventanas, escala) | NÚCLEO HECHO (falta bench con bocetos reales + UI de entrada, ver fase) |
-| [F2 — Geometría → plano CAD](phase-02-geometria-a-plano-cad.md) | Renderer SVG determinista: grosores, cotas, símbolos arquitectónicos | PENDIENTE |
-| [F3 — Plano → imagen cenital](phase-03-plano-a-imagen-cenital.md) | Pipeline image-to-image: raster del plano → render cenital fotorrealista | PENDIENTE |
+| [F2 — Geometría → plano CAD](phase-02-geometria-a-plano-cad.md) | Renderer SVG determinista: grosores, cotas, símbolos arquitectónicos | HECHO (commit 16ba12f: plan-svg + planoToDoc + diálogo "Plano desde boceto"; falta rasterizado server para F3) |
+| [F3 — Plano → imagen cenital](phase-03-plano-a-imagen-cenital.md) | Pipeline image-to-image: raster del plano → render cenital fotorrealista | HECHO (commit d2c06c1; falta bench de fidelidad con planos reales) |
+
+## Hoja de ruta confirmada (Paulo, 2026-07-12)
+
+1. **Plano editable FIEL** (en curso): la conversión redibujado→editor debe ser real y a la
+   medida que ponga el usuario, para poder amueblarlo. Afinado de extracción SOLO en el banco
+   offline (`tests/canvas/extract-offline.visual.test.ts`) — cero créditos.
+2. **Cenital con diseño**: hoy condicionada al redibujado + "detalles del propietario";
+   siguiente nivel: condicionarla al plano AMUEBLADO por el usuario en el editor.
+3. **Futuro** (no empezar aún): vista/interacción 3D, visitas virtuales y vídeo de navegación
+   (candidato: Unreal Engine). Primero asegurar 1 y 2.
+
+## Superficie nueva: `/projects/[id]/plano` (decisión 2026-07-11)
+
+Paulo no quiere seguir ampliando el workspace legacy ("un montón de mierda por limpiar").
+El flujo del pivote vive en el **Estudio de planos** (`PlanoStudio`), una página limpia sin
+Konva ni el editor viejo: subir boceto → plano técnico SVG → vista cenital con estilo.
+El botón "Plano desde boceto" del editor viejo queda, pero la superficie principal es esta.
 
 Dependencias: F1 → F2 → F3 (F3 puede empezar en paralelo con F2 usando planos del editor actual como entrada).
 

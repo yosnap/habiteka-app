@@ -27,6 +27,7 @@ import {
   bridgeCollinearGaps,
   collapseDoubleWalls,
   dropIsolatedShortWalls,
+  dropSmallComponents,
   mergeCollinear,
   snapEndpointsToWalls,
   type WallGap,
@@ -150,6 +151,9 @@ export function normalizeSketch(
   walls = snapEndpointsToWalls(walls, opts.snapDistance * 1.5);
   // Fragmentos cortos que no tocan nada = ruido (mobiliario/sombra leída como muro).
   walls = dropIsolatedShortWalls(walls, opts.minDiagonalLength * 2, opts.snapDistance);
+  // Grupitos de trazos que se tocan entre sí pero no conectan con la red de
+  // muros: iconos de mobiliario (fregadero, fogones) dibujados en el plano.
+  walls = dropSmallComponents(walls, 0.25, opts.snapDistance);
   // La limpieza puede colapsar un muro corto en un punto: sin dirección, fuera.
   walls = walls.filter((w) => segmentLength(w) > 0);
 

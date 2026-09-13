@@ -23,6 +23,11 @@ export function redrawPlanPrompt(): string {
     'barrido, ventanas como triple línea fina, etiquetas de cada estancia en español con la misma',
     'tipografía sans-serif limpia (usa los nombres del original si están rotulados).',
     '',
+    'SOLO ESTRUCTURA: dibuja únicamente muros, puertas, ventanas y los rótulos de las',
+    'estancias. NO dibujes mobiliario, sanitarios ni electrodomésticos AUNQUE el original los',
+    'tenga (fregaderos, cocinas, bañeras, camas…): el plano resultante debe ser puramente',
+    'estructural.',
+    '',
     'PROHIBIDO: inventar habitaciones, muebles o elementos que no estén en el original; añadir',
     'cotas o medidas que no estén escritas en el original (si las hay, respétalas); cuadrículas,',
     'cajetines, logotipos, marcas de agua o texto decorativo.',
@@ -38,10 +43,11 @@ export function redrawPlanPrompt(): string {
 /** Redibuja el plano original (base64) como plano técnico profesional. */
 export async function redrawPlan(
   deps: { image: ImageAdapter },
-  source: { base64: string; mimeType?: string },
+  source: { base64: string; mimeType?: string; aspectRatio?: string },
 ): Promise<ImageResult> {
   return deps.image.generate({
     prompt: redrawPlanPrompt(),
     referenceImage: { base64: source.base64, mimeType: source.mimeType ?? 'image/png' },
+    ...(source.aspectRatio ? { aspectRatio: source.aspectRatio } : {}),
   });
 }

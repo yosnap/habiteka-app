@@ -54,7 +54,7 @@ export function windowSymbol(a: Pt, b: Pt, n: Pt, thicknessMm: number, theme: Pl
       const p = add(a, n, off);
       const q = add(b, n, off);
       const w = off === 0 ? theme.thinLineMm : theme.symbolLineMm;
-      return `<line x1="${fmt(p.x)}" y1="${fmt(p.y)}" x2="${fmt(q.x)}" y2="${fmt(q.y)}" stroke="${theme.lineColor}" stroke-width="${w}"/>`;
+      return `<line x1="${fmt(p.x)}" y1="${fmt(p.y)}" x2="${fmt(q.x)}" y2="${fmt(q.y)}" stroke="${theme.windowColor}" stroke-width="${w}"/>`;
     })
     .join('');
 }

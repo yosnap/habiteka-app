@@ -58,7 +58,7 @@ export class NanoBananaImageProvider implements ImageProvider {
     if (req.referenceImage?.base64) {
       content.unshift({ type: 'image_url', image_url: { url: toDataUrl(req.referenceImage) } });
     }
-    return this.call(content);
+    return this.call(content, req.aspectRatio);
   }
 
   async inpaint(req: InpaintRequest): Promise<ImageResult> {
@@ -72,7 +72,7 @@ export class NanoBananaImageProvider implements ImageProvider {
     return this.call(content);
   }
 
-  private async call(content: ContentPart[]): Promise<ImageResult> {
+  private async call(content: ContentPart[], aspectRatio?: string): Promise<ImageResult> {
     const timeoutMs = resolveTimeoutMs();
     let res: Response;
     try {
@@ -85,6 +85,7 @@ export class NanoBananaImageProvider implements ImageProvider {
         body: JSON.stringify({
           model: this.model,
           modalities: ['text', 'image'],
+          ...(aspectRatio ? { image_config: { aspect_ratio: aspectRatio } } : {}),
           messages: [{ role: 'user', content }],
         }),
         // Aborta si el proveedor tarda demasiado: convierte un cuelgue silencioso en
@@ -111,7 +112,11 @@ export class NanoBananaImageProvider implements ImageProvider {
     }
 
     const { assetUrl, assetKey } = await this.persist(url);
-    return { assetUrl, ...(assetKey ? { assetKey } : {}), cost: imageCost(NANO_BANANA_USD_PER_IMAGE) };
+    return {
+      assetUrl,
+      ...(assetKey ? { assetKey } : {}),
+      cost: imageCost(NANO_BANANA_USD_PER_IMAGE),
+    };
   }
 
   /**
