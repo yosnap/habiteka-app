@@ -1,7 +1,8 @@
 # Pivote: planos IA — boceto → plano profesional → imagen cenital
 
 **Rama:** `feat/planos-ia` (desde `develop`) · **Estado:** IMPLEMENTADO, EN VALIDACIÓN DE FIDELIDAD
-**Alcance:** SOLO 2D + IA. El 3D/tour/inmersivo queda congelado (no se toca, no se borra) para una fase posterior.
+**Alcance:** prioridad 2D + IA. El editor v2 ya integrado mantiene su vista 3D actual, pero
+este plan no abre trabajo nuevo de tour, inmersivo ni vídeo.
 
 ## Por qué esta arquitectura (lección del loop anterior)
 
@@ -12,7 +13,14 @@
 - Resultados, escala y detalles persisten en el proyecto. La cenital puede partir del canvas amueblado.
 - El benchmark real detectó alucinaciones en Gemini 2.5 y en el redibujado 3.1: una imagen bonita no acredita fidelidad.
 - No se justifica migrar el stack. La puerta pendiente es fidelidad en fotografías/planos variados,
-  no reconstruir infraestructura. [Resultados y próximos criterios](../reports/260908-estudio-validacion.md).
+no reconstruir infraestructura. [Resultados y próximos criterios](../reports/260908-estudio-validacion.md).
+
+### Integración de superficie 2026-09-13
+
+- El canvas v2 queda integrado en la rama y se muestra directamente en `/projects/[id]`.
+- `/projects/[id]/plano` conserva el flujo IA de boceto → plano técnico → cenital.
+- El siguiente hito del pivote sigue siendo validar la fidelidad con entradas reales; la
+  integración del canvas no acredita por sí misma la fidelidad de F1–F3.
 
 La explicación siguiente registra la arquitectura histórica; las afirmaciones de fidelidad deben
 interpretarse como objetivos, no garantías verificadas para cualquier entrada.
@@ -43,12 +51,12 @@ El bloqueo previo venía de pedirle al modelo de imagen que "dibuje el plano" di
 3. **Futuro** (no empezar aún): vista/interacción 3D, visitas virtuales y vídeo de navegación
    (candidato: Unreal Engine). Primero asegurar 1 y 2.
 
-## Superficie nueva: `/projects/[id]/plano` (decisión 2026-07-11)
+## Superficies de proyecto
 
 Paulo no quiere seguir ampliando el workspace legacy ("un montón de mierda por limpiar").
-El flujo del pivote vive en el **Estudio de planos** (`PlanoStudio`), una página limpia sin
-Konva ni el editor viejo: subir boceto → plano técnico SVG → vista cenital con estilo.
-El botón "Plano desde boceto" del editor viejo queda, pero la superficie principal es esta.
+La superficie principal es el **Editor v2** en `/projects/[id]`. El flujo del pivote vive en
+el **Estudio de planos** (`PlanoStudio`) en `/projects/[id]/plano`: subir boceto → plano
+técnico SVG → vista cenital con estilo. Ambos comparten el mismo proyecto sin redirecciones.
 
 Dependencias: F1 → F2 → F3 (F3 puede empezar en paralelo con F2 usando planos del editor actual como entrada).
 
