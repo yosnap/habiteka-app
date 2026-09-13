@@ -29,6 +29,10 @@ export function stairMeshes(stair: Stair): SceneBox[] {
         const exit = stair.kind === 'straight' ? near(a.y, 0) && near(b.y, 0)
           : stair.kind === 'L' && near(a.x, stair.widthMm) && near(b.x, stair.widthMm);
         if (!onOutline || entry || exit) return;
+        if (stair.railingLeft === false && stair.railingRight === false) return;
+        // En una escalera recta, los laterales se definen mirando hacia la subida.
+        if (stair.kind === 'straight' && stair.railingLeft === false && near(a.x, 0) && near(b.x, 0)) return;
+        if (stair.kind === 'straight' && stair.railingRight === false && near(a.x, stair.widthMm) && near(b.x, stair.widthMm)) return;
         const top = part.z + part.heightMm;
         const p: Point = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
         add('rail', p.x - 18, p.y - 18, top, 36, 36, 900);

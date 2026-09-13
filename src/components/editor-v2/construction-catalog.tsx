@@ -16,7 +16,7 @@ export interface ConstructionCatalogProps {
   onAddColumn?: () => void;
 }
 const entries = {
-  walls: { title: 'Dibujar paredes', icon: Slash, label: 'Pared recta', detail: 'Dibuja el contorno de tu espacio', tool: 'wall' },
+  walls: { title: 'Dibujar paredes', icon: Slash, label: 'Pared recta', detail: 'Dibuja el contorno de tu espacio o un tramo abierto', tool: 'wall' },
   rooms: { title: 'Habitaciones', icon: RectangleHorizontal, label: 'Habitación rectangular', detail: 'Dibuja una habitación cerrada', tool: 'rectangle' },
   doors: { title: 'Puertas', icon: DoorOpen, label: 'Puerta abatible', detail: 'Colócala sobre una pared', tool: 'door' },
   windows: { title: 'Ventanas', icon: Columns2, label: 'Ventana', detail: 'Colócala sobre una pared', tool: 'window' },
@@ -39,11 +39,13 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
   </div>;
   if (category === 'stairs') return <div className={styles.constructionCatalog}>
     <h3>Escaleras</h3>
-    {onAddStair && <div className={styles.constructionCards}>{(['straight', 'L', 'U'] as const).map((kind) =>
+    {(onAddStair || onAddLanding) && <div className={styles.constructionCards}>{onAddStair && (['straight', 'L', 'U'] as const).map((kind) =>
       <button type="button" key={kind} disabled={readOnly} onClick={() => onAddStair(kind)}>
         <MoveUpRight size={48} aria-hidden="true" /><strong>Escalera {kind === 'straight' ? 'recta' : `en ${kind}`}</strong>
         <small>Añadir al plano</small>
-      </button>)}</div>}
+      </button>)}{onAddLanding && <button type="button" disabled={readOnly} onClick={onAddLanding}>
+        <RectangleHorizontal size={48} aria-hidden="true" /><strong>Descansillo</strong><small>Plataforma común para rampas y escaleras</small>
+      </button>}</div>}
   </div>;
   if (category === 'ramps') return <div className={styles.constructionCatalog}>
     <h3>Rampas</h3><p>Superficie inclinada continua para salvar desniveles.</p>
@@ -59,7 +61,9 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
     <div className={styles.constructionCards}><button type="button" disabled={readOnly} onClick={() => onTool(item.tool)}>
       <Icon size={48} strokeWidth={1.25} aria-hidden="true" /><strong>{item.label}</strong>
       <small>{category === 'walls' ? 'Dibujar en el lienzo' : category === 'rooms' ? 'Arrastra entre dos esquinas' : 'Elegir y colocar'}</small>
-    </button></div>
+    </button>{category === 'walls' && <button type="button" disabled={readOnly} onClick={() => onTool('guard-wall')}>
+      <RectangleHorizontal size={48} aria-hidden="true" /><strong>Murete de protección</strong><small>Tramo independiente de 1,10 m; se apoya en el descansillo</small>
+    </button>}</div>
     {category === 'rooms' && <div className={styles.constructionCards}>{(['L', 'U', 'T'] as const).map((shape) => <button type="button" key={shape}
       disabled={readOnly} onClick={() => onShape(shape)}><span className={styles.shapePreview} data-shape={shape} aria-hidden="true">{shape}</span>
       <strong>Habitación en {shape}</strong><small>Contorno cerrado editable</small></button>)}</div>}

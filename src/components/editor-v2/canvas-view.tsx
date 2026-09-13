@@ -11,7 +11,7 @@ import { distance } from '@/lib/editor-document/geometry';
 import { DocumentLayer } from './document-layer';
 import { DimensionMark } from './dimension-mark';
 import { snapWallPoint } from '@/canvas/editor-v2/snap-candidates';
-import { clickWallDraw, idleWallDraw, moveWallDraw } from '@/canvas/editor-v2/wall-draw-machine';
+import { clickGuardWallDraw, clickWallDraw, idleWallDraw, moveWallDraw } from '@/canvas/editor-v2/wall-draw-machine';
 import styles from './editor.module.css';
 import { CanvasSelectionMenu } from './canvas-selection-menu';
 import { drawingDimension, rectangleDimensions } from '@/canvas/editor-v2/drawing-dimensions';
@@ -126,12 +126,12 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
   }, [size, view]);
-  const drawing = !readOnly && ['wall', 'rectangle', 'measure'].includes(tool);
-  const wallPreview = tool === 'wall' && !readOnly ? wallDraw : idleWallDraw();
+  const drawing = !readOnly && ['wall', 'guard-wall', 'rectangle', 'measure'].includes(tool);
+  const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
   const draftDimension = wallPreview.anchor && wallPreview.preview ? drawingDimension(wallPreview.anchor, wallPreview.preview, view.scale) : null;
   const wallExtension = wallPreview.anchor && wallPreview.preview
-    ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor).extension : undefined;
+    && tool === 'wall' ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor).extension : undefined;
   const wallMagnet = wallPreview.anchor && wallPreview.preview
     ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor) : undefined;
   const splitting = tool === 'split-wall' && !readOnly;
@@ -165,14 +165,15 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const p = point(); if (p) store.getState().commitWallSplit(p, view.scale); return;
         }
-        if (drawing && tool === 'wall') {
+        if (drawing && (tool === 'wall' || tool === 'guard-wall')) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           if (e.evt.detail > 1) { cancel(); return; }
           const p = point(); if (!p) return;
           try {
             const current = store.getState();
-            const extension = wallDraw.anchor ? snapWallPoint(current.document, p, view.scale, current.snap, wallDraw.anchor).extension : undefined;
-            const result = clickWallDraw(wallDraw, p, current.document, extension);
+            const extension = tool === 'wall' && wallDraw.anchor ? snapWallPoint(current.document, p, view.scale, current.snap, wallDraw.anchor).extension : undefined;
+            const result = tool === 'guard-wall' ? clickGuardWallDraw(wallDraw, p, current.document)
+              : clickWallDraw(wallDraw, p, current.document, extension);
             if (result.document) store.getState().apply(result.document);
             setWallDraw(result.state);
           } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se puede unir este muro.'); }
@@ -191,7 +192,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
         if (!pan && marquee) { const p = point(); if (p) setMarquee((current) => current ? { ...current, to: p } : null); return; }
         if (pan || !drawing) return;
         const p = point();
-        if (p && tool === 'wall') setWallDraw((current) => moveWallDraw(current, p));
+        if (p && (tool === 'wall' || tool === 'guard-wall')) setWallDraw((current) => moveWallDraw(current, p));
         else if (start) setPointer(p);
       }} onPointerUp={() => { if (!pan && marquee) finishMarquee(); else if (!pan && drawing && tool !== 'wall') finish(); }} onDblClick={cancel} onDblTap={cancel}>
       <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>
@@ -238,8 +239,9 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
     {!wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {wallMagnet.kind === 'orthogonal' ? 'Imán activo · pared recta' : 'Imán activo · unir al vértice'}
     </div>}
-    {!pan && tool === 'wall' && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      {wallPreview.anchor ? 'Haz clic para fijar el siguiente punto · vuelve al inicio para cerrar la habitación' : 'Haz clic para iniciar la pared · no arrastres'}
+    {!pan && (tool === 'wall' || tool === 'guard-wall') && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+      {tool === 'guard-wall' ? wallPreview.anchor ? 'Haz clic para terminar el murete de protección' : 'Haz clic en el inicio del murete · no arrastres'
+        : wallPreview.anchor ? 'Haz clic para fijar el siguiente punto · vuelve al inicio para cerrar la habitación' : 'Haz clic para iniciar la pared · no arrastres'}
     </div>}
     {splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}

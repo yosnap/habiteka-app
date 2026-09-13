@@ -75,11 +75,20 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
       <NumberField label="Rotación (°)" value={stair.rotation} change={(rotation) => edit((doc) => updateStair(doc, stair.id, { rotation }))} />
       <NumberField label="Subidas" value={stair.stepCount} change={(stepCount) => edit((doc) => updateStair(doc, stair.id, { stepCount }))} /></div>
     <MaterialField label="Material" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
+    <div className={styles.actions}>
+      <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingLeft: !(stair.railingLeft ?? true) }))}>
+        {stair.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}
+      </button>
+      <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingRight: !(stair.railingRight ?? true) }))}>
+        {stair.railingRight ?? true ? 'Ocultar pasamanos derecho' : 'Mostrar pasamanos derecho'}
+      </button>
+      <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingLeft: false, railingRight: false }))}>Solo escalera</button>
+    </div>
     <button type="button" onClick={() => edit((doc) => {
       const current = doc.stairs!.find((item) => item.id === stair.id)!;
       return updateStair(doc, stair.id, { rotation: (current.rotation + 90) % 360 });
     })}><ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
-    <p className={styles.hint}>{layout.steps.length} peldaños y {layout.landings.length} descansillos. Modelo espacial, no certificación constructiva.</p>
+    <p className={styles.hint}>{layout.steps.length} peldaños y {layout.landings.length} descansillos. Los laterales de escaleras con giro conservan los pasamanos de protección exteriores. Modelo espacial, no certificación constructiva.</p>
   </>;
 }
 
@@ -96,6 +105,15 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
     <MaterialField label="Material" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
+    {!landing && <div className={styles.actions}>
+      <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingLeft: !(ramp.railingLeft ?? true) }))}>
+        {ramp.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}
+      </button>
+      <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingRight: !(ramp.railingRight ?? true) }))}>
+        {ramp.railingRight ?? true ? 'Ocultar pasamanos derecho' : 'Mostrar pasamanos derecho'}
+      </button>
+      <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingLeft: false, railingRight: false }))}>Rampa sin pasamanos</button>
+    </div>}
     {!landing && (!ramp.route ? <div className={styles.actions}>{(['left', 'right', 'reverse'] as const).map((turn) => <button key={turn} type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, {
       route: { landingMm: ramp.widthMm, turn, secondDepthMm: ramp.depthMm, secondRiseMm: ramp.riseMm / 2 },
     }))}>Añadir descanso · girar {turn === 'left' ? 'izquierda' : turn === 'right' ? 'derecha' : '180°'}</button>)}</div>
@@ -112,6 +130,6 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       <ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
     {!landing && <button type="button" onClick={() => edit((doc) => connectRampArrival(doc, ramp.id))}>Acoplar llegada: suelo + hueco</button>}
     {landing && <button type="button" onClick={() => edit((doc) => connectLandingEntrance(doc, ramp.id))}>Abrir entrada en pared</button>}
-    <p className={styles.hint}>{landing ? 'Plataforma horizontal sólida desde la cota base hasta su elevación.' : `Pendiente ${layout.slopePercent.toFixed(1)}% (${layout.angleDeg.toFixed(1)}°). Modelo espacial, no certificación constructiva.`}</p>
+    <p className={styles.hint}>{landing ? 'Plataforma horizontal sólida desde la cota base hasta su elevación.' : `Pendiente ${layout.slopePercent.toFixed(1)}% (${layout.angleDeg.toFixed(1)}°). Los pasamanos siguen cada tramo inclinado. Modelo espacial, no certificación constructiva.`}</p>
   </>;
 }

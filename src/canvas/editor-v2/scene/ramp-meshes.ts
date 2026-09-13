@@ -20,6 +20,6 @@ export function rampMesh(ramp: Ramp): SceneRamp[] {
         meters(ramp.y + centerX * Math.sin(base) + centerY * Math.cos(base))],
       width: meters(ramp.widthMm), depth: meters(part.depthMm), rise: meters(part.riseMm),
       baseHeight: meters(standaloneLanding ? ramp.elevationMm : part.elevationMm - ramp.elevationMm), rotation: -(base + partAngle),
-      color: ramp.color ?? materialColor(ramp.materialId) };
+      color: ramp.color ?? materialColor(ramp.materialId), railingLeft: ramp.railingLeft ?? true, railingRight: ramp.railingRight ?? true };
   });
 }

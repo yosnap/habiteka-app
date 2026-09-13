@@ -9,7 +9,7 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
 
-export type EditorTool = 'select' | 'wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object';
+export type EditorTool = 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object';
 export interface EditorState {
   detailPanel: 'paint' | 'comments' | null;
   setDetailPanel: (panel: 'paint' | 'comments' | null) => void;

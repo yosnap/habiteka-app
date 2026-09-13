@@ -1,7 +1,7 @@
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { distance } from '@/lib/editor-document/geometry';
 import { splitWall } from '@/lib/editor-document/wall-commands';
-import { addWallPath, newId } from './editing-operations';
+import { addGuardWallPath, addWallPath, newId } from './editing-operations';
 import { applyWallExtension, type WallExtension } from './wall-extension';
 import { wallPath } from '@/lib/editor-document/wall-path';
 
@@ -32,4 +32,10 @@ export function clickWallDraw(state: WallDrawState, point: Point, doc: EditorDoc
   const document = addWallSegment(extension ? applyWallExtension(doc, extension) : doc, state.anchor, point);
   const closes = extension || doc.vertices.some((v) => distance(v, point) < .01);
   return { state: closes ? idleWallDraw() : { anchor: point, preview: point }, document };
+}
+/** El murete siempre termina en el segundo clic: no forma ni exige una habitación cerrada. */
+export function clickGuardWallDraw(state: WallDrawState, point: Point, doc: EditorDocument): { state: WallDrawState; document?: EditorDocument } {
+  if (!state.anchor) return { state: { anchor: point, preview: point } };
+  if (distance(state.anchor, point) < 50) return { state };
+  return { state: idleWallDraw(), document: addGuardWallPath(doc, [state.anchor, point]) };
 }

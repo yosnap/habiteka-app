@@ -8,6 +8,7 @@ import { floorFinish, normalizeRoomWallBases } from './floor-finishes';
 import { rampArrival, rampArrivalTarget } from './ramp-arrival';
 import { isRampLanding } from './ramp-kind';
 import { placeLandingAtRampArrival } from './ramp-landing-placement';
+import { placeLandingAtStairArrival } from './stair-landing-placement';
 import { landingEntranceTarget } from './landing-entrance';
 
 function update(input: EditorDocument, operation: (doc: EditorDocument) => void): EditorDocument {
@@ -94,10 +95,11 @@ export function updateRamp(input: EditorDocument, id: string, patch: Partial<Omi
 
 /** A resize must not break an existing ramp-to-landing junction. Position edits remain deliberate. */
 function keepLandingAttached(doc: EditorDocument, landing: Ramp): void {
-  const host = doc.ramps!.filter((candidate) => candidate.id !== landing.id && !isRampLanding(candidate)).map((ramp) => {
-    const target = placeLandingAtRampArrival(landing, ramp);
-    return { ramp, target, gapMm: Math.hypot(target.x - landing.x, target.y - landing.y) };
-  }).filter((candidate) => candidate.gapMm <= 1000).sort((a, b) => a.gapMm - b.gapMm)[0];
+  const host = [
+    ...doc.ramps!.filter((candidate) => candidate.id !== landing.id && !isRampLanding(candidate)).map((ramp) => placeLandingAtRampArrival(landing, ramp)),
+    ...(doc.stairs ?? []).map((stair) => placeLandingAtStairArrival(landing, stair)),
+  ].map((target) => ({ target, gapMm: Math.hypot(target.x - landing.x, target.y - landing.y) }))
+    .filter((candidate) => candidate.gapMm <= 1000).sort((a, b) => a.gapMm - b.gapMm)[0];
   if (host) Object.assign(landing, host.target);
 }
 export function removeRamp(input: EditorDocument, id: string): EditorDocument {

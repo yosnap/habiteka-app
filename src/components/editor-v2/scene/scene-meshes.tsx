@@ -24,14 +24,27 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
 }
 
 export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; selected: boolean; onSelect: (id: string) => void }) {
-  if (ramp.rise === 0) return <mesh position={[ramp.position[0], ramp.position[1] + ramp.baseHeight / 2, ramp.position[2]]} rotation={[0, ramp.rotation, 0]} castShadow receiveShadow onClick={(event) => {
-    event.stopPropagation(); onSelect(ramp.sourceEntityId);
-  }}><boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} /><meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} /></mesh>;
+  const select = (event: { stopPropagation: () => void }) => { event.stopPropagation(); onSelect(ramp.sourceEntityId); };
+  if (ramp.rise === 0) return <mesh position={[ramp.position[0], ramp.position[1] + ramp.baseHeight / 2, ramp.position[2]]} rotation={[0, ramp.rotation, 0]} castShadow receiveShadow onClick={select}>
+    <boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} /><meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} /></mesh>;
   const { vertices, indices } = rampPrismGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
-  return <mesh position={ramp.position} rotation={[0, ramp.rotation, 0]} castShadow receiveShadow onClick={(event) => {
-    event.stopPropagation(); onSelect(ramp.sourceEntityId);
-  }}><bufferGeometry><bufferAttribute attach="attributes-position" args={[vertices, 3]} /><bufferAttribute attach="index" args={[indices, 1]} /></bufferGeometry>
-    <meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} side={2} /></mesh>;
+  return <group position={ramp.position} rotation={[0, ramp.rotation, 0]} onClick={select}>
+    <mesh castShadow receiveShadow><bufferGeometry><bufferAttribute attach="attributes-position" args={[vertices, 3]} /><bufferAttribute attach="index" args={[indices, 1]} /></bufferGeometry>
+      <meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} side={2} /></mesh>
+    {ramp.railingLeft && <RampRail ramp={ramp} side={-1} />}
+    {ramp.railingRight && <RampRail ramp={ramp} side={1} />}
+  </group>;
+}
+
+/** Pasamanos continuo con postes en ambos extremos, medido sobre la pendiente real. */
+function RampRail({ ramp, side }: { ramp: SceneRamp; side: -1 | 1 }) {
+  const height = .9, thickness = .04, slope = Math.atan2(ramp.rise, ramp.depth), length = Math.hypot(ramp.depth, ramp.rise);
+  const x = side * (ramp.width / 2 - thickness / 2), high = ramp.baseHeight + ramp.rise, low = ramp.baseHeight;
+  return <group>
+    <mesh position={[x, (high + low) / 2 + height, 0]} rotation={[slope, 0, 0]} castShadow><boxGeometry args={[thickness, thickness, length]} /><meshStandardMaterial color="#424d51" metalness={.5} roughness={.4} /></mesh>
+    <mesh position={[x, high + height / 2, -ramp.depth / 2]} castShadow><boxGeometry args={[thickness, height, thickness]} /><meshStandardMaterial color="#424d51" metalness={.5} roughness={.4} /></mesh>
+    <mesh position={[x, low + height / 2, ramp.depth / 2]} castShadow><boxGeometry args={[thickness, height, thickness]} /><meshStandardMaterial color="#424d51" metalness={.5} roughness={.4} /></mesh>
+  </group>;
 }
 export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePolygon; selected: boolean; onSelect: (id: string) => void }) {
   const shape = useMemo(() => {

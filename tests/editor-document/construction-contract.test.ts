@@ -117,11 +117,26 @@ describe('construction v3 contract', () => {
     expect(added.ramps![0]).toMatchObject(landing);
     expect(editorDocumentToScene(added).ramps[0]).toMatchObject({ sourceEntityId: 'landing', position: expect.arrayContaining([0, 0]), baseHeight: 1.2, rise: 0 });
   });
+  it('projects configurable ramp rails on every inclined route segment', () => {
+    const added = addRamp(fixture(), { ...ramp, railingLeft: false, route: { landingMm: 1200, turn: 'right', secondDepthMm: 3000, secondRiseMm: 600 } });
+    const scene = editorDocumentToScene(added).ramps;
+    expect(scene).toHaveLength(3);
+    expect(scene.filter((part) => part.rise > 0).every((part) => part.railingLeft === false && part.railingRight === true)).toBe(true);
+    const hidden = updateRamp(added, ramp.id, { railingLeft: false, railingRight: false });
+    expect(editorDocumentToScene(hidden).ramps.filter((part) => part.rise > 0).every((part) => !part.railingLeft && !part.railingRight)).toBe(true);
+  });
   it('stores a structural column as an editable 2D/3D solid', () => {
     const added = addColumn(fixture(), column), scene = editorDocumentToScene(added);
     expect(added.columns).toEqual([column]);
     expect(scene.boxes.find((box) => box.sourceEntityId === column.id)).toMatchObject({ role: 'column', position: [1.2, 1.35, 2.2], size: [.4, 2.7, .4] });
     expect(updateColumn(added, column.id, { widthMm: 500 }).columns![0]).toMatchObject({ widthMm: 500, x: 950 });
+  });
+  it('allows independently hiding each side rail or all rails from a stair', () => {
+    const added = addStair(fixture(), { ...stair, kind: 'straight', rotation: 0, railingLeft: false });
+    const leftHidden = editorDocumentToScene(added).boxes.filter((box) => box.sourceEntityId === stair.id && box.role === 'rail');
+    expect(leftHidden.length).toBeGreaterThan(0);
+    const none = updateStair(added, stair.id, { railingLeft: false, railingRight: false });
+    expect(editorDocumentToScene(none).boxes.filter((box) => box.sourceEntityId === stair.id && box.role === 'rail')).toHaveLength(0);
   });
   it('keeps a hidden wall as a room boundary while removing its physical geometry', () => {
     const source = emptyEditorDocument();

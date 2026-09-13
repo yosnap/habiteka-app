@@ -1,19 +1,29 @@
 import type { Point, Ramp } from './schema';
 import { rampArrival } from './ramp-arrival';
-import { rampParts } from './ramp-route';
 import { isRampLanding } from './ramp-kind';
 import { localToWorld } from './spatial-properties';
+
+export interface LandingArrival {
+  point: Point;
+  direction: Point;
+  elevationMm: number;
+  widthMm: number;
+}
+
+/** Orienta una plataforma contra una llegada, con su borde final totalmente a ras. */
+export function placeLandingAtArrival(landing: Ramp, arrival: LandingArrival): Ramp {
+  const rotation = Math.atan2(arrival.direction.x, -arrival.direction.y) * 180 / Math.PI;
+  const radians = rotation * Math.PI / 180, widthAxis = { x: Math.cos(radians), y: Math.sin(radians) };
+  const depthAxis = { x: -Math.sin(radians), y: Math.cos(radians) };
+  return { ...landing, widthMm: arrival.widthMm, elevationMm: arrival.elevationMm, rotation,
+    x: arrival.point.x - widthAxis.x * arrival.widthMm / 2 - depthAxis.x * landing.depthMm,
+    y: arrival.point.y - widthAxis.y * arrival.widthMm / 2 - depthAxis.y * landing.depthMm };
+}
 
 /** Fits a standalone landing flush to the upper edge of a ramp's final flight. */
 export function placeLandingAtRampArrival(landing: Ramp, ramp: Ramp): Ramp {
   if (!isRampLanding(landing) || isRampLanding(ramp)) return landing;
-  const arrival = rampArrival(ramp), lastFlight = rampParts(ramp).filter((part) => part.kind === 'flight').at(-1)!;
-  const rotation = ramp.rotation + lastFlight.rotation, radians = rotation * Math.PI / 180;
-  const widthMm = ramp.widthMm, widthAxis = { x: Math.cos(radians), y: Math.sin(radians) };
-  const depthAxis = { x: -Math.sin(radians), y: Math.cos(radians) };
-  return { ...landing, widthMm, elevationMm: arrival.elevationMm, rotation,
-    x: arrival.point.x - widthAxis.x * widthMm / 2 - depthAxis.x * landing.depthMm,
-    y: arrival.point.y - widthAxis.y * widthMm / 2 - depthAxis.y * landing.depthMm };
+  return placeLandingAtArrival(landing, { ...rampArrival(ramp), widthMm: ramp.widthMm });
 }
 
 /** Resizes a ramp or landing from the dragged corner, preserving the opposite anchor. */

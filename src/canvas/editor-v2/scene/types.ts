@@ -22,6 +22,8 @@ export interface SceneRamp {
   /** Vertical solid body below the surface, measured from position.y. */
   baseHeight: number;
   rotation: number; color: string;
+  railingLeft: boolean;
+  railingRight: boolean;
 }
 export interface ExteriorWall { sourceEntityId: string; x: number; z: number; normalX: number; normalZ: number }
 export interface EditorScene { boxes: SceneBox[]; ramps: SceneRamp[]; polygons: ScenePolygon[]; warnings: string[]; exteriorWalls: ExteriorWall[] }

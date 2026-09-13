@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createEditorStore } from '@/canvas/editor-v2/store';
-import { EditorSaveQueue } from '@/canvas/editor-v2/save-queue';
+import { EditorSaveQueue, hasPendingRemoteChanges } from '@/canvas/editor-v2/save-queue';
 import { indexedDbDraftStorage } from '@/canvas/editor-v2/draft-storage';
 import type { DraftScope, EditorDraft } from '@/canvas/editor-v2/draft-contract';
 import type { EditorDocument } from '@/lib/editor-document/schema';
@@ -28,7 +28,7 @@ export function EditorSession({ scope, initial, recovered, projectName }: {
     const unsubscribe = store.subscribe((state) => {
       if (state.sequence === sequence) return;
       sequence = state.sequence;
-      void queue.capture(state.document).then(() => queue.flush()).catch(() => {});
+      void queue.capture(state.document).catch(() => {});
     });
     const online = () => { queue.setOnline(navigator.onLine); if (navigator.onLine) void queue.flush(); };
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -45,16 +45,18 @@ export function EditorSession({ scope, initial, recovered, projectName }: {
       void queue.flush().finally(unregister); watchClosed();
     };
   }, [queue, store, scope.userId]);
+  const pendingChanges = hasPendingRemoteChanges(status);
   const saveStatus = status.closed ? 'Sesión cerrada' : status.conflict ? 'Conflicto · borrador conservado'
     : status.sequence > status.localSequence ? 'Guardando en este dispositivo…'
-      : status.sequence > status.remoteSequence ? 'Guardado local · sincronización pendiente'
-        : status.saving ? 'Sincronizando…' : 'Sincronizado';
+      : status.saving ? 'Guardando cambios…'
+        : pendingChanges ? 'Cambios sin guardar' : 'Sincronizado';
   return <>
     {status.error && <p role="alert" className="bg-amber-100 p-3 text-amber-950">{status.error}</p>}
     {status.conflict && <section className="border-b bg-amber-50 p-4">
       <h2 className="font-semibold">Otra pestaña guardó la revisión {status.conflict.revision}</h2>
       <p>Tu edición se conserva en este dispositivo. No se enviarán más cambios hasta resolver el conflicto.</p>
     </section>}
-    <EditorShell store={store} projectName={projectName} saveStatus={saveStatus} onSave={() => void queue.flush()} />
+    <EditorShell store={store} projectName={projectName} saveStatus={saveStatus} onSave={() => void queue.flush()}
+      saveEnabled={pendingChanges && !status.saving && !status.closed && !status.conflict} />
   </>;
 }

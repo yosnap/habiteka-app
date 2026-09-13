@@ -5,7 +5,9 @@ import { distance } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { wallConstruction, openingConstruction } from '@/lib/editor-document/construction-properties';
-import { finishColor, furnitureSpatial, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { finishColor, furnitureSpatial, localToWorld, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 
@@ -38,6 +40,39 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
         ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) } : wall);
     }
   });
+}
+/** Murete independiente: un tramo abierto que protege un borde de rampa o descansillo. */
+export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
+  const source = upgradeConstructionDocument(doc);
+  return editDocument(source, (next) => {
+    const ids = points.map((point) => {
+      const existing = next.vertices.find((vertex) => distance(vertex, point) < .01);
+      if (existing) return existing.id;
+      const id = newId(); next.vertices.push({ id, ...point }); return id;
+    });
+    const elevationMm = landingElevation(next, points);
+    for (let index = 0; index < ids.length - 1; index++) {
+      const wall = { id: newId(), startVertexId: ids[index]!, endVertexId: ids[index + 1]!, thicknessMm: 150,
+        dimensionalOrigin: 'physical' as const };
+      next.walls.push({ ...wall, ...wallConstruction(wall), heightMm: 1100, baseElevationMm: elevationMm,
+        ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) });
+    }
+  });
+}
+
+function landingElevation(doc: EditorDocument, points: Point[]): number {
+  const midpoint = { x: (points[0]!.x + points.at(-1)!.x) / 2, y: (points[0]!.y + points.at(-1)!.y) / 2 };
+  const nearby = (doc.ramps ?? []).filter(isRampLanding).map((landing) => {
+    const corners = [{ x: 0, y: 0 }, { x: landing.widthMm, y: 0 }, { x: landing.widthMm, y: landing.depthMm }, { x: 0, y: landing.depthMm }]
+      .map((point) => localToWorld(landing, point));
+    const gap = Math.min(...corners.map((from, index) => {
+      const to = corners[(index + 1) % corners.length]!;
+      const length = distance(from, to), t = Math.max(0, Math.min(1, ((midpoint.x - from.x) * (to.x - from.x) + (midpoint.y - from.y) * (to.y - from.y)) / length ** 2));
+      return distance(midpoint, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
+    }));
+    return { elevationMm: landing.elevationMm, gap };
+  }).filter((candidate) => candidate.gap <= 200).sort((a, b) => a.gap - b.gap)[0];
+  return nearby?.elevationMm ?? 0;
 }
 export function addOpening(doc: EditorDocument, wallId: string, p: Point, kind: Opening['kind']) {
   return editDocument(doc, (next) => {

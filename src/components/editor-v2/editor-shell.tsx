@@ -21,6 +21,7 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
 import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
 import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
+import { placeLandingAtStairArrival } from '@/lib/editor-document/stair-landing-placement';
 import styles from './editor.module.css';
 
 const CanvasView = dynamic(() => import('./canvas-view').then((module) => module.CanvasView),
@@ -32,11 +33,12 @@ export interface EditorShellProps {
   projectName: string;
   saveStatus?: string;
   onSave?: () => void;
+  saveEnabled?: boolean;
   onImport?: () => void;
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
 }
-export function EditorShell({ store, projectName, saveStatus, onSave, onImport, onExport, onAddStair }: EditorShellProps) {
+export function EditorShell({ store, projectName, saveStatus, onSave, saveEnabled = true, onImport, onExport, onAddStair }: EditorShellProps) {
   const past = useStore(store, (s) => s.past.length), future = useStore(store, (s) => s.future.length);
   const error = useStore(store, (s) => s.error), selection = useStore(store, (s) => s.selection);
   const readOnly = useStore(store, (s) => s.readOnly);
@@ -87,8 +89,10 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
     const landing = { id, catalogId: RAMP_LANDING_CATALOG_ID, x: center.x - 600, y: center.y - 600,
       widthMm: 1200, depthMm: 1200, riseMm: 0, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' };
     const ramp = source.ramps?.find((item) => item.id === selectedRampId && item.catalogId !== RAMP_LANDING_CATALOG_ID);
-    const candidate = addRamp(source, ramp ? placeLandingAtRampArrival(landing, ramp) : landing);
-    state.apply(ramp ? candidate : placeNewObject(source, candidate, id)); state.select([id]);
+    const stair = source.stairs?.find((item) => item.id === selectedRampId);
+    const attached = ramp ? placeLandingAtRampArrival(landing, ramp) : stair ? placeLandingAtStairArrival(landing, stair) : landing;
+    const candidate = addRamp(source, attached);
+    state.apply(ramp || stair ? candidate : placeNewObject(source, candidate, id)); state.select([id]);
   });
   const insertColumn = () => run(() => {
     if (store.getState().readOnly) return;
@@ -97,7 +101,7 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
       widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' });
     store.getState().apply(candidate); store.getState().select([id]);
   });
-  const toolLabel = { select: 'Seleccionar', wall: 'Dibujar paredes', rectangle: 'Dibujar habitación',
+  const toolLabel = { select: 'Seleccionar', wall: 'Dibujar paredes', 'guard-wall': 'Dibujar murete de protección', rectangle: 'Dibujar habitación',
     door: 'Colocar puerta', window: 'Colocar ventana', passage: 'Colocar hueco', measure: 'Medir distancia', 'split-wall': 'Añadir esquina',
     'place-object': 'Colocar copia' } satisfies Record<EditorTool, string>;
   useEffect(() => {
@@ -143,7 +147,8 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
         <button type="button" disabled={readOnly || !past} onClick={() => store.getState().undo()} aria-label="Deshacer" title="Deshacer (⌘Z)"><Undo2 size={20} aria-hidden="true" /></button>
         <button type="button" disabled={readOnly || !future} onClick={() => store.getState().redo()} aria-label="Rehacer" title="Rehacer (⇧⌘Z)"><Redo2 size={20} aria-hidden="true" /></button>
         <button type="button" onClick={onExport} disabled={!onExport} title={!onExport ? 'Exportación no disponible' : undefined}><Download size={18} aria-hidden="true" /><span>Exportar</span></button>
-        <button type="button" className={styles.primary} onClick={onSave} disabled={readOnly || !onSave}><Save size={18} aria-hidden="true" /><span>Guardar</span></button>
+        <button type="button" className={styles.primary} onClick={onSave} disabled={readOnly || !onSave || !saveEnabled}
+          title={!saveEnabled ? 'No hay cambios pendientes de guardar' : undefined}><Save size={18} aria-hidden="true" /><span>Guardar</span></button>
       </div>
     </header>
     <div className={styles.secondary}>

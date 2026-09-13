@@ -18,6 +18,11 @@ export interface SaveQueueState {
   conflict: EditorDocument | null;
 }
 
+/** Un cambio sólo está realmente guardado cuando el servidor confirma su secuencia. */
+export function hasPendingRemoteChanges(state: SaveQueueState) {
+  return state.sequence > state.remoteSequence;
+}
+
 /** Serializa el diario local y distingue su ACK del ACK remoto. No modifica la historia del editor. */
 export class EditorSaveQueue {
   private draft: EditorDraft;

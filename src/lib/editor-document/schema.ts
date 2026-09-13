@@ -57,6 +57,9 @@ export interface Stair extends Point {
   stepCount: number;
   materialId: string;
   color?: string;
+  /** Los laterales son opcionales: una escalera puede mostrarse sin pasamanos. */
+  railingLeft?: boolean;
+  railingRight?: boolean;
 }
 /** Structural vertical support, independent from a wall's centerline. */
 export interface Column extends Point {
@@ -92,6 +95,9 @@ export interface Ramp extends Point {
   rotation: number;
   materialId: string;
   color?: string;
+  /** Pasamanos por lado de circulación; se aplican a cada tramo inclinado. */
+  railingLeft?: boolean;
+  railingRight?: boolean;
   /** Optional second flight joined by a square landing; its rise is additive. */
   route?: RampRoute;
 }

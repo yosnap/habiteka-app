@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { EditorSaveQueue, type SaveTransport } from '@/canvas/editor-v2/save-queue';
+import { EditorSaveQueue, hasPendingRemoteChanges, type SaveTransport } from '@/canvas/editor-v2/save-queue';
 import type { DraftStorage, EditorDraft } from '@/canvas/editor-v2/draft-storage';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 
@@ -18,6 +18,14 @@ function edited(text: string) {
   return { ...emptyEditorDocument(), labels: [{ id: 'label', text, x: 100, y: 100 }] };
 }
 describe('durable save queue', () => {
+  it('marca cambios pendientes hasta que el servidor confirma la misma secuencia', async () => {
+    const { queue } = setup();
+    expect(hasPendingRemoteChanges(queue.getSnapshot())).toBe(false);
+    await queue.capture(edited('A'));
+    expect(hasPendingRemoteChanges(queue.getSnapshot())).toBe(true);
+    await queue.flush();
+    expect(hasPendingRemoteChanges(queue.getSnapshot())).toBe(false);
+  });
   it('no confirma una escritura omitida al cerrar inmediatamente la sesión', async () => {
     const { queue, storage } = setup();
     const capture = queue.capture(edited('A'));

@@ -111,8 +111,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         openings: 'id name wallId kind position widthMm dimensionalOrigin',
         furniture: 'id name x y kind catalogId widthMm depthMm rotation dimensionalOrigin',
         dimensions: 'id from to label', labels: 'id x y text',
-        stairs: 'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId',
-        ramps: 'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route',
+        stairs: 'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
+        ramps: 'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route railingLeft railingRight',
         columns: 'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
         comments: 'id targetEntityId anchor text',
       };
@@ -204,10 +204,14 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           throw new Error('Número de peldaños inválido');
         if (e.kind === 'U' && (e.depthMm as number) <= (e.widthMm as number) / 2)
           throw new Error('Fondo insuficiente para escalera U');
+        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean') throw new Error('Pasamanos izquierdo inválido');
+        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean') throw new Error('Pasamanos derecho inválido');
       } else if (key === 'ramps') {
         point(e); text(e.catalogId); text(e.materialId);
         positive(e.widthMm); positive(e.depthMm); nonnegative(e.riseMm); nonnegative(e.elevationMm); finite(e.rotation);
         if (e.riseMm === 0 && e.catalogId !== 'builtin:ramp-landing') throw new Error('Una rampa debe tener desnivel');
+        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean') throw new Error('Pasamanos izquierdo inválido');
+        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean') throw new Error('Pasamanos derecho inválido');
         if (e.route !== undefined) {
           record(e.route); keys(e.route, 'landingMm turn secondDepthMm secondRiseMm landingOffset secondOffset');
           positive(e.route.landingMm); positive(e.route.secondDepthMm); positive(e.route.secondRiseMm);
