@@ -24,13 +24,11 @@ export function ProjectTabs({ projectId, title }: Props) {
   const suffix = zona ? `?zona=${zona}` : '';
 
   // `path` es la ruta sin query (para resaltar la pestaña activa); `href` lleva la zona.
-  // "Plano" es el estudio nuevo (boceto → plano → cenital), la superficie principal del
-  // pivote; el lienzo legacy queda accesible como "Editor" hasta su sustitución.
+  // La raíz es el canvas v2. "Plano" conserva el flujo de boceto → plano → cenital.
   const tabs = [
     { path: `${base}/chat`, href: `${base}/chat${suffix}`, label: 'Asistente' },
     { path: `${base}/plano`, href: `${base}/plano`, label: 'Plano' },
     { path: base, href: `${base}${suffix}`, label: 'Editor', exact: true },
-    { path: `${base}/editor`, href: `${base}/editor${suffix}`, label: 'Editor nuevo', exact: true },
     { path: `${base}/deliverables`, href: `${base}/deliverables${suffix}`, label: 'Diseños' },
     { path: `${base}/historial`, href: `${base}/historial${suffix}`, label: 'Historial' },
   ];
