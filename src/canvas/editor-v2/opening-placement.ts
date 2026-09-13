@@ -21,7 +21,7 @@ export interface OpeningPlacement {
 export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, scale: number,
   opening: Opening, previousHost?: string, grabOffsetMm = 0): OpeningPlacement | null {
   if (!Number.isFinite(scale) || scale <= 0) return null;
-  const candidates = doc.walls.map((wall) => {
+  const candidates = doc.walls.filter((wall) => !wall.hidden).map((wall) => {
     const path = wallPath(doc, wall), length = path.length, position = path.project(pointer);
     const gap = distance(pointer, path.at(position)) * scale;
     return { wall, path, length, position, gap };

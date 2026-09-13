@@ -7,8 +7,8 @@ import { meters, materialColor, type ScenePolygon } from './types';
 /** A continuous annular strip, with opening intervals removed by height band. */
 export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[] {
   if (!wall.curveHeightMm) return [];
-  const length = wallPath(doc, wall).length, construction = wallConstruction(wall), base = wall.baseElevationMm ?? 0,
-    height = construction.heightMm, ceiling = base + height;
+  const length = wallPath(doc, wall).length, construction = wallConstruction(wall), base = 0,
+    height = construction.heightMm, ceiling = height;
   const openings = doc.openings.filter((o) => o.wallId === wall.id).map((o) => ({
     from: o.position - o.widthMm / length / 2, to: o.position + o.widthMm / length / 2,
     bottom: openingConstruction(o).elevationMm, top: openingConstruction(o).elevationMm + openingConstruction(o).heightMm,

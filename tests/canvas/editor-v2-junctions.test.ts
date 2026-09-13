@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addWallPath, interiorPoint, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
-import { wallJunctions } from '@/canvas/editor-v2/wall-junctions';
+import { wallJunctions, wallMiterPolygon } from '@/canvas/editor-v2/wall-junctions';
 
 describe('wall joins and interior positions', () => {
   it('closes the exterior square corner of perpendicular walls', () => {
@@ -14,6 +14,13 @@ describe('wall joins and interior positions', () => {
     const doc = addWallPath(emptyEditorDocument(), [{ x: 2000, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 2000 }]);
     doc.walls[1]!.thicknessMm = 300;
     expect(wallJunctions(doc)[0]!.points).toContainEqual({ x: -150, y: -75 });
+  });
+  it('cuts both straight walls on the same diagonal instead of square caps', () => {
+    const doc = addWallPath(emptyEditorDocument(), [{ x: 2000, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 2000 }]);
+    const horizontal = wallMiterPolygon(doc, doc.walls[0]!)!;
+    const vertical = wallMiterPolygon(doc, doc.walls[1]!)!;
+    expect(horizontal.slice(1, 3)).toEqual([{ x: -75, y: -75 }, { x: 75, y: 75 }]);
+    expect(vertical.slice(0, 1).concat(vertical.slice(3))).toEqual([{ x: -75, y: -75 }, { x: 75, y: 75 }]);
   });
   it('limits acute miters rather than creating long spikes', () => {
     const doc = addWallPath(emptyEditorDocument(), [{ x: 3000, y: 0 }, { x: 0, y: 0 }, { x: 3000, y: 100 }]);

@@ -16,7 +16,7 @@ import { interiorPoint, moveEntity, snapPoint } from '@/canvas/editor-v2/editing
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { FurnitureSymbol } from './furniture-symbol';
-import { wallJunctions } from '@/canvas/editor-v2/wall-junctions';
+import { wallJunctions, wallMiterPolygon } from '@/canvas/editor-v2/wall-junctions';
 import { wallDimensionLayout } from '@/canvas/editor-v2/dimension-layout';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { DimensionMark } from './dimension-mark';
@@ -28,6 +28,7 @@ import { floorFinish } from '@/lib/editor-document/floor-finishes';
 import { FloorSurface } from './floor-surface';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { CurveHandle } from './curve-handle';
+import { ColumnLayer } from './column-layer';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
 export function DocumentLayer({ store, scale, disabled = false }: { store: EditorStore; scale: number; disabled?: boolean }) {
@@ -37,7 +38,8 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
-  const junctions = useMemo(() => wallJunctions(doc), [doc]);
+  const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
+  const junctions = useMemo(() => wallJunctions({ ...doc, walls: doc.walls.filter((wall) => !wall.hidden) }), [doc]);
   const rooms = useMemo(() => {
     try { return { value: deriveRooms(doc), error: null }; }
     catch (error) { return { value: [], error: error instanceof Error ? error.message : 'Contorno incompleto' }; }
@@ -65,15 +67,19 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
         selected={selected.includes(room.id)} onSelect={tool === 'select' ? () => store.getState().select([room.id]) : undefined} />;
     })}
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
-    {junctions.map((join) => <Line key={`join:${join.id}`} points={join.points.flatMap((p) => [p.x, p.y])}
+    {junctions.filter((join) => doc.walls.filter((wall) => wall.startVertexId === join.id || wall.endVertexId === join.id).length !== 2)
+      .map((join) => <Line key={`join:${join.id}`} points={join.points.flatMap((p) => [p.x, p.y])}
       closed fill={INK} listening={false} />)}
-    {doc.walls.map((wall) => {
+    {visibleWalls.map((wall) => {
       const [a, b] = wallPoints(doc, wall), active = selected.includes(wall.id);
+      const miter = wallMiterPolygon(doc, wall);
       return <Group key={wall.id} draggable={!readOnly && tool === 'select'}
         onDragStart={() => store.getState().select([wall.id])}
         onDragEnd={(e) => drag(wall.id, { x: 0, y: 0 }, e)}
         onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)}>
         {wall.curveHeightMm ? <Line points={wallStrip(doc, wall).flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : INK} />
+          : miter ? <Line points={miter.flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : INK}
+            hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />
           : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : INK}
             lineCap="butt" strokeWidth={wall.thicknessMm} hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />}
         <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}
@@ -83,6 +89,7 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
     <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
+    <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select' && !selected.includes(f.id)} onDragStart={() => store.getState().select([])}
       onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>

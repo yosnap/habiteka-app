@@ -10,6 +10,7 @@ export function objectClearances(doc: EditorDocument, item: Footprint): { from: 
     const from = localToWorld(item, { x: x!, y: y! }), direction = { x: dx! * cos - dy! * sin, y: dx! * sin + dy! * cos };
     let nearest = Infinity;
     for (const w of doc.walls) {
+      if (w.hidden) continue;
       const [a, b] = wallPoints(doc, w), length = Math.hypot(b.x - a.x, b.y - a.y), ux = (b.x - a.x) / length, uy = (b.y - a.y) / length;
       const denominator = direction.x * uy - direction.y * ux;
       if (Math.abs(denominator) < .000001) continue;

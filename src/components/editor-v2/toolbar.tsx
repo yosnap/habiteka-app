@@ -20,7 +20,7 @@ export function Toolbar({ store, constructionOpen, catalogOpen, onConstruction, 
     <button type="button" aria-pressed={tool === 'select' && !constructionOpen && !catalogOpen} onClick={onSelectTool}>
       <MousePointer2 size={22} aria-hidden="true" /><span>Seleccionar</span></button>
     <button type="button" ref={constructionButtonRef} aria-expanded={constructionOpen} aria-pressed={constructionOpen}
-      onClick={onConstruction}><BrickWall size={22} aria-hidden="true" /><span>Construya</span></button>
+      onClick={onConstruction}><BrickWall size={22} aria-hidden="true" /><span>Construir</span></button>
     <button type="button" disabled={readOnly} aria-expanded={catalogOpen} aria-pressed={catalogOpen} onClick={onCatalog}>
       <Sofa size={22} aria-hidden="true" /><span>Amueblar</span></button>
     <button type="button" disabled={readOnly} aria-pressed={tool === 'measure'} onClick={() => { onSelectTool(); store.getState().setTool('measure'); }}>

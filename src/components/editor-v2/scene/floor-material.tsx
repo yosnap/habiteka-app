@@ -6,8 +6,8 @@ import { createFloorPattern } from '../floor-pattern';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { SurfaceMaterial } from './surface-material';
 
-export function FloorMaterial({ finish, textureId = finish.texture, color = finish.color, doubleSide = false }: {
-  finish: FloorFinish; textureId?: FloorFinish['texture']; color?: string; doubleSide?: boolean;
+export function FloorMaterial({ finish, textureId = finish.texture, color = finish.color, doubleSide = false, attach }: {
+  finish: FloorFinish; textureId?: FloorFinish['texture']; color?: string; doubleSide?: boolean; attach?: string;
 }) {
   const texture = useMemo(() => {
     if (surfaceMaterial(textureId)) return null;
@@ -19,6 +19,6 @@ export function FloorMaterial({ finish, textureId = finish.texture, color = fini
     return result;
   }, [finish, textureId, color]);
   useEffect(() => () => texture?.dispose(), [texture]);
-  return surfaceMaterial(textureId) ? <SurfaceMaterial id={textureId} color={color} tileSizeMm={finish.tileSizeMm} rotation={finish.rotation} doubleSide={doubleSide} />
-    : <meshStandardMaterial map={texture} color={texture ? '#ffffff' : color} roughness={.85} side={doubleSide ? 2 : undefined} />;
+  return surfaceMaterial(textureId) ? <SurfaceMaterial attach={attach} id={textureId} color={color} tileSizeMm={finish.tileSizeMm} rotation={finish.rotation} doubleSide={doubleSide} />
+    : <meshStandardMaterial attach={attach} map={texture} color={texture ? '#ffffff' : color} roughness={.85} side={doubleSide ? 2 : undefined} />;
 }

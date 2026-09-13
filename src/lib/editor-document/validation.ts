@@ -45,7 +45,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   if (![2, 3, 4, 5, 6].includes(value.schemaVersion as number) || value.units !== 'mm')
     throw new Error('Versión o unidades no compatibles');
   const construction = (value.schemaVersion as number) >= 3, spatial = (value.schemaVersion as number) >= 4, ramps = value.schemaVersion === 6;
-  keys(value, `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}`);
+  keys(value, `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}`);
   if (value.levels !== undefined || value.activeLevelId !== undefined) {
     text(value.activeLevelId);
     if (!Array.isArray(value.levels) || !value.levels.length || value.levels.length > 20) throw new Error('Número de plantas inválido (1–20)');
@@ -97,7 +97,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     positive(value.calibration.mmPerPixel);
   }
   const ids = new Set<string>();
-  for (const key of ['vertices', 'walls', 'openings', 'furniture', 'dimensions', 'labels', ...(construction ? ['stairs'] : []), ...(ramps ? ['ramps'] : []), ...(spatial ? ['comments'] : [])]) {
+  for (const key of ['vertices', 'walls', 'openings', 'furniture', 'dimensions', 'labels', ...(construction ? ['stairs'] : []), ...(ramps ? ['ramps'] : []), ...(value.columns ? ['columns'] : []), ...(spatial ? ['comments'] : [])]) {
     const entities = value[key];
     if (!Array.isArray(entities)) throw new Error(`Colección inválida: ${key}`);
     if (key === 'comments' && entities.length > 500) throw new Error('Máximo 500 comentarios');
@@ -107,12 +107,13 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (ids.has(e.id)) throw new Error('ID duplicado');
       ids.add(e.id);
       const allowed: Record<string, string> = {
-        vertices: 'id x y', walls: 'id name startVertexId endVertexId thicknessMm dimensionalOrigin',
+        vertices: 'id x y', walls: 'id name hidden startVertexId endVertexId thicknessMm dimensionalOrigin',
         openings: 'id name wallId kind position widthMm dimensionalOrigin',
         furniture: 'id name x y kind catalogId widthMm depthMm rotation dimensionalOrigin',
         dimensions: 'id from to label', labels: 'id x y text',
         stairs: 'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId',
         ramps: 'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route',
+        columns: 'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
         comments: 'id targetEntityId anchor text',
       };
       if (construction && key === 'walls') allowed.walls += ' heightMm materials baseElevationMm';
@@ -144,6 +145,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (key === 'walls') {
         text(e.startVertexId);
         text(e.endVertexId);
+        if (e.hidden !== undefined && typeof e.hidden !== 'boolean') throw new Error('Visibilidad de muro inválida');
         positive(e.thicknessMm);
         origin(e.dimensionalOrigin);
         if (e.baseElevationMm !== undefined) nonnegative(e.baseElevationMm);
@@ -204,7 +206,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           throw new Error('Fondo insuficiente para escalera U');
       } else if (key === 'ramps') {
         point(e); text(e.catalogId); text(e.materialId);
-        positive(e.widthMm); positive(e.depthMm); positive(e.riseMm); nonnegative(e.elevationMm); finite(e.rotation);
+        positive(e.widthMm); positive(e.depthMm); nonnegative(e.riseMm); nonnegative(e.elevationMm); finite(e.rotation);
+        if (e.riseMm === 0 && e.catalogId !== 'builtin:ramp-landing') throw new Error('Una rampa debe tener desnivel');
         if (e.route !== undefined) {
           record(e.route); keys(e.route, 'landingMm turn secondDepthMm secondRiseMm landingOffset secondOffset');
           positive(e.route.landingMm); positive(e.route.secondDepthMm); positive(e.route.secondRiseMm);
@@ -213,11 +216,15 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
             throw new Error('Recorrido de rampa inválido');
         }
       }
+      else if (key === 'columns') {
+        point(e); text(e.catalogId); text(e.materialId); positive(e.widthMm); positive(e.depthMm); positive(e.heightMm);
+        nonnegative(e.elevationMm); finite(e.rotation); if (e.catalogId !== 'builtin:column-rectangular') throw new Error('Columna desconocida'); color(e.color);
+      }
     }
   }
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
-  if (doc.comments?.some((c) => ![...doc.walls, ...doc.openings, ...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((e) => e.id === c.targetEntityId)))
+  if (doc.comments?.some((c) => ![...doc.walls, ...doc.openings, ...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((e) => e.id === c.targetEntityId)))
     throw new Error('Comentario sin elemento');
   for (const wall of doc.walls) {
     const [a, b] = wallPoints(doc, wall);
@@ -231,8 +238,10 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       .sort((x, y) => x.position - y.position);
     let previousEnd = -Infinity;
     for (const opening of openings) {
-      if (construction && opening.heightMm! + opening.elevationMm! > (wall.baseElevationMm ?? 0) + wall.heightMm! + EPSILON)
-        throw new Error('Abertura supera la altura del muro');
+      const openingTopMm = opening.heightMm! + opening.elevationMm!;
+      const wallTopMm = wall.heightMm!;
+      if (construction && openingTopMm > wallTopMm + EPSILON)
+        throw new Error(`La ${opening.kind} llega a ${(openingTopMm / 1000).toFixed(2)} m, pero el muro llega a ${(wallTopMm / 1000).toFixed(2)} m.`);
       const center = opening.position * path.length;
       const start = center - opening.widthMm / 2;
       const end = center + opening.widthMm / 2;

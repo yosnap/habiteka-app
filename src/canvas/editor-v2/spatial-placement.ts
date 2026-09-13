@@ -1,12 +1,16 @@
-import type { EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
+import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { wallMeshes } from './scene/wall-meshes';
 import { stairMeshes } from './scene/stair-meshes';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { curvedWallMeshes } from './scene/curved-wall-meshes';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
 
 interface Solid { id: string; polygon: Point[]; bottom: number; top: number }
+// Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
+const CONTACT_EPSILON_MM = 1;
 const boundsCache = new WeakMap<Solid, { minX: number; maxX: number; minY: number; maxY: number }>();
 function bounds(solid: Solid) {
   let value = boundsCache.get(solid);
@@ -18,12 +22,16 @@ export function footprint(item: Footprint): Point[] {
   return [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }]
     .map((p) => localToWorld(item, p));
 }
+function isColumn(item: Furniture | Stair | Ramp | Column): item is Column {
+  return item.catalogId === 'builtin:column-rectangular' && !('kind' in item);
+}
 /** Separating-axis test: contact is allowed, positive penetration is not. */
 function penetration(a: Solid, b: Solid): number {
   let depth = Math.min(a.top, b.top) - Math.max(a.bottom, b.bottom);
-  if (depth <= .1) return 0;
+  if (depth <= CONTACT_EPSILON_MM) return 0;
   const ab = bounds(a), bb = bounds(b);
-  if (ab.maxX <= bb.minX + .1 || bb.maxX <= ab.minX + .1 || ab.maxY <= bb.minY + .1 || bb.maxY <= ab.minY + .1) return 0;
+  if (ab.maxX <= bb.minX + CONTACT_EPSILON_MM || bb.maxX <= ab.minX + CONTACT_EPSILON_MM
+    || ab.maxY <= bb.minY + CONTACT_EPSILON_MM || bb.maxY <= ab.minY + CONTACT_EPSILON_MM) return 0;
   for (const polygon of [a.polygon, b.polygon]) for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i]!, q = polygon[(i + 1) % polygon.length]!, length = Math.hypot(q.x - p.x, q.y - p.y);
     if (length < .001) continue;
@@ -31,30 +39,39 @@ function penetration(a: Solid, b: Solid): number {
     const project = (points: Point[]) => points.map((v) => v.x * nx + v.y * ny);
     const ap = project(a.polygon), bp = project(b.polygon);
     const overlap = Math.min(Math.max(...ap), Math.max(...bp)) - Math.max(Math.min(...ap), Math.min(...bp));
-    if (overlap <= .1) return 0;
+    if (overlap <= CONTACT_EPSILON_MM) return 0;
     depth = Math.min(depth, overlap);
   }
   return depth;
 }
-function objectSolids(item: Furniture | Stair | Ramp): Solid[] {
+function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
   if ('stepCount' in item) return stairMeshes(item).filter((b) => b.role !== 'rail').map((box) => {
     const widthMm = box.size[0] * 1000, depthMm = box.size[2] * 1000, rotation = -box.rotation * 180 / Math.PI;
     const offset = objectCenter({ x: 0, y: 0, widthMm, depthMm, rotation });
     return { id: item.id, polygon: footprint({ x: box.position[0] * 1000 - offset.x, y: box.position[2] * 1000 - offset.y, widthMm, depthMm, rotation }),
       bottom: (box.position[1] - box.size[1] / 2) * 1000, top: (box.position[1] + box.size[1] / 2) * 1000 };
   });
-  if ('riseMm' in item) return [{ id: item.id, polygon: footprint(item), bottom: item.elevationMm, top: item.elevationMm + item.riseMm }];
-  return furnitureVolumes(item).map((volume) => ({ id: item.id, bottom: volume.bottom, top: volume.top,
-    polygon: footprint({ ...item, ...volume, ...localToWorld(item, volume) }) }));
+  if ('riseMm' in item) {
+    const landing = isRampLanding(item);
+    return [{ id: item.id, polygon: footprint(item), bottom: landing ? 0 : item.elevationMm,
+      top: landing ? Math.max(item.elevationMm, 20) : item.elevationMm + item.riseMm }];
+  }
+  if (isColumn(item)) {
+    return [{ id: item.id, polygon: footprint(item), bottom: item.elevationMm, top: item.elevationMm + item.heightMm }];
+  }
+  const furniture = item as Furniture;
+  return furnitureVolumes(furniture).map((volume) => ({ id: furniture.id, bottom: volume.bottom, top: volume.top,
+    polygon: footprint({ ...furniture, ...volume, ...localToWorld(furniture, volume) }) }));
 }
 function walls(doc: EditorDocument): Solid[] {
-  const curved = doc.walls.flatMap((w) => curvedWallMeshes(doc, w)).flatMap((strip) => {
+  const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
+  const curved = visibleWalls.flatMap((w) => curvedWallMeshes(doc, w)).flatMap((strip) => {
     const n = strip.points.length, half = n / 2;
     return strip.points.slice(0, half - 1).map((_, i) => ({ id: strip.sourceEntityId,
       polygon: [strip.points[i]!, strip.points[i + 1]!, strip.points[n - 2 - i]!, strip.points[n - 1 - i]!].map((p) => ({ x: p.x * 1000, y: p.y * 1000 })),
       bottom: strip.elevation * 1000, top: (strip.elevation + strip.height) * 1000 }));
   });
-  return [...curved, ...doc.walls.filter((w) => !w.curveHeightMm).flatMap((w) => wallMeshes(doc, w)).map((box) => {
+  return [...curved, ...visibleWalls.filter((w) => !w.curveHeightMm).flatMap((w) => wallMeshes(doc, w)).map((box) => {
     const widthMm = box.size[0] * 1000, depthMm = box.size[2] * 1000, rotation = -box.rotation * 180 / Math.PI;
     const offset = objectCenter({ x: 0, y: 0, widthMm, depthMm, rotation });
     return { id: box.sourceEntityId, polygon: footprint({ x: box.position[0] * 1000 - offset.x, y: box.position[2] * 1000 - offset.y, widthMm, depthMm, rotation }),
@@ -62,7 +79,7 @@ function walls(doc: EditorDocument): Solid[] {
   })];
 }
 function collisions(doc: EditorDocument): Map<string, number> {
-  const objects = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
+  const objects = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
   const result = new Map<string, number>();
   objects.forEach((a, index) => {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
@@ -73,9 +90,9 @@ function collisions(doc: EditorDocument): Map<string, number> {
   });
   return result;
 }
-function snapOriginToWallEndpoint(doc: EditorDocument, item: Furniture | Stair | Ramp, tolerance: number) {
+function snapOriginToWallEndpoint(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, tolerance: number) {
   let closest: Point | null = null, distance = tolerance;
-  for (const wall of doc.walls) {
+  for (const wall of doc.walls.filter((wall) => !wall.hidden)) {
     const path = wallPath(doc, wall);
     for (const point of [path.at(0), path.at(path.length)]) {
       const next = Math.hypot(item.x - point.x, item.y - point.y);
@@ -87,35 +104,85 @@ function snapOriginToWallEndpoint(doc: EditorDocument, item: Furniture | Stair |
 /** Legacy intersections remain repairable; edits cannot introduce or deepen one. */
 export function assertSpatialPlacement(previous: EditorDocument, candidate: EditorDocument): void {
   const before = collisions(previous), after = collisions(candidate);
-  for (const [key, depth] of after) if (depth > (before.get(key) ?? 0) + .1)
+  const columnIds = new Set([...(previous.columns ?? []), ...(candidate.columns ?? [])].map((column) => column.id));
+  const structuralIds = new Set([
+    ...previous.walls, ...candidate.walls,
+    ...(previous.stairs ?? []), ...(candidate.stairs ?? []),
+    ...(previous.ramps ?? []), ...(candidate.ramps ?? []),
+  ].map((item) => item.id));
+  for (const [key, depth] of after) {
+    const [first, second] = JSON.parse(key) as [string, string];
+    // A column is structural: it can be embedded in a wall, stair or ramp
+    // (including a landing), while furniture and another column stay blocked.
+    if ((columnIds.has(first) && structuralIds.has(second)) || (columnIds.has(second) && structuralIds.has(first))) continue;
+    if (depth > (before.get(key) ?? 0) + .1)
     throw new Error('El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.');
+  }
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
-  const item = candidate.furniture.find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id);
+  const item = candidate.furniture.find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
   if (!item) throw new Error('Elemento no encontrado');
-  const occupied = [...walls(previous), ...previous.furniture.flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids)];
+  const occupied = [...walls(previous), ...previous.furniture.flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
   for (let ring = 0; ring <= 32; ring++) for (let direction = 0; direction < (ring ? 8 : 1); direction++) {
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };
     if (objectSolids(placed).some((a) => occupied.some((b) => penetration(a, b) > .1))) continue;
     return { ...candidate, furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
       stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s),
+      columns: candidate.columns?.map((c) => c.id === id ? placed as Column : c),
       ...(candidate.ramps ? { ramps: candidate.ramps.map((r) => r.id === id ? placed as Ramp : r) } : {}) };
   }
   throw new Error('No hay espacio libre cercano. Libera espacio antes de añadir el elemento.');
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
-export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp, scale: number, enabled: boolean) {
+export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean) {
   // Objects use the same 10 cm grid as drawing points, then can refine to a wall face.
   let result = enabled ? { ...item, x: Math.round(item.x / 100) * 100, y: Math.round(item.y / 100) * 100 } : item;
   if (!enabled) return result;
-  const tolerance = 12 / Math.max(.001, scale);
-  result = snapOriginToWallEndpoint(doc, result, tolerance);
+  const landing = 'riseMm' in result ? result as Ramp : null;
+  const endpointTolerance = 12 / Math.max(.001, scale), faceTolerance = Math.max(150, 24 / Math.max(.001, scale));
+  if (isColumn(result)) return snapColumnToWallAxis(doc, result, faceTolerance);
+  if (landing && isRampLanding(landing)) {
+    const attached = doc.ramps?.filter((ramp) => ramp.id !== landing.id && !isRampLanding(ramp)).map((ramp) => {
+      const target = placeLandingAtRampArrival(landing, ramp);
+      const center = objectCenter(landing), targetCenter = objectCenter(target);
+      return { target, gap: Math.hypot(center.x - targetCenter.x, center.y - targetCenter.y) };
+    }).filter((candidate) => candidate.gap <= Math.max(500, 40 / scale)).sort((a, b) => a.gap - b.gap)[0];
+    if (attached) return alignAttachedLandingToWall(doc, attached.target, faceTolerance);
+  }
+  result = snapOriginToWallEndpoint(doc, result, endpointTolerance);
+  result = snapToWallFace(doc, result, faceTolerance);
+  return snapOriginToWallEndpoint(doc, result, endpointTolerance);
+}
+
+/** Structural columns snap to the wall centreline, not to an exterior face. */
+function snapColumnToWallAxis(doc: EditorDocument, column: Column, tolerance: number): Column {
+  const center = objectCenter(column);
+  let closest: Point | null = null, gap = tolerance;
+  for (const wall of doc.walls.filter((wall) => !wall.hidden)) {
+    const path = wallPath(doc, wall), point = path.at(path.project(center));
+    const nextGap = Math.hypot(center.x - point.x, center.y - point.y);
+    if (nextGap <= gap) { closest = point; gap = nextGap; }
+  }
+  return closest ? { ...column, x: column.x + closest.x - center.x, y: column.y + closest.y - center.y } : column;
+}
+
+/** A landing may align laterally to a wall, never move away from the ramp edge it joined. */
+function alignAttachedLandingToWall(doc: EditorDocument, landing: Ramp, tolerance: number): Ramp {
+  const wallAligned = snapToWallFace(doc, landing, tolerance), delta = { x: wallAligned.x - landing.x, y: wallAligned.y - landing.y };
+  const radians = landing.rotation * Math.PI / 180, axis = { x: Math.cos(radians), y: Math.sin(radians) };
+  const lateralMm = delta.x * axis.x + delta.y * axis.y;
+  return { ...landing, x: landing.x + axis.x * lateralMm, y: landing.y + axis.y * lateralMm };
+}
+
+/** Aligns the nearest footprint edge to a physical wall face; repeated passes settle corners. */
+function snapToWallFace(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, tolerance: number) {
+  let result = item;
   for (let pass = 0; pass < 2; pass++) {
     let best: { gap: number; delta: Point } | null = null;
     const corners = footprint(result), center = objectCenter(result);
-    for (const wall of doc.walls) {
+    for (const wall of doc.walls.filter((wall) => !wall.hidden)) {
       const path = wallPath(doc, wall), t = wall.curveHeightMm ? path.project(center) : 0;
       const a = path.at(t), direction = path.tangent(t), length = path.length, ux = direction.x, uy = direction.y;
       const longitudinal = corners.map((p) => (p.x - a.x) * ux + (p.y - a.y) * uy);
@@ -128,5 +195,5 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp, 
     }
     if (best) result = { ...result, x: result.x + best.delta.x, y: result.y + best.delta.y };
   }
-  return snapOriginToWallEndpoint(doc, result, tolerance);
+  return result;
 }

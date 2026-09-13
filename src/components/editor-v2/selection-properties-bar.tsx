@@ -14,13 +14,17 @@ import { furnitureSpatial } from '@/lib/editor-document/spatial-properties';
 import styles from './editor.module.css';
 import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
 import { CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { formatEditorDecimal, parseEditorDecimal } from './decimal-input';
+
+type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 
 function MeasureField({ label, value, minimum = .001, unit = 'm', onCommit }: { label: string; value: number; minimum?: number; unit?: string; onCommit: (n: number) => boolean }) {
-  return <label className={styles.measureField}><span>{label}</span><div><input key={value} type="number"
-    aria-label={`${label} (${unit})`} defaultValue={Math.round(value * 1000) / 1000} min={minimum} step={unit === 'm' ? .01 : 1} inputMode="decimal"
+  return <label className={styles.measureField}><span>{label}</span><div><input key={value} type="text"
+    aria-label={`${label} (${unit})`} defaultValue={formatEditorDecimal(value)} inputMode="decimal"
     onBlur={(event) => {
-      const next = event.currentTarget.valueAsNumber;
-      if (!Number.isFinite(next) || next < minimum || !onCommit(next)) event.currentTarget.value = String(Math.round(value * 1000) / 1000);
+      const next = parseEditorDecimal(event.currentTarget.value);
+      if (!Number.isFinite(next) || next < minimum || !onCommit(next)) event.currentTarget.value = formatEditorDecimal(value);
     }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} /><span>{unit}</span></div></label>;
 }
 
@@ -31,10 +35,14 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const furniture = doc.furniture.find((item) => item.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
+  const landing = ramp && isRampLanding(ramp);
+  const rampDimensions: readonly (readonly [RampDimensionKey, string])[] = !ramp ? [] : landing
+    ? [['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Elevación']]
+    : [['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const spatial = furniture ?? stair ?? ramp;
   if (!id) return null;
   const label = wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
-    : stair ? 'Escalera' : ramp ? 'Rampa' : furniture ? 'Elemento' : 'Selección';
+    : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? 'Elemento' : 'Selección';
   const run = (operation: (current: EditorDocument) => EditorDocument) => {
     try { const state = store.getState(); state.apply(operation(state.document)); return true; }
     catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo editar la selección.'); return false; }
@@ -72,7 +80,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
         <MeasureField key={key} label={text} value={stair[key] / 1000}
           minimum={key === 'elevationMm' ? 0 : .01}
           onCommit={(n) => run((current) => updateStair(current, id, { [key]: n * 1000 }))} />)}
-      {ramp && ([['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']] as const).map(([key, text]) =>
+      {ramp && rampDimensions.map(([key, text]) =>
         <MeasureField key={key} label={text} value={ramp[key] / 1000} minimum={key === 'elevationMm' ? 0 : .001}
           onCommit={(n) => run((current) => updateRamp(current, id, { [key]: n * 1000 }))} />)}
       {ramp?.route && <MeasureField label="Cota final tramo 2" value={(ramp.elevationMm + ramp.riseMm + ramp.route.secondRiseMm) / 1000}

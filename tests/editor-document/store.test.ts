@@ -3,6 +3,7 @@ import { createEditorStore } from '@/canvas/editor-v2/store';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { placeOpening, resolveOpeningPlacement } from '@/canvas/editor-v2/opening-placement';
+import { addColumn } from '@/lib/editor-document/construction-commands';
 
 it('copiar una abertura inicia colocación sin modificar documento ni historia', () => {
   const base = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }]);
@@ -36,6 +37,25 @@ it('bloquea undo y redo si la sesión pasa a solo lectura con historia existente
   store.getState().undo();
   store.getState().redo();
   expect(store.getState()).toBe(before);
+});
+
+it('copiar y pegar una columna mantiene el original hasta confirmar la nueva ubicación', () => {
+  const column = { id: 'column', catalogId: 'builtin:column-rectangular' as const, x: 1000, y: 0,
+    widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' };
+  const store = createEditorStore(addColumn(emptyEditorDocument(), column));
+  const before = store.getState().document;
+  store.getState().copySpatial(column.id);
+  store.getState().beginPasteSpatial();
+  const pending = store.getState().pendingSpatial!;
+  expect(pending.id).not.toBe(column.id);
+  expect(store.getState().document).toBe(before);
+  expect(store.getState().past).toHaveLength(0);
+  store.getState().placePendingSpatial({ ...pending, x: 2400, y: 0 });
+  expect(store.getState().document.columns).toHaveLength(2);
+  expect(store.getState().document.columns![1]).toMatchObject({ ...column, id: pending.id, x: 2400 });
+  expect(store.getState().selection).toEqual([pending.id]);
+  store.getState().undo();
+  expect(store.getState().document.columns).toEqual([column]);
 });
 
 it('50 gestos undo/redo reconstruyen exactamente el documento sin mezclar instancias', () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath, addOpening, deleteEntities, moveEntity, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
+import { createEditorStore } from '@/canvas/editor-v2/store';
 
 describe('editor gestures', () => {
   it.each(['L', 'U', 'T'] as const)('creates a valid closed %s room', (shape) => {
@@ -19,5 +20,13 @@ describe('editor gestures', () => {
     const next = moveEntity(doc, doc.walls[0]!.id, { x: 0, y: 200 });
     expect(next.walls[0]!.endVertexId).toBe(next.walls[1]!.startVertexId);
     expect(next.vertices[1]!.y).toBe(200);
+  });
+  it('restores a full marquee deletion with one undo operation', () => {
+    const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }]);
+    const store = createEditorStore(doc);
+    store.getState().apply(deleteEntities(doc, doc.walls.map((wall) => wall.id)));
+    expect(store.getState().document.walls).toHaveLength(0);
+    store.getState().undo();
+    expect(store.getState().document).toEqual(doc);
   });
 });

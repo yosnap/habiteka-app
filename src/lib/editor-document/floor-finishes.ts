@@ -2,6 +2,7 @@ import type { EditorDocument, FloorFinish } from './schema';
 import { upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 import { deriveRooms } from './rooms';
+import { wallConstruction } from './construction-properties';
 
 export function floorFinish(doc: EditorDocument, roomId: string): FloorFinish {
   return doc.floorFinishes?.find((f) => f.roomId === roomId) ?? {
@@ -19,17 +20,23 @@ export function floorSlabThicknessMm(finish: FloorFinish): number {
   if (elevationMm <= 0) return 0;
   return Math.min(finish.slabThicknessMm ?? elevationMm, elevationMm);
 }
-export function setRoomFloorElevation(doc: EditorDocument, roomId: string, elevationMm: number): void {
+/** Floors have their own level. Walls always remain measured from the building base. */
+export function normalizeRoomWallBases(doc: EditorDocument, roomId: string): void {
   const room = deriveRooms(doc).find((candidate) => candidate.id === roomId);
   if (!room) throw new Error('Selecciona una habitación cerrada');
-  doc.walls.filter((wall) => room.wallIds.includes(wall.id)).forEach((wall) => { wall.baseElevationMm = elevationMm; });
+  doc.walls.filter((wall) => room.wallIds.includes(wall.id)).forEach((wall) => {
+    delete wall.baseElevationMm;
+    doc.openings.filter((opening) => opening.wallId === wall.id && opening.sourceRampId).forEach((opening) => {
+      opening.heightMm = wallConstruction(wall).heightMm - (opening.elevationMm ?? 0);
+    });
+  });
 }
 export function setFloorFinish(source: EditorDocument, roomId: string, patch: Partial<Omit<FloorFinish, 'roomId'>>): EditorDocument {
   if (!deriveRooms(source).some((room) => room.id === roomId)) throw new Error('Selecciona una habitación cerrada');
   const doc = upgradeSpatialDocument(source);
   if (doc.schemaVersion < 5) doc.schemaVersion = 5;
   doc.floorFinishes ??= [];
-  if (patch.elevationMm !== undefined) setRoomFloorElevation(doc, roomId, patch.elevationMm);
+  if (patch.elevationMm !== undefined) normalizeRoomWallBases(doc, roomId);
   doc.floorFinishes = [...(doc.floorFinishes ?? []).filter((f) => f.roomId !== roomId), { ...floorFinish(doc, roomId), ...patch, roomId }];
   doc.revision += 1;
   return parseEditorDocument(doc);

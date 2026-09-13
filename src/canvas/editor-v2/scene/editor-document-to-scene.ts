@@ -15,11 +15,19 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
   const warnings: string[] = [];
   let floors: ScenePolygon[] = [];
   const exteriorWalls: ExteriorWall[] = [];
-  const walls = doc.walls.filter((w) => !w.curveHeightMm).flatMap((wall) => wallMeshes(doc, wall)), joins = junctionMeshes(doc);
-  const curves = doc.walls.flatMap((wall) => curvedWallMeshes(doc, wall));
+  const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
+  const visibleDocument = { ...doc, walls: visibleWalls };
+  const walls = visibleWalls.filter((w) => !w.curveHeightMm).flatMap((wall) => wallMeshes(doc, wall)), joins = junctionMeshes(visibleDocument);
+  const curves = visibleWalls.flatMap((wall) => curvedWallMeshes(doc, wall));
+  // The room graph and its floor cuts stay based on every boundary, including
+  // a deliberately hidden delimiter. Only the returned wall meshes are hidden.
+  const logicalWalls = doc.walls.filter((wall) => !wall.curveHeightMm).flatMap((wall) => wallMeshes(doc, wall));
+  const logicalJoins = junctionMeshes(doc);
+  const logicalCurves = doc.walls.flatMap((wall) => curvedWallMeshes(doc, wall));
   try {
     const rooms = deriveRooms(doc);
     for (const room of rooms) room.wallIds.forEach((wallId, i) => {
+      if (doc.walls.find((wall) => wall.id === wallId)?.hidden) return;
       if (rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
       const a = doc.vertices.find((v) => v.id === room.vertexIds[i])!;
       const b = doc.vertices.find((v) => v.id === room.vertexIds[(i + 1) % room.vertexIds.length])!;
@@ -27,11 +35,15 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
       exteriorWalls.push({ sourceEntityId: wallId, x: meters((a.x + b.x) / 2), z: meters((a.y + b.y) / 2),
         normalX: (b.y - a.y) / length, normalZ: -(b.x - a.x) / length });
     });
-    floors = floorMeshes(doc, rooms, walls, [...joins, ...curves]);
+    floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves]);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
   return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...floors, ...joins, ...curves], boxes: [
-    ...walls, ...doc.openings.flatMap((o) => openingMeshes(doc, o)),
+    ...walls, ...doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).flatMap((o) => openingMeshes(doc, o)),
     ...(doc.stairs ?? []).flatMap(stairMeshes),
+    ...(doc.columns ?? []).map((column) => ({ id: column.id, sourceEntityId: column.id, role: 'column' as const,
+      position: [meters(column.x + column.widthMm / 2), meters(column.elevationMm + column.heightMm / 2), meters(column.y + column.depthMm / 2)] as [number, number, number],
+      size: [meters(column.widthMm), meters(column.heightMm), meters(column.depthMm)] as [number, number, number],
+      rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0' })),
     ...doc.furniture.flatMap((f) => furnitureVolumes(f).map((volume, index) => {
       const p = localToWorld(f, { x: volume.x + volume.widthMm / 2, y: volume.y + volume.depthMm / 2 });
       return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: f.id, role: 'furniture' as const,

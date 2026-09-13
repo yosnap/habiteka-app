@@ -1,5 +1,6 @@
 import type { Ramp } from './schema';
 import { rampParts } from './ramp-route';
+import { isRampLanding } from './ramp-kind';
 
 export interface RampLayout {
   slopePercent: number;
@@ -9,7 +10,8 @@ export interface RampLayout {
 /** Validates the physical incline independently from the plan/3D renderers. */
 export function rampLayout(ramp: Ramp): RampLayout {
   const { widthMm, depthMm, riseMm, elevationMm, rotation } = ramp;
-  if (![widthMm, depthMm, riseMm].every((value) => Number.isFinite(value) && value > 0)
+  if (![widthMm, depthMm].every((value) => Number.isFinite(value) && value > 0)
+    || !Number.isFinite(riseMm) || riseMm < 0 || (!isRampLanding(ramp) && riseMm === 0)
     || !Number.isFinite(elevationMm) || elevationMm < 0 || !Number.isFinite(rotation))
     throw new Error('Dimensiones de rampa inválidas');
   const flights = rampParts(ramp).filter((part) => part.kind === 'flight');

@@ -1,11 +1,14 @@
-import type { EditorDocument, Opening, Ramp, Stair, Wall } from './schema';
+import type { Column, EditorDocument, Opening, Ramp, Stair, Wall } from './schema';
 import { upgradeConstructionDocument } from './migrations';
 import { parseEditorDocument } from './validation';
 import { finishColor, transformAroundCenter, upgradeRampDocument, upgradeSpatialDocument } from './spatial-properties';
 import { assertOpeningClearance } from './opening-clearance';
 import { wallConstruction } from './construction-properties';
-import { floorFinish, setRoomFloorElevation } from './floor-finishes';
+import { floorFinish, normalizeRoomWallBases } from './floor-finishes';
 import { rampArrival, rampArrivalTarget } from './ramp-arrival';
+import { isRampLanding } from './ramp-kind';
+import { placeLandingAtRampArrival } from './ramp-landing-placement';
+import { landingEntranceTarget } from './landing-entrance';
 
 function update(input: EditorDocument, operation: (doc: EditorDocument) => void): EditorDocument {
   const doc = upgradeConstructionDocument(input);
@@ -18,7 +21,22 @@ export function setWallConstruction(input: EditorDocument, id: string,
     const wall = doc.walls.find((entity) => entity.id === id);
     if (!wall) throw new Error('Muro no encontrado');
     Object.assign(wall, patch);
+    delete wall.baseElevationMm;
+    const ceilingMm = wallConstruction(wall).heightMm;
+    doc.openings.filter((opening) => opening.wallId === id && opening.sourceRampId).forEach((opening) => {
+      const heightMm = ceilingMm - (opening.elevationMm ?? 0);
+      if (heightMm <= 0) throw new Error('El muro queda por debajo de la llegada automática de la rampa.');
+      opening.heightMm = heightMm;
+    });
     if (doc.schemaVersion >= 4 && patch.materials) wall.colors = { left: finishColor(patch.materials.left), right: finishColor(patch.materials.right) };
+  });
+}
+/** A hidden wall remains in the room graph, but is not a physical rendered wall. */
+export function setWallVisibility(input: EditorDocument, id: string, hidden: boolean): EditorDocument {
+  return update(input, (doc) => {
+    const wall = doc.walls.find((entity) => entity.id === id);
+    if (!wall) throw new Error('Muro no encontrado');
+    wall.hidden = hidden || undefined;
   });
 }
 export function setOpeningConstruction(input: EditorDocument, id: string,
@@ -32,6 +50,15 @@ export function setOpeningConstruction(input: EditorDocument, id: string,
 export function addStair(input: EditorDocument, stair: Stair): EditorDocument {
   return update(input, (doc) => { doc.stairs!.push({ ...structuredClone(stair),
     ...(doc.schemaVersion >= 4 ? { color: stair.color ?? finishColor(stair.materialId) } : {}) }); });
+}
+export function addColumn(input: EditorDocument, column: Column): EditorDocument {
+  return update(upgradeRampDocument(input), (doc) => { doc.columns ??= []; doc.columns.push(structuredClone(column)); });
+}
+export function updateColumn(input: EditorDocument, id: string, patch: Partial<Omit<Column, 'id'>>): EditorDocument {
+  return update(upgradeRampDocument(input), (doc) => {
+    const column = doc.columns?.find((item) => item.id === id); if (!column) throw new Error('Columna no encontrada');
+    Object.assign(column, transformAroundCenter(column, patch)); if (patch.materialId) column.color = finishColor(patch.materialId);
+  });
 }
 export function updateStair(input: EditorDocument, id: string, patch: Partial<Omit<Stair, 'id'>>): EditorDocument {
   return update(upgradeSpatialDocument(input), (doc) => {
@@ -58,7 +85,20 @@ export function updateRamp(input: EditorDocument, id: string, patch: Partial<Omi
   if (!ramp) throw new Error('Rampa no encontrada');
   Object.assign(ramp, transformAroundCenter(ramp, patch));
   if (patch.materialId) ramp.color = finishColor(patch.materialId);
+  if (isRampLanding(ramp)) {
+    if (patch.widthMm !== undefined || patch.depthMm !== undefined || patch.elevationMm !== undefined) keepLandingAttached(doc, ramp);
+    return syncLandingEntrance(doc, id);
+  }
   return syncRampArrival(doc, id);
+}
+
+/** A resize must not break an existing ramp-to-landing junction. Position edits remain deliberate. */
+function keepLandingAttached(doc: EditorDocument, landing: Ramp): void {
+  const host = doc.ramps!.filter((candidate) => candidate.id !== landing.id && !isRampLanding(candidate)).map((ramp) => {
+    const target = placeLandingAtRampArrival(landing, ramp);
+    return { ramp, target, gapMm: Math.hypot(target.x - landing.x, target.y - landing.y) };
+  }).filter((candidate) => candidate.gapMm <= 1000).sort((a, b) => a.gapMm - b.gapMm)[0];
+  if (host) Object.assign(landing, host.target);
 }
 export function removeRamp(input: EditorDocument, id: string): EditorDocument {
   const doc = upgradeRampDocument(input);
@@ -76,10 +116,12 @@ export function connectRampArrival(input: EditorDocument, id: string): EditorDoc
   const target = rampArrivalTarget(doc, ramp);
   if (!target) throw new Error('Acerca el extremo de salida de la rampa a una pared de una habitación cerrada.');
   const arrival = rampArrival(ramp), wallHeightMm = wallConstruction(target.wall).heightMm;
-  setRoomFloorElevation(doc, target.room.id, arrival.elevationMm);
+  normalizeRoomWallBases(doc, target.room.id);
+  const openingHeightMm = wallHeightMm - arrival.elevationMm;
+  if (openingHeightMm <= 0) throw new Error('La llegada de la rampa queda por encima de la altura del muro.');
   doc.openings = doc.openings.filter((opening) => opening.sourceRampId !== ramp.id);
   const opening: Opening = { id: crypto.randomUUID(), wallId: target.wall.id, kind: 'hueco', position: target.position,
-    widthMm: ramp.widthMm, dimensionalOrigin: 'physical', heightMm: wallHeightMm,
+    widthMm: ramp.widthMm, dimensionalOrigin: 'physical', heightMm: openingHeightMm,
     elevationMm: arrival.elevationMm, catalogId: 'auto:ramp-arrival', hinge: 'left', swing: 'left', openAngleDeg: 0,
     colors: { frame: '#f4f1e9', leaf: '#bb956c' }, sourceRampId: ramp.id };
   assertOpeningClearance(doc, opening);
@@ -90,12 +132,43 @@ export function connectRampArrival(input: EditorDocument, id: string): EditorDoc
   return parseEditorDocument(doc);
 }
 
+/** Cuts a doorless wall opening from the landing elevation to the wall top. */
+export function connectLandingEntrance(input: EditorDocument, id: string): EditorDocument {
+  const doc = upgradeRampDocument(input), landing = doc.ramps!.find((entity) => entity.id === id);
+  if (!landing || !isRampLanding(landing)) throw new Error('Selecciona un descansillo');
+  const target = landingEntranceTarget(doc, landing);
+  if (!target) throw new Error('Acerca un borde del descansillo a una pared para abrir la entrada.');
+  const heightMm = wallConstruction(target.wall).heightMm - landing.elevationMm;
+  if (heightMm <= 0) throw new Error('El descansillo queda por encima de la altura del muro.');
+  doc.openings = doc.openings.filter((opening) => opening.sourceRampId !== landing.id);
+  const opening: Opening = { id: crypto.randomUUID(), wallId: target.wall.id, kind: 'hueco', position: target.position,
+    widthMm: target.widthMm, dimensionalOrigin: 'physical', heightMm, elevationMm: landing.elevationMm,
+    catalogId: 'auto:landing-entrance', hinge: 'left', swing: 'left', openAngleDeg: 0,
+    colors: { frame: '#f4f1e9', leaf: '#bb956c' }, sourceRampId: landing.id };
+  assertOpeningClearance(doc, opening);
+  doc.openings.push(opening);
+  doc.revision += 1;
+  return parseEditorDocument(doc);
+}
+
 /** Keeps an automatic arrival synchronized while the ramp is moved or resized. */
 export function syncRampArrival(input: EditorDocument, id: string): EditorDocument {
   const doc = upgradeRampDocument(input), ramp = doc.ramps!.find((entity) => entity.id === id);
   if (!ramp) throw new Error('Rampa no encontrada');
+  if (isRampLanding(ramp)) return parseEditorDocument(doc);
   if (rampArrivalTarget(doc, ramp)) return connectRampArrival(doc, id);
   if (!doc.openings.some((opening) => opening.sourceRampId === id)) return parseEditorDocument(doc);
+  doc.openings = doc.openings.filter((opening) => opening.sourceRampId !== id);
+  doc.revision += 1;
+  return parseEditorDocument(doc);
+}
+
+/** An automatic landing entrance follows its host while the landing remains against a wall. */
+function syncLandingEntrance(input: EditorDocument, id: string): EditorDocument {
+  const doc = upgradeRampDocument(input), landing = doc.ramps!.find((entity) => entity.id === id);
+  if (!landing) throw new Error('Rampa no encontrada');
+  if (!doc.openings.some((opening) => opening.sourceRampId === id)) return parseEditorDocument(doc);
+  if (landingEntranceTarget(doc, landing)) return connectLandingEntrance(doc, id);
   doc.openings = doc.openings.filter((opening) => opening.sourceRampId !== id);
   doc.revision += 1;
   return parseEditorDocument(doc);

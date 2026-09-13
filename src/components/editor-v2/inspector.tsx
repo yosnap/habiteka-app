@@ -11,6 +11,8 @@ import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { furnitureSpatial } from '@/lib/editor-document/spatial-properties';
 import { MeterField, NumberField } from './property-number-field';
 import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields, WallConstructionFields } from './construction-fields';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
@@ -20,6 +22,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const opening = doc.openings.find((o) => o.id === id), label = doc.labels.find((o) => o.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
+  const column = doc.columns?.find((item) => item.id === id);
   const apply = (operation: (current: EditorDocument) => EditorDocument) => {
     try { store.getState().apply(operation(store.getState().document)); return true; }
     catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Valor inválido'); return false; }
@@ -27,10 +30,10 @@ export function Inspector({ store }: { store: EditorStore }) {
   const meterField = (text: string, valueMm: number, edit: (next: EditorDocument, n: number) => void) =>
     <MeterField label={text} valueMm={valueMm} change={(n) => apply((d) => editDocument(d, (next) => edit(next, n)))} />;
   const points = wall ? wallPoints(doc, wall) : null;
-  const selectedEntity = wall ?? opening ?? stair ?? ramp ?? furniture;
+  const selectedEntity = wall ?? opening ?? stair ?? ramp ?? column ?? furniture;
   const displayName = (name: string | undefined, fallback: string) => name?.trim() || fallback;
   const updateName = (value: string) => apply((document) => editDocument(document, (next) => {
-    const entity = [...next.walls, ...next.openings, ...(next.stairs ?? []), ...(next.ramps ?? []), ...next.furniture]
+    const entity = [...next.walls, ...next.openings, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? []), ...next.furniture]
       .find((item) => item.id === id);
     if (!entity) throw new Error('Elemento no encontrado');
     entity.name = value.trim() || undefined;
@@ -42,12 +45,13 @@ export function Inspector({ store }: { store: EditorStore }) {
       {doc.walls.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Pared ${index + 1}`)}</option>)}
       {doc.openings.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `${item.kind} ${index + 1}`)}</option>)}
       {doc.stairs?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Escalera ${item.kind} ${index + 1}`)}</option>)}
-      {doc.ramps?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Rampa ${index + 1}`)}</option>)}
+      {doc.ramps?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `${isRampLanding(item) ? 'Descansillo' : 'Rampa'} ${index + 1}`)}</option>)}
+      {doc.columns?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Columna ${index + 1}`)}</option>)}
       {doc.furniture.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Mueble ${index + 1}`)}</option>)}
       {doc.labels.map((item) => <option key={item.id} value={item.id}>{item.text}</option>)}
     </select></label>
     <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-    <h2>{wall ? 'Muro' : furniture ? 'Mueble' : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? 'Rampa' : label ? 'Texto' : 'Propiedades'}</h2>
+    <h2>{wall ? 'Muro' : column ? 'Columna' : furniture ? 'Mueble' : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : label ? 'Texto' : 'Propiedades'}</h2>
     {!id && <p>Selecciona un elemento para editar sus medidas. Todas las distancias se expresan en metros.</p>}
     {selectedEntity && <label className={styles.field}>Nombre<input key={selectedEntity.name} defaultValue={selectedEntity.name ?? ''}
       placeholder="Ej. pared lateral" maxLength={100} onBlur={(event) => updateName(event.currentTarget.value)} /></label>}
@@ -67,6 +71,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       </div>
       <div className={styles.actions}>
         <button onClick={() => apply((d) => applyCommand(d, { type: 'invert-wall', wallId: wall.id }))}>Invertir sentido</button>
+        <button onClick={() => apply((d) => setWallVisibility(d, wall.id, !wall.hidden))}>{wall.hidden ? 'Mostrar pared' : 'Ocultar pared'}</button>
         <button onClick={() => apply((d) => applyCommand(d, { type: 'split-wall', wallId: wall.id,
           position: .5, vertexId: newId(), newWallId: newId() }))}>Dividir al 50%</button>
       </div>
@@ -98,6 +103,9 @@ export function Inspector({ store }: { store: EditorStore }) {
     </div><OpeningConstructionFields opening={opening} edit={apply} /></>}
     {stair && <StairConstructionFields stair={stair} edit={apply} />}
     {ramp && <RampConstructionFields ramp={ramp} edit={apply} />}
+    {column && <div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
+      <MeterField key={key} label={label} valueMm={column[key]} change={(value) => apply((document) => updateColumn(document, column.id, { [key]: value }))} />)}
+      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>}
     {label && <label className={styles.field}>Texto<input key={label.text} defaultValue={label.text}
       onBlur={(e) => { const text = e.currentTarget.value; apply((d) => editDocument(d, (next) => { next.labels.find((l) => l.id === id)!.text = text; })); }} /></label>}
     {id && <button className={styles.danger} onClick={() => {

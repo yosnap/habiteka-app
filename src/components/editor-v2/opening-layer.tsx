@@ -89,7 +89,7 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
   return <Group ref={group}>
     {host && <Line points={wallPath(doc, host).samples().flatMap((p) => [p.x, p.y])} listening={false}
       stroke={candidate?.valid ? GREEN : RED} opacity={.65} strokeWidth={host.thicknessMm + 6 / scale} />}
-    {doc.openings.map((opening) => {
+    {doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
       const wall = doc.walls.find((w) => w.id === opening.wallId)!, path = wallPath(doc, wall), direction = path.tangent(opening.position);
       const center = path.at(opening.position), angle = Math.atan2(direction.y, direction.x) * 180 / Math.PI;
       return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id ? .35 : 1}

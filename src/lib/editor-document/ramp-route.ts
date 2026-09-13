@@ -1,10 +1,11 @@
 import type { Point, Ramp } from './schema';
+import { isRampLanding } from './ramp-kind';
 
 export interface RampPart { kind: 'flight' | 'landing'; x: number; y: number; rotation: number; depthMm: number; riseMm: number; elevationMm: number; }
 /** Local route parts; legacy ramps remain a single flight. */
 export function rampParts(ramp: Ramp): RampPart[] {
   const route = ramp.route;
-  if (!route) return [{ kind: 'flight', x: 0, y: 0, rotation: 0, depthMm: ramp.depthMm, riseMm: ramp.riseMm, elevationMm: ramp.elevationMm }];
+  if (!route) return [{ kind: isRampLanding(ramp) ? 'landing' : 'flight', x: 0, y: 0, rotation: 0, depthMm: ramp.depthMm, riseMm: ramp.riseMm, elevationMm: ramp.elevationMm }];
   const landingMm = ramp.widthMm;
   // `riseMm` is the first flight's rise. The second flight starts at the
   // landing's finished level and contributes its own additional rise.

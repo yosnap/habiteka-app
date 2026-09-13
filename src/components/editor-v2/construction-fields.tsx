@@ -1,10 +1,11 @@
 'use client';
 import { ArrowLeftRight, DoorClosed, DoorOpen, FlipHorizontal2, FlipVertical2 } from 'lucide-react';
 import type { EditorDocument, Opening, Ramp, Stair, Wall } from '@/lib/editor-document/schema';
-import { connectRampArrival, setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
+import { connectLandingEntrance, connectRampArrival, setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
 import { rampLayout } from '@/lib/editor-document/ramp-layout';
 import { openingConstruction, wallConstruction } from '@/lib/editor-document/construction-properties';
 import { stairLayout } from '@/lib/editor-document/stair-layout';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { MeterField, NumberField } from './property-number-field';
 import styles from './editor.module.css';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
@@ -12,6 +13,7 @@ import { SurfaceMaterialPicker } from './surface-material-picker';
 import { setWallSurface } from '@/lib/editor-document/spatial-commands';
 
 type Edit = (operation: (document: EditorDocument) => EditorDocument) => boolean;
+type RampDimensionKey = 'x' | 'y' | 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 const materials = [
   ['plaster-white', 'Yeso blanco'], ['brick-red', 'Ladrillo rojo'], ['concrete-grey', 'Hormigón'],
   ['paint-sage', 'Pintura salvia'], ['oak-natural', 'Roble natural'], ['steel-dark', 'Metal oscuro'],
@@ -82,8 +84,11 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
 }
 
 export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit }) {
-  const dimensions = [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Longitud'],
-    ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']] as const;
+  const landing = isRampLanding(ramp);
+  const dimensions: readonly (readonly [RampDimensionKey, string])[] = landing
+    ? [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Elevación']]
+    : [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Longitud'],
+      ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const layout = rampLayout(ramp);
   const landingElevationMm = ramp.elevationMm + ramp.riseMm;
   return <>
@@ -91,7 +96,7 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
     <MaterialField label="Material" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
-    {!ramp.route ? <div className={styles.actions}>{(['left', 'right', 'reverse'] as const).map((turn) => <button key={turn} type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, {
+    {!landing && (!ramp.route ? <div className={styles.actions}>{(['left', 'right', 'reverse'] as const).map((turn) => <button key={turn} type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, {
       route: { landingMm: ramp.widthMm, turn, secondDepthMm: ramp.depthMm, secondRiseMm: ramp.riseMm / 2 },
     }))}>Añadir descanso · girar {turn === 'left' ? 'izquierda' : turn === 'right' ? 'derecha' : '180°'}</button>)}</div>
       : <div className={styles.fields}>
@@ -101,11 +106,12 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
           if (secondRiseMm <= 0) throw new Error('La cota final debe ser superior a la cota del descanso.');
           return updateRamp(doc, ramp.id, { route: { ...ramp.route!, secondRiseMm } });
         })} />
-      </div>}
+      </div>)}
     {ramp.route && <p className={styles.hint}>Cota del descanso e inicio del tramo 2: {(landingElevationMm / 1000).toFixed(2)} m. Cota final: {((landingElevationMm + ramp.route.secondRiseMm) / 1000).toFixed(2)} m.</p>}
     <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { rotation: (ramp.rotation + 90) % 360 }))}>
       <ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
-    <button type="button" onClick={() => edit((doc) => connectRampArrival(doc, ramp.id))}>Acoplar llegada: suelo + hueco</button>
-    <p className={styles.hint}>Pendiente {layout.slopePercent.toFixed(1)}% ({layout.angleDeg.toFixed(1)}°). Modelo espacial, no certificación constructiva.</p>
+    {!landing && <button type="button" onClick={() => edit((doc) => connectRampArrival(doc, ramp.id))}>Acoplar llegada: suelo + hueco</button>}
+    {landing && <button type="button" onClick={() => edit((doc) => connectLandingEntrance(doc, ramp.id))}>Abrir entrada en pared</button>}
+    <p className={styles.hint}>{landing ? 'Plataforma horizontal sólida desde la cota base hasta su elevación.' : `Pendiente ${layout.slopePercent.toFixed(1)}% (${layout.angleDeg.toFixed(1)}°). Modelo espacial, no certificación constructiva.`}</p>
   </>;
 }

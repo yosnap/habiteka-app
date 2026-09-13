@@ -1,12 +1,13 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { Box, Download, Save, SlidersHorizontal, Square, Type, Undo2, Redo2, X } from 'lucide-react';
 import type { EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import type { Point, Stair } from '@/lib/editor-document/schema';
-import { addRamp, addStair } from '@/lib/editor-document/construction-commands';
-import { addFurniture, addWallPath, deleteEntities, editDocument, newId, shapePoints } from '@/canvas/editor-v2/editing-operations';
+import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
+import { addFurniture, addWallPath, deleteEntities, editDocument, newId, nudgeSpatialEntities, shapePoints } from '@/canvas/editor-v2/editing-operations';
+import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
 import { Toolbar } from './toolbar';
 import { Inspector } from './inspector';
 import { CatalogPanel } from './catalog-panel';
@@ -18,6 +19,8 @@ import { BuildingLevelMenu } from './building-level-menu';
 import { FurnitureContextPanel } from './furniture-context-panel';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
+import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
+import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
 import styles from './editor.module.css';
 
 const CanvasView = dynamic(() => import('./canvas-view').then((module) => module.CanvasView),
@@ -76,27 +79,69 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
       widthMm: 1200, depthMm: 15000, riseMm: 1200, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' });
     store.getState().apply(placeNewObject(source, candidate, id)); store.getState().select([id]);
   });
+  const insertLanding = () => run(() => {
+    if (store.getState().readOnly) return;
+    const prior = store.getState(), selectedRampId = prior.selection[0];
+    chooseTool('select');
+    const id = newId(), state = store.getState(), source = state.document;
+    const landing = { id, catalogId: RAMP_LANDING_CATALOG_ID, x: center.x - 600, y: center.y - 600,
+      widthMm: 1200, depthMm: 1200, riseMm: 0, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' };
+    const ramp = source.ramps?.find((item) => item.id === selectedRampId && item.catalogId !== RAMP_LANDING_CATALOG_ID);
+    const candidate = addRamp(source, ramp ? placeLandingAtRampArrival(landing, ramp) : landing);
+    state.apply(ramp ? candidate : placeNewObject(source, candidate, id)); state.select([id]);
+  });
+  const insertColumn = () => run(() => {
+    if (store.getState().readOnly) return;
+    chooseTool('select'); const id = newId(), source = store.getState().document;
+    const candidate = addColumn(source, { id, catalogId: 'builtin:column-rectangular', x: center.x - 200, y: center.y - 200,
+      widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' });
+    store.getState().apply(candidate); store.getState().select([id]);
+  });
   const toolLabel = { select: 'Seleccionar', wall: 'Dibujar paredes', rectangle: 'Dibujar habitación',
-    door: 'Colocar puerta', window: 'Colocar ventana', passage: 'Colocar hueco', measure: 'Medir distancia', 'split-wall': 'Añadir esquina' };
-  return <section className={styles.shell} aria-label={`Editor de ${projectName}`} onKeyDown={(e) => {
-    const target = e.target as HTMLElement;
-    if (readOnly || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
-    const state = store.getState();
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
-      e.preventDefault(); if (e.shiftKey) state.redo(); else state.undo();
-    }
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (!state.selection.length) return; e.preventDefault();
-      run(() => state.apply(deleteEntities(state.document, state.selection))); state.select([]);
-    }
-  }}>
+    door: 'Colocar puerta', window: 'Colocar ventana', passage: 'Colocar hueco', measure: 'Medir distancia', 'split-wall': 'Añadir esquina',
+    'place-object': 'Colocar copia' } satisfies Record<EditorTool, string>;
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (readOnly || target instanceof HTMLElement &&
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)) return;
+      const state = store.getState(), command = event.metaKey || event.ctrlKey;
+      if (command && event.key.toLowerCase() === 'z') {
+        event.preventDefault(); if (event.shiftKey) state.redo(); else state.undo(); return;
+      }
+      if (command && event.key.toLowerCase() === 'c' && state.selection.length === 1) {
+        event.preventDefault(); state.copySpatial(state.selection[0]!); return;
+      }
+      if (command && event.key.toLowerCase() === 'v') {
+        event.preventDefault(); state.beginPasteSpatial(); return;
+      }
+      if (command && event.key.toLowerCase() === 'a') {
+        event.preventDefault(); state.select(selectableEntityIds(state.document)); return;
+      }
+      const delta = event.key === 'ArrowLeft' ? { x: -1, y: 0 } : event.key === 'ArrowRight' ? { x: 1, y: 0 }
+        : event.key === 'ArrowUp' ? { x: 0, y: -1 } : event.key === 'ArrowDown' ? { x: 0, y: 1 } : null;
+      if (delta && state.selection.length) {
+        event.preventDefault(); const stepMm = event.shiftKey ? 100 : 10;
+        try { state.apply(nudgeSpatialEntities(state.document, state.selection, { x: delta.x * stepMm, y: delta.y * stepMm })); }
+        catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo mover la selección.'); }
+        return;
+      }
+      if (event.key !== 'Delete' && event.key !== 'Backspace' || !state.selection.length) return;
+      event.preventDefault();
+      try { state.apply(deleteEntities(state.document, state.selection)); state.select([]); }
+      catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo eliminar la selección.'); }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, [readOnly, store]);
+  return <section className={styles.shell} aria-label={`Editor de ${projectName}`}>
     <header className={styles.header}>
       <div className={styles.identity}><strong>{projectName}</strong><span role="status">{saveStatus ?? 'Guardado no conectado'}</span></div>
       <div className={styles.actions}>
         <BuildingLevelMenu store={store} />
         <FurnitureContextPanel store={store} />
-        <button type="button" disabled={readOnly || !past} onClick={() => store.getState().undo()} aria-label="Deshacer"><Undo2 size={20} aria-hidden="true" /></button>
-        <button type="button" disabled={readOnly || !future} onClick={() => store.getState().redo()} aria-label="Rehacer"><Redo2 size={20} aria-hidden="true" /></button>
+        <button type="button" disabled={readOnly || !past} onClick={() => store.getState().undo()} aria-label="Deshacer" title="Deshacer (⌘Z)"><Undo2 size={20} aria-hidden="true" /></button>
+        <button type="button" disabled={readOnly || !future} onClick={() => store.getState().redo()} aria-label="Rehacer" title="Rehacer (⇧⌘Z)"><Redo2 size={20} aria-hidden="true" /></button>
         <button type="button" onClick={onExport} disabled={!onExport} title={!onExport ? 'Exportación no disponible' : undefined}><Download size={18} aria-hidden="true" /><span>Exportar</span></button>
         <button type="button" className={styles.primary} onClick={onSave} disabled={readOnly || !onSave}><Save size={18} aria-hidden="true" /><span>Guardar</span></button>
       </div>
@@ -135,7 +180,7 @@ export function EditorShell({ store, projectName, saveStatus, onSave, onImport, 
         onTool={chooseTool} onShape={(shape) => run(() => {
           if (store.getState().readOnly) return;
           store.getState().apply(addWallPath(store.getState().document, shapePoints(shape, center), true)); chooseTool('select');
-        })} onAddStair={insertStair} onAddRamp={insertRamp} />}
+        })} onAddStair={insertStair} onAddRamp={insertRamp} onAddLanding={insertLanding} onAddColumn={insertColumn} />}
       <div className={styles.sidebar} data-open={inspector || catalog} style={catalog ? { width: 336 } : undefined}>
         {catalog ? <CatalogPanel readOnly={readOnly} onClose={() => setCatalog(false)} onAdd={(item) => run(() => {
           if (store.getState().readOnly) return;

@@ -3,18 +3,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import type { EditorDocument, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
+import type { Column, EditorDocument, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, transformAroundCenter, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { assertSpatialPlacement, footprint, snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { objectClearances } from '@/canvas/editor-v2/object-clearances';
 import { DimensionMark } from './dimension-mark';
+import { resizeRampFromCorner } from '@/lib/editor-document/ramp-landing-placement';
+import { alignmentGuides } from '@/canvas/editor-v2/alignment-guides';
 
-type ObjectItem = Furniture | Stair | Ramp;
+type ObjectItem = Furniture | Stair | Ramp | Column;
 export function ObjectTransformControls({ store, source, id, scale, onPreview }: {
   store: EditorStore; source: EditorDocument; id: string; scale: number; onPreview: (doc: EditorDocument | null) => void;
 }) {
-  const item = source.furniture.find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id);
+  const item = source.furniture.find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id) ?? source.columns?.find((c) => c.id === id);
   const group = useRef<Konva.Group>(null);
   const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null } | null>(null);
   const [shown, setShown] = useState<{ item: ObjectItem; error: string | null } | null>(null);
@@ -32,19 +34,21 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   }, [store, source, id, onPreview]);
   if (!item) return null;
   const current = shown?.item ?? item, color = shown?.error ? '#ba302f' : '#087f75';
+  const guides = alignmentGuides(source, current);
   const position = `X ${(current.x / 1000).toFixed(3)} · Y ${(current.y / 1000).toFixed(3)} m`;
   const measurement = 'riseMm' in current
     ? `${position} · Ancho ${(current.widthMm / 1000).toFixed(3)} m · Longitud ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`
     : `${position} · ${(current.widthMm / 1000).toFixed(3)} × ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`;
   const center = objectCenter(current), rotate = localToWorld(current, { x: current.widthMm / 2, y: -40 / scale });
   const begin = (node: Konva.Node) => {
-    const doc = upgradeSpatialDocument(source), base = doc.furniture.find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id) ?? doc.ramps!.find((r) => r.id === id)!;
+    const doc = upgradeSpatialDocument(source), base = doc.furniture.find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id) ?? doc.ramps!.find((r) => r.id === id) ?? doc.columns!.find((c) => c.id === id)!;
     gesture.current = { node, doc, item: base, candidate: null, error: null };
   };
   const update = (nextItem: ObjectItem) => {
     const active = gesture.current; if (!active) return;
     const candidate = { ...active.doc, furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
       stairs: active.doc.stairs!.map((s) => s.id === id ? nextItem as Stair : s),
+      columns: active.doc.columns?.map((c) => c.id === id ? nextItem as Column : c),
       ...(active.doc.ramps ? { ramps: active.doc.ramps.map((r) => r.id === id ? nextItem as Ramp : r) } : {}) };
     let error: string | null = null;
     try { assertEditorDocument(candidate); assertSpatialPlacement(source, candidate); }
@@ -58,6 +62,7 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
     catch (cause) { store.getState().setError(cause instanceof Error ? cause.message : 'Edición inválida'); }
   };
   return <Group ref={group}>
+    {guides.map((guide, index) => <AlignmentGuideMark key={`${guide.edge.sourceId}:${index}`} guide={guide} scale={scale} />)}
     {objectClearances(source, current).map((g, i) => <DimensionMark key={i} scale={scale}
       layout={{ ...g, sourceFrom: g.from, sourceTo: g.to }} />)}
     <Line points={[center.x - 140 / scale, center.y, center.x + 140 / scale, center.y]} stroke={color} strokeWidth={1 / scale} dash={[5 / scale, 4 / scale]} listening={false} />
@@ -85,10 +90,36 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active || !pointer) return;
         const c = objectCenter(active.item), a = -active.item.rotation * Math.PI / 180, dx = pointer.x - c.x, dy = pointer.y - c.y;
-        update(transformAroundCenter(active.item, { widthMm: Math.max(50, Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) * 2),
-          depthMm: Math.max(50, Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) * 2) }));
+        const resized = 'riseMm' in active.item
+          ? resizeRampFromCorner(active.item, i, pointer)
+          : transformAroundCenter(active.item, { widthMm: Math.max(50, Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) * 2),
+            depthMm: Math.max(50, Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) * 2) });
+        update(resized);
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(p); end(); }} />)}
     <Text x={center.x - 160 / scale} y={Math.max(...footprint(current).map((p) => p.y)) + 20 / scale} width={320 / scale} align="center"
       fontSize={12 / scale} fill={color} listening={false} text={shown?.error ?? measurement} />
+  </Group>;
+}
+
+function AlignmentGuideMark({ guide, scale }: { guide: ReturnType<typeof alignmentGuides>[number]; scale: number }) {
+  const snapped = guide.gapMm <= 2, stroke = snapped ? '#00a693' : '#087f75';
+  const sx = guide.source.to.x - guide.source.from.x, sy = guide.source.to.y - guide.source.from.y;
+  const length = Math.hypot(sx, sy) || 1, ux = sx / length, uy = sy / length;
+  const project = (point: { x: number; y: number }) => {
+    const dx = guide.edge.to.x - guide.edge.from.x, dy = guide.edge.to.y - guide.edge.from.y, edgeLength = Math.hypot(dx, dy) || 1;
+    const along = ((point.x - guide.edge.from.x) * dx + (point.y - guide.edge.from.y) * dy) / edgeLength ** 2;
+    return { x: guide.edge.from.x + dx * along, y: guide.edge.from.y + dy * along };
+  };
+  const a = project(guide.source.from), b = project(guide.source.to), extension = 120 / scale;
+  return <Group listening={false}>
+    <Line points={[guide.edge.from.x - ux * extension, guide.edge.from.y - uy * extension,
+      guide.edge.to.x + ux * extension, guide.edge.to.y + uy * extension]} stroke={stroke} opacity={snapped ? 1 : .65}
+      strokeWidth={(snapped ? 3 : 1.5) / scale} dash={snapped ? undefined : [10 / scale, 6 / scale]} />
+    <Line points={[guide.source.from.x, guide.source.from.y, guide.source.to.x, guide.source.to.y]} stroke={stroke}
+      strokeWidth={(snapped ? 4 : 2) / scale} />
+    {!snapped && <><Line points={[guide.source.from.x, guide.source.from.y, a.x, a.y]} stroke={stroke} opacity={.85}
+      strokeWidth={1.5 / scale} dash={[6 / scale, 4 / scale]} />
+      <Line points={[guide.source.to.x, guide.source.to.y, b.x, b.y]} stroke={stroke} opacity={.85}
+        strokeWidth={1.5 / scale} dash={[6 / scale, 4 / scale]} /></>}
   </Group>;
 }

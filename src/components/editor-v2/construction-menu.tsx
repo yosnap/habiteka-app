@@ -10,10 +10,11 @@ interface ConstructionMenuProps extends Omit<ConstructionCatalogProps, 'category
 }
 const baseCategories = [
   { id: 'walls', label: 'Dibujar paredes', icon: Slash },
+  { id: 'columns', label: 'Columnas', icon: Columns2 },
   { id: 'rooms', label: 'Habitaciones', icon: RectangleHorizontal },
-  { id: 'shapes', label: 'Formas', icon: Shapes },
 ] as const;
 const structureCategories = [
+  { id: 'shapes', label: 'Formas', icon: Shapes },
   { id: 'doors', label: 'Puertas', icon: DoorOpen },
   { id: 'windows', label: 'Ventanas', icon: Columns2 },
   { id: 'passages', label: 'Huecos', icon: ScanLine },
@@ -24,10 +25,10 @@ export function ConstructionMenu({ onClose, onImport, ...catalogProps }: Constru
   const [category, setCategory] = useState<ConstructionCategory>('walls');
   const categories = [...baseCategories, ...structureCategories,
     ...(catalogProps.onAddStair ? [{ id: 'stairs' as const, label: 'Escaleras', icon: MoveUpRight }] : [])];
-  return <aside className={styles.constructionMenu} aria-label="Construya" onKeyDown={(event) => {
+  return <aside className={styles.constructionMenu} aria-label="Construir" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
-    <div className={styles.constructionHeading}><h2>Construya</h2>
+    <div className={styles.constructionHeading}><h2>Construir</h2>
       <button type="button" onClick={onClose} aria-label="Cerrar construcción"><X size={20} aria-hidden="true" /></button>
     </div>
     <div className={styles.constructionBody}>

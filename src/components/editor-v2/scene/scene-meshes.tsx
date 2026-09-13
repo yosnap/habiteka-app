@@ -50,8 +50,10 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
     }}>
     {polygon.height === 0 ? <shapeGeometry args={[shape]} />
       : <extrudeGeometry args={[shape, { depth: polygon.height, bevelEnabled: false, steps: 1 }]} />}
-    {polygon.floorFinish ? <>{<FloorMaterial finish={polygon.floorFinish} />}
-      {polygon.height > 0 && <meshStandardMaterial attach="material-1" color={polygon.sideColor ?? '#756f66'} roughness={.85} />}</> : polygon.topColor || polygon.edgeFinishes ? <>
+    {polygon.floorFinish ? polygon.height > 0 ? <>
+      <FloorMaterial finish={polygon.floorFinish} attach="material-0" />
+      <meshStandardMaterial attach="material-1" color={polygon.sideColor ?? '#756f66'} roughness={.85} />
+    </> : <FloorMaterial finish={polygon.floorFinish} /> : polygon.topColor || polygon.edgeFinishes ? <>
       <meshBasicMaterial attach="material-0" color={polygon.topColor ?? polygon.color} toneMapped={false} />
       <meshStandardMaterial attach="material-1" color={polygon.color} roughness={.85} visible={!polygon.edgeFinishes} />
     </> : <meshStandardMaterial color={selected ? '#43b6a0' : polygon.color} roughness={.85} />}

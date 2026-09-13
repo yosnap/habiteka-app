@@ -47,6 +47,14 @@ describe('persistent floor finishes', () => {
     const merged = applyCommand(split, { type: 'merge-walls', wallId, otherWallId: 'wall-new' });
     expect(floorFinish(merged, deriveRooms(merged)[0]!.id).texture).toBe('wood');
   });
+  it('raises only the floor surface, never the enclosing walls', () => {
+    const doc = room(), id = deriveRooms(doc)[0]!.id;
+    const legacy = setFloorFinish(doc, id, { elevationMm: 900 });
+    legacy.walls.forEach((wall) => { wall.baseElevationMm = 900; });
+    const next = setFloorFinish(legacy, id, { elevationMm: 1200, texture: 'tile' });
+    expect(next.walls.every((wall) => wall.baseElevationMm === undefined)).toBe(true);
+    expect(floorFinish(next, id)).toMatchObject({ elevationMm: 1200, texture: 'tile' });
+  });
 });
 describe('live drawing dimensions', () => {
   it('offsets arrows with constant screen spacing and rejects zero length', () => {

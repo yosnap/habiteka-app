@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { emptyEditorDocument, type Ramp, type Stair } from '@/lib/editor-document/schema';
+import { emptyEditorDocument, type Column, type Ramp, type Stair } from '@/lib/editor-document/schema';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
-import { addRamp, addStair, setOpeningConstruction, setWallConstruction, updateRamp, updateStair, removeRamp, removeStair } from '@/lib/editor-document/construction-commands';
+import { addColumn, addRamp, addStair, setOpeningConstruction, setWallConstruction, setWallVisibility, updateColumn, updateRamp, updateStair, removeRamp, removeStair } from '@/lib/editor-document/construction-commands';
 import { stairLayout } from '@/lib/editor-document/stair-layout';
 import { rampLayout } from '@/lib/editor-document/ramp-layout';
 import { rampParts } from '@/lib/editor-document/ramp-route';
@@ -21,6 +21,8 @@ const stair: Stair = { id: 's', kind: 'U', catalogId: 'stair-U', x: 200, y: 300,
   stepCount: 16, materialId: 'wood-oak' };
 const ramp: Ramp = { id: 'r', catalogId: 'builtin:ramp-straight', x: 200, y: 300,
   widthMm: 1200, depthMm: 15000, riseMm: 1200, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' };
+const column: Column = { id: 'column', catalogId: 'builtin:column-rectangular', x: 1000, y: 2000,
+  widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' };
 
 describe('construction v3 contract', () => {
   it('reads immutable v2 exactly and upgrades only explicitly with deterministic defaults', () => {
@@ -106,6 +108,32 @@ describe('construction v3 contract', () => {
       expect(second).toMatchObject({ rotation: expected.rotation, x: expected.x, y: expected.y });
     }
     expect(removeRamp(updated, 'r').ramps).toEqual([]);
-    expect(() => addRamp(fixture(), { ...ramp, riseMm: 0 })).toThrow('Dimensión no positiva');
+    expect(() => addRamp(fixture(), { ...ramp, riseMm: 0 })).toThrow('Una rampa debe tener desnivel');
+  });
+  it('stores an independent landing as a solid level platform', () => {
+    const landing: Ramp = { ...ramp, id: 'landing', catalogId: 'builtin:ramp-landing', widthMm: 1200, depthMm: 1500,
+      riseMm: 0, elevationMm: 1200 };
+    const added = addRamp(fixture(), landing);
+    expect(added.ramps![0]).toMatchObject(landing);
+    expect(editorDocumentToScene(added).ramps[0]).toMatchObject({ sourceEntityId: 'landing', position: expect.arrayContaining([0, 0]), baseHeight: 1.2, rise: 0 });
+  });
+  it('stores a structural column as an editable 2D/3D solid', () => {
+    const added = addColumn(fixture(), column), scene = editorDocumentToScene(added);
+    expect(added.columns).toEqual([column]);
+    expect(scene.boxes.find((box) => box.sourceEntityId === column.id)).toMatchObject({ role: 'column', position: [1.2, 1.35, 2.2], size: [.4, 2.7, .4] });
+    expect(updateColumn(added, column.id, { widthMm: 500 }).columns![0]).toMatchObject({ widthMm: 500, x: 950 });
+  });
+  it('keeps a hidden wall as a room boundary while removing its physical geometry', () => {
+    const source = emptyEditorDocument();
+    source.vertices = [{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 4000, y: 0 }, { id: 'c', x: 4000, y: 3000 }, { id: 'd', x: 0, y: 3000 }];
+    source.walls = [{ id: 'w', startVertexId: 'a', endVertexId: 'b', thicknessMm: 150, dimensionalOrigin: 'physical' },
+      { id: 'w2', startVertexId: 'b', endVertexId: 'c', thicknessMm: 150, dimensionalOrigin: 'physical' },
+      { id: 'w3', startVertexId: 'c', endVertexId: 'd', thicknessMm: 150, dimensionalOrigin: 'physical' },
+      { id: 'w4', startVertexId: 'd', endVertexId: 'a', thicknessMm: 150, dimensionalOrigin: 'physical' }];
+    const hidden = setWallVisibility(source, 'w', true), scene = editorDocumentToScene(hidden);
+    expect(hidden.walls[0]).toMatchObject({ id: 'w', hidden: true });
+    expect(scene.boxes.some((box) => box.sourceEntityId === 'w')).toBe(false);
+    expect(scene.polygons.some((polygon) => polygon.role === 'floor')).toBe(true);
+    expect(setWallVisibility(hidden, 'w', false).walls[0]?.hidden).toBeUndefined();
   });
 });

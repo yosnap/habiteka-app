@@ -113,24 +113,36 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
     next.dimensions = next.dimensions.filter((o) => !ids.includes(o.id));
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));
     if (next.ramps) next.ramps = next.ramps.filter((o) => !ids.includes(o.id));
+    if (next.columns) next.columns = next.columns.filter((o) => !ids.includes(o.id));
     if (next.comments) {
-      const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? [])].map((e) => e.id));
+      const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].map((e) => e.id));
       next.comments = next.comments.filter((c) => retained.has(c.targetEntityId));
     }
     next.vertices = next.vertices.filter((v) => next.walls.some((w) => w.startVertexId === v.id || w.endVertexId === v.id));
   });
 }
 export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
-  const spatial = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((f) => f.id === id);
+  const spatial = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((f) => f.id === id);
   const moved = editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
     const wall = next.walls.find((w) => w.id === id);
     if (wall) next.vertices.filter((v) => v.id === wall.startVertexId || v.id === wall.endVertexId)
       .forEach((v) => { v.x += delta.x; v.y += delta.y; });
     const item = next.furniture.find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
-      ?? next.stairs?.find((f) => f.id === id) ?? next.ramps?.find((f) => f.id === id);
+      ?? next.stairs?.find((f) => f.id === id) ?? next.ramps?.find((f) => f.id === id) ?? next.columns?.find((f) => f.id === id);
     if (item) { item.x += delta.x; item.y += delta.y; }
   });
   return moved.ramps?.some((ramp) => ramp.id === id) ? syncRampArrival(moved, id) : moved;
+}
+/** One history action for precise keyboard movement of movable construction and furniture. */
+export function nudgeSpatialEntities(doc: EditorDocument, ids: string[], delta: Point): EditorDocument {
+  const moved = editDocument(upgradeSpatialDocument(doc), (next) => {
+    const selected = new Set(ids);
+    [...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].forEach((item) => {
+      if (selected.has(item.id)) { item.x += delta.x; item.y += delta.y; }
+    });
+  });
+  return (moved.ramps ?? []).filter((ramp) => ids.includes(ramp.id))
+    .reduce((next, ramp) => syncRampArrival(next, ramp.id), moved);
 }
 export function shapePoints(kind: 'L' | 'U' | 'T', p: Point): Point[] {
   const paths = {

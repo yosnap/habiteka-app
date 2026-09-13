@@ -4,7 +4,7 @@ import type { EditorTool } from '@/canvas/editor-v2/store';
 import type { Ramp, Stair } from '@/lib/editor-document/schema';
 import styles from './editor.module.css';
 
-export type ConstructionCategory = 'walls' | 'rooms' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps';
+export type ConstructionCategory = 'walls' | 'rooms' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps' | 'columns';
 export interface ConstructionCatalogProps {
   category: ConstructionCategory;
   readOnly: boolean;
@@ -12,6 +12,8 @@ export interface ConstructionCatalogProps {
   onShape: (shape: 'L' | 'U' | 'T') => void;
   onAddStair?: (kind: Stair['kind']) => void;
   onAddRamp?: () => void;
+  onAddLanding?: () => void;
+  onAddColumn?: () => void;
 }
 const entries = {
   walls: { title: 'Dibujar paredes', icon: Slash, label: 'Pared recta', detail: 'Dibuja el contorno de tu espacio', tool: 'wall' },
@@ -22,13 +24,17 @@ const entries = {
 } as const;
 
 /** Only offers construction actions backed by a real command or tool. */
-export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAddStair, onAddRamp }: ConstructionCatalogProps) {
+export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAddStair, onAddRamp, onAddLanding, onAddColumn }: ConstructionCatalogProps) {
+  if (category === 'columns') return <div className={styles.constructionCatalog}><h3>Columnas</h3><p>Soporte estructural independiente de los muros.</p>
+    {onAddColumn && <div className={styles.constructionCards}><button type="button" disabled={readOnly} onClick={onAddColumn}>
+      <Columns2 size={48} aria-hidden="true" /><strong>Columna rectangular</strong><small>40 × 40 cm, ajustable</small>
+    </button></div>}</div>;
   if (category === 'shapes') return <div className={styles.constructionCatalog}>
-    <h3>Formas de habitación</h3><p>Empieza con una forma y ajusta sus paredes.</p>
+    <h3>Formas</h3><p>Figuras independientes para modelar el espacio; no crean habitaciones.</p>
     <div className={styles.constructionCards}>{(['L', 'U', 'T'] as const).map((shape) =>
-      <button type="button" key={shape} disabled={readOnly} onClick={() => onShape(shape)}>
+      <button type="button" key={shape} disabled title="Próximamente: formas 3D independientes">
         <span className={styles.shapePreview} data-shape={shape} aria-hidden="true">{shape}</span>
-        <strong>Habitación en {shape}</strong><small>Contorno editable</small>
+        <strong>Forma {shape}</strong><small>Próximamente</small>
       </button>)}</div>
   </div>;
   if (category === 'stairs') return <div className={styles.constructionCatalog}>
@@ -41,9 +47,11 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
   </div>;
   if (category === 'ramps') return <div className={styles.constructionCatalog}>
     <h3>Rampas</h3><p>Superficie inclinada continua para salvar desniveles.</p>
-    {onAddRamp && <div className={styles.constructionCards}><button type="button" disabled={readOnly} onClick={onAddRamp}>
+    {(onAddRamp || onAddLanding) && <div className={styles.constructionCards}>{onAddRamp && <button type="button" disabled={readOnly} onClick={onAddRamp}>
       <MoveUpRight size={48} aria-hidden="true" /><strong>Rampa recta</strong><small>Añadir al plano</small>
-    </button></div>}
+    </button>}{onAddLanding && <button type="button" disabled={readOnly} onClick={onAddLanding}>
+      <RectangleHorizontal size={48} aria-hidden="true" /><strong>Descansillo</strong><small>Plataforma horizontal independiente</small>
+    </button>}</div>}
   </div>;
   const item = entries[category], Icon = item.icon;
   return <div className={styles.constructionCatalog}>
@@ -52,8 +60,8 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
       <Icon size={48} strokeWidth={1.25} aria-hidden="true" /><strong>{item.label}</strong>
       <small>{category === 'walls' ? 'Dibujar en el lienzo' : category === 'rooms' ? 'Arrastra entre dos esquinas' : 'Elegir y colocar'}</small>
     </button></div>
-    {category === 'rooms' && <button type="button" className={styles.catalogSecondary} disabled={readOnly} onClick={() => onShape('L')}>
-      <Shapes size={20} aria-hidden="true" />Añadir habitación en L
-    </button>}
+    {category === 'rooms' && <div className={styles.constructionCards}>{(['L', 'U', 'T'] as const).map((shape) => <button type="button" key={shape}
+      disabled={readOnly} onClick={() => onShape(shape)}><span className={styles.shapePreview} data-shape={shape} aria-hidden="true">{shape}</span>
+      <strong>Habitación en {shape}</strong><small>Contorno cerrado editable</small></button>)}</div>}
   </div>;
 }

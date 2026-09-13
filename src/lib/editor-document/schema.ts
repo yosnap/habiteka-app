@@ -9,6 +9,8 @@ export interface Vertex extends Point {
 export interface Wall {
   id: string;
   name?: string;
+  /** Logical room boundary that is intentionally omitted from the 2D and 3D physical render. */
+  hidden?: boolean;
   startVertexId: string;
   endVertexId: string;
   thicknessMm: number;
@@ -53,6 +55,19 @@ export interface Stair extends Point {
   elevationMm: number;
   rotation: number;
   stepCount: number;
+  materialId: string;
+  color?: string;
+}
+/** Structural vertical support, independent from a wall's centerline. */
+export interface Column extends Point {
+  id: string;
+  name?: string;
+  catalogId: 'builtin:column-rectangular';
+  widthMm: number;
+  depthMm: number;
+  heightMm: number;
+  elevationMm: number;
+  rotation: number;
   materialId: string;
   color?: string;
 }
@@ -143,6 +158,7 @@ export interface EditorDocument {
   labels: Label[];
   stairs?: Stair[];
   ramps?: Ramp[];
+  columns?: Column[];
   comments?: ElementComment[];
   floorFinishes?: FloorFinish[];
   levels?: BuildingLevel[];

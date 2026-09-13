@@ -1,6 +1,6 @@
 'use client';
 import { useStore } from 'zustand';
-import { Copy, FlipHorizontal, FlipVertical, RotateCw, Trash2, DoorOpen, Paintbrush, MessageSquare } from 'lucide-react';
+import { Copy, FlipHorizontal, FlipVertical, RotateCw, Trash2, DoorOpen, Eye, EyeOff, Paintbrush, MessageSquare } from 'lucide-react';
 import { AddWallVertexIcon, CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
@@ -8,7 +8,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { Point } from '@/lib/editor-document/schema';
 import { deleteEntities } from '@/canvas/editor-v2/editing-operations';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
-import { setOpeningConstruction, updateStair } from '@/lib/editor-document/construction-commands';
+import { setOpeningConstruction, setWallVisibility, updateStair } from '@/lib/editor-document/construction-commands';
 import { SelectionContextMenu, type SelectionContextAction } from './selection-context-menu';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
@@ -20,13 +20,13 @@ export function CanvasSelectionMenu({ store, view, size }: {
   if (!id || state.tool !== 'select') return null;
   const doc = state.document, wall = doc.walls.find((w) => w.id === id);
   const opening = doc.openings.find((o) => o.id === id), stair = doc.stairs?.find((s) => s.id === id);
-  const furniture = doc.furniture.find((f) => f.id === id);
+  const furniture = doc.furniture.find((f) => f.id === id), ramp = doc.ramps?.find((r) => r.id === id), column = doc.columns?.find((c) => c.id === id);
   let position: Point | undefined;
   if (wall) position = wallPath(doc, wall).at(.5);
   else if (opening) {
     const host = doc.walls.find((w) => w.id === opening.wallId);
     if (host) position = wallPath(doc, host).at(opening.position);
-  } else { const object = stair ?? furniture; position = object ? objectCenter(object) : undefined; }
+  } else { const object = stair ?? furniture ?? ramp ?? column; position = object ? objectCenter(object) : undefined; }
   if (!position) return null;
   // Leave the central curvature handle available for dragging.
   if (wall?.curveHeightMm) position = { ...position, y: position.y - 160 / view.scale };
@@ -42,6 +42,8 @@ export function CanvasSelectionMenu({ store, view, size }: {
     onSelect: () => state.beginWallSplit(id) });
   if (wall) actions.push({ id: 'curve', label: wall.curveHeightMm ? 'Pared recta' : 'Curvar pared', icon: wall.curveHeightMm ? StraightWallIcon : CurvedWallIcon,
     onSelect: () => run(() => state.apply(setWallCurve(doc, id, wall.curveHeightMm ? 0 : defaultWallCurve(doc, id)))) });
+  if (wall) actions.push({ id: 'visibility', label: wall.hidden ? 'Mostrar pared' : 'Ocultar pared', icon: wall.hidden ? Eye : EyeOff,
+    onSelect: () => run(() => state.apply(setWallVisibility(doc, id, !wall.hidden))) });
   if (opening) actions.push({ id: 'copy', label: 'Copiar y colocar', icon: Copy,
     onSelect: () => state.copyOpening(id) });
   if (opening?.kind === 'puerta') {
@@ -56,9 +58,11 @@ export function CanvasSelectionMenu({ store, view, size }: {
   if (stair) actions.push({ id: 'rotate', label: 'Girar 90°', icon: RotateCw,
     onSelect: () => run(() => state.apply(updateStair(doc, id, { rotation: (stair.rotation + 90) % 360 }))) },
     { id: 'copy-stair', label: 'Copiar escalera', icon: Copy, onSelect: () => run(() => state.copyStair(id)) });
+  if (furniture || ramp || column) actions.push({ id: 'copy-spatial', label: 'Copiar', icon: Copy,
+    onSelect: () => state.copySpatial(id) });
   const clamp = (n: number, limit: number) => Math.max(Math.min(120, limit / 2), Math.min(limit - 120, n));
   return <SelectionContextMenu anchor={{ x: clamp(position.x * view.scale + view.x, size.width),
     y: clamp(position.y * view.scale + view.y, size.height) }}
-    label={wall ? 'pared' : opening?.kind ?? (stair ? 'escalera' : 'elemento')}
+    label={wall ? 'pared' : opening?.kind ?? (stair ? 'escalera' : ramp ? 'rampa' : column ? 'columna' : 'elemento')}
     actions={actions.map((action) => ({ ...action, disabled: state.readOnly }))} onClose={() => state.select([])} />;
 }

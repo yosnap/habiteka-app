@@ -1,6 +1,68 @@
-import type { EditorDocument, Point } from '@/lib/editor-document/schema';
-import { cross, distance } from '@/lib/editor-document/geometry';
+import type { EditorDocument, Point, Wall } from '@/lib/editor-document/schema';
+import { cross, distance, wallPoints } from '@/lib/editor-document/geometry';
 import { wallPath } from '@/lib/editor-document/wall-path';
+
+/**
+ * Returns the four corners of a straight wall after cutting its connected ends
+ * along the angle bisector. Rendering a wide Line only gives every segment a
+ * square cap; a real wall joint needs the two wall faces to meet on the same
+ * diagonal instead.
+ */
+export function wallMiterPolygon(doc: EditorDocument, wall: Wall): Point[] | null {
+  if (wall.curveHeightMm) return null;
+  const [start, end] = wallPoints(doc, wall);
+  const length = distance(start, end);
+  if (length < .001) return null;
+  const direction = { x: (end.x - start.x) / length, y: (end.y - start.y) / length };
+  const normal = { x: -direction.y, y: direction.x };
+  const half = wall.thicknessMm / 2;
+  const corners = [
+    { x: start.x + normal.x * half, y: start.y + normal.y * half },
+    { x: end.x + normal.x * half, y: end.y + normal.y * half },
+    { x: end.x - normal.x * half, y: end.y - normal.y * half },
+    { x: start.x - normal.x * half, y: start.y - normal.y * half },
+  ];
+  const startCut = miterCut(doc, wall, wall.startVertexId, start, end, half);
+  const endCut = miterCut(doc, wall, wall.endVertexId, end, start, half);
+  if (!startCut && !endCut) return null;
+  return [
+    startCut ? cutCorner(start, direction, normal, half, startCut, 1) : corners[0]!,
+    endCut ? cutCorner(end, direction, normal, half, endCut, 1) : corners[1]!,
+    endCut ? cutCorner(end, direction, normal, half, endCut, -1) : corners[2]!,
+    startCut ? cutCorner(start, direction, normal, half, startCut, -1) : corners[3]!,
+  ];
+}
+
+function miterCut(doc: EditorDocument, wall: Wall, vertexId: string, vertex: Point, opposite: Point, half: number): Point | null {
+  const adjacent = doc.walls.filter((candidate) => candidate.id !== wall.id && !candidate.curveHeightMm &&
+    (candidate.startVertexId === vertexId || candidate.endVertexId === vertexId));
+  // A T or a multi-wall node remains a filled structural junction. There is no
+  // single diagonal that represents those intersections correctly.
+  if (adjacent.length !== 1) return null;
+  const [otherStart, otherEnd] = wallPoints(doc, adjacent[0]!);
+  const otherOpposite = samePoint(otherStart, vertex) ? otherEnd : otherStart;
+  const own = unitVector(vertex, opposite), other = unitVector(vertex, otherOpposite);
+  const bisector = unitVector({ x: 0, y: 0 }, { x: own.x + other.x, y: own.y + other.y });
+  if (!Number.isFinite(bisector.x) || Math.hypot(own.x + other.x, own.y + other.y) < .01) return null;
+  // Acute angles create impractically long miters. Keep the existing bevel
+  // behavior in that case rather than generating a spike across the plan.
+  const reach = half / Math.max(.01, Math.abs(own.x * bisector.y - own.y * bisector.x));
+  return reach <= 4 * half ? bisector : null;
+}
+
+function cutCorner(vertex: Point, direction: Point, normal: Point, half: number, bisector: Point, side: number): Point {
+  const offset = side * half;
+  const denominator = direction.x * bisector.y - direction.y * bisector.x;
+  const amount = denominator === 0 ? 0 : (-normal.x * offset * bisector.y + normal.y * offset * bisector.x) / denominator;
+  return { x: vertex.x + direction.x * amount + normal.x * offset, y: vertex.y + direction.y * amount + normal.y * offset };
+}
+
+function unitVector(from: Point, to: Point): Point {
+  const length = distance(from, to);
+  return length ? { x: (to.x - from.x) / length, y: (to.y - from.y) / length } : { x: NaN, y: NaN };
+}
+
+function samePoint(a: Point, b: Point) { return distance(a, b) < .001; }
 
 /** Fill shared-vertex joins, with a bevel when an acute miter exceeds four half-widths. */
 export function wallJunctions(doc: EditorDocument): Array<{ id: string; points: Point[] }> {

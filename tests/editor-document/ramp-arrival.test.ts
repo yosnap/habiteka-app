@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addRamp } from '@/lib/editor-document/construction-commands';
+import { addRamp, connectLandingEntrance, setWallConstruction, updateRamp } from '@/lib/editor-document/construction-commands';
 import { emptyEditorDocument, type Ramp } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
@@ -22,14 +22,14 @@ describe('ramp arrival', () => {
     const connected = addRamp(closedRoom(), arrivalRamp);
     const opening = connected.openings.find((item) => item.sourceRampId === arrivalRamp.id)!;
     const room = deriveRooms(connected)[0]!;
-    expect(opening).toMatchObject({ kind: 'hueco', wallId: 'wall-0', widthMm: 1200, elevationMm: 1200, heightMm: 2700 });
+    expect(opening).toMatchObject({ kind: 'hueco', wallId: 'wall-0', widthMm: 1200, elevationMm: 1200, heightMm: 1500 });
     expect(floorFinish(connected, room.id).elevationMm).toBe(1200);
     const floor = editorDocumentToScene(connected).polygons.find((polygon) => polygon.sourceEntityId === room.id)!;
     expect(floor.elevation + floor.height).toBe(1.2);
     expect(floor.height).toBe(1.2);
     const wall = editorDocumentToScene(connected).boxes.find((box) => box.sourceEntityId === 'wall-0')!;
-    expect(wall.position[1] - wall.size[1] / 2).toBeCloseTo(1.2);
-    expect(wall.position[1] + wall.size[1] / 2).toBeCloseTo(3.9);
+    expect(wall.position[1] - wall.size[1] / 2).toBeCloseTo(0);
+    expect(wall.position[1] + wall.size[1] / 2).toBeCloseTo(2.7);
     expect(setFloorFinish(connected, room.id, { elevationMm: 1300 }).schemaVersion).toBe(6);
   });
   it('uses the final elevation of the second flight for its arrival opening', () => {
@@ -38,7 +38,7 @@ describe('ramp arrival', () => {
     const connected = addRamp(closedRoom(), routed);
     const opening = connected.openings.find((item) => item.sourceRampId === routed.id)!;
     const room = deriveRooms(connected)[0]!;
-    expect(opening).toMatchObject({ wallId: 'wall-0', elevationMm: 1800, heightMm: 2700 });
+    expect(opening).toMatchObject({ wallId: 'wall-0', elevationMm: 1800, heightMm: 900 });
     expect(floorFinish(connected, room.id).elevationMm).toBe(1800);
     const floor = editorDocumentToScene(connected).polygons.find((polygon) => polygon.sourceEntityId === room.id)!;
     const ramps = editorDocumentToScene(connected).ramps.filter((ramp) => ramp.sourceEntityId === routed.id);
@@ -54,5 +54,32 @@ describe('ramp arrival', () => {
     const floors = editorDocumentToScene(connected).polygons.filter((polygon) => polygon.role === 'floor');
     expect(floors).toHaveLength(1);
     expect(floors[0]!.points.length).toBeGreaterThan(4);
+  });
+  it('rejects a wall lower than the automatic ramp arrival', () => {
+    const connected = addRamp(closedRoom(), arrivalRamp);
+    expect(() => setWallConstruction(connected, 'wall-0', { heightMm: 500 })).toThrow('llegada automática');
+  });
+  it('cuts a doorless entrance from a landing edge and keeps it synchronized', () => {
+    const landing: Ramp = { id: 'landing', catalogId: 'builtin:ramp-landing', x: 2400, y: 100,
+      widthMm: 1200, depthMm: 1200, riseMm: 0, elevationMm: 1200, rotation: 0, materialId: 'concrete-grey' };
+    const connected = connectLandingEntrance(addRamp(closedRoom(), landing), landing.id);
+    expect(connected.openings.find((opening) => opening.sourceRampId === landing.id)).toMatchObject({
+      wallId: 'wall-0', kind: 'hueco', widthMm: 1200, elevationMm: 1200, heightMm: 1500,
+    });
+    const entranceWall = editorDocumentToScene(connected).boxes.filter((box) => box.sourceEntityId === 'wall-0' && box.role === 'wall');
+    expect(entranceWall).toHaveLength(3); // two jambs plus the solid wall below the raised entrance
+    expect(entranceWall.some((box) => Math.abs(box.position[0] - 3) < box.size[0] / 2 &&
+      1.95 > box.position[1] - box.size[1] / 2 && 1.95 < box.position[1] + box.size[1] / 2)).toBe(false);
+    const resized = updateRamp(connected, landing.id, { widthMm: 1400 });
+    expect(resized.openings.find((opening) => opening.sourceRampId === landing.id)).toMatchObject({ widthMm: 1400 });
+  });
+  it('trims an entrance that reaches a wall corner instead of rejecting the landing', () => {
+    const landing: Ramp = { id: 'corner-landing', catalogId: 'builtin:ramp-landing', x: 6075, y: 6100,
+      widthMm: 1200, depthMm: 1200, riseMm: 0, elevationMm: 1200, rotation: 180, materialId: 'concrete-grey' };
+    const connected = connectLandingEntrance(addRamp(closedRoom(), landing), landing.id);
+    const opening = connected.openings.find((item) => item.sourceRampId === landing.id)!;
+    expect(opening).toMatchObject({ wallId: 'wall-1', kind: 'hueco', elevationMm: 1200 });
+    expect(opening.widthMm).toBeLessThan(landing.depthMm);
+    expect(opening.widthMm).toBeGreaterThan(1000);
   });
 });
