@@ -31,23 +31,65 @@ export async function persistDeliverables(
   sourceImageId?: string,
   zoneId: string | null = null,
 ): Promise<void> {
-  for (const d of deliverables) {
-    const type = TYPE_TO_ENUM[d.type];
-    if (!type) continue;
-    const payload = d.payload as unknown as Prisma.InputJsonValue;
-    await prisma.deliverable.upsert({
-      where: { id: d.id },
-      create: {
-        id: d.id,
-        projectId,
-        type,
-        payload,
-        legalSeal: d.legalSeal,
-        version: d.version,
-        ...(sourceImageId ? { sourceImageId } : {}),
-        ...(zoneId ? { zoneId } : {}),
-      },
-      update: { payload, version: d.version },
+  // External generation has finished. Lock only the persistence boundary, never IA.
+  await prisma.$transaction(async (tx) => {
+    const projects = await tx.$queryRaw<Array<{ organizationId: string }>>`
+      SELECT "organizationId" FROM project WHERE id = ${projectId} AND "deletedAt" IS NULL FOR UPDATE`;
+    const project = projects[0];
+    if (!project) throw new Error('Proyecto no disponible para publicar el resultado');
+    if (zoneId) {
+      const zones = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM project_zone WHERE id = ${zoneId} AND "projectId" = ${projectId}
+        AND "organizationId" = ${project.organizationId} AND "deletedAt" IS NULL FOR UPDATE`;
+      if (!zones.length) throw new Error('Zona no disponible para publicar el resultado');
+    }
+    if (
+      await tx.editorDocumentState.findFirst({ where: { projectId, zoneId }, select: { id: true } })
+    ) {
+      throw new Error('Resultado legacy rechazado: el plano fue migrado al editor v2');
+    }
+    if (
+      sourceImageId &&
+      !(await tx.sourceImage.findFirst({
+        where: {
+          id: sourceImageId,
+          projectId,
+          zoneId,
+          organizationId: project.organizationId,
+          deletedAt: null,
+        },
+        select: { id: true },
+      }))
+    )
+      throw new Error('Imagen de origen fuera del ámbito del resultado');
+    const existing = await tx.deliverable.findMany({
+      where: { id: { in: deliverables.map((d) => d.id) } },
+      select: { projectId: true, zoneId: true, deletedAt: true },
     });
-  }
+    if (existing.some((d) => d.projectId !== projectId || d.zoneId !== zoneId || d.deletedAt)) {
+      throw new Error('Entregable existente fuera del ámbito del resultado');
+    }
+    for (const d of deliverables) {
+      const type = TYPE_TO_ENUM[d.type];
+      if (!type) continue;
+      const payload = d.payload as unknown as Prisma.InputJsonValue;
+      const updated = await tx.deliverable.updateMany({
+        where: { id: d.id, projectId, zoneId, deletedAt: null },
+        data: { payload, version: d.version },
+      });
+      if (!updated.count)
+        await tx.deliverable.create({
+          data: {
+            id: d.id,
+            projectId,
+            type,
+            payload,
+            legalSeal: d.legalSeal,
+            version: d.version,
+            ...(sourceImageId ? { sourceImageId } : {}),
+            ...(zoneId ? { zoneId } : {}),
+          },
+        });
+    }
+  });
 }

@@ -1,0 +1,28 @@
+.catalog {
+  position: relative;
+  width: 100%;
+  /* The bounded parent sidebar owns scrolling; do not trap wheel events here. */
+  background: var(--paper);
+  padding: 16px;
+  color: var(--ink);
+}
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+.heading h2 { margin: 0; }
+.filters { display: grid; gap: 12px; margin-bottom: 16px; }
+.filters label, .variant { display: grid; gap: 4px; min-width: 0; font-size: .75rem; font-weight: 600; }
+.filters input, .filters select, .variant select { width: 100%; min-width: 0; font-size: 1rem; }
+.filterRow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.catalog .count { margin: 0; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.card { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); content-visibility: auto; contain-intrinsic-size: auto 304px; }
+.thumbnail { width: 100%; height: 96px; background: var(--surface); border-radius: var(--radius); color: var(--ink); }
+.card h3 { font-size: .875rem; font-weight: 650; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.catalog .dimensions, .catalog .material { margin: 0; font-size: .75rem; }
+.dimensions { font-variant-numeric: tabular-nums; }
+.material { flex-grow: 1; }
+.catalog .add { width: 100%; font-size: .75rem; }
+.variant select { font-size: .875rem; }
+.empty { padding-block: 16px; }
+.catalog .note { font-size: .75rem; margin: 16px 0 0; }
+@media (min-width: 480px) { .items { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .catalog button { transition: none; } }

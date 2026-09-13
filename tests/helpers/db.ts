@@ -3,11 +3,14 @@
  *
  * No se mockea Prisma: los tests validan migraciones, `jsonb`, locks de fila y
  * constraints SQL que un mock ocultaría. `resetDb` deja la base limpia de datos
- * de prueba entre tests, PERO preserva el usuario admin de desarrollo (y todo lo
- * suyo): trabajamos siempre sobre la misma BD de dev y el login no debe perderse
- * al correr la suite (antes un TRUNCATE total borraba el admin).
+ * de prueba entre tests. Solo se permite una base aislada con marcador explícito;
+ * preservar fixtures de admin no convierte una base de desarrollo en segura.
  */
 import { prisma } from '@/server/db/prisma';
+import {
+  TEST_DATABASE_MARKER_SQL,
+  verifyTestDatabaseMarker,
+} from '@/server/db/test-database-guard';
 
 /** Email del usuario admin de desarrollo (debe coincidir con prisma/dev-seed.ts). */
 export const DEV_USER_EMAIL = 'admin@habiteka.dev';
@@ -28,6 +31,9 @@ export function uniqueSuffix(): string {
  * tocan. Si no existe el admin (BD recién creada sin seed), borra todo como antes.
  */
 export async function resetDb(): Promise<void> {
+  await verifyTestDatabaseMarker(process.env.DATABASE_URL, () =>
+    prisma.$queryRawUnsafe(TEST_DATABASE_MARKER_SQL),
+  );
   const dev = await prisma.user.findUnique({
     where: { email: DEV_USER_EMAIL },
     select: { id: true, members: { select: { organizationId: true } } },

@@ -30,6 +30,7 @@ export function ProjectTabs({ projectId, title }: Props) {
     { path: `${base}/chat`, href: `${base}/chat${suffix}`, label: 'Asistente' },
     { path: `${base}/plano`, href: `${base}/plano`, label: 'Plano' },
     { path: base, href: `${base}${suffix}`, label: 'Editor', exact: true },
+    { path: `${base}/editor`, href: `${base}/editor${suffix}`, label: 'Editor nuevo', exact: true },
     { path: `${base}/deliverables`, href: `${base}/deliverables${suffix}`, label: 'Diseños' },
     { path: `${base}/historial`, href: `${base}/historial${suffix}`, label: 'Historial' },
   ];

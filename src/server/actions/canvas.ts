@@ -12,6 +12,8 @@ import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import type { BaseImage } from '@/canvas/types';
+import { withLegacyAuthority } from '@/server/editor/authority';
+import type { Prisma } from '@/generated/prisma/client';
 
 export async function loadCanvas(projectId: string, zoneId: string | null = null) {
   const ctx = await requireOrgContext();
@@ -20,7 +22,11 @@ export async function loadCanvas(projectId: string, zoneId: string | null = null
   return serializeCanvas(deserializeCanvas(raw));
 }
 
-export async function saveCanvas(projectId: string, payload: unknown, zoneId: string | null = null) {
+export async function saveCanvas(
+  projectId: string,
+  payload: unknown,
+  zoneId: string | null = null,
+) {
   const ctx = await requireOrgContext();
   // Normaliza el payload del cliente: descarta lo inválido antes de persistir.
   const clean = serializeCanvas(deserializeCanvas(payload));
@@ -40,12 +46,19 @@ export async function applyBaseImageToCanvas(
   zoneId: string | null = null,
 ) {
   const ctx = await requireOrgContext();
-  const repo = withOrg(ctx).canvas;
   // Aplica el fondo al plano de la zona que originó el diseño (zoneId del
   // entregable); sin zona, al plano por defecto. Parte del documento actual ya
   // normalizado y le sustituye solo el fondo, preservando trazos, objetos y
   // productos. Valida el `baseImage` con el deserializador antes de fundirlo.
-  const current = deserializeCanvas(await repo.load(projectId, zoneId));
   const cleanBaseImage = deserializeCanvas({ baseImage }).baseImage;
-  await repo.save(projectId, serializeCanvas({ ...current, baseImage: cleanBaseImage }), zoneId);
+  await withLegacyAuthority(ctx, { projectId, zoneId }, async (tx) => {
+    const row = await tx.canvasState.findFirst({ where: { projectId, zoneId } });
+    const current = deserializeCanvas(row?.data ?? null);
+    const data = serializeCanvas({
+      ...current,
+      baseImage: cleanBaseImage,
+    }) as Prisma.InputJsonValue;
+    if (row) await tx.canvasState.update({ where: { id: row.id }, data: { data } });
+    else await tx.canvasState.create({ data: { projectId, zoneId, data } });
+  });
 }
