@@ -6,6 +6,7 @@ import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
 type Spatial = Furniture | Stair | Ramp | Column;
 type Edge = { from: Point; to: Point; sourceId: string; kind: 'wall' | 'object' };
 export interface AlignmentGuide { source: Edge; edge: Edge; gapMm: number; }
+export interface AlignmentGuideOptions { includeWallEdges?: boolean; }
 const GUIDE_RANGE_MM = 2000;
 
 function footprint(item: Footprint): Point[] {
@@ -42,8 +43,9 @@ function project(point: Point, edge: Edge) {
 }
 
 /** Nearest parallel edge for each side: wall faces and construction-object boundaries. */
-export function alignmentGuides(doc: EditorDocument, item: Spatial): AlignmentGuide[] {
-  const sourceEdges = edges(footprint(item), item.id, 'object'), targets = [...wallEdges(doc), ...objectEdges(doc, item.id)];
+export function alignmentGuides(doc: EditorDocument, item: Spatial, options: AlignmentGuideOptions = {}): AlignmentGuide[] {
+  const targets = [...(options.includeWallEdges === false ? [] : wallEdges(doc)), ...objectEdges(doc, item.id)];
+  const sourceEdges = edges(footprint(item), item.id, 'object');
   return sourceEdges.flatMap((source) => {
     const midpoint = { x: (source.from.x + source.to.x) / 2, y: (source.from.y + source.to.y) / 2 };
     const sdx = source.to.x - source.from.x, sdy = source.to.y - source.from.y, slen = Math.hypot(sdx, sdy);
@@ -64,4 +66,19 @@ export function alignmentGuides(doc: EditorDocument, item: Spatial): AlignmentGu
     });
     return [...uniqueSources.values()].slice(0, 2);
   });
+}
+
+/** Applies the same edge references rendered to the user while dragging an object. */
+export function snapToAlignmentGuides(doc: EditorDocument, item: Spatial, toleranceMm: number, options: AlignmentGuideOptions = {}): Spatial {
+  let result = item;
+  for (let pass = 0; pass < 2; pass++) {
+    const guide = alignmentGuides(doc, result, options).filter((candidate) => candidate.gapMm > .01 && candidate.gapMm <= toleranceMm)
+      .sort((a, b) => a.gapMm - b.gapMm)[0];
+    if (!guide) break;
+    const midpoint = { x: (guide.source.from.x + guide.source.to.x) / 2, y: (guide.source.from.y + guide.source.to.y) / 2 };
+    const target = project(midpoint, guide.edge);
+    if (!target) break;
+    result = { ...result, x: result.x + target.point.x - midpoint.x, y: result.y + target.point.y - midpoint.y };
+  }
+  return result;
 }

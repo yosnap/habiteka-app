@@ -243,7 +243,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     let previousEnd = -Infinity;
     for (const opening of openings) {
       const openingTopMm = opening.heightMm! + opening.elevationMm!;
-      const wallTopMm = wall.heightMm!;
+      const wallTopMm = (wall.baseElevationMm ?? 0) + wall.heightMm!;
       if (construction && openingTopMm > wallTopMm + EPSILON)
         throw new Error(`La ${opening.kind} llega a ${(openingTopMm / 1000).toFixed(2)} m, pero el muro llega a ${(wallTopMm / 1000).toFixed(2)} m.`);
       const center = opening.position * path.length;

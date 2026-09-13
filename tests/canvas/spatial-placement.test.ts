@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { assertSpatialPlacement, snapObject } from '@/canvas/editor-v2/spatial-placement';
+import { snapToAlignmentGuides } from '@/canvas/editor-v2/alignment-guides';
 import { previewVertex } from '@/canvas/editor-v2/vertex-preview';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { objectClearances } from '@/canvas/editor-v2/object-clearances';
@@ -38,6 +39,14 @@ describe('placement and vertex guides', () => {
     expect(() => assertSpatialPlacement(doc, next)).not.toThrow();
     expect(snapObject(doc, { ...column, y: -100 }, .08, true)).toMatchObject({ x: 1000, y: -200 });
   });
+  it('aligns a column to construction edges without pulling it off a wall axis', () => {
+    const column = { id: 'column', catalogId: 'builtin:column-rectangular', x: 1800, y: 2700,
+      widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' } as const;
+    const landing = { id: 'landing', catalogId: 'builtin:ramp-landing', x: 2000, y: 3000, widthMm: 1200, depthMm: 1200,
+      riseMm: 0, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' } as const;
+    const doc = addRamp(addColumn(fixture(), column), landing);
+    expect(snapObject(doc, { ...column, x: 1810, y: 2710 }, .08, true)).toMatchObject({ x: 1800, y: 2600 });
+  });
   it('allows ramps, landings and stairs to integrate with a column but blocks furniture', () => {
     const column = { id: 'column', catalogId: 'builtin:column-rectangular' as const, x: 2000, y: 2000,
       widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' };
@@ -62,12 +71,29 @@ describe('placement and vertex guides', () => {
     const guarded = addGuardWallPath(source, [{ x: 3000, y: 1000 }, { x: 4200, y: 1000 }]);
     expect(guarded.walls.at(-1)).toMatchObject({ heightMm: 1100, baseElevationMm: 900 });
     expect(() => assertSpatialPlacement(source, guarded)).not.toThrow();
+    expect(editorDocumentToScene(guarded).boxes.find((box) => box.sourceEntityId === guarded.walls.at(-1)!.id))
+      .toMatchObject({ position: [3.6, 1.45, 1.075], size: [1.05, 1.1, .15] });
+  });
+  it('allows a 1.50 m legacy protection wall to overlap its landing while it is repaired', () => {
+    const source = addRamp(fixture(), { id: 'landing', catalogId: 'builtin:ramp-landing', x: 3000, y: 1000,
+      widthMm: 1200, depthMm: 1200, riseMm: 0, elevationMm: 900, rotation: 0, materialId: 'concrete-grey' });
+    const repaired = addGuardWallPath(source, [{ x: 3000, y: 1000 }, { x: 4200, y: 1000 }]);
+    repaired.walls.at(-1)!.heightMm = 1500;
+    expect(() => assertSpatialPlacement(source, repaired)).not.toThrow();
   });
   it('snaps movable objects to the 10 cm X/Y grid before wall alignment', () => {
     const doc = fixture();
     const snapped = snapObject(doc, { ...doc.furniture[0]!, x: 1234, y: 1500 }, .08, true);
     expect(snapped).toMatchObject({ x: 1200, y: 1500 });
     expect(snapObject(doc, { ...doc.furniture[0]!, x: 1234, y: 1566 }, .08, false)).toMatchObject({ x: 1234, y: 1566 });
+  });
+  it('uses the same visible alignment reference to snap furniture to a landing edge', () => {
+    const landing = { id: 'landing', catalogId: 'builtin:ramp-landing', x: 3000, y: 1000, widthMm: 1200, depthMm: 1200,
+      riseMm: 0, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' } as const;
+    const doc = addRamp(fixture(), landing);
+    const item = { ...doc.furniture[0]!, id: 'moving', x: 3200, y: 2100, widthMm: 600, depthMm: 400 };
+    const snapped = snapToAlignmentGuides(doc, item, 250);
+    expect(snapped.y).toBe(2200);
   });
   it('snaps an object origin to the start or end of a wall', () => {
     const doc = fixture();
@@ -89,7 +115,7 @@ describe('placement and vertex guides', () => {
     expect(placeLandingAtStairArrival(landing, stair)).toMatchObject({ x: 1000, y: 2800, widthMm: 1000, elevationMm: 1200, rotation: 0 });
     const ramp = { id: 'ramp', catalogId: 'builtin:ramp-straight', x: 1000, y: 4000, widthMm: 1200, depthMm: 3000,
       riseMm: 600, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' };
-    expect(placeStairAtRampArrival(stair, ramp)).toMatchObject({ x: 1000, y: 1000, widthMm: 1200, elevationMm: 600, rotation: 0 });
+    expect(placeStairAtRampArrival(stair, ramp)).toMatchObject({ x: 2200, y: 7000, widthMm: 1200, elevationMm: 600, rotation: 180 });
   });
   it('snaps a landing to a stair arrival and a stair to the top of a ramp', () => {
     const source = addStair(fixture(), { id: 'stair', kind: 'straight', catalogId: 'builtin:stairs-straight', x: 1000, y: 4000,
@@ -101,7 +127,7 @@ describe('placement and vertex guides', () => {
       widthMm: 1200, depthMm: 3000, riseMm: 600, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' });
     const stair = { id: 'stair', kind: 'straight', catalogId: 'builtin:stairs-straight', x: 1150, y: 1050,
       widthMm: 1000, depthMm: 3000, heightMm: 1200, elevationMm: 0, rotation: 0, stepCount: 12, materialId: 'oak-natural' } as const;
-    expect(snapObject(rampSource, stair, .1, true)).toMatchObject({ x: 1000, y: 1000, widthMm: 1200, elevationMm: 600 });
+    expect(snapObject(rampSource, stair, .1, true)).toMatchObject({ x: 2200, y: 7000, widthMm: 1200, elevationMm: 600, rotation: 180 });
   });
   it('keeps a nearby landing joined to its ramp when editing its typed dimensions', () => {
     const source = addRamp(fixture(), { id: 'ramp', catalogId: 'builtin:ramp-straight', x: 1000, y: 2000,

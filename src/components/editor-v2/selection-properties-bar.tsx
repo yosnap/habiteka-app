@@ -20,12 +20,21 @@ import { formatEditorDecimal, parseEditorDecimal } from './decimal-input';
 type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 
 function MeasureField({ label, value, minimum = .001, unit = 'm', onCommit }: { label: string; value: number; minimum?: number; unit?: string; onCommit: (n: number) => boolean }) {
+  const commit = (input: HTMLInputElement, next: number) => {
+    if (!Number.isFinite(next) || next < minimum || !onCommit(next)) input.value = formatEditorDecimal(value);
+  };
   return <label className={styles.measureField}><span>{label}</span><div><input key={value} type="text"
     aria-label={`${label} (${unit})`} defaultValue={formatEditorDecimal(value)} inputMode="decimal"
     onBlur={(event) => {
       const next = parseEditorDecimal(event.currentTarget.value);
-      if (!Number.isFinite(next) || next < minimum || !onCommit(next)) event.currentTarget.value = formatEditorDecimal(value);
-    }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} /><span>{unit}</span></div></label>;
+      commit(event.currentTarget, next);
+    }} onKeyDown={(event) => {
+      if (event.key === 'Enter') event.currentTarget.blur();
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      const current = parseEditorDecimal(event.currentTarget.value), increment = unit === 'm' ? .01 : 1;
+      commit(event.currentTarget, (Number.isFinite(current) ? current : value) + (event.key === 'ArrowUp' ? increment : -increment));
+    }} /><span>{unit}</span></div></label>;
 }
 
 export function SelectionPropertiesBar({ store, onProperties }: { store: EditorStore; onProperties: () => void }) {
@@ -66,6 +75,8 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
           (next) => { next.walls.find((item) => item.id === id)!.thicknessMm = n * 1000; }))} />
         <MeasureField label="Altura" value={wallConstruction(wall).heightMm / 1000}
           onCommit={(n) => run((current) => setWallConstruction(current, id, { heightMm: n * 1000 }))} />
+        <MeasureField label="Cota base" value={(wall.baseElevationMm ?? 0) / 1000} minimum={0}
+          onCommit={(n) => run((current) => setWallConstruction(current, id, { baseElevationMm: n * 1000 }))} />
       </>}
       {opening && <>
         <MeasureField label="Ancho" value={opening.widthMm / 1000} onCommit={(n) => run((current) => editDocument(current,

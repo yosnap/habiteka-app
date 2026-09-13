@@ -7,7 +7,8 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { curvedWallMeshes } from './scene/curved-wall-meshes';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
-import { placeLandingAtStairArrival, placeStairAtRampArrival } from '@/lib/editor-document/stair-landing-placement';
+import { placeLandingAtStairArrival, placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
+import { snapToAlignmentGuides } from './alignment-guides';
 
 interface Solid { id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -115,13 +116,13 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     ...(previous.ramps ?? []), ...(candidate.ramps ?? []),
   ].map((item) => item.id));
   const guardWallIds = new Set([...previous.walls, ...candidate.walls]
-    .filter((wall) => (wall.heightMm ?? 2700) <= 1200).map((wall) => wall.id));
+    .filter((wall) => (wall.heightMm ?? 2700) <= 1500).map((wall) => wall.id));
   for (const [key, depth] of after) {
     const [first, second] = JSON.parse(key) as [string, string];
     // A column is structural: it can be embedded in a wall, stair or ramp
     // (including a landing), while furniture and another column stay blocked.
     if ((columnIds.has(first) && structuralIds.has(second)) || (columnIds.has(second) && structuralIds.has(first))) continue;
-    // Un murete de 1,20 m o menos es una protección válida sobre descansillos/escaleras.
+    // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
     if (depth > (before.get(key) ?? 0) + .1)
     throw new Error('El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.');
@@ -150,7 +151,13 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   if (!enabled) return result;
   const landing = 'riseMm' in result ? result as Ramp : null;
   const endpointTolerance = 12 / Math.max(.001, scale), faceTolerance = Math.max(150, 24 / Math.max(.001, scale));
-  if (isColumn(result)) return snapColumnToWallAxis(doc, result, faceTolerance);
+  if (isColumn(result)) {
+    // La columna conserva el eje estructural de un muro, pero también puede
+    // alinearse con los bordes de cualquier otro elemento cuando está libre.
+    const wallAxis = snapColumnToWallAxis(doc, result, faceTolerance);
+    if (wallAxis.x !== result.x || wallAxis.y !== result.y) return wallAxis;
+    return snapToAlignmentGuides(doc, result, faceTolerance, { includeWallEdges: false }) as Column;
+  }
   if (landing && isRampLanding(landing)) {
     const attached = [
       ...(doc.ramps?.filter((ramp) => ramp.id !== landing.id && !isRampLanding(ramp)).map((ramp) => placeLandingAtRampArrival(landing, ramp)) ?? []),
@@ -165,12 +172,13 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     const stair = result as Stair;
     const attached = doc.ramps?.filter((ramp) => !isRampLanding(ramp)).map((ramp) => {
       const target = placeStairAtRampArrival(stair, ramp);
-      return { target, gap: Math.hypot(target.x - stair.x, target.y - stair.y) };
+      return { target, gap: stairRampGap(stair, ramp) };
     }).filter((candidate) => candidate.gap <= Math.max(500, 40 / scale)).sort((a, b) => a.gap - b.gap)[0];
     if (attached) return attached.target;
   }
   result = snapOriginToWallEndpoint(doc, result, endpointTolerance);
   result = snapToWallFace(doc, result, faceTolerance);
+  result = snapToAlignmentGuides(doc, result, faceTolerance) as typeof result;
   return snapOriginToWallEndpoint(doc, result, endpointTolerance);
 }
 

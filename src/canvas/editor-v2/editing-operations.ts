@@ -1,15 +1,15 @@
 import type { EditorDocument, Point, Opening } from '@/lib/editor-document/schema';
 import type { CatalogEntry } from '@/canvas/catalog';
 import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
-import { distance } from '@/lib/editor-document/geometry';
+import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { wallConstruction, openingConstruction } from '@/lib/editor-document/construction-properties';
-import { finishColor, furnitureSpatial, localToWorld, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { finishColor, furnitureSpatial, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
-import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
+import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
 
 export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
@@ -26,8 +26,10 @@ export function snapPoint(doc: EditorDocument, p: Point, enabled: boolean): Poin
   };
 }
 export function addWallPath(doc: EditorDocument, points: Point[], closed = false) {
+  const placement = !closed && points.length === 2 ? landingWallPlacement(doc, points as [Point, Point]) : null;
+  const path = placement?.points ?? points;
   return editDocument(doc, (next) => {
-    const ids = points.map((p) => {
+    const ids = path.map((p) => {
       const existing = next.vertices.find((v) => distance(v, p) < 0.01);
       if (existing) return existing.id;
       const id = newId(); next.vertices.push({ id, ...p }); return id;
@@ -36,6 +38,7 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
       const wall = { id: newId(), startVertexId: ids[i]!,
         endVertexId: ids[(i + 1) % ids.length]!, thicknessMm: 150, dimensionalOrigin: 'physical' as const };
       next.walls.push(next.schemaVersion >= 3 ? { ...wall, ...wallConstruction(wall),
+        ...(placement ? { baseElevationMm: placement.elevationMm } : {}),
         ...(next.levels ? { heightMm: next.levels.find((l) => l.id === next.activeLevelId)!.heightMm } : {}),
         ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) } : wall);
     }
@@ -44,13 +47,15 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
 /** Murete independiente: un tramo abierto que protege un borde de rampa o descansillo. */
 export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
   const source = upgradeConstructionDocument(doc);
+  const placement = points.length === 2 ? landingWallPlacement(source, points as [Point, Point]) : null;
+  const path = placement?.points ?? points;
   return editDocument(source, (next) => {
-    const ids = points.map((point) => {
+    const ids = path.map((point) => {
       const existing = next.vertices.find((vertex) => distance(vertex, point) < .01);
       if (existing) return existing.id;
       const id = newId(); next.vertices.push({ id, ...point }); return id;
     });
-    const elevationMm = landingElevation(next, points);
+    const elevationMm = placement?.elevationMm ?? 0;
     for (let index = 0; index < ids.length - 1; index++) {
       const wall = { id: newId(), startVertexId: ids[index]!, endVertexId: ids[index + 1]!, thicknessMm: 150,
         dimensionalOrigin: 'physical' as const };
@@ -60,19 +65,44 @@ export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
   });
 }
 
-function landingElevation(doc: EditorDocument, points: Point[]): number {
-  const midpoint = { x: (points[0]!.x + points.at(-1)!.x) / 2, y: (points[0]!.y + points.at(-1)!.y) / 2 };
-  const nearby = (doc.ramps ?? []).filter(isRampLanding).map((landing) => {
-    const corners = [{ x: 0, y: 0 }, { x: landing.widthMm, y: 0 }, { x: landing.widthMm, y: landing.depthMm }, { x: 0, y: landing.depthMm }]
-      .map((point) => localToWorld(landing, point));
-    const gap = Math.min(...corners.map((from, index) => {
-      const to = corners[(index + 1) % corners.length]!;
-      const length = distance(from, to), t = Math.max(0, Math.min(1, ((midpoint.x - from.x) * (to.x - from.x) + (midpoint.y - from.y) * (to.y - from.y)) / length ** 2));
-      return distance(midpoint, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
-    }));
-    return { elevationMm: landing.elevationMm, gap };
-  }).filter((candidate) => candidate.gap <= 200).sort((a, b) => a.gap - b.gap)[0];
-  return nearby?.elevationMm ?? 0;
+/** Repairs legacy protection walls drawn before landing-edge support existed. */
+export function repairLandingProtectionWalls(doc: EditorDocument): EditorDocument {
+  // This is deliberately tolerant of the old invalid geometry it repairs.
+  // `upgradeConstructionDocument` parses first and would reject intersecting legacy muretes.
+  const source = structuredClone(doc);
+  const candidates = source.walls.flatMap((wall) => {
+    if (wallConstruction(wall).heightMm > 1500) return [];
+    const [from, to] = wallPoints(source, wall), placement = landingWallPlacement(source, [from, to]);
+    return placement && distance(...placement.points) > .01 ? [{ wall, placement }] : [];
+  });
+  const candidateIds = new Set(candidates.map(({ wall }) => wall.id));
+  const movable = candidates.filter(({ wall }) => [wall.startVertexId, wall.endVertexId].every((vertexId) =>
+    source.walls.filter((item) => item.startVertexId === vertexId || item.endVertexId === vertexId).every((item) => candidateIds.has(item.id))));
+  if (!movable.length) return source;
+  return editDocument(source, (next) => {
+    const expected = new Map<string, Point>();
+    const changed = new Set<string>();
+    for (const { wall, placement } of movable) {
+      const pairs: [string, Point][] = [[wall.startVertexId, placement.points[0]], [wall.endVertexId, placement.points[1]]];
+      if (pairs.some(([id, point]) => expected.has(id) && distance(expected.get(id)!, point) > .01)) continue;
+      pairs.forEach(([id, point]) => expected.set(id, point)); changed.add(wall.id);
+    }
+    next.vertices.forEach((vertex) => { const point = expected.get(vertex.id); if (point) Object.assign(vertex, point); });
+    next.walls.filter((wall) => changed.has(wall.id)).forEach((wall) => {
+      const placement = movable.find((item) => item.wall.id === wall.id)!.placement;
+      wall.baseElevationMm = placement.elevationMm;
+    });
+    const canonical = new Map<string, string>();
+    for (const wall of next.walls.filter((item) => changed.has(item.id))) for (const vertexId of [wall.startVertexId, wall.endVertexId]) {
+      const vertex = next.vertices.find((item) => item.id === vertexId)!;
+      const match = [...canonical.entries()].find(([, id]) => distance(vertex, next.vertices.find((item) => item.id === id)!) < .01);
+      if (match) canonical.set(vertexId, match[1]); else canonical.set(vertexId, vertexId);
+    }
+    next.walls.filter((wall) => changed.has(wall.id)).forEach((wall) => {
+      wall.startVertexId = canonical.get(wall.startVertexId)!; wall.endVertexId = canonical.get(wall.endVertexId)!;
+    });
+    next.vertices = next.vertices.filter((vertex) => next.walls.some((wall) => wall.startVertexId === vertex.id || wall.endVertexId === vertex.id));
+  });
 }
 export function addOpening(doc: EditorDocument, wallId: string, p: Point, kind: Opening['kind']) {
   return editDocument(doc, (next) => {

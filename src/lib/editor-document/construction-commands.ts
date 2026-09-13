@@ -17,13 +17,12 @@ function update(input: EditorDocument, operation: (doc: EditorDocument) => void)
   return parseEditorDocument(doc);
 }
 export function setWallConstruction(input: EditorDocument, id: string,
-  patch: Pick<Wall, 'heightMm' | 'materials'>): EditorDocument {
+  patch: Pick<Wall, 'heightMm' | 'materials' | 'baseElevationMm'>): EditorDocument {
   return update(input, (doc) => {
     const wall = doc.walls.find((entity) => entity.id === id);
     if (!wall) throw new Error('Muro no encontrado');
     Object.assign(wall, patch);
-    delete wall.baseElevationMm;
-    const ceilingMm = wallConstruction(wall).heightMm;
+    const ceilingMm = (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm;
     doc.openings.filter((opening) => opening.wallId === id && opening.sourceRampId).forEach((opening) => {
       const heightMm = ceilingMm - (opening.elevationMm ?? 0);
       if (heightMm <= 0) throw new Error('El muro queda por debajo de la llegada automática de la rampa.');

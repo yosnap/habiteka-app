@@ -73,7 +73,10 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
     <Group x={item.x} y={item.y} rotation={item.rotation} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current; if (!active) return;
-        update(snapObject(source, { ...active.item, ...e.target.position() }, scale, store.getState().snap));
+        const snapped = snapObject(source, { ...active.item, ...e.target.position() }, scale, store.getState().snap);
+        // El cursor y el control se detienen en el mismo punto que el plano
+        // previsualizado; así el imán se siente como un acople, no como salto al soltar.
+        e.target.position({ x: snapped.x, y: snapped.y }); update(snapped);
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(item); end(); }}>
       <Rect width={item.widthMm} height={item.depthMm} fill="rgba(0,0,0,0.001)" />
     </Group>

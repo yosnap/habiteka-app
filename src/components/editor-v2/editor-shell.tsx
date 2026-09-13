@@ -6,7 +6,7 @@ import { Box, Download, Save, SlidersHorizontal, Square, Type, Undo2, Redo2, X }
 import type { EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import type { Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
-import { addFurniture, addWallPath, deleteEntities, editDocument, newId, nudgeSpatialEntities, shapePoints } from '@/canvas/editor-v2/editing-operations';
+import { addFurniture, addWallPath, deleteEntities, editDocument, newId, nudgeSpatialEntities, repairLandingProtectionWalls, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
 import { Toolbar } from './toolbar';
 import { Inspector } from './inspector';
@@ -53,6 +53,11 @@ export function EditorShell({ store, projectName, saveStatus, onSave, saveEnable
   const run = (operation: () => void) => {
     try { operation(); } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo completar la edición.'); }
   };
+  const repairLandingWalls = () => run(() => {
+    const state = store.getState();
+    state.apply(repairLandingProtectionWalls(state.document));
+    state.setError(null);
+  });
   const closeConstruction = () => { setConstruction(false); constructionButton.current?.focus(); };
   const chooseTool = (next: EditorTool) => {
     if (store.getState().readOnly && next !== 'select') return;
@@ -171,7 +176,9 @@ export function EditorShell({ store, projectName, saveStatus, onSave, saveEnable
         <SlidersHorizontal size={18} aria-hidden="true" />Propiedades{selection.length ? ` (${selection.length})` : ''}
       </button>
     </div>
-    {error && <div className={styles.error} role="alert"><span>{error}</span><button onClick={() => store.getState().setError(null)}>Cerrar aviso</button></div>}
+    {error && <div className={styles.error} role="alert"><span>{error}</span>
+      {(error === 'Intersección de muros sin vértice compartido' || error === 'El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.') && <button onClick={repairLandingWalls}>Reparar muretes del descansillo</button>}
+      <button onClick={() => store.getState().setError(null)}>Cerrar aviso</button></div>}
     <div className={styles.workspace}>
       <Toolbar store={store} constructionOpen={construction} catalogOpen={catalog} constructionButtonRef={constructionButton}
         onConstruction={() => { if (!construction) store.getState().setTool('select'); setConstruction(!construction); setCatalog(false); setInspector(false); }}

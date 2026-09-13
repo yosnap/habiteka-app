@@ -63,6 +63,13 @@ describe('construction v3 contract', () => {
     expect(source.schemaVersion).toBe(2);
     expect(() => addStair(added, stair)).toThrow('ID duplicado');
   });
+  it('keeps a raised wall base and measures its height from that base', () => {
+    const raised = setWallConstruction(fixture(), 'w', { heightMm: 1100, baseElevationMm: 1000 });
+    expect(raised.walls[0]).toMatchObject({ heightMm: 1100, baseElevationMm: 1000 });
+    const boxes = editorDocumentToScene(raised).boxes.filter((box) => box.sourceEntityId === 'w');
+    expect(boxes).not.toHaveLength(0);
+    expect(boxes.every((box) => box.position[1] === 1.55 && box.size[1] === 1.1)).toBe(true);
+  });
   it.each(['straight', 'L', 'U'] as const)('generates coherent %s steps within footprint and exact total height', (kind) => {
     const model = { ...stair, kind };
     const layout = stairLayout(model);

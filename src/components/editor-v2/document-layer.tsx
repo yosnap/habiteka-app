@@ -29,12 +29,14 @@ import { FloorSurface } from './floor-surface';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { CurveHandle } from './curve-handle';
 import { ColumnLayer } from './column-layer';
+import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
 export function DocumentLayer({ store, scale, disabled = false }: { store: EditorStore; scale: number; disabled?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
+  const [wallMoveSnap, setWallMoveSnap] = useState<WallMoveSnap | null>(null);
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
@@ -53,11 +55,14 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
   };
   const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>) => {
     const target = e.target, state = store.getState();
+    const wall = state.document.walls.find((item) => item.id === id);
     const object = state.document.furniture.find((f) => f.id === id);
-    const to = object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap)
-      : snapPoint(state.document, target.position(), state.snap);
+    const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
+      : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap)
+        : snapPoint(state.document, target.position(), state.snap);
     target.position(origin);
-    run(() => state.apply(moveEntity(state.document, id, { x: to.x - origin.x, y: to.y - origin.y })));
+    run(() => state.apply(moveEntity(state.document, id, wall ? to : { x: to.x - origin.x, y: to.y - origin.y })));
+    setWallMoveSnap(null);
     if (object) state.select([id]);
   };
   return <Group listening={!disabled}>
@@ -67,6 +72,8 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
         selected={selected.includes(room.id)} onSelect={tool === 'select' ? () => store.getState().select([room.id]) : undefined} />;
     })}
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
+    {/* A landing is a support surface; its fill must stay beneath the protection walls built on its perimeter. */}
+    <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     {junctions.filter((join) => doc.walls.filter((wall) => wall.startVertexId === join.id || wall.endVertexId === join.id).length !== 2)
       .map((join) => <Line key={`join:${join.id}`} points={join.points.flatMap((p) => [p.x, p.y])}
       closed fill={INK} listening={false} />)}
@@ -75,6 +82,10 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
       const miter = wallMiterPolygon(doc, wall);
       return <Group key={wall.id} draggable={!readOnly && tool === 'select'}
         onDragStart={() => store.getState().select([wall.id])}
+        onDragMove={(event) => {
+          const snap = snapWallMove(source, wall, event.target.position(), scale, store.getState().snap);
+          event.target.position(snap.delta); setWallMoveSnap(snap);
+        }}
         onDragEnd={(e) => drag(wall.id, { x: 0, y: 0 }, e)}
         onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)}>
         {wall.curveHeightMm ? <Line points={wallStrip(doc, wall).flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : INK} />
@@ -86,9 +97,10 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
           label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />
       </Group>;
     })}
+    {wallMoveSnap?.guides.map((guide, index) => <Line key={`wall-move-guide:${index}`} points={[guide.from.x, guide.from.y, guide.to.x, guide.to.y]}
+      stroke={ACCENT} strokeWidth={2 / scale} dash={[8 / scale, 5 / scale]} listening={false} />)}
     <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
-    <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select' && !selected.includes(f.id)} onDragStart={() => store.getState().select([])}

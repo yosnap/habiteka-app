@@ -22,7 +22,13 @@ export function CanvasSelectionMenu({ store, view, size }: {
   const opening = doc.openings.find((o) => o.id === id), stair = doc.stairs?.find((s) => s.id === id);
   const furniture = doc.furniture.find((f) => f.id === id), ramp = doc.ramps?.find((r) => r.id === id), column = doc.columns?.find((c) => c.id === id);
   let position: Point | undefined;
-  if (wall) position = wallPath(doc, wall).at(.5);
+  if (wall) {
+    position = wallPath(doc, wall).at(.5);
+    // The wall itself must remain directly draggable. Keep the radial menu outside
+    // its hit area instead of centring its close button over the selected segment.
+    const direction = wallPath(doc, wall).tangent(.5);
+    position = { x: position.x - direction.y * 190 / view.scale, y: position.y + direction.x * 190 / view.scale };
+  }
   else if (opening) {
     const host = doc.walls.find((w) => w.id === opening.wallId);
     if (host) position = wallPath(doc, host).at(opening.position);

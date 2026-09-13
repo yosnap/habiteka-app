@@ -8,7 +8,7 @@ import { junctionFinishes } from './junction-finishes';
 
 export function wallMeshes(doc: EditorDocument, wall: Wall): SceneBox[] {
   const [a, b] = wallPoints(doc, wall), length = distance(a, b), angle = Math.atan2(b.y - a.y, b.x - a.x);
-  const construction = wallConstruction(wall), base = 0, height = construction.heightMm, ceiling = height;
+  const construction = wallConstruction(wall), base = wall.baseElevationMm ?? 0, height = construction.heightMm, ceiling = base + height;
   const openings = doc.openings.filter((o) => o.wallId === wall.id).map((o) => ({
     from: o.position * length - o.widthMm / 2, to: o.position * length + o.widthMm / 2,
     bottom: openingConstruction(o).elevationMm, top: openingConstruction(o).elevationMm + openingConstruction(o).heightMm,
@@ -42,7 +42,7 @@ export function junctionMeshes(doc: EditorDocument): ScenePolygon[] {
   return doc.vertices.flatMap((vertex) => {
     const incident = doc.walls.filter((w) => w.startVertexId === vertex.id || w.endVertexId === vertex.id);
     if (incident.length < 2) return [];
-    const base = (_wall: Wall) => 0, ceiling = (wall: Wall) => wallConstruction(wall).heightMm;
+    const base = (wall: Wall) => wall.baseElevationMm ?? 0, ceiling = (wall: Wall) => base(wall) + wallConstruction(wall).heightMm;
     const levels = [...new Set([...incident.flatMap((wall) => [base(wall), ceiling(wall)]),
       ...doc.openings.filter((o) => incident.some((w) => w.id === o.wallId)).flatMap((o) => {
         const p = openingConstruction(o); return [p.elevationMm, p.elevationMm + p.heightMm];

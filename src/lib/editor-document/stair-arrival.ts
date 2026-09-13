@@ -8,6 +8,14 @@ export interface StairArrival {
   widthMm: number;
 }
 
+/** Lower entry point of a straight stair: this is where a ramp can continue into its first step. */
+export function straightStairEntry(stair: Stair): StairArrival | null {
+  if (stair.kind !== 'straight') return null;
+  const radians = stair.rotation * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians);
+  return { point: localToWorld(stair, { x: stair.widthMm / 2, y: stair.depthMm }),
+    direction: { x: -sin, y: cos }, elevationMm: stair.elevationMm, widthMm: stair.widthMm };
+}
+
 /** La salida superior real de una escalera, incluida la dirección del último tramo. */
 export function stairArrival(stair: Stair): StairArrival {
   const flightMm = stair.kind === 'U' ? stair.widthMm / 2 : Math.min(stair.widthMm, stair.depthMm) / 3;

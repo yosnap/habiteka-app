@@ -29,9 +29,11 @@ export function WallConstructionFields({ wall, document, edit }: { wall: Wall; d
   const properties = wallConstruction(wall);
   return <>
     <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
+    <MeterField label="Cota base" valueMm={wall.baseElevationMm ?? 0}
+      change={(baseElevationMm) => edit((doc) => setWallConstruction(doc, wall.id, { baseElevationMm }))} />
     {wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
       value={properties.materials[side]} onChange={(value) => edit((doc) => setWallSurface(doc, wall.id, side, value))} />)}
-    <p className={styles.hint}>Acabados independientes en 3D. Cierra la habitación para identificar interior y exterior. Usa Pintar para cambiar el color.</p>
+    <p className={styles.hint}>La altura se mide desde la cota base. Para un murete sobre un descansillo de 1 m, usa cota base 1 m. Cierra la habitación para identificar interior y exterior.</p>
   </>;
 }
 

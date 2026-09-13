@@ -88,7 +88,8 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
   const point = () => {
     const p = stage.current?.getRelativePointerPosition();
     if (tool === 'split-wall') return p ?? null;
-    if (p && tool === 'wall') return snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined).point;
+    if (p && (tool === 'wall' || tool === 'guard-wall'))
+      return snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined).point;
     return p ? snapPoint(store.getState().document, p, store.getState().snap) : null;
   };
   const cancel = () => { stage.current?.stopDrag(); store.getState().cancelWallSplit(); store.getState().cancelPendingSpatial(); setWallDraw(idleWallDraw()); setGesture(null); setPointer(null); setMarquee(null); setGeneration((n) => n + 1); };
@@ -211,7 +212,9 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
           stroke="#087f75" strokeWidth={150} opacity={.45} />
         {wallMagnet && wallMagnet.kind !== 'free' && <><Circle x={wallMagnet.point.x} y={wallMagnet.point.y} radius={11 / view.scale}
           stroke="#00a693" strokeWidth={3 / view.scale} fill="rgba(0,166,147,.12)" />
-          {wallMagnet.kind === 'orthogonal' && <Line points={[wallPreview.anchor.x, wallPreview.anchor.y, wallMagnet.point.x, wallMagnet.point.y]}
+        {wallMagnet.kind === 'landing' && wallMagnet.guide && <Line points={[wallMagnet.guide.from.x, wallMagnet.guide.from.y, wallMagnet.guide.to.x, wallMagnet.guide.to.y]}
+          stroke="#00a693" strokeWidth={3 / view.scale} dash={[10 / view.scale, 6 / view.scale]} />}
+        {wallMagnet.kind === 'orthogonal' && <Line points={[wallPreview.anchor.x, wallPreview.anchor.y, wallMagnet.point.x, wallMagnet.point.y]}
             stroke="#00a693" strokeWidth={2 / view.scale} dash={[8 / view.scale, 5 / view.scale]} />}</>}
         {draftDimension && <DimensionMark scale={view.scale} layout={draftDimension} />}
       </>}</Layer>
@@ -237,7 +240,8 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       Cerrar habitación · prolongar pared existente sin añadir un tramo
     </div>}
     {!wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      {wallMagnet.kind === 'orthogonal' ? 'Imán activo · pared recta' : 'Imán activo · unir al vértice'}
+      {wallMagnet.kind === 'orthogonal' ? 'Imán activo · pared recta' : wallMagnet.kind === 'landing'
+        ? 'Imán activo · borde del descansillo' : 'Imán activo · unir al vértice'}
     </div>}
     {!pan && (tool === 'wall' || tool === 'guard-wall') && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {tool === 'guard-wall' ? wallPreview.anchor ? 'Haz clic para terminar el murete de protección' : 'Haz clic en el inicio del murete · no arrastres'
