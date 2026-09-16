@@ -59,3 +59,24 @@ describe('generateCenitalFromImage', () => {
     expect(captured!.prompt).toBe(buildCenitalImagePrompt('moderno'));
   });
 });
+
+describe('generateCenitalFromImage — vista y referencia doble', () => {
+  it('la maqueta pide vista isométrica y el original manda sobre el redibujado', async () => {
+    const p = buildCenitalImagePrompt('moderno', '', 'maqueta');
+    expect(p).toContain('MAQUETA 3D');
+    expect(p).toContain('isométrica');
+    expect(p).toContain('SOLA hoja de madera');
+    expect(p).toContain('PROHIBIDO dibujar dos hojas');
+    let captured: Parameters<typeof generateCenitalFromImage>[0]['image']['generate'] extends (r: infer R) => unknown ? R : never;
+    const image = {
+      generate: async (req: typeof captured) => { captured = req; return { assetUrl: 'https://assets/maqueta.png', cost: { provider: 'test', usd: 0 } }; },
+      inpaint: async () => { throw new Error('no'); },
+    };
+    await generateCenitalFromImage({ image: image as never }, { base64: 'ORIG', mimeType: 'image/jpeg' }, 'moderno', '', undefined, {
+      vista: 'maqueta', structuralReference: { base64: 'REDRAW' },
+    });
+    expect(captured!.referenceImage).toEqual({ base64: 'ORIG', mimeType: 'image/jpeg' });
+    expect(captured!.referenceImages).toEqual([{ base64: 'ORIG', mimeType: 'image/jpeg' }, { base64: 'REDRAW', mimeType: 'image/png' }]);
+    expect(captured!.prompt).toBe(buildCenitalImagePrompt('moderno', '', 'maqueta'));
+  });
+});

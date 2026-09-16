@@ -1,7 +1,7 @@
 /**
  * Proveedor de imagen "Nano Banana" (Gemini 2.5 Flash Image) vía OpenRouter.
  *
- * Reutiliza el gateway de IA existente (una sola key `OPENROUTER_API_KEY`, mismo
+ * Reutiliza la credencial de OpenRouter configurada en administración (mismo
  * punto de facturación y de control que el resto de IA). OpenRouter expone la
  * generación de imagen a través de Chat Completions con `modalities` y devuelve la
  * imagen como data URL base64 en `choices[0].message.images[]`.
@@ -55,9 +55,15 @@ export class NanoBananaImageProvider implements ImageProvider {
 
   async generate(req: ImageGenRequest): Promise<ImageResult> {
     const content: ContentPart[] = [{ type: 'text', text: req.prompt }];
-    if (req.referenceImage?.base64) {
-      content.unshift({ type: 'image_url', image_url: { url: toDataUrl(req.referenceImage) } });
-    }
+    const references = req.referenceImages ?? (req.referenceImage ? [req.referenceImage] : []);
+    content.unshift(
+      ...references
+        .filter((reference) => reference.base64 || reference.url)
+        .map((reference) => ({
+          type: 'image_url' as const,
+          image_url: { url: toDataUrl(reference) },
+        })),
+    );
     return this.call(content, req.aspectRatio);
   }
 

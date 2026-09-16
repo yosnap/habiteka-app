@@ -10,8 +10,12 @@ import type { ProviderCost } from './credits';
 
 export interface ImageGenRequest {
   prompt: string;
+  /** Alternativa estructurada sin pérdida geométrica para modelos con límite menor. */
+  compactPrompt?: string;
   /** Imagen de referencia (URL o base64) para condicionar el render. */
   referenceImage?: { url?: string; base64?: string; mimeType?: string };
+  /** Referencias complementarias, p. ej. planta y vista estructural 3D. */
+  referenceImages?: Array<{ url?: string; base64?: string; mimeType?: string }>;
   /** Relación de aspecto deseada (p. ej. '16:9', '1:1'). */
   aspectRatio?: string;
   /** Semilla para reproducibilidad cuando el proveedor la soporta. */
@@ -28,6 +32,7 @@ export interface InpaintRequest {
 }
 
 export interface ImageResult {
+  generation?: { provider: string; model: string; fallbackIndex: number };
   /** URL del asset generado (presigned o pública según el storage). */
   assetUrl: string;
   /**

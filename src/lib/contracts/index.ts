@@ -30,6 +30,14 @@ export type {
   Plano2dPayload,
 } from './plano2d-payload';
 export type { SketchPlanResult } from './sketch-plan-result';
+export type {
+  DimensionCorrection,
+  ExteriorZone,
+  ImportedFurniture,
+  PlanImportResult,
+  PlanImportWarning,
+  WrittenRoomDimensions,
+} from './plan-import-result';
 export type { DesignElementKind, DesignElement } from './design-element';
 export type { DeliverableType, DeliverablePayload, Deliverable } from './deliverable';
 export type {

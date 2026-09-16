@@ -7,6 +7,7 @@
  */
 import type { Plano2dPayload } from './plano2d-payload';
 import type { DesignElement } from './design-element';
+import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 
 export type DeliverableType = 'plano2d' | 'render3d' | 'memoria';
 
@@ -27,6 +28,14 @@ export type DeliverablePayload =
        * entregables creados antes de guardar la key.
        */
       assetKey?: string;
+      generation?: {
+        provider?: string; model?: string; fallbackIndex?: number;
+        promptVersion: string; documentRevision: number;
+        view?: import('@/lib/editor-document/render-view').RenderView;
+        options?: RenderDesignOptions;
+        batchId?: string;
+        referenceDesignId?: string;
+      };
     }
   | { type: 'memoria'; markdown: string };
 

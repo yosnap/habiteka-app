@@ -3,6 +3,7 @@
  * y el prompt exige respetar la distribución sin inventar medidas. Sin red.
  */
 import { describe, expect, it } from 'vitest';
+import { planFidelityRules } from '@/server/ai/design/redraw-plan-pipeline';
 import { redrawPlan, redrawPlanPrompt } from '@/server/ai/design/redraw-plan-pipeline';
 import type { ImageAdapter, ImageGenRequest } from '@/lib/contracts';
 
@@ -40,5 +41,23 @@ describe('redrawPlan', () => {
     expect(result.assetUrl).toBe('https://assets/plano-redibujado.png');
     expect(captured!.referenceImage).toEqual({ base64: 'ORIGINALBASE64', mimeType: 'image/jpeg' });
     expect(captured!.prompt).toBe(redrawPlanPrompt());
+  });
+});
+
+describe('redrawPlanPrompt — modos y fidelidad', () => {
+  it('el modo decorado conserva mobiliario, sanitarios y medidas escritas', () => {
+    const p = redrawPlanPrompt('decorado');
+    expect(p).toContain('CON MOBILIARIO');
+    expect(p).toContain('bañera');
+    expect(p).not.toContain('SOLO ESTRUCTURA');
+    expect(p).toContain(planFidelityRules());
+  });
+  it('las reglas de fidelidad fijan puertas con hoja y arco, ventanas solo dibujadas y muros proporcionados', () => {
+    const r = planFidelityRules();
+    expect(r).toContain('ARCO DE BARRIDO');
+    expect(r).toContain('80–90 cm');
+    expect(r).toContain('PROHIBIDO añadir ventanas');
+    expect(r).toContain('25–30 cm');
+    expect(redrawPlanPrompt()).toContain(r);
   });
 });

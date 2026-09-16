@@ -16,22 +16,29 @@ export interface ModelRoute {
   baseURL: string | null;
 }
 
+/** Ruta ejecutable: el proveedor forma parte de cada respaldo. */
+export interface ModelRouteTarget {
+  model: string;
+  provider: string;
+  baseURL: string | null;
+}
+
 export const MODEL_DEFAULTS: Record<ModelAction, ModelRoute> = {
   vision: {
-    primaryModel: 'google/gemini-2.5-flash',
-    fallbacks: ['anthropic/claude-3.7-sonnet'],
+    primaryModel: 'google/gemini-3.7-flash',
+    fallbacks: ['anthropic/claude-sonnet-5'],
     provider: null,
     baseURL: null,
   },
   chat: {
-    primaryModel: 'anthropic/claude-3.7-sonnet',
-    fallbacks: ['openai/gpt-4o'],
+    primaryModel: 'anthropic/claude-sonnet-5',
+    fallbacks: ['openai/gpt-5.2-chat'],
     provider: null,
     baseURL: null,
   },
   plano2d: {
-    primaryModel: 'anthropic/claude-3.7-sonnet',
-    fallbacks: ['openai/gpt-4o'],
+    primaryModel: 'anthropic/claude-sonnet-5',
+    fallbacks: ['openai/gpt-5.2-chat'],
     provider: null,
     baseURL: null,
   },
@@ -39,20 +46,20 @@ export const MODEL_DEFAULTS: Record<ModelAction, ModelRoute> = {
   // con modalidades de OpenRouter (el que usa el proveedor por defecto). Flux
   // no lo soporta ahí: responde 400 en cuanto viaja una referencia.
   render3d: {
-    primaryModel: 'google/gemini-2.5-flash-image',
+    primaryModel: 'google/gemini-3.1-flash-image',
     fallbacks: [],
     provider: null,
     baseURL: null,
   },
   inpaint: {
-    primaryModel: 'google/gemini-2.5-flash-image',
+    primaryModel: 'google/gemini-3.1-flash-image',
     fallbacks: [],
     provider: null,
     baseURL: null,
   },
   memoria: {
-    primaryModel: 'anthropic/claude-3.7-sonnet',
-    fallbacks: ['openai/gpt-4o'],
+    primaryModel: 'anthropic/claude-sonnet-5',
+    fallbacks: ['openai/gpt-5.2-chat'],
     provider: null,
     baseURL: null,
   },

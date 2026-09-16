@@ -10,7 +10,7 @@
  */
 import type { Estilo, ImageAdapter, ImageResult, Plano2dPayload } from '@/lib/contracts';
 import { rasterizePlano, type PlanRasterResult } from '@/server/plan/rasterize-plan-svg';
-import { buildCenitalImagePrompt, buildCenitalPrompt } from './room-prompt-builder';
+import { buildCenitalImagePrompt, buildCenitalPrompt, type RenderVista } from './room-prompt-builder';
 
 // Cotas de cordura del payload (un plano real está muy por debajo).
 const MAX_ZONES = 50;
@@ -69,6 +69,16 @@ export async function generateCenital(
  * la propia imagen y el modelo los lee — misma vía imagen→imagen que hizo
  * fiel el redibujado.
  */
+export interface CenitalImageOptions {
+  /** Cenital ortográfica (por defecto) o maqueta 3D isométrica. */
+  vista?: RenderVista;
+  /**
+   * Redibujado técnico del mismo plano: segunda referencia con la geometría
+   * limpia de muros y huecos. La primera (el original) manda para mobiliario.
+   */
+  structuralReference?: { base64: string; mimeType?: string };
+}
+
 export async function generateCenitalFromImage(
   deps: { image: CenitalDeps['image'] },
   source: { base64: string; mimeType?: string; aspectRatio?: string },
@@ -76,7 +86,12 @@ export async function generateCenitalFromImage(
   /** Detalles del propietario (mobiliario real, singularidades por estancia). */
   ownerNotes = '',
   canvasDescription?: string,
+  options: CenitalImageOptions = {},
 ): Promise<ImageResult> {
+  const primary = { base64: source.base64, mimeType: source.mimeType ?? 'image/png' };
+  const references = options.structuralReference
+    ? [primary, { base64: options.structuralReference.base64, mimeType: options.structuralReference.mimeType ?? 'image/png' }]
+    : undefined;
   return deps.image.generate({
     prompt: canvasDescription
       ? [
@@ -88,8 +103,9 @@ export async function generateCenitalFromImage(
           canvasDescription,
           ownerNotes.slice(0, 800),
         ].join('\n')
-      : buildCenitalImagePrompt(estilo, ownerNotes),
-    referenceImage: { base64: source.base64, mimeType: source.mimeType ?? 'image/png' },
+      : buildCenitalImagePrompt(estilo, ownerNotes, options.vista ?? 'cenital'),
+    referenceImage: primary,
+    ...(references ? { referenceImages: references } : {}),
     ...(source.aspectRatio ? { aspectRatio: source.aspectRatio } : {}),
   });
 }

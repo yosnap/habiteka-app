@@ -4,6 +4,7 @@
  * la disposición: la geometría exacta viaja aparte como imagen de referencia.
  * Pieza pura y testeable sin red.
  */
+import { planFidelityRules } from './redraw-plan-pipeline';
 import type { Estilo, PlanZone, Plano2dPayload } from '@/lib/contracts';
 import { ESTILOS } from '@/lib/design-options';
 
@@ -45,14 +46,32 @@ function outlineAreaM2(zone: PlanZone): number {
 // Tope de las instrucciones del propietario (evita prompts desbocados).
 const MAX_OWNER_NOTES_CHARS = 800;
 
-export function buildCenitalImagePrompt(estilo: Estilo, ownerNotes = ''): string {
+/** Tipo de vista del render: cenital ortográfica o maqueta 3D isométrica. */
+export type RenderVista = 'cenital' | 'maqueta';
+
+export function buildCenitalImagePrompt(
+  estilo: Estilo,
+  ownerNotes = '',
+  vista: RenderVista = 'cenital',
+): string {
   const estiloLabel = ESTILOS.find((o) => o.value === estilo)?.label ?? estilo;
   const notes = ownerNotes.trim().slice(0, MAX_OWNER_NOTES_CHARS);
+  const camara =
+    vista === 'maqueta'
+      ? 'Genera una MAQUETA 3D fotorrealista en vista isométrica (unos 30–35° de inclinación, sin techo, muros con altura cortados en sección, sombras suaves sobre fondo neutro)'
+      : 'Genera un render cenital fotorrealista (vista "dollhouse" desde arriba, muros con altura cortados en sección)';
   return [
-    'La imagen adjunta es un PLANO EN PLANTA de una vivienda con sus estancias rotuladas.',
-    'Genera un render cenital fotorrealista (vista "dollhouse" desde arriba, muros con altura',
-    'cortados en sección) que respete EXACTAMENTE esa disposición: mismas estancias, mismos',
+    'La primera imagen adjunta es un PLANO EN PLANTA de una vivienda con sus estancias rotuladas',
+    '(si hay una segunda imagen, es el mismo plano redibujado como plano técnico: úsala para la',
+    'geometría exacta de muros, huecos y ventanas; la primera manda para mobiliario y elementos).',
+    `${camara} que respete EXACTAMENTE esa disposición: mismas estancias, mismos`,
     'muros en la misma posición y proporción, mismas puertas y ventanas.',
+    '',
+    planFidelityRules('render'),
+    'ELEMENTOS DIBUJADOS: si el plano dibuja muebles, sanitarios, electrodomésticos o una mesa',
+    'en la terraza, colócalos EXACTAMENTE ahí, con esa orientación y tamaño relativo; completa el',
+    'resto según el rótulo de la estancia. Las ventanas se ven como ventanas en el render (marco',
+    'y vidrio en el muro), nunca como muro ciego.',
     '',
     'LOS MUROS SON SAGRADOS: dibuja exactamente los muros del plano, ni uno más. PROHIBIDO',
     'añadir tabiques, cerrar espacios abiertos o dividir una estancia en dos. Un pasillo o zona',

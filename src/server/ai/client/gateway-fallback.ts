@@ -1,10 +1,9 @@
 /**
  * Conmutación de gateway ante caída del primario.
  *
- * El fallback de modelos de OpenRouter no cubre que OpenRouter mismo caiga (es un
- * punto único de fallo). Esta utilidad ejecuta una operación contra el gateway
- * primario y, si responde con error de servidor o de red, la reintenta una vez
- * contra un gateway secundario configurado. El orden lo decide el entorno.
+ * Cada ruta de modelo tiene su proveedor y los respaldos se resuelven por la
+ * capa superior. Esta utilidad normaliza los fallos de red/servidor del gateway
+ * actual como `gateway_down`, sin depender de variables globales.
  */
 import type OpenAI from 'openai';
 import { getGatewayClient } from './gateway-client';
@@ -12,6 +11,7 @@ import { aiError } from '../errors';
 
 export interface GatewayCall<T> {
   baseURL: string | null;
+  apiKey?: string;
   run: (client: OpenAI) => Promise<T>;
 }
 
@@ -22,29 +22,16 @@ function isServerOrNetworkError(err: unknown): boolean {
 }
 
 /**
- * Ejecuta la operación contra el gateway primario; si cae con 5xx/red, reintenta
- * contra el secundario (`OPENROUTER_FALLBACK_BASE_URL`). Si no hay secundario o
- * también falla, lanza `AiError('gateway_down')`.
+ * Ejecuta la operación contra el gateway configurado y normaliza su caída para
+ * que la cadena proveedor+modelo pueda probar el siguiente respaldo.
  */
 export async function withGatewayFallback<T>(call: GatewayCall<T>): Promise<T> {
   try {
-    return await call.run(getGatewayClient({ baseURL: call.baseURL }));
+    return await call.run(getGatewayClient({ baseURL: call.baseURL, apiKey: call.apiKey }));
   } catch (primaryErr) {
     if (!isServerOrNetworkError(primaryErr)) {
       throw primaryErr;
     }
-    const secondary = process.env.OPENROUTER_FALLBACK_BASE_URL;
-    if (!secondary) {
-      throw aiError(
-        'gateway_down',
-        'Gateway primario caído y sin secundario configurado',
-        primaryErr,
-      );
-    }
-    try {
-      return await call.run(getGatewayClient({ baseURL: secondary }));
-    } catch (secondaryErr) {
-      throw aiError('gateway_down', 'Gateways primario y secundario caídos', secondaryErr);
-    }
+    throw aiError('gateway_down', 'El gateway configurado no responde', primaryErr);
   }
 }

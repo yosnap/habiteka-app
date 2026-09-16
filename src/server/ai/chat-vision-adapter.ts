@@ -41,7 +41,9 @@ interface OpenAIChatMessage {
 
 export interface ChatAdapterOptions {
   baseURL?: string | null;
+  apiKey?: string;
   maxTokens?: number;
+  reportsUsd?: boolean;
 }
 
 export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
@@ -51,6 +53,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     const body = this.buildBody(req, false);
     const completion = await withGatewayFallback({
       baseURL: this.options.baseURL ?? null,
+      apiKey: this.options.apiKey,
       // OpenRouter acepta campos extra (`models`) que no están en los tipos del
       // SDK; se pasa el body construido a su API de Chat Completions.
       run: (client) => client.chat.completions.create(body as never) as Promise<RawCompletion>,
@@ -69,7 +72,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
       content: choice.message.content ?? '',
       toolCalls: mapToolCalls(choice.message.tool_calls),
       structured,
-      usage: toTokenUsage(completion.usage),
+      usage: toTokenUsage(completion.usage, this.options.reportsUsd),
     };
   }
 
@@ -77,6 +80,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     const body = this.buildBody(req, true);
     const stream = await withGatewayFallback({
       baseURL: this.options.baseURL ?? null,
+      apiKey: this.options.apiKey,
       run: (client) =>
         client.chat.completions.create(body as never) as unknown as Promise<
           AsyncIterable<RawChunk>
@@ -89,7 +93,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
         yield { contentDelta: delta.content };
       }
       if (chunk.usage) {
-        yield { usage: toTokenUsage(chunk.usage) };
+        yield { usage: toTokenUsage(chunk.usage, this.options.reportsUsd) };
       }
     }
   }

@@ -9,6 +9,7 @@ const SECTIONS: Array<{ href: string; label: string }> = [
   { href: '/config', label: 'Configuración' },
   { href: '/media', label: 'Media' },
   { href: '/analytics', label: 'Analítica' },
+  { href: '/analytics/ai-costs', label: 'Costes IA' },
 ];
 
 export function AdminNav() {

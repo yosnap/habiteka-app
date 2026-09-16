@@ -9,13 +9,16 @@ import type { TokenUsage, ProviderCost } from '@/lib/contracts';
 interface RawUsage {
   prompt_tokens?: number;
   completion_tokens?: number;
+  cost?: number;
 }
 
 /** Extrae `TokenUsage` del `usage` nativo de una respuesta de chat. */
-export function toTokenUsage(usage: RawUsage | undefined | null): TokenUsage {
+export function toTokenUsage(usage: RawUsage | undefined | null, reportsUsd = false): TokenUsage {
   return {
     promptTokens: usage?.prompt_tokens ?? 0,
     completionTokens: usage?.completion_tokens ?? 0,
+    ...(reportsUsd && typeof usage?.cost === 'number' && Number.isFinite(usage.cost) && usage.cost >= 0
+      ? { reportedCostUsd: usage.cost } : {}),
   };
 }
 
