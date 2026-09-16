@@ -19,6 +19,12 @@ export interface SketchWall {
   y1: number;
   x2: number;
   y2: number;
+  /**
+   * Grosor MEDIDO del trazo, como fracción del lado de la imagen perpendicular
+   * al muro (solo lo aporta la detección de píxeles). Permite distinguir la
+   * fachada gruesa de los tabiques; ausente = grosor por defecto.
+   */
+  thickness?: number;
 }
 
 /** Abertura anclada a un muro por índice. */
@@ -36,10 +42,49 @@ export interface SketchAperture {
 export interface SketchRoom {
   nombre: string;
   poligono: SketchPoint[];
+  /** Espacio exterior o semiabierto (terraza, patio, porche, loggia). */
+  exterior?: boolean;
+  /** Medidas ESCRITAS dentro de la estancia (p. ej. "3,00 x 4,00 m"), en metros. */
+  anchoMetros?: number;
+  altoMetros?: number;
+  /** Superficie escrita (p. ej. "10,5 m²"). */
+  areaM2?: number;
+}
+
+/** Rótulo de cota leído en el plano, con su posición. */
+export interface SketchDimension {
+  texto: string;
+  /** Valores numéricos en metros que contiene el rótulo (1 para una cota lineal, 2 para "a x b"). */
+  valoresMetros: number[];
+  /** `general`: línea de cota del contorno; `estancia`: medida escrita dentro de una estancia. */
+  tipo: 'general' | 'estancia';
+  /** Punto del rótulo en coordenadas de imagen. */
+  ancla: SketchPoint;
+}
+
+/** Tipos de mobiliario reconocibles en planta (vocabulario cerrado del catálogo). */
+export const SKETCH_FURNITURE_KINDS = [
+  'sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'kitchen', 'sink', 'toilet',
+  'bath', 'shower', 'lamp', 'plant', 'rug', 'appliance', 'bench', 'car',
+] as const;
+export type SketchFurnitureKind = (typeof SKETCH_FURNITURE_KINDS)[number];
+
+/** Mueble o aparato dibujado, por su caja en coordenadas de imagen. */
+export interface SketchFurniture {
+  tipo: SketchFurnitureKind;
+  bbox: { minX: number; minY: number; maxX: number; maxY: number };
+  /** Giro del mueble en grados (0 = como se lee la imagen), múltiplo de 90 tras validar. */
+  rotacionDeg: number;
+  /** Rótulo del plano si lo tiene (p. ej. "Isla"). */
+  etiqueta?: string;
 }
 
 /** Salida validada de la extracción de un boceto. */
 export interface RawSketch {
+  /** Rótulos de cota leídos (planos dibujados/CAD). */
+  cotas?: SketchDimension[];
+  /** Mobiliario dibujado (planos dibujados/CAD). */
+  mobiliario?: SketchFurniture[];
   /** Ancho real estimado del plano dibujado, en metros (si el boceto lo indica). */
   anchoMetros?: number;
   /** Alto real estimado, en metros. */

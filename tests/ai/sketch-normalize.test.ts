@@ -426,3 +426,27 @@ describe('normalizeSketch', () => {
     expect(normalizeSketch(raw)).toEqual(normalizeSketch(raw));
   });
 });
+
+describe('normalizeSketchDetailed: escala fiable isotrópica', () => {
+  it('deriva el alto del ancho con la proporción de la imagen y descarta la cota general que no cuadra', async () => {
+    const { normalizeSketchDetailed } = await import('@/server/ai/sketch/normalize-geometry');
+    // Caja de muros 0.1–0.9 × 0.1–0.5 en una imagen de proporción 0.5. Ancho
+    // escrito 10 m; el "alto" leído (20 m) abarca más que la caja de muros.
+    const walls = [
+      { x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 },
+      { x1: 0.1, y1: 0.5, x2: 0.9, y2: 0.5 },
+      { x1: 0.1, y1: 0.1, x2: 0.1, y2: 0.5 },
+      { x1: 0.9, y1: 0.1, x2: 0.9, y2: 0.5 },
+    ];
+    const raw: RawSketch = {
+      anchoMetros: 10, altoMetros: 20, escalaFiable: true, muros: [], aberturas: [],
+      habitaciones: [{
+        nombre: 'Sala', anchoMetros: 10, altoMetros: 2.5,
+        poligono: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.5 }, { x: 0.1, y: 0.5 }],
+      }],
+    };
+    const { scale } = normalizeSketchDetailed(raw, { wallsOverride: walls, imageHeightOverWidth: 0.5 });
+    expect(scale.mmPerUnitX).toBeCloseTo(12500, 0);
+    expect(scale.mmPerUnitY).toBeCloseTo(6250, 0);
+  });
+});

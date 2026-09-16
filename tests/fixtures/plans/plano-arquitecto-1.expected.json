@@ -1,0 +1,14 @@
+{
+  "descripcion": "PDF vertical (plano girado 90°). Cotas generales 15,20 x 11,00 m y superficies por estancia.",
+  "rotado": true,
+  "general": { "anchoM": 15.2, "altoM": 11.0 },
+  "estancias": [
+    { "nombre": "Dormitorio principal", "areaM2": 16.4 }, { "nombre": "Baño principal", "areaM2": 6.8 },
+    { "nombre": "Salón", "areaM2": 18.5 }, { "nombre": "Cocina abierta", "areaM2": 14.0 },
+    { "nombre": "Comedor", "areaM2": 12.8 }, { "nombre": "Patio", "areaM2": 18.0, "exterior": true },
+    { "nombre": "Recibidor", "areaM2": 6.1 }, { "nombre": "Dormitorio 3", "areaM2": 10.8 },
+    { "nombre": "Dormitorio 2", "areaM2": 10.5 }, { "nombre": "Baño común", "areaM2": 5.2 },
+    { "nombre": "Estudio", "areaM2": 8.6 }, { "nombre": "Porche", "areaM2": 20.5, "exterior": true }
+  ],
+  "toleranciaRelativa": 0.05
+}

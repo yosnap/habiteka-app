@@ -3,7 +3,7 @@
  * sin fallar, lo válido pasa intacto.
  */
 import { describe, expect, it } from 'vitest';
-import { parseRawSketch, sketchPrompt } from '@/server/ai/sketch/extract-sketch-geometry';
+import { parseRawSketch, planPrompt, sketchPrompt } from '@/server/ai/sketch/extract-sketch-geometry';
 
 describe('parseRawSketch', () => {
   it('devuelve vacío ante salida no estructurada', () => {
@@ -83,5 +83,77 @@ describe('sketchPrompt', () => {
     const p = sketchPrompt();
     expect(p).toContain('0–1');
     expect(p).toContain('No inventes');
+  });
+});
+
+describe('parseRawSketch — plano dibujado (cotas, mobiliario, exteriores)', () => {
+  const base = { muros: [], aberturas: [] };
+  const tri = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }];
+
+  it('sanea el nombre de estancia y acepta medidas escritas plausibles', () => {
+    const r = parseRawSketch({
+      ...base,
+      habitaciones: [
+        { nombre: 'Dorm.<b>Principal</b>', poligono: tri, anchoMetros: 3, altoMetros: 4, exterior: false },
+        { nombre: 'Terraza', poligono: tri, exterior: true, areaM2: 22.5 },
+        { nombre: 'Mal', poligono: tri, anchoMetros: 0.1, altoMetros: 500 },
+      ],
+    });
+    expect(r.habitaciones[0]).toEqual({
+      nombre: 'Dorm. b Principal /b', poligono: tri, anchoMetros: 3, altoMetros: 4,
+    });
+    expect(r.habitaciones[1]).toEqual({ nombre: 'Terraza', poligono: tri, exterior: true, areaM2: 22.5 });
+    expect(r.habitaciones[2]).toEqual({ nombre: 'Mal', poligono: tri });
+  });
+
+  it('acepta cotas con 1 o 2 valores, tipo válido y ancla en rango; descarta el resto', () => {
+    const r = parseRawSketch({
+      ...base,
+      habitaciones: [],
+      cotas: [
+        { texto: '15.20 m', valoresMetros: [15.2], tipo: 'general', ancla: { x: 0.5, y: 0.02 } },
+        { texto: '3.00 x 3.40 m', valoresMetros: [3, 3.4], tipo: 'estancia', ancla: { x: 0.2, y: 0.3 } },
+        { texto: 'x', valoresMetros: [], tipo: 'general', ancla: { x: 0.5, y: 0.5 } },
+        { texto: '1 2 3', valoresMetros: [1, 2, 3], tipo: 'general', ancla: { x: 0.5, y: 0.5 } },
+        { texto: '5', valoresMetros: [5], tipo: 'raro', ancla: { x: 0.5, y: 0.5 } },
+        { texto: '5', valoresMetros: [5], tipo: 'general', ancla: { x: 2, y: 0.5 } },
+      ],
+    });
+    expect(r.cotas).toHaveLength(2);
+    expect(r.cotas![1]!.valoresMetros).toEqual([3, 3.4]);
+  });
+
+  it('acepta mobiliario del vocabulario con caja válida y cuantiza el giro a 90°', () => {
+    const r = parseRawSketch({
+      ...base,
+      habitaciones: [],
+      mobiliario: [
+        { tipo: 'bed', bbox: { minX: 0.1, minY: 0.1, maxX: 0.3, maxY: 0.35 }, rotacionDeg: 87, etiqueta: 'Cama' },
+        { tipo: 'sofa', bbox: { minX: 0.5, minY: 0.5, maxX: 0.5, maxY: 0.6 }, rotacionDeg: 0 },
+        { tipo: 'dragon', bbox: { minX: 0.1, minY: 0.1, maxX: 0.3, maxY: 0.3 }, rotacionDeg: 0 },
+        { tipo: 'table', bbox: { minX: 0.1, minY: 0.1, maxX: 0.3, maxY: 0.3 }, rotacionDeg: -90 },
+      ],
+    });
+    expect(r.mobiliario).toEqual([
+      { tipo: 'bed', bbox: { minX: 0.1, minY: 0.1, maxX: 0.3, maxY: 0.35 }, rotacionDeg: 90, etiqueta: 'Cama' },
+      { tipo: 'table', bbox: { minX: 0.1, minY: 0.1, maxX: 0.3, maxY: 0.3 }, rotacionDeg: 270 },
+    ]);
+  });
+
+  it('sin campos de plano, no añade claves cotas/mobiliario', () => {
+    const r = parseRawSketch({ ...base, habitaciones: [] });
+    expect('cotas' in r).toBe(false);
+    expect('mobiliario' in r).toBe(false);
+  });
+});
+
+describe('planPrompt', () => {
+  it('pide cotas, medidas por estancia, exteriores y mobiliario sin inventar', () => {
+    const p = planPrompt();
+    expect(p).toContain('cotas');
+    expect(p).toContain('exterior=true');
+    expect(p).toContain('mobiliario');
+    expect(p).toContain('No inventes');
+    expect(p).not.toContain('Ignora mobiliario');
   });
 });

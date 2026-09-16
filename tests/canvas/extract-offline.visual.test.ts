@@ -27,7 +27,8 @@ const OUT = process.env.EXTRACT_OUT;
 describe.skipIf(!INPUT || !OUT)('extracción offline sobre imagen real', () => {
   it('detecta muros y normaliza sin IA; escribe el resultado para inspección', async () => {
     const image = readFileSync(INPUT!);
-    const detected = await detectWallsFromImage(image);
+    const minRunRatio = process.env.EXTRACT_MIN_RUN ? Number(process.env.EXTRACT_MIN_RUN) : undefined;
+    const detected = await detectWallsFromImage(image, minRunRatio !== undefined ? { minRunRatio } : {});
      
     console.log(`[offline] muros detectados: ${detected.walls.length}, aspecto: ${detected.heightOverWidth.toFixed(3)}`);
 
@@ -37,8 +38,32 @@ describe.skipIf(!INPUT || !OUT)('extracción offline sobre imagen real', () => {
     );
     const zones = plano.zones.map((z) => z.name).join(', ');
     const apertures = plano.zones.flatMap((z) => z.apertures);
-     
-    console.log(`[offline] zonas: [${zones}] · aberturas: ${apertures.length}`);
+    // Clases de grosor resultantes (fachada/tabique): cuántos muros por grosor.
+    const byThickness = new Map<number, number>();
+    for (const w of plano.zones.flatMap((z) => z.walls)) {
+      byThickness.set(w.thicknessMm, (byThickness.get(w.thicknessMm) ?? 0) + 1);
+    }
+    const thicknessSummary = [...byThickness.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([mm, n]) => `${mm}mm×${n}`)
+      .join(' ');
+
+    // Resumen legible junto al PNG (la config de vitest silencia la consola).
+    writeFileSync(
+      OUT!.replace('.png', '.summary.json'),
+      JSON.stringify(
+        {
+          murosDetectados: detected.walls.length,
+          aspecto: Number(detected.heightOverWidth.toFixed(3)),
+          murosFinales: plano.zones.reduce((acc, z) => acc + z.walls.length, 0),
+          zonas: zones,
+          aberturas: apertures.length,
+          grosores: thicknessSummary,
+        },
+        null,
+        2,
+      ),
+    );
 
     const svg = planoToSvg(plano, { pxPerMeter: 100, showDimensions: false, showAreas: false });
     const png = await sharp(Buffer.from(svg)).png().toBuffer();

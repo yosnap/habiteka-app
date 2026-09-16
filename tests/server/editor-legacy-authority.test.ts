@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OrgContext } from '@/server/auth/org-context';
 const auth = vi.hoisted(() => ({ ctx: null as OrgContext | null }));
 vi.mock('@/server/auth/require-org-context', () => ({ requireOrgContext: async () => auth.ctx }));
+// Las Server Actions importan el storage marcado `server-only`; fuera de Next ese guard lanza.
+vi.mock('server-only', () => ({}));
 import { prisma } from '@/server/db/prisma';
 import { withOrg } from '@/server/db/scoped-repo';
 import { withEditorDocuments } from '@/server/editor/document-repo';
@@ -64,13 +66,31 @@ describe('actual legacy consumers respect v2 authority', () => {
     await expect(withOrg(ctx).canvas.save(projectId, {}, zone.id)).rejects.toThrow('encontrado');
     expect(await withOrg(ctx).canvas.load(projectId, zone.id)).toBeNull();
   });
-  it('blocks indirect agent editor send before accepting a legacy payload', async () => {
+  it('agent editor send writes a v2 revision instead of a legacy payload', async () => {
     await activate();
     const { sendPlanoToEditor, generateDesignFromCanvas } =
       await import('@/app/(app)/projects/[id]/_actions/agent-actions');
-    await expect(sendPlanoToEditor(projectId, { schemaVersion: 1, zones: [] })).rejects.toThrow(
-      'v2',
-    );
+    const before = await withEditorDocuments(ctx).load({ projectId });
+    if (before.authority !== 'v2') throw new Error('Expected v2');
+    await sendPlanoToEditor(projectId, {
+      schemaVersion: 1,
+      zones: [{
+        id: 'z0', name: 'Sala', apertures: [], dimensions: [],
+        outline: [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 3000 }, { x: 0, y: 3000 }],
+        walls: [
+          { id: 'w0', from: { x: 0, y: 0 }, to: { x: 4000, y: 0 }, thicknessMm: 120 },
+          { id: 'w1', from: { x: 4000, y: 0 }, to: { x: 4000, y: 3000 }, thicknessMm: 120 },
+          { id: 'w2', from: { x: 4000, y: 3000 }, to: { x: 0, y: 3000 }, thicknessMm: 120 },
+          { id: 'w3', from: { x: 0, y: 3000 }, to: { x: 0, y: 0 }, thicknessMm: 120 },
+        ],
+      }],
+    });
+    const after = await withEditorDocuments(ctx).load({ projectId });
+    if (after.authority !== 'v2') throw new Error('Expected v2');
+    expect(after.document.revision).toBeGreaterThan(before.document.revision);
+    expect(after.document.walls.length).toBe(4);
+    // El snapshot legacy queda intacto: la escritura fue con autoridad de editor.
+    await expect(withOrg(ctx).canvas.load(projectId)).rejects.toThrow('v2');
     await expect(generateDesignFromCanvas(projectId, {}, 'moderno', 'render3d')).rejects.toThrow(
       'v2',
     );

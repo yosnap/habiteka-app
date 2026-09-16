@@ -33,6 +33,8 @@ import {
   type WallGap,
 } from './wall-cleanup';
 import { detectRoomRegions, type RoomRegion } from './detect-room-regions';
+import { assignMeasuredThickness, classifyWallThickness } from './wall-thickness';
+import { zonesFromRooms, type RoomBox } from './zones-from-rooms';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -66,6 +68,13 @@ export interface NormalizeOptions {
    * modelo (conjetura que deformaba el plano).
    */
   imageHeightOverWidth?: number;
+  /**
+   * Estrategia de zonificación. `regions` (por defecto): estancias = espacios
+   * cerrados entre muros medidos (bocetos). `rooms`: estancias = cajas del
+   * modelo ancladas a los muros medidos, creando los tabiques que falten
+   * (planos dibujados, donde el modelo sitúa bien cada estancia).
+   */
+  zoneStrategy?: 'regions' | 'rooms';
 }
 
 export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
@@ -113,6 +122,39 @@ export function normalizeSketch(
   raw: RawSketch,
   options: Partial<NormalizeOptions> = {},
 ): Plano2dPayload {
+  return normalizeSketchDetailed(raw, options).plano;
+}
+
+export interface NormalizedSketch {
+  plano: Plano2dPayload;
+  /** Escala imagen→mm aplicada (la necesita quien proyecte más datos de la imagen: mobiliario, cotas). */
+  scale: { mmPerUnitX: number; mmPerUnitY: number };
+}
+
+/** Igual que `normalizeSketch`, devolviendo además la escala imagen→mm. */
+/** Muros medidos y limpios, huecos, semillas de abertura y escala: base común de las dos reconstrucciones. */
+export interface PreparedSketch {
+  opts: NormalizeOptions;
+  /** Muros limpios en unidades de imagen (medidos por píxeles o del modelo). */
+  walls: SketchWall[];
+  /** Muros de origen sin limpiar (con grosor medido, si lo hay). */
+  sourceWalls: SketchWall[];
+  /** Huecos medidos entre tramos colineales (posición exacta de aberturas). */
+  gaps: WallGap[];
+  /** Aberturas del modelo con geometría absoluta. */
+  seeds: ApertureSeed[];
+  /** True si los muros vienen de la detección de píxeles. */
+  fromPixels: boolean;
+  scale: Scale;
+}
+
+/**
+ * Primera mitad de la normalización: limpieza topológica de los muros
+ * medidos, captura de huecos, semillas del modelo y escala. La segunda mitad
+ * (zonas) difiere según la estrategia: regiones entre muros (bocetos) o
+ * reconstrucción desde las estancias (`plan-from-rooms.ts`).
+ */
+export function prepareSketch(raw: RawSketch, options: Partial<NormalizeOptions> = {}): PreparedSketch {
   const opts = { ...DEFAULT_NORMALIZE_OPTIONS, ...options };
 
   // Semillas de abertura con geometría ABSOLUTA antes de tocar los muros: los
@@ -157,8 +199,36 @@ export function normalizeSketch(
   // La limpieza puede colapsar un muro corto en un punto: sin dirección, fuera.
   walls = walls.filter((w) => segmentLength(w) > 0);
 
-  const scale = resolveScale(raw, walls, opts);
-  const planWalls = walls.map((w, i) => toPlanWall(w, i, scale, opts.wallThicknessMm));
+  return { opts, walls, sourceWalls, gaps, seeds, fromPixels, scale: resolveScale(raw, walls, opts) };
+}
+
+export function normalizeSketchDetailed(
+  raw: RawSketch,
+  options: Partial<NormalizeOptions> = {},
+): NormalizedSketch {
+  const prepared = prepareSketch(raw, options);
+  const { opts, sourceWalls, gaps, seeds, fromPixels, scale } = prepared;
+  let walls = prepared.walls;
+
+  // Estancias del modelo ancladas a los muros medidos: los tabiques que el
+  // raster no vio se añaden ANTES de anclar aberturas y repartir (la escala ya
+  // está resuelta: los tabiques añadidos caen dentro de la caja de muros medida).
+  const roomsFirst = opts.zoneStrategy === 'rooms' && fromPixels && raw.habitaciones.length > 0;
+  let roomBoxes: RoomBox[] = [];
+  if (roomsFirst) {
+    const guide = {
+      mmPerUnitX: scale.mmPerUnitX,
+      mmPerUnitY: scale.mmPerUnitY,
+      thicknessUnit: opts.wallThicknessMm / ((scale.mmPerUnitX + scale.mmPerUnitY) / 2),
+    };
+    const zoning = zonesFromRooms(raw.habitaciones, walls, opts.snapDistance, guide);
+    roomBoxes = zoning.rooms;
+    walls = [...walls, ...zoning.addedWalls];
+  }
+  // Grosor por clase (fachada/tabique) desde las bandas medidas; la limpieza
+  // creó segmentos nuevos, así que se reasigna por solape al final.
+  const thicknessesMm = wallThicknessesMm(walls, sourceWalls, scale, opts, fromPixels);
+  const planWalls = walls.map((w, i) => toPlanWall(w, i, scale, thicknessesMm[i]!));
 
   // Con muros medidos, las aberturas salen de los HUECOS detectados (posición
   // exacta); las semillas del modelo solo aportan el tipo. Sin medición, las
@@ -176,7 +246,9 @@ export function normalizeSketch(
   const sealedWalls = fromPixels
     ? bridgeCollinearGaps(walls, opts.angleToleranceDeg, SEAL_BRIDGE_GAP, opts.snapDistance).walls
     : walls;
-  const zones = fromPixels
+  const zones = roomsFirst
+    ? buildZonesFromRoomBoxes(roomBoxes, planWalls, apertures, dimByWallId, scale, opts.snapDistance)
+    : fromPixels
     ? buildZonesFromRegions(
         detectRoomRegions(sealedWalls, thicknessUnit),
         raw,
@@ -187,7 +259,7 @@ export function normalizeSketch(
       )
     : buildZones(raw, planWalls, apertures, dimByWallId, scale);
 
-  return { schemaVersion: 1, zones };
+  return { plano: { schemaVersion: 1, zones }, scale };
 }
 
 // ── Geometría en unidades de imagen ──────────────────────────────────────────
@@ -305,7 +377,7 @@ class UnionFind {
 
 // ── Escala y conversión a milímetros ─────────────────────────────────────────
 
-interface Scale {
+export interface Scale {
   mmPerUnitX: number;
   mmPerUnitY: number;
 }
@@ -320,6 +392,17 @@ const MAX_PLAUSIBLE_SIDE_M = 40;
  * se reescala a un tamaño creíble preservando proporciones.
  */
 function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOptions): Scale {
+  // Escala FIABLE (cotas escritas o escala gráfica): el ancho/alto declarados
+  // son los del PLANO DIBUJADO, no los de la imagen. Se ajusta la caja de los
+  // muros a esas medidas y no se aplica ningún saneo de plausibilidad.
+  if (raw.escalaFiable === true && (raw.anchoMetros ?? raw.altoMetros) !== undefined && walls.length > 0) {
+    const xs = walls.flatMap((w) => [w.x1, w.x2]);
+    const ys = walls.flatMap((w) => [w.y1, w.y2]);
+    const spanX = Math.max(...xs) - Math.min(...xs);
+    const spanY = Math.max(...ys) - Math.min(...ys);
+    const reliable = reliableScale(raw, spanX, spanY, opts.imageHeightOverWidth);
+    if (reliable) return reliable;
+  }
   const widthM = raw.anchoMetros ?? opts.fallbackWidthMeters;
   // Con la proporción real de la imagen (muros medidos), el alto se DERIVA del
   // ancho: usar el alto estimado por el modelo deformaba la relación de aspecto.
@@ -352,8 +435,86 @@ function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOption
   return { mmPerUnitX: mmX, mmPerUnitY: mmY };
 }
 
+/**
+ * Escala fiable e ISOTRÓPICA. Una imagen no deforma ejes, así que con la
+ * proporción real conocida basta un factor: el alto se deriva del ancho (o al
+ * revés). Las dos cotas generales no siempre miden la misma caja que los muros
+ * (la vertical de un plano puede abarcar terraza y entrada, fuera del
+ * perímetro medido): se elige la cota general cuya escala concuerda con la
+ * que implican las medidas escritas por estancia sobre sus cajas leídas. Sin
+ * proporción de imagen se conserva la escala por eje.
+ */
+function reliableScale(
+  raw: RawSketch,
+  spanX: number,
+  spanY: number,
+  aspect: number | undefined,
+): Scale | null {
+  const fromWidth = raw.anchoMetros !== undefined && spanX > 0 ? (raw.anchoMetros * 1000) / spanX : undefined;
+  const fromHeight = raw.altoMetros !== undefined && spanY > 0 ? (raw.altoMetros * 1000) / spanY : undefined;
+  if (aspect === undefined || !(aspect > 0)) {
+    if (fromWidth === undefined && fromHeight === undefined) return null;
+    const mmX = fromWidth ?? fromHeight!;
+    return { mmPerUnitX: mmX, mmPerUnitY: fromHeight ?? mmX };
+  }
+  // Candidatos expresados como mm por unidad de imagen en X.
+  const candidates = [fromWidth, fromHeight !== undefined ? fromHeight / aspect : undefined]
+    .filter((c): c is number => c !== undefined && c > 0);
+  if (candidates.length === 0) return null;
+  const implied = scaleImpliedByRooms(raw, aspect);
+  const mmX =
+    implied === undefined
+      ? candidates[0]!
+      : candidates.reduce((best, c) => (Math.abs(c - implied) < Math.abs(best - implied) ? c : best));
+  return { mmPerUnitX: mmX, mmPerUnitY: mmX * aspect };
+}
+
+/** Mediana de (medida escrita / lado leído) sobre las estancias con cota: mm por unidad de imagen en X. */
+function scaleImpliedByRooms(raw: RawSketch, aspect: number): number | undefined {
+  const ratios: number[] = [];
+  for (const room of raw.habitaciones) {
+    if (room.poligono.length < 3) continue;
+    const xs = room.poligono.map((p) => p.x);
+    const ys = room.poligono.map((p) => p.y);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = (Math.max(...ys) - Math.min(...ys)) * aspect;
+    if (room.anchoMetros !== undefined && w > 0.01) ratios.push((room.anchoMetros * 1000) / w);
+    if (room.altoMetros !== undefined && h > 0.01) ratios.push((room.altoMetros * 1000) / h);
+  }
+  if (ratios.length === 0) return undefined;
+  ratios.sort((a, b) => a - b);
+  return ratios[Math.floor(ratios.length / 2)];
+}
+
+
 function toMm(p: SketchPoint, s: Scale): PlanPoint {
   return { x: Math.round(p.x * s.mmPerUnitX), y: Math.round(p.y * s.mmPerUnitY) };
+}
+
+/**
+ * Grosor final (mm) de cada muro limpio. Con muros medidos, el grosor de banda
+ * se proyecta a mm por el eje PERPENDICULAR al muro y se agrupa en clases; sin
+ * medición todos llevan el grosor por defecto.
+ */
+export function wallThicknessesMm(
+  walls: SketchWall[],
+  measured: SketchWall[],
+  scale: Scale,
+  opts: NormalizeOptions,
+  fromPixels: boolean,
+): number[] {
+  if (!fromPixels) return walls.map(() => opts.wallThicknessMm);
+  const assigned = assignMeasuredThickness(walls, measured, opts.snapDistance, opts.angleToleranceDeg);
+  const measuredMm = assigned.map((w) => {
+    if (w.thickness === undefined) return undefined;
+    const orientation = orientationOf(w, opts.angleToleranceDeg);
+    const mmPerUnit =
+      orientation === 'h' ? scale.mmPerUnitY
+      : orientation === 'v' ? scale.mmPerUnitX
+      : (scale.mmPerUnitX + scale.mmPerUnitY) / 2;
+    return w.thickness * mmPerUnit;
+  });
+  return classifyWallThickness(measuredMm, opts.wallThicknessMm);
 }
 
 function toPlanWall(w: SketchWall, i: number, s: Scale, thicknessMm: number): PlanWall {
@@ -371,7 +532,7 @@ function wallLengthMm(w: PlanWall): number {
 
 // ── Aberturas ────────────────────────────────────────────────────────────────
 
-interface ApertureSeed {
+export interface ApertureSeed {
   tipo: PlanAperture['kind'];
   /** Centro de la abertura en coordenadas de imagen. */
   center: SketchPoint;
@@ -400,7 +561,7 @@ function apertureSeed(a: SketchAperture, rawWalls: SketchWall[]): ApertureSeed |
  * Descarta las que quedan lejos de todo muro y deduplica las que caen casi en
  * el mismo punto del mismo muro (el modelo repite aberturas con frecuencia).
  */
-function anchorApertures(
+export function anchorApertures(
   seeds: ApertureSeed[],
   walls: SketchWall[],
   planWalls: PlanWall[],
@@ -476,7 +637,7 @@ const PERIMETER_TOL = 0.05;
  * ventanas no siempre abren hueco en la banda detectada); las puertas
  * fantasma del modelo se descartan — la medición manda.
  */
-function seedsFromGaps(
+export function seedsFromGaps(
   gaps: WallGap[],
   modelSeeds: ApertureSeed[],
   walls: SketchWall[],
@@ -521,7 +682,7 @@ const EXTERIOR_TOLERANCE_MM = 300;
  * cota por fragmento interior (el defecto del primer render real) entierra el
  * plano en números. Si ningún muro califica, se acota el bounding box total.
  */
-function buildDimensions(
+export function buildDimensions(
   planWalls: PlanWall[],
   opts: NormalizeOptions,
 ): Map<string, PlanDimension> {
@@ -660,6 +821,80 @@ function buildZonesFromRegions(
     }
   });
   return distributeContent(zones, planWalls, apertures, dimByWallId);
+}
+
+/**
+ * Zonas desde las cajas de estancia ancladas (planos dibujados). El contorno
+ * es la cara INTERIOR: cada lado de la caja retrocede medio grosor del muro
+ * que hay sobre esa línea (fachada gruesa o tabique fino), igual que el de las
+ * regiones: así la medida de la zona es la luz entre caras, que es lo que las
+ * cotas escritas expresan. Una zona por estancia del modelo, en su orden.
+ */
+function buildZonesFromRoomBoxes(
+  rooms: RoomBox[],
+  planWalls: PlanWall[],
+  apertures: PlanAperture[],
+  dimByWallId: Map<string, PlanDimension>,
+  scale: Scale,
+  snap: number,
+): PlanZone[] {
+  const zones: PlanZone[] = rooms.map((room, i) => {
+    const box = {
+      minX: room.minX * scale.mmPerUnitX,
+      maxX: room.maxX * scale.mmPerUnitX,
+      minY: room.minY * scale.mmPerUnitY,
+      maxY: room.maxY * scale.mmPerUnitY,
+    };
+    const halfAt = (axis: 'x' | 'y', value: number) =>
+      sideWallThickness(planWalls, axis, value, axis === 'x' ? box.minY : box.minX, axis === 'x' ? box.maxY : box.maxX, snap * (axis === 'x' ? scale.mmPerUnitX : scale.mmPerUnitY)) / 2;
+    const left = box.minX + halfAt('x', box.minX);
+    const right = box.maxX - halfAt('x', box.maxX);
+    const top = box.minY + halfAt('y', box.minY);
+    const bottom = box.maxY - halfAt('y', box.maxY);
+    const pt = (x: number, y: number): PlanPoint => ({ x: Math.round(x), y: Math.round(y) });
+    return {
+      id: `z${i}`,
+      name: room.name,
+      outline: [pt(left, top), pt(right, top), pt(right, bottom), pt(left, bottom)],
+      walls: [],
+      apertures: [],
+      dimensions: [],
+    };
+  });
+  if (zones.length === 0) {
+    return [{ id: 'z0', name: 'Estancia', outline: outlineFromWalls(planWalls), walls: planWalls, apertures, dimensions: [...dimByWallId.values()] }];
+  }
+  return distributeContent(zones, planWalls, apertures, dimByWallId);
+}
+
+// Grosor asumido para un lado de estancia sin muro sobre su línea (límite lógico).
+const DEFAULT_SIDE_THICKNESS_MM = 120;
+
+/**
+ * Grosor (mm) del muro que descansa sobre la línea `value` del eje dado y cuyo
+ * recorrido toca el lado [spanLo, spanHi]; el más grueso si hay varios tramos.
+ */
+function sideWallThickness(
+  walls: PlanWall[],
+  axis: 'x' | 'y',
+  value: number,
+  spanLo: number,
+  spanHi: number,
+  toleranceMm: number,
+): number {
+  let best = 0;
+  for (const w of walls) {
+    const perpendicular = axis === 'x' ? w.from.x === w.to.x : w.from.y === w.to.y;
+    if (!perpendicular) continue;
+    const at = axis === 'x' ? w.from.x : w.from.y;
+    if (Math.abs(at - value) > toleranceMm) continue;
+    const [lo, hi] = axis === 'x'
+      ? [Math.min(w.from.y, w.to.y), Math.max(w.from.y, w.to.y)]
+      : [Math.min(w.from.x, w.to.x), Math.max(w.from.x, w.to.x)];
+    if (Math.min(hi, spanHi) - Math.max(lo, spanLo) <= 0) continue;
+    best = Math.max(best, w.thicknessMm);
+  }
+  return best > 0 ? best : DEFAULT_SIDE_THICKNESS_MM;
 }
 
 interface RegionSlice {

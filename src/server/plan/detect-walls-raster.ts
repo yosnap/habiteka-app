@@ -41,8 +41,21 @@ export interface DetectedWalls {
   heightOverWidth: number;
 }
 
+export interface DetectWallsOptions {
+  /**
+   * Longitud mínima de un tramo de pared como fracción del lado de la imagen.
+   * En un plano REDIBUJADO (poché macizo, sin ruido) puede bajarse: los
+   * tramitos entre una puerta y una esquina miden medio metro y con el 5 % por
+   * defecto desaparecen, abriendo la estancia al pasillo.
+   */
+  minRunRatio?: number;
+}
+
 /** Detecta muros por barrido de bandas oscuras sobre la imagen binarizada. */
-export async function detectWallsFromImage(image: Buffer): Promise<DetectedWalls> {
+export async function detectWallsFromImage(
+  image: Buffer,
+  options: DetectWallsOptions = {},
+): Promise<DetectedWalls> {
   const { data, info } = await sharp(image)
     .rotate() // aplica la orientación EXIF antes de medir
     .resize(MAX_SIDE, MAX_SIDE, { fit: 'inside' })
@@ -58,15 +71,19 @@ export async function detectWallsFromImage(image: Buffer): Promise<DetectedWalls
 
   const walls: SketchWall[] = [];
 
-  // Muros horizontales: barrido de filas (primario = x, secundario = y).
-  for (const band of scanBands(w, h, (p, s) => darkAt(p, s))) {
+  // Muros horizontales: barrido de filas (primario = x, secundario = y). El
+  // grosor de la banda (filas que aportaron tinta) es el grosor del muro.
+  const minRunRatio = options.minRunRatio ?? MIN_RUN_RATIO;
+  for (const band of scanBands(w, h, (p, s) => darkAt(p, s), minRunRatio)) {
     const y = (band.startLine + band.endLine) / 2 / h;
-    walls.push({ x1: band.lo / w, y1: y, x2: band.hi / w, y2: y });
+    const thickness = (band.endLine - band.startLine + 1) / h;
+    walls.push({ x1: band.lo / w, y1: y, x2: band.hi / w, y2: y, thickness });
   }
   // Muros verticales: barrido de columnas (primario = y, secundario = x).
-  for (const band of scanBands(h, w, (p, s) => darkAt(s, p))) {
+  for (const band of scanBands(h, w, (p, s) => darkAt(s, p), minRunRatio)) {
     const x = (band.startLine + band.endLine) / 2 / w;
-    walls.push({ x1: x, y1: band.lo / h, x2: x, y2: band.hi / h });
+    const thickness = (band.endLine - band.startLine + 1) / w;
+    walls.push({ x1: x, y1: band.lo / h, x2: x, y2: band.hi / h, thickness });
   }
   return { walls: filterSheetFrame(walls), heightOverWidth: h / w };
 }
@@ -89,8 +106,9 @@ function scanBands(
   primary: number,
   secondary: number,
   isDark: (p: number, s: number) => boolean,
+  minRunRatio: number = MIN_RUN_RATIO,
 ): Band[] {
-  const minRun = Math.round(primary * MIN_RUN_RATIO);
+  const minRun = Math.round(primary * minRunRatio);
   const maxThickness = Math.max(MIN_THICKNESS_PX + 1, Math.round(secondary * MAX_THICKNESS_RATIO));
   const active: Array<Band & { lastLine: number }> = [];
   const done: Band[] = [];

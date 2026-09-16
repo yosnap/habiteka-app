@@ -1,0 +1,19 @@
+{
+  "descripcion": "Plano de arquitecto 1:75 con cotas parciales y superficies en m² por estancia (sin ancho x alto).",
+  "general": { "anchoM": 14.0, "altoM": 8.5 },
+  "cotasParciales": { "superior": [3.5, 2.8, 1.6, 2.8, 3.3], "inferior": [4.2, 3.4, 3.1, 3.3], "lateral": [4.0, 4.5] },
+  "estancias": [
+    { "nombre": "Cocina", "areaM2": 10.5 },
+    { "nombre": "Lavadero", "areaM2": 4.2 },
+    { "nombre": "Entrada", "areaM2": 5.0 },
+    { "nombre": "Baño secundario", "areaM2": 4.8 },
+    { "nombre": "Baño principal", "areaM2": 5.6 },
+    { "nombre": "Salón-comedor", "areaM2": 28.0 },
+    { "nombre": "Pasillo", "areaM2": 6.5 },
+    { "nombre": "Dormitorio 3", "areaM2": 10.5 },
+    { "nombre": "Dormitorio 2", "areaM2": 10.5 },
+    { "nombre": "Dormitorio principal", "areaM2": 14.8 },
+    { "nombre": "Terraza", "areaM2": 22.5, "exterior": true }
+  ],
+  "toleranciaRelativa": 0.05
+}

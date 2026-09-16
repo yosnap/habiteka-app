@@ -1,0 +1,21 @@
+{
+  "descripcion": "Planta arquitectónica CAD con patio interior y cochera, escala 1:100.",
+  "general": { "anchoM": 13.0, "altoM": 14.0 },
+  "estancias": [
+    { "nombre": "Dormitorio 3", "anchoM": 3.0, "altoM": 3.0 },
+    { "nombre": "Baño", "anchoM": 2.5, "altoM": 1.5 },
+    { "nombre": "Estudio", "anchoM": 3.0, "altoM": 2.5 },
+    { "nombre": "Terraza posterior", "anchoM": 5.0, "altoM": 2.0, "exterior": true },
+    { "nombre": "Dormitorio principal", "anchoM": 3.5, "altoM": 4.0 },
+    { "nombre": "Patio interior", "anchoM": 3.0, "altoM": 3.0, "exterior": true },
+    { "nombre": "Dormitorio 2", "anchoM": 3.0, "altoM": 3.0 },
+    { "nombre": "Baño", "anchoM": 2.5, "altoM": 1.5 },
+    { "nombre": "Cochera", "anchoM": 3.0, "altoM": 5.0 },
+    { "nombre": "Sala", "anchoM": 4.0, "altoM": 3.5 },
+    { "nombre": "Comedor", "anchoM": 3.5, "altoM": 3.5 },
+    { "nombre": "Despensa", "anchoM": 1.5, "altoM": 1.5 },
+    { "nombre": "Cocina", "anchoM": 3.0, "altoM": 3.5 },
+    { "nombre": "Entrada", "exterior": true }
+  ],
+  "toleranciaRelativa": 0.05
+}

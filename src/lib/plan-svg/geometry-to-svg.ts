@@ -17,6 +17,7 @@ import {
   openingSymbol,
   windowSymbol,
 } from './architectural-symbols';
+import { doorSwing } from './door-swing';
 import { dimensionLine } from './dimension-lines';
 import { DEFAULT_PLAN_SVG_THEME, type PlanSvgTheme } from './plan-svg-theme';
 import {
@@ -82,7 +83,7 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
   for (const zone of plano.zones) {
     for (const ap of zone.apertures) {
       const wall = wallById.get(ap.wallId);
-      if (wall) layers.push(renderAperture(ap, wall, planCenter, theme));
+      if (wall) layers.push(renderAperture(ap, wall, plano.zones, theme));
     }
   }
 
@@ -150,7 +151,7 @@ function wallPolygon(wall: PlanWall, theme: PlanSvgTheme): string {
 }
 
 /** Hueco + símbolo de una abertura sobre su muro. */
-function renderAperture(ap: PlanAperture, wall: PlanWall, planCenter: Pt, theme: PlanSvgTheme): string {
+function renderAperture(ap: PlanAperture, wall: PlanWall, zones: PlanZone[], theme: PlanSvgTheme): string {
   const dir = direction(wall.from, wall.to);
   if (!dir) return '';
   const n = normal(dir);
@@ -161,9 +162,8 @@ function renderAperture(ap: PlanAperture, wall: PlanWall, planCenter: Pt, theme:
 
   const parts = [apertureGap(a, b, n, wall.thicknessMm, theme.background)];
   if (ap.kind === 'puerta') {
-    // La hoja barre hacia el interior del plano (convención habitual).
-    const toCenter = { x: planCenter.x - center.x, y: planCenter.y - center.y };
-    const inward = toCenter.x * n.x + toCenter.y * n.y >= 0 ? n : { x: -n.x, y: -n.y };
+    // La hoja bate hacia la estancia a la que se entra (misma regla que el editor).
+    const inward = doorSwing(ap, wall, zones) === 'left' ? n : { x: -n.x, y: -n.y };
     parts.push(jambLines(a, b, n, wall.thicknessMm, theme));
     parts.push(doorSymbol(a, b, inward, theme));
   } else if (ap.kind === 'ventana') {
