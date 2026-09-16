@@ -7,6 +7,8 @@ export interface SceneBox {
   sideMaterials?: [string, string];
   textureOffset?: [number, number];
   topColor?: string;
+  /** Material exclusivo de la cara superior, usada por superficies transitables. */
+  topMaterialId?: string;
 }
 export interface ScenePolygon {
   id: string; sourceEntityId: string; role: 'floor' | 'junction' | 'wall';
@@ -24,6 +26,7 @@ export interface SceneRamp {
   rotation: number; color: string;
   railingLeft: boolean;
   railingRight: boolean;
+  floorFinish?: FloorFinish;
 }
 export interface ExteriorWall { sourceEntityId: string; x: number; z: number; normalX: number; normalZ: number }
 export interface EditorScene { boxes: SceneBox[]; ramps: SceneRamp[]; polygons: ScenePolygon[]; warnings: string[]; exteriorWalls: ExteriorWall[] }

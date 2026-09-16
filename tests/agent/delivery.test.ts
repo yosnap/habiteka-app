@@ -181,6 +181,14 @@ describe('renderPrompt — variante interior/exterior por tipo de zona', () => {
     expect(out).not.toContain('INTERIOR del espacio');
   });
 
+  it('prohíbe mostrar los identificadores internos del contrato en el render', () => {
+    const out = renderPrompt({ ...base, sketch: {
+      description: 'CONTRATO ESTRUCTURAL INALTERABLE\nR-01 | rampa',
+      referenceImage: { base64: 'QUJD', mimeType: 'image/png' }, aspectRatio: '3:2',
+    } });
+    expect(out).toContain('NUNCA los dibujes');
+  });
+
   it('interior y exterior producen prompts distintos', () => {
     const interior = renderPrompt({ ...base, zoneKind: 'interior' });
     const exterior = renderPrompt({ ...base, zoneKind: 'trasera' });

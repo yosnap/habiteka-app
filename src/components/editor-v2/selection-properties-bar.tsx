@@ -46,7 +46,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const ramp = doc.ramps?.find((item) => item.id === id);
   const landing = ramp && isRampLanding(ramp);
   const rampDimensions: readonly (readonly [RampDimensionKey, string])[] = !ramp ? [] : landing
-    ? [['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Elevación']]
+    ? [['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Cota superior desde suelo']]
     : [['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const spatial = furniture ?? stair ?? ramp;
   if (!id) return null;

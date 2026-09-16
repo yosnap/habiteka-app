@@ -3,6 +3,7 @@ import { upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 import { deriveRooms } from './rooms';
 import { wallConstruction } from './construction-properties';
+import { surfaceMaterial } from './surface-materials';
 
 export function floorFinish(doc: EditorDocument, roomId: string): FloorFinish {
   return doc.floorFinishes?.find((f) => f.roomId === roomId) ?? {
@@ -41,3 +42,18 @@ export function setFloorFinish(source: EditorDocument, roomId: string, patch: Pa
   doc.revision += 1;
   return parseEditorDocument(doc);
 }
+
+/** Reutiliza el acabado de suelo en rampas, escalones y descansillos. */
+export function walkableSurfaceFinish(materialId: string, color?: string): FloorFinish {
+  const material = surfaceMaterial(materialId);
+  return {
+    roomId: 'walkable-surface', color: color ?? WALKABLE_MATERIAL_COLORS[materialId] ?? '#dedbd3',
+    texture: material ? material.id as FloorFinish['texture'] : 'none',
+    tileSizeMm: material?.sizeMm[0] ?? 600, rotation: 0,
+  };
+}
+
+const WALKABLE_MATERIAL_COLORS: Record<string, string> = {
+  'plaster-white': '#eeeae2', 'oak-natural': '#b58b59', 'wood-oak': '#b58b59',
+  'concrete-grey': '#a6a6a0', 'brick-red': '#a86652', 'paint-sage': '#9baa98', 'steel-dark': '#3f484d',
+};

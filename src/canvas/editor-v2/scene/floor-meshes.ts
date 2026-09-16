@@ -5,6 +5,7 @@ import { meters, type SceneBox, type ScenePolygon } from './types';
 import { floorFinish, floorSlabThicknessMm } from '@/lib/editor-document/floor-finishes';
 import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
 import { rampArrival, rampArrivalTarget } from '@/lib/editor-document/ramp-arrival';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 
 // Trigonometry introduces sub-nanometer slivers at shared edges (e.g. cos(π/2)).
 // Give the boolean operation one common 0.00001 mm grid, far below editor precision.
@@ -30,6 +31,7 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
     const finish = floorFinish(doc, room.id), surfaceElevation = meters(finish.elevationMm ?? 0);
     const obstacles = obstaclesAt(surfaceElevation);
     const rampAccesses = (doc.ramps ?? []).flatMap((ramp) => {
+      if (isRampLanding(ramp)) return [];
       const target = rampArrivalTarget(doc, ramp), arrival = rampArrival(ramp);
       if (target?.room.id !== room.id || Math.abs(arrival.elevationMm - (finish.elevationMm ?? 0)) > 1) return [];
       const part = rampParts(ramp).filter((item) => item.kind === 'flight').at(-1)!;

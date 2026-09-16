@@ -1,5 +1,6 @@
 'use client';
 import { ArrowLeftRight, DoorClosed, DoorOpen, FlipHorizontal2, FlipVertical2 } from 'lucide-react';
+import { ModernSelect } from '@/components/ui/modern-select';
 import type { EditorDocument, Opening, Ramp, Stair, Wall } from '@/lib/editor-document/schema';
 import { connectLandingEntrance, connectRampArrival, setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
 import { rampLayout } from '@/lib/editor-document/ramp-layout';
@@ -14,15 +15,8 @@ import { setWallSurface } from '@/lib/editor-document/spatial-commands';
 
 type Edit = (operation: (document: EditorDocument) => EditorDocument) => boolean;
 type RampDimensionKey = 'x' | 'y' | 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
-const materials = [
-  ['plaster-white', 'Yeso blanco'], ['brick-red', 'Ladrillo rojo'], ['concrete-grey', 'Hormigón'],
-  ['paint-sage', 'Pintura salvia'], ['oak-natural', 'Roble natural'], ['steel-dark', 'Metal oscuro'],
-] as const;
 function MaterialField({ label, value, change }: { label: string; value: string; change: (value: string) => void }) {
-  return <label className={styles.field}>{label}<select value={value} onChange={(event) => change(event.target.value)}>
-    {!materials.some(([id]) => id === value) && <option value={value}>Material actual</option>}
-    {materials.map(([id, text]) => <option key={id} value={id}>{text}</option>)}
-  </select></label>;
+  return <SurfaceMaterialPicker label={label} value={value} onChange={(materialId) => change(materialId ?? 'concrete-grey')} />;
 }
 
 export function WallConstructionFields({ wall, document, edit }: { wall: Wall; document: EditorDocument; edit: Edit }) {
@@ -68,15 +62,15 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
     ['heightMm', 'Altura total'], ['elevationMm', 'Elevación']] as const;
   const layout = stairLayout(stair);
   return <>
-    <label className={styles.field}>Forma<select value={stair.kind} onChange={(event) => edit((doc) =>
+    <label className={styles.field}>Forma<ModernSelect value={stair.kind} onChange={(event) => edit((doc) =>
       updateStair(doc, stair.id, { kind: event.target.value as Stair['kind'], catalogId: `builtin:stairs-${event.target.value}` }))}>
       <option value="straight">Recta</option><option value="L">En L</option><option value="U">En U</option>
-    </select></label>
+    </ModernSelect></label>
     <div className={styles.fields}>{dimensions.map(([key, label]) => <MeterField key={key} label={label} valueMm={stair[key]}
       change={(value) => edit((doc) => updateStair(doc, stair.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={stair.rotation} change={(rotation) => edit((doc) => updateStair(doc, stair.id, { rotation }))} />
       <NumberField label="Subidas" value={stair.stepCount} change={(stepCount) => edit((doc) => updateStair(doc, stair.id, { stepCount }))} /></div>
-    <MaterialField label="Material" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
+    <MaterialField label="Acabado transitable" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
     <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingLeft: !(stair.railingLeft ?? true) }))}>
         {stair.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}
@@ -97,7 +91,7 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
 export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit }) {
   const landing = isRampLanding(ramp);
   const dimensions: readonly (readonly [RampDimensionKey, string])[] = landing
-    ? [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Elevación']]
+    ? [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Cota superior desde suelo']]
     : [['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Longitud'],
       ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const layout = rampLayout(ramp);
@@ -106,7 +100,7 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
     <div className={styles.fields}>{dimensions.map(([key, label]) => <MeterField key={key} label={label} valueMm={ramp[key]}
       change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
-    <MaterialField label="Material" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
+    <MaterialField label="Acabado transitable" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
     {!landing && <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingLeft: !(ramp.railingLeft ?? true) }))}>
         {ramp.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}
@@ -132,6 +126,8 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       <ArrowLeftRight size={18} aria-hidden="true" />Girar 90°</button>
     {!landing && <button type="button" onClick={() => edit((doc) => connectRampArrival(doc, ramp.id))}>Acoplar llegada: suelo + hueco</button>}
     {landing && <button type="button" onClick={() => edit((doc) => connectLandingEntrance(doc, ramp.id))}>Abrir entrada en pared</button>}
-    <p className={styles.hint}>{landing ? 'Plataforma horizontal sólida desde la cota base hasta su elevación.' : `Pendiente ${layout.slopePercent.toFixed(1)}% (${layout.angleDeg.toFixed(1)}°). Los pasamanos siguen cada tramo inclinado. Modelo espacial, no certificación constructiva.`}</p>
+    <p className={styles.hint}>{landing
+      ? 'Cota base fija: 0,00 m. El descansillo es un bloque sólido desde el suelo hasta su cota superior; si se acopla a una rampa o escalera, esta cota coincide con su llegada.'
+      : `Pendiente ${layout.slopePercent.toFixed(1)}% (${layout.angleDeg.toFixed(1)}°). Los pasamanos siguen cada tramo inclinado. Modelo espacial, no certificación constructiva.`}</p>
   </>;
 }

@@ -3,6 +3,7 @@ import { rampLayout } from '@/lib/editor-document/ramp-layout';
 import { rampParts } from '@/lib/editor-document/ramp-route';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { materialColor, meters, type SceneRamp } from './types';
+import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 
 /** A triangular prism keeps the 3D surface genuinely continuous, not stepped. */
 export function rampMesh(ramp: Ramp): SceneRamp[] {
@@ -20,6 +21,7 @@ export function rampMesh(ramp: Ramp): SceneRamp[] {
         meters(ramp.y + centerX * Math.sin(base) + centerY * Math.cos(base))],
       width: meters(ramp.widthMm), depth: meters(part.depthMm), rise: meters(part.riseMm),
       baseHeight: meters(standaloneLanding ? ramp.elevationMm : part.elevationMm - ramp.elevationMm), rotation: -(base + partAngle),
-      color: ramp.color ?? materialColor(ramp.materialId), railingLeft: ramp.railingLeft ?? true, railingRight: ramp.railingRight ?? true };
+      color: ramp.color ?? materialColor(ramp.materialId), railingLeft: ramp.railingLeft ?? true, railingRight: ramp.railingRight ?? true,
+      floorFinish: walkableSurfaceFinish(ramp.materialId, ramp.color) };
   });
 }

@@ -9,6 +9,8 @@ import { furnitureSpatial, localToWorld } from '@/lib/editor-document/spatial-pr
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { floorMeshes } from './floor-meshes';
 import { curvedWallMeshes } from './curved-wall-meshes';
+import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
+import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 
 /** A read-only projection: no proximity inference, recentering, revision bumps or migration. */
 export function editorDocumentToScene(doc: EditorDocument): EditorScene {
@@ -37,7 +39,14 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
     });
     floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves]);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
-  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...floors, ...joins, ...curves], boxes: [
+  const entrances: ScenePolygon[] = landingEntranceSurfaces(doc).map(({ openingId, landing, points }) => {
+    const finish = walkableSurfaceFinish(landing.materialId, landing.color);
+    return { id: `${openingId}:landing-surface`, sourceEntityId: landing.id, role: 'floor',
+      points: points.map((p) => ({ x: meters(p.x), y: meters(p.y) })),
+      elevation: 0, height: meters(landing.elevationMm) + .0005,
+      color: finish.color, sideColor: '#756f66', floorFinish: finish };
+  });
+  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...floors, ...joins, ...curves, ...entrances], boxes: [
     ...walls, ...doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).flatMap((o) => openingMeshes(doc, o)),
     ...(doc.stairs ?? []).flatMap(stairMeshes),
     ...(doc.columns ?? []).map((column) => ({ id: column.id, sourceEntityId: column.id, role: 'column' as const,

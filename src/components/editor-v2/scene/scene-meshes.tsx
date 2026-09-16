@@ -5,15 +5,19 @@ import { Edges } from '@react-three/drei';
 import type { SceneBox, ScenePolygon, SceneRamp } from '@/canvas/editor-v2/scene/types';
 import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
-import { rampPrismGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
+import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
+  const faceColors = colors ?? Array.from({ length: 6 }, () => box.color);
   return <mesh position={box.position} rotation={[0, box.rotation, 0]} castShadow={box.role !== 'glass'} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
     <boxGeometry args={box.size} />
-    {colors ? colors.map((color, index) => index === 2 && box.topColor
-      ? <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
+    {(colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
+      ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
+        width={box.size[0]} height={box.size[2]} />
+      : index === 2 && box.topColor
+        ? <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
       : <meshStandardMaterial color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
@@ -25,12 +29,30 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
 
 export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; selected: boolean; onSelect: (id: string) => void }) {
   const select = (event: { stopPropagation: () => void }) => { event.stopPropagation(); onSelect(ramp.sourceEntityId); };
+  // El pavimento PBR puede ser claro; el cuerpo que lo sustenta debe leerse
+  // como construcción, no confundirse con el fondo como una losa flotante.
+  const structuralColor = ramp.floorFinish?.texture !== 'none' ? '#756f66' : ramp.color;
   if (ramp.rise === 0) return <mesh position={[ramp.position[0], ramp.position[1] + ramp.baseHeight / 2, ramp.position[2]]} rotation={[0, ramp.rotation, 0]} castShadow receiveShadow onClick={select}>
-    <boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} /><meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} /></mesh>;
+    <boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} />
+    {[0, 1, 2, 3, 4, 5].map((face) => face === 2 && ramp.floorFinish
+      ? <FloorMaterial key={face} finish={ramp.floorFinish} attach={`material-${face}`} width={ramp.width} height={ramp.depth} />
+      : <meshStandardMaterial key={face} attach={`material-${face}`} color={selected ? '#43b6a0' : structuralColor} roughness={.75} />)}
+  </mesh>;
   const { vertices, indices } = rampPrismGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
+  const surface = rampSurfaceGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
   return <group position={ramp.position} rotation={[0, ramp.rotation, 0]} onClick={select}>
     <mesh castShadow receiveShadow><bufferGeometry><bufferAttribute attach="attributes-position" args={[vertices, 3]} /><bufferAttribute attach="index" args={[indices, 1]} /></bufferGeometry>
-      <meshStandardMaterial color={selected ? '#43b6a0' : ramp.color} roughness={.75} side={2} /></mesh>
+      <meshStandardMaterial color={selected ? '#43b6a0' : structuralColor} roughness={.75} side={2} /></mesh>
+    {ramp.floorFinish && <mesh receiveShadow raycast={() => undefined}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[surface.vertices, 3]} />
+        <bufferAttribute attach="attributes-uv" args={[surface.uvs, 2]} />
+        <bufferAttribute attach="attributes-normal" args={[surface.normals, 3]} />
+        <bufferAttribute attach="index" args={[surface.indices, 1]} />
+      </bufferGeometry>
+      <FloorMaterial finish={ramp.floorFinish}
+        width={ramp.width} height={Math.hypot(ramp.depth, ramp.rise)} doubleSide />
+    </mesh>}
     {ramp.railingLeft && <RampRail ramp={ramp} side={-1} />}
     {ramp.railingRight && <RampRail ramp={ramp} side={1} />}
   </group>;

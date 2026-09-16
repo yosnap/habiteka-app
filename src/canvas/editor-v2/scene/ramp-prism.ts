@@ -24,3 +24,25 @@ export function rampPrismGeometry(width: number, depth: number, rise: number, ba
     ]),
   };
 }
+
+/** La misma cara superior del prisma, elevada imperceptiblemente para evitar z-fighting. */
+export function rampSurfaceGeometry(width: number, depth: number, rise: number, baseHeight = 0, offset = .0005) {
+  const halfWidth = width / 2, halfDepth = depth / 2;
+  const slopeLength = Math.hypot(depth, rise);
+  const normalY = depth / slopeLength, normalZ = rise / slopeLength;
+  return {
+    vertices: new Float32Array([
+      -halfWidth, baseHeight + rise + offset, -halfDepth,
+      halfWidth, baseHeight + rise + offset, -halfDepth,
+      halfWidth, baseHeight + offset, halfDepth,
+      -halfWidth, baseHeight + offset, halfDepth,
+    ]),
+    // UV normalizadas: el material aplica la escala física del ancho y la pendiente.
+    uvs: new Float32Array([0, 1, 1, 1, 1, 0, 0, 0]),
+    normals: new Float32Array([
+      0, normalY, normalZ, 0, normalY, normalZ,
+      0, normalY, normalZ, 0, normalY, normalZ,
+    ]),
+    indices: new Uint32Array([0, 2, 1, 0, 3, 2]),
+  };
+}

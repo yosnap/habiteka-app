@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { FURNITURE_CATALOG, FURNITURE_ROOMS, searchFurnitureCatalog,
   type FurnitureCatalogEntry, type FurnitureProfile } from '@/lib/editor-document/furniture-catalog';
 import styles from './catalog-panel.module.css';
@@ -49,9 +50,9 @@ function CatalogCard({ variants, onAdd, readOnly }: { variants: FurnitureCatalog
         <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">Licencia CC BY 4.0</a></p>}
     </details>}
     {variants.length > 1 ? <label className={styles.variant}>Variante
-      <select value={item.id} onChange={(event) => setSelectedId(event.target.value)} aria-label={`Variante de ${item.label}`}>
+      <ModernSelect value={item.id} onChange={(event) => setSelectedId(event.target.value)} aria-label={`Variante de ${item.label}`}>
         {variants.map((variant) => <option value={variant.id} key={variant.id}>{variant.variantLabel}</option>)}
-      </select>
+      </ModernSelect>
     </label> : null}
     <button type="button" className={styles.add} disabled={readOnly} onClick={() => onAdd(item)} aria-label={`Añadir ${item.label}${item.variantLabel !== 'Original' ? ` · ${item.variantLabel}` : ''}`}>Añadir al plano</button>
   </article>;
@@ -73,12 +74,12 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
     <div className={styles.filters}>
       <label>Buscar mueble<input type="search" name="furniture-search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sofá, mesa, lavabo…" /></label>
       <div className={styles.filterRow}>
-        <label>Estancia<select value={room} onChange={(event) => setRoom(event.target.value)}>
+        <label>Estancia<ModernSelect value={room} onChange={(event) => setRoom(event.target.value)}>
           <option value="">Todas las estancias</option>{Object.entries(FURNITURE_ROOMS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select></label>
-        <label>Estilo<select value={style} onChange={(event) => setStyle(event.target.value)}>
+        </ModernSelect></label>
+        <label>Estilo<ModernSelect value={style} onChange={(event) => setStyle(event.target.value)}>
           <option value="">Todos los estilos</option>{stylesAvailable.map((label) => <option key={label}>{label}</option>)}
-        </select></label>
+        </ModernSelect></label>
       </div>
       <p className={styles.count} aria-live="polite">{groups.length} elementos · ancho × fondo × alto</p>
       {readOnly ? <p>Solo lectura: puedes explorar, pero no añadir muebles.</p> : null}

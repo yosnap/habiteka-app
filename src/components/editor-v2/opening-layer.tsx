@@ -9,17 +9,20 @@ import { openingConstruction } from '@/lib/editor-document/construction-properti
 import { placeOpening, resolveOpeningPlacement, type OpeningPlacement } from '@/canvas/editor-v2/opening-placement';
 import { newId } from '@/canvas/editor-v2/editing-operations';
 import { wallPath } from '@/lib/editor-document/wall-path';
+import { entranceLocalPoints, landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
+import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
+import { FloorSurface } from './floor-surface';
 
 const GREEN = '#087f75', RED = '#ba302f', INK = '#343b3a';
-function Symbol({ opening, thickness, scale, active = false }: {
-  opening: Opening; thickness: number; scale: number; active?: boolean;
+function Symbol({ opening, thickness, scale, active = false, continuous = false }: {
+  opening: Opening; thickness: number; scale: number; active?: boolean; continuous?: boolean;
 }) {
   const props = openingConstruction(opening), hinge = props.hinge === 'left' ? -1 : 1;
   const side = props.swing === 'left' ? 1 : -1;
   const radians = props.openAngleDeg * Math.PI / 180;
   return <>
     <Rect x={-opening.widthMm / 2} y={-thickness / 2} width={opening.widthMm} height={thickness}
-      fill={opening.colors?.frame ?? '#fafcfb'} stroke={active ? GREEN : INK} strokeWidth={(active ? 2 : 1) / scale}
+      fill={continuous ? 'rgba(0,0,0,0)' : opening.colors?.frame ?? '#fafcfb'} stroke={active ? GREEN : continuous ? undefined : INK} strokeWidth={(active ? 2 : 1) / scale}
       hitStrokeWidth={16 / scale} />
     {opening.kind === 'ventana' && <Line points={[-opening.widthMm / 2, 0, opening.widthMm / 2, 0]}
       stroke={GREEN} strokeWidth={3 / scale} />}
@@ -36,6 +39,7 @@ function Symbol({ opening, thickness, scale, active = false }: {
 export function OpeningLayer({ store, scale, disabled = false, documentPreview }: { store: EditorStore; scale: number; disabled?: boolean; documentPreview?: EditorDocument }) {
   const source = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const doc = documentPreview ?? source;
+  const entrances = landingEntranceSurfaces(doc);
   const selected = useStore(store, (s) => s.selection), readOnly = useStore(store, (s) => s.readOnly);
   const pending = useStore(store, (s) => s.pendingOpening);
   const group = useRef<Konva.Group>(null), dragged = useRef<{ node: Konva.Group; origin: Point; offset: number } | null>(null);
@@ -87,6 +91,10 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
   const candidate = visiblePreview?.placement;
   const host = candidate && doc.walls.find((w) => w.id === candidate.wallId);
   return <Group ref={group}>
+    {entrances.map((entrance) => <Group key={`surface:${entrance.openingId}`} x={entrance.landing.x} y={entrance.landing.y} rotation={entrance.landing.rotation}>
+      <FloorSurface points={entranceLocalPoints(entrance)} finish={walkableSurfaceFinish(entrance.landing.materialId, entrance.landing.color)}
+        scale={scale} selected={false} />
+    </Group>)}
     {host && <Line points={wallPath(doc, host).samples().flatMap((p) => [p.x, p.y])} listening={false}
       stroke={candidate?.valid ? GREEN : RED} opacity={.65} strokeWidth={host.thicknessMm + 6 / scale} />}
     {doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
@@ -123,7 +131,8 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
           candidateHost.current = undefined;
           setDragId(null); setPreview(null); state.select([opening.id]);
         }}>
-        <Symbol opening={opening} thickness={wall.thicknessMm} scale={scale} active={selected.includes(opening.id)} />
+        <Symbol opening={opening} thickness={wall.thicknessMm} scale={scale} active={selected.includes(opening.id)}
+          continuous={entrances.some((entrance) => entrance.openingId === opening.id)} />
       </Group>;
     })}
     {visiblePreview && <Group listening={false} x={candidate?.center.x ?? visiblePreview.pointer.x} y={candidate?.center.y ?? visiblePreview.pointer.y}>

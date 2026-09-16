@@ -30,6 +30,7 @@ export class EditorSaveQueue {
   private draining: Promise<void> | null = null;
   private online = true;
   private stopped = false;
+  private resolving = false;
   private listeners = new Set<() => void>();
   private state: SaveQueueState;
 
@@ -66,11 +67,48 @@ export class EditorSaveQueue {
 
   async capture(document: EditorDocument): Promise<void> {
     if (this.stopped) throw new Error('Sesión de edición cerrada');
+    if (this.resolving) throw new Error('Espera a que termine la resolución del conflicto.');
     this.draft.document = parseEditorDocument(document);
     this.draft.sequence += 1;
     this.draft.updatedAt = Date.now();
     this.publish({ sequence: this.draft.sequence });
     await this.persist();
+  }
+
+  /** Elección explícita, con copia local durable y CAS: nunca fuerza una revisión ajena. */
+  async resolveConflict(choice: 'local' | 'server', loadLatest: () => Promise<EditorDocument>): Promise<EditorDocument> {
+    if (this.stopped || this.resolving || !this.state.conflict) throw new Error('No hay un conflicto disponible para resolver.');
+    this.resolving = true;
+    try {
+      await this.draining;
+      await this.writes.catch(() => {});
+      if (!await this.transport.reauthorize() || this.stopped) throw new Error('La sesión no permite resolver el conflicto.');
+      const latest = parseEditorDocument(await loadLatest());
+      if (this.stopped) throw new Error('La sesión se cerró durante la resolución.');
+      if (latest.revision !== this.state.conflict!.revision) {
+        this.publish({ conflict: latest });
+        throw new Error('La versión guardada volvió a cambiar. Revisa la nueva revisión y elige de nuevo.');
+      }
+      const previous = structuredClone(this.draft);
+      const backupScope = { ...previous.scope, branchId: `backup-${crypto.randomUUID()}` };
+      // Copia archivada, no pendiente de sincronizar ni recuperada automáticamente.
+      this.writes = this.writes.catch(() => {}).then(() => this.stopped ? undefined : this.storage.write({
+        ...previous, scope: backupScope, key: draftKey(backupScope),
+        sequence: 0, remoteSequence: 0, inFlight: undefined, updatedAt: Date.now() }));
+      await this.writes;
+      if (this.stopped) throw new Error('La sesión se cerró durante la resolución.');
+      const sequence = previous.sequence + 1;
+      this.draft = { ...previous, document: choice === 'server' ? latest : { ...previous.document, revision: latest.revision },
+        baseRevision: latest.revision, inFlight: undefined, sequence,
+        remoteSequence: choice === 'server' ? sequence : previous.remoteSequence, updatedAt: Date.now() };
+      try { await this.persist(); }
+      catch (error) { this.draft = previous; throw error; }
+      if (this.stopped) throw new Error('La sesión se cerró durante la resolución.');
+      this.publish({ conflict: null, error: null, sequence, remoteSequence: this.draft.remoteSequence ?? 0 });
+      if (choice === 'local') await this.flush();
+      if (this.state.conflict) throw new Error('Otra pestaña volvió a guardar. Tu edición sigue conservada; revisa el conflicto nuevo.');
+      return { ...this.getDocument(), revision: this.draft.baseRevision };
+    } finally { this.resolving = false; }
   }
 
   private persist(): Promise<void> {

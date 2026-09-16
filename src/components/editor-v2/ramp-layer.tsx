@@ -17,6 +17,9 @@ import { objectClearances } from '@/canvas/editor-v2/object-clearances';
 import { DimensionMark } from './dimension-mark';
 import { rampArrival } from '@/lib/editor-document/ramp-arrival';
 import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
+import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
+import { FloorSurface } from './floor-surface';
+import { landingEntranceSurfaces, landingOutlineSegments } from '@/lib/editor-document/landing-entrance-surface';
 
 interface RampLayerProps { store: EditorStore; scale: number; disabled?: boolean; documentPreview?: EditorDocument; }
 const INK = '#52615c', ACCENT = '#087f75';
@@ -27,6 +30,8 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
   const source = useStore(store, (state) => state.document.ramps);
   const ramps = documentPreview?.ramps ?? source, selection = useStore(store, (state) => state.selection);
   const tool = useStore(store, (state) => state.tool), readOnly = useStore(store, (state) => state.readOnly);
+  const doc = useStore(store, (state) => state.document);
+  const entrances = landingEntranceSurfaces(documentPreview ?? doc);
   const unit = 1 / Math.max(scale, 0.0001), selectable = !disabled && tool === 'select';
   const select = (id: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!selectable) return;
@@ -78,6 +83,7 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
   return <Group>{(ramps ?? []).map((ramp) => {
     const active = selection.includes(ramp.id), layout = rampLayout(ramp);
     const parts = rampParts(ramp);
+    const finish = walkableSurfaceFinish(ramp.materialId, ramp.color);
     return <Group key={ramp.id} x={ramp.x} y={ramp.y} rotation={ramp.rotation} name={`ramp:${ramp.id}`}
       draggable={selectable && !readOnly} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
       onDragStart={(event) => { event.cancelBubble = true; dragging.current = { node: event.target, ramp }; setGuideRamp(ramp); store.getState().select([ramp.id]); }}
@@ -88,8 +94,13 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
       {parts.map((part, index) => <Group key={index} x={part.x} y={part.y} rotation={part.rotation} listening={selectable}
         draggable={index > 0 && active && !readOnly && !disabled} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
         onDragEnd={(event) => movePart(ramp, index, part, event)}>
-        <Line points={[0, 0, ramp.widthMm, 0, ramp.widthMm, part.depthMm, 0, part.depthMm]} closed
-          fill={ramp.color ?? (active ? '#dcf0ea' : '#d8d5cc')} stroke={active ? ACCENT : INK} strokeWidth={2 * unit} />
+        <FloorSurface points={[{ x: 0, y: 0 }, { x: ramp.widthMm, y: 0 }, { x: ramp.widthMm, y: part.depthMm }, { x: 0, y: part.depthMm }]}
+          finish={finish} selected={active} scale={scale}
+          onSelect={selectable ? () => store.getState().select([ramp.id]) : undefined} />
+        {isRampLanding(ramp) && !active ? landingOutlineSegments(ramp, entrances).map((segment, edge) =>
+          <Line key={edge} points={segment.flatMap((p) => [p.x, p.y])} stroke={INK} strokeWidth={2 * unit} />)
+          : <Line points={[0, 0, ramp.widthMm, 0, ramp.widthMm, part.depthMm, 0, part.depthMm]} closed
+            fillEnabled={false} stroke={active ? ACCENT : INK} strokeWidth={2 * unit} />}
         {part.kind === 'flight' && <Arrow points={[ramp.widthMm / 2, part.depthMm - 16 * unit, ramp.widthMm / 2, 16 * unit]} stroke={ACCENT} fill={ACCENT}
           strokeWidth={1.5 * unit} pointerLength={7 * unit} pointerWidth={6 * unit} />}
         {active && <Text x={0} y={part.depthMm / 2 - 6 * unit} width={ramp.widthMm} align="center" rotation={-(ramp.rotation + part.rotation)}

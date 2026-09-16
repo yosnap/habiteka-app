@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
-import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
+import { floorFinish, setFloorFinish, walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
@@ -12,6 +12,12 @@ import { applyCommand } from '@/lib/editor-document/commands';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }], true);
 describe('persistent floor finishes', () => {
+  it('reutiliza la misma definición de acabado para superficies transitables', () => {
+    expect(walkableSurfaceFinish('polyhaven:wood_floor')).toMatchObject({
+      texture: 'polyhaven:wood_floor', tileSizeMm: 1700,
+    });
+    expect(walkableSurfaceFinish('concrete-grey')).toMatchObject({ texture: 'none', color: '#a6a6a0' });
+  });
   it('upgrades only on edit and survives parsing, further spatial edits and scene projection', () => {
     const source = room(), id = deriveRooms(source)[0]!.id;
     floorFinish(source, id); expect(source.schemaVersion).toBe(2);

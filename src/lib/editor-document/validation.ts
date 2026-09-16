@@ -37,29 +37,56 @@ function nonnegative(value: unknown): void {
   if (value < 0) throw new Error('Elevación negativa');
 }
 function color(value: unknown): void {
-  if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error('Color inválido');
+  if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value))
+    throw new Error('Color inválido');
 }
 
 export function assertEditorDocument(value: unknown): asserts value is EditorDocument {
   record(value);
-  if (![2, 3, 4, 5, 6].includes(value.schemaVersion as number) || value.units !== 'mm')
+  if (![2, 3, 4, 5, 6, 7].includes(value.schemaVersion as number) || value.units !== 'mm')
     throw new Error('Versión o unidades no compatibles');
-  const construction = (value.schemaVersion as number) >= 3, spatial = (value.schemaVersion as number) >= 4, ramps = value.schemaVersion === 6;
-  keys(value, `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}`);
+  const construction = (value.schemaVersion as number) >= 3,
+    spatial = (value.schemaVersion as number) >= 4,
+    ramps = (value.schemaVersion as number) >= 6;
+  const designSpace = (value.schemaVersion as number) >= 7;
+  keys(
+    value,
+    `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}`,
+  );
+  if (
+    designSpace &&
+    value.designSpaceKind !== undefined &&
+    !['interior', 'patio', 'terraza', 'jardin', 'entrada', 'fachada'].includes(
+      value.designSpaceKind as string,
+    )
+  )
+    throw new Error('Tipo de espacio desconocido');
   if (value.levels !== undefined || value.activeLevelId !== undefined) {
     text(value.activeLevelId);
-    if (!Array.isArray(value.levels) || !value.levels.length || value.levels.length > 20) throw new Error('Número de plantas inválido (1–20)');
+    if (!Array.isArray(value.levels) || !value.levels.length || value.levels.length > 20)
+      throw new Error('Número de plantas inválido (1–20)');
     const levelIds = new Set<string>();
     for (const level of value.levels) {
-      record(level); keys(level, 'id name heightMm document'); text(level.id); text(level.name); positive(level.heightMm);
+      record(level);
+      keys(level, 'id name heightMm document');
+      text(level.id);
+      text(level.name);
+      positive(level.heightMm);
       if (levelIds.has(level.id)) throw new Error('Planta duplicada');
-      if ((level.name as string).length > 80 || (level.heightMm as number) < 500 || (level.heightMm as number) > 20000) throw new Error('Nombre o altura de planta inválidos');
+      if (
+        (level.name as string).length > 80 ||
+        (level.heightMm as number) < 500 ||
+        (level.heightMm as number) > 20000
+      )
+        throw new Error('Nombre o altura de planta inválidos');
       levelIds.add(level.id);
       if (level.id === value.activeLevelId) {
-        if (level.document !== undefined) throw new Error('La planta activa no puede duplicar su documento');
+        if (level.document !== undefined)
+          throw new Error('La planta activa no puede duplicar su documento');
       } else {
         record(level.document);
-        if (level.document.levels !== undefined || level.document.activeLevelId !== undefined) throw new Error('No se admiten plantas anidadas');
+        if (level.document.levels !== undefined || level.document.activeLevelId !== undefined)
+          throw new Error('No se admiten plantas anidadas');
         assertEditorDocument(level.document);
       }
     }
@@ -69,23 +96,50 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     if (!Array.isArray(value.floorFinishes)) throw new Error('Acabados de suelo inválidos');
     const rooms = new Set<string>();
     for (const finish of value.floorFinishes) {
-      record(finish); keys(finish, 'roomId color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture'); text(finish.roomId);
+      record(finish);
+      keys(
+        finish,
+        'roomId color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture',
+      );
+      text(finish.roomId);
       if (!finish.roomId.startsWith('room:')) throw new Error('Identidad de habitación inválida');
       let boundary: unknown;
-      try { boundary = JSON.parse(finish.roomId.slice(5)); } catch { throw new Error('Identidad de habitación inválida'); }
-      if (!Array.isArray(boundary) || boundary.length < 3 || boundary.some((id) => typeof id !== 'string' || !id)) throw new Error('Identidad de habitación inválida');
+      try {
+        boundary = JSON.parse(finish.roomId.slice(5));
+      } catch {
+        throw new Error('Identidad de habitación inválida');
+      }
+      if (
+        !Array.isArray(boundary) ||
+        boundary.length < 3 ||
+        boundary.some((id) => typeof id !== 'string' || !id)
+      )
+        throw new Error('Identidad de habitación inválida');
       if (rooms.has(finish.roomId)) throw new Error('Acabado de suelo duplicado');
-      rooms.add(finish.roomId); color(finish.color); positive(finish.tileSizeMm); finite(finish.rotation);
+      rooms.add(finish.roomId);
+      color(finish.color);
+      positive(finish.tileSizeMm);
+      finite(finish.rotation);
       if (finish.elevationMm !== undefined) nonnegative(finish.elevationMm);
       if (finish.slabThicknessMm !== undefined) {
         positive(finish.slabThicknessMm);
-        if ((finish.slabThicknessMm as number) > (finish.elevationMm as number ?? 0)) throw new Error('El grosor del forjado supera su cota');
+        if ((finish.slabThicknessMm as number) > ((finish.elevationMm as number) ?? 0))
+          throw new Error('El grosor del forjado supera su cota');
       }
       if (finish.undersideColor !== undefined) color(finish.undersideColor);
-      if (!['none', 'wood', 'tile'].includes(finish.texture as string) && !surfaceMaterial(finish.texture as string)) throw new Error('Textura de suelo desconocida');
-      if (finish.undersideTexture !== undefined && !['none', 'wood', 'tile'].includes(finish.undersideTexture as string)
-        && !surfaceMaterial(finish.undersideTexture as string)) throw new Error('Textura inferior desconocida');
-      if ((finish.tileSizeMm as number) < 50 || (finish.tileSizeMm as number) > 10000) throw new Error('Escala de textura fuera de rango');
+      if (
+        !['none', 'wood', 'tile'].includes(finish.texture as string) &&
+        !surfaceMaterial(finish.texture as string)
+      )
+        throw new Error('Textura de suelo desconocida');
+      if (
+        finish.undersideTexture !== undefined &&
+        !['none', 'wood', 'tile'].includes(finish.undersideTexture as string) &&
+        !surfaceMaterial(finish.undersideTexture as string)
+      )
+        throw new Error('Textura inferior desconocida');
+      if ((finish.tileSizeMm as number) < 50 || (finish.tileSizeMm as number) > 10000)
+        throw new Error('Escala de textura fuera de rango');
     }
   }
   finite(value.revision);
@@ -97,7 +151,18 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     positive(value.calibration.mmPerPixel);
   }
   const ids = new Set<string>();
-  for (const key of ['vertices', 'walls', 'openings', 'furniture', 'dimensions', 'labels', ...(construction ? ['stairs'] : []), ...(ramps ? ['ramps'] : []), ...(value.columns ? ['columns'] : []), ...(spatial ? ['comments'] : [])]) {
+  for (const key of [
+    'vertices',
+    'walls',
+    'openings',
+    'furniture',
+    'dimensions',
+    'labels',
+    ...(construction ? ['stairs'] : []),
+    ...(ramps ? ['ramps'] : []),
+    ...(value.columns ? ['columns'] : []),
+    ...(spatial ? ['comments'] : []),
+  ]) {
     const entities = value[key];
     if (!Array.isArray(entities)) throw new Error(`Colección inválida: ${key}`);
     if (key === 'comments' && entities.length > 500) throw new Error('Máximo 500 comentarios');
@@ -107,20 +172,30 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (ids.has(e.id)) throw new Error('ID duplicado');
       ids.add(e.id);
       const allowed: Record<string, string> = {
-        vertices: 'id x y', walls: 'id name hidden startVertexId endVertexId thicknessMm dimensionalOrigin',
+        vertices: 'id x y',
+        walls: 'id name hidden startVertexId endVertexId thicknessMm dimensionalOrigin',
         openings: 'id name wallId kind position widthMm dimensionalOrigin',
         furniture: 'id name x y kind catalogId widthMm depthMm rotation dimensionalOrigin',
-        dimensions: 'id from to label', labels: 'id x y text',
-        stairs: 'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
-        ramps: 'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route railingLeft railingRight',
-        columns: 'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
+        dimensions: 'id from to label',
+        labels: 'id x y text',
+        stairs:
+          'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
+        ramps:
+          'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route railingLeft railingRight',
+        columns:
+          'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
         comments: 'id targetEntityId anchor text',
       };
       if (construction && key === 'walls') allowed.walls += ' heightMm materials baseElevationMm';
-      if ((value.schemaVersion as number) >= 5 && key === 'walls') allowed.walls += ' curveHeightMm';
-      if (construction && key === 'openings') allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId';
+      if ((value.schemaVersion as number) >= 5 && key === 'walls')
+        allowed.walls += ' curveHeightMm';
+      if (construction && key === 'openings')
+        allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId';
       if (spatial) {
-        allowed.walls += ' colors'; allowed.openings += ' colors'; allowed.stairs += ' color'; allowed.ramps += ' color';
+        allowed.walls += ' colors';
+        allowed.openings += ' colors';
+        allowed.stairs += ' color';
+        allowed.ramps += ' color';
         allowed.furniture += ' heightMm elevationMm color';
       }
       keys(e, allowed[key]!);
@@ -129,15 +204,23 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         if ((e.name as string).length > 100) throw new Error('Nombre de elemento demasiado largo');
       }
       if (spatial && (key === 'walls' || key === 'openings')) {
-        record(e.colors); const faces = key === 'walls' ? ['left', 'right'] : ['frame', 'leaf'];
-        keys(e.colors, faces.join(' ')); faces.forEach((face) => color((e.colors as Record<string, unknown>)[face]));
+        record(e.colors);
+        const faces = key === 'walls' ? ['left', 'right'] : ['frame', 'leaf'];
+        keys(e.colors, faces.join(' '));
+        faces.forEach((face) => color((e.colors as Record<string, unknown>)[face]));
       }
       if (spatial && (key === 'furniture' || key === 'stairs' || key === 'ramps')) color(e.color);
-      if (spatial && key === 'furniture') { positive(e.heightMm); nonnegative(e.elevationMm); }
+      if (spatial && key === 'furniture') {
+        positive(e.heightMm);
+        nonnegative(e.elevationMm);
+      }
       if (key === 'comments') {
-        text(e.targetEntityId); text(e.text);
-        if ((e.text as string).length > 2000) throw new Error('Máximo 2000 caracteres por comentario');
-        point(e.anchor); keys(e.anchor as Record<string, unknown>, 'x y');
+        text(e.targetEntityId);
+        text(e.text);
+        if ((e.text as string).length > 2000)
+          throw new Error('Máximo 2000 caracteres por comentario');
+        point(e.anchor);
+        keys(e.anchor as Record<string, unknown>, 'x y');
         const anchor = e.anchor as { x: number; y: number };
         if ([anchor.x, anchor.y].some((n) => n < 0 || n > 1)) throw new Error('Ancla inválida');
       }
@@ -145,7 +228,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (key === 'walls') {
         text(e.startVertexId);
         text(e.endVertexId);
-        if (e.hidden !== undefined && typeof e.hidden !== 'boolean') throw new Error('Visibilidad de muro inválida');
+        if (e.hidden !== undefined && typeof e.hidden !== 'boolean')
+          throw new Error('Visibilidad de muro inválida');
         positive(e.thicknessMm);
         origin(e.dimensionalOrigin);
         if (e.baseElevationMm !== undefined) nonnegative(e.baseElevationMm);
@@ -169,10 +253,14 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           positive(e.heightMm);
           nonnegative(e.elevationMm);
           text(e.catalogId);
-          if (!['left', 'right'].includes(e.hinge as string) || !['left', 'right'].includes(e.swing as string))
+          if (
+            !['left', 'right'].includes(e.hinge as string) ||
+            !['left', 'right'].includes(e.swing as string)
+          )
             throw new Error('Orientación de abertura inválida');
           finite(e.openAngleDeg);
-          if (e.openAngleDeg < 0 || e.openAngleDeg > 180) throw new Error('Ángulo de apertura inválido');
+          if (e.openAngleDeg < 0 || e.openAngleDeg > 180)
+            throw new Error('Ángulo de apertura inválido');
           if (e.sourceRampId !== undefined) text(e.sourceRampId);
         }
       } else if (key === 'furniture') {
@@ -193,7 +281,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
-        if (!['straight', 'L', 'U'].includes(e.kind as string)) throw new Error('Escalera desconocida');
+        if (!['straight', 'L', 'U'].includes(e.kind as string))
+          throw new Error('Escalera desconocida');
         positive(e.widthMm);
         positive(e.depthMm);
         positive(e.heightMm);
@@ -204,31 +293,68 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           throw new Error('Número de peldaños inválido');
         if (e.kind === 'U' && (e.depthMm as number) <= (e.widthMm as number) / 2)
           throw new Error('Fondo insuficiente para escalera U');
-        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean') throw new Error('Pasamanos izquierdo inválido');
-        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean') throw new Error('Pasamanos derecho inválido');
+        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean')
+          throw new Error('Pasamanos izquierdo inválido');
+        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean')
+          throw new Error('Pasamanos derecho inválido');
       } else if (key === 'ramps') {
-        point(e); text(e.catalogId); text(e.materialId);
-        positive(e.widthMm); positive(e.depthMm); nonnegative(e.riseMm); nonnegative(e.elevationMm); finite(e.rotation);
-        if (e.riseMm === 0 && e.catalogId !== 'builtin:ramp-landing') throw new Error('Una rampa debe tener desnivel');
-        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean') throw new Error('Pasamanos izquierdo inválido');
-        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean') throw new Error('Pasamanos derecho inválido');
+        point(e);
+        text(e.catalogId);
+        text(e.materialId);
+        positive(e.widthMm);
+        positive(e.depthMm);
+        nonnegative(e.riseMm);
+        nonnegative(e.elevationMm);
+        finite(e.rotation);
+        if (e.riseMm === 0 && e.catalogId !== 'builtin:ramp-landing')
+          throw new Error('Una rampa debe tener desnivel');
+        if (e.railingLeft !== undefined && typeof e.railingLeft !== 'boolean')
+          throw new Error('Pasamanos izquierdo inválido');
+        if (e.railingRight !== undefined && typeof e.railingRight !== 'boolean')
+          throw new Error('Pasamanos derecho inválido');
         if (e.route !== undefined) {
-          record(e.route); keys(e.route, 'landingMm turn secondDepthMm secondRiseMm landingOffset secondOffset');
-          positive(e.route.landingMm); positive(e.route.secondDepthMm); positive(e.route.secondRiseMm);
-          for (const offset of [e.route.landingOffset, e.route.secondOffset]) if (offset !== undefined) { point(offset); keys(offset as Record<string, unknown>, 'x y'); }
+          record(e.route);
+          keys(e.route, 'landingMm turn secondDepthMm secondRiseMm landingOffset secondOffset');
+          positive(e.route.landingMm);
+          positive(e.route.secondDepthMm);
+          positive(e.route.secondRiseMm);
+          for (const offset of [e.route.landingOffset, e.route.secondOffset])
+            if (offset !== undefined) {
+              point(offset);
+              keys(offset as Record<string, unknown>, 'x y');
+            }
           if (!['left', 'right', 'reverse'].includes(e.route.turn as string))
             throw new Error('Recorrido de rampa inválido');
         }
-      }
-      else if (key === 'columns') {
-        point(e); text(e.catalogId); text(e.materialId); positive(e.widthMm); positive(e.depthMm); positive(e.heightMm);
-        nonnegative(e.elevationMm); finite(e.rotation); if (e.catalogId !== 'builtin:column-rectangular') throw new Error('Columna desconocida'); color(e.color);
+      } else if (key === 'columns') {
+        point(e);
+        text(e.catalogId);
+        text(e.materialId);
+        positive(e.widthMm);
+        positive(e.depthMm);
+        positive(e.heightMm);
+        nonnegative(e.elevationMm);
+        finite(e.rotation);
+        if (e.catalogId !== 'builtin:column-rectangular') throw new Error('Columna desconocida');
+        if (e.color !== undefined) color(e.color);
       }
     }
   }
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
-  if (doc.comments?.some((c) => ![...doc.walls, ...doc.openings, ...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((e) => e.id === c.targetEntityId)))
+  if (
+    doc.comments?.some(
+      (c) =>
+        ![
+          ...doc.walls,
+          ...doc.openings,
+          ...doc.furniture,
+          ...(doc.stairs ?? []),
+          ...(doc.ramps ?? []),
+          ...(doc.columns ?? []),
+        ].some((e) => e.id === c.targetEntityId),
+    )
+  )
     throw new Error('Comentario sin elemento');
   for (const wall of doc.walls) {
     const [a, b] = wallPoints(doc, wall);
@@ -245,7 +371,9 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       const openingTopMm = opening.heightMm! + opening.elevationMm!;
       const wallTopMm = (wall.baseElevationMm ?? 0) + wall.heightMm!;
       if (construction && openingTopMm > wallTopMm + EPSILON)
-        throw new Error(`La ${opening.kind} llega a ${(openingTopMm / 1000).toFixed(2)} m, pero el muro llega a ${(wallTopMm / 1000).toFixed(2)} m.`);
+        throw new Error(
+          `La ${opening.kind} llega a ${(openingTopMm / 1000).toFixed(2)} m, pero el muro llega a ${(wallTopMm / 1000).toFixed(2)} m.`,
+        );
       const center = opening.position * path.length;
       const start = center - opening.widthMm / 2;
       const end = center + opening.widthMm / 2;
@@ -257,7 +385,11 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   }
   if (doc.openings.some((o) => !doc.walls.some((w) => w.id === o.wallId)))
     throw new Error('Abertura sin muro');
-  if (doc.openings.some((o) => o.sourceRampId && !doc.ramps?.some((ramp) => ramp.id === o.sourceRampId)))
+  if (
+    doc.openings.some(
+      (o) => o.sourceRampId && !doc.ramps?.some((ramp) => ramp.id === o.sourceRampId),
+    )
+  )
     throw new Error('Abertura automática sin rampa');
   assertPlanarTopology(doc);
 }

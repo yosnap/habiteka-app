@@ -10,6 +10,8 @@ import { moveEntity } from '@/canvas/editor-v2/editing-operations';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { stairLayout } from '@/lib/editor-document/stair-layout';
 import type { EditorDocument, Stair } from '@/lib/editor-document/schema';
+import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
+import { FloorSurface } from './floor-surface';
 
 interface StairLayerProps {
   store: EditorStore;
@@ -85,6 +87,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
   return <Group ref={container}>
     {models.map(({ stair, layout, ascent }) => {
       const active = selection.includes(stair.id);
+      const finish = walkableSurfaceFinish(stair.materialId, stair.color);
       return <Group key={stair.id} x={stair.x} y={stair.y} rotation={stair.rotation}
         name={`stair:${stair.id}`} listening={!disabled}
         draggable={selectable && !readOnly && !active}
@@ -102,12 +105,20 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
         onDragEnd={(event) => drop(stair, event)}>
         <Line points={layout.outline.flatMap((point) => [point.x, point.y])} closed
           fill={stair.color ?? (active ? '#dcf0ea' : '#ede5d8')} stroke={active ? ACCENT : INK} strokeWidth={2 * unit} />
-        {layout.steps.map((step, index) => <Rect key={`step:${index}`} x={step.x} y={step.y}
-          width={step.widthMm} height={step.depthMm} stroke={active ? ACCENT : INK}
-          strokeWidth={0.8 * unit} listening={false} />)}
-        {layout.landings.map((landing, index) => <Rect key={`landing:${index}`} x={landing.x} y={landing.y}
-          width={landing.widthMm} height={landing.depthMm} fill={active ? '#c3e6dc' : '#d9cbb7'}
-          stroke={active ? ACCENT : INK} strokeWidth={unit} listening={false} />)}
+        {layout.steps.map((step, index) => <Group key={`step:${index}`}>
+          <FloorSurface points={[{ x: step.x, y: step.y }, { x: step.x + step.widthMm, y: step.y }, { x: step.x + step.widthMm, y: step.y + step.depthMm }, { x: step.x, y: step.y + step.depthMm }]}
+            finish={finish} selected={active} scale={scale}
+            onSelect={selectable ? () => store.getState().select([stair.id]) : undefined} />
+          <Rect x={step.x} y={step.y} width={step.widthMm} height={step.depthMm}
+            fillEnabled={false} stroke={active ? ACCENT : INK} strokeWidth={0.8 * unit} listening={false} />
+        </Group>)}
+        {layout.landings.map((landing, index) => <Group key={`landing:${index}`}>
+          <FloorSurface points={[{ x: landing.x, y: landing.y }, { x: landing.x + landing.widthMm, y: landing.y }, { x: landing.x + landing.widthMm, y: landing.y + landing.depthMm }, { x: landing.x, y: landing.y + landing.depthMm }]}
+            finish={finish} selected={active} scale={scale}
+            onSelect={selectable ? () => store.getState().select([stair.id]) : undefined} />
+          <Rect x={landing.x} y={landing.y} width={landing.widthMm} height={landing.depthMm}
+            fillEnabled={false} stroke={active ? ACCENT : INK} strokeWidth={unit} listening={false} />
+        </Group>)}
         <Arrow points={ascent} stroke={ACCENT} fill={ACCENT} strokeWidth={1.5 * unit}
           pointerLength={7 * unit} pointerWidth={6 * unit} listening={false} />
         <Text x={0} y={stair.depthMm + 5 * unit} width={stair.widthMm} align="center"

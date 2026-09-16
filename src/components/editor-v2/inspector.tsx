@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useStore } from 'zustand';
+import { ModernSelect } from '@/components/ui/modern-select';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { applyCommand } from '@/lib/editor-document/commands';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
@@ -39,7 +40,7 @@ export function Inspector({ store }: { store: EditorStore }) {
     entity.name = value.trim() || undefined;
   }));
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
-    <label className={styles.field}>Elemento del plano<select value={id ?? ''} onChange={(event) => {
+    <label className={styles.field}>Elemento del plano<ModernSelect value={id ?? ''} onChange={(event) => {
       store.getState().setTool('select'); store.getState().select(event.target.value ? [event.target.value] : []);
     }}><option value="">Selecciona un elemento</option>
       {doc.walls.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Pared ${index + 1}`)}</option>)}
@@ -49,7 +50,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       {doc.columns?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Columna ${index + 1}`)}</option>)}
       {doc.furniture.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Mueble ${index + 1}`)}</option>)}
       {doc.labels.map((item) => <option key={item.id} value={item.id}>{item.text}</option>)}
-    </select></label>
+    </ModernSelect></label>
     <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
     <h2>{wall ? 'Muro' : column ? 'Columna' : furniture ? 'Mueble' : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : label ? 'Texto' : 'Propiedades'}</h2>
     {!id && <p>Selecciona un elemento para editar sus medidas. Todas las distancias se expresan en metros.</p>}
@@ -75,11 +76,11 @@ export function Inspector({ store }: { store: EditorStore }) {
         <button onClick={() => apply((d) => applyCommand(d, { type: 'split-wall', wallId: wall.id,
           position: .5, vertexId: newId(), newWallId: newId() }))}>Dividir al 50%</button>
       </div>
-      <label className={styles.field}>Muro para unir<select value={mergeId} onChange={(e) => setMergeId(e.target.value)}>
+      <label className={styles.field}>Muro para unir<ModernSelect value={mergeId} onChange={(e) => setMergeId(e.target.value)}>
         <option value="">Elige un muro contiguo</option>
         {doc.walls.filter((w) => w.id !== id && [w.startVertexId, w.endVertexId].some((v) =>
           v === wall.startVertexId || v === wall.endVertexId)).map((w, i) => <option key={w.id} value={w.id}>Contiguo {i + 1} ({(distance(...wallPoints(doc, w)) / 1000).toFixed(2)} m)</option>)}
-      </select></label>
+      </ModernSelect></label>
       <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
       <WallConstructionFields wall={wall} document={doc} edit={apply} />
     </>}

@@ -152,7 +152,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5 | 6;
+  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
@@ -169,6 +169,8 @@ export interface EditorDocument {
   floorFinishes?: FloorFinish[];
   levels?: BuildingLevel[];
   activeLevelId?: string;
+  /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */
+  designSpaceKind?: 'interior' | 'patio' | 'terraza' | 'jardin' | 'entrada' | 'fachada';
 }
 export function emptyEditorDocument(): EditorDocument {
   return {

@@ -7,6 +7,7 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { MeterField, NumberField } from './property-number-field';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 export function FloorFinishPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
@@ -22,10 +23,10 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
     <button aria-label="Cerrar acabados del suelo" onClick={() => state.select([])} style={{ float: 'right' }}>×</button>
     <fieldset disabled={state.readOnly} style={{ border: 0, padding: 0, display: 'grid', gap: 12, marginTop: 16 }}>
       <label>Color <input type="color" aria-label="Color del suelo" value={finish.color} onChange={(e) => update({ color: e.target.value })} /></label>
-      <label>Textura <select aria-label="Textura del suelo" value={finish.texture} onChange={(e) => update({ texture: e.target.value as FloorFinish['texture'] })}>
+      <label>Textura <ModernSelect aria-label="Textura del suelo" value={finish.texture} onChange={(e) => update({ texture: e.target.value as FloorFinish['texture'] })}>
         <option value="none">Color liso</option><option value="wood">Madera</option><option value="tile">Baldosas</option>
         {surfaceMaterial(finish.texture) && <option value={finish.texture}>{surfaceMaterial(finish.texture)!.label}</option>}
-      </select></label>
+      </ModernSelect></label>
       <SurfaceMaterialPicker label="Suelo" value={finish.texture} onChange={(id) => update({
         texture: (id ?? 'none') as FloorFinish['texture'], color: '#ffffff',
         tileSizeMm: surfaceMaterial(id)?.sizeMm[0] ?? 600,
