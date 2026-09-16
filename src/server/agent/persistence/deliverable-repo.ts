@@ -30,6 +30,7 @@ export async function persistDeliverables(
   deliverables: Deliverable[],
   sourceImageId?: string,
   zoneId: string | null = null,
+  options: { allowEditorV2?: boolean } = {},
 ): Promise<void> {
   // External generation has finished. Lock only the persistence boundary, never IA.
   await prisma.$transaction(async (tx) => {
@@ -44,7 +45,11 @@ export async function persistDeliverables(
       if (!zones.length) throw new Error('Zona no disponible para publicar el resultado');
     }
     if (
-      await tx.editorDocumentState.findFirst({ where: { projectId, zoneId }, select: { id: true } })
+      !options.allowEditorV2 &&
+      (await tx.editorDocumentState.findFirst({
+        where: { projectId, zoneId },
+        select: { id: true },
+      }))
     ) {
       throw new Error('Resultado legacy rechazado: el plano fue migrado al editor v2');
     }

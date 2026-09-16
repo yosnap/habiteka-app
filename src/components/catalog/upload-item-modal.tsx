@@ -7,6 +7,7 @@
  */
 import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 const CATEGORIES = [
   { id: 'mobiliario', label: 'Mobiliario' },
@@ -185,7 +186,7 @@ export function UploadItemModal({ onClose, onSuccess }: Props) {
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-ink-soft mb-1 block text-xs font-medium">Categoría</label>
-              <select
+              <ModernSelect
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="border-line bg-surface text-ink w-full rounded-control border px-2 py-1.5 text-sm"
@@ -195,7 +196,7 @@ export function UploadItemModal({ onClose, onSuccess }: Props) {
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </ModernSelect>
             </div>
             <div className="flex-1">
               <label className="text-ink-soft mb-1 block text-xs font-medium">

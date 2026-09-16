@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { serializeCanvas } from '@/canvas/serialize';
 import { ENTREGABLES } from '@/lib/design-options';
@@ -135,7 +136,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
             </div>
             <label className="text-ink-soft flex flex-col gap-1 text-sm">
               Entregable
-              <select
+              <ModernSelect
                 value={entregable}
                 onChange={(e) => setEntregable(e.target.value as DeliverableType)}
                 disabled={busy}
@@ -146,7 +147,7 @@ export function GenerateFromCanvasDialog({ projectId, generateAction, onClose }:
                     {s.label}
                   </option>
                 ))}
-              </select>
+              </ModernSelect>
             </label>
           </div>
         )}
