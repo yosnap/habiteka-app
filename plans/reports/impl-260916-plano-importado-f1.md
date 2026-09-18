@@ -316,3 +316,20 @@ Arreglado sin números mágicos, con flexbox de verdad:
 
 Verificado en navegador: editor y estudio sin scroll de página (`scrollHeight === clientHeight`);
 `/proyectos` conserva su scroll normal. tsc limpio.
+
+### Continuación 2026-09-17 — patio al editar el comedor
+
+- Los vértices unidos a límites importados `hidden:*` se desplazan sobre la línea del
+  perímetro; las esquinas con dos límites no colineales quedan fijas. Así el lado
+  compartido se adapta sin inclinar el perímetro exterior. Aplica a mover muro,
+  previsualización de vértice y comando de movimiento. Las paredes ocultadas
+  manualmente conservan su comportamiento anterior.
+- Corregida importación de puertas: `swing` se escribía en un documento v2, aunque
+  requiere v3, provocando «Campo desconocido». Ahora se migra antes de asignarlo.
+- Regresión con el fixture real de Nuestra casa: diez puertas, serialización,
+  patio cerrado, acabado conservado, deshacer/rehacer y coherencia preview/comando.
+- Verificación: 204 pruebas de 34 archivos; TypeScript y ESLint de archivos
+  modificados limpios. Fidelidad de cotas sin cambios (CAD 9/12, Flare 5/10).
+- Prueba visual en `Prueba boceto Flare`: arrastre diagonal del muro comedor/patio;
+  borde exterior derecho vertical, suelo y área del patio conservados. Deshecho
+  el movimiento y guardada la geometría original; ajuste magnético restaurado.

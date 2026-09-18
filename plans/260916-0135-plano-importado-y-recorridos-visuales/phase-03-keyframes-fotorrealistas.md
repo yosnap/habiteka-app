@@ -49,3 +49,52 @@ geometría exacta de esa pose; la galería del proyecto se convierte en fuente d
 
 - El modelo cambia materiales entre keyframes: mitigación por referencia previa + prompt de
   materiales explícito; si persiste, fijar estilo con LoRA/IP-adapter queda como futuro.
+
+## Avance — 18/09/2026
+
+Completado el acceso individual desde puntos del recorrido y contrato de cámara persistida.
+El panel permite **Diseñar desde este punto**: abre 3D, captura posición/altura/orientación
+validada, muestra techo y paredes físicos y reutiliza el diálogo existente. Cambiar iluminación
+o preparar Vista actual conserva la pose. Otros ángulos siguen siendo capturas independientes.
+
+Render IA desde escena y PNG nativo conservan `payload.camera` (posición, foco, FOV y planta).
+Coordenadas relativas a planta; capturas globales se normalizan con `levelElevationM`.
+No se altera el documento ni se llama a proveedores hasta la acción explícita de generación.
+
+Pendiente para cerrar F3: anclaje manual de imágenes antiguas, capturas/máscaras presignadas
+KEYFRAME, storyboard persistido, reserva/débito por lote, semilla/referencia anterior, evaluación
+de consistencia y reintento, validación visual de cinco generaciones reales.
+
+Validación de este incremento: 247 pruebas/41 archivos, typecheck/lint y build; navegador
+desde punto1 + cambio día/noche; PNG guardado y cámara verificada en BD.
+[Informe](../reports/impl-260918-0016-vistas-desde-recorrido-report.md).
+
+### Secuencia de vistas — 18/09/2026
+
+Añadida tira horizontal bajo el editor para seleccionar puntos, añadir todos, quitar y
+reordenar vistas sin modificar el trayecto. Selección persistida en cada recorrido mediante
+`storyboardWaypointIds` opcional; documentos existentes compatibles. Hereda guardado,
+deshacer/rehacer y separación por planta. Borrar un punto elimina su referencia editorial.
+«Diseñar esta vista» reutiliza la captura y diálogo existentes, con cámara derivada del plano
+actual, sin consumo de créditos al organizar la lista.
+
+Este incremento guarda la selección y el orden; aún falta asociar resultados/miniaturas,
+sustituir desde galería, créditos por imagen y generación por lotes. F3 sigue en curso.
+Validación: 234 pruebas/39 archivos, typecheck y lint; navegador añadir, reordenar y sincronizar.
+
+### Imágenes asociadas a las vistas — 18/09/2026
+
+Cada vista puede guardar un entregable y la cámara original en `storyboardImages`. Al generar
+la vista actual desde un punto se vincula el resultado si el plano y la cámara siguen siendo
+los mismos. Un cambio concurrente conserva el render en Diseños y muestra aviso, sin fallar
+una generación ya terminada. Otros ángulos del diálogo no sobrescriben la vista original.
+
+La tira incluye miniatura, abrir resultado, regenerar y sustituir desde galería. La galería
+usa entregables del proyecto/organización/zona autorizados y URLs firmadas frescas; ofrece
+solo imágenes con cámara compatible. Imágenes antiguas sin pose necesitan el anclaje manual
+pendiente. Cambiar un punto marca su resultado como encuadre desactualizado. Quitar una vista
+no elimina el entregable de Diseños.
+
+Validación: 248 pruebas/42 archivos, typecheck y lint. Navegador: carga del selector, galería y
+mensaje sin imágenes compatibles. No se ha lanzado generación pagada para probar asociación
+automática extremo a extremo. Quedan lotes/hold, capturas/máscaras, consistencia y anclaje manual.
