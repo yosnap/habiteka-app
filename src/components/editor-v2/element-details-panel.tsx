@@ -1,4 +1,6 @@
 'use client';
+import { AnchoredEditorPanel } from './anchored-editor-panel';
+import { elementName } from '@/lib/editor-document/element-classification';
 import { useState } from 'react';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -23,11 +25,9 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
     [side, label, wall.colors?.[side] ?? finishColor(wall.materials?.[side] ?? 'plaster-white')])
     : opening ? [['frame', 'Marco', opening.colors?.frame ?? '#f4f1e9'], ...(opening.kind === 'puerta' ? [['leaf', 'Hoja', opening.colors?.leaf ?? '#bb956c'] as [string, string, string]] : [])]
     : [['body', 'Color del elemento', furniture ? furnitureSpatial(furniture).color : stair!.color ?? finishColor(stair!.materialId)]];
-  return <section role="dialog" aria-label={state.detailPanel === 'paint' ? 'Pintar elemento' : 'Comentarios del elemento'}
-    style={{ position: 'absolute', right: 20, top: 120, width: 'min(320px, calc(100% - 40px))', maxHeight: '65%', overflow: 'auto',
-      background: 'white', padding: 20, borderRadius: 16, boxShadow: '0 8px 32px #0003', zIndex: 30 }}>
+  return <AnchoredEditorPanel store={store} label={state.detailPanel === 'paint' ? 'Pintar elemento' : 'Comentarios del elemento'}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-      <strong>{state.detailPanel === 'paint' ? 'Pintar elemento' : 'Comentarios'}</strong>
+      <strong>{state.detailPanel === 'paint' ? `Pintar · ${furniture ? elementName(furniture) : wall ? 'Pared' : opening ? opening.kind : 'Escalera'}` : 'Comentarios'}</strong>
       <button type="button" aria-label="Cerrar panel" onClick={() => state.setDetailPanel(null)}>×</button>
     </div>
     <fieldset disabled={state.readOnly} style={{ border: 0, padding: 0 }}>
@@ -64,5 +64,5 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
         </div>
       </>}
     </fieldset>
-  </section>;
+  </AnchoredEditorPanel>;
 }

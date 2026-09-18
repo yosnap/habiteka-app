@@ -78,3 +78,9 @@ describe('screen-space drawing snap', () => {
     expect(snapWallPoint(doc, point, .1, false, anchor).point).toEqual(point);
   });
 });
+it('no sale al conectar con un vértice si todavía no cierra recinto', () => {
+  const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 4000, y: 0 }]);
+  const result = clickWallDraw({ anchor: { x: 4000, y: 3000 }, preview: null }, { x: 4000, y: 0 }, doc);
+  expect(result.state.anchor).toEqual({ x: 4000, y: 0 });
+  expect(result.document!.walls).toHaveLength(2);
+});

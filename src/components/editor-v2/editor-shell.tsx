@@ -1,4 +1,5 @@
 'use client';
+import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import dynamic from 'next/dynamic';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -35,6 +36,14 @@ import { CatalogPanel } from './catalog-panel';
 import { ConstructionMenu } from './construction-menu';
 import { SelectionPropertiesBar } from './selection-properties-bar';
 import { ElementDetailsPanel } from './element-details-panel';
+import { walkthroughKeyframes } from '@/lib/editor-document/walkthrough-keyframes';
+import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
+import { sameCameraPose, type StoryboardGalleryImage } from '@/lib/contracts/storyboard-image';
+import { setStoryboardImage } from '@/lib/editor-document/walkthrough-storyboard';
+import { WalkthroughPanel } from './walkthrough-panel';
+import { StoryboardPanel } from './storyboard-panel';
+import { VisibilityMenu, type EditorVisibility } from './visibility-menu';
+import { CeilingLightingPanel } from './ceiling-lighting-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { BuildingLevelMenu } from './building-level-menu';
 import { FurnitureContextPanel } from './furniture-context-panel';
@@ -62,6 +71,7 @@ const EditorSceneView = dynamic(
 export interface EditorShellProps {
   store: EditorStore;
   projectName: string;
+  loadStoryboardImages?: () => Promise<StoryboardGalleryImage[]>;
   saveStatus?: string;
   onSave?: () => void;
   saveEnabled?: boolean;
@@ -69,7 +79,8 @@ export interface EditorShellProps {
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
   projectId?: string;
-  onSaveNativeRender?: (captureDataUrl: string) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
+  onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onGenerateDesign?: (input: {
     estilo: Estilo;
     objetivo: string;
@@ -92,6 +103,7 @@ export interface EditorShellProps {
 export function EditorShell({
   store,
   projectName,
+  loadStoryboardImages,
   saveStatus,
   onSave,
   saveEnabled = true,
@@ -99,6 +111,7 @@ export function EditorShell({
   onExport,
   onAddStair,
   projectId,
+  onSaveNativeVideo,
   onSaveNativeRender,
   onGenerateDesign,
   onGenerateRender,
@@ -117,18 +130,56 @@ export function EditorShell({
   const [catalog, setCatalog] = useState(false),
     [inspector, setInspector] = useState(false);
   const [construction, setConstruction] = useState(false);
+  const [walkthroughPanel, setWalkthroughPanel] = useState(false);
+  const walkthroughId = useStore(store, (s) => s.walkthroughId);
+  const hideWalkthrough = () => {
+    store.getState().hideWalkthrough();
+    setWalkthroughPanel(false);
+  };
+  const [ceilingPanel, setCeilingPanel] = useState(false);
+  const [visibility, setVisibility] = useState<EditorVisibility>({ dimensions: 'all', furniture: true, walls: true });
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
+  const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
   const captureView = useRef<CaptureRenderView | null>(null);
   const captureDocument = useRef('');
+  const keyframeCamera = useRef<ReturnType<typeof cameraPoseFromView> | null>(null);
+  const keyframeTarget = useRef<{ routeId: string; waypointId: string } | null>(null);
+  const [imageRevision, setImageRevision] = useState(0);
+  const [preparingPoint, setPreparingPoint] = useState(false);
   const onCaptureReady = useCallback((capture: CaptureRenderView | null) => { captureView.current = capture; }, []);
   const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
     if (!captureView.current) throw new Error('Abre la vista 3D para previsualizar el diseño.');
-    return captureView.current({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true });
+    return captureView.current({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true,
+      ...(keyframeCamera.current && options.views[0] === 'current' ? { camera: keyframeCamera.current } : {}) });
   }, []);
   const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });
+  const designWalkthroughPoint = async (waypointId: string) => {
+    if (preparingPoint) return;
+    setPreparingPoint(true);
+    try {
+      const state = store.getState(), route = state.document.walkthroughs?.find((item) => item.id === state.walkthroughId);
+      if (!route) throw new Error('Selecciona un recorrido.');
+      const frame = walkthroughKeyframes(state.document, route).find((item) => item.waypointId === waypointId);
+      if (!frame) throw new Error('El punto ya no existe.');
+      const snapshot = documentGeometry();
+      state.setWalkthroughPlaying(false); setMode('3d'); setWalkthroughPanel(false);
+      const deadline = Date.now() + 15000;
+      while (!captureView.current && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!captureView.current) throw new Error('No se pudo preparar la escena 3D.');
+      const capture = await captureView.current({ camera: frame.camera });
+      if (snapshot !== documentGeometry()) throw new Error('El plano cambió. Vuelve a elegir el punto.');
+      keyframeCamera.current = frame.camera;
+      keyframeTarget.current = { routeId: route.id, waypointId };
+      captureDocument.current = snapshot; setRenderCapture(capture); setGenerateOpen(true);
+    } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo preparar la vista.'); }
+    finally { setPreparingPoint(false); }
+  };
   const openGenerate = async () => {
+    keyframeCamera.current = null;
+    keyframeTarget.current = null;
     try {
       if (mode === '3d') {
         if (!captureView.current) throw new Error('Espera a que termine de cargar la vista 3D.');
@@ -292,9 +343,14 @@ export function EditorShell({
       store.getState().select([id]);
     });
   const toolLabel = {
+    'valla-madera': 'Dibujar valla · clics por tramos · Esc para salir',
+    'cerca-metal': 'Dibujar cerca · clics por tramos · Esc para salir',
+    seto: 'Dibujar seto · clics por tramos · Esc para salir',
+    walkthrough: 'Añadir puntos al recorrido',
+    patio: 'Dibujar patio / terraza · clics para cerrar el contorno',
     select: 'Seleccionar',
-    wall: 'Dibujar paredes',
-    'guard-wall': 'Dibujar murete de protección',
+    wall: 'Dibujar pared · clics por tramos · Esc para salir',
+    'guard-wall': 'Dibujar murete · clics por tramos · Esc para salir',
     rectangle: 'Dibujar habitación',
     door: 'Colocar puerta',
     window: 'Colocar ventana',
@@ -307,13 +363,28 @@ export function EditorShell({
     const onShortcut = (event: KeyboardEvent) => {
       const target = event.target;
       if (
-        readOnly ||
+        !shortcutsEnabled ||
         (target instanceof HTMLElement &&
           (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable))
       )
         return;
       const state = store.getState(),
         command = event.metaKey || event.ctrlKey;
+      if (!command && !event.altKey) {
+        const key = event.key.toLowerCase();
+        const toolByKey: Partial<Record<string, EditorTool>> = {
+          s: 'select', b: 'wall', r: 'rectangle', d: 'door', v: 'window', h: 'passage', m: 'measure',
+        };
+        if (key === 'f') { event.preventDefault(); setCatalog(true); setConstruction(false); setInspector(false); state.setTool('select'); return; }
+        const nextTool = toolByKey[key];
+        if (nextTool) {
+          event.preventDefault();
+          if (readOnly && nextTool !== 'select') return;
+          state.setTool(nextTool); setConstruction(false); setCatalog(false); setInspector(false);
+          if (nextTool !== 'select') setMode('2d');
+          return;
+        }
+      }
       if (command && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) state.redo();
@@ -373,17 +444,22 @@ export function EditorShell({
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [readOnly, store]);
+  }, [readOnly, shortcutsEnabled, store]);
   return (
-    <section className={styles.shell} aria-label={`Editor de ${projectName}`}>
+    <section className={styles.shell} onPointerDownCapture={(event) => {
+      if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
+    }} aria-label={`Editor de ${projectName}`}>
       <header className={styles.header}>
         <div className={styles.identity}>
           <strong>{projectName}</strong>
           <span role="status">{saveStatus ?? 'Guardado no conectado'}</span>
         </div>
+        <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
         <div className={styles.actions}>
           <BuildingLevelMenu store={store} />
+          <button type="button" aria-pressed={walkthroughPanel || !!walkthroughId} onClick={() => { if (walkthroughPanel || walkthroughId) hideWalkthrough(); else { setWalkthroughPanel(true); setCeilingPanel(false); } }}>{walkthroughPanel || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
           <FurnitureContextPanel store={store} />
+          <button type="button" aria-pressed={ceilingPanel || selectedLuminaire} onClick={() => { setCeilingPanel(!(ceilingPanel || selectedLuminaire)); if (selectedLuminaire) store.getState().select([]); }}>Techo y luces</button>
           <button
             type="button"
             disabled={readOnly || !past}
@@ -508,6 +584,8 @@ export function EditorShell({
           Propiedades{selection.length ? ` (${selection.length})` : ''}
         </button>
       </div>
+      {preparingPoint && <p role="status">Preparando la vista del recorrido…</p>}
+      {walkthroughPanel && <WalkthroughPanel store={store} onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} onClose={hideWalkthrough} onDraw={() => { setMode('2d'); store.getState().setTool('walkthrough'); }} onPreview={() => { setMode('3d'); store.getState().setTool('select'); setWalkthroughPanel(false); }} />}
       {error && (
         <div className={styles.error} role="alert">
           <span>{error}</span>
@@ -547,7 +625,7 @@ export function EditorShell({
             if (construction) setConstruction(false);
           }}
         >
-          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} />
+          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} />
         </div>
         {mode === '3d' && (
           <div
@@ -556,7 +634,7 @@ export function EditorShell({
               if (construction) setConstruction(false);
             }}
           >
-            <EditorSceneView store={store} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} />
+            <EditorSceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} />
           </div>
         )}
         {construction && (
@@ -578,6 +656,13 @@ export function EditorShell({
             onAddRamp={insertRamp}
             onAddLanding={insertLanding}
             onAddColumn={insertColumn}
+            onAddOutdoor={(item) => run(() => {
+              if (store.getState().readOnly) return;
+              if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
+              const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
+              store.getState().apply(placeNewObject(source, next, next.furniture.at(-1)!.id));
+              store.getState().setTool('select'); store.getState().select([next.furniture.at(-1)!.id]);
+            })}
           />
         )}
         <div
@@ -605,6 +690,8 @@ export function EditorShell({
           )}
         </div>
       </div>
+      <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
+        onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
       <SelectionPropertiesBar
         store={store}
         onProperties={() => {
@@ -614,7 +701,8 @@ export function EditorShell({
         }}
       />
       <ElementDetailsPanel key={`${selection[0]}:${detailPanel}`} store={store} />
-      <FloorFinishPanel store={store} />
+      {!ceilingPanel && !selectedLuminaire && <FloorFinishPanel store={store} />}
+      {(ceilingPanel || selectedLuminaire) && <CeilingLightingPanel store={store} onClose={() => { setCeilingPanel(false); if (selectedLuminaire) store.getState().select([]); }} />}
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
           document={store.getState().document}
@@ -629,15 +717,34 @@ export function EditorShell({
             const capture = captureView.current;
             const captures: RenderCapture[] = [];
             for (const view of options.views) {
-              captures.push(await capture({ view, lighting: options.lighting, fit: true }));
+              captures.push(await capture({ view, lighting: options.lighting, fit: true,
+                ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) }));
               if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
             }
             captureDocument.current = snapshot;
             return captures;
           }}
-          onRender={(input) => {
+          onRender={async (input) => {
             if ((input.capture || renderCapture) && captureDocument.current !== documentGeometry()) throw new Error('El plano cambió desde la captura. Cierra este diálogo y vuelve a capturar la vista.');
-            return onGenerateRender({ ...input, capture: input.capture ?? renderCapture });
+            const target = keyframeTarget.current, expectedCamera = keyframeCamera.current;
+            const capture = input.capture ?? renderCapture;
+            const snapshot = documentGeometry();
+            const result = await onGenerateRender({ ...input, capture });
+            setImageRevision((value) => value + 1);
+            if (result.id && target && capture && expectedCamera && sameCameraPose(cameraPoseFromView(capture.view), expectedCamera)) {
+              const state = store.getState();
+              if (state.readOnly || snapshot !== documentGeometry()) {
+                state.setError('La imagen se guardó en Diseños. El plano cambió durante la generación; elígela de la galería para asociarla.');
+              } else {
+                try {
+                  state.apply(setStoryboardImage(state.document, target.routeId, { waypointId: target.waypointId, deliverableId: result.id, camera: expectedCamera }));
+                  captureDocument.current = documentGeometry();
+                } catch {
+                  state.setError('La imagen se guardó en Diseños, pero no pudo asociarse a la vista.');
+                }
+              }
+            }
+            return result;
           }}
           onApply={(proposal, selection) => {
             const state = store.getState();

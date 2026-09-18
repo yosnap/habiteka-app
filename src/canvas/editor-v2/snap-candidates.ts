@@ -1,3 +1,4 @@
+import { alignPoint, type MagneticGuide } from './magnetic-alignment';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { distance } from '@/lib/editor-document/geometry';
 import { findWallExtension, type WallExtension } from './wall-extension';
@@ -6,7 +7,7 @@ import { landingEdgeSnap } from '@/lib/editor-document/landing-wall-placement';
 import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
 
-export interface SnapCandidate { point: Point; kind: 'vertex' | 'wall' | 'landing' | 'object' | 'orthogonal' | 'extension' | 'free'; id?: string; extension?: WallExtension; guide?: { from: Point; to: Point } }
+export interface SnapCandidate { guides?: MagneticGuide[]; point: Point; kind: 'vertex' | 'wall' | 'landing' | 'object' | 'orthogonal' | 'extension' | 'free'; id?: string; extension?: WallExtension; guide?: { from: Point; to: Point } }
 function spatialCorners(item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }): Point[] {
   return [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }]
     .map((point) => localToWorld(item, point));
@@ -35,12 +36,16 @@ export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, 
   if (landing) candidates.push({ point: landing.point, kind: 'landing', id: landing.landingId, guide: landing.edge, gap: distance(point, landing.point), priority: 2 });
   // Corners win over their incident wall projection: otherwise a near-corner click creates a tiny split instead of closing.
   const nearest = candidates.filter((c) => c.gap <= radius).sort((a, b) => a.priority - b.priority || a.gap - b.gap || (a.id ?? '').localeCompare(b.id ?? ''))[0];
-  if (nearest) return nearest;
+  if (nearest) return { ...nearest, guides: nearest.guide ? [nearest.guide] : alignPoint(doc, nearest.point, 100, true).guides };
   if (anchor) {
     const extension = findWallExtension(doc, anchor, point, radius);
     if (extension) return { kind: 'extension', point: extension.point, id: extension.wallId, extension };
     const dx = Math.abs(point.x - anchor.x), dy = Math.abs(point.y - anchor.y);
-    if (Math.min(dx, dy) <= radius) return { kind: 'orthogonal', point: dx < dy ? { x: anchor.x, y: point.y } : { x: point.x, y: anchor.y } };
+    if (Math.min(dx, dy) <= radius) {
+      const aligned = dx < dy ? { x: anchor.x, y: point.y } : { x: point.x, y: anchor.y };
+      return { kind: 'orthogonal', point: aligned, guides: [{ from: anchor, to: aligned }] };
+    }
   }
-  return { point, kind: 'free' };
+  const aligned = alignPoint(doc, point, scale, enabled);
+  return { point: aligned.point, kind: Math.hypot(aligned.delta.x, aligned.delta.y) > .001 ? 'object' : 'free', guides: aligned.guides };
 }

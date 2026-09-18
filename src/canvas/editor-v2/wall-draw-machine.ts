@@ -3,6 +3,7 @@ import { distance } from '@/lib/editor-document/geometry';
 import { splitWall } from '@/lib/editor-document/wall-commands';
 import { addGuardWallPath, addWallPath, newId } from './editing-operations';
 import { applyWallExtension, type WallExtension } from './wall-extension';
+import { deriveRooms } from '@/lib/editor-document/rooms';
 import { wallPath } from '@/lib/editor-document/wall-path';
 
 export type WallDrawState = { anchor: Point | null; preview: Point | null };
@@ -30,12 +31,12 @@ export function clickWallDraw(state: WallDrawState, point: Point, doc: EditorDoc
   if (!state.anchor) return { state: { anchor: point, preview: point } };
   if (distance(state.anchor, point) < 50) return { state };
   const document = addWallSegment(extension ? applyWallExtension(doc, extension) : doc, state.anchor, point);
-  const closes = extension || doc.vertices.some((v) => distance(v, point) < .01);
+  const closes = deriveRooms(document).length > deriveRooms(doc).length;
   return { state: closes ? idleWallDraw() : { anchor: point, preview: point }, document };
 }
-/** El murete siempre termina en el segundo clic: no forma ni exige una habitación cerrada. */
+/** Los muretes permiten encadenar tramos sin exigir una habitación cerrada. */
 export function clickGuardWallDraw(state: WallDrawState, point: Point, doc: EditorDocument): { state: WallDrawState; document?: EditorDocument } {
   if (!state.anchor) return { state: { anchor: point, preview: point } };
   if (distance(state.anchor, point) < 50) return { state };
-  return { state: idleWallDraw(), document: addGuardWallPath(doc, [state.anchor, point]) };
+  return { state: { anchor: point, preview: point }, document: addGuardWallPath(doc, [state.anchor, point]) };
 }

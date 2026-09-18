@@ -1,4 +1,5 @@
 'use client';
+import { elementName } from '@/lib/editor-document/element-classification';
 import { useStore } from 'zustand';
 import { AlignCenterHorizontal, Scissors, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -15,26 +16,14 @@ import styles from './editor.module.css';
 import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
 import { CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
-import { formatEditorDecimal, parseEditorDecimal } from './decimal-input';
+import { DecimalStepper } from './decimal-stepper';
 
 type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 
 function MeasureField({ label, value, minimum = .001, unit = 'm', onCommit }: { label: string; value: number; minimum?: number; unit?: string; onCommit: (n: number) => boolean }) {
-  const commit = (input: HTMLInputElement, next: number) => {
-    if (!Number.isFinite(next) || next < minimum || !onCommit(next)) input.value = formatEditorDecimal(value);
-  };
-  return <label className={styles.measureField}><span>{label}</span><div><input key={value} type="text"
-    aria-label={`${label} (${unit})`} defaultValue={formatEditorDecimal(value)} inputMode="decimal"
-    onBlur={(event) => {
-      const next = parseEditorDecimal(event.currentTarget.value);
-      commit(event.currentTarget, next);
-    }} onKeyDown={(event) => {
-      if (event.key === 'Enter') event.currentTarget.blur();
-      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-      event.preventDefault();
-      const current = parseEditorDecimal(event.currentTarget.value), increment = unit === 'm' ? .01 : 1;
-      commit(event.currentTarget, (Number.isFinite(current) ? current : value) + (event.key === 'ArrowUp' ? increment : -increment));
-    }} /><span>{unit}</span></div></label>;
+  return <label className={styles.measureField}><span>{label}</span><div>
+    <DecimalStepper label={`${label} (${unit})`} value={value} minimum={minimum} step={unit === 'm' ? .01 : 1} change={onCommit} />
+    <span>{unit}</span></div></label>;
 }
 
 export function SelectionPropertiesBar({ store, onProperties }: { store: EditorStore; onProperties: () => void }) {
@@ -51,7 +40,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const spatial = furniture ?? stair ?? ramp;
   if (!id) return null;
   const label = wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
-    : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? 'Elemento' : 'Selección';
+    : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? elementName(furniture) : 'Selección';
   const run = (operation: (current: EditorDocument) => EditorDocument) => {
     try { const state = store.getState(); state.apply(operation(state.document)); return true; }
     catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo editar la selección.'); return false; }

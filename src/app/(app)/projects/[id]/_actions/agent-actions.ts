@@ -14,7 +14,8 @@ import { withLegacyAuthority } from '@/server/editor/authority';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { MAX_IMAGE_BYTES } from '@/server/ai/call-limits';
 import { sanitizeImageBuffer } from '@/server/ai/image/input-sanitizer';
-import { renderViewSchema, type RenderCapture } from '@/lib/editor-document/render-view';
+import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
+import { renderViewSchema, type RenderCapture, type RenderView } from '@/lib/editor-document/render-view';
 import { selectedViewPrompt, SELECTED_VIEW_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-prompt';
 import { persistDeliverables } from '@/server/agent/persistence/deliverable-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
@@ -409,6 +410,7 @@ export async function generateConceptRenderFromEditor(
     throw new Error('El plano está vacío: añade estructura antes de crear un render.');
   }
   const view = capture ? renderViewSchema.parse(capture.view) : undefined;
+  const camera = view ? cameraPoseFromView(view) : undefined;
   const parsedSettings = conceptRenderSettingsSchema.parse(settings ?? {});
   const options = renderDesignOptionsSchema.parse(parsedSettings.options ?? {});
   if (options.views.length > 1 && !capture)
@@ -455,7 +457,7 @@ export async function generateConceptRenderFromEditor(
   await persistDeliverables(projectId, [{
     id,
     type: 'render3d',
-    payload: { type: 'render3d', assetUrl: result.assetUrl, ...(result.assetKey ? { assetKey: result.assetKey } : {}),
+    payload: { type: 'render3d', assetUrl: result.assetUrl, ...(camera ? { camera } : {}), ...(result.assetKey ? { assetKey: result.assetKey } : {}),
       generation: { ...result.generation, promptVersion: view ? SELECTED_VIEW_PROMPT_VERSION : 'kie-baseline-v1', documentRevision: document.revision, ...(view ? { view } : {}), options, ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}), ...(parsedSettings.referenceDesignId ? { referenceDesignId: parsedSettings.referenceDesignId } : {}) } },
     legalSeal: DELIVERABLE_LEGAL_SEAL,
     version: 1,
@@ -534,10 +536,12 @@ export async function saveNativeRender(
   projectId: string,
   captureDataUrl: string,
   zoneId: string | null = null,
+  rawView?: RenderView,
 ): Promise<{ id: string; assetUrl: string }> {
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
+  const camera = rawView ? cameraPoseFromView(renderViewSchema.parse(rawView)) : undefined;
   const match = NATIVE_RENDER_DATA_URL.exec(String(captureDataUrl ?? ''));
   if (!match?.[1]) throw new Error('La captura nativa no tiene un formato PNG válido.');
 
@@ -561,7 +565,7 @@ export async function saveNativeRender(
     [{
       id,
       type: 'render3d',
-      payload: { type: 'render3d', assetKey, assetUrl },
+      payload: { type: 'render3d', assetKey, assetUrl, ...(camera ? { camera } : {}) },
       legalSeal: DELIVERABLE_LEGAL_SEAL,
       version: 1,
     }],

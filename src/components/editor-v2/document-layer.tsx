@@ -1,10 +1,14 @@
 'use client';
+import { snapSpatialDrag, snapPointDrag } from './magnetic-drag';
+import { alignRoom, alignPoints } from '@/canvas/editor-v2/magnetic-alignment';
 import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { Group, Line, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
+import { WalkthroughLayer } from './walkthrough-layer';
+import { CeilingLightingLayer } from './ceiling-lighting-layer';
 import { ObjectTransformControls } from './object-transform-controls';
 import { CommentMarkers } from './comment-markers';
 import { OpeningResizeControls } from './opening-resize-controls';
@@ -12,12 +16,13 @@ import { wallPoints } from '@/lib/editor-document/geometry';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import type { VertexPreview } from '@/canvas/editor-v2/vertex-preview';
 import { VertexHandles } from './vertex-handles';
-import { interiorPoint, moveEntity, snapPoint } from '@/canvas/editor-v2/editing-operations';
+import { interiorPoint, moveEntity, nudgeSpatialEntities } from '@/canvas/editor-v2/editing-operations';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { FurnitureSymbol } from './furniture-symbol';
 import { wallJunctions, wallMiterPolygon } from '@/canvas/editor-v2/wall-junctions';
 import { wallDimensionLayout } from '@/canvas/editor-v2/dimension-layout';
+import type { DimensionVisibility } from './visibility-menu';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { DimensionMark } from './dimension-mark';
 import { StairLayer } from './stair-layer';
@@ -25,6 +30,8 @@ import { RampLayer } from './ramp-layer';
 import { OpeningLayer } from './opening-layer';
 import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
 import { floorFinish } from '@/lib/editor-document/floor-finishes';
+import { editableOutdoorRoom, moveOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
+import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { FloorSurface } from './floor-surface';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { CurveHandle } from './curve-handle';
@@ -32,7 +39,7 @@ import { ColumnLayer } from './column-layer';
 import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
-export function DocumentLayer({ store, scale, disabled = false }: { store: EditorStore; scale: number; disabled?: boolean }) {
+export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
@@ -40,7 +47,7 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
-  const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
+  const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls);
   const junctions = useMemo(() => wallJunctions({ ...doc, walls: doc.walls.filter((wall) => !wall.hidden) }), [doc]);
   const rooms = useMemo(() => {
     try { return { value: deriveRooms(doc), error: null }; }
@@ -59,7 +66,7 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
     const object = state.document.furniture.find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
       : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap)
-        : snapPoint(state.document, target.position(), state.snap);
+        : target.position();
     target.position(origin);
     run(() => state.apply(moveEntity(state.document, id, wall ? to : { x: to.x - origin.x, y: to.y - origin.y })));
     setWallMoveSnap(null);
@@ -69,6 +76,11 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
     {rooms.value.map((room) => {
       const points = room.boundary;
       return <FloorSurface key={room.id} points={points} finish={floorFinish(doc, room.id)} scale={scale}
+        onSnapMove={(delta) => { const state = store.getState(), result = alignRoom(source, room.id, delta, scale, state.snap); state.setMagneticGuides(result.guides); return result.delta; }}
+        onMove={!readOnly && tool === 'select' ? (delta) => run(() => {
+          store.getState().apply(editableOutdoorRoom(source, room) ? moveOutdoorRoom(source, room.id, delta) : nudgeSpatialEntities(source, [room.id], delta));
+          store.getState().select([room.id]);
+        }) : undefined}
         selected={selected.includes(room.id)} onSelect={tool === 'select' ? () => store.getState().select([room.id]) : undefined} />;
     })}
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
@@ -93,17 +105,19 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
             hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />
           : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : INK}
             lineCap="butt" strokeWidth={wall.thicknessMm} hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />}
-        <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}
-          label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />
+        {(dimensions === 'all' || (dimensions === 'external' && rooms.value.filter((room) => room.wallIds.includes(wall.id)).length === 1)) &&
+          <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}
+            label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />}
       </Group>;
     })}
     {wallMoveSnap?.guides.map((guide, index) => <Line key={`wall-move-guide:${index}`} points={[guide.from.x, guide.from.y, guide.to.x, guide.to.y]}
       stroke={ACCENT} strokeWidth={2 / scale} dash={[8 / scale, 5 / scale]} listening={false} />)}
-    <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />
+    {showWalls && <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />}
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
-    {doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
+    {showFurniture && doc.furniture.map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select' && !selected.includes(f.id)} onDragStart={() => store.getState().select([])}
+      onDragMove={(e) => e.target.position(snapSpatialDrag(store, { ...f, ...e.target.position() }, scale))}
       onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
       {getFurnitureCatalogEntry(f.catalogId) ? <FurnitureSymbol item={f} scale={scale} selected={selected.includes(f.id)} /> : <><Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
         fill={f.color ?? '#d8e2de'} stroke={selected.includes(f.id) ? ACCENT : '#65776e'} strokeWidth={2 / scale} />
@@ -111,13 +125,15 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
       <Text text={getFurnitureCatalogEntry(f.catalogId)?.label ?? CATALOG_BY_KIND[f.kind]?.label ?? f.kind} x={0} y={f.depthMm / 2}
         width={f.widthMm} align="center" fontSize={11 / scale} fill={INK} listening={false} />
     </Group>)}
-    {doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
+    {dimensions !== 'none' && dimensions !== 'external' && doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
       layout={{ from: d.from, to: d.to, sourceFrom: d.from, sourceTo: d.to }}
+      onSnapMove={(raw) => { const state = store.getState(), result = alignPoints(source, [d.from, d.to].map((p) => ({ x: p.x + raw.x, y: p.y + raw.y })), scale, state.snap, [d.id]); state.setMagneticGuides(result.guides); return { x: raw.x + result.delta.x, y: raw.y + result.delta.y }; }}
+      onMove={!readOnly && tool === 'select' ? (delta) => run(() => store.getState().apply(nudgeSpatialEntities(source, [d.id], delta))) : undefined}
       onSelect={tool === 'select' ? () => store.getState().select([d.id]) : undefined} />)}
     {doc.labels.map((label) => <Text key={label.id} {...label} text={label.text} fontSize={14 / scale}
-      fill={INK} draggable={!readOnly && tool === 'select'} onDragEnd={(e) => drag(label.id, label, e)}
-      onClick={(e) => choose(label.id, e)} onTap={(e) => choose(label.id, e)} />)}
-    {rooms.value.map((room) => {
+      fill={INK} draggable={!readOnly && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
+      onClick={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} onTap={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} />)}
+    {dimensions !== 'none' && rooms.value.map((room) => {
       const p = interiorPoint(room.boundary);
       return <Group key={`area:${room.id}`} x={p.x} y={p.y} listening={false}>
         <Rect x={-45 / scale} y={-12 / scale} width={90 / scale} height={24 / scale} fill={PAPER} cornerRadius={4 / scale} />
@@ -133,6 +149,8 @@ export function DocumentLayer({ store, scale, disabled = false }: { store: Edito
       key={selected[0]} store={store} source={source} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
+    <WalkthroughLayer store={store} scale={scale} disabled={disabled} />
+    <CeilingLightingLayer store={store} scale={scale} disabled={disabled} />
     <CommentMarkers doc={doc} store={store} scale={scale} />
   </Group>;
 }

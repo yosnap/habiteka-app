@@ -1,5 +1,8 @@
+import type { MagneticGuide } from './magnetic-alignment';
 import { createStore } from 'zustand/vanilla';
 import type { EditorDocument, Opening, Point } from '@/lib/editor-document/schema';
+import { reconcileCeilings } from '@/lib/editor-document/ceiling-reconciliation';
+import { luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { applyCommand } from '@/lib/editor-document/commands';
 import { addStair } from '@/lib/editor-document/construction-commands';
@@ -9,8 +12,19 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
 
-export type EditorTool = 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object';
+export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
 export interface EditorState {
+  detailAnchor: Point | null;
+  setDetailAnchor: (point: Point) => void;
+  magneticGuides: MagneticGuide[];
+  setMagneticGuides: (guides: MagneticGuide[]) => void;
+  walkthroughId: string | null;
+  walkthroughPlaying: boolean;
+  hideWalkthrough: () => void;
+  setWalkthrough: (id: string | null) => void;
+  setWalkthroughPlaying: (playing: boolean) => void;
+  ceilingView: 'hidden' | 'transparent' | 'solid';
+  setCeilingView: (view: 'hidden' | 'transparent' | 'solid') => void;
   detailPanel: 'paint' | 'comments' | null;
   setDetailPanel: (panel: 'paint' | 'comments' | null) => void;
   readOnly: boolean;
@@ -48,6 +62,14 @@ export interface EditorState {
 /** Instancia por usuario/proyecto/zona; ni historia ni selección viven en un singleton. */
 export function createEditorStore(initial: EditorDocument, options: { readOnly?: boolean } = {}) {
   return createStore<EditorState>((set, get) => ({
+    detailAnchor: null, setDetailAnchor: (detailAnchor) => set({ detailAnchor }),
+    magneticGuides: [], setMagneticGuides: (magneticGuides) => set({ magneticGuides }),
+    walkthroughId: null, walkthroughPlaying: false,
+    hideWalkthrough: () => set({ walkthroughId: null, walkthroughPlaying: false, tool: 'select' }),
+    setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughPlaying: false }),
+    setWalkthroughPlaying: (walkthroughPlaying) => set({ walkthroughPlaying }),
+    ceilingView: 'transparent',
+    setCeilingView: (ceilingView) => set({ ceilingView }),
     detailPanel: null,
     setDetailPanel: (detailPanel) => set({ detailPanel }),
     readOnly: options.readOnly ?? false,
@@ -108,8 +130,15 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     },
     apply: (candidate) => {
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
-      const document = parseEditorDocument(candidate);
       const state = get();
+      const document = parseEditorDocument(reconcileCeilings(state.document, candidate));
+      for (const light of document.luminaires ?? []) {
+        const previous = state.document.luminaires?.find((item) => item.id === light.id);
+        if (document.activeLevelId === state.document.activeLevelId && JSON.stringify(previous) !== JSON.stringify(light)) {
+          const issue = luminairePlacementIssue(document, light);
+          if (issue) throw new Error(issue);
+        }
+      }
       if (JSON.stringify(document) === JSON.stringify(state.document)) return;
       // Navigation compares the target level with itself, never with objects on another floor.
       const previousLevel = document.activeLevelId !== state.document.activeLevelId
@@ -131,7 +160,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
         sequence: state.sequence + 1, selection: [], pendingSplitWallId: null, tool: state.tool === 'split-wall' ? 'select' : state.tool, error: null });
     },
     select: (selection) => set({ selection }),
-    setTool: (tool) => set({ tool, pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
+    setTool: (tool) => set({ tool, magneticGuides: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
     setSnap: (snap) => set({ snap }),
     setError: (error) => set({ error }),
     restore: (candidate) => set({ document: parseEditorDocument(candidate), past: [], future: [],

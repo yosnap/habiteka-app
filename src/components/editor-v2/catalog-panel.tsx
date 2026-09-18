@@ -1,15 +1,19 @@
 'use client';
+import { constructionGroup } from '@/lib/editor-document/element-classification';
 import { useMemo, useState } from 'react';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { FURNITURE_CATALOG, FURNITURE_ROOMS, searchFurnitureCatalog,
   type FurnitureCatalogEntry, type FurnitureProfile } from '@/lib/editor-document/furniture-catalog';
 import styles from './catalog-panel.module.css';
+import { OutdoorThumbnail } from './outdoor-thumbnail';
 import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
 
 const stylesAvailable = [...new Set(FURNITURE_CATALOG.map((item) => item.style))].sort();
 const measure = new Intl.NumberFormat('es', { maximumFractionDigits: 1 });
 function Thumbnail({ item }: { item: FurnitureCatalogEntry }) {
+  if (item.profile === 'outdoor') return <OutdoorThumbnail item={item} />;
   const paths: Record<FurnitureProfile, string> = {
+    outdoor: 'M10 56H90M20 56V20H80V56M14 20L50 8L86 20M38 55V34H62V55',
     sofa: 'M22 42V25Q22 19 28 19H72Q78 19 78 25V42M18 32H28V52H72V32H82V57H18ZM28 38H72M50 21V38',
     bed: 'M22 57V18H78V57M22 48H78M27 24H47V34H27ZM53 24H73V34H53ZM22 38H78',
     chair: 'M35 36V15H65V36M30 36H70V43H30ZM34 43V59M66 43V59',
@@ -63,7 +67,7 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
   const [query, setQuery] = useState(''), [room, setRoom] = useState(''), [style, setStyle] = useState('');
   const groups = useMemo(() => {
     const result = new Map<string, FurnitureCatalogEntry[]>();
-    for (const item of searchFurnitureCatalog(query, room, style)) result.set(item.productId, [...(result.get(item.productId) ?? []), item]);
+    for (const item of searchFurnitureCatalog(query, room, style).filter((item) => !constructionGroup(item))) result.set(item.productId, [...(result.get(item.productId) ?? []), item]);
     return [...result.values()];
   }, [query, room, style]);
   const reset = () => { setQuery(''); setRoom(''); setStyle(''); };
@@ -75,7 +79,7 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
       <label>Buscar mueble<input type="search" name="furniture-search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sofá, mesa, lavabo…" /></label>
       <div className={styles.filterRow}>
         <label>Estancia<ModernSelect value={room} onChange={(event) => setRoom(event.target.value)}>
-          <option value="">Todas las estancias</option>{Object.entries(FURNITURE_ROOMS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          <option value="">Todas las estancias</option>{Object.entries(FURNITURE_ROOMS).map(([id, label]) => <option key={id} value={id}>{id === 'exterior' ? 'Mobiliario exterior' : label}</option>)}
         </ModernSelect></label>
         <label>Estilo<ModernSelect value={style} onChange={(event) => setStyle(event.target.value)}>
           <option value="">Todos los estilos</option>{stylesAvailable.map((label) => <option key={label}>{label}</option>)}
@@ -86,6 +90,6 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
     </div>
     <div className={styles.items}>{groups.map((variants) => <CatalogCard key={variants[0]!.productId} variants={variants} onAdd={onAdd} readOnly={readOnly} />)}</div>
     {!groups.length ? <div className={styles.empty}><p>No hay muebles con estos filtros.</p><button type="button" onClick={reset}>Limpiar filtros</button></div> : null}
-    <p className={styles.note}>Modelos editables. Las lámparas de mesa y monitores se añaden elevados; ajusta su altura de apoyo en propiedades.</p>
+    <p className={styles.note}>Árboles, vallas, piscinas y equipamiento exterior: Construir → Exterior y jardín. Modelos editables. Las lámparas de mesa y monitores se añaden elevados; ajusta su altura de apoyo en propiedades.</p>
   </aside>;
 }

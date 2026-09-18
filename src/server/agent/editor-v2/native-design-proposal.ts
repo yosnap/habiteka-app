@@ -46,7 +46,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     'Tu JSON solo puede escoger acabados existentes y hasta 4 muebles/decoración del catálogo. Las coordenadas xMm/yMm son la esquina superior izquierda y deben caer completamente dentro de una habitación cerrada, nunca sobre rampas, escaleras o circulación.',
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes.',
-    'La iluminación y los ángulos son ajustes para imágenes, no cambios editables. Resume solo cambios que realmente propones.',
+    'El ambiente de captura y los ángulos son ajustes para imágenes. Conserva los techos y luminarias persistidos del contexto; este JSON no puede crearlos ni modificarlos. La propuesta de iluminación editable se revisa y acepta por separado. Resume solo cambios que realmente propones.',
     `Materiales permitidos: ${materials}.`,
     'Suelo permitido: none, wood, tile, o cualquiera de los materiales permitidos.',
     `Catálogo permitido: ${furniture}.`,

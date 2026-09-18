@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { listStoryboardImages } from '@/server/walkthrough/storyboard-gallery';
+import { saveWalkthroughVideo } from './save-walkthrough-video';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { EditorSaveQueue, hasPendingRemoteChanges } from '@/canvas/editor-v2/save-queue';
 import { indexedDbDraftStorage } from '@/canvas/editor-v2/draft-storage';
@@ -82,6 +84,7 @@ export function EditorSession({
       watchClosed();
     };
   }, [queue, store, scope.userId]);
+  const loadStoryboardImages = useCallback(() => listStoryboardImages({ projectId: scope.projectId, zoneId: scope.zoneId }), [scope.projectId, scope.zoneId]);
   const pendingChanges = hasPendingRemoteChanges(status);
   const saveStatus = status.closed
     ? 'Sesión cerrada'
@@ -189,12 +192,19 @@ export function EditorSession({
       <EditorShell
         store={store}
         projectName={projectName}
+        loadStoryboardImages={loadStoryboardImages}
         saveStatus={saveStatus}
         onSave={() => void queue.flush()}
         saveEnabled={pendingChanges && !status.saving && !status.closed && !status.conflict}
         projectId={scope.projectId}
-        onSaveNativeRender={async (captureDataUrl) => {
-          await saveNativeRender(scope.projectId, captureDataUrl, scope.zoneId);
+        onSaveNativeVideo={async (blob, routeId) => {
+          await queue.flush();
+          const current = queue.getSnapshot();
+          if (current.conflict || current.closed || hasPendingRemoteChanges(current)) throw new Error('El MP4 se descargó. Sincroniza el plano antes de guardarlo en Diseños.');
+          await saveWalkthroughVideo(scope, blob, routeId);
+        }}
+        onSaveNativeRender={async (capture) => {
+          await saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view);
         }}
         onGenerateDesign={generate}
         onGenerateRender={render}

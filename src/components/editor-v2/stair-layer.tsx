@@ -1,4 +1,5 @@
 'use client';
+import { snapSpatialDrag } from './magnetic-drag';
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useStore } from 'zustand';
@@ -99,8 +100,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
         }}
         onDragMove={(event) => {
           event.cancelBubble = true;
-          const state = store.getState();
-          event.target.position(snapObject(state.document, { ...stair, ...event.target.position() }, scale, state.snap));
+          event.target.position(snapSpatialDrag(store, { ...stair, ...event.target.position() }, scale));
         }}
         onDragEnd={(event) => drop(stair, event)}>
         <Line points={layout.outline.flatMap((point) => [point.x, point.y])} closed

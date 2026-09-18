@@ -5,6 +5,7 @@ import { isRampLanding } from './ramp-kind';
 import { rampParts } from './ramp-route';
 import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
+import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
 
 const meters = (value: number) => Number((value / 1000).toFixed(3));
 const area = (value: number) => Number((value / 1_000_000).toFixed(2));
@@ -19,6 +20,8 @@ export interface RenderContractElement {
   dimensions?: Record<string, number>;
   position?: { x: number; y: number; elevation: number };
   rotationDeg?: number;
+  boundary?: Point[];
+  attributes?: Record<string, string | number | boolean>;
   areaM2?: number;
   relationships?: string[];
 }
@@ -76,6 +79,26 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         relationships: elevationMm > 0
           ? ['Plataforma elevada: las circulaciones que llegan a este suelo terminan en su cota de acabado.']
           : ['Suelo a cota de la planta.'],
+      });
+    }
+
+    const overhead = ceilingDesignContext(source);
+    for (const ceiling of overhead.ceilings) {
+      elements.push({
+        id: nextId('T'), sourceId: ceiling.id, type: ceiling.kind === 'suspended' ? 'falso techo' : 'techo plano',
+        name: 'Techo aceptado', level: levelName, boundary: ceiling.boundaryM,
+        dimensions: { height: ceiling.heightM, drop: ceiling.dropM },
+        attributes: { color: ceiling.color },
+        relationships: ['Contorno de su estancia; no extender a otros recintos.'],
+      });
+    }
+    for (const light of overhead.luminaires) {
+      elements.push({
+        id: nextId('I'), sourceId: light.id, type: `luminaria ${light.kind}`, name: 'Luminaria aceptada',
+        level: levelName, position: light.positionM,
+        dimensions: { height: light.bodyHeightM, drop: light.dropM, ceilingHeight: light.ceilingHeightM },
+        attributes: { color: light.color, temperatureK: light.temperatureK, lumens: light.lumens, enabled: light.enabled },
+        relationships: ['Anclada al techo de su estancia; conserva su soporte.'],
       });
     }
 
@@ -157,7 +180,8 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
     'Los identificadores, cantidades, posiciones, cotas, áreas y relaciones son restricciones físicas; no se pueden interpretar ni sustituir.',
     'No crear, eliminar, duplicar, desplazar, girar ni intercambiar rampas, escaleras, descansillos, columnas, muros o huecos.',
     'Las áreas y las cotas son métricas obligatorias: no cambiar la superficie útil ni convertir un suelo elevado en terreno.',
-    'Solo se permiten acabados, iluminación, vegetación y mobiliario no estructural que no invadan la circulación.',
+    'Solo se permiten acabados, iluminación, vegetación y mobiliario no estructural que no invadan la circulación, subordinados a los permisos del render.',
+    CEILING_RENDER_POLICY,
   ];
   const totals = {
     finishedFloorAreaM2: Number(elements.filter((element) => element.type === 'suelo acabado')
@@ -182,7 +206,8 @@ function renderContractPrompt(
     const rotation = element.rotationDeg === undefined ? '' : ` giro=${element.rotationDeg}°`;
     const areaText = element.areaM2 === undefined ? '' : ` área=${element.areaM2}m²`;
     const relations = element.relationships?.length ? ` relación=${element.relationships.join(' ')}` : '';
-    return `${element.id} | ${element.type} | ${element.name}.${position}${rotation} ${dimensions}${areaText}.${relations}`;
+    const physical = physicalDetails(element);
+    return `${element.id} | ${element.type} | ${element.name}.${position}${rotation} ${dimensions}${areaText}.${relations}${physical}`;
   });
   return [
     'CONTRATO ESTRUCTURAL INALTERABLE DEL RENDER. Cada fila es un elemento real; conserva exactamente sus datos.',
@@ -207,7 +232,8 @@ function modelRenderPrompt(
     const rotation = element.rotationDeg === undefined ? '' : ` orientación ${element.rotationDeg} grados.`;
     const surface = element.areaM2 === undefined ? '' : ` superficie ${element.areaM2} metros cuadrados.`;
     const relationships = element.relationships?.join(' ') ?? '';
-    return `Elemento estructural ${index + 1}: ${element.type}.${position}${rotation} ${dimensions}.${surface} ${relationships}`;
+    const physical = physicalDetails(element);
+    return `Elemento estructural ${index + 1}: ${element.type}.${position}${rotation} ${dimensions}.${surface} ${relationships}${physical}`;
   });
   return [
     'RESTRICCIONES GEOMÉTRICAS INVISIBLES. Aplica todos estos datos físicamente, pero no dibujes texto, números, cotas, nombres, etiquetas ni símbolos.',
@@ -219,9 +245,17 @@ function modelRenderPrompt(
 }
 
 function humanDimension(key: string): string {
-  return ({ width: 'ancho', depth: 'fondo', length: 'longitud', development: 'desarrollo', rise: 'desnivel', height: 'altura', perimeter: 'perímetro', finishedElevation: 'cota acabada', undersideElevation: 'cota inferior', slabDepth: 'grosor de forjado', startElevation: 'cota inicial', arrivalElevation: 'cota final', elevation: 'cota' } as Record<string, string>)[key] ?? key;
+  return ({ width: 'ancho', depth: 'fondo', length: 'longitud', development: 'desarrollo', rise: 'desnivel', height: 'altura', perimeter: 'perímetro', finishedElevation: 'cota acabada', undersideElevation: 'cota inferior', slabDepth: 'grosor de forjado', startElevation: 'cota inicial', arrivalElevation: 'cota final', elevation: 'cota', drop: 'descenso', ceilingHeight: 'cota de techo' } as Record<string, string>)[key] ?? key;
 }
 
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function physicalDetails(element: RenderContractElement): string {
+  const boundary = element.boundary?.length
+    ? ` Contorno en metros: ${element.boundary.map((point) => `(${point.x},${point.y})`).join('; ')}.` : '';
+  const attributes = element.attributes
+    ? ` Propiedades: ${Object.entries(element.attributes).map(([key, value]) => `${key}=${value}`).join(', ')}.` : '';
+  return boundary + attributes;
 }

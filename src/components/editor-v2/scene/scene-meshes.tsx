@@ -20,7 +20,7 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
         ? <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
-      : <meshStandardMaterial color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
+      : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
         metalness={box.role === 'rail' ? .5 : 0} transparent={box.role === 'glass'} opacity={box.role === 'glass' ? .35 : 1}
         depthWrite={box.role !== 'glass'} />}
     {selected && colors && <Edges color="#087f75" />}

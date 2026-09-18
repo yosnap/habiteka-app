@@ -1,4 +1,6 @@
 import type { EditorDocument, Point } from './schema';
+import { reconcileCeilings } from './ceiling-reconciliation';
+import { constrainExteriorVertex } from './exterior-vertex-constraint';
 import { assertEditorDocument } from './validation';
 import { invertWall, mergeWalls, splitWall } from './wall-commands';
 import { upgradeConstructionDocument } from './migrations';
@@ -34,8 +36,7 @@ export function applyCommand(document: EditorDocument, command: EditorCommand): 
     case 'move-vertex': {
       const vertex = next.vertices.find((v) => v.id === command.vertexId);
       if (!vertex) throw new Error('Vértice inexistente');
-      vertex.x = command.x;
-      vertex.y = command.y;
+      Object.assign(vertex, constrainExteriorVertex(document, vertex.id, { x: command.x, y: command.y }));
       break;
     }
     case 'recalibrate':
@@ -44,8 +45,9 @@ export function applyCommand(document: EditorDocument, command: EditorCommand): 
     default:
       throw new Error('Comando desconocido');
   }
-  assertEditorDocument(next);
-  return next;
+  const reconciled = reconcileCeilings(document, next);
+  assertEditorDocument(reconciled);
+  return reconciled;
 }
 
 function recalibrate(doc: EditorDocument, factor: number): void {
@@ -59,6 +61,8 @@ function recalibrate(doc: EditorDocument, factor: number): void {
   };
   doc.vertices.forEach(scale);
   doc.labels.forEach(scale);
+  doc.luminaires?.forEach(scale);
+  doc.walkthroughs?.forEach((route) => route.waypoints.forEach((point) => { scale(point); if (point.lookAt) scale(point.lookAt); }));
   doc.stairs?.forEach(scale);
   doc.dimensions.forEach((d) => {
     scale(d.from);

@@ -28,6 +28,7 @@ export type DeliverablePayload =
        * entregables creados antes de guardar la key.
        */
       assetKey?: string;
+      camera?: import('./walkthrough-keyframe').CameraPose;
       generation?: {
         provider?: string; model?: string; fallbackIndex?: number;
         promptVersion: string; documentRevision: number;

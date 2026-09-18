@@ -13,6 +13,7 @@ import { fromPlano2d } from './plano2d';
 import { vertexId } from './shared';
 import { planarizeWalls } from './planarize-walls';
 import { deriveRooms } from '../rooms';
+import { upgradeConstructionDocument } from '../migrations';
 import { upgradeRampDocument } from '../spatial-properties';
 import { assertEditorDocument } from '../validation';
 import type { EditorDocument, FloorFinish, Point } from '../schema';
@@ -35,20 +36,8 @@ const EXTERIOR_FINISH: Omit<FloorFinish, 'roomId'> = {
 export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
   const base = fromPlano2d(result.plano);
   if (!base.document) return { document: null, issues: base.issues };
-  const doc = base.document;
+  let doc = base.document;
   const issues = [...base.issues];
-
-  // Sentido de apertura de cada puerta según las estancias (hacia la estancia,
-  // no hacia el pasillo; las exteriores hacia dentro).
-  const wallsById = new Map(result.plano.zones.flatMap((z) => z.walls).map((w) => [w.id, w]));
-  for (const zone of result.plano.zones) {
-    for (const aperture of zone.apertures) {
-      if (aperture.kind !== 'puerta') continue;
-      const wall = wallsById.get(aperture.wallId);
-      const opening = doc.openings.find((o) => o.id === aperture.id);
-      if (wall && opening) opening.swing = doorSwing(aperture, wall, result.plano.zones);
-    }
-  }
 
   // Muros ocultos: cierran la zona exterior para que el editor la derive como
   // estancia (suelo, etiqueta, mobiliario dentro) sin dibujar muro alguno.
@@ -75,6 +64,23 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
     planarizeWalls(doc);
   } catch (error) {
     return { document: null, issues: [...issues, error instanceof Error ? error.message : 'Topología inválida'] };
+  }
+
+  // El sentido de apertura pertenece al esquema de construcción (v3+).
+  // Migrar antes de escribirlo evita invalidar el documento v2 de fromPlano2d.
+  if (doc.openings.some((opening) => opening.kind === 'puerta')) {
+    doc = upgradeConstructionDocument(doc);
+  }
+  // Sentido de apertura de cada puerta según las estancias (hacia la estancia,
+  // no hacia el pasillo; las exteriores hacia dentro).
+  const wallsById = new Map(result.plano.zones.flatMap((z) => z.walls).map((w) => [w.id, w]));
+  for (const zone of result.plano.zones) {
+    for (const aperture of zone.apertures) {
+      if (aperture.kind !== 'puerta') continue;
+      const wall = wallsById.get(aperture.wallId);
+      const opening = doc.openings.find((o) => o.id === aperture.id);
+      if (wall && opening) opening.swing = doorSwing(aperture, wall, result.plano.zones);
+    }
   }
 
   for (const item of result.furniture) {

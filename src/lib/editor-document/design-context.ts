@@ -1,8 +1,10 @@
+import { surfaceMaterial } from './surface-materials';
 import type { EditorDocument } from './schema';
 import { buildingDocuments } from './building-levels';
 import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
+import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -23,7 +25,9 @@ export function editorDesignContext(doc: EditorDocument) {
       'Mantén cada escalera, rampa y descansillo como un recorrido continuo: conserva su inicio, pendiente, giro, descansillos, cotas de llegada y circulación.',
       'La colección floors representa suelos acabados y forjados: una cota de suelo mayor que cero es una plataforma elevada a la que deben llegar sus rampas y escaleras.',
       'No aplanes, ocultes, flotes ni interrumpas rampas, descansillos, pilares o columnas; no inventes soportes ni cierres pasos existentes.',
+      'Los delimitadores outdoor: y hidden: son límites de áreas abiertas, no construyas muros ni techos sobre ellos. Conserva patios, jardines y terrazas abiertos salvo las pérgolas o toldos explícitos del catálogo.',
       'Solo puedes proponer acabados, iluminación, mobiliario complementario y decoración.',
+      CEILING_RENDER_POLICY,
     ].join(' '),
     levels: buildingDocuments(doc).map((level) => {
       const source = level.document;
@@ -39,6 +43,8 @@ export function editorDesignContext(doc: EditorDocument) {
         const structuralDepthMm = floorSlabThicknessMm(finish);
         return {
           roomId: room.id,
+          surface: { texture: finish.texture, material: surfaceMaterial(finish.texture)?.label ?? finish.texture,
+            color: finish.color, tileSizeM: meters(finish.tileSizeMm), rotation: finish.rotation },
           finishedFloorElevationM: meters(finishedElevationMm),
           structuralDepthM: meters(structuralDepthMm),
           undersideElevationM: meters(Math.max(0, finishedElevationMm - structuralDepthMm)),
@@ -58,6 +64,7 @@ export function editorDesignContext(doc: EditorDocument) {
           boundaryM: room.boundary.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
         })),
         floors,
+        ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);
           return {

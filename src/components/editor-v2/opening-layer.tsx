@@ -57,14 +57,15 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     const move = () => {
       if (!placing) return;
       const pointer = stage.getRelativePointerPosition(); if (!pointer) return;
-      const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, prototype, candidateHost.current);
+      const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, prototype, candidateHost.current, 0, store.getState().snap);
+      store.getState().setMagneticGuides(placement?.guides ?? []);
       candidateHost.current = placement?.wallId;
       setPreview({ opening: prototype, placement, pointer });
     };
     const confirm = () => {
       if (!placing || store.getState().readOnly) return;
       const pointer = stage.getRelativePointerPosition(); if (!pointer) return;
-      const state = store.getState(), placement = resolveOpeningPlacement(state.document, pointer, scale, prototype, candidateHost.current);
+      const state = store.getState(), placement = resolveOpeningPlacement(state.document, pointer, scale, prototype, candidateHost.current, 0, store.getState().snap);
       if (!placement?.valid) { state.setError(placement?.reason ?? 'Acerca la abertura a una pared para colocarla.'); return; }
       try {
         state.apply(placeOpening(state.document, prototype, placement)); state.setTool('select');
@@ -115,15 +116,15 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
         }} onDragMove={(event) => {
           const pointer = event.target.getStage()?.getRelativePointerPosition(); if (!pointer) return;
           event.target.position(center);
-          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, opening, candidateHost.current, dragged.current?.offset);
-          candidateHost.current = placement?.wallId; setPreview({ opening, placement, pointer });
+          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, opening, candidateHost.current, dragged.current?.offset, store.getState().snap);
+          store.getState().setMagneticGuides(placement?.guides ?? []); candidateHost.current = placement?.wallId; setPreview({ opening, placement, pointer });
         }} onDragEnd={(event) => {
           event.target.position(center);
           if (!dragged.current) return;
           const offset = dragged.current.offset; dragged.current = null;
           const pointer = event.target.getStage()?.getRelativePointerPosition();
           const state = store.getState(), current = state.document.openings.find((o) => o.id === opening.id);
-          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, current, candidateHost.current, offset);
+          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, current, candidateHost.current, offset, state.snap);
           try {
             if (!placement?.valid || !current) throw new Error(placement?.reason ?? 'No hay una pared válida. Se conserva la ubicación anterior.');
             state.apply(placeOpening(state.document, current, placement));

@@ -1,4 +1,5 @@
 'use client';
+import { elementName } from '@/lib/editor-document/element-classification';
 import { useState } from 'react';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -48,14 +49,14 @@ export function Inspector({ store }: { store: EditorStore }) {
       {doc.stairs?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Escalera ${item.kind} ${index + 1}`)}</option>)}
       {doc.ramps?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `${isRampLanding(item) ? 'Descansillo' : 'Rampa'} ${index + 1}`)}</option>)}
       {doc.columns?.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Columna ${index + 1}`)}</option>)}
-      {doc.furniture.map((item, index) => <option key={item.id} value={item.id}>{displayName(item.name, `Mueble ${index + 1}`)}</option>)}
+      {doc.furniture.map((item) => <option key={item.id} value={item.id}>{elementName(item)}</option>)}
       {doc.labels.map((item) => <option key={item.id} value={item.id}>{item.text}</option>)}
     </ModernSelect></label>
     <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-    <h2>{wall ? 'Muro' : column ? 'Columna' : furniture ? 'Mueble' : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : label ? 'Texto' : 'Propiedades'}</h2>
+    <h2>{wall ? 'Muro' : column ? 'Columna' : furniture ? elementName(furniture) : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : label ? 'Texto' : 'Propiedades'}</h2>
     {!id && <p>Selecciona un elemento para editar sus medidas. Todas las distancias se expresan en metros.</p>}
     {selectedEntity && <label className={styles.field}>Nombre<input key={selectedEntity.name} defaultValue={selectedEntity.name ?? ''}
-      placeholder="Ej. pared lateral" maxLength={100} onBlur={(event) => updateName(event.currentTarget.value)} /></label>}
+      placeholder={furniture ? elementName(furniture) : "Nombre del elemento"} maxLength={100} onBlur={(event) => updateName(event.currentTarget.value)} /></label>}
     {wall && points && <>
       <div className={styles.fields}>
         {meterField('Grosor', wall.thicknessMm, (d, n) => { d.walls.find((w) => w.id === id)!.thicknessMm = n; })}

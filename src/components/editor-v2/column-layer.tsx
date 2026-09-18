@@ -1,4 +1,5 @@
 'use client';
+import { snapSpatialDrag } from './magnetic-drag';
 import { Group, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useStore } from 'zustand';
@@ -18,6 +19,7 @@ export function ColumnLayer({ store, scale, disabled = false }: { store: EditorS
     draggable={!disabled && !readOnly && tool === 'select'}
     onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([column.id]); } }}
     onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([column.id]); } }}
+    onDragMove={(event) => { event.target.position(snapSpatialDrag(store, { ...column, ...event.target.position() }, scale)); }}
     onDragEnd={(event: KonvaEventObject<DragEvent>) => {
       const state = store.getState(), point = event.target.position(), snapped = snapObject(state.document, { ...column, ...point }, scale, state.snap);
       event.target.position({ x: column.x, y: column.y });

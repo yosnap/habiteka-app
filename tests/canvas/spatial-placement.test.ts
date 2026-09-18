@@ -95,10 +95,10 @@ describe('placement and vertex guides', () => {
     const snapped = snapToAlignmentGuides(doc, item, 250);
     expect(snapped.y).toBe(2200);
   });
-  it('snaps an object origin to the start or end of a wall', () => {
+  it('snaps to wall endpoints longitudinally while staying against the physical face', () => {
     const doc = fixture();
-    expect(snapObject(doc, { ...doc.furniture[0]!, x: 90, y: 60 }, .08, true)).toMatchObject({ x: 0, y: 0 });
-    expect(snapObject(doc, { ...doc.furniture[0]!, x: 4910, y: 60 }, .08, true)).toMatchObject({ x: 5000, y: 0 });
+    expect(snapObject(doc, { ...doc.furniture[0]!, x: 90, y: 60 }, .08, true)).toMatchObject({ x: 0, y: 75 });
+    expect(snapObject(doc, { ...doc.furniture[0]!, x: 4910, y: 60 }, .08, true)).toMatchObject({ x: 5075, y: 75 });
   });
   it('attaches an independent landing flush to a ramp exit and matches its width', () => {
     const source = addRamp(fixture(), { id: 'ramp', catalogId: 'builtin:ramp-straight', x: 1000, y: 2000,

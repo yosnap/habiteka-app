@@ -9,7 +9,7 @@ export const SCENE_LIGHTING_LABELS: Record<SceneLightingPreset, string> = {
 };
 
 /** Presentational lighting only: it never changes the canonical building document. */
-export function SceneLighting({ preset }: { preset: SceneLightingPreset }) {
+export function SceneLighting({ preset, hasLuminaires = false }: { preset: SceneLightingPreset; hasLuminaires?: boolean }) {
   if (preset === 'warm') return <>
     <color attach="background" args={['#f5ede2']} />
     <hemisphereLight args={['#ffe8c1', '#79685a', 1.3]} />
@@ -20,10 +20,12 @@ export function SceneLighting({ preset }: { preset: SceneLightingPreset }) {
   if (preset === 'evening') return <>
     <color attach="background" args={['#18232d']} />
     <hemisphereLight args={['#7699bd', '#101820', .55]} />
+    {!hasLuminaires && <>
     <directionalLight position={[4, 9, 3]} intensity={.8} color="#b9d7ff" castShadow shadow-mapSize={[2048, 2048]}
       shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} />
     <pointLight position={[-4, 4, 2]} intensity={22} distance={18} decay={2} color="#ffc475" castShadow />
     <pointLight position={[5, 3, -4]} intensity={14} distance={15} decay={2} color="#ffd7a8" />
+    </>}
   </>;
   return <>
     <color attach="background" args={['#edf2ef']} />

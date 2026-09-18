@@ -18,7 +18,7 @@ export function defaultWallCurve(input: EditorDocument, wallId: string): number 
 export function setWallCurve(input: EditorDocument, wallId: string, heightMm: number): EditorDocument {
   const doc = upgradeSpatialDocument(input), wall = doc.walls.find((w) => w.id === wallId);
   if (!wall) throw new Error('Pared inexistente');
-  doc.schemaVersion = 5; doc.floorFinishes ??= [];
+  if (doc.schemaVersion < 5) doc.schemaVersion = 5; doc.floorFinishes ??= [];
   if (!Number.isFinite(heightMm)) throw new Error('Curvatura inválida');
   if (Math.abs(heightMm) < .001) delete wall.curveHeightMm; else wall.curveHeightMm = heightMm;
   doc.revision += 1;

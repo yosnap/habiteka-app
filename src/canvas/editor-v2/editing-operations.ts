@@ -1,6 +1,10 @@
+import { nudgeElements } from './nudge-elements';
 import type { EditorDocument, Point, Opening } from '@/lib/editor-document/schema';
 import type { CatalogEntry } from '@/canvas/catalog';
 import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
+import { reconcileCeilings } from '@/lib/editor-document/ceiling-reconciliation';
+import { luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry';
+import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-constraint';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -15,8 +19,9 @@ export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
   const next = structuredClone(doc);
   edit(next);
-  assertEditorDocument(next);
-  return next;
+  const reconciled = reconcileCeilings(doc, next);
+  assertEditorDocument(reconciled);
+  return reconciled;
 }
 export function snapPoint(doc: EditorDocument, p: Point, enabled: boolean): Point {
   if (!enabled) return p;
@@ -126,7 +131,10 @@ export function addFurniture(doc: EditorDocument, item: CatalogEntry | Furniture
   let position = p;
   // A viewport center may fall in the missing corner of an L. Prefer a room interior.
   try {
-    const room = deriveRooms(doc)[0];
+    const rooms = deriveRooms(doc);
+    const room = catalogItem?.room === 'exterior' ? rooms.find((candidate) =>
+      candidate.wallIds.some((id) => id.startsWith('outdoor:')) ||
+      doc.labels.some((label) => /patio|terraza|jard[ií]n|exterior/i.test(label.text) && insidePolygon(label, candidate.boundary))) : rooms[0];
     if (room) {
       const polygon = room.boundary;
       const center = interiorPoint(polygon);
@@ -178,6 +186,7 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
     next.dimensions = next.dimensions.filter((o) => !ids.includes(o.id));
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));
     if (next.ramps) next.ramps = next.ramps.filter((o) => !ids.includes(o.id));
+    if (next.luminaires) next.luminaires = next.luminaires.filter((light) => !ids.includes(light.id));
     if (next.columns) next.columns = next.columns.filter((o) => !ids.includes(o.id));
     if (next.comments) {
       const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].map((e) => e.id));
@@ -191,23 +200,18 @@ export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
   const moved = editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
     const wall = next.walls.find((w) => w.id === id);
     if (wall) next.vertices.filter((v) => v.id === wall.startVertexId || v.id === wall.endVertexId)
-      .forEach((v) => { v.x += delta.x; v.y += delta.y; });
-    const item = next.furniture.find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
+      .forEach((v) => Object.assign(v, constrainExteriorVertex(doc, v.id, { x: v.x + delta.x, y: v.y + delta.y })));
+    const item = next.luminaires?.find((light) => light.id === id) ?? next.furniture.find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
       ?? next.stairs?.find((f) => f.id === id) ?? next.ramps?.find((f) => f.id === id) ?? next.columns?.find((f) => f.id === id);
     if (item) { item.x += delta.x; item.y += delta.y; }
+    const light = next.luminaires?.find((entry) => entry.id === id);
+    if (light) { const issue = luminairePlacementIssue(next, light); if (issue) throw new Error(issue); }
   });
   return moved.ramps?.some((ramp) => ramp.id === id) ? syncRampArrival(moved, id) : moved;
 }
 /** One history action for precise keyboard movement of movable construction and furniture. */
 export function nudgeSpatialEntities(doc: EditorDocument, ids: string[], delta: Point): EditorDocument {
-  const moved = editDocument(upgradeSpatialDocument(doc), (next) => {
-    const selected = new Set(ids);
-    [...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].forEach((item) => {
-      if (selected.has(item.id)) { item.x += delta.x; item.y += delta.y; }
-    });
-  });
-  return (moved.ramps ?? []).filter((ramp) => ids.includes(ramp.id))
-    .reduce((next, ramp) => syncRampArrival(next, ramp.id), moved);
+  return nudgeElements(doc, ids, delta);
 }
 export function shapePoints(kind: 'L' | 'U' | 'T', p: Point): Point[] {
   const paths = {

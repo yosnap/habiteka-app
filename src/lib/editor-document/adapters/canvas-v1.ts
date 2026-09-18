@@ -1,3 +1,5 @@
+import { upgradeConstructionDocument } from '../migrations';
+import { wizardWall } from './wizard-wall';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { convert, list, numeric, point, record, string, unknownFields, vertexId } from './shared';
 import type { EditorDocument, Point } from '../schema';
@@ -49,7 +51,7 @@ export function fromCanvasV1(raw: unknown, calibratedMmPerPixel?: number) {
         (!Array.isArray(source[key]) || source[key].length)) issues.push(`Capa ${key} requiere conversión adicional`);
     }
     if (source.baseImage) issues.push('Fondo requiere registrar asset y transformación antes de migrar');
-    if (source.ceilingHeightM !== undefined) issues.push('Altura de techo conservada en snapshot; no representada en 2D');
+
     for (const rawWall of list(source.walls ?? [])) {
       const w = record(rawWall);
       unknownFields(w, ['id', 'p1', 'p2', 'thicknessPx'], issues);
@@ -57,6 +59,11 @@ export function fromCanvasV1(raw: unknown, calibratedMmPerPixel?: number) {
     }
     const objects = list(source.objects).map(record);
     for (const obj of objects.filter((o) => o.kind === 'wall')) {
+      const wizard = wizardWall(obj, factor, issues);
+      if (wizard) {
+        addWall(doc, string(obj.id), wizard.from, wizard.to, wizard.thicknessMm);
+        continue;
+      }
       const angle = numeric(obj.rotation) * Math.PI / 180;
       const width = numeric(obj.width) * factor, depth = numeric(obj.height) * factor;
       const from = { x: numeric(obj.x) * factor - Math.sin(angle) * depth / 2,
@@ -65,7 +72,7 @@ export function fromCanvasV1(raw: unknown, calibratedMmPerPixel?: number) {
         { x: from.x + Math.cos(angle) * width, y: from.y + Math.sin(angle) * width }, depth);
     }
     for (const obj of objects) {
-      unknownFields(obj, ['id', 'kind', 'x', 'y', 'width', 'height', 'rotation', 'parentId', 'catalogId', 'drawn'], issues);
+      unknownFields(obj, ['id', 'kind', 'x', 'y', 'width', 'height', 'rotation', 'parentId', 'catalogId', 'drawn', ...(obj.kind === 'wall' ? ['meta'] : [])], issues);
       if (obj.kind === 'wall') continue;
       if (obj.kind === 'door' || obj.kind === 'window') { opening(doc, obj, factor); continue; }
       const kind = string(obj.kind);
@@ -74,6 +81,13 @@ export function fromCanvasV1(raw: unknown, calibratedMmPerPixel?: number) {
         widthMm: numeric(obj.width) * factor, depthMm: numeric(obj.height) * factor,
         rotation: numeric(obj.rotation), dimensionalOrigin: 'physical',
         ...(obj.catalogId ? { catalogId: string(obj.catalogId) } : {}) });
+    }
+    if (source.ceilingHeightM !== undefined) {
+      const heightMm = numeric(source.ceilingHeightM) * 1000;
+      if (heightMm <= 0) throw new Error('Altura de techo no válida');
+      if (!doc.walls.length) issues.push('Altura de techo sin muros donde conservarla');
+      Object.assign(doc, upgradeConstructionDocument(doc));
+      doc.walls = doc.walls.map((wall) => ({ ...wall, heightMm }));
     }
     for (const rawNote of list(source.notes ?? [])) {
       const note = record(rawNote);

@@ -1,4 +1,5 @@
 'use client';
+import { snapSpatialDrag } from './magnetic-drag';
 
 import { useRef, useState } from 'react';
 import { useStore } from 'zustand';
@@ -87,8 +88,8 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
     return <Group key={ramp.id} x={ramp.x} y={ramp.y} rotation={ramp.rotation} name={`ramp:${ramp.id}`}
       draggable={selectable && !readOnly} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
       onDragStart={(event) => { event.cancelBubble = true; dragging.current = { node: event.target, ramp }; setGuideRamp(ramp); store.getState().select([ramp.id]); }}
-      onDragMove={(event) => { event.cancelBubble = true; const state = store.getState();
-        const snapped = snapObject(state.document, { ...ramp, ...event.target.position() }, scale, state.snap) as Ramp;
+      onDragMove={(event) => { event.cancelBubble = true;
+        const snapped = snapSpatialDrag(store, { ...ramp, ...event.target.position() }, scale) as Ramp;
         event.target.position(snapped); setGuideRamp(snapped); }}
       onDragEnd={(event) => drop(ramp, event)}>
       {parts.map((part, index) => <Group key={index} x={part.x} y={part.y} rotation={part.rotation} listening={selectable}

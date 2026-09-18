@@ -15,6 +15,8 @@ export interface PutObjectInput {
 }
 
 export interface StorageAdapter {
+  inspect?(key: string): Promise<{ bytes: number; contentType: string; header: Uint8Array }>;
+  promote?(sourceKey: string, destinationKey: string): Promise<void>;
   put(input: PutObjectInput): Promise<void>;
   delete(key: string): Promise<void>;
   /**

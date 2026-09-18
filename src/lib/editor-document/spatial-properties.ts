@@ -50,7 +50,7 @@ export function setDesignSpaceKind(
   designSpaceKind: NonNullable<EditorDocument['designSpaceKind']>,
 ): EditorDocument {
   const doc = upgradeRampDocument(input);
-  doc.schemaVersion = 7;
+  if (doc.schemaVersion < 7) doc.schemaVersion = 7;
   doc.designSpaceKind = designSpaceKind;
   return parseEditorDocument(doc);
 }

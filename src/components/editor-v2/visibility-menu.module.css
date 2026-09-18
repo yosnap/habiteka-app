@@ -1,0 +1,13 @@
+.menu { position: absolute; z-index: 40; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: .6875rem; }
+.menu summary { display: flex; align-items: center; gap: 3px; cursor: pointer; color: var(--muted); list-style: none; opacity: .7; padding: 3px 5px; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary:hover, .menu[open] summary { opacity: 1; color: var(--ink); background: var(--surface); border-radius: 4px; }
+.popover { position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%); width: 205px; padding: 10px; display: grid; gap: 9px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-panel); color: var(--ink); }
+.popover fieldset { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+.popover legend { margin-bottom: 2px; color: var(--muted); font-size: .6875rem; font-weight: 650; }
+.popover label { display: flex; align-items: center; gap: 5px; font-size: .75rem; }
+.popover input[type='checkbox'] { min-width: 16px; width: 16px; min-height: 16px; height: 16px; padding: 0; border-radius: 3px; }
+.popover select { min-height: 28px; height: 28px; padding: 3px 5px; }
+.popover label span { min-width: 48px; }
+.popover select { min-width: 0; flex: 1; font-size: .75rem; }
+.popover p { margin: 0; color: var(--muted); line-height: 1.35; font-size: .6875rem; }

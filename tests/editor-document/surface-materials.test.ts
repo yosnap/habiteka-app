@@ -1,3 +1,4 @@
+import polyhavenMaterials from '../../public/materials/polyhaven/manifest.json';
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -15,9 +16,10 @@ import { createEditorStore } from '@/canvas/editor-v2/store';
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }], true);
 describe('local surface material library', () => {
   it('contains 60 unique CC0 materials with verified local PBR maps', () => {
-    expect(SURFACE_MATERIALS).toHaveLength(60);
-    expect(new Set(SURFACE_MATERIALS.map((m) => m.id)).size).toBe(60);
-    for (const material of SURFACE_MATERIALS) {
+    expect(polyhavenMaterials).toHaveLength(60);
+    expect(new Set(SURFACE_MATERIALS.map((m) => m.id)).size).toBe(SURFACE_MATERIALS.length);
+    expect(new Set(polyhavenMaterials.map((m) => m.id)).size).toBe(60);
+    for (const material of polyhavenMaterials) {
       expect(material.license).toBe('CC0-1.0');
       expect(material.sizeMm.every((n) => Number.isFinite(n) && n >= 50 && n <= 10000)).toBe(true);
       expect(readFileSync(`public${material.preview}`).length).toBeGreaterThan(100);

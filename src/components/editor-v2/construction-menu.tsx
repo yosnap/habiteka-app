@@ -11,6 +11,8 @@ interface ConstructionMenuProps extends Omit<ConstructionCatalogProps, 'category
 const baseCategories = [
   { id: 'walls', label: 'Dibujar paredes', icon: Slash },
   { id: 'columns', label: 'Columnas', icon: Columns2 },
+  { id: 'outdoor', label: 'Exterior y jardín', icon: Shapes },
+  { id: 'patio', label: 'Patio / terraza', icon: RectangleHorizontal },
   { id: 'rooms', label: 'Habitaciones', icon: RectangleHorizontal },
 ] as const;
 const structureCategories = [

@@ -1,3 +1,4 @@
+import { outdoorVolumes } from './outdoor-volumes';
 import type { Furniture } from './schema';
 import { furnitureSpatial } from './spatial-properties';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
@@ -11,6 +12,7 @@ export interface FurnitureVolume {
 export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | null {
   const entry = getFurnitureCatalogEntry(item.catalogId);
   if (!entry) return null;
+  if (entry.profile === 'outdoor') return outdoorVolumes(item);
   const { heightMm: h, elevationMm: elevation, color } = furnitureSpatial(item);
   const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [];
   const box = (x: number, y: number, z: number, width: number, depth: number, height: number, tint = color) => {

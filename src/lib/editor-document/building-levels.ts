@@ -1,4 +1,6 @@
+import { upgradeWalkthroughDocument } from './walkthrough';
 import { emptyEditorDocument, type EditorDocument } from './schema';
+import { upgradeCeilingDocument } from './ceiling-commands';
 import { upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 
@@ -8,7 +10,7 @@ export function levelDocument(input: EditorDocument): EditorDocument {
   return copy;
 }
 function building(input: EditorDocument): EditorDocument {
-  const doc = upgradeSpatialDocument(input); doc.schemaVersion = 5; doc.floorFinishes ??= [];
+  const doc = upgradeSpatialDocument(input); if (doc.schemaVersion < 5) doc.schemaVersion = 5; doc.floorFinishes ??= [];
   if (!doc.levels) {
     doc.activeLevelId = crypto.randomUUID();
     doc.levels = [{ id: doc.activeLevelId, name: 'Planta baja', heightMm: Math.max(2700, ...doc.walls.map((w) => w.heightMm ?? 2700)) }];
@@ -22,13 +24,15 @@ export function switchBuildingLevel(input: EditorDocument, id: string): EditorDo
   if (!target?.document || !current) throw new Error('Planta inexistente');
   const content = target.document;
   current.document = levelDocument(doc); delete target.document;
-  return parseEditorDocument({ ...content, schemaVersion: 5, floorFinishes: content.floorFinishes ?? [],
+  return parseEditorDocument({ ...content, schemaVersion: Math.max(5, content.schemaVersion), floorFinishes: content.floorFinishes ?? [],
     levels: doc.levels, activeLevelId: id, revision: doc.revision + 1 });
 }
 export function addBuildingLevel(input: EditorDocument, copyActive = false): EditorDocument {
   const doc = building(input), id = crypto.randomUUID();
-  const content = copyActive ? levelDocument(doc) : upgradeSpatialDocument(emptyEditorDocument());
-  content.schemaVersion = 5; content.floorFinishes ??= [];
+  let content = copyActive ? levelDocument(doc) : upgradeSpatialDocument(emptyEditorDocument());
+  if (doc.schemaVersion >= 8) content = upgradeCeilingDocument(content);
+  if (doc.schemaVersion >= 9) content = upgradeWalkthroughDocument(content);
+  if (content.schemaVersion < 5) content.schemaVersion = 5; content.floorFinishes ??= [];
   doc.levels!.push({ id, name: `Planta ${doc.levels!.length}`, heightMm: doc.levels!.find((l) => l.id === doc.activeLevelId)!.heightMm, document: content });
   return switchBuildingLevel(doc, id);
 }
@@ -54,7 +58,11 @@ export function buildingDocuments(doc: EditorDocument): { id: string; elevationM
   if (!doc.levels) return [{ id: 'ground', elevationMm: 0, document: doc }];
   let elevationMm = 0;
   return doc.levels.map((level) => {
-    const result = { id: level.id, elevationMm, document: level.id === doc.activeLevelId ? levelDocument(doc) : level.document! };
+    const isolated = level.id === doc.activeLevelId ? levelDocument(doc) : level.document!;
+    // Proyección de lectura: conserva altura local sin volver a anidar el edificio.
+    const document = isolated.schemaVersion >= 8 ? { ...isolated,
+      levels: [{ id: level.id, name: level.name, heightMm: level.heightMm }], activeLevelId: level.id } : isolated;
+    const result = { id: level.id, elevationMm, document };
     elevationMm += level.heightMm; return result;
   });
 }

@@ -1,3 +1,5 @@
+import { isBoundaryJoint } from './boundary-junction';
+import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
@@ -65,6 +67,9 @@ function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
     return [{ id: item.id, polygon: footprint(item), bottom: item.elevationMm, top: item.elevationMm + item.heightMm }];
   }
   const furniture = item as Furniture;
+  // Surface markings and grates can share the ground with cars and furnishings.
+  if (/^habiteka:outdoor:(parking|camino|drenaje|sumidero|riego-goteo)$/.test(furniture.catalogId ?? '') &&
+    furnitureVolumes(furniture).every((v) => v.top <= 100)) return [];
   return furnitureVolumes(furniture).map((volume) => ({ id: furniture.id, bottom: volume.bottom, top: volume.top,
     polygon: footprint({ ...furniture, ...volume, ...localToWorld(furniture, volume) }) }));
 }
@@ -117,8 +122,11 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
   ].map((item) => item.id));
   const guardWallIds = new Set([...previous.walls, ...candidate.walls]
     .filter((wall) => (wall.heightMm ?? 2700) <= 1500).map((wall) => wall.id));
+  const boundaries = new Map(candidate.furniture.map((item) => [item.id, item]));
   for (const [key, depth] of after) {
     const [first, second] = JSON.parse(key) as [string, string];
+    const a = boundaries.get(first), b = boundaries.get(second);
+    if (a && b && isBoundaryJoint(a, b)) continue;
     // A column is structural: it can be embedded in a wall, stair or ramp
     // (including a landing), while furniture and another column stay blocked.
     if ((columnIds.has(first) && structuralIds.has(second)) || (columnIds.has(second) && structuralIds.has(first))) continue;
@@ -139,7 +147,7 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
     if (objectSolids(placed).some((a) => occupied.some((b) => penetration(a, b) > .1))) continue;
     return { ...candidate, furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
       stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s),
-      columns: candidate.columns?.map((c) => c.id === id ? placed as Column : c),
+      ...(candidate.columns ? { columns: candidate.columns.map((c) => c.id === id ? placed as Column : c) } : {}),
       ...(candidate.ramps ? { ramps: candidate.ramps.map((r) => r.id === id ? placed as Ramp : r) } : {}) };
   }
   throw new Error('No hay espacio libre cercano. Libera espacio antes de añadir el elemento.');
@@ -156,7 +164,10 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     // alinearse con los bordes de cualquier otro elemento cuando está libre.
     const wallAxis = snapColumnToWallAxis(doc, result, faceTolerance);
     if (wallAxis.x !== result.x || wallAxis.y !== result.y) return wallAxis;
-    return snapToAlignmentGuides(doc, result, faceTolerance, { includeWallEdges: false }) as Column;
+    const edges = snapToAlignmentGuides(doc, result, faceTolerance, { includeWallEdges: false }) as Column;
+    if (edges.x !== result.x || edges.y !== result.y) return edges;
+    const axes = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);
+    return { ...result, x: result.x + axes.delta.x, y: result.y + axes.delta.y };
   }
   if (landing && isRampLanding(landing)) {
     const attached = [
@@ -177,9 +188,10 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     if (attached) return attached.target;
   }
   result = snapOriginToWallEndpoint(doc, result, endpointTolerance);
-  result = snapToWallFace(doc, result, faceTolerance);
-  result = snapToAlignmentGuides(doc, result, faceTolerance) as typeof result;
-  return snapOriginToWallEndpoint(doc, result, endpointTolerance);
+  const aligned = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);
+  result = { ...result, x: result.x + aligned.delta.x, y: result.y + aligned.delta.y };
+  // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
+  return snapToWallFace(doc, result, faceTolerance);
 }
 
 /** Structural columns snap to the wall centreline, not to an exterior face. */

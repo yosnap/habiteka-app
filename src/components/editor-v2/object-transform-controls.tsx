@@ -1,11 +1,12 @@
 'use client';
+import { snapSpatialDrag } from './magnetic-drag';
 import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { Column, EditorDocument, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, transformAroundCenter, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
-import { assertSpatialPlacement, footprint, snapObject } from '@/canvas/editor-v2/spatial-placement';
+import { assertSpatialPlacement, footprint } from '@/canvas/editor-v2/spatial-placement';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { objectClearances } from '@/canvas/editor-v2/object-clearances';
 import { DimensionMark } from './dimension-mark';
@@ -73,7 +74,7 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
     <Group x={item.x} y={item.y} rotation={item.rotation} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current; if (!active) return;
-        const snapped = snapObject(source, { ...active.item, ...e.target.position() }, scale, store.getState().snap);
+        const snapped = snapSpatialDrag(store, { ...active.item, ...e.target.position() }, scale);
         // El cursor y el control se detienen en el mismo punto que el plano
         // previsualizado; así el imán se siente como un acople, no como salto al soltar.
         e.target.position({ x: snapped.x, y: snapped.y }); update(snapped);

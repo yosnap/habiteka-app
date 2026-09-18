@@ -1,7 +1,9 @@
+import { magneticReferences } from './magnetic-alignment';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance';
 import { assertSpatialPlacement } from './spatial-placement';
+import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-constraint';
 import { wallPoints } from '@/lib/editor-document/geometry';
 
 export interface VertexPreview {
@@ -11,7 +13,7 @@ export interface VertexPreview {
 export function previewVertex(doc: EditorDocument, id: string, pointer: Point, scale: number, snap: boolean): VertexPreview {
   const vertex = doc.vertices.find((v) => v.id === id);
   if (!vertex) throw new Error('Vértice inexistente');
-  const tolerance = 10 / Math.max(scale, .001), others = doc.vertices.filter((v) => v.id !== id);
+  const tolerance = 10 / Math.max(scale, .001), others = [...doc.vertices.filter((v) => v.id !== id), ...magneticReferences(doc, doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id).map((w) => w.id))];
   const closest = (axis: 'x' | 'y') => others.filter((v) => Math.abs(v[axis] - pointer[axis]) < tolerance)
     .sort((a, b) => Math.abs(a[axis] - pointer[axis]) - Math.abs(b[axis] - pointer[axis]))[0];
   const x = closest('x'), y = closest('y');
@@ -27,6 +29,7 @@ export function previewVertex(doc: EditorDocument, id: string, pointer: Point, s
   }).filter((g) => g.gap < tolerance).sort((a, b) => a.gap - b.gap);
   const axis = !x && !y ? axes[0] : undefined;
   if (snap && axis) point = axis.target;
+  point = constrainExteriorVertex(doc, id, point);
   const candidate = { ...doc, vertices: doc.vertices.map((v) => v.id === id ? { ...v, ...point } : v) };
   const guides: { from: Point; to: Point }[] = [x && { from: x, to: point }, y && { from: y, to: point }].filter((g) => !!g);
   if (axis) guides.push({ from: axis.origin, to: point });

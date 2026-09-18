@@ -1,3 +1,4 @@
+import type { WalkthroughPath } from './walkthrough';
 export type DimensionalOrigin = 'raster' | 'physical';
 export interface Point {
   x: number;
@@ -133,7 +134,7 @@ export interface Label extends Point {
 export interface FloorFinish {
   roomId: string;
   color: string;
-  texture: 'none' | 'wood' | 'tile' | `polyhaven:${string}`;
+  texture: 'none' | 'wood' | 'tile' | `polyhaven:${string}` | `outdoor:${string}`;
   tileSizeMm: number;
   rotation: number;
   /** Finished floor level above the active level's base plane. */
@@ -142,7 +143,26 @@ export interface FloorFinish {
   slabThicknessMm?: number;
   /** Finish exposed on the underside and vertical faces of an elevated floor. */
   undersideColor?: string;
-  undersideTexture?: 'none' | 'wood' | 'tile' | `polyhaven:${string}`;
+  undersideTexture?: 'none' | 'wood' | 'tile' | `polyhaven:${string}` | `outdoor:${string}`;
+}
+/** Superficie anclada al recinto; altura derivada de los muros y descenso explícito. */
+export interface Ceiling {
+  id: string;
+  roomId: string;
+  kind: 'plain' | 'suspended';
+  dropMm: number;
+  color: string;
+}
+/** Posición XY del centro; caída medida desde la cara inferior del techo. */
+export interface Luminaire extends Point {
+  id: string;
+  ceilingId: string;
+  kind: 'pendant' | 'flush' | 'recessed';
+  dropMm: number;
+  color: string;
+  temperatureK: number;
+  lumens: number;
+  enabled: boolean;
 }
 /** Active level uses root collections; inactive levels retain an isolated document. */
 export interface BuildingLevel {
@@ -152,7 +172,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7;
+  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
@@ -167,6 +187,9 @@ export interface EditorDocument {
   columns?: Column[];
   comments?: ElementComment[];
   floorFinishes?: FloorFinish[];
+  walkthroughs?: WalkthroughPath[];
+  ceilings?: Ceiling[];
+  luminaires?: Luminaire[];
   levels?: BuildingLevel[];
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */

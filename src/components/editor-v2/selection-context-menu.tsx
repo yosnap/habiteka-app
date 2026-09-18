@@ -1,5 +1,5 @@
 'use client';
-import { X, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import type { Point } from '@/lib/editor-document/schema';
 import styles from './editor.module.css';
 
@@ -40,8 +40,6 @@ export function SelectionContextMenu({ anchor, label, actions, onClose }: Select
         <Icon size={20} aria-hidden="true" /><span>{actionLabel}</span>
       </button>;
     })}
-    <button type="button" className={styles.contextClose} onClick={onClose} aria-label="Cerrar acciones">
-      <X size={18} aria-hidden="true" />
-    </button>
+
   </div>;
 }

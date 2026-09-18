@@ -30,13 +30,22 @@ export default async function DeliverablesPage({ params }: Props) {
   // degrada mostrando el diseño SIN la miniatura de origen, no rompiendo la vista.
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
 
+  const videos = await Promise.all(rows.filter((row) => row.type === 'VIDEO').map(async (row) => {
+    const payload = row.payload as { assetKey?: string; durationMs?: number };
+    return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs, legalSeal: row.legalSeal };
+  }));
   const deliverables = (
-    await Promise.all(rows.map((row) => toDeliverableView(row, urlBySourceImageId)))
+    await Promise.all(rows.filter((row) => row.type !== 'VIDEO').map((row) => toDeliverableView(row, urlBySourceImageId)))
   ).filter((d): d is DeliverableView => d !== null);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
-      <DeliverablesPanel deliverables={deliverables} projectId={id} />
+      {videos.map((video) => <section key={video.id} aria-label="Recorrido en vídeo" className="rounded-lg border p-4">
+        <h2>Recorrido 3D · {Math.round((video.durationMs ?? 0) / 1000)} s</h2>
+        {video.url ? <><video controls preload="metadata" src={video.url} className="w-full" /><a href={video.url} download="habiteka-recorrido.mp4">Descargar MP4</a></> : <p>Vídeo no disponible temporalmente.</p>}
+        <p className="text-xs text-muted-foreground">{video.legalSeal}</p>
+      </section>)}
+      {(deliverables.length > 0 || videos.length === 0) && <DeliverablesPanel deliverables={deliverables} projectId={id} />}
     </main>
   );
 }
@@ -68,7 +77,7 @@ async function toDeliverableView(
       : payload;
   return {
     id: row.id,
-    type: row.type as DeliverableType,
+    type: payload.type as DeliverableType,
     payload: resolved,
     legalSeal: row.legalSeal,
     version: row.version,

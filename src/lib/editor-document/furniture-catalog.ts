@@ -1,7 +1,8 @@
+import { OUTDOOR_CATALOG } from './outdoor-catalog';
 import type { Furniture } from './schema';
 import { ASSET_CATALOG } from './furniture-assets';
 
-export type FurnitureProfile = 'sofa' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'rug' | 'curtain' | 'appliance' | 'screen' | 'bench';
+export type FurnitureProfile = 'outdoor' | 'sofa' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'rug' | 'curtain' | 'appliance' | 'screen' | 'bench';
 export type FurnitureRoom = 'salon' | 'dormitorio' | 'comedor' | 'cocina' | 'bano' | 'oficina' | 'exterior' | 'iluminacion' | 'decoracion';
 export interface FurnitureCatalogEntry {
   id: string; productId: string; variantLabel: string; kind: string; label: string;
@@ -74,7 +75,7 @@ const essentials = [
   entry('planta', 'Planta de interior', 'decoracion', 'plant', [500, 500, 1200], 'Cerámica y vegetación', '#658661', 'Vegetación interior', 'Mediterráneo'),
   entry('cortina', 'Cortina independiente', 'decoracion', 'curtain', [1800, 180, 2400], 'Lino', '#cfc6b8', 'Filtrar luz; colocación independiente', 'Mediterráneo'),
 ];
-export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...essentials.flatMap((item) => {
+export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
   if (item.kind === 'cama-doble') return [item, variant(item, 'king', 'King · 180 cm', { widthMm: 1800, color: '#9caaa6', material: 'Tela acolchada y madera' })];
   if (item.kind === 'sofa-3') return [item, variant(item, 'piel', 'Piel · 250 cm', { widthMm: 2500, material: 'Piel', color: '#8e5e42', style: 'Clásico' })];
   if (item.kind === 'mesa-comedor') return [item, variant(item, 'grande', 'Nogal · 200 cm', { widthMm: 2000, depthMm: 1000, material: 'Nogal', color: '#785b43', style: 'Clásico' })];

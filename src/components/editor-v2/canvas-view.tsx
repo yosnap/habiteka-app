@@ -1,4 +1,8 @@
 'use client';
+import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
+import { addLinearBoundary, isBoundaryKind } from '@/lib/editor-document/linear-boundary';
+import { addOutdoorArea, addOutdoorEdge } from '@/lib/editor-document/outdoor-area';
+import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Line, Circle, Group, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
@@ -6,7 +10,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { resolveWallSplitPoint } from '@/canvas/editor-v2/store';
 import type { Point } from '@/lib/editor-document/schema';
-import { addWallPath, editDocument, newId, snapPoint } from '@/canvas/editor-v2/editing-operations';
+import { addWallPath, editDocument, newId } from '@/canvas/editor-v2/editing-operations';
 import { distance } from '@/lib/editor-document/geometry';
 import { DocumentLayer } from './document-layer';
 import { DimensionMark } from './dimension-mark';
@@ -18,11 +22,18 @@ import { drawingDimension, rectangleDimensions } from '@/canvas/editor-v2/drawin
 import { selectEntitiesInRectangle } from '@/canvas/editor-v2/marquee-selection';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
+import type { DimensionVisibility } from './visibility-menu';
 
 type Marquee = { from: Point; to: Point; baseSelection: string[]; mode: 'replace' | 'add' | 'subtract' };
 
-export function CanvasView({ store, onCenter, active = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean }) {
+export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
+  const magneticGuides = useStore(store, (s) => s.magneticGuides);
+  useEffect(() => {
+    const clear = () => store.getState().setMagneticGuides([]);
+    window.addEventListener("mouseup", clear); window.addEventListener("pointerup", clear);
+    return () => { window.removeEventListener("mouseup", clear); window.removeEventListener("pointerup", clear); };
+  }, [store]);
   const readOnly = useStore(store, (s) => s.readOnly);
   const snapEnabled = useStore(store, (s) => s.snap);
   const pendingSplitWallId = useStore(store, (s) => s.pendingSplitWallId);
@@ -32,7 +43,9 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
   const [pan, setPan] = useState(false), [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
-  const start = gesture?.tool === tool ? gesture.point : null;
+  const [chain, setChain] = useState<Point[]>([]);
+  const continuous = tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || isBoundaryKind(tool);
+  const start = continuous ? chain.at(-1) ?? null : gesture?.tool === tool ? gesture.point : null;
   const [pointer, setPointer] = useState<Point | null>(null), [generation, setGeneration] = useState(0);
   const stage = useRef<Konva.Stage>(null);
   useEffect(() => {
@@ -43,15 +56,15 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
   useEffect(() => store.subscribe((next, previous) => {
     if (next.tool === 'split-wall' && previous.tool !== next.tool) stage.current?.container().parentElement?.focus();
     if (next.tool !== previous.tool || next.readOnly !== previous.readOnly || next.future.length > previous.future.length || next.document.activeLevelId !== previous.document.activeLevelId) {
-      setWallDraw(idleWallDraw()); setGesture(null); setPointer(null); setMarquee(null);
+      setWallDraw(idleWallDraw()); setChain([]); setGesture(null); setPointer(null); setMarquee(null);
     }
   }), [store]);
   useEffect(() => {
     const element = stage.current?.container();
-    if (element) element.style.cursor = tool === 'wall'
+    if (element) element.style.cursor = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure', 'walkthrough'].includes(tool)
       ? 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath fill=%27%23087f75%27 d=%27m5 27 3-8L23 4l5 5L13 24z%27/%3E%3Cpath fill=%27white%27 d=%27m10 20 2 2-4 3z%27/%3E%3C/svg%3E") 4 28, crosshair'
       : '';
-  }, [tool]);
+  }, [tool, readOnly]);
   // ResizeObserver is a real external subscription; callback-ref cleanup releases it on unmount.
   const container = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
@@ -88,21 +101,57 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
   const point = () => {
     const p = stage.current?.getRelativePointerPosition();
     if (tool === 'split-wall') return p ?? null;
-    if (p && (tool === 'wall' || tool === 'guard-wall'))
-      return snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined).point;
-    return p ? snapPoint(store.getState().document, p, store.getState().snap) : null;
+    if (p && continuous && chain.length > 2 && distance(p, chain[0]!) < 12 / view.scale) {
+      store.getState().setMagneticGuides([{ from: start!, to: chain[0]! }]); return chain[0]!;
+    }
+    if (p && (tool === 'wall' || tool === 'guard-wall')) {
+      const result = snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined);
+      store.getState().setMagneticGuides(result.guides ?? (result.guide ? [result.guide] : []));
+      return result.point;
+    }
+    return p ? (tool === 'select' ? p : snapPointDrag(store, p, view.scale)) : null;
   };
-  const cancel = () => { stage.current?.stopDrag(); store.getState().cancelWallSplit(); store.getState().cancelPendingSpatial(); setWallDraw(idleWallDraw()); setGesture(null); setPointer(null); setMarquee(null); setGeneration((n) => n + 1); };
-  const finish = () => {
-    const p = point(); if (!p || !start || distance(start, p) < 50) return;
+  const cancel = () => { stage.current?.stopDrag(); store.getState().cancelWallSplit(); store.getState().cancelPendingSpatial(); setWallDraw(idleWallDraw()); setChain([]); setGesture(null); setPointer(null); setMarquee(null); setGeneration((n) => n + 1); store.getState().setTool('select'); };
+  const clickChain = () => {
+    const p = point(); if (!p) return;
+    if (!start) { setChain([p]); setPointer(p); setWallDraw({ anchor: p, preview: p }); return; }
+    if (distance(start, p) < 50) return;
     try {
       const state = store.getState();
+      let closed = chain.length > 2 && distance(p, chain[0]!) < .01;
+      if (tool === 'wall' || tool === 'guard-wall') {
+        const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start).extension : undefined;
+        const result = tool === 'wall' ? clickWallDraw({ anchor: start, preview: p }, p, state.document, extension)
+          : clickGuardWallDraw({ anchor: start, preview: p }, p, state.document);
+        if (!result.document) return;
+        state.apply(result.document);
+        if (tool === 'wall' && !result.state.anchor) closed = true;
+      } else if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p));
+      else if (tool === 'patio') state.apply(addOutdoorEdge(state.document, start, p));
+      if (closed) { setChain([]); setWallDraw(idleWallDraw()); setPointer(null); state.setTool('select'); }
+      else { setChain([...chain, p]); setPointer(p); setWallDraw({ anchor: p, preview: p }); }
+    } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Trazo inválido'); }
+  };
+  const finish = () => {
+    const p = point();
+    if (!p || !start || distance(start, p) < 50) { setGesture(null); setPointer(null); setWallDraw(idleWallDraw()); return; }
+    try {
+      const state = store.getState();
+      if (tool === 'wall' || tool === 'guard-wall') {
+        const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start).extension : undefined;
+        const draw = { anchor: start, preview: p };
+        const result = tool === 'wall' ? clickWallDraw(draw, p, state.document, extension) : clickGuardWallDraw(draw, p, state.document);
+        if (result.document) state.apply(result.document);
+      }
+      if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p));
+      if (tool === 'patio') state.apply(addOutdoorArea(state.document, start, p));
       if (tool === 'rectangle') state.apply(addWallPath(state.document,
         [start, { x: p.x, y: start.y }, p, { x: start.x, y: p.y }], true));
       if (tool === 'measure') state.apply(editDocument(state.document,
         (next) => next.dimensions.push({ id: newId(), from: start, to: p })));
+      state.setTool('select');
     } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Trazo inválido'); }
-    setGesture(null); setPointer(null);
+    setGesture(null); setPointer(null); setWallDraw(idleWallDraw());
   };
   const finishMarquee = () => {
     if (!marquee) return;
@@ -127,7 +176,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
   }, [size, view]);
-  const drawing = !readOnly && ['wall', 'guard-wall', 'rectangle', 'measure'].includes(tool);
+  const drawing = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
   const draftDimension = wallPreview.anchor && wallPreview.preview ? drawingDimension(wallPreview.anchor, wallPreview.preview, view.scale) : null;
@@ -135,6 +184,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
     && tool === 'wall' ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor).extension : undefined;
   const wallMagnet = wallPreview.anchor && wallPreview.preview
     ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor) : undefined;
+  const boundaryDimension = start && pointer && (isBoundaryKind(tool) || tool === 'patio') ? drawingDimension(start, pointer, view.scale) : null;
   const splitting = tool === 'split-wall' && !readOnly;
   const placingSpatial = tool === 'place-object' && !readOnly && !!pendingSpatial;
   const spatialPreview = useMemo(() => {
@@ -154,6 +204,15 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
       onPointerDown={(e) => {
         stage.current?.container().parentElement?.focus();
         if (pan) return;
+        if (tool === 'walkthrough' && !readOnly) {
+          const p = point(), state = store.getState();
+          const route = state.document.walkthroughs?.find((path) => path.id === state.walkthroughId);
+          if (p && route && e.target.getClassName() !== 'Circle') {
+            try { state.apply(putWalkthrough(state.document, { ...route, waypoints: [...route.waypoints, waypoint(p)] })); state.setTool('select'); }
+            catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo añadir el punto'); }
+          }
+          return;
+        }
         if (placingSpatial) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const raw = stage.current?.getRelativePointerPosition();
@@ -166,41 +225,39 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const p = point(); if (p) store.getState().commitWallSplit(p, view.scale); return;
         }
-        if (drawing && (tool === 'wall' || tool === 'guard-wall')) {
-          if (e.evt.button !== undefined && e.evt.button !== 0) return;
-          if (e.evt.detail > 1) { cancel(); return; }
-          const p = point(); if (!p) return;
-          try {
-            const current = store.getState();
-            const extension = tool === 'wall' && wallDraw.anchor ? snapWallPoint(current.document, p, view.scale, current.snap, wallDraw.anchor).extension : undefined;
-            const result = tool === 'guard-wall' ? clickGuardWallDraw(wallDraw, p, current.document)
-              : clickWallDraw(wallDraw, p, current.document, extension);
-            if (result.document) store.getState().apply(result.document);
-            setWallDraw(result.state);
-          } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se puede unir este muro.'); }
-          return;
-        }
         if (tool === 'select' && e.target === stage.current) {
           const p = point(); if (!p) return;
           const mode = e.evt.altKey ? 'subtract' : e.evt.metaKey || e.evt.ctrlKey || e.evt.shiftKey ? 'add' : 'replace';
           setMarquee({ from: p, to: p, baseSelection: store.getState().selection, mode });
           return;
         }
-        if (drawing) { const p = point(); if (p && !start) { setGesture({ point: p, tool }); setPointer(p); } }
+        if (continuous && drawing) {
+          if (e.evt.button !== undefined && e.evt.button !== 0) return;
+          clickChain(); return;
+        }
+        if (drawing) {
+          if (e.evt.button !== undefined && e.evt.button !== 0) return;
+          const p = point();
+          if (p) {
+            setGesture({ point: p, tool }); setPointer(p);
+            if (tool === 'wall' || tool === 'guard-wall') setWallDraw({ anchor: p, preview: p });
+          }
+        }
       }} onPointerMove={() => {
-        if (!pan && placingSpatial) { setPointer(stage.current?.getRelativePointerPosition() ?? null); return; }
+        if (!pan && placingSpatial) { const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null); if (raw && pendingSpatial) { const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 }); snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale); } return; }
         if (!pan && splitting) { setPointer(point()); return; }
         if (!pan && marquee) { const p = point(); if (p) setMarquee((current) => current ? { ...current, to: p } : null); return; }
         if (pan || !drawing) return;
         const p = point();
         if (p && (tool === 'wall' || tool === 'guard-wall')) setWallDraw((current) => moveWallDraw(current, p));
         else if (start) setPointer(p);
-      }} onPointerUp={() => { if (!pan && marquee) finishMarquee(); else if (!pan && drawing && tool !== 'wall') finish(); }} onDblClick={cancel} onDblTap={cancel}>
+      }} onPointerUp={() => { if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }} >
+
       <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} /></Layer>
-      <Layer listening={false}>{start && pointer && <Line points={tool === 'rectangle'
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} /></Layer>
+      <Layer listening={false}>{start && pointer && <Line points={(tool === 'rectangle')
         ? [start.x, start.y, pointer.x, start.y, pointer.x, pointer.y, start.x, pointer.y, start.x, start.y]
-        : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</Layer>
+        : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</Layer>
       <Layer listening={false}>{wallPreview.anchor && wallPreview.preview && wallLength >= 50 && <>
         {wallExtension && <>
           <Line points={[wallExtension.from.x, wallExtension.from.y, wallExtension.point.x, wallExtension.point.y]}
@@ -218,7 +275,8 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
             stroke="#00a693" strokeWidth={2 / view.scale} dash={[8 / view.scale, 5 / view.scale]} />}</>}
         {draftDimension && <DimensionMark scale={view.scale} layout={draftDimension} />}
       </>}</Layer>
-      <Layer listening={false}>{start && pointer && tool === 'rectangle' && rectangleDimensions(start, pointer, view.scale)
+      <Layer listening={false}>{boundaryDimension && <DimensionMark layout={boundaryDimension} scale={view.scale} />}</Layer>
+      <Layer listening={false}>{start && pointer && (tool === 'rectangle') && rectangleDimensions(start, pointer, view.scale)
         .map((layout, index) => <DimensionMark key={index} layout={layout} scale={view.scale} />)}</Layer>
       <Layer listening={false}>{marquee && <Rect x={Math.min(marquee.from.x, marquee.to.x)} y={Math.min(marquee.from.y, marquee.to.y)}
         width={Math.abs(marquee.to.x - marquee.from.x)} height={Math.abs(marquee.to.y - marquee.from.y)}
@@ -235,6 +293,7 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
         <Text width={spatialPreview.widthMm} y={spatialPreview.depthMm / 2 - 7 / view.scale} align="center" fill="#087f75" fontSize={12 / view.scale}
           text={'catalogId' in spatialPreview && spatialPreview.catalogId === 'builtin:column-rectangular' ? 'Columna · clic para colocar' : 'Copia · clic para colocar'} />
       </Group>}</Layer>
+      <Layer listening={false}>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</Layer>
     </Stage>
     {wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Cerrar habitación · prolongar pared existente sin añadir un tramo
@@ -244,8 +303,10 @@ export function CanvasView({ store, onCenter, active = true }: { store: EditorSt
         ? 'Imán activo · borde del descansillo' : 'Imán activo · unir al vértice'}
     </div>}
     {!pan && (tool === 'wall' || tool === 'guard-wall') && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      {tool === 'guard-wall' ? wallPreview.anchor ? 'Haz clic para terminar el murete de protección' : 'Haz clic en el inicio del murete · no arrastres'
-        : wallPreview.anchor ? 'Haz clic para fijar el siguiente punto · vuelve al inicio para cerrar la habitación' : 'Haz clic para iniciar la pared · no arrastres'}
+      {wallPreview.anchor ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
+    </div>}
+    {continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+      {start ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
     {splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}

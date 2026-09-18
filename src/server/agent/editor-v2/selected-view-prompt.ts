@@ -1,6 +1,7 @@
 import type { Estilo } from '@/lib/contracts';
 import { estiloLabel } from '@/lib/design-options';
 import { designSpaceKindLabel } from '@/lib/design-space-kind';
+import { CEILING_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
 import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { rampParts, rampPartFootprint } from '@/lib/editor-document/ramp-route';
@@ -22,6 +23,7 @@ Conserva cantidad, ubicación, sección, altura y cota base de cada muro y colum
 Respeta la continuidad de las cotas de cada recorrido. No aplanes plataformas elevadas ni rellenes accesos. No dupliques, muevas, gires, estires ni agregues estructura. No conviertas un exterior en una habitación cerrada.
 Los muros de camera.cutawayWallIds están ocultados para visualizar el interior, no demolidos: respeta su omisión visual en esta cámara. Los elementos fuera de encuadre u ocluidos no deben recolocarse para hacerlos visibles.
 Puedes mejorar materiales y luz sin alterar geometría. Conserva posición y escala del mobiliario y vegetación existentes; no añadas jardineras ni vegetación sobre escaleras, rampas, descansillos o entradas. No sustituyas ningún acceso por decoración. No añadas toldos, cubiertas o construcciones en este modo de fidelidad.
+${CEILING_RENDER_POLICY}
 Entrega una sola imagen, sin collage, texto, cotas ni etiquetas. Antes de entregarla, contrasta accesos, pilares, descansillos y alturas con la referencia; prima fidelidad sobre decoración.`;
 
 const m = (v: number) => Number((v / 1000).toFixed(4));
@@ -68,7 +70,7 @@ export function selectedViewPrompt(
         walls: source.walls.length, columns: source.columns?.length ?? 0, stairs: source.stairs?.length ?? 0,
         ramps: (source.ramps ?? []).filter((ramp) => !isRampLanding(ramp)).length,
         independentLandings: (source.ramps ?? []).filter(isRampLanding).length,
-        openings: source.openings.length,
+        openings: source.openings.length, ceilings: level.ceilings.length, luminaires: level.luminaires.length,
       }, ramps: (source.ramps ?? []).map((ramp) => ({
         id: ramp.id, name: ramp.name ?? null, kind: isRampLanding(ramp) ? 'landing' : 'ramp',
         supportBaseElevationM: isRampLanding(ramp) ? 0 : m(ramp.elevationMm),
@@ -92,6 +94,7 @@ export function selectedViewPrompt(
         floors: level.floors.map(floor => ({ roomId: floor.roomId,
           finishedFloorElevationM: floor.finishedFloorElevationM, structuralDepthM: floor.structuralDepthM,
           undersideElevationM: floor.undersideElevationM })),
+        ceilings: level.ceilings, luminaires: level.luminaires,
         walls: level.walls, openings: level.openings, columns: level.columns, stairs: level.stairs,
         ramps: level.ramps.map(ramp => ({ ...ramp, parts: ramp.parts.map(part => ({
           kind: part.kind, footprintM: part.footprintM, startElevationM: part.startElevationM, endElevationM: part.endElevationM,

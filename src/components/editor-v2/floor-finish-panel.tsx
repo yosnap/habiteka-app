@@ -1,4 +1,5 @@
 'use client';
+import { AnchoredEditorPanel } from './anchored-editor-panel';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { FloorFinish } from '@/lib/editor-document/schema';
@@ -11,16 +12,15 @@ import { ModernSelect } from '@/components/ui/modern-select';
 
 export function FloorFinishPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
-  if (!id?.startsWith('room:') || !deriveRooms(state.document).some((r) => r.id === id)) return null;
+  if (state.detailPanel !== 'paint' || !id?.startsWith('room:') || !deriveRooms(state.document).some((r) => r.id === id)) return null;
   const finish = floorFinish(state.document, id);
   const update = (patch: Partial<FloorFinish>) => {
     try { state.apply(setFloorFinish(store.getState().document, id, patch)); }
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo pintar el suelo'); }
   };
-  return <section aria-label="Acabados del suelo" style={{ position: 'absolute', right: 20, top: 130, width: 280,
-    background: 'white', padding: 20, maxHeight: '65%', overflowY: 'auto', borderRadius: 16, boxShadow: '0 8px 32px #0003', zIndex: 30 }}>
-    <strong>Suelo de la habitación</strong>
-    <button aria-label="Cerrar acabados del suelo" onClick={() => state.select([])} style={{ float: 'right' }}>×</button>
+  return <AnchoredEditorPanel store={store} label="Acabados del suelo">
+    <strong>Acabados del suelo</strong>
+    <button aria-label="Cerrar acabados del suelo" onClick={() => state.setDetailPanel(null)} style={{ float: 'right' }}>×</button>
     <fieldset disabled={state.readOnly} style={{ border: 0, padding: 0, display: 'grid', gap: 12, marginTop: 16 }}>
       <label>Color <input type="color" aria-label="Color del suelo" value={finish.color} onChange={(e) => update({ color: e.target.value })} /></label>
       <label>Textura <ModernSelect aria-label="Textura del suelo" value={finish.texture} onChange={(e) => update({ texture: e.target.value as FloorFinish['texture'] })}>
@@ -41,5 +41,5 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
       <MeterField label="Tamaño de repetición" valueMm={finish.tileSizeMm} change={(tileSizeMm) => update({ tileSizeMm })} />
       <NumberField label="Giro de textura (°)" value={finish.rotation} change={(rotation) => update({ rotation })} />
     </fieldset>
-  </section>;
+  </AnchoredEditorPanel>;
 }
