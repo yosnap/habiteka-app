@@ -16,6 +16,26 @@ Con Ajuste activo, bordes, extremos y centros comparten referencias magnéticas 
 
 Seleccionar y usar flechas mueve 1 cm; Mayús+flechas mueve 10 cm, sin saltar de nuevo a la cuadrícula. También se admiten habitaciones/patios, paredes, textos, medidas, aberturas y puntos de recorrido, además de objetos espaciales y luces. Los vértices compartidos se desplazan una sola vez en una selección múltiple. Puertas/ventanas se desplazan a lo largo de su pared; límites importados protegidos y colisiones siguen vigentes. Una habitación mueve sus vértices y etiquetas; el mobiliario se selecciona aparte.
 
+### Atajos de teclado
+
+La tabla vive en `src/canvas/editor-v2/editor-shortcuts.ts`; los tooltips de las barras y el manejador de teclado la leen de ahí. No actúan mientras se edita un campo.
+
+| Acción | Tecla |
+|---|---|
+| Seleccionar | S |
+| Construir (abre o cierra el menú) | C |
+| Amueblar | F |
+| Medir | M |
+| Ajuste magnético | A |
+| Mano (activa o desactiva) | Espacio |
+| Encuadrar | 0 |
+| Acercar / Alejar | + / − |
+| Muro, rectángulo, puerta, ventana, hueco | B, R, D, V, H |
+| Deshacer / rehacer | ⌘Z / ⇧⌘Z |
+| Copiar / pegar / seleccionar todo / borrar | ⌘C / ⌘V / ⌘A / Supr |
+
+Con el ratón: Mayús, ⌘ o Ctrl + clic añade o quita un elemento de la selección; arrastrar un elemento de una selección múltiple mueve toda la selección; **Alt + arrastrar un mueble o cerramiento lo duplica** en el sitio donde se suelta, con los mismos imanes y colisiones que un movimiento. Los botones de las barras muestran su atajo en un tooltip al pasar el ratón o enfocarlos.
+
 Los campos numéricos conservan foco al usar Arriba/Abajo repetidamente y muestran botones de aumentar/disminuir al recibir foco o pasar el puntero. Admiten coma y punto decimal. Mientras se edita un campo no se ejecutan atajos del plano. Distancias: paso de 0,01 m; ángulos/unidades generales: 1.
 
 ## Norma general de dibujo
@@ -51,6 +71,8 @@ En las esquinas, cada cara de la unión prolonga el acabado de su pared hasta el
 El acabado del suelo es una superficie a nivel cero, sin una losa automática de 8 cm debajo. Se recorta contra las huellas reales de paredes y encuentros, respetando grosores distintos, habitaciones cóncavas y muros interiores. Los pasos de puerta a nivel cero conservan su umbral. Ocultar paredes para ver el interior no amplía el suelo.
 
 ## Tamaño, giro, elevación y comentarios
+
+Los tiradores de esquina redimensionan dejando fija la esquina opuesta: una valla, una puerta o un armario crecen solo por el lado que se arrastra y no pierden su ubicación. Con Alt pulsado el elemento crece por ambos lados alrededor de su centro. Los muebles se apoyan en el suelo de su estancia: en una estancia con el suelo elevado, un objeto a cota 0 se sube a la cota del suelo al cargar y en cada edición, conservando la elevación propia del catálogo; nunca se baja un objeto colocado más alto a mano. Al cambiar la cota del suelo de una estancia, todo lo que se apoya en ella la acompaña: muebles y columnas dentro del contorno, la elevación de puertas y ventanas de sus muros, y la altura de esos muros para conservar la altura libre. Un muro compartido con otra estancia toma como referencia el suelo más alto de las dos, así no crece dos veces si se elevan ambas.
 
 Los controles inferiores editan medidas en centímetros y ángulo en grados; muebles y escaleras giran alrededor de su centro. La elevación modifica su posición vertical, no su tamaño. Las colisiones consideran altura además de huella. Puertas y ventanas permanecen vinculadas a una pared.
 
