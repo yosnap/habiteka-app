@@ -49,3 +49,12 @@ No verificado en navegador (no se lanza el dev server desde aquí).
 - Los tiradores de mover/girar/redimensionar no aplicaban a cocinas (`object-transform-controls.tsx` no mapeaba `kitchenRuns`). Corregido.
 - En planta los aparatos bajo encimera quedaban tapados por la encimera: el símbolo 2D los dibuja ahora encima (`furniture-symbol.tsx`), así se ven y se arrastran.
 - Nota: en el proyecto «Finca» queda un borrador local mío de prueba («Recuperar · 4 cambios», ~18:00) además del de Paulo (207 cambios); se puede ignorar o abrir la revisión del servidor.
+
+## Bloque «apoyo sobre mueble y alineación» (18:35–18:50) · ampliación de la fase 5
+
+- `hostId` en el mobiliario: el objeto se apoya en el mueble cuya huella contiene su centro (`object-host-rest.ts`): al ganar anfitrión toma la cota de su cara superior y su orientación; si sigue sobre él sube con su altura pero respeta una cota puesta a mano más alta; si lo pierde vuelve al suelo (y `restObjectsOnFloors` lo deja en el suelo de la estancia). Solo se apoyan objetos de sobremesa: pantallas, plantas, lámparas y electrodomésticos ≤ 60 cm; un aparato de pie o un mueble nunca se sube a una encimera. Anfitriones: muebles con cara plana (cabinet, table, shelf, kitchen, bench, appliance) y tramos de cocina (encimera).
+- Colisiones: apoyado y anfitrión no chocan entre sí (`spatial-placement.ts`).
+- Giro contra el muro (`wall-back-alignment.ts`): al acercar un mueble a un muro recto se gira paralelo con la trasera contra la cara, como una puerta; solo si ya está más o menos paralelo (frente o trasera hacia el muro), uno perpendicular a propósito se respeta.
+- Soltar un objeto no seleccionado aplica ya la colocación completa (giro, cota, anfitrión), no solo el desplazamiento (`document-layer.tsx`).
+- Verificado con el plano real «Finca» exportado de la BD local: la «Pantalla de televisión» que Paulo había subido a mano queda apoyada sola en el mueble (1,50 m) y un televisor nuevo se coloca a esa cota girado 90° como el mueble; el error «atraviesa» que vi en el navegador era que ya había una pantalla en ese mueble. La «Cocina con fogones» (90 cm) ya no se sube a la encimera.
+- Tests: `tests/editor-document/object-host-rest.test.ts` (5). Suites editor-document/canvas/editor-v2 en verde.
