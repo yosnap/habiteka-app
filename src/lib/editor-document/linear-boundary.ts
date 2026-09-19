@@ -1,21 +1,23 @@
 import type { EditorDocument, Point } from './schema';
 import { OUTDOOR_CATALOG } from './outdoor-catalog';
-import { upgradeSpatialDocument } from './spatial-properties';
+import { upgradeBoundaryDocument } from './boundary-commands';
+import { boundaryDefaults, type BoundaryKind } from './boundary-types';
+export { isBoundaryKind } from './boundary-types';
 import { editDocument, newId } from '@/canvas/editor-v2/editing-operations';
+import { landingWallPlacement } from './landing-wall-placement';
 
-export type BoundaryKind = 'valla-madera' | 'cerca-metal' | 'seto';
-export function isBoundaryKind(kind: string): kind is BoundaryKind {
-  return ['valla-madera', 'cerca-metal', 'seto'].includes(kind);
-}
 /** Draw along the centre line; retain one selectable entity for the whole run. */
-export function addLinearBoundary(doc: EditorDocument, kind: BoundaryKind, from: Point, to: Point) {
+export function addLinearBoundary(doc: EditorDocument, kind: BoundaryKind, drawnFrom: Point, drawnTo: Point) {
   const item = OUTDOOR_CATALOG.find((entry) => entry.kind === kind)!;
+  // Como un murete: una valla trazada sobre el borde de un descansillo o suelo elevado se apoya en su superficie acabada.
+  const placement = landingWallPlacement(doc, [drawnFrom, drawnTo], 200, item.depthMm);
+  const [from, to] = placement?.points ?? [drawnFrom, drawnTo], elevationMm = placement?.elevationMm ?? item.elevationMm;
   const dx = to.x - from.x, dy = to.y - from.y, length = Math.hypot(dx, dy);
   if (length < 50) throw new Error('El cerramiento debe medir al menos 5 cm');
-  return editDocument(upgradeSpatialDocument(doc), (next) => {
-    next.furniture.push({ id: newId(), kind, catalogId: item.id,
+  return editDocument(upgradeBoundaryDocument(doc), (next) => {
+    next.boundaries!.push(boundaryDefaults({ id: newId(), kind, catalogId: item.id,
       x: from.x + dy / length * item.depthMm / 2, y: from.y - dx / length * item.depthMm / 2,
       widthMm: length, depthMm: item.depthMm, rotation: Math.atan2(dy, dx) * 180 / Math.PI,
-      heightMm: item.heightMm, elevationMm: item.elevationMm, color: item.color, dimensionalOrigin: 'physical' });
+      heightMm: item.heightMm, elevationMm, color: item.color, dimensionalOrigin: 'physical' }));
   });
 }

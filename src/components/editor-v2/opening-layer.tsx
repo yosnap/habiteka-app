@@ -12,6 +12,7 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { entranceLocalPoints, landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 import { FloorSurface } from './floor-surface';
+import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
 const GREEN = '#087f75', RED = '#ba302f', INK = '#343b3a';
 function Symbol({ opening, thickness, scale, active = false, continuous = false }: {
@@ -104,8 +105,8 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
       return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id ? .35 : 1}
         draggable={!disabled && !readOnly && tool === 'select'}
         onPointerDown={(event) => { grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
-        onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([opening.id]); } }}
-        onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([opening.id]); } }}
+        onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt); } }}
+        onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt as unknown as MouseEvent); } }}
         onDragStart={(event) => {
           candidateHost.current = opening.wallId;
           const pointer = grabPointer.current ?? event.target.getStage()?.getRelativePointerPosition();

@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import { nudgeElements } from './nudge-elements';
 import type { EditorDocument, Point, Opening } from '@/lib/editor-document/schema';
 import type { CatalogEntry } from '@/canvas/catalog';
@@ -14,6 +15,7 @@ import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
+import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
 
 export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
@@ -37,6 +39,9 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
     const ids = path.map((p) => {
       const existing = next.vertices.find((v) => distance(v, p) < 0.01);
       if (existing) return existing.id;
+      // Un extremo que cae sobre el cuerpo de un muro existente lo divide y comparte vértice: la estancia queda cerrada.
+      const support = wallSupportAt(next, p);
+      if (support) return joinPointToWall(next, support);
       const id = newId(); next.vertices.push({ id, ...p }); return id;
     });
     for (let i = 0; i < ids.length - (closed ? 0 : 1); i++) {
@@ -58,6 +63,8 @@ export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
     const ids = path.map((point) => {
       const existing = next.vertices.find((vertex) => distance(vertex, point) < .01);
       if (existing) return existing.id;
+      const support = wallSupportAt(next, point);
+      if (support) return joinPointToWall(next, support);
       const id = newId(); next.vertices.push({ id, ...point }); return id;
     });
     const elevationMm = placement?.elevationMm ?? 0;
@@ -182,6 +189,10 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
     next.walls = next.walls.filter((w) => !ids.includes(w.id));
     next.openings = next.openings.filter((o) => !ids.includes(o.id) && !ids.includes(o.sourceRampId ?? '') && next.walls.some((w) => w.id === o.wallId));
     next.furniture = next.furniture.filter((o) => !ids.includes(o.id));
+    if (next.boundaries) {
+      next.boundaries = next.boundaries.filter((o) => !ids.includes(o.id));
+      for (const b of next.boundaries) b.construction.gates = b.construction.gates.filter((g) => !ids.includes(g.id));
+    }
     next.labels = next.labels.filter((o) => !ids.includes(o.id));
     next.dimensions = next.dimensions.filter((o) => !ids.includes(o.id));
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));
@@ -189,19 +200,19 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
     if (next.luminaires) next.luminaires = next.luminaires.filter((light) => !ids.includes(light.id));
     if (next.columns) next.columns = next.columns.filter((o) => !ids.includes(o.id));
     if (next.comments) {
-      const retained = new Set([...next.walls, ...next.openings, ...next.furniture, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].map((e) => e.id));
+      const retained = new Set([...next.walls, ...next.openings, ...planObjects(next), ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].map((e) => e.id));
       next.comments = next.comments.filter((c) => retained.has(c.targetEntityId));
     }
     next.vertices = next.vertices.filter((v) => next.walls.some((w) => w.startVertexId === v.id || w.endVertexId === v.id));
   });
 }
 export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
-  const spatial = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((f) => f.id === id);
+  const spatial = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((f) => f.id === id);
   const moved = editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
     const wall = next.walls.find((w) => w.id === id);
     if (wall) next.vertices.filter((v) => v.id === wall.startVertexId || v.id === wall.endVertexId)
       .forEach((v) => Object.assign(v, constrainExteriorVertex(doc, v.id, { x: v.x + delta.x, y: v.y + delta.y })));
-    const item = next.luminaires?.find((light) => light.id === id) ?? next.furniture.find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
+    const item = next.luminaires?.find((light) => light.id === id) ?? planObjects(next).find((f) => f.id === id) ?? next.labels.find((f) => f.id === id)
       ?? next.stairs?.find((f) => f.id === id) ?? next.ramps?.find((f) => f.id === id) ?? next.columns?.find((f) => f.id === id);
     if (item) { item.x += delta.x; item.y += delta.y; }
     const light = next.luminaires?.find((entry) => entry.id === id);

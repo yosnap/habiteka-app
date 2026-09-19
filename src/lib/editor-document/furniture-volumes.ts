@@ -1,10 +1,13 @@
-import type { Furniture } from './schema';
+import { isBoundary } from './boundary-types';
+import { boundaryVolumes, boundaryDisplayVolumes } from './boundary-volumes';
+import type { EditorDocument, Furniture } from './schema';
 import { furnitureSpatial } from './spatial-properties';
 import { catalogFurnitureVolumes, type FurnitureVolume } from './furniture-profiles';
 import { furnitureAsset } from './furniture-assets';
 
 /** Local solid volumes shared by rendering and placement, including free space below tables. */
-export function furnitureVolumes(item: Furniture): FurnitureVolume[] {
+export function furnitureVolumes(item: Furniture, doc?: EditorDocument): FurnitureVolume[] {
+  if (isBoundary(item)) return doc ? boundaryDisplayVolumes(item, doc.boundaries ?? []) : boundaryVolumes(item);
   // Real assets use a conservative collision envelope until calibrated proxies exist.
   if (furnitureAsset(item)) {
     const props = furnitureSpatial(item);

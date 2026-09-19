@@ -4,6 +4,9 @@ export interface SceneBox {
   id: string; sourceEntityId: string; role: 'wall' | 'frame' | 'leaf' | 'glass' | 'step' | 'landing' | 'rail' | 'ramp' | 'furniture' | 'column';
   position: Vector3Tuple; size: Vector3Tuple; rotation: number; color: string;
   emissive?: string;
+  shape?: 'box' | 'cylinder';
+  boundaryPart?: 'post' | 'gate';
+  materialId?: string;
   sideColors?: [string, string];
   sideMaterials?: [string, string];
   textureOffset?: [number, number];

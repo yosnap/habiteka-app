@@ -1,10 +1,12 @@
 import { magneticReferences } from './magnetic-alignment';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
-import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance';
+import { assertOpeningClearanceNotWorse } from '@/lib/editor-document/opening-clearance';
 import { assertSpatialPlacement } from './spatial-placement';
 import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-constraint';
 import { wallPoints } from '@/lib/editor-document/geometry';
+import { mergeVertexInto } from '@/lib/editor-document/vertex-merge';
+import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
 
 export interface VertexPreview {
   document: EditorDocument; point: Point; guides: { from: Point; to: Point }[]; error: string | null;
@@ -30,15 +32,25 @@ export function previewVertex(doc: EditorDocument, id: string, pointer: Point, s
   const axis = !x && !y ? axes[0] : undefined;
   if (snap && axis) point = axis.target;
   point = constrainExteriorVertex(doc, id, point);
-  const candidate = { ...doc, vertices: doc.vertices.map((v) => v.id === id ? { ...v, ...point } : v) };
+  // Soltar exactamente sobre otro vértice lo fusiona: así un patio puede compartir esquinas y muros con la casa.
+  const twin = snap ? doc.vertices.find((v) => v.id !== id && Math.hypot(v.x - point.x, v.y - point.y) < .5) : undefined;
+  // Soltarlo sobre el cuerpo de otro muro lo divide ahí y une ambos (unión en T): cierra estancias trazadas hasta la cara.
+  const incident = new Set(doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id).map((w) => w.id));
+  const support = snap && !twin ? wallSupportAt(doc, point, { exclude: incident }) : undefined;
+  if (support) point = support.point;
+  const moved = structuredClone({ ...doc, vertices: doc.vertices.map((v) => v.id === id ? { ...v, ...point } : v) });
+  const joined = support ? joinPointToWall(moved, wallSupportAt(moved, point, { exclude: incident })!) : undefined;
+  const candidate = twin ? mergeVertexInto(moved, id, twin.id) : joined ? mergeVertexInto(moved, id, joined) : moved;
   const guides: { from: Point; to: Point }[] = [x && { from: x, to: point }, y && { from: y, to: point }].filter((g) => !!g);
   if (axis) guides.push({ from: axis.origin, to: point });
   let error: string | null = null;
   try {
     assertEditorDocument(candidate);
-    const changed = candidate.walls.filter((w) => w.startVertexId === id || w.endVertexId === id);
-    candidate.openings.filter((o) => changed.some((w) => w.id === o.wallId)).forEach((o) => assertOpeningClearance(candidate, o));
+    const changed = candidate.walls.filter((w) => [w.startVertexId, w.endVertexId].some((v) => v === id || v === twin?.id || v === joined));
+    candidate.openings.filter((o) => changed.some((w) => w.id === o.wallId)).forEach((o) => assertOpeningClearanceNotWorse(doc, candidate, o));
     assertSpatialPlacement(doc, candidate);
   } catch (cause) { error = cause instanceof Error ? cause.message : 'Geometría inválida'; }
+  if (!error && twin) guides.push({ from: twin, to: point });
+  if (!error && support) guides.push({ from: support.point, to: point });
   return { document: candidate, point, guides, error };
 }

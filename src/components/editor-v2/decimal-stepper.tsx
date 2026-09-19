@@ -10,9 +10,11 @@ export function DecimalStepper({ value, change, step = 1, label, minimum = -Infi
   const draft = edit.base === value ? edit.text : formatEditorDecimal(value);
   const setDraft = (text: string) => setEdit({ base: value, text });
   const input = useRef<HTMLInputElement>(null);
+  // Tras aplicar, la base pasa a ser el nuevo valor: si luego se selecciona otro elemento cuyo valor
+  // coincide con el antiguo, el campo muestra ese valor y no el texto que quedó del anterior.
   const commit = (next: number) => {
     if (!Number.isFinite(next) || next < minimum || change(next) === false) setDraft(formatEditorDecimal(value));
-    else setDraft(formatEditorDecimal(next));
+    else setEdit({ base: next, text: formatEditorDecimal(next) });
   };
   const increment = (direction: number) => {
     const parsed = parseEditorDecimal(draft);

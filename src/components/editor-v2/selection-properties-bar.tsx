@@ -1,4 +1,6 @@
 'use client';
+import { planObjects } from '@/lib/editor-document/boundary-types';
+
 import { elementName } from '@/lib/editor-document/element-classification';
 import { useStore } from 'zustand';
 import { AlignCenterHorizontal, Scissors, SlidersHorizontal, Trash2, X } from 'lucide-react';
@@ -30,7 +32,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const doc = useStore(store, (state) => state.document), selection = useStore(store, (state) => state.selection);
   const readOnly = useStore(store, (state) => state.readOnly), id = selection[0];
   const wall = doc.walls.find((item) => item.id === id), opening = doc.openings.find((item) => item.id === id);
-  const furniture = doc.furniture.find((item) => item.id === id);
+  const furniture = planObjects(doc).find((item) => item.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
   const landing = ramp && isRampLanding(ramp);

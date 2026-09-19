@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from './types';
@@ -53,13 +54,15 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
       position: [meters(column.x + column.widthMm / 2), meters(column.elevationMm + column.heightMm / 2), meters(column.y + column.depthMm / 2)] as [number, number, number],
       size: [meters(column.widthMm), meters(column.heightMm), meters(column.depthMm)] as [number, number, number],
       rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0' })),
-    ...doc.furniture.flatMap((f) => furnitureVolumes(f).map((volume, index) => {
-      const p = localToWorld(f, { x: volume.x + volume.widthMm / 2, y: volume.y + volume.depthMm / 2 });
-      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: f.id, role: 'furniture' as const,
+    ...planObjects(doc).flatMap((f) => furnitureVolumes(f, doc).map((volume, index) => {
+      const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
+      const p = localToWorld(f, center);
+      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? f.id, role: 'furniture' as const,
         position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
         size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
         ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
-        rotation: -f.rotation * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
+        shape: volume.shape, materialId: volume.materialId, boundaryPart: volume.part,
+        rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
     })),
   ] };
 }

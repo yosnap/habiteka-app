@@ -64,6 +64,7 @@ function recalibrate(doc: EditorDocument, factor: number): void {
   doc.luminaires?.forEach(scale);
   doc.walkthroughs?.forEach((route) => route.waypoints.forEach((point) => { scale(point); if (point.lookAt) scale(point.lookAt); }));
   doc.stairs?.forEach(scale);
+  doc.boundaries?.forEach(scale);
   doc.dimensions.forEach((d) => {
     scale(d.from);
     scale(d.to);

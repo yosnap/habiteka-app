@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import { alignPoint, type MagneticGuide } from './magnetic-alignment';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { distance } from '@/lib/editor-document/geometry';
@@ -13,7 +14,7 @@ function spatialCorners(item: { x: number; y: number; widthMm: number; depthMm: 
     .map((point) => localToWorld(item, point));
 }
 function spatialSnapCandidates(doc: EditorDocument) {
-  const objects = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.columns ?? [])]
+  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.columns ?? [])]
     .flatMap((item) => spatialCorners(item).map((point) => ({ point, id: item.id })));
   const ramps = (doc.ramps ?? []).flatMap((ramp) => rampParts(ramp).flatMap((part) => rampPartFootprint(ramp, part)
     .map((point) => ({ point, id: ramp.id }))));

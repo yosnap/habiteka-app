@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { emptyCanvasDoc, type CanvasDoc, type StructKind } from '@/canvas/types';
 import type { EditorDocument } from '../schema';
@@ -28,7 +29,7 @@ export function toCanvasV1(doc: EditorDocument): CanvasDoc {
       width: Math.hypot(b.x - a.x, b.y - a.y) / factor,
       height: w.thicknessMm / factor, rotation: angle * 180 / Math.PI };
   });
-  output.objects.push(...doc.furniture.map((f) => {
+  output.objects.push(...planObjects(doc).map((f) => {
     if (!Object.hasOwn(CATALOG_BY_KIND, f.kind)) throw new Error(`Mueble no representable: ${f.kind}`);
     return { id: f.id, kind: f.kind as StructKind, x: f.x / factor, y: f.y / factor,
       width: f.widthMm / factor, height: f.depthMm / factor, rotation: f.rotation,

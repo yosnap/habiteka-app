@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { Estilo } from '@/lib/contracts';
 import { newId } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from './rooms';
@@ -102,7 +103,7 @@ export function canPlaceNativeDesignFurniture(
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return false;
   const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
   if (!suggestedFurnitureRoom(item, rooms)) return false;
-  const protectedFootprints = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])];
+  const protectedFootprints = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])];
   return !protectedFootprints.some((target) => intersects(candidate, target, 250));
 }
 

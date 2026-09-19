@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { Ceiling, EditorDocument, Luminaire, Point } from './schema';
 import { deriveRooms, type DerivedRoom } from './rooms';
 import { wallConstruction } from './construction-properties';
@@ -46,7 +47,7 @@ export function luminairePlacementIssue(doc: EditorDocument, light: Luminaire, s
   const bottom = heightMm - light.dropMm - luminaireDepthMm(light.kind);
   const floor = floorFinish(doc, room.id).elevationMm ?? 0;
   if (bottom - floor < 2100) return 'Conserva al menos 2,10 m de altura libre bajo la luminaria';
-  const objects = [...doc.furniture.map((item) => ({ ...item, ...furnitureSpatial(item) })), ...(doc.columns ?? []), ...(doc.stairs ?? []),
+  const objects = [...planObjects(doc).map((item) => ({ ...item, ...furnitureSpatial(item) })), ...(doc.columns ?? []), ...(doc.stairs ?? []),
     ...(doc.ramps ?? []).map((item) => ({ ...item, heightMm: item.riseMm + (item.route?.secondRiseMm ?? 0) }))];
   for (const item of objects) {
     const angle = -item.rotation * Math.PI / 180, dx = light.x - item.x, dy = light.y - item.y;
@@ -69,19 +70,33 @@ export function resolvedLuminaires(doc: EditorDocument): ResolvedLuminaire[] {
     return [{ luminaire, ceiling: surface.ceiling, heightMm: surface.heightMm - luminaire.dropMm - luminaireDepthMm(luminaire.kind), ceilingHeightMm: surface.heightMm }];
   });
 }
-export function ceilingWarnings(doc: EditorDocument): string[] {
+/** Aviso de construcción con el elemento al que apunta, para poder seleccionarlo desde la notificación. */
+export interface CeilingIssue { id?: string; label: string; message: string }
+
+const LIGHT_KIND_LABEL = { pendant: 'Lámpara colgante', flush: 'Plafón', recessed: 'Foco empotrado' } as const;
+
+export function ceilingIssues(doc: EditorDocument): CeilingIssue[] {
   if (!doc.ceilings?.length) return [];
   let surfaces: CeilingSurface[];
   try { surfaces = ceilingSurfaces(doc); }
-  catch { return ['Los techos requieren revisar el cierre de las habitaciones.']; }
+  catch { return [{ label: 'Techos', message: 'requieren revisar el cierre de las habitaciones' }]; }
+  const roomName = (roomId: string) => {
+    try { const room = deriveRooms(doc).find((r) => r.id === roomId); return room ? doc.labels.find((label) => insideRoom(label, room.boundary))?.text : undefined; }
+    catch { return undefined; }
+  };
   return [
     ...doc.ceilings.filter((ceiling) => !surfaces.some((surface) => surface.ceiling.id === ceiling.id))
-      .map((ceiling) => `Techo ${ceiling.id}: revisa la estancia o la altura libre (mínimo 2,10 m).`),
-    ...(doc.luminaires ?? []).flatMap((light) => {
+      .map((ceiling, index) => ({ id: ceiling.id, label: `Techo de ${roomName(ceiling.roomId) ?? `estancia ${index + 1}`}`, message: 'revisa la estancia o la altura libre (mínimo 2,10 m)' })),
+    ...(doc.luminaires ?? []).flatMap((light, index) => {
       const issue = luminairePlacementIssue(doc, light, surfaces);
-      return issue ? [`Luminaria ${light.id}: ${issue}.`] : [];
+      return issue ? [{ id: light.id, label: `${LIGHT_KIND_LABEL[light.kind]} ${index + 1}`, message: issue }] : [];
     }),
   ];
+}
+
+/** Versión en texto de `ceilingIssues`, para paneles que solo listan avisos. */
+export function ceilingWarnings(doc: EditorDocument): string[] {
+  return ceilingIssues(doc).map((issue) => `${issue.label}: ${issue.message}.`);
 }
 export function insideRoom(p: Point, boundary: Point[]): boolean {
   let result = false;

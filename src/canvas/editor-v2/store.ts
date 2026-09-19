@@ -11,6 +11,7 @@ import { assertSpatialPlacement, placeNewObject } from './spatial-placement';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
+import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 
 export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
 export interface EditorState {
@@ -18,6 +19,14 @@ export interface EditorState {
   setDetailAnchor: (point: Point) => void;
   magneticGuides: MagneticGuide[];
   setMagneticGuides: (guides: MagneticGuide[]) => void;
+  /** Petición de centrar el lienzo en un punto; el nonce distingue peticiones repetidas al mismo sitio. */
+  focusPoint: { point: Point; nonce: number } | null;
+  focusOn: (point: Point) => void;
+  /** Modo mano (desplazar el lienzo) y peticiones de vista (encuadrar, zoom) que el lienzo atiende una vez. */
+  pan: boolean;
+  setPan: (pan: boolean) => void;
+  viewRequest: { kind: 'fit' | 'zoom-in' | 'zoom-out'; nonce: number } | null;
+  requestView: (kind: 'fit' | 'zoom-in' | 'zoom-out') => void;
   walkthroughId: string | null;
   walkthroughPlaying: boolean;
   hideWalkthrough: () => void;
@@ -64,6 +73,9 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
   return createStore<EditorState>((set, get) => ({
     detailAnchor: null, setDetailAnchor: (detailAnchor) => set({ detailAnchor }),
     magneticGuides: [], setMagneticGuides: (magneticGuides) => set({ magneticGuides }),
+    focusPoint: null, focusOn: (point) => set({ focusPoint: { point, nonce: (get().focusPoint?.nonce ?? 0) + 1 } }),
+    pan: false, setPan: (pan) => set({ pan }),
+    viewRequest: null, requestView: (kind) => set({ viewRequest: { kind, nonce: (get().viewRequest?.nonce ?? 0) + 1 } }),
     walkthroughId: null, walkthroughPlaying: false,
     hideWalkthrough: () => set({ walkthroughId: null, walkthroughPlaying: false, tool: 'select' }),
     setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughPlaying: false }),
@@ -73,7 +85,8 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     detailPanel: null,
     setDetailPanel: (detailPanel) => set({ detailPanel }),
     readOnly: options.readOnly ?? false,
-    document: parseEditorDocument(initial), past: [], future: [], selection: [],
+    // Al cargar se sanea sin contar como edición: no se guarda hasta que el usuario cambie algo.
+    document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(initial), { onLoad: true })), past: [], future: [], selection: [],
     tool: 'select', pendingOpening: null, pendingSplitWallId: null, clipboardSpatial: null, pendingSpatial: null, snap: true, sequence: 0, error: null,
     beginWallSplit: (id) => {
       const state = get(); if (state.readOnly || !state.document.walls.some((w) => w.id === id)) return;
@@ -131,7 +144,8 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     apply: (candidate) => {
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
       const state = get();
-      const document = parseEditorDocument(reconcileCeilings(state.document, candidate));
+      // Los restos invisibles de contornos de patio anteriores se retiran en cada edición: parten estancias y bloquean suelos.
+      const document = parseEditorDocument(normalizeEditorDocument(reconcileCeilings(state.document, candidate)));
       for (const light of document.luminaires ?? []) {
         const previous = state.document.luminaires?.find((item) => item.id === light.id);
         if (document.activeLevelId === state.document.activeLevelId && JSON.stringify(previous) !== JSON.stringify(light)) {
@@ -163,7 +177,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     setTool: (tool) => set({ tool, magneticGuides: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
     setSnap: (snap) => set({ snap }),
     setError: (error) => set({ error }),
-    restore: (candidate) => set({ document: parseEditorDocument(candidate), past: [], future: [],
+    restore: (candidate) => set({ document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
       sequence: 0, selection: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, tool: 'select', error: null }),
   }));
 }

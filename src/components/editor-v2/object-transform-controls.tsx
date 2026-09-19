@@ -1,4 +1,6 @@
 'use client';
+import { planObjects } from '@/lib/editor-document/boundary-types';
+
 import { snapSpatialDrag } from './magnetic-drag';
 import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
@@ -11,15 +13,18 @@ import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { objectClearances } from '@/canvas/editor-v2/object-clearances';
 import { DimensionMark } from './dimension-mark';
 import { resizeRampFromCorner } from '@/lib/editor-document/ramp-landing-placement';
+import { resizeFromCorner } from '@/lib/editor-document/resize-from-corner';
 import { alignmentGuides } from '@/canvas/editor-v2/alignment-guides';
+import { duplicateSpatialItem, insertSpatialItem, type SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
 
 type ObjectItem = Furniture | Stair | Ramp | Column;
 export function ObjectTransformControls({ store, source, id, scale, onPreview }: {
   store: EditorStore; source: EditorDocument; id: string; scale: number; onPreview: (doc: EditorDocument | null) => void;
 }) {
-  const item = source.furniture.find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id) ?? source.columns?.find((c) => c.id === id);
+  const item = planObjects(source).find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id) ?? source.columns?.find((c) => c.id === id);
   const group = useRef<Konva.Group>(null);
-  const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null } | null>(null);
+  // `duplicate` marca un arrastre con Alt: el original no se mueve y la copia se coloca donde se suelta.
+  const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null; duplicate?: SpatialClipboardItem } | null>(null);
   const [shown, setShown] = useState<{ item: ObjectItem; error: string | null } | null>(null);
   useEffect(() => {
     const cancel = () => { const active = gesture.current; gesture.current = null; active?.node.stopDrag();
@@ -41,13 +46,13 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
     ? `${position} · Ancho ${(current.widthMm / 1000).toFixed(3)} m · Longitud ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`
     : `${position} · ${(current.widthMm / 1000).toFixed(3)} × ${(current.depthMm / 1000).toFixed(3)} m · ${current.rotation.toFixed(1)}°`;
   const center = objectCenter(current), rotate = localToWorld(current, { x: current.widthMm / 2, y: -40 / scale });
-  const begin = (node: Konva.Node) => {
-    const doc = upgradeSpatialDocument(source), base = doc.furniture.find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id) ?? doc.ramps!.find((r) => r.id === id) ?? doc.columns!.find((c) => c.id === id)!;
-    gesture.current = { node, doc, item: base, candidate: null, error: null };
+  const begin = (node: Konva.Node, duplicate = false) => {
+    const doc = upgradeSpatialDocument(source), base = planObjects(doc).find((f) => f.id === id) ?? doc.stairs!.find((s) => s.id === id) ?? doc.ramps!.find((r) => r.id === id) ?? doc.columns!.find((c) => c.id === id)!;
+    gesture.current = { node, doc, item: base, candidate: null, error: null, ...(duplicate ? { duplicate: duplicateSpatialItem(base) } : {}) };
   };
   const update = (nextItem: ObjectItem) => {
     const active = gesture.current; if (!active) return;
-    const candidate = { ...active.doc, furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
+    const candidate = active.duplicate ? insertSpatialItem(active.doc, { ...active.duplicate, x: nextItem.x, y: nextItem.y, rotation: nextItem.rotation } as SpatialClipboardItem) : { ...active.doc, ...(active.doc.boundaries ? { boundaries: active.doc.boundaries.map((b) => b.id === id ? nextItem as typeof b : b) } : {}), furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
       stairs: active.doc.stairs!.map((s) => s.id === id ? nextItem as Stair : s),
       columns: active.doc.columns?.map((c) => c.id === id ? nextItem as Column : c),
       ...(active.doc.ramps ? { ramps: active.doc.ramps.map((r) => r.id === id ? nextItem as Ramp : r) } : {}) };
@@ -59,7 +64,7 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   const end = () => {
     const active = gesture.current; gesture.current = null; setShown(null); onPreview(null);
     if (!active?.candidate) return;
-    try { if (active.error) throw new Error(active.error); store.getState().apply(active.candidate); }
+    try { if (active.error) throw new Error(active.error); store.getState().apply(active.candidate); if (active.duplicate) store.getState().select([active.duplicate.id]); }
     catch (cause) { store.getState().setError(cause instanceof Error ? cause.message : 'Edición inválida'); }
   };
   return <Group ref={group}>
@@ -72,7 +77,7 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
     <Text x={center.x + 5 / scale} y={center.y - 150 / scale} text="Y" fontSize={11 / scale} fill={color} listening={false} />
     <Line points={footprint(current).flatMap((p) => [p.x, p.y])} closed stroke={color} strokeWidth={2 / scale} listening={false} />
     <Group x={item.x} y={item.y} rotation={item.rotation} draggable
-      onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
+      onDragStart={(e) => { e.cancelBubble = true; begin(e.target, e.evt.altKey); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current; if (!active) return;
         const snapped = snapSpatialDrag(store, { ...active.item, ...e.target.position() }, scale);
         // El cursor y el control se detienen en el mismo punto que el plano
@@ -89,15 +94,14 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
         if (e.evt.shiftKey) rotation = Math.round(rotation / 15) * 15;
         update(transformAroundCenter(active.item, { rotation }));
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(rotate); end(); }} />
-    <Text x={rotate.x + 12 / scale} y={rotate.y - 7 / scale} text="Girar · Mayús: 15°" fontSize={10 / scale} fill={color} listening={false} />
+    <Text x={rotate.x + 12 / scale} y={rotate.y - 7 / scale} text="Girar · Mayús: 15° · Esquinas: Alt simétrico" fontSize={10 / scale} fill={color} listening={false} />
     {footprint(current).map((p, i) => <Circle key={i} x={p.x} y={p.y} radius={6 / scale} fill="white" stroke={color} strokeWidth={2 / scale} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active || !pointer) return;
-        const c = objectCenter(active.item), a = -active.item.rotation * Math.PI / 180, dx = pointer.x - c.x, dy = pointer.y - c.y;
+        // La esquina opuesta queda fija; con Alt el elemento crece por ambos lados alrededor de su centro.
         const resized = 'riseMm' in active.item
           ? resizeRampFromCorner(active.item, i, pointer)
-          : transformAroundCenter(active.item, { widthMm: Math.max(50, Math.abs(dx * Math.cos(a) - dy * Math.sin(a)) * 2),
-            depthMm: Math.max(50, Math.abs(dx * Math.sin(a) + dy * Math.cos(a)) * 2) });
+          : resizeFromCorner(active.item, i, pointer, e.evt.altKey);
         update(resized);
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(p); end(); }} />)}
     <Text x={center.x - 160 / scale} y={Math.max(...footprint(current).map((p) => p.y)) + 20 / scale} width={320 / scale} align="center"

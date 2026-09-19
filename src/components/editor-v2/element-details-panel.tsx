@@ -1,4 +1,6 @@
 'use client';
+import { planObjects, isBoundary } from '@/lib/editor-document/boundary-types';
+
 import { AnchoredEditorPanel } from './anchored-editor-panel';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { useState } from 'react';
@@ -15,7 +17,7 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
   const [draft, setDraft] = useState(''), [editing, setEditing] = useState<string | null>(null);
   const doc = state.document, wall = doc.walls.find((w) => w.id === id), opening = doc.openings.find((o) => o.id === id);
-  const furniture = doc.furniture.find((f) => f.id === id), stair = doc.stairs?.find((s) => s.id === id);
+  const furniture = planObjects(doc).find((f) => f.id === id), stair = doc.stairs?.find((s) => s.id === id);
   if (!state.detailPanel || !id || !(wall || opening || furniture || stair)) return null;
   const run = (operation: (doc: EditorDocument) => EditorDocument) => {
     try { store.getState().apply(operation(store.getState().document)); return true; }
@@ -24,6 +26,7 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
   const surfaces: [string, string, string][] = wall ? wallFaces(doc, wall).map(({ side, label }) =>
     [side, label, wall.colors?.[side] ?? finishColor(wall.materials?.[side] ?? 'plaster-white')])
     : opening ? [['frame', 'Marco', opening.colors?.frame ?? '#f4f1e9'], ...(opening.kind === 'puerta' ? [['leaf', 'Hoja', opening.colors?.leaf ?? '#bb956c'] as [string, string, string]] : [])]
+    : furniture && isBoundary(furniture) ? [['base', 'Muro inferior', furniture.construction.baseColor], ['body', 'Valla / seto', furniture.color], ['posts', 'Postes', furniture.construction.postColor]]
     : [['body', 'Color del elemento', furniture ? furnitureSpatial(furniture).color : stair!.color ?? finishColor(stair!.materialId)]];
   return <AnchoredEditorPanel store={store} label={state.detailPanel === 'paint' ? 'Pintar elemento' : 'Comentarios del elemento'}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>

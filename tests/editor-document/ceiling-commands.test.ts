@@ -10,6 +10,7 @@ import { addBuildingLevel, buildingDocuments, switchBuildingLevel } from '@/lib/
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { ceilingDesignContext } from '@/lib/editor-document/ceiling-design-context';
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
+import { setWallConstruction } from '@/lib/editor-document/construction-commands';
 import { applyCommand } from '@/lib/editor-document/commands';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }], true);
@@ -57,7 +58,9 @@ describe('contrato de techos y luminarias', () => {
   });
   it('mide altura libre desde suelo elevado y colisiones con muebles girados', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id;
-    const raised = setFloorFinish(doc, doc.ceilings![0]!.roomId, { elevationMm: 500 });
+    // Subir el suelo alarga los muros para conservar la altura libre; se devuelven a 2,70 m para simular un techo bajo.
+    let raised = setFloorFinish(doc, doc.ceilings![0]!.roomId, { elevationMm: 500 });
+    for (const wall of raised.walls) raised = setWallConstruction(raised, wall.id, { heightMm: 2700 } as Parameters<typeof setWallConstruction>[2]);
     expect(() => addLuminaire(raised, id, 'pendant', { x: 2500, y: 2500 })).toThrow('altura');
     expect(() => addLuminaire(raised, id, 'flush', { x: 2500, y: 2500 })).not.toThrow();
     doc.furniture.push({ id: 'rotated', kind: 'wardrobe', color: '#ffffff', x: 3000, y: 1000, widthMm: 2000, depthMm: 600, heightMm: 2600, elevationMm: 0, rotation: 90, dimensionalOrigin: 'physical' });

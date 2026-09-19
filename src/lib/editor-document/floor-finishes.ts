@@ -4,6 +4,7 @@ import { parseEditorDocument } from './validation';
 import { deriveRooms } from './rooms';
 import { wallConstruction } from './construction-properties';
 import { surfaceMaterial } from './surface-materials';
+import { syncRoomContentsWithFloor } from './floor-elevation-sync';
 
 export function floorFinish(doc: EditorDocument, roomId: string): FloorFinish {
   return doc.floorFinishes?.find((f) => f.roomId === roomId) ?? {
@@ -37,7 +38,11 @@ export function setFloorFinish(source: EditorDocument, roomId: string, patch: Pa
   const doc = upgradeSpatialDocument(source);
   if (doc.schemaVersion < 5) doc.schemaVersion = 5;
   doc.floorFinishes ??= [];
-  if (patch.elevationMm !== undefined) normalizeRoomWallBases(doc, roomId);
+  if (patch.elevationMm !== undefined) {
+    // El contenido de la estancia acompaña al suelo antes de renormalizar las bases de los muros.
+    syncRoomContentsWithFloor(doc, roomId, floorFinish(doc, roomId).elevationMm ?? 0, patch.elevationMm);
+    normalizeRoomWallBases(doc, roomId);
+  }
   doc.floorFinishes = [...(doc.floorFinishes ?? []).filter((f) => f.roomId !== roomId), { ...floorFinish(doc, roomId), ...patch, roomId }];
   doc.revision += 1;
   return parseEditorDocument(doc);

@@ -100,6 +100,10 @@ it('mover/eliminar patio adosado preserva la casa y su pared compartida', async 
   const id = deriveRooms(doc).find((r) => r.wallIds.some((w) => w.startsWith('outdoor:')))!.id;
   const moved = moveOutdoorRoom(doc, id, { x: 500, y: 0 });
   expect(moved.vertices.filter((v) => house.vertices.some((p) => p.id === v.id))).toEqual(house.vertices);
-  expect(deleteOutdoorRoom(moved, id).walls).toEqual(doc.walls.filter((w) => !w.id.startsWith('outdoor:')));
-  expect(deriveRooms(deleteOutdoorRoom(moved, id))).toHaveLength(1);
+  // Despegado de la casa conserva su forma (3 × 3 m) y ya no comparte el muro: el patio tiene id nuevo.
+  const patio = deriveRooms(moved).find((r) => r.wallIds.some((w) => w.startsWith('outdoor:')))!;
+  expect(patio.areaMm2).toBe(9e6);
+  expect(patio.wallIds.every((w) => w.startsWith('outdoor:'))).toBe(true);
+  expect(deleteOutdoorRoom(moved, patio.id).walls).toEqual(doc.walls.filter((w) => !w.id.startsWith('outdoor:')));
+  expect(deriveRooms(deleteOutdoorRoom(moved, patio.id))).toHaveLength(1);
 });

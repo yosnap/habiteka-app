@@ -39,13 +39,14 @@ describe('placement and vertex guides', () => {
     expect(() => assertSpatialPlacement(doc, next)).not.toThrow();
     expect(snapObject(doc, { ...column, y: -100 }, .08, true)).toMatchObject({ x: 1000, y: -200 });
   });
-  it('aligns a column to construction edges without pulling it off a wall axis', () => {
+  it('centra una columna en la esquina cercana de un descansillo en vez de alinearla por su borde', () => {
     const column = { id: 'column', catalogId: 'builtin:column-rectangular', x: 1800, y: 2700,
       widthMm: 400, depthMm: 400, heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' } as const;
     const landing = { id: 'landing', catalogId: 'builtin:ramp-landing', x: 2000, y: 3000, widthMm: 1200, depthMm: 1200,
       riseMm: 0, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' } as const;
     const doc = addRamp(addColumn(fixture(), column), landing);
-    expect(snapObject(doc, { ...column, x: 1810, y: 2710 }, .08, true)).toMatchObject({ x: 1800, y: 2600 });
+    // Centro (2010, 2910) a 90 mm de la esquina (2000, 3000): el pilar queda centrado en ella, medio fuera del descansillo.
+    expect(snapObject(doc, { ...column, x: 1810, y: 2710 }, .08, true)).toMatchObject({ x: 1800, y: 2800 });
   });
   it('allows ramps, landings and stairs to integrate with a column but blocks furniture', () => {
     const column = { id: 'column', catalogId: 'builtin:column-rectangular' as const, x: 2000, y: 2000,

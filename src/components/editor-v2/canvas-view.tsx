@@ -1,10 +1,16 @@
 'use client';
+import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/lib/editor-document/boundary-types';
+
+import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
 import { addLinearBoundary, isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import { addOutdoorArea, addOutdoorEdge } from '@/lib/editor-document/outdoor-area';
 import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Line, Circle, Group, Rect, Text } from 'react-konva';
+import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
+import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
+import { fittedView, zoomedView } from '@/canvas/editor-v2/view-math';
 import type Konva from 'konva';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -41,7 +47,15 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
-  const [pan, setPan] = useState(false), [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
+  // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
+  const focusPoint = useStore(store, (s) => s.focusPoint);
+  const [handledFocus, setHandledFocus] = useState(focusPoint);
+  if (focusPoint !== handledFocus) {
+    setHandledFocus(focusPoint);
+    if (focusPoint) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
+  }
+  const pan = useStore(store, (s) => s.pan), setPan = (next: boolean) => store.getState().setPan(next);
+  const [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [chain, setChain] = useState<Point[]>([]);
   const continuous = tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || isBoundaryKind(tool);
@@ -76,28 +90,15 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const updateView = (next: typeof view) => {
     setView(next); onCenter({ x: (size.width / 2 - next.x) / next.scale, y: (size.height / 2 - next.y) / next.scale });
   };
-  const zoom = (factor: number, point = { x: size.width / 2, y: size.height / 2 }) => {
-    const scale = Math.min(.5, Math.max(.015, view.scale * factor));
-    updateView({ scale, x: point.x - (point.x - view.x) / view.scale * scale,
-      y: point.y - (point.y - view.y) / view.scale * scale });
-  };
-  const fit = () => {
-    const points = [...doc.vertices, ...[...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap((f) => {
-      const angle = f.rotation * Math.PI / 180;
-      return [[0, 0], [f.widthMm, 0], [f.widthMm, f.depthMm], [0, f.depthMm]].map(([x, y]) => ({
-        x: f.x + x! * Math.cos(angle) - y! * Math.sin(angle),
-        y: f.y + x! * Math.sin(angle) + y! * Math.cos(angle),
-      }));
-    }), ...doc.labels, ...doc.dimensions.flatMap((d) => [d.from, d.to])];
-    if (!points.length) { updateView({ x: 80, y: 80, scale: .08 }); return; }
-    const minX = Math.min(...points.map((p) => p.x)), minY = Math.min(...points.map((p) => p.y));
-    const width = Math.max(1000, Math.max(...points.map((p) => p.x)) - minX);
-    const height = Math.max(1000, Math.max(...points.map((p) => p.y)) - minY);
-    const thickness = Math.max(0, ...doc.walls.map((w) => w.thicknessMm));
-    const scale = Math.max(.001, Math.min(.3, Math.max(40, size.width - 160) / (width + thickness), Math.max(40, size.height - 160) / (height + thickness)));
-    updateView({ scale, x: (size.width - width * scale) / 2 - minX * scale,
-      y: (size.height - height * scale) / 2 - minY * scale });
-  };
+  const zoom = (factor: number, point?: Point) => updateView(zoomedView(view, factor, size, point));
+  const fit = () => updateView(fittedView(doc, size));
+  // Encuadre y zoom pedidos desde el teclado o el buscador: se atienden una sola vez por petición.
+  const viewRequest = useStore(store, (s) => s.viewRequest);
+  const [handledRequest, setHandledRequest] = useState(viewRequest);
+  if (viewRequest !== handledRequest) {
+    setHandledRequest(viewRequest);
+    if (viewRequest) setView((current) => viewRequest.kind === 'fit' ? fittedView(doc, size) : zoomedView(current, viewRequest.kind === 'zoom-in' ? 1.25 : .8, size));
+  }
   const point = () => {
     const p = stage.current?.getRelativePointerPosition();
     if (tool === 'split-wall') return p ?? null;
@@ -213,6 +214,21 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
           }
           return;
         }
+        if (tool === 'door' && !readOnly && !store.getState().pendingOpening) {
+          const p = stage.current?.getRelativePointerPosition();
+          if (p) {
+            const target = planObjects(doc).filter((b) => isBoundary(b) || isLegacyBoundary(b)).map((item) => {
+              const b = isBoundary(item) ? item : boundaryDefaults(item), x = projectBoundary(b, p), r = b.rotation * Math.PI / 180;
+              const gap = Math.abs(-(p.x - b.x) * Math.sin(r) + (p.y - b.y) * Math.cos(r) - b.depthMm / 2);
+              return { b, x, gap };
+            }).filter(({ b, x, gap }) => x >= 0 && x <= b.widthMm && gap <= b.depthMm / 2 + 10 / view.scale).sort((a, b) => a.gap - b.gap)[0];
+            if (target) {
+              try { store.getState().apply(addBoundaryGate(doc, target.b.id, target.x)); store.getState().setTool('select'); store.getState().select([target.b.id]); }
+              catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo colocar la puerta'); }
+              return;
+            }
+          }
+        }
         if (placingSpatial) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const raw = stage.current?.getRelativePointerPosition();
@@ -255,10 +271,12 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
 
       <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>
       <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} /></Layer>
-      <Layer listening={false}>{start && pointer && <Line points={(tool === 'rectangle')
+      {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
+      <Layer listening={false}>
+      <>{start && pointer && <Line points={(tool === 'rectangle')
         ? [start.x, start.y, pointer.x, start.y, pointer.x, pointer.y, start.x, pointer.y, start.x, start.y]
-        : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</Layer>
-      <Layer listening={false}>{wallPreview.anchor && wallPreview.preview && wallLength >= 50 && <>
+        : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</>
+      <>{wallPreview.anchor && wallPreview.preview && wallLength >= 50 && <>
         {wallExtension && <>
           <Line points={[wallExtension.from.x, wallExtension.from.y, wallExtension.point.x, wallExtension.point.y]}
             stroke="#087f75" strokeWidth={doc.walls.find((w) => w.id === wallExtension.wallId)?.thicknessMm ?? 150} opacity={.45} />
@@ -274,26 +292,27 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
         {wallMagnet.kind === 'orthogonal' && <Line points={[wallPreview.anchor.x, wallPreview.anchor.y, wallMagnet.point.x, wallMagnet.point.y]}
             stroke="#00a693" strokeWidth={2 / view.scale} dash={[8 / view.scale, 5 / view.scale]} />}</>}
         {draftDimension && <DimensionMark scale={view.scale} layout={draftDimension} />}
-      </>}</Layer>
-      <Layer listening={false}>{boundaryDimension && <DimensionMark layout={boundaryDimension} scale={view.scale} />}</Layer>
-      <Layer listening={false}>{start && pointer && (tool === 'rectangle') && rectangleDimensions(start, pointer, view.scale)
-        .map((layout, index) => <DimensionMark key={index} layout={layout} scale={view.scale} />)}</Layer>
-      <Layer listening={false}>{marquee && <Rect x={Math.min(marquee.from.x, marquee.to.x)} y={Math.min(marquee.from.y, marquee.to.y)}
+      </>}</>
+      <>{boundaryDimension && <DimensionMark layout={boundaryDimension} scale={view.scale} />}</>
+      <>{start && pointer && (tool === 'rectangle') && rectangleDimensions(start, pointer, view.scale)
+        .map((layout, index) => <DimensionMark key={index} layout={layout} scale={view.scale} />)}</>
+      <>{marquee && <Rect x={Math.min(marquee.from.x, marquee.to.x)} y={Math.min(marquee.from.y, marquee.to.y)}
         width={Math.abs(marquee.to.x - marquee.from.x)} height={Math.abs(marquee.to.y - marquee.from.y)}
-        fill="#087f7520" stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</Layer>
-      <Layer listening={false}>{splitPreview && <>
+        fill="#087f7520" stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</>
+      <>{splitPreview && <>
         <Circle x={splitPreview.point.x} y={splitPreview.point.y} radius={7 / view.scale}
           fill={splitPreview.valid ? '#087f75' : '#b83232'} stroke="white" strokeWidth={2 / view.scale} />
         <DimensionMark scale={view.scale} layout={{ sourceFrom: splitPreview.from, sourceTo: splitPreview.point,
           from: { x: splitPreview.from.x + splitNormal.x, y: splitPreview.from.y + splitNormal.y },
           to: { x: splitPreview.point.x + splitNormal.x, y: splitPreview.point.y + splitNormal.y } }} />
-      </>}</Layer>
-      <Layer listening={false}>{spatialPreview && <Group x={spatialPreview.x} y={spatialPreview.y} rotation={spatialPreview.rotation} opacity={.72}>
+      </>}</>
+      <>{spatialPreview && <Group x={spatialPreview.x} y={spatialPreview.y} rotation={spatialPreview.rotation} opacity={.72}>
         <Rect width={spatialPreview.widthMm} height={spatialPreview.depthMm} fill="#00a69355" stroke="#087f75" strokeWidth={2 / view.scale} />
         <Text width={spatialPreview.widthMm} y={spatialPreview.depthMm / 2 - 7 / view.scale} align="center" fill="#087f75" fontSize={12 / view.scale}
           text={'catalogId' in spatialPreview && spatialPreview.catalogId === 'builtin:column-rectangular' ? 'Columna · clic para colocar' : 'Copia · clic para colocar'} />
-      </Group>}</Layer>
-      <Layer listening={false}>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</Layer>
+      </Group>}</>
+      <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
+      </Layer>
     </Stage>
     {wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Cerrar habitación · prolongar pared existente sin añadir un tramo
@@ -318,13 +337,15 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina
     </div>}
     {!pan && <CanvasSelectionMenu store={store} view={view} size={size} />}
-    {!doc.walls.length && !doc.furniture.length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>
+    {!doc.walls.length && !planObjects(doc).length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">
-      <button onClick={() => zoom(.8)} aria-label="Alejar">−</button><span>{Math.round(view.scale * 1000)}%</span>
-      <button onClick={() => zoom(1.25)} aria-label="Acercar">+</button><button onClick={fit}>Encuadrar</button>
-      <button aria-pressed={pan} onClick={() => { cancel(); setPan(!pan); }}>Mano</button>
+      <button onClick={() => zoom(.8)} aria-label="Alejar" data-tooltip={shortcutHint('Alejar', 'zoomOut')}><ZoomOut size={18} aria-hidden="true" /></button>
+      <span>{Math.round(view.scale * 1000)}%</span>
+      <button onClick={() => zoom(1.25)} aria-label="Acercar" data-tooltip={shortcutHint('Acercar', 'zoomIn')}><ZoomIn size={18} aria-hidden="true" /></button>
+      <button onClick={fit} aria-label="Encuadrar" data-tooltip={shortcutHint('Encuadrar', 'fit')}><Maximize size={18} aria-hidden="true" /></button>
+      <button aria-pressed={pan} aria-label="Mano" data-tooltip={shortcutHint(pan ? 'Salir de mano' : 'Mano', 'pan')} onClick={() => { cancel(); setPan(!pan); }}><Hand size={18} aria-hidden="true" /></button>
       {(start || wallPreview.anchor) && <button onClick={cancel}>{wallPreview.anchor ? 'Finalizar paredes' : 'Cancelar trazo'}</button>}
       {splitting && <button onClick={cancel}>Cancelar esquina</button>}
     </div>

@@ -6,6 +6,7 @@ import { getFurnitureCatalogEntry } from './furniture-catalog';
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
+  rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate'; gateId?: string; materialId?: string;
 }
 
 /** Normalized local solids: one geometry contract for rendering and collision. */

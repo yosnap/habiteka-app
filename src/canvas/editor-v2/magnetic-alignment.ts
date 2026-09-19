@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { localToWorld, type Footprint } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
@@ -16,8 +17,11 @@ export function magneticReferences(doc: EditorDocument, exclude: string[] = []):
       return [-1, 0, 1].map((side) => ({ x: p.x - n.y * half * side, y: p.y + n.x * half * side }));
     });
   });
-  for (const item of [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])])
+  for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])])
     if (!excluded.has(item.id)) points.push(...footprintAnchors(item));
+  for (const boundary of doc.boundaries ?? []) if (!excluded.has(boundary.id))
+    for (const gate of boundary.construction.gates) if (!excluded.has(gate.id))
+      points.push(...[-.5, 0, .5].map((side) => localToWorld(boundary, { x: gate.positionMm + side * gate.widthMm, y: boundary.depthMm / 2 })));
   for (const opening of doc.openings) {
     if (excluded.has(opening.id) || excluded.has(opening.wallId)) continue;
     const wall = doc.walls.find((w) => w.id === opening.wallId); if (!wall) continue;
@@ -63,7 +67,8 @@ export function alignRoom(doc: EditorDocument, roomId: string, raw: Point, scale
   if (!room) return { delta: raw, guides: [] };
   const minX = Math.min(...room.boundary.map((p) => p.x)), maxX = Math.max(...room.boundary.map((p) => p.x));
   const minY = Math.min(...room.boundary.map((p) => p.y)), maxY = Math.max(...room.boundary.map((p) => p.y));
-  const anchors = footprintAnchors({ x: minX + raw.x, y: minY + raw.y, widthMm: maxX - minX, depthMm: maxY - minY, rotation: 0 });
+  // Todos los vértices del contorno (no solo la caja): las muescas de una terraza también se pegan a la casa.
+  const anchors = [...room.boundary, { x: (minX + maxX) / 2, y: (minY + maxY) / 2 }].map((p) => ({ x: p.x + raw.x, y: p.y + raw.y }));
   const result = alignPoints(doc, anchors, scale, enabled, [...room.wallIds, ...doc.labels.filter((p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY).map((p) => p.id)]);
   return { ...result, delta: { x: raw.x + result.delta.x, y: raw.y + result.delta.y } };
 }

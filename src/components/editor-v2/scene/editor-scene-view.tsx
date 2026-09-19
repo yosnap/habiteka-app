@@ -1,5 +1,6 @@
 'use client';
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { TriangleAlert, X } from 'lucide-react';
 import { Canvas, type RootState } from '@react-three/fiber';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
@@ -23,7 +24,7 @@ import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
 import { captureCeilingView, MAX_LUMINAIRE_LIGHTS, type CeilingView } from './ceiling-scene-utils';
-import { resolvedLuminaires, ceilingWarnings, ceilingSurfaces } from '@/lib/editor-document/ceiling-geometry';
+import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 
 const unavailable = <div role="alert" style={{ padding: 24 }}>No se puede mostrar WebGL. Tu plano sigue disponible en 2D.</div>;
@@ -82,6 +83,8 @@ function SceneView({
   const [allLevels, setAllLevels] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  // Avisos de construcción (suelo sin cerrar, techos, luces) como notificación con cierre; reaparece si cambian.
+  const [dismissedNotice, setDismissedNotice] = useState<string | null>(null);
   const [lighting, setLighting] = useState<SceneLightingPreset>('daylight');
   const lightingRef = useRef(lighting);
   useEffect(() => { lightingRef.current = lighting; }, [lighting]);
@@ -179,7 +182,10 @@ function SceneView({
   }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, cutaway, scene, lighting]);
   const otherLevels = useMemo(() => allLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document) })) : [], [document, allLevels]);
-  const ceilingIssues = useMemo(() => ceilingWarnings(document), [document]);
+  const ceilingIssues = useMemo(() => computeCeilingIssues(document), [document]);
+  // Avisos con el elemento al que apuntan: el nombre es un enlace que lo selecciona para revisarlo.
+  const notices: CeilingIssue[] = [...scene.warnings.map((message) => ({ label: 'Plano', message })), ...ceilingIssues];
+  const noticeKey = notices.map((n) => `${n.id ?? ''}:${n.message}`).join('|');
   const lightBudgets = useMemo(() => {
     const used = [document, ...otherLevels.map((level) => level.document)]
       .map((doc) => resolvedLuminaires(doc).filter(({ luminaire }) => luminaire.enabled).length);
@@ -313,8 +319,13 @@ function SceneView({
         disabled={recording} aria-pressed={lighting === preset} onClick={() => setLighting(preset)}>{SCENE_LIGHTING_LABELS[preset]}</button>)}
     </div>
     {exportMessage && <div role="status" style={{ position: 'absolute', bottom: 56, left: 16 }}>{exportMessage}</div>}
-    <div style={{ position: 'absolute', top: 12, left: 16, pointerEvents: 'none', fontSize: 12 }}>Arrastra para orbitar · rueda para acercar · clic para seleccionar</div>
-    {(scene.warnings.length > 0 || ceilingIssues.length > 0) && <div role="status" style={{ position: 'absolute', top: 36, left: 16 }}>{[...scene.warnings, ...ceilingIssues].join(' · ')}</div>}
+    {notices.length > 0 && dismissedNotice !== noticeKey && <div role="status" style={{ position: 'absolute', top: 12, left: 16, maxWidth: 420, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 10px', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-panel)', fontSize: 12 }}>
+      <TriangleAlert size={16} aria-hidden="true" style={{ flex: 'none', color: '#b8860b' }} />
+      <div><strong>Revisar en el plano</strong><ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>{notices.map((notice) => <li key={`${notice.id ?? ''}:${notice.message}`}>
+        {notice.id ? <button type="button" onClick={() => store.getState().select([notice.id!])} style={{ border: 0, background: 'transparent', padding: 0, color: 'var(--brand)', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>{notice.label}</button> : <strong>{notice.label}</strong>}: {notice.message}
+      </li>)}</ul></div>
+      <button type="button" aria-label="Cerrar aviso" onClick={() => setDismissedNotice(noticeKey)} style={{ border: 0, background: 'transparent', padding: 2, cursor: 'pointer' }}><X size={14} aria-hidden="true" /></button>
+    </div>}
   </div>;
 }
 export function EditorSceneView({

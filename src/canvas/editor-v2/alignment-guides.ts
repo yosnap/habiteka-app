@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { Column, EditorDocument, Furniture, Point, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, type Footprint } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
@@ -29,7 +30,7 @@ function wallEdges(doc: EditorDocument): Edge[] {
   });
 }
 function objectEdges(doc: EditorDocument, selectedId: string): Edge[] {
-  const objects: Spatial[] = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].filter((item) => item.id !== selectedId);
+  const objects: Spatial[] = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].filter((item) => item.id !== selectedId);
   return objects.flatMap((item) => 'riseMm' in item
     ? rampParts(item).flatMap((part) => edges(rampPartFootprint(item, part), item.id, 'object'))
     : edges(footprint(item), item.id, 'object'));

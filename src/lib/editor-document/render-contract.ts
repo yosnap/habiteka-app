@@ -1,3 +1,4 @@
+import { boundaryDesignContext, BOUNDARY_RENDER_POLICY } from './boundary-context';
 import type { EditorDocument, Point } from './schema';
 import { buildingDocuments } from './building-levels';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
@@ -126,6 +127,15 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
       });
     }
 
+    for (const b of boundaryDesignContext(source)) {
+      const boundaryId = nextId('cerramiento');
+      elements.push({ id: boundaryId, sourceId: b.id, type: 'boundary', name: b.name, level: levelName,
+        boundary: b.endpointsM, dimensions: { length: b.lengthM, thickness: b.thicknessM, height: b.heightM, baseHeight: b.baseHeightM, upperHeight: b.upperHeightM },
+        attributes: { infill: b.infill, postShape: b.postShape, postSize: b.postSizeM, postSpacing: b.postSpacingM, baseColor: b.baseColor, infillColor: b.infillColor, postColor: b.postColor } });
+      for (const g of b.gates) elements.push({ id: nextId('puerta-exterior'), sourceId: g.id, type: 'boundary-gate', name: 'Puerta peatonal exterior', level: levelName,
+        dimensions: { width: g.widthM, height: g.heightM, positionAlongBoundary: g.positionM },
+        attributes: { hinge: g.hinge, openAngleDeg: g.openAngleDeg, color: g.color }, relationships: [boundaryId] });
+    }
     for (const column of source.columns ?? []) {
       elements.push({
         id: nextId('C'), sourceId: column.id, type: 'columna', name: column.name ?? `Columna ${column.id}`, level: levelName,
@@ -177,6 +187,7 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
   }
 
   const invariants = [
+    BOUNDARY_RENDER_POLICY,
     'Los identificadores, cantidades, posiciones, cotas, áreas y relaciones son restricciones físicas; no se pueden interpretar ni sustituir.',
     'No crear, eliminar, duplicar, desplazar, girar ni intercambiar rampas, escaleras, descansillos, columnas, muros o huecos.',
     'Las áreas y las cotas son métricas obligatorias: no cambiar la superficie útil ni convertir un suelo elevado en terreno.',

@@ -7,6 +7,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { updateColumn } from '@/lib/editor-document/construction-commands';
 import type { Column } from '@/lib/editor-document/schema';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
+import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
 const ACCENT = '#087f75';
 // Referencia estable: un `?? []` dentro del selector devolvería un array nuevo en
@@ -17,8 +18,8 @@ export function ColumnLayer({ store, scale, disabled = false }: { store: EditorS
   const tool = useStore(store, (state) => state.tool), readOnly = useStore(store, (state) => state.readOnly), unit = 1 / Math.max(scale, .001);
   return <Group>{columns.map((column) => <Group key={column.id} x={column.x} y={column.y} rotation={column.rotation}
     draggable={!disabled && !readOnly && tool === 'select'}
-    onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([column.id]); } }}
-    onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; store.getState().select([column.id]); } }}
+    onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, column.id, event.evt); } }}
+    onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, column.id, event.evt as unknown as MouseEvent); } }}
     onDragMove={(event) => { event.target.position(snapSpatialDrag(store, { ...column, ...event.target.position() }, scale)); }}
     onDragEnd={(event: KonvaEventObject<DragEvent>) => {
       const state = store.getState(), point = event.target.position(), snapped = snapObject(state.document, { ...column, ...point }, scale, state.snap);

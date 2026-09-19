@@ -1,3 +1,5 @@
+import { updateBoundary } from './boundary-commands';
+import { planObjects, isBoundary } from './boundary-types';
 import type { EditorDocument, Furniture, ElementComment } from './schema';
 import { upgradeSpatialDocument, transformAroundCenter } from './spatial-properties';
 import { parseEditorDocument } from './validation';
@@ -14,6 +16,7 @@ export function setWallSurface(input: EditorDocument, id: string, side: 'left' |
 }
 
 export function updateFurniture(input: EditorDocument, id: string, patch: Partial<Omit<Furniture, 'id'>>): EditorDocument {
+  if (input.boundaries?.some((b) => b.id === id)) return updateBoundary(input, id, patch);
   const doc = upgradeSpatialDocument(input), index = doc.furniture.findIndex((f) => f.id === id);
   if (index < 0) throw new Error('Mueble no encontrado');
   doc.furniture[index] = transformAroundCenter<Furniture>(doc.furniture[index]!, patch);
@@ -22,9 +25,11 @@ export function updateFurniture(input: EditorDocument, id: string, patch: Partia
 export function paintElement(input: EditorDocument, id: string, part: string, color: string): EditorDocument {
   const doc = upgradeSpatialDocument(input);
   const wall = doc.walls.find((w) => w.id === id), opening = doc.openings.find((o) => o.id === id);
-  const object = doc.furniture.find((f) => f.id === id) ?? doc.stairs?.find((s) => s.id === id) ?? doc.ramps?.find((r) => r.id === id);
+  const object = planObjects(doc).find((f) => f.id === id) ?? doc.stairs?.find((s) => s.id === id) ?? doc.ramps?.find((r) => r.id === id);
   if (wall && (part === 'left' || part === 'right')) wall.colors![part] = color;
   else if (opening && (part === 'frame' || part === 'leaf')) opening.colors![part] = color;
+  else if (object && 'kind' in object && !('stepCount' in object) && isBoundary(object) && part === 'base') object.construction.baseColor = color;
+  else if (object && 'kind' in object && !('stepCount' in object) && isBoundary(object) && part === 'posts') object.construction.postColor = color;
   else if (object && part === 'body') object.color = color;
   else throw new Error('Superficie no disponible');
   return parseEditorDocument(doc);

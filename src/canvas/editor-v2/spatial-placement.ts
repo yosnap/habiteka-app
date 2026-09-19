@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import { isBoundaryJoint } from './boundary-junction';
 import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
@@ -12,7 +13,7 @@ import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-pl
 import { placeLandingAtStairArrival, placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 
-interface Solid { id: string; polygon: Point[]; bottom: number; top: number }
+interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
 const CONTACT_EPSILON_MM = 1;
 const boundsCache = new WeakMap<Solid, { minX: number; maxX: number; minY: number; maxY: number }>();
@@ -70,8 +71,11 @@ function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
   // Surface markings and grates can share the ground with cars and furnishings.
   if (/^habiteka:outdoor:(parking|camino|drenaje|sumidero|riego-goteo)$/.test(furniture.catalogId ?? '') &&
     furnitureVolumes(furniture).every((v) => v.top <= 100)) return [];
-  return furnitureVolumes(furniture).map((volume) => ({ id: furniture.id, bottom: volume.bottom, top: volume.top,
-    polygon: footprint({ ...furniture, ...volume, ...localToWorld(furniture, volume) }) }));
+  return furnitureVolumes(furniture).map((volume) => ({ id: furniture.id, gate: volume.part === 'gate', bottom: volume.bottom, top: volume.top,
+    polygon: volume.shape === 'cylinder' ? Array.from({ length: 24 }, (_, i) => localToWorld(furniture, {
+      x: volume.x + volume.widthMm / 2 * (1 + Math.cos(i * Math.PI / 12)),
+      y: volume.y + volume.depthMm / 2 * (1 + Math.sin(i * Math.PI / 12)),
+    })) : footprint({ ...furniture, ...volume, rotation: furniture.rotation + (volume.rotation ?? 0), ...localToWorld(furniture, volume) }) }));
 }
 function walls(doc: EditorDocument): Solid[] {
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
@@ -88,12 +92,16 @@ function walls(doc: EditorDocument): Solid[] {
       bottom: (box.position[1] - box.size[1] / 2) * 1000, top: (box.position[1] + box.size[1] / 2) * 1000 };
   })];
 }
-function collisions(doc: EditorDocument): Map<string, number> {
-  const objects = [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
+/** Pares de sólidos que se penetran y su profundidad; útil para diagnosticar bloqueos de colocación. */
+export function collisions(doc: EditorDocument): Map<string, number> {
+  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
   const result = new Map<string, number>();
+  const boundaryItems = new Map(planObjects(doc).map((item) => [item.id, item]));
   objects.forEach((a, index) => {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
       if (a.id === b.id) continue;
+      const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
+      if (!a.gate && !b.gate && first && second && isBoundaryJoint(first, second)) continue;
       const depth = penetration(a, b);
       if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
     }
@@ -120,16 +128,18 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     ...(previous.stairs ?? []), ...(candidate.stairs ?? []),
     ...(previous.ramps ?? []), ...(candidate.ramps ?? []),
   ].map((item) => item.id));
-  const guardWallIds = new Set([...previous.walls, ...candidate.walls]
-    .filter((wall) => (wall.heightMm ?? 2700) <= 1500).map((wall) => wall.id));
-  const boundaries = new Map(candidate.furniture.map((item) => [item.id, item]));
+  // Un cerramiento (valla, cerca, seto) admite columnas embebidas igual que un muro; entre cerramientos sí se detectan cruces.
+  const boundaryIds = new Set([...(previous.boundaries ?? []), ...(candidate.boundaries ?? [])].map((item) => item.id));
+  // Muretes y cerramientos bajos (≤ 1,50 m) pueden apoyarse en descansillos, escaleras y rampas.
+  const guardWallIds = new Set([
+    ...[...previous.walls, ...candidate.walls].filter((wall) => (wall.heightMm ?? 2700) <= 1500),
+    ...[...(previous.boundaries ?? []), ...(candidate.boundaries ?? [])].filter((boundary) => boundary.heightMm <= 1500),
+  ].map((item) => item.id));
   for (const [key, depth] of after) {
     const [first, second] = JSON.parse(key) as [string, string];
-    const a = boundaries.get(first), b = boundaries.get(second);
-    if (a && b && isBoundaryJoint(a, b)) continue;
     // A column is structural: it can be embedded in a wall, stair or ramp
     // (including a landing), while furniture and another column stay blocked.
-    if ((columnIds.has(first) && structuralIds.has(second)) || (columnIds.has(second) && structuralIds.has(first))) continue;
+    if ((columnIds.has(first) && (structuralIds.has(second) || boundaryIds.has(second))) || (columnIds.has(second) && (structuralIds.has(first) || boundaryIds.has(first)))) continue;
     // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
     if (depth > (before.get(key) ?? 0) + .1)
@@ -138,14 +148,14 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
-  const item = candidate.furniture.find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
+  const item = planObjects(candidate).find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
   if (!item) throw new Error('Elemento no encontrado');
-  const occupied = [...walls(previous), ...previous.furniture.flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
+  const occupied = [...walls(previous), ...planObjects(previous).flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
   for (let ring = 0; ring <= 32; ring++) for (let direction = 0; direction < (ring ? 8 : 1); direction++) {
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };
     if (objectSolids(placed).some((a) => occupied.some((b) => penetration(a, b) > .1))) continue;
-    return { ...candidate, furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
+    return { ...candidate, ...(candidate.boundaries ? { boundaries: candidate.boundaries.map((b) => b.id === id ? placed as typeof b : b) } : {}), furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
       stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s),
       ...(candidate.columns ? { columns: candidate.columns.map((c) => c.id === id ? placed as Column : c) } : {}),
       ...(candidate.ramps ? { ramps: candidate.ramps.map((r) => r.id === id ? placed as Ramp : r) } : {}) };
@@ -164,6 +174,10 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     // alinearse con los bordes de cualquier otro elemento cuando está libre.
     const wallAxis = snapColumnToWallAxis(doc, result, faceTolerance);
     if (wallAxis.x !== result.x || wallAxis.y !== result.y) return wallAxis;
+    // El centro del pilar se imanta a esquinas y bordes de descansillos, escaleras y objetos (queda medio fuera),
+    // como el resto de elementos; solo si no hay referencia cerca se alinea por sus bordes.
+    const centred = alignPoints(doc, [objectCenter(result)], scale, enabled, [item.id]);
+    if (centred.guides.length) return { ...result, x: result.x + centred.delta.x, y: result.y + centred.delta.y };
     const edges = snapToAlignmentGuides(doc, result, faceTolerance, { includeWallEdges: false }) as Column;
     if (edges.x !== result.x || edges.y !== result.y) return edges;
     const axes = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);

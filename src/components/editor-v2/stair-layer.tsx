@@ -1,5 +1,6 @@
 'use client';
 import { snapSpatialDrag } from './magnetic-drag';
+import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useStore } from 'zustand';
@@ -64,7 +65,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
   const select = (id: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!selectable) return;
     event.cancelBubble = true;
-    store.getState().select([id]);
+    clickSelect(store, id, event.evt as MouseEvent);
   };
   const drop = (stair: Stair, event: KonvaEventObject<DragEvent>) => {
     event.cancelBubble = true;

@@ -1,4 +1,5 @@
 'use client';
+import { planObjects } from '@/lib/editor-document/boundary-types';
 
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -122,7 +123,7 @@ export function RenderRegionPicker({ document, regions, onChange, disabled }: Pr
                 />
               ) : null;
             })}
-          {(document?.furniture ?? []).map((item) => (
+          {(document ? planObjects(document) : []).map((item) => (
             <polygon
               key={item.id}
               points={footprint(item)
@@ -206,7 +207,7 @@ function getBounds(document?: EditorDocument) {
   if (!document) return null;
   const points = (document.vertices ?? []).map(({ x, y }) => ({ x, y }));
   for (const item of [
-    ...document.furniture,
+    ...planObjects(document),
     ...(document.stairs ?? []),
     ...(document.columns ?? []),
   ])

@@ -43,9 +43,11 @@ import { setStoryboardImage } from '@/lib/editor-document/walkthrough-storyboard
 import { WalkthroughPanel } from './walkthrough-panel';
 import { StoryboardPanel } from './storyboard-panel';
 import { VisibilityMenu, type EditorVisibility } from './visibility-menu';
+import { loadEditorPreferences, saveEditorPreferences } from './editor-preferences';
 import { CeilingLightingPanel } from './ceiling-lighting-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { BuildingLevelMenu } from './building-level-menu';
+import { SelectByKindMenu } from './select-by-kind-menu';
 import { FurnitureContextPanel } from './furniture-context-panel';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
@@ -59,6 +61,7 @@ import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import styles from './editor.module.css';
+import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 
 const CanvasView = dynamic(() => import('./canvas-view').then((module) => module.CanvasView), {
   ssr: false,
@@ -127,8 +130,14 @@ export function EditorShell({
   const readOnly = useStore(store, (s) => s.readOnly);
   const tool = useStore(store, (s) => s.tool);
   const detailPanel = useStore(store, (s) => s.detailPanel);
-  const [catalog, setCatalog] = useState(false),
-    [inspector, setInspector] = useState(false);
+  const [catalog, setCatalog] = useState(false);
+  // El panel de propiedades sigue a la selección: se abre al seleccionar y se cierra al deseleccionar.
+  // `toggled` guarda solo la desviación manual (botón Propiedades) y se reinicia al cambiar la selección.
+  const selectionKey = selection.join('|'), hasSelection = selection.length > 0;
+  const [toggled, setToggled] = useState(false), [toggledFor, setToggledFor] = useState(selectionKey);
+  if (toggledFor !== selectionKey) { setToggledFor(selectionKey); setToggled(false); }
+  const inspector = hasSelection !== (toggled && toggledFor === selectionKey);
+  const setInspector = useCallback((open: boolean) => setToggled(open !== store.getState().selection.length > 0), [store]);
   const [construction, setConstruction] = useState(false);
   const [walkthroughPanel, setWalkthroughPanel] = useState(false);
   const walkthroughId = useStore(store, (s) => s.walkthroughId);
@@ -137,8 +146,11 @@ export function EditorShell({
     setWalkthroughPanel(false);
   };
   const [ceilingPanel, setCeilingPanel] = useState(false);
-  const [visibility, setVisibility] = useState<EditorVisibility>({ dimensions: 'all', furniture: true, walls: true });
-  const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
+  // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
+  const [preferences, setPreferences] = useState(loadEditorPreferences);
+  const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
+  const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
+  const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -370,17 +382,30 @@ export function EditorShell({
         return;
       const state = store.getState(),
         command = event.metaKey || event.ctrlKey;
+      // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
+      if (event.key === 'Escape') {
+        if (state.selection.length) state.select([]);
+        setCatalog(false); setConstruction(false); setInspector(false);
+        return;
+      }
       if (!command && !event.altKey) {
-        const key = event.key.toLowerCase();
-        const toolByKey: Partial<Record<string, EditorTool>> = {
-          s: 'select', b: 'wall', r: 'rectangle', d: 'door', v: 'window', h: 'passage', m: 'measure',
+        const shortcut = plainShortcutFor(event.key);
+        const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
+          select: 'select', wall: 'wall', rectangle: 'rectangle', door: 'door', window: 'window', passage: 'passage', measure: 'measure',
         };
-        if (key === 'f') { event.preventDefault(); setCatalog(true); setConstruction(false); setInspector(false); state.setTool('select'); return; }
-        const nextTool = toolByKey[key];
+        const closePanels = () => { setConstruction(false); setCatalog(false); setInspector(false); };
+        if (shortcut === 'furnish') { event.preventDefault(); if (readOnly) return; setCatalog(true); setConstruction(false); setInspector(false); state.setTool('select'); return; }
+        if (shortcut === 'construct') { event.preventDefault(); setConstruction((open) => !open); setCatalog(false); setInspector(false); state.setTool('select'); return; }
+        if (shortcut === 'snap') { event.preventDefault(); state.setSnap(!state.snap); return; }
+        if (shortcut === 'pan') { event.preventDefault(); state.setPan(!state.pan); return; }
+        if (shortcut === 'fit') { event.preventDefault(); state.requestView('fit'); return; }
+        if (shortcut === 'zoomIn') { event.preventDefault(); state.requestView('zoom-in'); return; }
+        if (shortcut === 'zoomOut') { event.preventDefault(); state.requestView('zoom-out'); return; }
+        const nextTool = shortcut ? toolByShortcut[shortcut] : undefined;
         if (nextTool) {
           event.preventDefault();
           if (readOnly && nextTool !== 'select') return;
-          state.setTool(nextTool); setConstruction(false); setCatalog(false); setInspector(false);
+          state.setTool(nextTool); closePanels();
           if (nextTool !== 'select') setMode('2d');
           return;
         }
@@ -444,7 +469,7 @@ export function EditorShell({
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [readOnly, shortcutsEnabled, store]);
+  }, [readOnly, shortcutsEnabled, store, setInspector]);
   return (
     <section className={styles.shell} onPointerDownCapture={(event) => {
       if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
@@ -454,9 +479,10 @@ export function EditorShell({
           <strong>{projectName}</strong>
           <span role="status">{saveStatus ?? 'Guardado no conectado'}</span>
         </div>
-        <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
         <div className={styles.actions}>
           <BuildingLevelMenu store={store} />
+          <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
+          <SelectByKindMenu store={store} />
           <button type="button" aria-pressed={walkthroughPanel || !!walkthroughId} onClick={() => { if (walkthroughPanel || walkthroughId) hideWalkthrough(); else { setWalkthroughPanel(true); setCeilingPanel(false); } }}>{walkthroughPanel || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
           <FurnitureContextPanel store={store} />
           <button type="button" aria-pressed={ceilingPanel || selectedLuminaire} onClick={() => { setCeilingPanel(!(ceilingPanel || selectedLuminaire)); if (selectedLuminaire) store.getState().select([]); }}>Techo y luces</button>
@@ -686,7 +712,7 @@ export function EditorShell({
               }
             />
           ) : (
-            <Inspector store={store} />
+            <Inspector store={store} onClose={() => setInspector(false)} />
           )}
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -22,8 +23,13 @@ export function nudgeElements(source: EditorDocument, ids: string[], delta: Poin
   }
   for (const v of doc.vertices) if (vertices.has(v.id) || selected.has(v.id))
     Object.assign(v, constrainExteriorVertex(source, v.id, { x: v.x + delta.x, y: v.y + delta.y }));
-  for (const item of [...doc.furniture, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.luminaires ?? []), ...doc.labels])
+  for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.luminaires ?? []), ...doc.labels])
     if (selected.has(item.id)) { item.x += delta.x; item.y += delta.y; }
+  for (const boundary of doc.boundaries ?? []) if (!selected.has(boundary.id)) {
+    const angle = boundary.rotation * Math.PI / 180;
+    for (const gate of boundary.construction.gates) if (selected.has(gate.id))
+      gate.positionMm += delta.x * Math.cos(angle) + delta.y * Math.sin(angle);
+  }
   for (const dim of doc.dimensions) if (selected.has(dim.id)) {
     dim.from = { x: dim.from.x + delta.x, y: dim.from.y + delta.y }; dim.to = { x: dim.to.x + delta.x, y: dim.to.y + delta.y };
   }

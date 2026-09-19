@@ -4,18 +4,20 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { FloorFinish } from '@/lib/editor-document/schema';
 import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
-import { deriveRooms } from '@/lib/editor-document/rooms';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { MeterField, NumberField } from './property-number-field';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { ModernSelect } from '@/components/ui/modern-select';
+import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
 
 export function FloorFinishPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
-  if (state.detailPanel !== 'paint' || !id?.startsWith('room:') || !deriveRooms(state.document).some((r) => r.id === id)) return null;
+  if (state.detailPanel !== 'paint' || !id?.startsWith('room:') || !deriveRoomsSafe(state.document).some((r) => r.id === id)) return null;
   const finish = floorFinish(state.document, id);
   const update = (patch: Partial<FloorFinish>) => {
-    try { state.apply(setFloorFinish(store.getState().document, id, patch)); }
+    // Con varias estancias seleccionadas, el acabado y la cota se aplican a todas.
+    try { const current = store.getState().document, next = setFloorFinish(current, id, patch); state.apply(propagateToPeers(current, next, id, bulkPeers(current, id, state.selection))); }
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo pintar el suelo'); }
   };
   return <AnchoredEditorPanel store={store} label="Acabados del suelo">

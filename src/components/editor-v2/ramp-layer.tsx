@@ -1,5 +1,6 @@
 'use client';
 import { snapSpatialDrag } from './magnetic-drag';
+import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
 import { useRef, useState } from 'react';
 import { useStore } from 'zustand';
@@ -36,7 +37,7 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
   const unit = 1 / Math.max(scale, 0.0001), selectable = !disabled && tool === 'select';
   const select = (id: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!selectable) return;
-    event.cancelBubble = true; store.getState().select([id]);
+    event.cancelBubble = true; clickSelect(store, id, event.evt as MouseEvent);
   };
   const drop = (ramp: Ramp, event: KonvaEventObject<DragEvent>) => {
     event.cancelBubble = true; const state = store.getState(), target = event.target;

@@ -1,3 +1,4 @@
+import { addLinearBoundary } from '@/lib/editor-document/linear-boundary';
 import { createRoot } from 'react-dom/client';
 import { useState } from 'react';
 import { CanvasView } from '@/components/editor-v2/canvas-view';
@@ -44,22 +45,39 @@ function Fixture() {
         if (state.tool !== 'select') throw new Error(`${tool}: sigue en dibujo (${state.error ?? 'sin error'}); paredes=${JSON.stringify(state.document.vertices)}`);
         if (getComputedStyle(canvas).cursor.includes('svg')) throw new Error(`${tool}: lápiz sigue activo`);
         const boundary = ['valla-madera', 'cerca-metal', 'seto'].includes(tool);
-        const count = boundary ? state.document.furniture.length : tool === 'measure' ? state.document.dimensions.length : state.document.walls.length;
+        const count = boundary ? (state.document.boundaries?.length ?? 0) : tool === 'measure' ? state.document.dimensions.length : state.document.walls.length;
         if (count !== (tool === 'measure' ? 1 : 4)) throw new Error(`${tool}: geometría incorrecta (${count})`);
         if (chained) {
           store.getState().restore(emptyEditorDocument()); store.getState().setTool(tool); await frame();
           send('pointerdown', 150, 150); send('pointerup', 150, 150); await frame();
-          if (store.getState().document.walls.length || store.getState().document.furniture.length) throw new Error(`${tool}: primer clic crea geometría`);
+          if (store.getState().document.walls.length || store.getState().document.boundaries?.length) throw new Error(`${tool}: primer clic crea geometría`);
           send('pointermove', 430, 150); await frame();
           send('pointerdown', 430, 150); send('pointerup', 430, 150); await frame();
           if (store.getState().tool !== tool) throw new Error(`${tool}: no continúa desde el extremo`);
           document.querySelector('[aria-label="Lienzo del plano"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await frame();
           if (store.getState().tool !== 'select') throw new Error(`${tool}: Escape no termina`);
-          const remaining = boundary ? store.getState().document.furniture.length : store.getState().document.walls.length;
+          const remaining = boundary ? store.getState().document.boundaries?.length : store.getState().document.walls.length;
           if (remaining !== 1) throw new Error(`${tool}: Escape perdió el tramo`);
         }
         results.push(`${tool}: lápiz, geometría, cierre y selección${chained ? ', continuación y Escape' : ''} OK`);
       }
+      const boundaryDoc = addLinearBoundary(emptyEditorDocument(), 'valla-madera', { x: 0, y: 0 }, { x: 6000, y: 0 });
+      store.getState().restore(boundaryDoc); store.getState().select([boundaryDoc.boundaries![0]!.id]); await frame();
+      const choose = async (label: string, value: string) => {
+        const field = document.querySelector(`select[aria-label="${label}"]`) as HTMLSelectElement;
+        if (!field) throw new Error(`Falta control ${label}`);
+        field.value = value; field.dispatchEvent(new Event('change', { bubbles: true })); await frame();
+      };
+      await choose('Composición', 'mixed'); await choose('Relleno superior', 'horizontal'); await choose('Sección de postes', 'circle');
+      const b = store.getState().document.boundaries![0]!;
+      if (b.construction.baseHeightMm !== 600 || b.construction.infill !== 'horizontal' || b.construction.postShape !== 'circle') throw new Error('No actualiza composición');
+      const addGate = [...document.querySelectorAll('button')].find((button) => button.textContent === 'Añadir puerta peatonal')!;
+      addGate.click(); await frame();
+      if (store.getState().document.boundaries![0]!.construction.gates.length !== 1) throw new Error(`No añade puerta: ${store.getState().error}`);
+      const openGate = [...document.querySelectorAll('button')].find((button) => button.textContent === 'Abrir puerta')!;
+      openGate.click(); await frame();
+      if (store.getState().document.boundaries![0]!.construction.gates[0]!.openAngleDeg !== 90) throw new Error('No abre puerta');
+      results.push('cerramiento: controles de muro inferior, lamas horizontales, postes circulares y puerta integrada OK');
       const patio = addOutdoorArea(emptyEditorDocument(), { x: 0, y: 0 }, { x: 4000, y: 3000 });
       store.getState().restore(patio); await frame();
       const canvas = document.querySelector('.konvajs-content') as HTMLElement;

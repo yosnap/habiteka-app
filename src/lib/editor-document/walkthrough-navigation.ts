@@ -1,3 +1,4 @@
+import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { EditorDocument, Point } from './schema';
 import { deriveRooms } from './rooms';
 import { insideRoom, ceilingSurfaces } from './ceiling-geometry';
@@ -12,8 +13,8 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
   const walls = doc.walls.filter((w) => !w.hidden).map((wall) => ({ wall, path: wallPath(doc, wall),
     doors: doc.openings.filter((o) => o.wallId === wall.id && o.kind !== 'ventana' &&
       (o.elevationMm ?? 0) <= 30 && (o.kind !== 'puerta' || (o.openAngleDeg ?? 90) >= 75)) }));
-  const outdoor = doc.furniture.filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item, volumes: furnitureVolumes(item) }));
-  const obstacles = [...doc.furniture.filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? []), ...(doc.stairs ?? []), ...(doc.ramps ?? [])];
+  const outdoor = planObjects(doc).filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item, volumes: furnitureVolumes(item) }));
+  const obstacles = [...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? []), ...(doc.stairs ?? []), ...(doc.ramps ?? [])];
   const roomAt = (p: Point) => rooms.find((room) => insideRoom(p, room.boundary));
   const floorAt = (p: Point) => doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
   const free = (p: Point, eyeHeightMm = 1600): boolean => {
@@ -33,9 +34,13 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     for (const { item, volumes } of outdoor) {
       const angle = -item.rotation * Math.PI / 180, dx = p.x - item.x, dy = p.y - item.y;
       const x = dx * Math.cos(angle) - dy * Math.sin(angle), y = dx * Math.sin(angle) + dy * Math.cos(angle);
-      if (volumes.some((v) => v.top > floor + 100 && v.bottom < floor + eyeHeightMm + 100 &&
-        x > v.x - CAMERA_CLEARANCE_MM && x < v.x + v.widthMm + CAMERA_CLEARANCE_MM &&
-        y > v.y - CAMERA_CLEARANCE_MM && y < v.y + v.depthMm + CAMERA_CLEARANCE_MM)) return false;
+      if (volumes.some((v) => {
+        const a = -(v.rotation ?? 0) * Math.PI / 180, dx = x - v.x, dy = y - v.y;
+        const vx = dx * Math.cos(a) - dy * Math.sin(a), vy = dx * Math.sin(a) + dy * Math.cos(a);
+        return v.top > floor + 100 && v.bottom < floor + eyeHeightMm + 100 &&
+          vx > -CAMERA_CLEARANCE_MM && vx < v.widthMm + CAMERA_CLEARANCE_MM &&
+          vy > -CAMERA_CLEARANCE_MM && vy < v.depthMm + CAMERA_CLEARANCE_MM;
+      })) return false;
     }
     for (const item of obstacles) {
       const angle = -item.rotation * Math.PI / 180, dx = p.x - item.x, dy = p.y - item.y;

@@ -12,8 +12,8 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
   const faceColors = colors ?? Array.from({ length: 6 }, () => box.color);
   return <mesh position={box.position} rotation={[0, box.rotation, 0]} castShadow={box.role !== 'glass'} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
-    <boxGeometry args={box.size} />
-    {(colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
+    {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} /> : <boxGeometry args={box.size} />}
+    {box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
         width={box.size[0]} height={box.size[2]} />
       : index === 2 && box.topColor

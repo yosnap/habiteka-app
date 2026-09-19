@@ -1,3 +1,4 @@
+import { boundaryDesignContext, BOUNDARY_RENDER_POLICY } from './boundary-context';
 import { surfaceMaterial } from './surface-materials';
 import type { EditorDocument } from './schema';
 import { buildingDocuments } from './building-levels';
@@ -27,7 +28,7 @@ export function editorDesignContext(doc: EditorDocument) {
       'No aplanes, ocultes, flotes ni interrumpas rampas, descansillos, pilares o columnas; no inventes soportes ni cierres pasos existentes.',
       'Los delimitadores outdoor: y hidden: son límites de áreas abiertas, no construyas muros ni techos sobre ellos. Conserva patios, jardines y terrazas abiertos salvo las pérgolas o toldos explícitos del catálogo.',
       'Solo puedes proponer acabados, iluminación, mobiliario complementario y decoración.',
-      CEILING_RENDER_POLICY,
+      CEILING_RENDER_POLICY, BOUNDARY_RENDER_POLICY,
     ].join(' '),
     levels: buildingDocuments(doc).map((level) => {
       const source = level.document;
@@ -64,6 +65,7 @@ export function editorDesignContext(doc: EditorDocument) {
           boundaryM: room.boundary.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
         })),
         floors,
+        boundaries: boundaryDesignContext(source),
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);

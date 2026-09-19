@@ -197,11 +197,13 @@
   font-weight: 600;
 }
 .tools {
+  position: relative;
+  z-index: 35; /* Por encima del lateral de propiedades: los tooltips salen por la derecha. */
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px 8px;
-  overflow: auto;
+  overflow: visible; /* Con desplazamiento, los tooltips quedaban recortados. */
   border-right: 1px solid var(--line);
 }
 .tools button {
@@ -240,7 +242,49 @@
   font-variant-numeric: tabular-nums;
 }
 .navigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
   font-size: 0.75rem;
+}
+/* Tooltip con el atajo: aparece al pasar el ratón o al enfocar con teclado. */
+.tools button[data-tooltip],
+.navigation button[data-tooltip] {
+  position: relative;
+}
+.tools button[data-tooltip]::after,
+.navigation button[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 60;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.tools button[data-tooltip]::after {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.navigation button[data-tooltip]::after {
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+}
+.tools button[data-tooltip]:hover::after,
+.tools button[data-tooltip]:focus-visible::after,
+.navigation button[data-tooltip]:hover::after,
+.navigation button[data-tooltip]:focus-visible::after {
+  opacity: 1;
 }
 .empty {
   pointer-events: none;
@@ -283,6 +327,88 @@
 .inspector,
 .catalog {
   padding: 16px;
+}
+.inspectorHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.inspectorHeading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.search span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 6px 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+.searchResults {
+  margin: -6px 0 12px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  max-height: 240px;
+  overflow: auto;
+}
+.searchResults button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+.searchResults button:hover,
+.searchResults button:focus-visible {
+  background: var(--surface);
+}
+.searchResults small,
+.searchEmpty {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.searchEmpty {
+  padding: 6px 8px;
+}
+.bulkNotice {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--selected);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.inspectorHeading button {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
 }
 .fields {
   display: grid;
