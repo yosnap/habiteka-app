@@ -13,6 +13,10 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
+import { alignBackToWall } from './wall-back-alignment';
+import { restOnHost } from '@/lib/editor-document/object-host-rest';
+import { isBoundary } from '@/lib/editor-document/boundary-types';
+import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 
 interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -103,6 +107,7 @@ export function collisions(doc: EditorDocument): Map<string, number> {
       if (a.id === b.id) continue;
       const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
       if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
+      if (first && second && (first.hostId === second.id || second.hostId === first.id)) continue;
       const depth = penetration(a, b);
       if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
     }
@@ -205,6 +210,9 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   result = snapOriginToWallEndpoint(doc, result, endpointTolerance);
   const aligned = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);
   result = { ...result, x: result.x + aligned.delta.x, y: result.y + aligned.delta.y };
+  const furniture = 'kind' in result && !('stepCount' in result) && !isBoundary(result) && !isKitchenRun(result);
+  // Un mueble se gira con la trasera contra el muro y, si cae sobre otro mueble, se apoya en él y toma su orientación.
+  if (furniture) result = restOnHost(doc, alignBackToWall(doc, result as Furniture, faceTolerance), { alignRotation: true });
   // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
   return snapToWallFace(doc, result, faceTolerance);
 }

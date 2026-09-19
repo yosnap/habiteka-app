@@ -200,7 +200,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         allowed.openings += ' colors';
         allowed.stairs += ' color';
         allowed.ramps += ' color';
-        allowed.furniture += ' heightMm elevationMm color';
+        allowed.furniture += ' heightMm elevationMm color hostId';
       }
       keys(e, allowed[key]!);
       if (e.name !== undefined) {
@@ -217,6 +217,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if (spatial && key === 'furniture') {
         positive(e.heightMm);
         nonnegative(e.elevationMm);
+        if (e.hostId !== undefined) text(e.hostId);
       }
       if (key === 'comments') {
         text(e.targetEntityId);

@@ -11,7 +11,8 @@ import { useStore } from 'zustand';
 import { Group, Line, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import type { EditorDocument, Point } from '@/lib/editor-document/schema';
+import type { EditorDocument, Furniture, Point } from '@/lib/editor-document/schema';
+import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { WalkthroughLayer } from './walkthrough-layer';
 import { CeilingLightingLayer } from './ceiling-lighting-layer';
 import { ObjectTransformControls } from './object-transform-controls';
@@ -96,7 +97,10 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       run(() => { state.apply(insertSpatialItem(state.document, copy)); store.getState().select([copy.id]); });
       return;
     }
-    run(() => state.apply(moveEntity(state.document, id, wall ? to : { x: to.x - origin.x, y: to.y - origin.y })));
+    if (object) {
+      const placed = to as Furniture;
+      run(() => state.apply(updateFurniture(state.document, id, { x: placed.x, y: placed.y, rotation: placed.rotation, elevationMm: placed.elevationMm, hostId: placed.hostId })));
+    } else run(() => state.apply(moveEntity(state.document, id, wall ? to : { x: to.x - origin.x, y: to.y - origin.y })));
     setWallMoveSnap(null);
     if (object) state.select([id]);
   };
@@ -155,8 +159,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
         const evt = e.evt as MouseEvent, current = store.getState().selection;
         store.getState().select((evt.shiftKey || evt.metaKey || evt.ctrlKey) && current.length ? [...current.filter((id) => id !== f.id), f.id] : []);
       }}
-      onDragMove={(e) => { if (!groupOf(f.id)) e.target.position(snapSpatialDrag(store, { ...f, ...e.target.position() }, scale)); }}
-      onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
+      onDragMove={(e) => { if (groupOf(f.id)) return; const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale); e.target.position(snapped); e.target.rotation(snapped.rotation); }}
+      onDragEnd={(e) => { e.target.rotation(f.rotation); drag(f.id, f, e); }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
       {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol onPartSnap={(id, delta) => {
         const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
         const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });

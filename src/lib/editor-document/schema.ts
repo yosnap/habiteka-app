@@ -116,6 +116,8 @@ export interface Furniture extends Point {
   heightMm?: number;
   elevationMm?: number;
   color?: string;
+  /** Mueble sobre el que se apoya (televisor sobre mueble, microondas sobre encimera); su cota sigue a la cara superior del anfitrión. */
+  hostId?: string;
 }
 export interface ElementComment {
   id: string;
