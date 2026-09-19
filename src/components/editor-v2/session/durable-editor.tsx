@@ -14,6 +14,17 @@ export function DurableEditor({ scope, projectName, initial }: {
   const [ready, setReady] = useState<{ scope: DraftScope; recovered?: EditorDraft } | null>(null);
   const [choices, setChoices] = useState<{ scope: DraftScope; drafts: EditorDraft[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Borrador cuyo descarte espera confirmación; un segundo clic lo elimina del almacenamiento local de este navegador.
+  const [discarding, setDiscarding] = useState<string | null>(null);
+  const discard = async (draft: EditorDraft) => {
+    if (!choices) return;
+    if (discarding !== draft.key) { setDiscarding(draft.key); return; }
+    try { await indexedDbDraftStorage.remove(draft.scope); }
+    catch { setError('No se pudo descartar el borrador. Revisa los permisos del navegador.'); return; }
+    const drafts = choices.drafts.filter((item) => item.key !== draft.key);
+    setDiscarding(null);
+    if (drafts.length) setChoices({ ...choices, drafts }); else { setChoices(null); setReady({ scope: choices.scope }); }
+  };
   useEffect(() => {
     let disposed = false, release: (() => void) | undefined;
     void (async () => {
@@ -43,10 +54,15 @@ export function DurableEditor({ scope, projectName, initial }: {
     {!ready && !choices && !error && <p role="status" className="p-6">Recuperando el espacio de trabajo…</p>}
     {choices && !ready && <section className="space-y-3 p-6">
       <h1 className="text-lg font-semibold">Hay borradores sin sincronizar de este plano</h1>
-      <p>Elige el que quieres continuar. Las otras pestañas y borradores se conservarán.</p>
-      {choices.drafts.map((draft) => <button key={draft.key} className="mr-3 rounded border px-4 py-2" onClick={() => {
-        setReady({ scope: choices.scope, recovered: { ...draft, key: draftKey(choices.scope), scope: choices.scope } });
-      }}>Recuperar · {new Date(draft.updatedAt).toLocaleString('es-ES')} · {draft.sequence} cambios</button>)}
+      <p>Elige el que quieres continuar. Los demás se conservan hasta que los descartes o los guardes en el servidor.</p>
+      {choices.drafts.map((draft) => <div key={draft.key} className="flex flex-wrap items-center gap-3">
+        <button className="rounded border px-4 py-2" onClick={() => {
+          setReady({ scope: choices.scope, recovered: { ...draft, key: draftKey(choices.scope), scope: choices.scope } });
+        }}>Recuperar · {new Date(draft.updatedAt).toLocaleString('es-ES')} · {draft.sequence} cambios</button>
+        <button className="rounded border border-red-300 px-4 py-2 text-red-800" onClick={() => void discard(draft)}>
+          {discarding === draft.key ? 'Confirmar: descartar este borrador' : 'Descartar'}
+        </button>
+      </div>)}
       <button className="block rounded border px-4 py-2" onClick={() => setReady({ scope: choices.scope })}>
         Abrir la revisión del servidor sin borrar los borradores
       </button>
