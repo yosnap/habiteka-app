@@ -58,3 +58,23 @@ No verificado en navegador (no se lanza el dev server desde aquí).
 - Soltar un objeto no seleccionado aplica ya la colocación completa (giro, cota, anfitrión), no solo el desplazamiento (`document-layer.tsx`).
 - Verificado con el plano real «Finca» exportado de la BD local: la «Pantalla de televisión» que Paulo había subido a mano queda apoyada sola en el mueble (1,50 m) y un televisor nuevo se coloca a esa cota girado 90° como el mueble; el error «atraviesa» que vi en el navegador era que ya había una pantalla en ese mueble. La «Cocina con fogones» (90 cm) ya no se sube a la encimera.
 - Tests: `tests/editor-document/object-host-rest.test.ts` (5). Suites editor-document/canvas/editor-v2 en verde.
+
+## Descansillo contra la esquina del patio (18:51–19:00)
+
+- Síntoma (Paulo): el descansillo a cota 1 m no se deja pegar a la línea de columnas del patio; «El elemento atraviesa una pared u otro objeto».
+- Causa, reproducida con el plano «Finca» guardado (rev. 51): el descansillo ya se empotra en las dos columnas (permitido), pero al avanzar toca las **esquinas** de dos muros que se juntan en ese vértice: el muro vertical del patio termina 41 mm por debajo del borde superior del descansillo y el muro horizontal arranca en el mismo punto. Ese solape de esquina se contaba como colisión.
+- Regla nueva (`landing-wall-corner.ts`, usada en `assertSpatialPlacement`): un descansillo puede abrazar el extremo de un muro recto (hasta dos grosores desde el vértice hacia dentro), igual que se empotra en una columna; invadir el tramo intermedio sigue prohibido. Con el plano real, desplazamientos de 20 a 300 mm hacia el patio pasan de bloqueados a permitidos.
+- Test: `tests/editor-document/landing-wall-corner.test.ts` (2).
+
+## Baño exterior sobre el descansillo: cota a 1 m (19:05–19:12)
+
+- Síntoma (Paulo): al poner la cota del baño nuevo a 1 m, «El elemento atraviesa una pared u otro objeto».
+- Causa, reproducida con «Finca» (rev. 53): el muro sur del baño está trazado sobre el borde del descansillo y nace con base 1000. Al subir la cota, `normalizeRoomWallBases` borraba la base de todos los muros de la estancia (base 0, altura 3700) y ese muro pasaba a atravesar el podio del descansillo 76 mm.
+- Arreglo: un muro cuyo eje apoya en un descansillo conserva la cota del descansillo como base (`floor-finishes.ts`), y el ajuste de altura al cambiar la cota se mide desde la base del muro, no desde el terreno (`floor-elevation-sync.ts`): ese muro no crece, los que arrancan del terreno crecen la cota del suelo y todos coronan a la misma altura.
+- Test: `tests/editor-document/landing-wall-floor.test.ts` (2). Con el plano real, la subida de cota pasa a permitida sin colisiones nuevas.
+
+## Puerta en el baño elevado (19:12–19:22)
+
+- Síntoma (Paulo): al colocar una puerta en el baño a 1 m, «La abertura supera la altura del muro».
+- Causa, con «Finca» rev. 55: `resolveOpeningPlacement` comparaba la coronación de la puerta (1,00 + 2,10 = 3,10 m) con la altura del muro sin sumar su base. El muro del baño apoyado en el descansillo (base 1,00 m, alto 2,70 m) corona a 3,70 m, pero la herramienta lo trataba como 2,70 m. Las puertas ya arrancan a ras del suelo elevado (`wallFloorElevation`); el resto de muros del baño aceptaban la puerta.
+- Arreglo: la coronación se mide desde la base del muro (`opening-placement.ts`). Test añadido en `landing-wall-floor.test.ts`.
