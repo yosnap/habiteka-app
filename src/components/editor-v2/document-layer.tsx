@@ -1,7 +1,9 @@
 'use client';
-import { planObjects, boundaryGateOwner } from '@/lib/editor-document/boundary-types';
+import { planObjects } from '@/lib/editor-document/boundary-types';
+import { linearPartOwner } from '@/lib/editor-document/linear-part-owner';
+import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
+import { elementName } from '@/lib/editor-document/element-classification';
 
-import { putBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapSpatialDrag, snapPointDrag } from './magnetic-drag';
 import { alignRoom, alignPoints } from '@/canvas/editor-v2/magnetic-alignment';
 import { useMemo, useState } from 'react';
@@ -20,7 +22,6 @@ import { deriveRooms, RoomConflictError } from '@/lib/editor-document/rooms';
 import type { VertexPreview } from '@/canvas/editor-v2/vertex-preview';
 import { VertexHandles } from './vertex-handles';
 import { interiorPoint, moveEntity, nudgeSpatialEntities } from '@/canvas/editor-v2/editing-operations';
-import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { FurnitureSymbol } from './furniture-symbol';
 import { wallJunctions, wallMiterPolygon } from '@/canvas/editor-v2/wall-junctions';
@@ -32,7 +33,7 @@ import { StairLayer } from './stair-layer';
 import { RampLayer } from './ramp-layer';
 import { OpeningLayer } from './opening-layer';
 import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
-import { localToWorld } from '@/lib/editor-document/spatial-properties';
+import { localToWorld, projectAlong } from '@/lib/editor-document/spatial-properties';
 import { floorFinish } from '@/lib/editor-document/floor-finishes';
 import { editableOutdoorRoom, moveOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
 import { roomAt } from '@/lib/editor-document/outdoor-attach';
@@ -79,8 +80,10 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const dragGroup = (ids: string[], delta: Point) => run(() => { store.getState().apply(nudgeSpatialEntities(source, ids, delta)); store.getState().select(ids); });
   const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>) => {
     const target = e.target, state = store.getState();
-    const group = groupOf(id);
-    if (group) { const at = target.position(); target.position(origin); return dragGroup(group, { x: at.x - origin.x, y: at.y - origin.y }); }
+    const group = groupOf(id), at = target.position();
+    // Un arrastre de un par de píxeles es un clic: se selecciona sin mover nada.
+    if (Math.hypot(at.x - origin.x, at.y - origin.y) < 4 / scale) { target.position(origin); setWallMoveSnap(null); state.select(group ?? [id]); return; }
+    if (group) { target.position(origin); return dragGroup(group, { x: at.x - origin.x, y: at.y - origin.y }); }
     const wall = state.document.walls.find((item) => item.id === id);
     const object = planObjects(state.document).find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
@@ -146,21 +149,26 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {planObjects(doc).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
-      draggable={!readOnly && tool === 'select' && (!selected.includes(f.id) || selected.length > 1)} onDragStart={() => { if (!groupOf(f.id)) store.getState().select([]); }}
+      draggable={!readOnly && tool === 'select' && (!selected.includes(f.id) || selected.length > 1)} onDragStart={(e) => {
+        if (groupOf(f.id)) return;
+        // Con Mayús/⌘/Ctrl un clic con un leve arrastre (trackpad) no rompe la selección múltiple: el objeto se suma a ella.
+        const evt = e.evt as MouseEvent, current = store.getState().selection;
+        store.getState().select((evt.shiftKey || evt.metaKey || evt.ctrlKey) && current.length ? [...current.filter((id) => id !== f.id), f.id] : []);
+      }}
       onDragMove={(e) => { if (!groupOf(f.id)) e.target.position(snapSpatialDrag(store, { ...f, ...e.target.position() }, scale)); }}
       onDragEnd={(e) => drag(f.id, f, e)} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
-      {getFurnitureCatalogEntry(f.catalogId) ? <FurnitureSymbol onGateSnap={(id, delta) => {
-        const owner = boundaryGateOwner(store.getState().document, id); if (!owner) return delta;
-        const raw = localToWorld(owner.boundary, { x: owner.gate.positionMm + delta, y: owner.boundary.depthMm / 2 });
-        const snapped = snapPointDrag(store, raw, scale, [owner.boundary.id]);
-        return projectBoundary(owner.boundary, snapped) - owner.gate.positionMm;
-      }} onGateMove={!readOnly && tool === 'select' ? (id, delta) => run(() => {
-        const owner = boundaryGateOwner(store.getState().document, id); if (!owner) return;
-        store.getState().apply(putBoundaryGate(store.getState().document, owner.boundary.id, { ...owner.gate, positionMm: owner.gate.positionMm + delta }));
-      }) : undefined} selectedGateId={selected[0]} onGateSelect={tool === 'select' ? (id) => store.getState().select([id]) : undefined} document={doc} item={f} scale={scale} selected={selected.includes(f.id)} /> : <><Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
+      {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol onPartSnap={(id, delta) => {
+        const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
+        const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });
+        const snapped = snapPointDrag(store, raw, scale, [owner.item.id]);
+        return projectAlong(owner.item, snapped) - owner.positionMm;
+      }} onPartMove={!readOnly && tool === 'select' ? (id, delta) => run(() => {
+        const owner = linearPartOwner(store.getState().document, id); if (!owner) return;
+        store.getState().apply(owner.move(store.getState().document, delta));
+      }) : undefined} selectedPartId={selected[0]} onPartSelect={tool === 'select' ? (id) => store.getState().select([id]) : undefined} document={doc} item={f} scale={scale} selected={selected.includes(f.id)} /> : <><Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
         fill={f.color ?? '#d8e2de'} stroke={selected.includes(f.id) ? ACCENT : '#65776e'} strokeWidth={2 / scale} />
       <Line points={[0, f.depthMm * .25, f.widthMm, f.depthMm * .25]} stroke="#65776e" strokeWidth={1 / scale} listening={false} /></>}
-      <Text text={getFurnitureCatalogEntry(f.catalogId)?.label ?? CATALOG_BY_KIND[f.kind]?.label ?? f.kind} x={0} y={f.depthMm / 2}
+      <Text text={elementName(f)} x={0} y={f.depthMm / 2}
         width={f.widthMm} align="center" fontSize={11 / scale} fill={INK} listening={false} />
     </Group>)}
     {dimensions !== 'none' && dimensions !== 'external' && doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}

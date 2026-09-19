@@ -5,7 +5,7 @@ export interface SceneBox {
   position: Vector3Tuple; size: Vector3Tuple; rotation: number; color: string;
   emissive?: string;
   shape?: 'box' | 'cylinder';
-  boundaryPart?: 'post' | 'gate';
+  boundaryPart?: 'post' | 'gate' | 'slot';
   materialId?: string;
   sideColors?: [string, string];
   sideMaterials?: [string, string];

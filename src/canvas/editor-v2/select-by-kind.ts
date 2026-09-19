@@ -1,13 +1,14 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { DerivedRoom } from '@/lib/editor-document/rooms';
 import { planObjects, isBoundary } from '@/lib/editor-document/boundary-types';
+import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 
-export type SelectableKind = 'walls' | 'doors' | 'windows' | 'passages' | 'rooms' | 'patios' | 'furniture' | 'boundaries' | 'columns' | 'stairs' | 'ramps' | 'luminaires' | 'labels';
+export type SelectableKind = 'walls' | 'doors' | 'windows' | 'passages' | 'rooms' | 'patios' | 'furniture' | 'boundaries' | 'kitchens' | 'columns' | 'stairs' | 'ramps' | 'luminaires' | 'labels';
 
 export const SELECTABLE_KINDS: { id: SelectableKind; label: string }[] = [
   { id: 'walls', label: 'Todas las paredes' }, { id: 'doors', label: 'Todas las puertas' }, { id: 'windows', label: 'Todas las ventanas' },
   { id: 'passages', label: 'Todos los huecos' }, { id: 'rooms', label: 'Todas las estancias' }, { id: 'patios', label: 'Todos los patios' },
-  { id: 'furniture', label: 'Todos los muebles' }, { id: 'boundaries', label: 'Todos los cerramientos' }, { id: 'columns', label: 'Todas las columnas' },
+  { id: 'furniture', label: 'Todos los muebles' }, { id: 'boundaries', label: 'Todos los cerramientos' }, { id: 'kitchens', label: 'Todas las cocinas' }, { id: 'columns', label: 'Todas las columnas' },
   { id: 'stairs', label: 'Todas las escaleras' }, { id: 'ramps', label: 'Todas las rampas' }, { id: 'luminaires', label: 'Todas las luces' },
   { id: 'labels', label: 'Todos los textos' },
 ];
@@ -22,8 +23,9 @@ export function idsByKind(doc: EditorDocument, rooms: DerivedRoom[], kind: Selec
     case 'passages': return doc.openings.filter((o) => o.kind !== 'puerta' && o.kind !== 'ventana').map((o) => o.id);
     case 'rooms': return rooms.filter((r) => !outdoor(r)).map((r) => r.id);
     case 'patios': return rooms.filter(outdoor).map((r) => r.id);
-    case 'furniture': return planObjects(doc).filter((o) => !isBoundary(o)).map((o) => o.id);
+    case 'furniture': return planObjects(doc).filter((o) => !isBoundary(o) && !isKitchenRun(o)).map((o) => o.id);
     case 'boundaries': return (doc.boundaries ?? []).map((b) => b.id);
+    case 'kitchens': return (doc.kitchenRuns ?? []).map((r) => r.id);
     case 'columns': return (doc.columns ?? []).map((c) => c.id);
     case 'stairs': return (doc.stairs ?? []).map((s) => s.id);
     case 'ramps': return (doc.ramps ?? []).map((r) => r.id);

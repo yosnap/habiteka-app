@@ -22,6 +22,9 @@ export function magneticReferences(doc: EditorDocument, exclude: string[] = []):
   for (const boundary of doc.boundaries ?? []) if (!excluded.has(boundary.id))
     for (const gate of boundary.construction.gates) if (!excluded.has(gate.id))
       points.push(...[-.5, 0, .5].map((side) => localToWorld(boundary, { x: gate.positionMm + side * gate.widthMm, y: boundary.depthMm / 2 })));
+  for (const run of doc.kitchenRuns ?? []) if (!excluded.has(run.id))
+    for (const slot of run.kitchen.slots) if (!excluded.has(slot.id))
+      points.push(...[-.5, 0, .5].map((side) => localToWorld(run, { x: slot.positionMm + side * slot.widthMm, y: 0 })));
   for (const opening of doc.openings) {
     if (excluded.has(opening.id) || excluded.has(opening.wallId)) continue;
     const wall = doc.walls.find((w) => w.id === opening.wallId); if (!wall) continue;

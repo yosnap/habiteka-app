@@ -1,4 +1,5 @@
 import type { Boundary } from './boundary-types';
+import type { KitchenRun } from './kitchen-run-types';
 import type { WalkthroughPath } from './walkthrough';
 export type DimensionalOrigin = 'raster' | 'physical';
 export interface Point {
@@ -173,7 +174,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
@@ -182,6 +183,7 @@ export interface EditorDocument {
   openings: Opening[];
   furniture: Furniture[];
   boundaries?: Boundary[];
+  kitchenRuns?: KitchenRun[];
   dimensions: Dimension[];
   labels: Label[];
   stairs?: Stair[];

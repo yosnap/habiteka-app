@@ -1,5 +1,6 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { isBoundaryJoint } from './boundary-junction';
+import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
 import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
@@ -101,7 +102,7 @@ export function collisions(doc: EditorDocument): Map<string, number> {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
       if (a.id === b.id) continue;
       const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
-      if (!a.gate && !b.gate && first && second && isBoundaryJoint(first, second)) continue;
+      if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
       const depth = penetration(a, b);
       if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
     }
@@ -129,7 +130,8 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     ...(previous.ramps ?? []), ...(candidate.ramps ?? []),
   ].map((item) => item.id));
   // Un cerramiento (valla, cerca, seto) admite columnas embebidas igual que un muro; entre cerramientos sí se detectan cruces.
-  const boundaryIds = new Set([...(previous.boundaries ?? []), ...(candidate.boundaries ?? [])].map((item) => item.id));
+  // Un pilar que cae sobre un mueble de cocina tampoco es colisión: el mueble se recorta a su alrededor como en obra.
+  const boundaryIds = new Set([...(previous.boundaries ?? []), ...(candidate.boundaries ?? []), ...(previous.kitchenRuns ?? []), ...(candidate.kitchenRuns ?? [])].map((item) => item.id));
   // Muretes y cerramientos bajos (≤ 1,50 m) pueden apoyarse en descansillos, escaleras y rampas.
   const guardWallIds = new Set([
     ...[...previous.walls, ...candidate.walls].filter((wall) => (wall.heightMm ?? 2700) <= 1500),
@@ -155,7 +157,8 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };
     if (objectSolids(placed).some((a) => occupied.some((b) => penetration(a, b) > .1))) continue;
-    return { ...candidate, ...(candidate.boundaries ? { boundaries: candidate.boundaries.map((b) => b.id === id ? placed as typeof b : b) } : {}), furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
+    return { ...candidate, ...(candidate.boundaries ? { boundaries: candidate.boundaries.map((b) => b.id === id ? placed as typeof b : b) } : {}),
+      ...(candidate.kitchenRuns ? { kitchenRuns: candidate.kitchenRuns.map((r) => r.id === id ? placed as typeof r : r) } : {}), furniture: candidate.furniture.map((f) => f.id === id ? placed as Furniture : f),
       stairs: candidate.stairs?.map((s) => s.id === id ? placed as Stair : s),
       ...(candidate.columns ? { columns: candidate.columns.map((c) => c.id === id ? placed as Column : c) } : {}),
       ...(candidate.ramps ? { ramps: candidate.ramps.map((r) => r.id === id ? placed as Ramp : r) } : {}) };

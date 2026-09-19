@@ -1,5 +1,7 @@
 'use client';
 import { planObjects, isBoundary } from '@/lib/editor-document/boundary-types';
+import { isKitchenRun, type KitchenRun } from '@/lib/editor-document/kitchen-run-types';
+import { updateKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
 
 import { AnchoredEditorPanel } from './anchored-editor-panel';
 import { elementName } from '@/lib/editor-document/element-classification';
@@ -27,6 +29,8 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
     [side, label, wall.colors?.[side] ?? finishColor(wall.materials?.[side] ?? 'plaster-white')])
     : opening ? [['frame', 'Marco', opening.colors?.frame ?? '#f4f1e9'], ...(opening.kind === 'puerta' ? [['leaf', 'Hoja', opening.colors?.leaf ?? '#bb956c'] as [string, string, string]] : [])]
     : furniture && isBoundary(furniture) ? [['base', 'Muro inferior', furniture.construction.baseColor], ['body', 'Valla / seto', furniture.color], ['posts', 'Postes', furniture.construction.postColor]]
+    : furniture && isKitchenRun(furniture) ? [['body', 'Frentes', furniture.color], ['worktop', 'Encimera', furniture.kitchen.worktopColor], ['plinth', 'Zócalo', furniture.kitchen.plinthColor],
+      ...(furniture.kitchen.uppers ? [['uppers', 'Módulos altos', furniture.kitchen.uppers.color] as [string, string, string]] : [])]
     : [['body', 'Color del elemento', furniture ? furnitureSpatial(furniture).color : stair!.color ?? finishColor(stair!.materialId)]];
   return <AnchoredEditorPanel store={store} label={state.detailPanel === 'paint' ? 'Pintar elemento' : 'Comentarios del elemento'}>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -45,7 +49,9 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>{label}
         <input type="color" aria-label={label} value={color} onChange={(e) => run((d) => paintElement(d, id, part, e.target.value))} />
       </label>{wall && <SurfaceMaterialPicker label={label} value={wall.materials?.[part as 'left' | 'right']}
-        onChange={(material) => run((d) => setWallSurface(d, id, part as 'left' | 'right', material))} />}</div>) : <>
+        onChange={(material) => run((d) => setWallSurface(d, id, part as 'left' | 'right', material))} />}
+      {furniture && isKitchenRun(furniture) && part !== 'plinth' && <SurfaceMaterialPicker label={label} value={kitchenMaterial(furniture, part)}
+        onChange={(material) => run((d) => updateKitchenRun(d, id, { kitchen: withKitchenMaterial(furniture.kitchen, part, material) }))} />}</div>) : <>
         <p style={{ fontSize: 12 }}>Notas del proyecto vinculadas a este elemento.</p>
         {(doc.comments ?? []).filter((c) => c.targetEntityId === id).map((c) => <article key={c.id} style={{ borderBottom: '1px solid #ddd', padding: '12px 0' }}>
           <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.text}</p>
@@ -68,4 +74,14 @@ export function ElementDetailsPanel({ store }: { store: EditorStore }) {
       </>}
     </fieldset>
   </AnchoredEditorPanel>;
+}
+
+/** Material fotografiado de cada parte del mueble de cocina; el zócalo va solo en color. */
+function kitchenMaterial(run: KitchenRun, part: string): string | undefined {
+  return part === 'worktop' ? run.kitchen.worktopMaterialId : part === 'uppers' ? run.kitchen.uppers?.materialId : run.kitchen.baseMaterialId;
+}
+function withKitchenMaterial(kitchen: KitchenRun['kitchen'], part: string, material: string | undefined): KitchenRun['kitchen'] {
+  if (part === 'worktop') return { ...kitchen, worktopMaterialId: material };
+  if (part === 'uppers') return kitchen.uppers ? { ...kitchen, uppers: { ...kitchen.uppers, materialId: material } } : kitchen;
+  return { ...kitchen, baseMaterialId: material };
 }

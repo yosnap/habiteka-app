@@ -1,12 +1,12 @@
 'use client';
 import { OutdoorConstructionCatalog } from './outdoor-construction-catalog';
 import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
-import { Columns2, DoorOpen, MoveUpRight, RectangleHorizontal, ScanLine, Slash } from 'lucide-react';
+import { Columns2, CookingPot, DoorOpen, MoveUpRight, RectangleHorizontal, ScanLine, Slash } from 'lucide-react';
 import type { EditorTool } from '@/canvas/editor-v2/store';
 import type { Stair } from '@/lib/editor-document/schema';
 import styles from './editor.module.css';
 
-export type ConstructionCategory = 'outdoor' | 'patio' | 'walls' | 'rooms' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps' | 'columns';
+export type ConstructionCategory = 'outdoor' | 'patio' | 'walls' | 'rooms' | 'kitchen' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps' | 'columns';
 export interface ConstructionCatalogProps {
   category: ConstructionCategory;
   onAddOutdoor?: (item: FurnitureCatalogEntry) => void;
@@ -22,6 +22,7 @@ const entries = {
   patio: { title: 'Patio / terraza', icon: RectangleHorizontal, label: 'Superficie exterior', detail: 'Dibuja un área abierta. Pulsa su suelo para elegir césped, tierra, gravilla o pavimento. Los elementos se añaden desde Construir → Exterior y jardín.', tool: 'patio' },
   walls: { title: 'Dibujar paredes', icon: Slash, label: 'Pared recta', detail: 'Dibuja el contorno de tu espacio o un tramo abierto', tool: 'wall' },
   rooms: { title: 'Habitaciones', icon: RectangleHorizontal, label: 'Habitación rectangular', detail: 'Dibuja una habitación cerrada', tool: 'rectangle' },
+  kitchen: { title: 'Cocina', icon: CookingPot, label: 'Mueble lineal de cocina', detail: 'Trázalo como una pared, pegado al muro: módulos bajos con encimera. Después añade aparatos y módulos altos desde Propiedades.', tool: 'kitchen' },
   doors: { title: 'Puertas', icon: DoorOpen, label: 'Puerta abatible', detail: 'Colócala sobre una pared', tool: 'door' },
   windows: { title: 'Ventanas', icon: Columns2, label: 'Ventana', detail: 'Colócala sobre una pared', tool: 'window' },
   passages: { title: 'Huecos', icon: ScanLine, label: 'Paso abierto', detail: 'Una abertura sin carpintería', tool: 'passage' },
@@ -65,7 +66,7 @@ export function ConstructionCatalog({ category, readOnly, onTool, onShape, onAdd
     <h3>{item.title}</h3><p>{item.detail}</p>
     <div className={styles.constructionCards}><button type="button" disabled={readOnly} onClick={() => onTool(item.tool)}>
       <Icon size={48} strokeWidth={1.25} aria-hidden="true" /><strong>{item.label}</strong>
-      <small>{category === 'walls' ? 'Dibujar en el lienzo' : category === 'patio' ? 'Clics para cerrar el contorno' : category === 'rooms' ? 'Arrastra entre dos esquinas' : 'Elegir y colocar'}</small>
+      <small>{category === 'walls' ? 'Dibujar en el lienzo' : category === 'kitchen' ? 'Clics por tramos pegados al muro' : category === 'patio' ? 'Clics para cerrar el contorno' : category === 'rooms' ? 'Arrastra entre dos esquinas' : 'Elegir y colocar'}</small>
     </button>{category === 'walls' && <button type="button" disabled={readOnly} onClick={() => onTool('guard-wall')}>
       <RectangleHorizontal size={48} aria-hidden="true" /><strong>Murete de protección</strong><small>Tramo independiente de 1,10 m; se apoya en el descansillo</small>
     </button>}</div>

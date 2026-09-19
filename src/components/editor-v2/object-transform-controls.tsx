@@ -52,7 +52,8 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   };
   const update = (nextItem: ObjectItem) => {
     const active = gesture.current; if (!active) return;
-    const candidate = active.duplicate ? insertSpatialItem(active.doc, { ...active.duplicate, x: nextItem.x, y: nextItem.y, rotation: nextItem.rotation } as SpatialClipboardItem) : { ...active.doc, ...(active.doc.boundaries ? { boundaries: active.doc.boundaries.map((b) => b.id === id ? nextItem as typeof b : b) } : {}), furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
+    const candidate = active.duplicate ? insertSpatialItem(active.doc, { ...active.duplicate, x: nextItem.x, y: nextItem.y, rotation: nextItem.rotation } as SpatialClipboardItem) : { ...active.doc, ...(active.doc.boundaries ? { boundaries: active.doc.boundaries.map((b) => b.id === id ? nextItem as typeof b : b) } : {}),
+      ...(active.doc.kitchenRuns ? { kitchenRuns: active.doc.kitchenRuns.map((r) => r.id === id ? nextItem as typeof r : r) } : {}), furniture: active.doc.furniture.map((f) => f.id === id ? nextItem as Furniture : f),
       stairs: active.doc.stairs!.map((s) => s.id === id ? nextItem as Stair : s),
       columns: active.doc.columns?.map((c) => c.id === id ? nextItem as Column : c),
       ...(active.doc.ramps ? { ramps: active.doc.ramps.map((r) => r.id === id ? nextItem as Ramp : r) } : {}) };

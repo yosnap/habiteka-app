@@ -57,7 +57,7 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
     ...planObjects(doc).flatMap((f) => furnitureVolumes(f, doc).map((volume, index) => {
       const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
       const p = localToWorld(f, center);
-      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? f.id, role: 'furniture' as const,
+      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? volume.slotId ?? f.id, role: 'furniture' as const,
         position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
         size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
         ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),

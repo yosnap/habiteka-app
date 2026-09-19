@@ -3,6 +3,8 @@ import { planObjects, isBoundary, isLegacyBoundary, boundaryGateOwner } from '@/
 
 import { elementName } from '@/lib/editor-document/element-classification';
 import { BoundaryFields } from './boundary-fields';
+import { KitchenFields } from './kitchen-fields';
+import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
@@ -30,8 +32,8 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const readOnly = useStore(store, (s) => s.readOnly);
   const [mergeId, setMergeId] = useState(''), [query, setQuery] = useState(''), id = selection[0];
-  const gateOwner = boundaryGateOwner(doc, id);
-  const wall = doc.walls.find((w) => w.id === id), furniture = planObjects(doc).find((f) => f.id === id) ?? gateOwner?.boundary;
+  const gateOwner = boundaryGateOwner(doc, id), slotOwner = kitchenSlotOwner(doc, id), partOwner = gateOwner ?? slotOwner;
+  const wall = doc.walls.find((w) => w.id === id), furniture = planObjects(doc).find((f) => f.id === id) ?? gateOwner?.boundary ?? slotOwner?.run;
   const opening = doc.openings.find((o) => o.id === id), label = doc.labels.find((o) => o.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
@@ -91,10 +93,10 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
       {index.map((entry) => <option key={entry.id} value={entry.id}>{entry.label} · {entry.group}</option>)}
     </ModernSelect></label>
     <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-    <h2>{gateOwner ? 'Puerta del cerramiento' : wall ? 'Muro' : column ? 'Columna' : furniture ? elementName(furniture) : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : room ? outdoor ? 'Patio / terraza' : 'Estancia' : label ? 'Texto' : 'Propiedades'}</h2>
+    <h2>{gateOwner ? 'Puerta del cerramiento' : slotOwner ? 'Aparato de cocina' : wall ? 'Muro' : column ? 'Columna' : furniture ? elementName(furniture) : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : room ? outdoor ? 'Patio / terraza' : 'Estancia' : label ? 'Texto' : 'Propiedades'}</h2>
     {!id && <p>Selecciona un elemento para editar sus medidas. Todas las distancias se expresan en metros.</p>}
     {peers.length > 0 && <p className={styles.bulkNotice} role="status">{peers.length + 1} elementos seleccionados: cada cambio se aplica a todos.</p>}
-    {selectedEntity && !gateOwner && !peers.length && <label className={styles.field}>Nombre<input key={selectedEntity.name} defaultValue={selectedEntity.name ?? ''}
+    {selectedEntity && !partOwner && !peers.length && <label className={styles.field}>Nombre<input key={selectedEntity.name} defaultValue={selectedEntity.name ?? ''}
       placeholder={furniture ? elementName(furniture) : "Nombre del elemento"} maxLength={100} onBlur={(event) => updateName(event.currentTarget.value)} /></label>}
     {room && <>
       {!peers.length && <label className={styles.field}>Nombre<input key={roomLabel?.id ?? 'sin-nombre'} defaultValue={roomLabel?.text ?? ''}
@@ -131,15 +133,16 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
       <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
       <WallConstructionFields wall={wall} document={doc} edit={apply} />
     </>}
-    {furniture && !gateOwner && <div className={styles.fields}>
+    {furniture && !partOwner && <div className={styles.fields}>
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
         ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
-        <MeterField key={key} label={isBoundary(furniture) && key === 'widthMm' ? 'Longitud' : isBoundary(furniture) && key === 'depthMm' ? 'Espesor' : label} valueMm={({ ...furniture, ...furnitureSpatial(furniture) })[key]}
+        <MeterField key={key} label={(isBoundary(furniture) || isKitchenRun(furniture)) && key === 'widthMm' ? 'Longitud' : isBoundary(furniture) && key === 'depthMm' ? 'Espesor' : isKitchenRun(furniture) && key === 'heightMm' ? 'Altura de encimera' : label} valueMm={({ ...furniture, ...furnitureSpatial(furniture) })[key]}
           change={(value) => apply((doc) => updateFurniture(doc, furniture.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={furniture.rotation}
         change={(rotation) => apply((doc) => updateFurniture(doc, furniture.id, { rotation }))} />
     </div>}
     {furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
+    {furniture && isKitchenRun(furniture) && <KitchenFields item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
     {opening && <><div className={styles.fields}>
       {meterField('Ancho', opening.widthMm, (d, n) => {
         const target = d.openings.find((o) => o.id === id)!;

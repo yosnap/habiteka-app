@@ -14,7 +14,7 @@ import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialC
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 import { inheritFloorFinishes } from '@/lib/editor-document/floor-level';
 
-export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
+export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'kitchen' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
 export interface EditorState {
   detailAnchor: Point | null;
   setDetailAnchor: (point: Point) => void;

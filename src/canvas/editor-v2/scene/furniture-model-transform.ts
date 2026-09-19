@@ -9,8 +9,9 @@ export function prepareFurnitureModel(source: Object3D, frontRotation: number, t
     mesh.castShadow = true; mesh.receiveShadow = true;
     const cloneMaterial = (original: Material) => {
       const material = original.clone() as Material & { color?: Color };
-      // Global tint deliberately preserves texture, roughness, opacity and glass.
-      if (tint && material.color && !(material.transparent && material.opacity < .8)) material.color.multiply(new Color(tint));
+      // El color pintado sustituye al color base del material (multiplicarlo nunca podía aclarar una madera
+      // marrón); la textura, la rugosidad, la opacidad y el vidrio se conservan.
+      if (tint && material.color && !(material.transparent && material.opacity < .8)) material.color.set(new Color(tint));
       materials.push(material); return material;
     };
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(cloneMaterial) : cloneMaterial(mesh.material);

@@ -24,7 +24,7 @@ export function bulkPeers(doc: EditorDocument, primaryId: string, selection: str
 
 const WALL_KEYS = ['heightMm', 'baseElevationMm', 'materials', 'colors', 'thicknessMm'] as const;
 const OPENING_KEYS = ['heightMm', 'elevationMm', 'openAngleDeg', 'hinge', 'swing', 'catalogId', 'widthMm'] as const;
-const OBJECT_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'rotation', 'color', 'materialId', 'construction'] as const;
+const OBJECT_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'rotation', 'color', 'materialId', 'construction', 'kitchen'] as const;
 const COLUMN_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'materialId', 'color'] as const;
 const FINISH_KEYS = ['color', 'texture', 'tileSizeMm', 'rotation', 'elevationMm', 'slabThicknessMm'] as const;
 
@@ -38,7 +38,7 @@ function changedKeys<T extends object, K extends keyof T>(before: T | undefined,
 /**
  * Repite en los `peerIds` el cambio que una edición hizo sobre el elemento principal. Se deduce comparando el
  * principal antes y después, así los campos del inspector no necesitan saber nada de la selección múltiple.
- * Las puertas de un cerramiento nunca se copian a otro; los nombres tampoco.
+ * Las puertas de un cerramiento y los aparatos de una cocina nunca se copian a otro; los nombres tampoco.
  */
 export function propagateToPeers(before: EditorDocument, after: EditorDocument, primaryId: string, peerIds: string[]): EditorDocument {
   if (!peerIds.length) return after;
@@ -70,10 +70,11 @@ export function propagateToPeers(before: EditorDocument, after: EditorDocument, 
         planObjects(after).find((o) => o.id === primaryId) as Record<string, unknown> | undefined, OBJECT_KEYS as readonly string[]);
       if (!Object.keys(patch).length) return after;
       for (const id of peerIds) {
-        const peer = planObjects(doc).find((o) => o.id === id) as (Furniture & { construction?: { gates: unknown[] } }) | undefined;
+        const peer = planObjects(doc).find((o) => o.id === id) as (Furniture & { construction?: { gates: unknown[] }; kitchen?: { slots: unknown[] } }) | undefined;
         if (!peer) continue;
-        const { construction, ...rest } = patch as typeof patch & { construction?: { gates: unknown[] } };
-        const merged = construction && peer.construction ? { construction: { ...construction, gates: peer.construction.gates } } : {};
+        const { construction, kitchen, ...rest } = patch as typeof patch & { construction?: { gates: unknown[] }; kitchen?: { slots: unknown[] } };
+        const merged = { ...(construction && peer.construction ? { construction: { ...construction, gates: peer.construction.gates } } : {}),
+          ...(kitchen && peer.kitchen ? { kitchen: { ...kitchen, slots: peer.kitchen.slots } } : {}) };
         doc = updateFurniture(doc, id, { ...rest, ...merged } as Partial<Omit<Furniture, 'id'>>);
       }
       return doc;

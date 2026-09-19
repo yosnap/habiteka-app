@@ -2,12 +2,25 @@ import { outdoorVolumes } from './outdoor-volumes';
 import type { Furniture } from './schema';
 import { furnitureSpatial } from './spatial-properties';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
+import { isKitchenRun } from './kitchen-run-types';
 
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
-  rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate'; gateId?: string; materialId?: string;
+  rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
 }
+
+/** El mueble lleva un color distinto al de catálogo: el usuario lo ha pintado. */
+export function isPainted(item: Furniture): boolean {
+  // Un mueble de cocina lleva cada color en su composición; su color base nunca tiñe encimera ni aparatos.
+  if (isKitchenRun(item)) return false;
+  const entry = getFurnitureCatalogEntry(item.catalogId);
+  return !!item.color && item.color !== (entry?.color ?? '#8ea69b');
+}
+
+// Herrajes y patas oscuros conservan su color aunque el mueble se pinte; el resto de acentos (encimera, cojines,
+// frentes) siguen al color pintado para que el mueble se vea del color elegido también en 3D.
+const HARDWARE = new Set(['#67513b', '#434743', '#444944', '#64716f', '#313d3e']);
 
 /** Normalized local solids: one geometry contract for rendering and collision. */
 export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | null {
@@ -15,10 +28,12 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
   if (!entry) return null;
   if (entry.profile === 'outdoor') return outdoorVolumes(item);
   const { heightMm: h, elevationMm: elevation, color } = furnitureSpatial(item);
+  const painted = isPainted(item);
   const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [];
   const box = (x: number, y: number, z: number, width: number, depth: number, height: number, tint = color) => {
+    const applied = painted && tint !== color && !HARDWARE.has(tint) ? color : tint;
     result.push({ x: x * w, y: y * d, widthMm: width * w, depthMm: depth * d,
-      bottom: elevation + z * h, top: elevation + (z + height) * h, color: tint });
+      bottom: elevation + z * h, top: elevation + (z + height) * h, color: applied });
   };
   const legs = (top: number, inset = .06) => {
     for (const x of [inset, .94 - inset]) for (const y of [inset, .94 - inset])

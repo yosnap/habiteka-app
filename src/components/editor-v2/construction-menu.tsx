@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { ChevronRight, Columns2, DoorOpen, Import, MoveUpRight, RectangleHorizontal, ScanLine, Shapes, Slash, X } from 'lucide-react';
+import { ChevronRight, Columns2, CookingPot, DoorOpen, Import, MoveUpRight, RectangleHorizontal, ScanLine, Shapes, Slash, X } from 'lucide-react';
 import { ConstructionCatalog, type ConstructionCategory, type ConstructionCatalogProps } from './construction-catalog';
 import styles from './editor.module.css';
 
@@ -14,6 +14,7 @@ const baseCategories = [
   { id: 'outdoor', label: 'Exterior y jardín', icon: Shapes },
   { id: 'patio', label: 'Patio / terraza', icon: RectangleHorizontal },
   { id: 'rooms', label: 'Habitaciones', icon: RectangleHorizontal },
+  { id: 'kitchen', label: 'Cocina', icon: CookingPot },
 ] as const;
 const structureCategories = [
   { id: 'shapes', label: 'Formas', icon: Shapes },

@@ -2,12 +2,12 @@ import type { EditorDocument, Point } from './schema';
 import { type Boundary, type BoundaryGate, boundaryDefaults, isLegacyBoundary } from './boundary-types';
 import { upgradeWalkthroughDocument } from './walkthrough';
 import { parseEditorDocument } from './validation';
-import { transformAroundCenter, localToWorld } from './spatial-properties';
+import { transformAroundCenter, localToWorld, projectAlong } from './spatial-properties';
 
 /** Explicit, reversible migration; reading an old plan never changes its entities. */
 export function upgradeBoundaryDocument(source: EditorDocument): EditorDocument {
   const doc = upgradeWalkthroughDocument(source);
-  doc.schemaVersion = 10;
+  if (doc.schemaVersion < 10) doc.schemaVersion = 10;
   doc.boundaries ??= [];
   doc.boundaries.push(...doc.furniture.filter(isLegacyBoundary).map(boundaryDefaults));
   doc.furniture = doc.furniture.filter((item) => !isLegacyBoundary(item));
@@ -45,7 +45,4 @@ export function splitBoundary(source: EditorDocument, id: string, positionMm: nu
   b.construction.gates = b.construction.gates.filter((g) => g.positionMm < positionMm);
   doc.boundaries!.push(other); doc.revision++; return parseEditorDocument(doc);
 }
-export function projectBoundary(b: Boundary, point: Point) {
-  const a = b.rotation * Math.PI / 180;
-  return (point.x - b.x) * Math.cos(a) + (point.y - b.y) * Math.sin(a);
-}
+export const projectBoundary = (b: Boundary, point: Point) => projectAlong(b, point);

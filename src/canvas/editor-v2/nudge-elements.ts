@@ -30,6 +30,11 @@ export function nudgeElements(source: EditorDocument, ids: string[], delta: Poin
     for (const gate of boundary.construction.gates) if (selected.has(gate.id))
       gate.positionMm += delta.x * Math.cos(angle) + delta.y * Math.sin(angle);
   }
+  for (const run of doc.kitchenRuns ?? []) if (!selected.has(run.id)) {
+    const angle = run.rotation * Math.PI / 180;
+    for (const slot of run.kitchen.slots) if (selected.has(slot.id))
+      slot.positionMm += delta.x * Math.cos(angle) + delta.y * Math.sin(angle);
+  }
   for (const dim of doc.dimensions) if (selected.has(dim.id)) {
     dim.from = { x: dim.from.x + delta.x, y: dim.from.y + delta.y }; dim.to = { x: dim.to.x + delta.x, y: dim.to.y + delta.y };
   }

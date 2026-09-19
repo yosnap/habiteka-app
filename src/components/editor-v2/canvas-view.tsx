@@ -4,6 +4,8 @@ import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/l
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
 import { addLinearBoundary, isBoundaryKind } from '@/lib/editor-document/linear-boundary';
+import { addKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
+import { orientKitchenRun, snapToWallFace } from '@/lib/editor-document/kitchen-run-placement';
 import { addOutdoorArea, addOutdoorEdge } from '@/lib/editor-document/outdoor-area';
 import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -69,7 +71,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [chain, setChain] = useState<Point[]>([]);
-  const continuous = tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || isBoundaryKind(tool);
+  const continuous = tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || tool === 'kitchen' || isBoundaryKind(tool);
   const start = continuous ? chain.at(-1) ?? null : gesture?.tool === tool ? gesture.point : null;
   const [pointer, setPointer] = useState<Point | null>(null), [generation, setGeneration] = useState(0);
   const stage = useRef<Konva.Stage>(null);
@@ -86,7 +88,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   }), [store]);
   useEffect(() => {
     const element = stage.current?.container();
-    if (element) element.style.cursor = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure', 'walkthrough'].includes(tool)
+    if (element) element.style.cursor = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'kitchen', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure', 'walkthrough'].includes(tool)
       ? 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath fill=%27%23087f75%27 d=%27m5 27 3-8L23 4l5 5L13 24z%27/%3E%3Cpath fill=%27white%27 d=%27m10 20 2 2-4 3z%27/%3E%3C/svg%3E") 4 28, crosshair'
       : '';
   }, [tool, readOnly]);
@@ -121,6 +123,11 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       store.getState().setMagneticGuides(result.guides ?? (result.guide ? [result.guide] : []));
       return result.point;
     }
+    // La cocina se pega por la trasera a la cara de muro más cercana; lejos de un muro, imanes normales.
+    if (p && tool === 'kitchen') {
+      const face = snapToWallFace(store.getState().document, p, Math.max(150, 24 / view.scale));
+      if (face) { store.getState().setMagneticGuides([]); return face.point; }
+    }
     return p ? (tool === 'select' ? p : snapPointDrag(store, p, view.scale)) : null;
   };
   const cancel = () => { stage.current?.stopDrag(); store.getState().cancelWallSplit(); store.getState().cancelPendingSpatial(); setWallDraw(idleWallDraw()); setChain([]); setGesture(null); setPointer(null); setMarquee(null); setGeneration((n) => n + 1); store.getState().setTool('select'); };
@@ -139,6 +146,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
         state.apply(result.document);
         if (tool === 'wall' && !result.state.anchor) closed = true;
       } else if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p));
+      else if (tool === 'kitchen') state.apply(addKitchenRun(state.document, ...orientKitchenRun(state.document, start, p, 400)));
       else if (tool === 'patio') state.apply(addOutdoorEdge(state.document, start, p));
       if (closed) { setChain([]); setWallDraw(idleWallDraw()); setPointer(null); state.setTool('select'); }
       else { setChain([...chain, p]); setPointer(p); setWallDraw({ anchor: p, preview: p }); }
@@ -188,7 +196,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
   }, [size, view]);
-  const drawing = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
+  const drawing = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'kitchen', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
   const draftDimension = wallPreview.anchor && wallPreview.preview ? drawingDimension(wallPreview.anchor, wallPreview.preview, view.scale) : null;
@@ -196,7 +204,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
     && tool === 'wall' ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor).extension : undefined;
   const wallMagnet = wallPreview.anchor && wallPreview.preview
     ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor) : undefined;
-  const boundaryDimension = start && pointer && (isBoundaryKind(tool) || tool === 'patio') ? drawingDimension(start, pointer, view.scale) : null;
+  const boundaryDimension = start && pointer && (isBoundaryKind(tool) || tool === 'kitchen' || tool === 'patio') ? drawingDimension(start, pointer, view.scale) : null;
   const splitting = tool === 'split-wall' && !readOnly;
   const placingSpatial = tool === 'place-object' && !readOnly && !!pendingSpatial;
   const spatialPreview = useMemo(() => {
@@ -336,7 +344,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       {wallPreview.anchor ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
     {continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      {start ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
+      {tool === 'kitchen' ? (start ? 'Clic para cerrar el tramo · Esc para salir' : 'Clic junto a un muro para comenzar · el mueble se pega a su cara') : start ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
     {splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}

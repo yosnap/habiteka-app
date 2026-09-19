@@ -360,6 +360,7 @@ export function EditorShell({
     seto: 'Dibujar seto · clics por tramos · Esc para salir',
     walkthrough: 'Añadir puntos al recorrido',
     patio: 'Dibujar patio / terraza · clics para cerrar el contorno',
+    kitchen: 'Dibujar mueble de cocina · clics por tramos pegados al muro · Esc para salir',
     select: 'Seleccionar',
     wall: 'Dibujar pared · clics por tramos · Esc para salir',
     'guard-wall': 'Dibujar murete · clics por tramos · Esc para salir',

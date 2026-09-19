@@ -1,4 +1,4 @@
-import type { EditorDocument } from './schema';
+import type { EditorDocument, Furniture } from './schema';
 import { deriveRoomsSafe } from './rooms';
 import { floorFinish } from './floor-finishes';
 import { insideRoom } from './ceiling-geometry';
@@ -9,12 +9,13 @@ import { getFurnitureCatalogEntry } from './furniture-catalog';
  * Los muebles se apoyan en el suelo de su estancia: si la estancia tiene el suelo elevado (forjado a 1,00 m, por
  * ejemplo), un objeto a cota 0 quedaría enterrado e invisible en 3D. Se conserva la elevación propia del catálogo
  * (una lámpara de mesa, un monitor) sumada a la cota del suelo. Nunca baja un objeto colocado más alto a mano.
+ * Los muebles de cocina se apoyan igual: encimera y módulos altos suben con el suelo de la estancia.
  */
 export function restObjectsOnFloors(doc: EditorDocument): EditorDocument {
   const rooms = deriveRoomsSafe(doc);
   if (!rooms.length) return doc;
   let changed = false;
-  const furniture = doc.furniture.map((item) => {
+  const rest = <T extends Furniture>(item: T): T => {
     const room = rooms.find((candidate) => insideRoom(objectCenter(item), candidate.boundary));
     if (!room) return item;
     const floor = floorFinish(doc, room.id).elevationMm ?? 0;
@@ -22,6 +23,7 @@ export function restObjectsOnFloors(doc: EditorDocument): EditorDocument {
     if ((item.elevationMm ?? 0) >= minimum) return item;
     changed = true;
     return { ...item, elevationMm: minimum };
-  });
-  return changed ? { ...doc, furniture } : doc;
+  };
+  const furniture = doc.furniture.map(rest), kitchenRuns = doc.kitchenRuns?.map(rest);
+  return changed ? { ...doc, furniture, ...(kitchenRuns ? { kitchenRuns } : {}) } : doc;
 }

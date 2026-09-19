@@ -201,6 +201,10 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
       next.boundaries = next.boundaries.filter((o) => !ids.includes(o.id));
       for (const b of next.boundaries) b.construction.gates = b.construction.gates.filter((g) => !ids.includes(g.id));
     }
+    if (next.kitchenRuns) {
+      next.kitchenRuns = next.kitchenRuns.filter((o) => !ids.includes(o.id));
+      for (const run of next.kitchenRuns) run.kitchen.slots = run.kitchen.slots.filter((s) => !ids.includes(s.id));
+    }
     next.labels = next.labels.filter((o) => !ids.includes(o.id));
     next.dimensions = next.dimensions.filter((o) => !ids.includes(o.id));
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));

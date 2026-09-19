@@ -66,6 +66,11 @@ export function localToWorld(item: Footprint, point: Point): Point {
     y: item.y + Math.sin(a) * point.x + Math.cos(a) * point.y,
   };
 }
+/** Coordenada longitudinal (eje x local) de un punto del plano sobre un objeto lineal. */
+export function projectAlong(item: Pick<Footprint, 'x' | 'y' | 'rotation'>, point: Point): number {
+  const a = (item.rotation * Math.PI) / 180;
+  return (point.x - item.x) * Math.cos(a) + (point.y - item.y) * Math.sin(a);
+}
 export const objectCenter = (item: Footprint) =>
   localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 });
 /** Keep historical top-left storage, but rotate and resize around the physical center. */

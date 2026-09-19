@@ -6,6 +6,7 @@ import { wallPath } from './wall-path';
 import { localToWorld } from './spatial-properties';
 import { insideRoom } from './ceiling-geometry';
 import { isRampLanding } from './ramp-kind';
+import { KITCHEN_SLOT_DEFAULTS } from './kitchen-run-types';
 
 export interface PlanElementEntry { id: string; label: string; group: string; point: Point }
 
@@ -26,6 +27,7 @@ export function planElementIndex(doc: EditorDocument, rooms: DerivedRoom[]): Pla
     ...(doc.columns ?? []).map((c, i) => ({ id: c.id, label: named(c.name, `Columna ${i + 1}`), group: 'Construcción', point: c })),
     ...planObjects(doc).map((item) => ({ id: item.id, label: elementName(item), group: 'Objetos', point: localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 }) })),
     ...(doc.boundaries ?? []).flatMap((b) => b.construction.gates.map((g, i) => ({ id: g.id, label: `Puerta ${i + 1} · ${elementName(b)}`, group: 'Objetos', point: localToWorld(b, { x: g.positionMm, y: b.depthMm / 2 }) }))),
+    ...(doc.kitchenRuns ?? []).flatMap((run) => run.kitchen.slots.map((s) => ({ id: s.id, label: `${KITCHEN_SLOT_DEFAULTS[s.kind].label} · ${elementName(run)}`, group: 'Objetos', point: localToWorld(run, { x: s.positionMm, y: run.depthMm / 2 }) }))),
     ...doc.labels.filter((l) => !rooms.some((r) => insideRoom(l, r.boundary))).map((l) => ({ id: l.id, label: l.text, group: 'Textos', point: l })),
   ].map((entry) => ({ ...entry, point: { x: entry.point.x, y: entry.point.y } }));
 }

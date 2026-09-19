@@ -1,4 +1,5 @@
 import type { EditorDocument, Furniture } from './schema';
+import type { KitchenRun } from './kitchen-run-types';
 export type BoundaryKind = 'valla-madera' | 'cerca-metal' | 'seto';
 export interface BoundaryGate {
   id: string;
@@ -35,7 +36,8 @@ export interface Boundary extends Furniture {
 export function isBoundary(item: Furniture): item is Boundary { return 'construction' in item; }
 export function isBoundaryKind(kind: string): kind is BoundaryKind { return ['valla-madera', 'cerca-metal', 'seto'].includes(kind); }
 export function isLegacyBoundary(item: Furniture) { return isBoundaryKind(item.kind) && item.catalogId === `habiteka:outdoor:${item.kind}`; }
-export function planObjects(doc: EditorDocument): (Furniture | Boundary)[] { return [...doc.furniture, ...(doc.boundaries ?? [])]; }
+/** Todo objeto de plano con huella propia: mobiliario, cerramientos y muebles de cocina. */
+export function planObjects(doc: EditorDocument): (Furniture | Boundary | KitchenRun)[] { return [...doc.furniture, ...(doc.boundaries ?? []), ...(doc.kitchenRuns ?? [])]; }
 export function boundaryDefaults(item: Furniture): Boundary {
   return { ...item, kind: item.kind as BoundaryKind, heightMm: item.heightMm ?? 1400, elevationMm: item.elevationMm ?? 0,
     color: item.color ?? '#535d59', construction: {
