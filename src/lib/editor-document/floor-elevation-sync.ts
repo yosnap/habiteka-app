@@ -21,7 +21,8 @@ export function syncRoomContentsWithFloor(doc: EditorDocument, roomId: string, p
   for (const wall of doc.walls.filter((candidate) => room.wallIds.includes(candidate.id))) {
     const adjacent = rooms.filter((candidate) => candidate.wallIds.includes(wall.id)).map((candidate) => candidate.id);
     const referenceBefore = Math.max(0, ...adjacent.map(floorBefore)), referenceAfter = Math.max(0, ...adjacent.map(floorOf));
-    const shift = referenceAfter - referenceBefore;
+    // La altura se mide desde la base del muro: un murete que ya apoya en un descansillo a la cota nueva no crece.
+    const base = wall.baseElevationMm ?? 0, shift = Math.max(base, referenceAfter) - Math.max(base, referenceBefore);
     if (!shift) continue;
     wall.heightMm = Math.max(300, wallConstruction(wall).heightMm + shift);
     for (const opening of doc.openings.filter((candidate) => candidate.wallId === wall.id)) {

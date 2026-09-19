@@ -17,6 +17,7 @@ import { alignBackToWall } from './wall-back-alignment';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
+import { landingHugsWallEnd } from '@/lib/editor-document/landing-wall-corner';
 
 interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -142,8 +143,13 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     ...[...previous.walls, ...candidate.walls].filter((wall) => (wall.heightMm ?? 2700) <= 1500),
     ...[...(previous.boundaries ?? []), ...(candidate.boundaries ?? [])].filter((boundary) => boundary.heightMm <= 1500),
   ].map((item) => item.id));
+  const landings = new Map((candidate.ramps ?? []).filter(isRampLanding).map((item) => [item.id, item]));
+  const wallsById = new Map(candidate.walls.map((wall) => [wall.id, wall]));
   for (const [key, depth] of after) {
     const [first, second] = JSON.parse(key) as [string, string];
+    // Un descansillo puede abrazar la esquina de un muro (su extremo), igual que se empotra en una columna.
+    const landing = landings.get(first) ?? landings.get(second), wall = wallsById.get(first) ?? wallsById.get(second);
+    if (landing && wall && landingHugsWallEnd(candidate, landing, wall)) continue;
     // A column is structural: it can be embedded in a wall, stair or ramp
     // (including a landing), while furniture and another column stay blocked.
     if ((columnIds.has(first) && (structuralIds.has(second) || boundaryIds.has(second))) || (columnIds.has(second) && (structuralIds.has(first) || boundaryIds.has(first)))) continue;

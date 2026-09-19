@@ -69,7 +69,8 @@ export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, sca
     result.reason = 'La abertura no cabe en este muro';
   else if (minimum > maximum + EPSILON)
     result.reason = 'La abertura no cabe entre las esquinas del muro';
-  else if (props.heightMm + (opening.elevationMm ?? props.elevationMm + wallFloorElevation(doc, wall, rooms)) > wallConstruction(wall).heightMm + EPSILON)
+  // La coronación del muro se mide desde su base: un muro apoyado en un descansillo a 1 m corona 1 m más alto.
+  else if (props.heightMm + (opening.elevationMm ?? props.elevationMm + wallFloorElevation(doc, wall, rooms)) > (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm + EPSILON)
     result.reason = 'La abertura supera la altura del muro';
   else if (doc.openings.some((other) => other.id !== opening.id && other.wallId === wall.id &&
     start < other.position * length + other.widthMm / 2 - EPSILON &&

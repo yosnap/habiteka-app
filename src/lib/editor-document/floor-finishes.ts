@@ -5,6 +5,8 @@ import { deriveRooms } from './rooms';
 import { wallConstruction } from './construction-properties';
 import { surfaceMaterial } from './surface-materials';
 import { syncRoomContentsWithFloor } from './floor-elevation-sync';
+import { landingAt } from './landing-wall-placement';
+import { wallPoints } from './geometry';
 
 export function floorFinish(doc: EditorDocument, roomId: string): FloorFinish {
   return doc.floorFinishes?.find((f) => f.roomId === roomId) ?? {
@@ -27,7 +29,9 @@ export function normalizeRoomWallBases(doc: EditorDocument, roomId: string): voi
   const room = deriveRooms(doc).find((candidate) => candidate.id === roomId);
   if (!room) throw new Error('Selecciona una habitación cerrada');
   doc.walls.filter((wall) => room.wallIds.includes(wall.id)).forEach((wall) => {
-    delete wall.baseElevationMm;
+    // Un muro que apoya sobre un descansillo conserva esa base; los demás arrancan del terreno.
+    const [a, b] = wallPoints(doc, wall), landing = landingAt(doc, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    if (landing) wall.baseElevationMm = landing.elevationMm; else delete wall.baseElevationMm;
     doc.openings.filter((opening) => opening.wallId === wall.id && opening.sourceRampId).forEach((opening) => {
       opening.heightMm = wallConstruction(wall).heightMm - (opening.elevationMm ?? 0);
     });
