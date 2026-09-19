@@ -34,7 +34,7 @@ La tabla vive en `src/canvas/editor-v2/editor-shortcuts.ts`; los tooltips de las
 | Deshacer / rehacer | ⌘Z / ⇧⌘Z |
 | Copiar / pegar / seleccionar todo / borrar | ⌘C / ⌘V / ⌘A / Supr |
 
-Con el ratón: Mayús, ⌘ o Ctrl + clic añade o quita un elemento de la selección; arrastrar un elemento de una selección múltiple mueve toda la selección; **Alt + arrastrar un mueble o cerramiento lo duplica** en el sitio donde se suelta, con los mismos imanes y colisiones que un movimiento. Los botones de las barras muestran su atajo en un tooltip al pasar el ratón o enfocarlos.
+Con el ratón: Mayús, ⌘ o Ctrl + clic añade o quita un elemento de la selección; arrastrar un elemento de una selección múltiple mueve toda la selección; **Alt + arrastrar un mueble o cerramiento lo duplica** en el sitio donde se suelta, con los mismos imanes y colisiones que un movimiento. Añadir un mueble desde el catálogo o pegar una copia no lo coloca en un hueco libre cualquiera: el elemento sigue al ratón y se coloca con un clic; Esc cancela. Los botones de las barras muestran su atajo en un tooltip al pasar el ratón o enfocarlos.
 
 Los campos numéricos conservan foco al usar Arriba/Abajo repetidamente y muestran botones de aumentar/disminuir al recibir foco o pasar el puntero. Admiten coma y punto decimal. Mientras se edita un campo no se ejecutan atajos del plano. Distancias: paso de 0,01 m; ángulos/unidades generales: 1.
 
@@ -72,7 +72,7 @@ El acabado del suelo es una superficie a nivel cero, sin una losa automática de
 
 ## Tamaño, giro, elevación y comentarios
 
-Los tiradores de esquina redimensionan dejando fija la esquina opuesta: una valla, una puerta o un armario crecen solo por el lado que se arrastra y no pierden su ubicación. Con Alt pulsado el elemento crece por ambos lados alrededor de su centro. Los muebles se apoyan en el suelo de su estancia: en una estancia con el suelo elevado, un objeto a cota 0 se sube a la cota del suelo al cargar y en cada edición, conservando la elevación propia del catálogo; nunca se baja un objeto colocado más alto a mano. Al cambiar la cota del suelo de una estancia, todo lo que se apoya en ella la acompaña: muebles y columnas dentro del contorno, la elevación de puertas y ventanas de sus muros, y la altura de esos muros para conservar la altura libre. Un muro compartido con otra estancia toma como referencia el suelo más alto de las dos, así no crece dos veces si se elevan ambas.
+Los tiradores de esquina redimensionan dejando fija la esquina opuesta: una valla, una puerta o un armario crecen solo por el lado que se arrastra y no pierden su ubicación. Con Alt pulsado el elemento crece por ambos lados alrededor de su centro. Los muebles se apoyan en el suelo de su estancia: en una estancia con el suelo elevado, un objeto a cota 0 se sube a la cota del suelo al cargar y en cada edición, conservando la elevación propia del catálogo; nunca se baja un objeto colocado más alto a mano. Al cambiar la cota del suelo de una estancia, todo lo que se apoya en ella la acompaña: muebles y columnas dentro del contorno, la elevación de puertas y ventanas de sus muros, y la altura de esos muros para conservar la altura libre. Un muro compartido con otra estancia toma como referencia el suelo más alto de las dos, así no crece dos veces si se elevan ambas. Un tabique trazado dentro de una estancia elevada nace con la coronación a la altura de sus muros, las dos estancias que resultan heredan el acabado y la cota del suelo, y una puerta o ventana nueva se mide desde ese suelo: la puerta a ras y la ventana a 0,90 m.
 
 Los controles inferiores editan medidas en centímetros y ángulo en grados; muebles y escaleras giran alrededor de su centro. La elevación modifica su posición vertical, no su tamaño. Las colisiones consideran altura además de huella. Puertas y ventanas permanecen vinculadas a una pared.
 
@@ -158,6 +158,12 @@ de diseño con su cámara interior. Mantén **Vista actual** para usar ese encua
 cambiar iluminación y estilo antes de generar. La vista previa es local y no consume IA.
 El render generado conserva la pose de cámara. La galería/storyboard por lotes sigue pendiente.
 
-### Cerramientos lineales
+#### Descansillos con varias llegadas
+
+Una rampa y una escalera que llegan juntas, paralelas y a ras, cuentan como una sola llegada: al redimensionar o imantar el descansillo, este las remata a las dos con la anchura que suman, en lugar de adaptarse solo a la más cercana.
+
+## Cerramientos lineales
+
+Una valla trazada sobre el borde de un descansillo se retranquea medio espesor hacia dentro y se apoya en su superficie, como un murete. Si la valla cruza el descansillo o va por dentro, se apoya encima sin moverse de donde se trazó.
 
 Desde Construir → Exterior y jardín, valla de madera, cerca metálica y seto activan dibujo por clics encadenados. El cursor es un lápiz, los extremos usan las guías magnéticas comunes y la longitud aparece durante el trazo. Cada clic confirma un tramo editable; cerrar el contorno o pulsar Escape vuelve a selección. El eje del dibujo pasa por el centro del espesor. Los postes y la vegetación se repiten según la longitud, sin estirar una pieza de dos metros. El tramo mantiene edición de dimensiones, movimiento y deshacer como los demás elementos.

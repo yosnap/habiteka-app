@@ -2,6 +2,8 @@ import { planObjects, isBoundary } from '@/lib/editor-document/boundary-types';
 import type { Column, EditorDocument, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import { editDocument } from './editing-operations';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { upgradeBoundaryDocument } from '@/lib/editor-document/boundary-commands';
 
 export type SpatialClipboardItem = Furniture | Stair | Ramp | Column;
 
@@ -22,5 +24,8 @@ export function insertSpatialItem(doc: EditorDocument, item: SpatialClipboardIte
   if ('kind' in item && 'stepCount' in item) return addStair(doc, item);
   if ('riseMm' in item) return addRamp(doc, item);
   if (!('kind' in item)) return addColumn(doc, item);
-  return editDocument(doc, (next) => { if (isBoundary(item)) { next.boundaries ??= []; next.boundaries.push(item); } else next.furniture.push(item); });
+  // Un documento de esquema antiguo se actualiza antes de recibir un objeto con campos espaciales (alto, elevación, color).
+  return editDocument(isBoundary(item) ? upgradeBoundaryDocument(doc) : upgradeSpatialDocument(doc), (next) => {
+    if (isBoundary(item)) { next.boundaries ??= []; next.boundaries.push(item); } else next.furniture.push(item);
+  });
 }

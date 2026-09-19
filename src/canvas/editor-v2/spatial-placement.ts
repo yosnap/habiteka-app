@@ -9,9 +9,9 @@ import { stairMeshes } from './scene/stair-meshes';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { curvedWallMeshes } from './scene/curved-wall-meshes';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
-import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
-import { placeLandingAtStairArrival, placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
+import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
+import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
 
 interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -184,14 +184,12 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     return { ...result, x: result.x + axes.delta.x, y: result.y + axes.delta.y };
   }
   if (landing && isRampLanding(landing)) {
-    const attached = [
-      ...(doc.ramps?.filter((ramp) => ramp.id !== landing.id && !isRampLanding(ramp)).map((ramp) => placeLandingAtRampArrival(landing, ramp)) ?? []),
-      ...(doc.stairs?.map((stair) => placeLandingAtStairArrival(landing, stair)) ?? []),
-    ].map((target) => {
-      const center = objectCenter(landing), targetCenter = objectCenter(target);
-      return { target, gap: Math.hypot(center.x - targetCenter.x, center.y - targetCenter.y) };
-    }).filter((candidate) => candidate.gap <= Math.max(500, 40 / scale)).sort((a, b) => a.gap - b.gap)[0];
-    if (attached) return alignAttachedLandingToWall(doc, attached.target, faceTolerance);
+    // Llegadas combinadas (rampa + escalera contiguas) se tratan como una sola: el descansillo cubre las dos.
+    const center = objectCenter(landing);
+    const attached = placeLandingAtHosts(doc, landing, Math.max(500, 40 / scale), (placed) => {
+      const targetCenter = objectCenter(placed); return Math.hypot(center.x - targetCenter.x, center.y - targetCenter.y);
+    });
+    if (attached) return alignAttachedLandingToWall(doc, attached, faceTolerance);
   }
   if (isStair(result)) {
     const stair = result as Stair;

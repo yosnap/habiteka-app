@@ -7,9 +7,8 @@ import { wallConstruction } from './construction-properties';
 import { floorFinish, normalizeRoomWallBases } from './floor-finishes';
 import { rampArrival, rampArrivalTarget } from './ramp-arrival';
 import { isRampLanding } from './ramp-kind';
-import { placeLandingAtRampArrival } from './ramp-landing-placement';
-import { placeLandingAtStairArrival } from './stair-landing-placement';
 import { landingEntranceTarget } from './landing-entrance';
+import { placeLandingAtHosts } from './landing-hosts';
 
 function update(input: EditorDocument, operation: (doc: EditorDocument) => void): EditorDocument {
   const doc = upgradeConstructionDocument(input);
@@ -94,12 +93,9 @@ export function updateRamp(input: EditorDocument, id: string, patch: Partial<Omi
 
 /** A resize must not break an existing ramp-to-landing junction. Position edits remain deliberate. */
 function keepLandingAttached(doc: EditorDocument, landing: Ramp): void {
-  const host = [
-    ...doc.ramps!.filter((candidate) => candidate.id !== landing.id && !isRampLanding(candidate)).map((ramp) => placeLandingAtRampArrival(landing, ramp)),
-    ...(doc.stairs ?? []).map((stair) => placeLandingAtStairArrival(landing, stair)),
-  ].map((target) => ({ target, gapMm: Math.hypot(target.x - landing.x, target.y - landing.y) }))
-    .filter((candidate) => candidate.gapMm <= 1000).sort((a, b) => a.gapMm - b.gapMm)[0];
-  if (host) Object.assign(landing, host.target);
+  // Una rampa y una escalera que llegan juntas cuentan como una sola llegada: el descansillo las remata a ambas.
+  const host = placeLandingAtHosts(doc, landing, 1000, (placed) => Math.hypot(placed.x - landing.x, placed.y - landing.y));
+  if (host) Object.assign(landing, host);
 }
 export function removeRamp(input: EditorDocument, id: string): EditorDocument {
   const doc = upgradeRampDocument(input);

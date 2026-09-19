@@ -8,7 +8,8 @@ import { luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry'
 import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-constraint';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
-import { deriveRooms } from '@/lib/editor-document/rooms';
+import { deriveRooms, deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { floorElevationAt, wallFloorElevation } from '@/lib/editor-document/floor-level';
 import { wallConstruction, openingConstruction } from '@/lib/editor-document/construction-properties';
 import { finishColor, furnitureSpatial, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
@@ -35,6 +36,9 @@ export function snapPoint(doc: EditorDocument, p: Point, enabled: boolean): Poin
 export function addWallPath(doc: EditorDocument, points: Point[], closed = false) {
   const placement = !closed && points.length === 2 ? landingWallPlacement(doc, points as [Point, Point]) : null;
   const path = placement?.points ?? points;
+  // Las estancias existentes se leen antes de dibujar: un tabique que divide una estancia elevada nace con su
+  // coronación a la misma altura que los muros de esa estancia (altura estándar más la cota del suelo).
+  const roomsBefore = deriveRoomsSafe(doc);
   return editDocument(doc, (next) => {
     const ids = path.map((p) => {
       const existing = next.vertices.find((v) => distance(v, p) < 0.01);
@@ -47,9 +51,11 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
     for (let i = 0; i < ids.length - (closed ? 0 : 1); i++) {
       const wall = { id: newId(), startVertexId: ids[i]!,
         endVertexId: ids[(i + 1) % ids.length]!, thicknessMm: 150, dimensionalOrigin: 'physical' as const };
-      next.walls.push(next.schemaVersion >= 3 ? { ...wall, ...wallConstruction(wall),
+      const a = path[i]!, b = path[(i + 1) % path.length]!;
+      const floor = placement ? 0 : floorElevationAt(doc, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, roomsBefore);
+      const heightMm = (next.levels ? next.levels.find((l) => l.id === next.activeLevelId)!.heightMm : wallConstruction(wall).heightMm) + floor;
+      next.walls.push(next.schemaVersion >= 3 ? { ...wall, ...wallConstruction(wall), heightMm,
         ...(placement ? { baseElevationMm: placement.elevationMm } : {}),
-        ...(next.levels ? { heightMm: next.levels.find((l) => l.id === next.activeLevelId)!.heightMm } : {}),
         ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) } : wall);
     }
   });
@@ -127,7 +133,9 @@ export function addOpening(doc: EditorDocument, wallId: string, p: Point, kind: 
     const opening = { id: newId(), wallId, kind, widthMm,
       position: Math.max(widthMm / 2 / length, Math.min(1 - widthMm / 2 / length, t)),
       dimensionalOrigin: 'physical' as const };
-    next.openings.push(next.schemaVersion >= 3 ? { ...opening, ...openingConstruction(opening),
+    // La puerta arranca en el suelo de la estancia y la ventana a su altura estándar sobre ese suelo.
+    const floor = wallFloorElevation(next, wall);
+    next.openings.push(next.schemaVersion >= 3 ? { ...opening, ...openingConstruction(opening), elevationMm: openingConstruction(opening).elevationMm + floor,
       ...(next.schemaVersion >= 4 ? { colors: { frame: '#f4f1e9', leaf: '#bb956c' } } : {}) } : opening);
   });
 }

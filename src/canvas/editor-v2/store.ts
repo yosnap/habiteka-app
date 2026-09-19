@@ -12,6 +12,7 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
+import { inheritFloorFinishes } from '@/lib/editor-document/floor-level';
 
 export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
 export interface EditorState {
@@ -49,6 +50,8 @@ export interface EditorState {
   pendingSpatial: SpatialClipboardItem | null;
   copySpatial: (id: string) => void;
   beginPasteSpatial: () => void;
+  /** Deja un elemento nuevo siguiendo al ratón para colocarlo con un clic (alta desde catálogo). */
+  beginPlaceSpatial: (item: SpatialClipboardItem) => void;
   placePendingSpatial: (item: SpatialClipboardItem) => void;
   cancelPendingSpatial: () => void;
   pendingSplitWallId: string | null;
@@ -127,8 +130,11 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     beginPasteSpatial: () => {
       const state = get();
       if (state.readOnly || !state.clipboardSpatial) return;
-      set({ pendingSpatial: duplicateSpatialItem(state.clipboardSpatial), pendingOpening: null, pendingSplitWallId: null,
-        selection: [], tool: 'place-object', error: null });
+      state.beginPlaceSpatial(duplicateSpatialItem(state.clipboardSpatial));
+    },
+    beginPlaceSpatial: (item) => {
+      if (get().readOnly) return;
+      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', error: null });
     },
     placePendingSpatial: (item) => {
       const state = get();
@@ -145,7 +151,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
       const state = get();
       // Los restos invisibles de contornos de patio anteriores se retiran en cada edición: parten estancias y bloquean suelos.
-      const document = parseEditorDocument(normalizeEditorDocument(reconcileCeilings(state.document, candidate)));
+      const document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
       for (const light of document.luminaires ?? []) {
         const previous = state.document.luminaires?.find((item) => item.id === light.id);
         if (document.activeLevelId === state.document.activeLevelId && JSON.stringify(previous) !== JSON.stringify(light)) {

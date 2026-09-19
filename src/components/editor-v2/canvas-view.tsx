@@ -29,8 +29,19 @@ import { selectEntitiesInRectangle } from '@/canvas/editor-v2/marquee-selection'
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import type { DimensionVisibility } from './visibility-menu';
+import { elementName } from '@/lib/editor-document/element-classification';
+import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import type { SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
 
 type Marquee = { from: Point; to: Point; baseSelection: string[]; mode: 'replace' | 'add' | 'subtract' };
+
+/** Nombre corto del elemento pendiente de colocar (copia o alta de catálogo). */
+function placementLabel(item: SpatialClipboardItem): string {
+  if ('stepCount' in item) return 'Escalera';
+  if ('riseMm' in item) return isRampLanding(item) ? 'Descansillo' : 'Rampa';
+  if (!('kind' in item)) return 'Columna';
+  return elementName(item);
+}
 
 export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
@@ -309,7 +320,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       <>{spatialPreview && <Group x={spatialPreview.x} y={spatialPreview.y} rotation={spatialPreview.rotation} opacity={.72}>
         <Rect width={spatialPreview.widthMm} height={spatialPreview.depthMm} fill="#00a69355" stroke="#087f75" strokeWidth={2 / view.scale} />
         <Text width={spatialPreview.widthMm} y={spatialPreview.depthMm / 2 - 7 / view.scale} align="center" fill="#087f75" fontSize={12 / view.scale}
-          text={'catalogId' in spatialPreview && spatialPreview.catalogId === 'builtin:column-rectangular' ? 'Columna · clic para colocar' : 'Copia · clic para colocar'} />
+          text={`${placementLabel(spatialPreview)} · clic para colocar · Esc cancela`} />
       </Group>}</>
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>

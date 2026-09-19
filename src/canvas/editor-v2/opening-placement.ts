@@ -6,6 +6,8 @@ import { openingConstruction, wallConstruction } from '@/lib/editor-document/con
 import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
 import { assertOpeningClearance, wallOpeningClearance } from '@/lib/editor-document/opening-clearance';
 import { wallPath } from '@/lib/editor-document/wall-path';
+import { wallFloorElevation } from '@/lib/editor-document/floor-level';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 
 export interface OpeningPlacement {
   guides?: MagneticGuide[];
@@ -23,6 +25,8 @@ export interface OpeningPlacement {
 export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, scale: number,
   opening: Opening, previousHost?: string, grabOffsetMm = 0, snap = false): OpeningPlacement | null {
   if (!Number.isFinite(scale) || scale <= 0) return null;
+  // La previsualización valida con la misma cota que se aplicará al colocar: el suelo de la estancia del muro.
+  const rooms = deriveRoomsSafe(doc);
   const candidates = doc.walls.filter((wall) => !wall.hidden).map((wall) => {
     const path = wallPath(doc, wall), length = path.length, position = path.project(pointer);
     const gap = distance(pointer, path.at(position)) * scale;
@@ -65,7 +69,7 @@ export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, sca
     result.reason = 'La abertura no cabe en este muro';
   else if (minimum > maximum + EPSILON)
     result.reason = 'La abertura no cabe entre las esquinas del muro';
-  else if (props.heightMm + props.elevationMm > wallConstruction(wall).heightMm + EPSILON)
+  else if (props.heightMm + (opening.elevationMm ?? props.elevationMm + wallFloorElevation(doc, wall, rooms)) > wallConstruction(wall).heightMm + EPSILON)
     result.reason = 'La abertura supera la altura del muro';
   else if (doc.openings.some((other) => other.id !== opening.id && other.wallId === wall.id &&
     start < other.position * length + other.widthMm / 2 - EPSILON &&
@@ -79,7 +83,10 @@ export function placeOpening(doc: EditorDocument, opening: Opening,
   assertOpeningClearance(doc, { ...opening, ...placement });
   const next = upgradeConstructionDocument(doc);
   next.openings = next.openings.filter((item) => item.id !== opening.id);
-  next.openings.push({ ...opening, ...openingConstruction(opening), wallId: placement.wallId, position: placement.position,
+  // Sin elevación explícita, la abertura se mide desde el suelo de la estancia del muro (puerta a ras, ventana a 0,90 m).
+  const host = next.walls.find((wall) => wall.id === placement.wallId);
+  const elevationMm = opening.elevationMm ?? openingConstruction(opening).elevationMm + (host ? wallFloorElevation(next, host) : 0);
+  next.openings.push({ ...opening, ...openingConstruction(opening), elevationMm, wallId: placement.wallId, position: placement.position,
     ...(next.schemaVersion >= 4 ? { colors: opening.colors ?? { frame: '#f4f1e9', leaf: '#bb956c' } } : {}) });
   assertEditorDocument(next);
   return next;

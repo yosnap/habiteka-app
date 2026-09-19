@@ -685,9 +685,9 @@ export function EditorShell({
             onAddOutdoor={(item) => run(() => {
               if (store.getState().readOnly) return;
               if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
+              // El elemento nuevo sigue al ratón y se coloca con un clic, igual que al pegar.
               const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
-              store.getState().apply(placeNewObject(source, next, next.furniture.at(-1)!.id));
-              store.getState().setTool('select'); store.getState().select([next.furniture.at(-1)!.id]);
+              setMode('2d'); store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
             })}
           />
         )}
@@ -703,11 +703,11 @@ export function EditorShell({
               onAdd={(item) =>
                 run(() => {
                   if (store.getState().readOnly) return;
+                  // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
                   const source = store.getState().document,
                     next = upgradeSpatialDocument(addFurniture(source, item, center));
-                  store.getState().apply(placeNewObject(source, next, next.furniture.at(-1)!.id));
-                  store.getState().setTool('select');
-                  store.getState().select([next.furniture.at(-1)!.id]);
+                  setMode('2d');
+                  store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
                 })
               }
             />

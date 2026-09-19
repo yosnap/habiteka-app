@@ -53,3 +53,15 @@ it('una valla trazada en el borde de un descansillo se apoya en su superficie si
   expect(fence.y).toBeLessThanOrEqual(fence.depthMm);
   expect(() => store.getState().apply(addLinearBoundary(store.getState().document, 'valla-madera', { x: 4000, y: 0 }, { x: 4000, y: 3000 }))).not.toThrow();
 });
+
+it('mover una valla unos centímetros no convierte su esquina con otra valla en una colisión', async () => {
+  const { createEditorStore } = await import('@/canvas/editor-v2/store');
+  const { nudgeSpatialEntities } = await import('@/canvas/editor-v2/editing-operations');
+  let doc = addLinearBoundary(emptyEditorDocument(), 'valla-madera', { x: 0, y: 0 }, { x: 0, y: 5000 });
+  doc = addLinearBoundary(doc, 'valla-madera', { x: 0, y: 5000 }, { x: 8000, y: 5000 });
+  const store = createEditorStore(doc), bottom = doc.boundaries![1]!;
+  // La horizontal sube 6 cm: los extremos ya no coinciden al milímetro pero siguen formando esquina.
+  expect(() => store.getState().apply(nudgeSpatialEntities(store.getState().document, [bottom.id], { x: 0, y: -60 }))).not.toThrow();
+  // Dos vallas paralelas superpuestas siguen rechazándose.
+  expect(() => store.getState().apply(addLinearBoundary(store.getState().document, 'valla-madera', { x: 1000, y: 4940 }, { x: 5000, y: 4940 }))).toThrow();
+});

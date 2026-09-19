@@ -106,3 +106,22 @@ it('duplicar un objeto conserva sus propiedades con id nuevo y se inserta sin mo
   expect(objects.find((o) => o.id === original.id)?.x).toBe(1000);
   expect(objects.find((o) => o.id === copy.id)).toMatchObject({ x: 5000, kind: original.kind, widthMm: original.widthMm });
 });
+
+it('añadir desde el catálogo deja el mueble pendiente de colocar y lo inserta donde se hace clic', async () => {
+  const { addFurniture } = await import('@/canvas/editor-v2/editing-operations');
+  const { FURNITURE_CATALOG } = await import('@/lib/editor-document/furniture-catalog');
+  const { planObjects } = await import('@/lib/editor-document/boundary-types');
+  const doc = house(), store = createEditorStore(doc);
+  const bed = FURNITURE_CATALOG.find((e) => e.id === 'habiteka:furniture:cama-individual')!;
+  const item = addFurniture(doc, bed, { x: 500, y: 500 }).furniture.at(-1)!;
+  store.getState().beginPlaceSpatial(item);
+  expect(store.getState().tool).toBe('place-object');
+  expect(store.getState().pendingSpatial?.id).toBe(item.id);
+  expect(planObjects(store.getState().document)).toHaveLength(0);
+  // Dentro de la casa (8 × 3 m), sin tocar los muros.
+  store.getState().placePendingSpatial({ ...item, x: 3000, y: 500 });
+  expect(store.getState().error).toBeNull();
+  expect(planObjects(store.getState().document).map((o) => [o.id, o.x, o.y])).toEqual([[item.id, 3000, 500]]);
+  expect(store.getState().tool).toBe('select');
+  expect(store.getState().selection).toEqual([item.id]);
+});

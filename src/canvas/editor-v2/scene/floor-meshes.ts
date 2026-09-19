@@ -12,6 +12,33 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 const clean = (polygon: Polygon): Polygon => polygon.map((ring) => ring.map(([x, y]) =>
   [Math.round(x * 1e8) / 1e8, Math.round(y * 1e8) / 1e8]));
 
+// Malla más gruesa (0,1 mm) para el reintento: colapsa las láminas que hacen fallar a la librería de recorte.
+const coarse = (polygon: Polygon): Polygon => polygon.map((ring) => ring.map(([x, y]) =>
+  [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4]));
+
+type Difference = (subject: Polygon, ...clips: Polygon[]) => Polygon[];
+
+/**
+ * Recorte del suelo con degradación por pasos: la librería de polígonos falla a veces con bordes casi colineales
+ * («Unable to complete output ring»). Antes de renunciar se reintenta con una malla más gruesa y después
+ * descartando solo el recorte problemático; en el peor caso se devuelve el suelo sin recortar. Así un caso
+ * límite deja un hueco de pared sin recortar, nunca una escena 3D sin suelos.
+ */
+export function robustDifference(outline: Polygon, cuts: Polygon[], difference: Difference = polygonClipping.difference): Polygon[] {
+  if (!cuts.length) return [outline];
+  const attempt = (subject: Polygon, clips: Polygon[]) => { try { return difference(subject, ...clips); } catch { return null; } };
+  const exact = attempt(clean(outline), cuts.map(clean));
+  if (exact) return exact;
+  const rough = attempt(coarse(outline), cuts.map(coarse));
+  if (rough) return rough;
+  let result: Polygon[] = [coarse(outline)];
+  for (const cut of cuts.map(coarse)) {
+    const next = result.flatMap((polygon) => attempt(polygon, [cut]) ?? [polygon]);
+    result = next;
+  }
+  return result;
+}
+
 /** An elevated room is a structural volume, not a floating texture plane. */
 export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: SceneBox[], joins: ScenePolygon[]): ScenePolygon[] {
   const obstaclesAt = (elevation: number): Polygon[] => {
@@ -38,7 +65,7 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
       return [[rampPartFootprint(ramp, part).map((point) => [meters(point.x), meters(point.y)] as Pair)]];
     });
     const cuts = [...obstacles, ...rampAccesses];
-    const polygons = cuts.length ? polygonClipping.difference(clean(outline), ...cuts.map(clean)) : [outline];
+    const polygons = robustDifference(outline, cuts);
     const slabHeight = meters(floorSlabThicknessMm(finish));
     return polygons.map((rings, index) => ({
       id: index ? `${room.id}:surface:${index}` : room.id, sourceEntityId: room.id, role: 'floor' as const,

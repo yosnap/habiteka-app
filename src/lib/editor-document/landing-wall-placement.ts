@@ -16,6 +16,8 @@ export interface LandingEdgeSnap {
   elevationMm: number;
   landingId: string;
   edge: { from: Point; to: Point };
+  /** Distancia del punto original al borde elegido. */
+  gapMm: number;
 }
 
 /**
@@ -40,7 +42,30 @@ export function landingEdgeSnap(doc: EditorDocument, point: Point, toleranceMm: 
   const closest = candidates[0];
   if (!closest) return null;
   const edge = insetWallCenterline(closest.landing, closest.edge, thicknessMm);
-  return { point: project(point, edge.from, edge.to), edge, elevationMm: closest.landing.elevationMm, landingId: closest.landing.id };
+  return { point: project(point, edge.from, edge.to), edge, elevationMm: closest.landing.elevationMm, landingId: closest.landing.id, gapMm: closest.gap };
+}
+
+/** Descansillo que contiene el punto, si hay alguno. */
+export function landingAt(doc: EditorDocument, point: Point): Ramp | undefined {
+  return (doc.ramps ?? []).filter(isRampLanding).find((landing) => insideLanding(point, landing));
+}
+
+/**
+ * Apoyo de un cerramiento lineal: si los dos extremos abrazan el mismo borde de un descansillo, se retranquea a ese
+ * borde como un murete; si el tramo cruza o recorre el descansillo por dentro, se apoya encima sin moverse.
+ */
+export function linearBoundarySupport(doc: EditorDocument, points: [Point, Point], thicknessMm: number, toleranceMm = 200): LandingWallPlacement | { points: [Point, Point]; elevationMm: number; landingId?: string } {
+  // Borde que mejor abrazan los dos extremos a la vez (en una esquina cada extremo toca dos bordes).
+  const hugged = (doc.ramps ?? []).filter(isRampLanding).flatMap((landing) => landingEdges(landing).map((edge) => ({
+    landing, edge, gap: Math.max(...points.map((point) => distance(point, project(point, edge.from, edge.to)))) })))
+    .filter((candidate) => candidate.gap <= toleranceMm).sort((a, b) => a.gap - b.gap)[0];
+  if (hugged) {
+    const edge = insetWallCenterline(hugged.landing, hugged.edge, thicknessMm);
+    return { points: [project(points[0], edge.from, edge.to), project(points[1], edge.from, edge.to)], elevationMm: hugged.landing.elevationMm, landingId: hugged.landing.id };
+  }
+  const midpoint = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
+  const under = landingAt(doc, midpoint) ?? landingAt(doc, points[0]) ?? landingAt(doc, points[1]);
+  return { points, elevationMm: under?.elevationMm ?? 0, ...(under ? { landingId: under.id } : {}) };
 }
 
 function insideLanding(point: Point, landing: Ramp): boolean {
