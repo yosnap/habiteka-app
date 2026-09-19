@@ -261,3 +261,16 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
     expect(out).not.toContain('plano del espacio');
   });
 });
+
+describe('runDelivery — plano 2D siempre dibujable', () => {
+  it('si el modelo devuelve zonas vacías, el entregable cae al plano base con geometría', async () => {
+    const { deps } = makeDeps();
+    deps.chat.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
+    expect(plano?.payload.type).toBe('plano2d');
+    if (plano?.payload.type !== 'plano2d') return;
+    expect(plano.payload.plano.zones).toHaveLength(1);
+    expect(plano.payload.plano.zones[0]!.outline).toHaveLength(4);
+    expect(plano.payload.plano.zones[0]!.walls).toHaveLength(4);
+  });
+});

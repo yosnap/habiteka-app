@@ -54,3 +54,4 @@ export type { ProductDrop } from './product-drop-payload';
 export type { OperationCost, Hold, DebitService } from './debit-service';
 export type { DecorRecommendation } from './decor-recommendation';
 export type { DetectedObject, NormalizedBox } from './detected-object';
+export { isDrawablePlanZone, isDrawablePlano } from './plano2d-validation';

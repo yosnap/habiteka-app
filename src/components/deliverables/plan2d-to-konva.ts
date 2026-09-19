@@ -7,6 +7,7 @@
  * se centra; las paredes se convierten en segmentos y las aperturas en marcas.
  */
 import type { Plano2dPayload, PlanPoint } from '@/lib/contracts';
+import { isDrawablePlanZone } from '@/lib/contracts/plano2d-validation';
 
 export interface KonvaSegment {
   points: number[];
@@ -35,7 +36,7 @@ export function planToPrimitives(
   const project = (p: PlanPoint) => [p.x * scale + offsetX, p.y * scale + offsetY];
 
   const walls: KonvaSegment[] = [];
-  for (const zone of plano.zones) {
+  for (const zone of drawableZones(plano)) {
     for (const wall of zone.walls) {
       const [x1, y1] = project(wall.from);
       const [x2, y2] = project(wall.to);
@@ -48,12 +49,17 @@ export function planToPrimitives(
   return { walls, scale, offsetX, offsetY };
 }
 
+/** Un entregable antiguo o mal generado puede traer zonas sin geometría: se omiten en vez de romper el visor. */
+export function drawableZones(plano: Plano2dPayload) {
+  return (Array.isArray(plano?.zones) ? plano.zones : []).filter(isDrawablePlanZone);
+}
+
 function computeBounds(plano: Plano2dPayload) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  for (const zone of plano.zones) {
+  for (const zone of drawableZones(plano)) {
     for (const p of zone.outline) {
       minX = Math.min(minX, p.x);
       minY = Math.min(minY, p.y);

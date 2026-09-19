@@ -22,6 +22,7 @@ import { EXTERIOR_ZONE_KINDS } from '@/lib/zone-kinds';
 import { DELIVERABLE_LEGAL_SEAL } from '../legal/seal';
 import { agentError } from '../errors';
 import { AiError } from '@/server/ai/errors';
+import { isDrawablePlano } from '@/lib/contracts/plano2d-validation';
 
 export interface DeliveryDeps {
   chat: ChatVisionAdapter;
@@ -226,18 +227,41 @@ async function generatePlano(deps: DeliveryDeps, input: DeliveryInput): Promise<
   return basePlano(input.elements);
 }
 
+// El esquema describe la zona completa: con `items: { type: 'object' }` a secas, la salida estructurada
+// del proveedor devolvía zonas vacías `{}` que el visor no podía dibujar.
+const POINT_SCHEMA = { type: 'object', additionalProperties: false, required: ['x', 'y'], properties: { x: { type: 'number' }, y: { type: 'number' } } };
 const PLANO_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['schemaVersion', 'zones'],
   properties: {
     schemaVersion: { type: 'integer' },
-    zones: { type: 'array', items: { type: 'object' } },
+    zones: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'name', 'outline', 'walls', 'apertures', 'dimensions'],
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          outline: { type: 'array', items: POINT_SCHEMA },
+          walls: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'thicknessMm'],
+            properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, thicknessMm: { type: 'number' } } } },
+          apertures: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'kind', 'wallId', 'position', 'widthMm'],
+            properties: { id: { type: 'string' }, kind: { type: 'string', enum: ['puerta', 'ventana', 'hueco'] }, wallId: { type: 'string' },
+              position: { type: 'number' }, widthMm: { type: 'number' } } } },
+          dimensions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'label'],
+            properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, label: { type: 'string' } } } },
+        },
+      },
+    },
   },
 };
 
+/** Solo se acepta un plano dibujable; lo demás cae al plano base editable. */
 function isPlano(v: unknown): v is Plano2dPayload {
-  return typeof v === 'object' && v !== null && Array.isArray((v as { zones?: unknown }).zones);
+  return isDrawablePlano(v);
 }
 
 /**
