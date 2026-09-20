@@ -1,23 +1,25 @@
 # Catálogo de variables y secrets por entorno
 
-> Nombres, sin valores. Los valores se configuran en **Easypanel** (env del
-> servicio App) y en **GitHub Environments** (los que consume el deploy).
-> Fuente de los nombres de aplicación: [`.env.example`](../.env.example).
+> Nombres, sin valores. Los valores se configuran en **Dokploy** (aplicación →
+> Environment). Fuente de los nombres de aplicación: [`.env.example`](../.env.example).
 
 ## Dónde vive cada secret
 
 | Ámbito | Dónde se configura |
 |---|---|
-| Runtime de la app | Easypanel → servicio App → Environment |
-| Disparo de deploy desde CI | GitHub → Settings → Environments (`staging`, `production`) |
+| Runtime de la app | Dokploy → aplicación → Environment |
 
-## Secrets de la aplicación (runtime — Easypanel)
+No hay secrets de despliegue en GitHub: Dokploy despliega por push de la app de
+GitHub instalada en el panel, sin webhook desde CI.
+
+## Secrets de la aplicación (runtime — Dokploy)
 
 | Variable | Tipo | Notas |
 |---|---|---|
-| `DATABASE_URL` | secret | Apunta al servicio Postgres de Easypanel del mismo entorno |
+| `DATABASE_URL` | secret | Apunta al servicio Postgres de Dokploy del mismo entorno (host interno del servicio) |
 | `BETTER_AUTH_SECRET` | secret | Distinto por entorno |
 | `BETTER_AUTH_URL` | config | URL pública del entorno (staging/prod) |
+| `ADMIN_SECRETS_KEY` | secret | Base64 de 32 bytes; cifra las credenciales de proveedores de IA guardadas en BD. Si falta, en producción se deriva de `BETTER_AUTH_SECRET` (mejor clave propia) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | secret | OAuth Google |
 | `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | secret | OAuth Meta |
 | `TURNSTILE_SECRET_KEY` | secret | CAPTCHA server-side |
@@ -29,17 +31,10 @@
 | `IMAGE_PROVIDER` | config | `flux` / `nano-banana` / `imagen` |
 | `IMAGE_PROVIDER_KEY` | secret | Render 3D / inpainting |
 | `POLAR_ACCESS_TOKEN` / `POLAR_WEBHOOK_SECRET` / `POLAR_ORGANIZATION_ID` | secret | Pagos |
-| `STORAGE_ENDPOINT` / `STORAGE_REGION` / `STORAGE_BUCKET` | config | Apunta al MinIO de Easypanel |
-| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` | secret | Credenciales MinIO |
+| `STORAGE_ENDPOINT` / `STORAGE_REGION` / `STORAGE_BUCKET` | config | Apunta al storage S3-compatible (MinIO en Dokploy o S3/R2 externo) |
+| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` | secret | Credenciales del storage |
 | `PORT` | config | Puerto que sirve el contenedor (p. ej. 3000); el proxy mapea |
 | `NODE_ENV` | config | `production` |
-
-## Secrets de despliegue (GitHub Environments)
-
-| Variable | Ámbito | Notas |
-|---|---|---|
-| `EASYPANEL_DEPLOY_WEBHOOK` | secret (por environment) | Webhook de deploy del servicio App en Easypanel |
-| `APP_BASE_URL` | variable (por environment) | URL base para el smoke test `/api/health` |
 
 ## Reglas
 
@@ -48,4 +43,5 @@
   capas de la imagen).
 - Los workflows de CI **no** reciben secrets de IA/pagos: el job de calidad usa
   un `BETTER_AUTH_SECRET` de relleno y una Postgres efímera (cero red real).
-- Producción es un **protected environment**: el deploy requiere aprobación.
+- Producción se despliega solo desde `main`: la rama es la única puerta de
+  entrada al entorno en vivo.

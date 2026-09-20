@@ -4,6 +4,8 @@ node_modules
 out
 build
 coverage
+# Cliente de Prisma generado: el builder lo regenera para su plataforma.
+src/generated
 
 # Secretos y entorno local: nunca entran en la imagen.
 .env
@@ -15,8 +17,10 @@ coverage
 .github
 .gitignore
 
-# Documentación y planificación: no forman parte del runtime.
-docs
+# Documentación y planificación: no forman parte del runtime. Excepción:
+# docs/legal, que la página /legal/terminos lee del disco al prerenderizarse.
+docs/*
+!docs/legal
 plans
 infra
 README*.md
