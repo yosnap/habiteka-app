@@ -81,6 +81,10 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# El trazado de Next copia los paquetes @img de sharp sin la librería nativa
+# libvips (.so), que el binario carga por ruta y no por `require`. Se copian
+# completos desde el builder (misma plataforma que la imagen final).
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@img ./node_modules/@img
 
 # Árbol de migraciones aislado en /app/migrate: CLI + schema + migraciones +
 # config. Va en su propio directorio para no mezclar su node_modules con el

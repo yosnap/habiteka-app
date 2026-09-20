@@ -198,12 +198,17 @@ describe('placement and vertex guides', () => {
       source.furniture.push({ id: `f${i}`, kind: 'bed', x: i * 10000 + 500, y: 500, widthMm: 1000, depthMm: 2000, rotation: 0, dimensionalOrigin: 'physical' });
     }
     const doc = upgradeSpatialDocument(source), times: number[] = [];
-    for (let i = 0; i < 12; i++) {
+    // Dos pasadas de calentamiento: la primera ejecución en frío (sin JIT) no
+    // representa la latencia de interacción y en los runners de CI se dispara.
+    for (let i = 0; i < 2; i++) expect(previewVertex(doc, 'b0', { x: 5500 + i, y: -20 }, .08, true).error).toBeNull();
+    const samples = 20;
+    for (let i = 0; i < samples; i++) {
       const start = performance.now();
       const result = previewVertex(doc, 'b0', { x: 5500 + i, y: -20 }, .08, true);
       expect(result.error).toBeNull(); times.push(performance.now() - start);
     }
-    const p95 = times.sort((a, b) => a - b)[11]!;
+    // p95 real: descarta la peor muestra en vez de medir el máximo.
+    const p95 = times.sort((a, b) => a - b)[Math.ceil(samples * 0.95) - 1]!;
     console.info(`Vertex preview 200 walls + 200 objects p95: ${p95.toFixed(2)}ms`);
     expect(p95).toBeLessThan(100);
   });
