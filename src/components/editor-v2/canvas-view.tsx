@@ -4,7 +4,8 @@ import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/l
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
 import { addLinearBoundary, isBoundaryKind } from '@/lib/editor-document/linear-boundary';
-import { addKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
+import { addKitchenRun, addKitchenSlot } from '@/lib/editor-document/kitchen-run-commands';
+import { kitchenSlotDrop } from '@/lib/editor-document/kitchen-slot-drop';
 import { orientKitchenRun, snapToWallFace } from '@/lib/editor-document/kitchen-run-placement';
 import { addOutdoorArea, addOutdoorEdge } from '@/lib/editor-document/outdoor-area';
 import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
@@ -252,6 +253,13 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const raw = stage.current?.getRelativePointerPosition();
           if (!raw || !pendingSpatial) return;
+          // Un aparato de cocina soltado sobre un tramo se encaja en él como hueco.
+          const drop = 'kind' in pendingSpatial && !('stepCount' in pendingSpatial) ? kitchenSlotDrop(doc, pendingSpatial, raw) : null;
+          if (drop) {
+            try { store.getState().apply(addKitchenSlot(doc, drop.runId, drop.kind, drop.positionMm)); store.getState().cancelPendingSpatial(); store.getState().select([drop.runId]); }
+            catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo encajar el aparato'); }
+            setPointer(null); return;
+          }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
           const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled);
           store.getState().placePendingSpatial(item); setPointer(null); return;

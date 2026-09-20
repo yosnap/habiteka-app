@@ -71,6 +71,11 @@ export function projectAlong(item: Pick<Footprint, 'x' | 'y' | 'rotation'>, poin
   const a = (item.rotation * Math.PI) / 180;
   return (point.x - item.x) * Math.cos(a) + (point.y - item.y) * Math.sin(a);
 }
+/** Coordenadas de un punto del plano en el marco local (x a lo largo, y en fondo) de un objeto. */
+export function worldToLocal(item: Pick<Footprint, 'x' | 'y' | 'rotation'>, point: Point): Point {
+  const a = (item.rotation * Math.PI) / 180, dx = point.x - item.x, dy = point.y - item.y;
+  return { x: dx * Math.cos(a) + dy * Math.sin(a), y: -dx * Math.sin(a) + dy * Math.cos(a) };
+}
 export const objectCenter = (item: Footprint) =>
   localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 });
 /** Keep historical top-left storage, but rotate and resize around the physical center. */

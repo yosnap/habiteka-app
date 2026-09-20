@@ -4,7 +4,8 @@ import { upgradeBoundaryDocument } from './boundary-commands';
 import { parseEditorDocument } from './validation';
 import { localToWorld, projectAlong, transformAroundCenter } from './spatial-properties';
 import { floorElevationAt } from './floor-level';
-import { slotSpan } from './kitchen-run-volumes';
+import { slotSpan, type Span } from './kitchen-run-volumes';
+import { kitchenRunObstacles } from './kitchen-run-obstacles';
 
 /** Migración explícita y reversible: leer un plano antiguo nunca lo cambia. */
 export function upgradeKitchenDocument(source: EditorDocument): EditorDocument {
@@ -35,22 +36,24 @@ export function updateKitchenRun(source: EditorDocument, id: string, patch: Part
   doc.kitchenRuns![index] = transformAroundCenter<KitchenRun>(doc.kitchenRuns![index]!, patch as Partial<KitchenRun>);
   doc.revision++; return parseEditorDocument(doc);
 }
+const overlaps = (a: Span, b: Span) => a.from < b.to && a.to > b.from;
 export function putKitchenSlot(source: EditorDocument, runId: string, slot: KitchenSlot): EditorDocument {
-  const doc = upgradeKitchenDocument(source), slots = find(doc, runId).kitchen.slots, index = slots.findIndex((s) => s.id === slot.id);
+  const doc = upgradeKitchenDocument(source), run = find(doc, runId), slots = run.kitchen.slots, index = slots.findIndex((s) => s.id === slot.id);
+  if (kitchenRunObstacles(doc, run).base.some((cut) => overlaps(slotSpan(slot), cut))) throw new Error('El aparato cae sobre el hueco de un pilar');
   if (index < 0) slots.push(slot); else slots[index] = slot;
   doc.revision++; return parseEditorDocument(doc);
 }
 /** Primer hueco libre del tramo donde cabe un aparato de ese ancho, empezando por el centro y alternando hacia los extremos. */
-export function freeSlotPosition(run: KitchenRun, widthMm: number): number | undefined {
+export function freeSlotPosition(run: KitchenRun, widthMm: number, blocked: Span[] = []): number | undefined {
   const fits = (centre: number) => centre - widthMm / 2 >= 0 && centre + widthMm / 2 <= run.widthMm
-    && run.kitchen.slots.every((s) => { const span = slotSpan(s); return centre + widthMm / 2 <= span.from || centre - widthMm / 2 >= span.to; });
+    && [...run.kitchen.slots.map(slotSpan), ...blocked].every((span) => centre + widthMm / 2 <= span.from || centre - widthMm / 2 >= span.to);
   for (let offset = 0; offset <= run.widthMm / 2; offset += 50)
     for (const centre of [run.widthMm / 2 - offset, run.widthMm / 2 + offset]) if (fits(centre)) return centre;
   return undefined;
 }
 export function addKitchenSlot(source: EditorDocument, runId: string, kind: KitchenSlotKind, positionMm?: number): EditorDocument {
   const doc = upgradeKitchenDocument(source), run = find(doc, runId), defaults = KITCHEN_SLOT_DEFAULTS[kind];
-  const centre = positionMm ?? freeSlotPosition(run, defaults.widthMm);
+  const centre = positionMm ?? freeSlotPosition(run, defaults.widthMm, kitchenRunObstacles(doc, run).base);
   if (centre === undefined) throw new Error('No queda hueco libre en el tramo para este aparato');
   return putKitchenSlot(doc, runId, { id: crypto.randomUUID(), kind, positionMm: centre, widthMm: defaults.widthMm, color: defaults.color });
 }

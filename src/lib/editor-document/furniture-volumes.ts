@@ -10,7 +10,7 @@ import { furnitureAsset } from './furniture-assets';
 /** Local solid volumes shared by rendering and placement, including free space below tables. */
 export function furnitureVolumes(item: Furniture, doc?: EditorDocument): FurnitureVolume[] {
   if (isBoundary(item)) return doc ? boundaryDisplayVolumes(item, doc.boundaries ?? []) : boundaryVolumes(item);
-  if (isKitchenRun(item)) return doc ? kitchenRunDisplayVolumes(item, doc.kitchenRuns ?? []) : kitchenRunVolumes(item);
+  if (isKitchenRun(item)) return doc ? kitchenRunDisplayVolumes(item, doc) : kitchenRunVolumes(item);
   // Real assets use a conservative collision envelope until calibrated proxies exist.
   if (furnitureAsset(item)) {
     const props = furnitureSpatial(item);

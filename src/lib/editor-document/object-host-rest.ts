@@ -2,7 +2,7 @@ import type { EditorDocument, Furniture } from './schema';
 import { isBoundary, planObjects } from './boundary-types';
 import { isKitchenRun } from './kitchen-run-types';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
-import { furnitureSpatial, objectCenter, transformAroundCenter } from './spatial-properties';
+import { furnitureSpatial, objectCenter, transformAroundCenter, worldToLocal } from './spatial-properties';
 
 /** Perfiles con una cara superior plana sobre la que se apoyan otros objetos. */
 const SURFACE_PROFILES = new Set(['cabinet', 'table', 'shelf', 'kitchen', 'bench', 'appliance']);
@@ -26,9 +26,8 @@ export function canRestOnHost(item: Furniture): boolean {
 /** Cota de la cara superior: en un mueble de cocina es la encimera. */
 export const hostSurfaceTop = (host: Furniture) => { const s = furnitureSpatial(host); return s.elevationMm + s.heightMm; };
 function containsCenter(host: Furniture, item: Furniture): boolean {
-  const c = objectCenter(item), r = host.rotation * Math.PI / 180, dx = c.x - host.x, dy = c.y - host.y;
-  const lx = dx * Math.cos(r) + dy * Math.sin(r), ly = -dx * Math.sin(r) + dy * Math.cos(r);
-  return lx >= 0 && lx <= host.widthMm && ly >= 0 && ly <= host.depthMm;
+  const local = worldToLocal(host, objectCenter(item));
+  return local.x >= 0 && local.x <= host.widthMm && local.y >= 0 && local.y <= host.depthMm;
 }
 /** Anfitrión más alto cuya huella contiene el centro del objeto; nunca uno que a su vez se apoye en él. */
 export function findHost(doc: EditorDocument, item: Furniture): Furniture | undefined {

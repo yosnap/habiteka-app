@@ -2,6 +2,8 @@ import type { FurnitureVolume } from './furniture-profiles';
 import { type KitchenRun, type KitchenSlot, type KitchenSlotKind, isKitchenRun } from './kitchen-run-types';
 import type { Furniture } from './schema';
 import { localToWorld } from './spatial-properties';
+import { kitchenRunObstacles } from './kitchen-run-obstacles';
+import type { EditorDocument } from './schema';
 
 export interface Span { from: number; to: number }
 /** Tramos libres tras descontar un recorte; los que quedan vacíos desaparecen. */
@@ -19,14 +21,18 @@ export function moduleSpans(span: Span, widthMm: number): Span[] {
   }
   return result;
 }
+/** Muesca de encimera: en ese tramo la encimera solo conserva el fondo por delante de un pilar (de `depthMm` al frente). */
+export interface WorktopNotch extends Span { depthMm: number }
+/** Recortes que vienen del entorno del tramo (pilares, ventanas), por capa. */
+export interface KitchenRunExtraCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[]; worktopNotches: WorktopNotch[] }
 /** Recortes longitudinales de cada capa del mueble; los huecos de aparatos y los extremos cedidos en esquina nacen aquí. */
-export interface KitchenRunCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[] }
-export interface KitchenRunTrims { trimStartMm?: number; trimEndMm?: number }
+export type KitchenRunCuts = KitchenRunExtraCuts;
+export interface KitchenRunOptions { trimStartMm?: number; trimEndMm?: number; extra?: KitchenRunExtraCuts }
 const cutsBase = (kind: KitchenSlotKind) => kind === 'lavavajillas' || kind === 'lavadora' || kind === 'horno' || kind === 'frigorifico-columna';
-export function kitchenRunCuts(run: KitchenRun, trims: KitchenRunTrims = {}): KitchenRunCuts {
-  const whole = { from: trims.trimStartMm ?? 0, to: run.widthMm - (trims.trimEndMm ?? 0) };
-  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole] };
-  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [] };
+export function kitchenRunCuts(run: KitchenRun, options: KitchenRunOptions = {}): KitchenRunCuts {
+  const whole = { from: options.trimStartMm ?? 0, to: run.widthMm - (options.trimEndMm ?? 0) };
+  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole], worktopNotches: options.extra?.worktopNotches ?? [] };
+  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [], worktopNotches: [] };
   for (const slot of run.kitchen.slots) {
     const cut = slotSpan(slot);
     if (cutsBase(slot.kind)) cuts.base = subtractSpan(cuts.base, cut);
@@ -34,14 +40,15 @@ export function kitchenRunCuts(run: KitchenRun, trims: KitchenRunTrims = {}): Ki
       cuts.plinth = subtractSpan(cuts.plinth, cut); cuts.worktop = subtractSpan(cuts.worktop, cut); cuts.uppers = subtractSpan(cuts.uppers, cut);
     }
   }
+  for (const layer of ['plinth', 'base', 'worktop', 'uppers'] as const) for (const cut of options.extra?.[layer] ?? []) cuts[layer] = subtractSpan(cuts[layer], cut);
   return cuts;
 }
 export const slotSpan = (slot: KitchenSlot): Span => ({ from: slot.positionMm - slot.widthMm / 2, to: slot.positionMm + slot.widthMm / 2 });
 
 const HARDWARE = '#434743', FRONT = 20, PROUD = 24, SEAM = 4, PLINTH_RECESS = 50;
 /** Una sola fuente de geometría para planta, sólidos 3D, colisiones y navegación. Marco local: x a lo largo, y del muro (0) al frente. */
-export function kitchenRunVolumes(run: KitchenRun, trims: KitchenRunTrims = {}): FurnitureVolume[] {
-  const k = run.kitchen, d = run.depthMm, e = run.elevationMm, h = run.heightMm, cuts = kitchenRunCuts(run, trims);
+export function kitchenRunVolumes(run: KitchenRun, options: KitchenRunOptions = {}): FurnitureVolume[] {
+  const k = run.kitchen, d = run.depthMm, e = run.elevationMm, h = run.heightMm, cuts = kitchenRunCuts(run, options);
   const plinthTop = k.plinthHeightMm, worktopBottom = h - k.worktopThicknessMm, parts: FurnitureVolume[] = [];
   const box = (x: number, y: number, widthMm: number, depthMm: number, bottom: number, top: number, color: string, extra: Partial<FurnitureVolume> = {}) => {
     if (widthMm <= .01 || depthMm <= .01 || top - bottom <= .01) return;
@@ -58,10 +65,20 @@ export function kitchenRunVolumes(run: KitchenRun, trims: KitchenRunTrims = {}):
   };
   for (const span of cuts.plinth) box(span.from, 0, span.to - span.from, d - PLINTH_RECESS, 0, plinthTop, k.plinthColor);
   for (const span of cuts.base) cabinets(span, d, plinthTop, worktopBottom, run.color, k.baseMaterialId, worktopBottom - 70);
-  for (const span of cuts.worktop) box(span.from, 0, span.to - span.from, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+  // La encimera continúa por delante de un pilar que no ocupa todo el fondo: en su tramo queda solo la franja delantera.
+  for (const span of cuts.worktop) {
+    let x = span.from;
+    for (const notch of cuts.worktopNotches.filter((n) => n.to > span.from && n.from < span.to).sort((a, b) => a.from - b.from)) {
+      const from = Math.max(x, notch.from), to = Math.min(span.to, notch.to);
+      box(x, 0, from - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+      if (d - notch.depthMm > 20) box(from, notch.depthMm, to - from, d - notch.depthMm, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+      x = Math.max(x, to);
+    }
+    box(x, 0, span.to - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+  }
   const u = k.uppers;
   if (u) for (const span of cuts.uppers) cabinets(span, u.depthMm, u.bottomMm, u.bottomMm + u.heightMm, u.color, u.materialId, u.bottomMm + 40);
-  const whole = { from: trims.trimStartMm ?? 0, to: run.widthMm - (trims.trimEndMm ?? 0) };
+  const whole = { from: options.trimStartMm ?? 0, to: run.widthMm - (options.trimEndMm ?? 0) };
   for (const slot of k.slots) {
     if (slot.positionMm < whole.from || slot.positionMm > whole.to) continue;
     const s = slotSpan(slot), w = slot.widthMm, tag = { part: 'slot' as const, slotId: slot.id };
@@ -107,9 +124,13 @@ export function isKitchenJoint(a: Furniture, b: Furniture): boolean {
   if (Math.abs(da.x * db.x + da.y * db.y) > Math.cos(Math.PI / 12)) return false;
   return ae.some((p) => be.some((q) => Math.hypot(p.x - q.x, p.y - q.y) <= tolerance));
 }
-/** En una esquina en L el tramo de id menor conserva el módulo de esquina; el otro cede el fondo del vecino. */
-export function kitchenRunDisplayVolumes(run: KitchenRun, peers: KitchenRun[]): FurnitureVolume[] {
-  const trims: Required<KitchenRunTrims> = { trimStartMm: 0, trimEndMm: 0 }, dir = direction(run);
+/**
+ * Geometría tal como se dibuja en el plano: en una esquina en L el tramo de id menor conserva el módulo de esquina y el
+ * otro cede el fondo del vecino; además se recorta alrededor de pilares y los altos se omiten sobre ventanas.
+ */
+export function kitchenRunDisplayVolumes(run: KitchenRun, doc: EditorDocument): FurnitureVolume[] {
+  const peers = doc.kitchenRuns ?? [];
+  const trims = { trimStartMm: 0, trimEndMm: 0, extra: kitchenRunObstacles(doc, run) }, dir = direction(run);
   for (const end of [0, run.widthMm]) {
     const corner = localToWorld(run, { x: end, y: 0 }), sign = end === 0 ? 1 : -1;
     for (const peer of peers) {
