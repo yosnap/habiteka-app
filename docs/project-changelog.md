@@ -4,6 +4,10 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Fixed — 2026-09-21
+
+- Imagen Docker: se incluye la librería nativa libvips de `sharp`; las páginas que rasterizan imágenes (chat de proyecto) devolvían 500 en producción. Test de rendimiento del canvas medido como p95 real con calentamiento para que no falle en CI.
+
 ### Changed — 2026-09-20
 
 - Despliegue con Dokploy: la imagen Docker aplica las migraciones de Prisma al arrancar (`docker-entrypoint.sh`), el build funciona en clon limpio y omite el chequeo de tipos (CI sigue siendo la puerta). Retirado el workflow de Easypanel; documentación de `infra/` actualizada.
