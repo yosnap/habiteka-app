@@ -1,4 +1,5 @@
 'use client';
+import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControlsEnabled } from './pointer-interaction';
 
 /**
  * Capa de muebles de la escena 3D (F6.2). Por cada `FurnitureItem` (ya posicionado en
@@ -334,7 +335,7 @@ function useDragOnFloor({
     const el = gl.domElement;
 
     if (!isSelected) {
-      el.style.cursor = '';
+      setCanvasCursor(gl, '');
       snapStateRef.current = null;
       if (snapGuideRef) snapGuideRef.current = null;
       return;
@@ -367,9 +368,9 @@ function useDragOnFloor({
       dragRef.current = null;
       snapStateRef.current = null;
       if (snapGuideRef) snapGuideRef.current = null;
-      if (controls) controls.enabled = true;
-      el.releasePointerCapture(e.pointerId);
-      el.style.cursor = 'grab';
+      setControlsEnabled(controls, true);
+      releaseCanvasPointer(gl, e.pointerId);
+      setCanvasCursor(gl, 'grab');
       const group = groupRef.current;
       if (!group) return;
       const movedX = Math.abs(group.position.x - d.startObjXZ[0]);
@@ -418,9 +419,9 @@ function useDragOnFloor({
       const ne = e.nativeEvent;
       const xz = hitFloor(ne.clientX, ne.clientY);
       if (!xz) return;
-      if (controls) controls.enabled = false;
-      gl.domElement.setPointerCapture(ne.pointerId);
-      gl.domElement.style.cursor = 'grabbing';
+      setControlsEnabled(controls, false);
+      captureCanvasPointer(gl, ne.pointerId);
+      setCanvasCursor(gl, 'grabbing');
       dragRef.current = {
         active: true,
         pointerId: ne.pointerId,
@@ -432,11 +433,11 @@ function useDragOnFloor({
   );
 
   const onPointerEnter = useCallback(() => {
-    if (isSelected) gl.domElement.style.cursor = 'grab';
+    if (isSelected) setCanvasCursor(gl, 'grab');
   }, [gl, isSelected]);
 
   const onPointerLeave = useCallback(() => {
-    if (!dragRef.current?.active) gl.domElement.style.cursor = '';
+    if (!dragRef.current?.active) setCanvasCursor(gl, '');
   }, [gl]);
 
   return { onPointerDown, onPointerEnter, onPointerLeave };

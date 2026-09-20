@@ -25,9 +25,8 @@ export function LedStripLayer({
     return pts;
   }, [polygon, ceilingHeightM]);
 
-  if (!points) return null;
-
   const geometry = useMemo(() => {
+    if (!points) return null;
     const g = new THREE.BufferGeometry();
     const positions = new Float32Array(points.length * 3);
     points.forEach((p, i) => {
@@ -38,6 +37,8 @@ export function LedStripLayer({
     g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return g;
   }, [points]);
+
+  if (!points || !geometry) return null;
 
   return (
     <lineLoop args={[geometry]}>

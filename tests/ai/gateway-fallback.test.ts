@@ -13,32 +13,16 @@ afterEach(() => {
 });
 
 describe('withGatewayFallback (OpenRouter es SPOF)', () => {
-  it('conmuta al gateway secundario cuando el primario devuelve 5xx', async () => {
-    process.env.OPENROUTER_FALLBACK_BASE_URL = 'https://secundario.example/api/v1';
-    const seenBaseURLs: Array<string | undefined> = [];
-
-    const f = setClientFactory((spec) => {
-      seenBaseURLs.push(spec.baseURL ?? 'primario');
-      const isPrimary = spec.baseURL === null;
-      return {
-        // El cliente primario "cae" con 5xx; el secundario responde.
-        marker: isPrimary ? 'primary' : 'secondary',
-        fail: isPrimary,
-      } as never;
-    });
+  it('un 5xx del gateway se normaliza como gateway_down con la causa; los respaldos los resuelve la capa superior', async () => {
+    const seenBaseURLs: Array<string | null> = [];
+    const f = setClientFactory((spec) => { seenBaseURLs.push(spec.baseURL); return { fail: true } as never; });
     restore = () => setClientFactory(f);
 
-    const result = await withGatewayFallback({
-      baseURL: null,
-      run: async (client) => {
-        const c = client as unknown as { marker: string; fail: boolean };
-        if (c.fail) throw { status: 503 };
-        return c.marker;
-      },
-    });
-
-    expect(result).toBe('secondary');
-    expect(seenBaseURLs).toContain('primario');
+    const cause = { status: 503 };
+    await expect(withGatewayFallback({ baseURL: null, run: async () => { throw cause; } }))
+      .rejects.toMatchObject({ kind: 'gateway_down', cause });
+    // Solo se consulta el gateway configurado: no hay conmutación implícita por variable de entorno.
+    expect(seenBaseURLs).toEqual([null]);
   });
 
   it('sin secundario configurado, un 5xx primario lanza AiError(gateway_down)', async () => {

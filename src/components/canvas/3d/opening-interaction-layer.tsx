@@ -1,4 +1,5 @@
 'use client';
+import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControlsEnabled } from './pointer-interaction';
 
 /**
  * Capa de interacción para puertas y ventanas en 3D: cajas invisibles encima de
@@ -167,9 +168,9 @@ function OpeningBox({
       if (!d?.active || d.pointerId !== e.pointerId) return;
       dragRef.current = null;
       if (snapGuideRef) snapGuideRef.current = null;
-      if (controls) controls.enabled = true;
-      el.releasePointerCapture(e.pointerId);
-      el.style.cursor = isSelected ? 'grab' : '';
+      setControlsEnabled(controls, true);
+      releaseCanvasPointer(gl, e.pointerId);
+      setCanvasCursor(gl, isSelected ? 'grab' : '');
       const group = groupRef.current;
       if (!group) return;
       if (
@@ -198,9 +199,9 @@ function OpeningBox({
       onSelect?.(op.id); // selecciona si aún no está seleccionado
       const xz = hitFloor(e.nativeEvent.clientX, e.nativeEvent.clientY);
       if (!xz) return;
-      if (controls) controls.enabled = false;
-      gl.domElement.setPointerCapture(e.nativeEvent.pointerId);
-      gl.domElement.style.cursor = 'grabbing';
+      setControlsEnabled(controls, false);
+      captureCanvasPointer(gl, e.nativeEvent.pointerId);
+      setCanvasCursor(gl, 'grabbing');
       const group = groupRef.current;
       const startXZ: [number, number] = group
         ? [group.position.x, group.position.z]
@@ -227,8 +228,8 @@ function OpeningBox({
       // onClick detiene la propagación para que el muro detrás no reciba el clic
       onClick={(e) => e.stopPropagation()}
       onPointerDown={onPointerDown}
-      onPointerEnter={() => { gl.domElement.style.cursor = 'grab'; }}
-      onPointerLeave={() => { if (!dragRef.current?.active) gl.domElement.style.cursor = ''; }}
+      onPointerEnter={() => { setCanvasCursor(gl, 'grab'); }}
+      onPointerLeave={() => { if (!dragRef.current?.active) setCanvasCursor(gl, ''); }}
     >
       {/* Caja de colisión invisible — permite seleccionar y arrastrar */}
       <mesh>

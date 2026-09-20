@@ -7,7 +7,7 @@
  * - Arrastrar un ítem al escenario 3D → el overlay lo suelta donde apunta el raycast al suelo
  *   (payload `text/catalog-3d`), colocándolo en su sitio sin tener que moverlo después.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CATALOG } from '@/canvas/catalog';
 import type { StructKind } from '@/canvas/types';
 
@@ -33,7 +33,9 @@ export function CatalogPanel3D({ onAdd, swapMode }: { onAdd: (kind: StructKind) 
   const [open, setOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(CATEGORIES[0]?.id ?? '');
 
-  useEffect(() => { if (swapMode) setOpen(true); }, [swapMode]);
+  // Entrar en modo intercambio abre el panel una vez; después el usuario puede cerrarlo.
+  const [seenSwapMode, setSeenSwapMode] = useState(swapMode);
+  if (swapMode !== seenSwapMode) { setSeenSwapMode(swapMode); if (swapMode) setOpen(true); }
 
   if (!open) {
     return (

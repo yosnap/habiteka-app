@@ -6,7 +6,7 @@
  * (clic+arrastrar ←→). `onLive` escribe al store en cada frame del scrub para que la
  * vista 3D se actualice en vivo.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import type { StructObj } from '@/canvas/types';
 import { pxToMeters, metersToPx, effectiveHeightM, DEFAULT_CEILING_M } from '@/canvas/scale';
 import { rotatePatch, type SceneCoords } from '@/canvas/3d/scene-to-doc';
@@ -37,13 +37,17 @@ export function ObjectPropertiesPanel({
   const [deg, setDeg] = useState(() => Math.round(obj.rotation || 0));
   const [elevationM, setElevationM] = useState(() => obj.elevationM ?? 0);
 
-  useEffect(() => {
+  // Al cambiar de objeto (o de escala) los campos se rellenan de nuevo durante el render, sin efecto intermedio.
+  const fieldsKey = `${obj.id}|${pxPerMeter}|${ceilingHeightM ?? ''}`;
+  const [seenFieldsKey, setSeenFieldsKey] = useState(fieldsKey);
+  if (seenFieldsKey !== fieldsKey) {
+    setSeenFieldsKey(fieldsKey);
     setWidthM(toMeters(obj.width, pxPerMeter));
     setDepthM(toMeters(obj.height, pxPerMeter));
     setHeightM(effectiveHeightM(obj, ceilingHeightM));
     setDeg(Math.round(obj.rotation || 0));
     setElevationM(obj.elevationM ?? 0);
-  }, [obj.id, pxPerMeter, ceilingHeightM]);
+  }
 
   // ── Commits ────────────────────────────────────────────────────────────────
   const commitWidth = () => {

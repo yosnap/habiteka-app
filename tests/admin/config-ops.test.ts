@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Los resolutores de claves de proveedor importan 'server-only'; en Vitest no hay Server Components.
+vi.mock('server-only', () => ({}));
 import { updateModelConfig, listModelConfig } from '@/server/admin/config/model-config-ops';
 import { updateSystemSetting, listSystemSettings } from '@/server/admin/config/system-setting-ops';
 import { updateBranding } from '@/server/admin/branding/branding-ops';

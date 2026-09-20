@@ -1,4 +1,5 @@
 'use client';
+import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControlsEnabled } from './pointer-interaction';
 
 /**
  * Capa de elementos de techo (ceiling_light, pendant_lamp) en la escena 3D (F2).
@@ -168,7 +169,7 @@ function useDragOnCeiling(
   useEffect(() => {
     const el = gl.domElement;
     if (!isSelected) {
-      el.style.cursor = '';
+      setCanvasCursor(gl, '');
       return;
     }
 
@@ -185,9 +186,9 @@ function useDragOnCeiling(
       const d = dragRef.current;
       if (!d?.active || d.pointerId !== e.pointerId) return;
       dragRef.current = null;
-      if (controls) controls.enabled = true;
-      el.releasePointerCapture(e.pointerId);
-      el.style.cursor = 'grab';
+      setControlsEnabled(controls, true);
+      releaseCanvasPointer(gl, e.pointerId);
+      setCanvasCursor(gl, 'grab');
       const group = groupRef.current;
       if (!group) return;
       const movedX = Math.abs(group.position.x - d.startObjXZ[0]);
@@ -215,9 +216,9 @@ function useDragOnCeiling(
       const ne = e.nativeEvent;
       const xz = hitCeiling(ne.clientX, ne.clientY);
       if (!xz) return;
-      if (controls) controls.enabled = false;
-      gl.domElement.setPointerCapture(ne.pointerId);
-      gl.domElement.style.cursor = 'grabbing';
+      setControlsEnabled(controls, false);
+      captureCanvasPointer(gl, ne.pointerId);
+      setCanvasCursor(gl, 'grabbing');
       dragRef.current = {
         active: true,
         pointerId: ne.pointerId,
@@ -229,10 +230,10 @@ function useDragOnCeiling(
   );
 
   const onPointerEnter = useCallback(() => {
-    gl.domElement.style.cursor = 'grab';
+    setCanvasCursor(gl, 'grab');
   }, [gl]);
   const onPointerLeave = useCallback(() => {
-    if (!dragRef.current?.active) gl.domElement.style.cursor = '';
+    if (!dragRef.current?.active) setCanvasCursor(gl, '');
   }, [gl]);
 
   return { onPointerDown, onPointerEnter, onPointerLeave };

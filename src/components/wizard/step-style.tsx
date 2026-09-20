@@ -64,7 +64,8 @@ export function StepStyle({ shapeState, onBack, onComplete }: Props) {
   const [selectedStyle, setSelectedStyle] = useState<RoomStyle | null>(null);
   const [selection, setSelection] = useState<FurnitureSelection>(() => defaultSelection('salon'));
   const [furnishedDoc, setFurnishedDoc] = useState<CanvasDoc | null>(null);
-  const [spinning, setSpinning] = useState(false);
+  // El primer amueblado arranca al montar, así que el estado nace ya girando.
+  const [spinning, setSpinning] = useState(true);
 
   const styles = getStylesForType(roomType);
 
@@ -98,11 +99,13 @@ export function StepStyle({ shapeState, onBack, onComplete }: Props) {
     runFurnish(randomSel, roomType, selectedStyle?.wallColor);
   }
 
-  // Calcular doc inicial al montar.
+  // Primer amueblado al montar con la selección inicial; el cálculo va en el temporizador, nunca síncrono en el efecto.
   useEffect(() => {
-    const sel = defaultSelection('salon');
-    setSelection(sel);
-    runFurnish(sel, 'salon');
+    const timer = setTimeout(() => {
+      setFurnishedDoc(computeDoc(shapeState, 'salon', defaultSelection('salon')));
+      setSpinning(false);
+    }, 400);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
