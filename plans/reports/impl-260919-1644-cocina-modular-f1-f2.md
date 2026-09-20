@@ -78,3 +78,11 @@ No verificado en navegador (no se lanza el dev server desde aquí).
 - Síntoma (Paulo): al colocar una puerta en el baño a 1 m, «La abertura supera la altura del muro».
 - Causa, con «Finca» rev. 55: `resolveOpeningPlacement` comparaba la coronación de la puerta (1,00 + 2,10 = 3,10 m) con la altura del muro sin sumar su base. El muro del baño apoyado en el descansillo (base 1,00 m, alto 2,70 m) corona a 3,70 m, pero la herramienta lo trataba como 2,70 m. Las puertas ya arrancan a ras del suelo elevado (`wallFloorElevation`); el resto de muros del baño aceptaban la puerta.
 - Arreglo: la coronación se mide desde la base del muro (`opening-placement.ts`). Test añadido en `landing-wall-floor.test.ts`.
+
+## Fase 4 (19:43–19:55) — pilares, ventanas y aparatos desde el catálogo
+
+- `kitchen-run-obstacles.ts`: recortes que vienen del entorno, calculados solo para dibujo/3D (`furnitureVolumes(item, doc)`); colisiones y navegación siguen con el cuerpo entero. Pilar sobre el tramo: zócalo y bajos vaciados en su huella; altos vaciados si el pilar entra en su fondo; encimera con muesca (continúa por delante) si el pilar no ocupa todo el fondo, interrumpida si lo ocupa. Ventana en el muro de apoyo (trasera del tramo a ≤ 6 cm de una cara, paralelo): altos omitidos en el ancho de la ventana si hay solape vertical.
+- `kitchenRunVolumes` acepta `extra` cuts y muescas de encimera (`worktopNotches`); `kitchenRunDisplayVolumes(run, doc)`.
+- Aparatos: `putKitchenSlot` rechaza un aparato sobre el hueco de un pilar; `addKitchenSlot` sin posición evita esos huecos. `kitchen-slot-drop.ts`: un aparato del catálogo Amueblar (fregadero, vitro/fogones, lavavajillas, lavadora, horno, frigorífico/nevera, también modelos 3D) soltado sobre un tramo se encaja como hueco en vez de quedar suelto (`canvas-view.tsx`).
+- `worldToLocal` compartido en `spatial-properties.ts`.
+- Tests: `tests/editor-document/kitchen-run-obstacles.test.ts` (5). Suites editor-document/canvas/editor-v2 en verde. Sin prueba en navegador.

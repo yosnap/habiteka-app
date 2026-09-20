@@ -31,7 +31,7 @@ Reutilizar el patrón del cerramiento compuesto (`Boundary`): entidad lineal `Ki
 1. ✅ Contrato y validación (`kitchen-run-types/validation/commands`); esquema 11 con colección `kitchenRuns`, migración explícita `upgradeKitchenDocument`.
 2. ✅ Geometría compartida 2D/3D/colisiones/imanes (`kitchen-run-volumes`), mismo enfoque que `boundary-volumes.ts`. Los huecos de aparatos ya recortan (fase 4 solo añade catálogo UI, ventanas y columnas).
 3. ✅ Herramienta «Cocina» en Construir (imán a caras de muro, cuerpo siempre hacia la estancia), aparatos arrastrables en planta (`linear-part-owner.ts`) e inspector `kitchen-fields.tsx`. Los aparatos se añaden desde el inspector con un desplegable, no arrastrando desde el catálogo.
-4. Huecos de aparatos con catálogo y recorte; regla de ventanas para módulos altos; recorte automático alrededor de columnas.
+4. ✅ Recorte alrededor de pilares (bajos y altos vaciados en la huella; la encimera continúa por delante si el pilar no ocupa todo el fondo, se interrumpe si lo ocupa), altos omitidos sobre ventanas del muro de apoyo, aparato prohibido sobre el hueco de un pilar, y aparato del catálogo Amueblar soltado sobre el tramo se encaja como hueco (`kitchen-run-obstacles.ts`, `kitchen-slot-drop.ts`).
 5. Apoyo de objetos sobre encimera; contexto de generación IA con la composición.
 6. Catálogo: ampliar sofás (chaise longue, rinconera, tres plazas modular, cama-sofá) con perfiles 2D y volúmenes 3D.
 
@@ -54,3 +54,11 @@ Encuentros en esquina y huecos que cruzan una esquina; colisiones entre módulos
 - **Apoyo sobre mueble:** un objeto colocado sobre otro (televisor sobre mueble de TV, microondas sobre encimera, lámpara sobre mesita) toma la cota de la cara superior del anfitrión, no colisiona con él y lo sigue si el anfitrión se mueve o cambia de altura. Generaliza `object-floor-rest.ts`: el «suelo» de un objeto es la superficie más alta que contiene su centro (suelo de la estancia, encimera, mueble).
 - **Alineación al anfitrión y al muro:** al soltar un objeto sobre un mueble se orienta como el mueble; al pegarlo a un muro se gira paralelo con la trasera (y=0 local) contra la cara, igual que puertas y ventanas. Hoy `snapObject` → `snapToWallFace` solo desplaza; falta la rotación.
 - Borradores: añadido «Descartar» por borrador en la pantalla de recuperación (`durable-editor.tsx`); los borradores viven en IndexedDB del navegador hasta que se sincronizan, se descartan o se cierra sesión.
+
+## Petición de Paulo (2026-09-19 19:45) · bloque de catálogo pendiente
+
+- **Pérgola:** material (madera, metal, aluminio…) y color editables.
+- **Carpa** tipo bar, con laterales transparentes.
+- **Cortinas:** abiertas, enrollables y otras variantes, con colores.
+- **Persianas** y sus variedades.
+Entra después de la fase 6 (sofás) o junto a ella como ampliación de catálogo exterior/interior.
