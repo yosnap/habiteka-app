@@ -117,3 +117,11 @@ No verificado en navegador (no se lanza el dev server desde aquí).
 
 - Causa: `dockToWindow` calculaba la altura de la cortina desde cota 0 y el saneamiento la subía después al suelo de la estancia (1 m), con lo que el paño quedaba 1 m por encima de lo debido y sobresalía del muro.
 - Arreglo: el enganche trabaja en cotas absolutas y conoce el suelo de la estancia del muro (`wallFloorElevation`): la cortina arranca del suelo y sube hasta 10 cm sobre el dintel; estores y persianas nunca superan la coronación del muro. Test con suelo a 1 m en `window-dock.test.ts`. Suites en verde (875).
+
+## PR #43 y revisión (2026-09-20 03:00–13:40)
+
+- PR #43 `feat/planos-ia` → `develop` (arrastra los 35 commits de `main` que `develop` no tenía). Revisión `ak:review-pr` en modo lectura: Request changes por CI roja en lint.
+- Lint: 29 errores de reglas del compilador de React; 21 ya en `main`, 8 nuevos en `ceiling-layer.tsx`. Arreglados todos (`76b91ed`): mutaciones imperativas de cursor, captura de puntero y controles de cámara movidas a `src/components/canvas/3d/pointer-interaction.ts`; cámara isométrica configurada en función de módulo; `useMemo` incondicional en la tira LED; `setState` en efectos sustituido por estado derivado o ajuste durante el render (catálogo 3D, panel de propiedades, `useCatalogItems` con clave de petición, paso de estilo del asistente).
+- Tests rojos: `model-config-loader` vaciaba solo `modelConfig` pero las rutas `aiModelRoute` tienen prioridad (ahora vacía ambas); `gateway-fallback` probaba una conmutación por variable de entorno que ya no existe (ahora prueba la normalización a `gateway_down`); `config-ops` anula `server-only` en Vitest.
+- Hallazgo de seguridad al pasar los tests (`912cda8`): `resolveBaseURL` dejaba pasar cualquier `baseURL` para el proveedor `openrouter`, saltándose la allowlist; ahora OpenRouter usa siempre su gateway por defecto.
+- Suite completa contra la base de pruebas real: 1426 tests en verde, 0 fallos. Lint 0 errores. Pendiente: CI de la PR en verde.
