@@ -4,6 +4,10 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Changed — 2026-09-20
+
+- Despliegue con Dokploy: la imagen Docker aplica las migraciones de Prisma al arrancar (`docker-entrypoint.sh`), el build funciona en clon limpio y omite el chequeo de tipos (CI sigue siendo la puerta). Retirado el workflow de Easypanel; documentación de `infra/` actualizada.
+
 ### Fixed — 2026-09-18
 
 - Exterior/jardín clasificado en Construir por familias; pufs e iluminación permanecen en Amueblar.
