@@ -4,7 +4,7 @@
 > estrategia de respaldo, los objetivos RPO/RTO y el ejercicio de restore que
 > debe realizarse **antes del lanzamiento** y repetirse periódicamente.
 >
-> Despliegue en **Easypanel**: Postgres y MinIO son servicios del panel sobre el
+> Despliegue en **Dokploy**: Postgres y MinIO son servicios del panel sobre el
 > VPS. A diferencia de un Postgres gestionado (Neon/RDS), el PITR no viene
 > "de fábrica" — hay que habilitarlo explícitamente con respaldos frecuentes.
 
@@ -21,14 +21,14 @@
 ## Postgres
 
 ### Respaldo
-- **Dumps programados** del servicio Postgres de Easypanel (al menos cada 15 min
+- **Dumps programados** del servicio Postgres de Dokploy (pestaña Backups) (al menos cada 15 min
   para cumplir el RPO, o configurar WAL archiving para PITR real).
 - Destino del backup: **fuera del mismo VPS** (bucket externo / almacenamiento
   remoto) — un backup en el mismo disco no protege ante pérdida del host.
 - Retención: 7 días en caliente + 1 mensual de archivo (ajustable).
 
 ### Restore (runbook)
-1. Aprovisionar una instancia Postgres limpia (servicio aparte en Easypanel o
+1. Aprovisionar una instancia Postgres limpia (servicio aparte en Dokploy o
    contenedor temporal) — **no** restaurar sobre producción directamente.
 2. Cargar el último dump válido (`pg_restore` / `psql`).
 3. Verificar integridad: conteo de filas de tablas clave (User, Project,

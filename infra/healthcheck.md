@@ -1,7 +1,7 @@
 # Contrato del healthcheck — `GET /api/health`
 
-> Lo **implementa BE**; OPS solo lo **consume** (proxy de Easypanel + smoke test
-> de `deploy.yml`). Este documento fija el contrato esperado.
+> Implementado en `src/app/api/health/route.ts`; lo consume el proxy de
+> Dokploy. Este documento fija el contrato.
 
 ## Contrato
 
@@ -14,7 +14,7 @@
 | Latencia objetivo | < 1 s |
 | Contenido sensible | Ninguno — sin secrets, sin PII, sin versiones internas detalladas |
 
-## Comprobaciones recomendadas (BE)
+## Comprobaciones
 
 - **Liveness:** el proceso responde.
 - **Readiness:** conexión a Postgres OK (consulta trivial, p. ej. `SELECT 1`).
@@ -23,8 +23,5 @@
 
 ## Consumidores
 
-- **Easypanel:** healthcheck del servicio para conmutar tráfico tras un deploy.
-- **`deploy.yml`:** smoke test post-deploy (espera `200` en reintentos).
-
-> Hasta que BE implemente el endpoint, el smoke test del deploy queda como paso
-> informativo (no bloquea el deploy si `APP_BASE_URL` no está configurado).
+- **Dokploy:** healthcheck de la aplicación para conmutar tráfico tras un deploy.
+- **Comprobación manual** tras un deploy o un rollback: `curl -i <URL>/api/health`.
