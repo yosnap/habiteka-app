@@ -48,7 +48,8 @@ function resolveProvider(provider: string): 'openrouter' | 'kie' | 'nan' | 'open
 
 function resolveBaseURL(baseURL: string | null, provider: 'openrouter' | 'kie' | 'nan' | 'openai'): string | null {
   if (provider === 'kie' || provider === 'openai') return null;
-  if (provider === 'openrouter') return baseURL ?? null;
+  // OpenRouter también pasa por la allowlist: un baseURL editado a mano nunca desvía tráfico (ni la clave) a otro host.
+  if (provider === 'openrouter') return null;
   const allowed = GATEWAY_ALLOWLIST[provider];
   if (!allowed) {
     // Provider fuera de la allowlist: se ignora y se usa el primario por defecto.
