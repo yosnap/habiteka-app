@@ -86,3 +86,34 @@ No verificado en navegador (no se lanza el dev server desde aquí).
 - Aparatos: `putKitchenSlot` rechaza un aparato sobre el hueco de un pilar; `addKitchenSlot` sin posición evita esos huecos. `kitchen-slot-drop.ts`: un aparato del catálogo Amueblar (fregadero, vitro/fogones, lavavajillas, lavadora, horno, frigorífico/nevera, también modelos 3D) soltado sobre un tramo se encaja como hueco en vez de quedar suelto (`canvas-view.tsx`).
 - `worldToLocal` compartido en `spatial-properties.ts`.
 - Tests: `tests/editor-document/kitchen-run-obstacles.test.ts` (5). Suites editor-document/canvas/editor-v2 en verde. Sin prueba en navegador.
+
+## Fase 6 + bloque de catálogo (2026-09-20 02:07–02:30) — sin commit, pendiente de prueba
+
+- Sofás: `chaise-longue` (2,6 × 1,6), `rinconera` (2,8 × 2,2), `sofa-modular` (tres módulos con juntas), `sofa-cama` (+ variante «Abierto · cama 200 × 190»). Perfiles `sofa-chaise`, `sofa-corner`, `sofa-modular`, `sofa-bed` en `furniture-profiles.ts`; en las L las patas van bajo cada tramo, no en las esquinas de la huella (lo detectó el test).
+- Exterior: `pergola-aluminio`, `pergola-metal` junto a la de madera (misma geometría, material y color propios; el color se cambia con Pintar); `carpa` con cuatro postes, cubierta a niveles y tres paneles de lona transparente (fondo y laterales), frente abierto.
+- Transparencia: `opacity` en `FurnitureVolume` y `SceneBox`; `scene-meshes.tsx` la renderiza (sin sombra, sin depthWrite) y `FurnitureSymbol` la aplica en planta.
+- Cortinas y persianas: `cortina-abierta` (dos paños recogidos), `estor-enrollable` (a 0,90 m), `persiana-veneciana` (a 0,90 m), `persiana-vertical`, `persiana-exterior` (cajón + lamas, a 0,90 m). Variantes de color: cortinas gris/azul/blanco, estor gris/screen negro, veneciana madera/negra. Miniaturas nuevas en `catalog-panel.tsx`.
+- Tests: `tests/editor-document/catalog-additions.test.ts` (2). Suites editor-document/canvas/editor-v2: 871 ✓. Sin prueba en navegador.
+
+## Estores sobre la ventana y avisos de colisión con nombre (02:19–02:40) — sin commit
+
+- Síntoma (Paulo): el estor no se coloca sobre la ventana; en la habitación contigua «atraviesa una pared» sin decir qué.
+- `dockToWindow` (`wall-back-alignment.ts`, dentro de `snapObject`): estores, persianas y cortinas soltados junto al muro se centran en la ventana más cercana de ese muro; estores y persianas nacen 10 cm bajo el alféizar, con ancho ≥ ventana + 10 cm y alto ≥ ventana + 20 cm; las cortinas quedan en el suelo con ancho ≥ ventana + 40 cm y llegan 10 cm por encima del dintel. Lejos de una ventana no cambian.
+- Aviso de colisión específico: «“Estor enrollable” atraviesa “Armario de dos puertas” (12 cm). Ajusta posición, tamaño o elevación.» Nombra ambos sólidos (mueble por su nombre; la pared, columna, escalera, rampa o descansillo por su tipo o su nombre) y la profundidad en cm (`collisionLabel` en `spatial-placement.ts`). Mantiene la palabra «atraviesa».
+- Tests: `tests/editor-document/window-dock.test.ts` (3). Suites del editor en verde.
+
+## Cobertura de ventana (02:29–02:45) — sin commit
+
+- Campo `coverage` (0–1) en el mobiliario; en Propiedades «Cobertura de la ventana (%)» para cortinas, estores y persianas. Por defecto 100 % (tapada), salvo la cortina abierta que nace al 40 %.
+- Geometría según cobertura: el estor baja desde el tubo la fracción indicada; veneciana y persiana exterior despliegan lamas desde arriba; lamas verticales cubren desde la izquierda; las cortinas corren pliegues desde ambos extremos hacia el centro. Al 100 % con el enganche a la ventana, la tapan entera.
+- Altura de estos objetos: crece hacia abajo con el tubo o la barra fijos (el inspector recalcula la elevación).
+- Test añadido en `window-dock.test.ts`. Suites del editor en verde (875).
+
+## Orientación al muro sin excepción (02:40) — sin commit
+
+- Paulo: el sofá que llega perpendicular a un muro debe adoptar la dirección del muro, como mesas, televisores, etc. Quitada la excepción que respetaba la orientación perpendicular: `alignBackToWall` gira siempre el mueble paralelo al muro cercano con la trasera contra la cara y el frente hacia la estancia. Test actualizado en `object-host-rest.test.ts`. Suites en verde (875).
+
+## Cortina que asomaba sobre el muro (02:55) — sin commit
+
+- Causa: `dockToWindow` calculaba la altura de la cortina desde cota 0 y el saneamiento la subía después al suelo de la estancia (1 m), con lo que el paño quedaba 1 m por encima de lo debido y sobresalía del muro.
+- Arreglo: el enganche trabaja en cotas absolutas y conoce el suelo de la estancia del muro (`wallFloorElevation`): la cortina arranca del suelo y sube hasta 10 cm sobre el dintel; estores y persianas nunca superan la coronación del muro. Test con suelo a 1 m en `window-dock.test.ts`. Suites en verde (875).

@@ -33,7 +33,7 @@ Reutilizar el patrón del cerramiento compuesto (`Boundary`): entidad lineal `Ki
 3. ✅ Herramienta «Cocina» en Construir (imán a caras de muro, cuerpo siempre hacia la estancia), aparatos arrastrables en planta (`linear-part-owner.ts`) e inspector `kitchen-fields.tsx`. Los aparatos se añaden desde el inspector con un desplegable, no arrastrando desde el catálogo.
 4. ✅ Recorte alrededor de pilares (bajos y altos vaciados en la huella; la encimera continúa por delante si el pilar no ocupa todo el fondo, se interrumpe si lo ocupa), altos omitidos sobre ventanas del muro de apoyo, aparato prohibido sobre el hueco de un pilar, y aparato del catálogo Amueblar soltado sobre el tramo se encaja como hueco (`kitchen-run-obstacles.ts`, `kitchen-slot-drop.ts`).
 5. Apoyo de objetos sobre encimera; contexto de generación IA con la composición.
-6. Catálogo: ampliar sofás (chaise longue, rinconera, tres plazas modular, cama-sofá) con perfiles 2D y volúmenes 3D.
+6. ✅ Catálogo: sofá con chaise longue, rinconero, modular de tres módulos y sofá cama (con variante abierta), perfiles 2D/3D propios sin patas bajo el hueco de la L.
 
 ## Riesgos
 
@@ -61,4 +61,4 @@ Encuentros en esquina y huecos que cruzan una esquina; colisiones entre módulos
 - **Carpa** tipo bar, con laterales transparentes.
 - **Cortinas:** abiertas, enrollables y otras variantes, con colores.
 - **Persianas** y sus variedades.
-Entra después de la fase 6 (sofás) o junto a ella como ampliación de catálogo exterior/interior.
+✅ HECHO 2026-09-20: pérgola en madera, aluminio y acero (color editable con Pintar); carpa con cubierta a niveles y lona transparente en fondo y laterales, frente abierto (transparencia nueva en planta y 3D vía `opacity`); cortina abierta de dos paños, estor enrollable, persiana veneciana, de lamas verticales y enrollable exterior, con variantes de color (gris, azul, blanco, madera, negra). Pendiente si Paulo lo pide: material fotografiado (textura) sobre muebles sueltos, hoy solo color.
