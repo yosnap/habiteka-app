@@ -29,6 +29,15 @@ export type {
   PlanZone,
   Plano2dPayload,
 } from './plano2d-payload';
+export type { SketchPlanResult } from './sketch-plan-result';
+export type {
+  DimensionCorrection,
+  ExteriorZone,
+  ImportedFurniture,
+  PlanImportResult,
+  PlanImportWarning,
+  WrittenRoomDimensions,
+} from './plan-import-result';
 export type { DesignElementKind, DesignElement } from './design-element';
 export type { DeliverableType, DeliverablePayload, Deliverable } from './deliverable';
 export type {
@@ -45,3 +54,4 @@ export type { ProductDrop } from './product-drop-payload';
 export type { OperationCost, Hold, DebitService } from './debit-service';
 export type { DecorRecommendation } from './decor-recommendation';
 export type { DetectedObject, NormalizedBox } from './detected-object';
+export { isDrawablePlanZone, isDrawablePlano } from './plano2d-validation';

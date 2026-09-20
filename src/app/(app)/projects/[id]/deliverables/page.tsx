@@ -7,6 +7,7 @@
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
@@ -29,20 +30,29 @@ export default async function DeliverablesPage({ params }: Props) {
   // degrada mostrando el diseño SIN la miniatura de origen, no rompiendo la vista.
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
 
-  const deliverables = rows
-    .map((row) => toDeliverableView(row, urlBySourceImageId))
-    .filter((d): d is DeliverableView => d !== null);
+  const videos = await Promise.all(rows.filter((row) => row.type === 'VIDEO').map(async (row) => {
+    const payload = row.payload as { assetKey?: string; durationMs?: number };
+    return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs, legalSeal: row.legalSeal };
+  }));
+  const deliverables = (
+    await Promise.all(rows.filter((row) => row.type !== 'VIDEO').map((row) => toDeliverableView(row, urlBySourceImageId)))
+  ).filter((d): d is DeliverableView => d !== null);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
-      <DeliverablesPanel deliverables={deliverables} projectId={id} />
+      {videos.map((video) => <section key={video.id} aria-label="Recorrido en vídeo" className="rounded-lg border p-4">
+        <h2>Recorrido 3D · {Math.round((video.durationMs ?? 0) / 1000)} s</h2>
+        {video.url ? <><video controls preload="metadata" src={video.url} className="w-full" /><a href={video.url} download="habiteka-recorrido.mp4">Descargar MP4</a></> : <p>Vídeo no disponible temporalmente.</p>}
+        <p className="text-xs text-muted-foreground">{video.legalSeal}</p>
+      </section>)}
+      {(deliverables.length > 0 || videos.length === 0) && <DeliverablesPanel deliverables={deliverables} projectId={id} />}
     </main>
   );
 }
 
 // Reconstruye el entregable desde la fila, validando el tipo de payload, y le
 // adjunta la URL de su imagen de origen si la hay.
-function toDeliverableView(
+async function toDeliverableView(
   row: {
     id: string;
     type: string;
@@ -53,16 +63,22 @@ function toDeliverableView(
     zoneId: string | null;
   },
   urlBySourceImageId: Map<string, string>,
-): DeliverableView | null {
+): Promise<DeliverableView | null> {
   const payload = row.payload as DeliverablePayload | null;
   if (!payload || typeof payload !== 'object' || !('type' in payload)) return null;
   const sourceImageUrl = row.sourceImageId
     ? (urlBySourceImageId.get(row.sourceImageId) ?? null)
     : null;
+  // El render se re-firma desde su `assetKey` (la presignada guardada caduca). Para
+  // el resto de tipos el payload viaja intacto.
+  const resolved =
+    payload.type === 'render3d'
+      ? { ...payload, assetUrl: (await resolveRenderUrl(payload)) ?? payload.assetUrl }
+      : payload;
   return {
     id: row.id,
-    type: row.type as DeliverableType,
-    payload,
+    type: payload.type as DeliverableType,
+    payload: resolved,
     legalSeal: row.legalSeal,
     version: row.version,
     sourceImageUrl,

@@ -20,16 +20,12 @@ export type Tool =
   | 'pan'
   | 'zoom'
   | 'freehand'
+  | 'note'
   | 'draw-wall'
   | 'edit-outline'
   | 'zone'
   | StructKind;
 
-// Modos del editor de planos. La herramienta 'zone' existe en el modelo (se usa
-// para el feedback dirigido sobre un render), pero no se expone aquí: en el editor
-// manual confunde, ya que está pensada para marcar áreas sobre un diseño generado.
-// 'draw-wall' dibuja muros como líneas rectas con cota en vivo (F7); reemplaza la
-// creación de muros por la paleta (que se excluye en object-palette).
 const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'select', label: 'Seleccionar' },
   { tool: 'pan', label: 'Mover' },
@@ -37,6 +33,7 @@ const MODES: Array<{ tool: Tool; label: string }> = [
   { tool: 'draw-wall', label: 'Dibujar muro' },
   { tool: 'edit-outline', label: 'Editar contorno' },
   { tool: 'freehand', label: 'Dibujar libre' },
+  { tool: 'note', label: 'Nota' },
 ];
 
 interface Props {
@@ -56,6 +53,9 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
   const flipSelection = useCanvasStore((s) => s.flipSelection);
   const objects = useCanvasStore((s) => s.doc.objects);
   const docScale = useCanvasStore((s) => s.doc.scale);
+  // "Editar contorno" llama a setFloorOutline que regenera los muros desde el polígono.
+  // Con muros dibujados a mano eso los reemplaza por muros wizard → deshabilitado.
+  const outlineEditDisabled = objects.some((o) => o.kind === 'wall' && o.drawn);
   const baseImage = useCanvasStore((s) => s.doc.baseImage);
   const setBaseImage = useCanvasStore((s) => s.setBaseImage);
   const setBaseImageOpacity = useCanvasStore((s) => s.setBaseImageOpacity);
@@ -88,18 +88,27 @@ export function CanvasToolbar({ tool, onToolChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Herramientas">
-      {MODES.map(({ tool: t, label }) => (
-        <Button
-          key={t}
-          type="button"
-          size="sm"
-          variant={tool === t ? 'default' : 'ghost'}
-          aria-pressed={tool === t}
-          onClick={() => onToolChange(t)}
-        >
-          {label}
-        </Button>
-      ))}
+      {MODES.map(({ tool: t, label }) => {
+        const isDisabled = t === 'edit-outline' && outlineEditDisabled;
+        return (
+          <Button
+            key={t}
+            type="button"
+            size="sm"
+            variant={tool === t ? 'default' : 'ghost'}
+            aria-pressed={tool === t}
+            disabled={isDisabled}
+            title={
+              isDisabled
+                ? 'Solo disponible para habitaciones creadas con el asistente. Edita los muros directamente con sus manijas.'
+                : undefined
+            }
+            onClick={() => !isDisabled && onToolChange(t)}
+          >
+            {label}
+          </Button>
+        );
+      })}
       <span className="bg-border mx-1 h-5 w-px" aria-hidden />
       <Button type="button" size="sm" variant="ghost" disabled={!canUndo} onClick={undo}>
         Deshacer

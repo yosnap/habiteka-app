@@ -11,6 +11,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { SourceImageRole } from '@/generated/prisma/enums';
 import { prisma } from './prisma';
 import type { OrgContext } from '@/server/auth/org-context';
+import { EditorScopeNotFoundError, withLegacyAuthority } from '@/server/editor/authority';
 
 export interface CreateProjectInput {
   title: string;
@@ -23,6 +24,8 @@ export interface CreateSourceImageInput {
   height?: number;
   role?: SourceImageRole;
   faceBlurred: boolean;
+  /** Zona del inmueble a la que pertenece la imagen; null = por defecto del proyecto. */
+  zoneId?: string | null;
 }
 
 export interface ZoneRow {
@@ -86,8 +89,32 @@ export interface ScopedRepo {
     create(projectId: string, input: CreateSourceImageInput): Promise<{ id: string }>;
     /** Lista las imágenes de origen vivas de un proyecto de la org (recientes primero). */
     list(projectId: string): Promise<SourceImageRow[]>;
-    /** Id de la imagen de origen PRIMARY más reciente de un proyecto de la org, o null. */
-    latestPrimaryId(projectId: string): Promise<string | null>;
+    /**
+     * Lista las imágenes vivas de una (proyecto, zona) de la org (recientes primero).
+     * `zoneId` null = imágenes del flujo por defecto del proyecto.
+     */
+    listByZone(projectId: string, zoneId: string | null): Promise<SourceImageRow[]>;
+    /**
+     * Fija la imagen ACTIVA de una (proyecto, zona): la indicada pasa a PRIMARY y el
+     * resto de esa zona a DETAIL, en una transacción (no deja dos PRIMARY). Valida
+     * que la imagen pertenece a ese (proyecto, zona, org). No-op silencioso si la
+     * imagen no existe o es ajena (anti-IDOR). Devuelve true si se cambió algo.
+     */
+    setActive(projectId: string, zoneId: string | null, sourceImageId: string): Promise<boolean>;
+    /**
+     * Id de la imagen de origen PRIMARY más reciente de una (proyecto, zona) de la org, o null.
+     * `zoneId` null = imagen del flujo por defecto del proyecto.
+     */
+    latestPrimaryId(projectId: string, zoneId?: string | null): Promise<string | null>;
+    /**
+     * Imagen PRIMARY más reciente de una (proyecto, zona) con su `key` y `mime`, o null.
+     * A diferencia de `latestPrimaryId`, devuelve lo necesario para LEER los bytes del
+     * storage (render por foto, img2img). Mismo scope/orden que `latestPrimaryId`.
+     */
+    latestPrimary(
+      projectId: string,
+      zoneId?: string | null,
+    ): Promise<{ id: string; key: string; mime: string } | null>;
   };
   zones: {
     /** Crea una zona verificando la pertenencia del proyecto (anti-IDOR). */
@@ -151,36 +178,23 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
       // con valor = plano de esa zona. La unicidad por (proyecto, zona) la
       // garantizan índices únicos parciales en BD (ver migración).
       async load(projectId, zoneId = null) {
-        // El join por organización impide leer el canvas de un proyecto ajeno.
-        const row = await prisma.canvasState.findFirst({
-          where: { projectId, zoneId, project: { organizationId, deletedAt: null } },
-          select: { data: true },
-        });
-        return row?.data ?? null;
+        try {
+          return await withLegacyAuthority(ctx, { projectId, zoneId }, async tx => {
+            const row = await tx.canvasState.findFirst({ where: { projectId, zoneId }, select: { data: true } });
+            return row?.data ?? null;
+          }, { includeDeletedZone: true });
+        } catch (error) {
+          if (error instanceof EditorScopeNotFoundError) return null;
+          throw error;
+        }
       },
       async save(projectId, data, zoneId = null) {
-        // Verifica la pertenencia del proyecto antes de escribir (anti-IDOR).
-        const owned = await prisma.project.findFirst({
-          where: { id: projectId, organizationId, deletedAt: null },
-          select: { id: true },
-        });
-        if (!owned) {
-          throw new Error('Proyecto no encontrado en la organización');
-        }
         const value = data as Prisma.InputJsonValue;
-        // No se usa upsert: la unicidad de (projectId, zoneId) la dan índices
-        // PARCIALES, que Prisma no expone como clave de `where` en upsert. Se hace
-        // find-then-update/create; la concurrencia la cubre el índice único (un
-        // segundo insert simultáneo del mismo plano fallaría a nivel de BD).
-        const existing = await prisma.canvasState.findFirst({
-          where: { projectId, zoneId },
-          select: { id: true },
+        await withLegacyAuthority(ctx, { projectId, zoneId }, async tx => {
+          const existing = await tx.canvasState.findFirst({ where: { projectId, zoneId }, select: { id: true } });
+          if (existing) await tx.canvasState.update({ where: { id: existing.id }, data: { data: value } });
+          else await tx.canvasState.create({ data: { projectId, zoneId, data: value } });
         });
-        if (existing) {
-          await prisma.canvasState.update({ where: { id: existing.id }, data: { data: value } });
-        } else {
-          await prisma.canvasState.create({ data: { projectId, zoneId, data: value } });
-        }
       },
     },
 
@@ -222,6 +236,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           data: {
             organizationId,
             projectId,
+            zoneId: input.zoneId ?? null,
             key: input.key,
             mime: input.mime,
             width: input.width ?? null,
@@ -252,21 +267,75 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
           orderBy: { createdAt: 'desc' },
         });
       },
-      async latestPrimaryId(projectId) {
-        const row = await prisma.sourceImage.findFirst({
+      // Como `list` pero acotado a una zona concreta (panel de fotos por zona).
+      listByZone(projectId, zoneId) {
+        return prisma.sourceImage.findMany({
           where: {
             projectId,
-            role: 'PRIMARY',
+            zoneId,
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
+          select: {
+            id: true,
+            key: true,
+            mime: true,
+            width: true,
+            height: true,
+            role: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      },
+      async setActive(projectId, zoneId, sourceImageId) {
+        // Anti-IDOR: la imagen debe ser de esa (proyecto, zona) y de la org. Si no,
+        // no se toca nada (no se filtra la existencia de recursos ajenos).
+        const owned = await prisma.sourceImage.findFirst({
+          where: {
+            id: sourceImageId,
+            projectId,
+            zoneId,
             deletedAt: null,
             project: { organizationId, deletedAt: null },
           },
           select: { id: true },
+        });
+        if (!owned) return false;
+        // Atómico: a DETAIL todas las de la zona y a PRIMARY solo la elegida. El
+        // orden (degradar y luego promover) evita una ventana con dos PRIMARY.
+        await prisma.$transaction([
+          prisma.sourceImage.updateMany({
+            where: { projectId, zoneId, deletedAt: null },
+            data: { role: 'DETAIL' },
+          }),
+          prisma.sourceImage.update({
+            where: { id: sourceImageId },
+            data: { role: 'PRIMARY' },
+          }),
+        ]);
+        return true;
+      },
+      async latestPrimaryId(projectId, zoneId = null) {
+        const row = await this.latestPrimary(projectId, zoneId);
+        return row?.id ?? null;
+      },
+      async latestPrimary(projectId, zoneId = null) {
+        const row = await prisma.sourceImage.findFirst({
+          where: {
+            projectId,
+            zoneId,
+            role: 'PRIMARY',
+            deletedAt: null,
+            project: { organizationId, deletedAt: null },
+          },
+          select: { id: true, key: true, mime: true },
           // Desempate por `id` (cuid monotónico): si varias imágenes comparten el
           // mismo `createdAt` (misma petición, resolución de ms), el resultado es
           // determinista en vez de arbitrario.
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         });
-        return row?.id ?? null;
+        return row ?? null;
       },
     },
 

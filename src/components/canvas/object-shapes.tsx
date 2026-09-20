@@ -6,8 +6,10 @@
  * devuelve primitivas de Konva relativas a su origen (0,0); el contenedor las
  * posiciona/rota. Mantener el dibujo aquí desacopla el render del modelo de datos.
  */
-import { Group, Rect, Circle, Line, Ellipse } from 'react-konva';
+import { Group, Rect, Circle, Line, Ellipse, Text } from 'react-konva';
 import type { StructKind } from '@/canvas/types';
+import { CEILING_KINDS, WALL_SURFACE_KINDS } from '@/canvas/types';
+import type { WallMiter } from './layers/wall-junction-caps';
 
 // Paleta de planta: trazo oscuro, rellenos suaves por familia.
 const STROKE = '#3a322e';
@@ -33,6 +35,8 @@ function box(w: number, h: number, fill: string, radius = 2) {
 /**
  * Dibuja un objeto en planta. Si `flip`, lo espeja en horizontal envolviéndolo en
  * un único Group con `scaleX(-1)` y `x(w)` (un solo nivel de transform, fiable).
+ * `drawn` diferencia muros dibujados manualmente (necesitan extensión de esquina)
+ * de los generados por outlineToWalls (ya llevan la cobertura en sus dimensiones).
  */
 export function objectShape(
   kind: StructKind,
@@ -40,8 +44,11 @@ export function objectShape(
   h: number,
   flip = false,
   color?: string,
+  drawn = false,
+  miter?: WallMiter,
+  meta?: Record<string, unknown>,
 ): React.ReactNode {
-  const content = shapeFor(kind, w, h, color);
+  const content = shapeFor(kind, w, h, color, drawn, miter, meta);
   if (!flip) return content;
   return (
     <Group scaleX={-1} x={w}>
@@ -50,12 +57,123 @@ export function objectShape(
   );
 }
 
+/**
+ * Polígono de inglete para muros con eje longitudinal en X (drawn o no-drawn horizontal).
+ *
+ * En espacio LOCAL del Group de Konva:
+ *  - drawn=true:  x ∈ [-h/2, w+h/2]  (extensión de h/2 en cada extremo)
+ *  - drawn=false: x ∈ [0, w]
+ *  - y ∈ [0, h]  siempre
+ *
+ * Cada extremo con miter desplaza las dos esquinas de ese lado siguiendo la
+ * bisectriz proyectada en local: la recta pasa por (x_mid, h/2) con dirección
+ * (lbx, lby) y corta y=0 e y=h.
+ */
+function wallPolygon(
+  w: number, h: number, drawn: boolean, miter?: WallMiter,
+): number[] {
+  const xS = drawn ? -h / 2 : 0;
+  const xE = drawn ? w + h / 2 : w;
+  const bound = xE - xS + h;
+
+  // Para muros drawn: pivote en x=0 (p1) y x=w (p2).
+  // Para muros wizard: pivot en h/2 desde el borde del bbox. En convexo el bbox está extendido
+  // (+t) y h/2 cae en el centro de la esquina; en cóncavo el bbox es natural y la bisectriz
+  // (que pasa por el vértice) cruza y=h/2 en x=h/2. La bisectriz (convexa o cóncava) calculada
+  // por computeWallMiters hace el resto: produce la diagonal correcta en ambos casos.
+  const p1Pivot = drawn ? 0 : h / 2;
+  const p2Pivot = drawn ? w : w - h / 2;
+
+  let tlx = xS, trx = xE; // y = 0 (arriba en local)
+  let blx = xS, brx = xE; // y = h (abajo en local)
+
+  if (miter?.p1 && Math.abs(miter.p1.lby) > 0.01) {
+    const { lbx, lby } = miter.p1;
+    const clamp = (v: number) => Math.max(xS - bound, Math.min(xE + bound, v));
+    tlx = clamp(p1Pivot + (-lbx * (h / 2)) / lby);
+    blx = clamp(p1Pivot + (lbx * (h / 2)) / lby);
+  }
+
+  if (miter?.p2 && Math.abs(miter.p2.lby) > 0.01) {
+    const { lbx, lby } = miter.p2;
+    const clamp = (v: number) => Math.max(xS - bound, Math.min(xE + bound, v));
+    trx = clamp(p2Pivot - (lbx * (h / 2)) / lby);
+    brx = clamp(p2Pivot + (lbx * (h / 2)) / lby);
+  }
+
+  // Orden: TL → TR → BR → BL (sentido horario en el espacio local de Konva)
+  return [tlx, 0, trx, 0, brx, h, blx, h];
+}
+
+/**
+ * Polígono de inglete para muros VERTICALES (eje longitudinal en Y).
+ *
+ * Para wizard (drawn=false): convexo extiende el pivot FUERA del bbox (-w/2 arriba /
+ * +w/2 abajo) para que la bisectriz cruce el eje en el centro de la esquina exterior;
+ * cóncavo retrae hacia DENTRO (+w/2 arriba / -w/2 abajo) para que la diagonal nazca en
+ * el vértice cóncavo (esquina compartida con el muro horizontal). La bisectriz calculada
+ * por computeWallMiters (convexa o cóncava) produce el corte correcto en ambos casos.
+ * Para muros dibujados: yP1=0, yP2=h (el pivot es el vértice p1/p2 del segmento).
+ */
+function wallPolygonVertical(
+  w: number, h: number, drawn: boolean, miter?: WallMiter,
+  topConvex = true, bottomConvex = true,
+): number[] {
+  const bound = h + w;
+  const clamp = (v: number) => Math.max(-bound, Math.min(h + bound, v));
+
+  // Para wizard: convexo extiende fuera del bbox (-w/2 arriba / +w/2 abajo); cóncavo retrae
+  // hacia dentro (+w/2 arriba / -w/2 abajo). Así la bisectriz cóncava cruza el eje del muro
+  // en el punto correcto y la diagonal nace en el vértice cóncavo (esquina compartida).
+  const yP1 = drawn ? 0 : (topConvex ? -w / 2 : w / 2);
+  const yP2 = drawn ? h : (bottomConvex ? h + w / 2 : h - w / 2);
+
+  let tly = yP1, try_ = yP1;
+  let bly = yP2, bry = yP2;
+
+  if (miter?.p1 && Math.abs(miter.p1.lbx) > 0.01) {
+    const { lbx, lby } = miter.p1;
+    tly  = clamp(yP1 - (w / 2) * lby / lbx);
+    try_ = clamp(yP1 + (w / 2) * lby / lbx);
+  }
+  if (miter?.p2 && Math.abs(miter.p2.lbx) > 0.01) {
+    const { lbx, lby } = miter.p2;
+    bly = clamp(yP2 - (w / 2) * lby / lbx);
+    bry = clamp(yP2 + (w / 2) * lby / lbx);
+  }
+  return [0, tly, w, try_, w, bry, 0, bly];
+}
+
 /** Devuelve los nodos Konva que dibujan un objeto en planta (sin espejo). */
-function shapeFor(kind: StructKind, w: number, h: number, color?: string): React.ReactNode {
+function shapeFor(kind: StructKind, w: number, h: number, color?: string, drawn = false, miter?: WallMiter, meta?: Record<string, unknown>): React.ReactNode {
   switch (kind) {
     // --- Estructura ---
-    case 'wall':
-      return <Rect width={w} height={h} fill={WALL} stroke={STROKE} strokeWidth={1} />;
+    case 'wall': {
+      const wallFill = color ?? WALL;
+
+      if (miter?.p1 || miter?.p2) {
+        const topConvex = drawn || meta?.topConvex !== false;
+        const bottomConvex = drawn || meta?.bottomConvex !== false;
+        const pts = (drawn || w >= h)
+          ? wallPolygon(w, h, drawn, miter)
+          : wallPolygonVertical(w, h, drawn, miter, topConvex, bottomConvex);
+        return (
+          <Line
+            points={pts}
+            closed
+            fill={wallFill}
+            stroke={STROKE}
+            strokeWidth={1}
+            listening={false}
+          />
+        );
+      }
+
+      // Sin inglete → rect estándar
+      return drawn
+        ? <Rect x={-h / 2} width={w + h} height={h} fill={wallFill} stroke={STROKE} strokeWidth={1} />
+        : <Rect width={w} height={h} fill={wallFill} stroke={STROKE} strokeWidth={1} />;
+    }
     case 'window':
       return (
         <>
@@ -392,9 +510,104 @@ function shapeFor(kind: StructKind, w: number, h: number, color?: string): React
       );
     }
 
-    // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
-    // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
-    default:
+    case 'microondas':
+      return (
+        <>
+          {box(w, h, FIX, 3)}
+          <Rect x={w * 0.07} y={h * 0.15} width={w * 0.62} height={h * 0.7} fill="#2b2b2b" cornerRadius={2} />
+          <Rect x={w * 0.76} y={h * 0.2} width={w * 0.16} height={h * 0.6} fill="#9aa3ab" cornerRadius={2} />
+        </>
+      );
+    case 'vitroceramica':
+      return (
+        <>
+          {box(w, h, '#1a1a1a', 2)}
+          <Circle x={w * 0.25} y={h * 0.3} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.65} y={h * 0.3} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.25} y={h * 0.72} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+          <Circle x={w * 0.65} y={h * 0.72} radius={Math.min(w, h) * 0.15} fill="#333" stroke="#555" strokeWidth={1} />
+        </>
+      );
+    case 'nevera_americana':
+      return (
+        <>
+          {box(w, h, FIX)}
+          {/* Dos puertas: congelador izquierda, frío derecha */}
+          <Line points={[w / 2, 0, w / 2, h]} stroke={STROKE} strokeWidth={1.5} />
+          <Line points={[0, h * 0.45, w * 0.5, h * 0.45]} stroke={STROKE} strokeWidth={1} />
+        </>
+      );
+    case 'nevera_mini':
+      return (
+        <>
+          {box(w, h, FIX, 3)}
+          <Line points={[0, h * 0.28, w, h * 0.28]} stroke={STROKE} strokeWidth={1} />
+        </>
+      );
+    case 'sofa_grande':
+      return (
+        <>
+          {box(w, h, SOFT, 8)}
+          {/* Respaldo */}
+          <Rect x={w * 0.04} y={h * 0.04} width={w * 0.92} height={h * 0.18} fill="#baa89a" cornerRadius={4} />
+          {/* Tres asientos */}
+          {[0.04, 0.36, 0.68].map((sx, i) => (
+            <Rect key={i} x={w * sx} y={h * 0.28} width={w * 0.28} height={h * 0.6} fill="#fff" stroke={STROKE} strokeWidth={1} cornerRadius={3} />
+          ))}
+        </>
+      );
+    case 'butaca':
+      return (
+        <>
+          {box(w, h, SOFT, 6)}
+          <Rect x={w * 0.08} y={h * 0.05} width={w * 0.84} height={h * 0.18} fill="#baa89a" cornerRadius={3} />
+          <Rect x={w * 0.12} y={h * 0.28} width={w * 0.76} height={h * 0.62} fill="#fff" stroke={STROKE} strokeWidth={1} cornerRadius={3} />
+        </>
+      );
+
+    // Elementos de techo (ceiling): círculo punteado semitransparente con icono.
+    // No ocupan "espacio de suelo" visualmente — se distinguen del amueblado.
+    default: {
+      const kindStr = String(kind);
+      if ((CEILING_KINDS as Set<string>).has(kindStr)) {
+        const r = Math.min(w, h) / 2;
+        const icon = kind === 'ceiling_light' || kind === 'recessed_light' ? '💡'
+          : kind === 'pendant_lamp' ? '🔆'
+          : kind === 'led_strip' ? '▬'
+          : kind === 'beam' ? '▮'
+          : '✦';
+        return (
+          <Group>
+            <Circle x={w / 2} y={h / 2} radius={r} fill="#fff3d0" opacity={0.35} stroke="#e0b040" strokeWidth={1} dash={[4, 3]} />
+            <Text text={icon} x={w / 2 - 6} y={h / 2 - 7} fontSize={12} listening={false} />
+          </Group>
+        );
+      }
+      // Elementos de pared (wall-surface): rect con icono y etiqueta.
+      if ((WALL_SURFACE_KINDS as Set<string>).has(kindStr)) {
+        const wsIcon = kind === 'outlet' ? '🔌'
+          : kind === 'switch' ? '🔘'
+          : kind === 'thermostat' ? '🌡'
+          : kind === 'tv_mount' ? '📺'
+          : kind === 'wall_sconce' ? '🪔'
+          : kind === 'art_frame' ? '🖼'
+          : kind === 'radiator' ? '♨'
+          : '▪';
+        const wsColor = kind === 'tv_mount' ? '#1a1a1f'
+          : kind === 'art_frame' ? '#8a6f4a'
+          : kind === 'radiator' ? '#c8ccd0'
+          : '#e8ecef';
+        const fontSize = Math.min(w, h, 20);
+        return (
+          <Group>
+            <Rect width={w} height={h} fill={wsColor} stroke="#9aa3ab" strokeWidth={1} dash={[3, 2]} opacity={0.85} cornerRadius={2} />
+            <Text text={wsIcon} x={w / 2 - fontSize / 2} y={h / 2 - fontSize / 2} fontSize={fontSize} listening={false} />
+          </Group>
+        );
+      }
+      // Fallback: cualquier kind del catálogo sin forma propia se dibuja como una
+      // caja simple. Así añadir una entrada al catálogo nunca rompe el render.
       return box(w, h, WOOD);
+    }
   }
 }

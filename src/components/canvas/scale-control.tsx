@@ -11,6 +11,7 @@
  */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { deriveScaleFromKnownLength, scaleFromRatio } from '@/canvas/scale';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
@@ -76,7 +77,7 @@ export function ScaleControl() {
           {/* Ratio: fija la escala AL INSTANTE (sin necesidad de calibrar). */}
           <label className="text-ink-soft flex items-center gap-1">
             Ratio
-            <select
+            <ModernSelect
               value={scale?.ratio ?? ''}
               onChange={(e) => {
                 const ratio = Number(e.target.value);
@@ -91,7 +92,7 @@ export function ScaleControl() {
                   1:{r}
                 </option>
               ))}
-            </select>
+            </ModernSelect>
           </label>
 
           {/* Altura de techo del plano (3ª dimensión). Solo útil con escala. */}

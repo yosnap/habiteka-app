@@ -13,19 +13,25 @@ import { setClipboard, hasClipboard, takeClipboardClones } from '@/canvas/canvas
 import { serializeCanvas, deserializeCanvas } from '@/canvas/serialize';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { CanvasToolbar, type Tool } from './canvas-toolbar';
-import { ObjectPalette } from './object-palette';
+import { CatalogSidebar } from '@/components/catalog/catalog-sidebar';
 import { CanvasContextMenu, type ContextMenuItem } from './context-menu';
 import { GenerateFromCanvasDialog } from './generate-from-canvas-dialog';
 import { DecorSuggestionsDialog } from './decor-suggestions-dialog';
 import { DetectFromPhotoDialog } from './detect-from-photo-dialog';
+import { SketchToPlanDialog } from './sketch-to-plan-dialog';
 import { Plan3DOverlay } from './3d/plan-3d-overlay';
-import { DesignWizard } from './wizard/design-wizard';
-import { autofurnish } from '@/canvas/wizard/autofurnish';
-import { CATALOG_BY_KIND } from '@/canvas/catalog';
+import { SmartWizard } from '@/components/wizard/smart-wizard';
+import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
 import { Button } from '@/components/ui/button';
 import type { CanvasDoc } from '@/canvas/types';
 import type { AgentOutcome } from '@/server/agent';
-import type { DeliverableType, Estilo, DecorRecommendation, DetectedObject } from '@/lib/contracts';
+import type {
+  DeliverableType,
+  Estilo,
+  DecorRecommendation,
+  DetectedObject,
+  SketchPlanResult,
+} from '@/lib/contracts';
 
 // Konva no puede renderizar en el servidor: el stage se carga solo en cliente.
 const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasStage), {
@@ -35,6 +41,8 @@ const CanvasStage = dynamic(() => import('./canvas-stage').then((m) => m.CanvasS
 
 interface Props {
   projectId: string;
+  /** Zona activa del plano; null = plano por defecto del proyecto. */
+  activeZoneId: string | null;
   initialDoc: unknown;
   saveAction: (projectId: string, payload: unknown) => Promise<void>;
   generateAction: (
@@ -54,29 +62,44 @@ interface Props {
     projectId: string,
     imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
   ) => Promise<DetectedObject[]>;
+  extractSketchAction: (
+    projectId: string,
+    imageParts: { type: 'image_url'; base64: string; mimeType: string }[],
+  ) => Promise<SketchPlanResult>;
 }
 
 const DEBOUNCE_MS = 800;
 
 export function CanvasWorkspace({
   projectId,
+  activeZoneId,
   initialDoc,
   saveAction,
   generateAction,
   recommendAction,
   detectAction,
+  extractSketchAction,
 }: Props) {
   const [tool, setTool] = useState<Tool>('select');
+  // Panel de fotos de la zona (F2): overlay para gestionar la foto activa (img2img)
+  // sin tapar el lienzo de Konva.
+  const [showPhotos, setShowPhotos] = useState(false);
   // Diálogo de generación de diseño desde el lienzo (CRL-4).
   const [showGenerate, setShowGenerate] = useState(false);
   // Diálogo de sugerencias de decoración por IA (F4).
   const [showSuggestions, setShowSuggestions] = useState(false);
   // Diálogo de detección desde foto (F5, BETA).
   const [showDetect, setShowDetect] = useState(false);
+  // Diálogo de plano desde boceto (pivote planos IA).
+  const [showSketch, setShowSketch] = useState(false);
   // Vista 3D navegable (F6): se captura el doc de la zona activa al abrir.
   const [doc3D, setDoc3D] = useState<CanvasDoc | null>(null);
   // Asistente de diseño (F7): se ofrece al abrir una zona vacía (sin contenido alguno).
   const [showWizard, setShowWizard] = useState(false);
+  // Confirmación antes de regenerar la sala sobre un plano que ya tiene contenido:
+  // el wizard reemplaza muros y disposición, así que pedimos confirmación para no perder
+  // el trabajo actual por accidente.
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   // Aviso temporal tras amueblar: qué muebles no cupieron en la sala (decisión: avisar, no solapar).
   const [furnishNotice, setFurnishNotice] = useState<string | null>(null);
   // El stage de Konva necesita dimensiones en píxeles; se miden del contenedor
@@ -205,6 +228,16 @@ export function CanvasWorkspace({
     };
   });
 
+  // Abrir el asistente de sala: si la zona ya tiene contenido, pedir confirmación antes
+  // (el wizard reemplaza muros y disposición). En vacío, abre directo.
+  const handleOpenWizard = () => {
+    if (isDocEmpty(useCanvasStore.getState().doc)) {
+      setShowWizard(true);
+    } else {
+      setConfirmRegenerate(true);
+    }
+  };
+
   // Construye los items del menú contextual según la selección actual.
   const buildMenuItems = (): ContextMenuItem[] => {
     const store = useCanvasStore.getState();
@@ -264,11 +297,29 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant={showPhotos ? 'default' : 'ghost'}
+            onClick={() => setShowPhotos((v) => !v)}
+            title="Fotos del espacio: elige la que usa el render (img2img)"
+          >
+            Fotos del espacio
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             variant="ghost"
             onClick={() => setShowDetect(true)}
             title="Detectar elementos desde una foto o plano (beta)"
           >
             Detectar desde foto
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowSketch(true)}
+            title="Convertir la foto de un boceto en un plano con muros editables (beta)"
+          >
+            Plano desde boceto
           </Button>
           <Button
             type="button"
@@ -291,6 +342,36 @@ export function CanvasWorkspace({
           <Button
             type="button"
             size="sm"
+            variant="ghost"
+            onClick={() => {
+              const stage = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement | null;
+              if (!stage) return;
+              const url = stage.toDataURL('image/png');
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `plano-${projectId}.png`;
+              a.click();
+            }}
+            title="Descargar el plano como imagen PNG"
+          >
+            ⬇ PNG
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              const url = `${window.location.origin}/share/${projectId}`;
+              navigator.clipboard.writeText(url);
+              setFurnishNotice(`Link copiado: ${url}`);
+            }}
+            title="Copiar link de solo lectura para compartir con clientes"
+          >
+            🔗 Compartir
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             onClick={() => setShowGenerate(true)}
             title="Usar la disposición del plano para generar un diseño con IA"
           >
@@ -299,7 +380,7 @@ export function CanvasWorkspace({
         </div>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <ObjectPalette tool={tool} onPick={setTool} />
+        <CatalogSidebar tool={tool} onPick={setTool} onOpenWizard={handleOpenWizard} />
         <div
           ref={containerRef}
           className="border-line bg-surface flex-1 overflow-hidden rounded-card border"
@@ -317,6 +398,11 @@ export function CanvasWorkspace({
       </div>
       {menu ? (
         <CanvasContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />
+      ) : null}
+      {showPhotos ? (
+        <aside className="absolute right-2 top-12 z-10 w-72 max-w-[calc(100%-1rem)] shadow-lg">
+          <ZonePhotosPanel projectId={projectId} zoneId={activeZoneId} />
+        </aside>
       ) : null}
       {showGenerate ? (
         <GenerateFromCanvasDialog
@@ -339,34 +425,68 @@ export function CanvasWorkspace({
           onClose={() => setShowDetect(false)}
         />
       ) : null}
-      {doc3D ? <Plan3DOverlay doc={doc3D} onClose={() => setDoc3D(null)} /> : null}
+      {showSketch ? (
+        <SketchToPlanDialog
+          projectId={projectId}
+          extractAction={extractSketchAction}
+          onClose={() => setShowSketch(false)}
+        />
+      ) : null}
+      {doc3D ? (
+        <Plan3DOverlay doc={doc3D} projectId={projectId} onClose={() => setDoc3D(null)} />
+      ) : null}
+      {confirmRegenerate ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="regenerate-title"
+        >
+          <div className="border-line bg-surface rounded-card w-80 border p-4 shadow-xl">
+            <h2 id="regenerate-title" className="text-ink mb-1 text-base font-semibold">
+              Regenerar la sala
+            </h2>
+            <p className="text-ink-soft mb-4 text-sm">
+              El asistente reemplazará los muros y la disposición actual de esta zona.
+              ¿Quieres continuar?
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmRegenerate(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setConfirmRegenerate(false);
+                  setShowWizard(true);
+                }}
+              >
+                Regenerar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showWizard ? (
-        <DesignWizard
+        <SmartWizard
           onSkip={() => setShowWizard(false)}
-          onCreate={(doc, roomType, selection) => {
-            // Amuebla la sala con lo SELECCIONADO (procedural, sin IA) y la carga en el editor;
-            // la PERSISTE de inmediato (flush sin debounce): el autosave por debounce podría
-            // cancelarse si el usuario navega o abre el 3D antes de los 800 ms (red-team).
-            const { objects: placed, omitted } = autofurnish(doc, roomType, selection);
-            const furnished: CanvasDoc = {
-              ...doc,
-              objects: [...doc.objects, ...placed],
-            };
-            useCanvasStore.getState().load(furnished);
-            void saveAction(projectId, serializeCanvas(furnished));
+          onComplete={(doc) => {
+            // El doc ya viene amueblado desde el Smart Wizard (paso 3 ejecuta autofurnish).
+            // Persistir de inmediato (flush sin debounce) para evitar pérdida si el usuario
+            // navega o abre la vista 3D antes del debounce de 800 ms.
+            useCanvasStore.getState().load(doc);
+            void saveAction(projectId, serializeCanvas(doc));
             setShowWizard(false);
-            // Si algo no cupo, avisar (no se solapa): lista los muebles omitidos por su etiqueta.
-            if (omitted.length > 0) {
-              const labels = [...new Set(omitted)]
-                .map((k) => CATALOG_BY_KIND[k]?.label ?? k)
-                .join(', ');
-              // Formas no rectangulares: el auto-amueblado se omite por diseño (se amuebla a
-              // mano), no porque no quepa. El doc lo señala con `floorOutline`.
-              const isNonRect = (furnished.floorOutline?.length ?? 0) >= 3;
+            // Salas no rectangulares: el auto-amueblado interno se omite por diseño.
+            if ((doc.floorOutline?.length ?? 0) >= 3) {
               setFurnishNotice(
-                isNonRect
-                  ? `Esta forma se amuebla a mano: añade los muebles desde el catálogo (${labels}).`
-                  : `No cabían en la sala: ${labels}. Agranda la sala o colócalos a mano.`,
+                `Esta forma se amuebla a mano: añade los muebles desde el catálogo.`,
               );
             } else {
               setFurnishNotice(null);

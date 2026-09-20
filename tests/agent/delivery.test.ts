@@ -3,6 +3,8 @@ import {
   runDelivery,
   explanationPrompt,
   memoriaPrompt,
+  renderPrompt,
+  isExteriorZone,
   type DeliveryDeps,
 } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
@@ -97,6 +99,19 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(imageRequests[0]?.referenceImage).toBeUndefined();
   });
 
+  it('sin sketch pero CON foto de la zona, el render usa esa foto como referencia (img2img)', async () => {
+    const { deps, imageRequests } = makeDeps();
+    await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['render3d'] },
+      referenceImage: { base64: 'Rk9P', mimeType: 'image/png' },
+    });
+    const req = imageRequests[0];
+    expect(req?.referenceImage).toEqual({ base64: 'Rk9P', mimeType: 'image/png' });
+    // El prompt pide respetar la estructura de la foto (no inventar otro inmueble).
+    expect(req?.prompt.toLowerCase()).toContain('respeta');
+  });
+
   it('con sketch (lienzo), el render recibe referenceImage y la descripción en el prompt', async () => {
     const { deps, imageRequests } = makeDeps();
     await runDelivery(deps, {
@@ -146,6 +161,46 @@ describe('runDelivery — reserva/confirma/revierte y sello', () => {
     expect(prompt.toLowerCase()).toContain('sin cambiar la disposición');
     // La descripción del plano sigue presente (la disposición manda).
     expect(prompt).toContain('Sofá: junto a la pared del fondo');
+  });
+});
+
+describe('renderPrompt — variante interior/exterior por tipo de zona', () => {
+  // renderPrompt solo lee estilo/objetivo/zoneKind/sketch/referenceImage; `input`
+  // (con `ready`) basta como base, sin tocar la lista de entregables.
+  const base = input;
+
+  it('por defecto (sin zona) describe un INTERIOR', () => {
+    const out = renderPrompt(base);
+    expect(out).toContain('INTERIOR');
+    expect(out).not.toContain('EXTERIOR');
+  });
+
+  it('con una zona exterior (entrada/fachada) describe un EXTERIOR', () => {
+    const out = renderPrompt({ ...base, zoneKind: 'entrada' });
+    expect(out).toContain('EXTERIOR');
+    expect(out).not.toContain('INTERIOR del espacio');
+  });
+
+  it('prohíbe mostrar los identificadores internos del contrato en el render', () => {
+    const out = renderPrompt({ ...base, sketch: {
+      description: 'CONTRATO ESTRUCTURAL INALTERABLE\nR-01 | rampa',
+      referenceImage: { base64: 'QUJD', mimeType: 'image/png' }, aspectRatio: '3:2',
+    } });
+    expect(out).toContain('NUNCA los dibujes');
+  });
+
+  it('interior y exterior producen prompts distintos', () => {
+    const interior = renderPrompt({ ...base, zoneKind: 'interior' });
+    const exterior = renderPrompt({ ...base, zoneKind: 'trasera' });
+    expect(interior).not.toEqual(exterior);
+  });
+
+  it('isExteriorZone tolera tildes y mayúsculas (Aérea → exterior)', () => {
+    expect(isExteriorZone('Aérea')).toBe(true);
+    expect(isExteriorZone('TRASERA')).toBe(true);
+    expect(isExteriorZone('interior')).toBe(false);
+    expect(isExteriorZone(null)).toBe(false);
+    expect(isExteriorZone('salon')).toBe(false);
   });
 });
 
@@ -204,5 +259,18 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
   it('sin sketch no menciona el plano', () => {
     const out = memoriaPrompt({ ...input, collected: { ...ready, entregables: ['memoria'] } });
     expect(out).not.toContain('plano del espacio');
+  });
+});
+
+describe('runDelivery — plano 2D siempre dibujable', () => {
+  it('si el modelo devuelve zonas vacías, el entregable cae al plano base con geometría', async () => {
+    const { deps } = makeDeps();
+    deps.chat.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
+    expect(plano?.payload.type).toBe('plano2d');
+    if (plano?.payload.type !== 'plano2d') return;
+    expect(plano.payload.plano.zones).toHaveLength(1);
+    expect(plano.payload.plano.zones[0]!.outline).toHaveLength(4);
+    expect(plano.payload.plano.zones[0]!.walls).toHaveLength(4);
   });
 });

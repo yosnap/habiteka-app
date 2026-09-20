@@ -9,6 +9,8 @@ export interface ChatTurn {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  /** Imagen adjunta al turno (data URL), p. ej. la foto que el usuario acaba de subir. */
+  imageUrl?: string;
 }
 
 interface Props {
@@ -21,23 +23,50 @@ export function MessageList({ turns, streamingText }: Props) {
   return (
     <div className="flex flex-col gap-3 overflow-y-auto" role="log" aria-live="polite">
       {turns.map((t) => (
-        <Bubble key={t.id} role={t.role} text={t.text} />
+        <Bubble key={t.id} role={t.role} text={t.text} imageUrl={t.imageUrl} />
       ))}
       {streamingText && <Bubble role="assistant" text={streamingText} />}
+      {/* Centinela de auto-scroll: la `key` cambia con cada turno (y con el texto en
+          streaming), forzando su re-montaje; su ref-callback lleva la vista al último
+          mensaje. Evita que el resultado quede fuera de pantalla sin scroll manual.
+          (Sin useEffect: el callback de ref se dispara al montar.) */}
+      <div
+        key={`end-${turns.length}-${streamingText.length}`}
+        ref={(el) => el?.scrollIntoView({ block: 'end' })}
+        aria-hidden
+      />
     </div>
   );
 }
 
-function Bubble({ role, text }: { role: 'user' | 'assistant'; text: string }) {
+function Bubble({
+  role,
+  text,
+  imageUrl,
+}: {
+  role: 'user' | 'assistant';
+  text: string;
+  imageUrl?: string;
+}) {
   const isUser = role === 'user';
   return (
     <div
       className={[
-        'max-w-[80%] rounded-card px-3 py-2 text-sm whitespace-pre-wrap',
+        'flex max-w-[80%] flex-col gap-2 rounded-card px-3 py-2 text-sm whitespace-pre-wrap',
         isUser ? 'bg-brand-500 self-end text-white' : 'bg-surface-muted text-ink self-start',
       ].join(' ')}
     >
-      {text}
+      {/* Vista previa de la imagen subida (la propia que el usuario eligió), para
+          comprobar de un vistazo qué se envió sin abrir el explorador de archivos. */}
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt="Imagen del espacio subida"
+          className="max-h-48 w-auto rounded-md object-contain"
+        />
+      ) : null}
+      {text ? <span>{text}</span> : null}
     </div>
   );
 }

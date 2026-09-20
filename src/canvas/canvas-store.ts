@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import {
   type CanvasDoc,
+  type CanvasNote,
   type BaseImage,
   type StructObj,
   type Stroke,
@@ -68,6 +69,10 @@ interface CanvasState {
    * ventanas/puertas y luces. Entra en historial.
    */
   setFloorOutline(vertices: FloorVertex[]): void;
+  // Notas (B4)
+  addNote(note: CanvasNote): void;
+  updateNote(id: string, patch: Partial<Omit<CanvasNote, 'id'>>): void;
+  removeNote(id: string): void;
   setSelection(selection: CanvasSelection | null): void;
   undo(): void;
   redo(): void;
@@ -120,18 +125,29 @@ export const useCanvasStore = create<CanvasState>((set) => {
       })),
 
     removeObject: (id) =>
-      mutate((d) => ({
-        ...d,
-        objects: d.objects.filter((o) => o.id !== id),
-        selection: clearSelectionOf(d.selection, [id]),
-      })),
+      mutate((d) => {
+        // Cascade: al borrar un muro se borran sus aperturas/elementos de pared vinculados
+        // (parentId). Evita huecos colgando de un muro que ya no existe.
+        const ids = new Set([id]);
+        for (const o of d.objects) if (o.parentId === id) ids.add(o.id);
+        return {
+          ...d,
+          objects: d.objects.filter((o) => !ids.has(o.id)),
+          selection: clearSelectionOf(d.selection, [...ids]),
+        };
+      }),
 
     removeObjects: (ids) =>
-      mutate((d) => ({
-        ...d,
-        objects: d.objects.filter((o) => !ids.includes(o.id)),
-        selection: clearSelectionOf(d.selection, ids),
-      })),
+      mutate((d) => {
+        // Cascade de hijos (parentId) para cada id borrado.
+        const idsSet = new Set(ids);
+        for (const o of d.objects) if (o.parentId && ids.includes(o.parentId)) idsSet.add(o.id);
+        return {
+          ...d,
+          objects: d.objects.filter((o) => !idsSet.has(o.id)),
+          selection: clearSelectionOf(d.selection, [...idsSet]),
+        };
+      }),
 
     duplicateObjects: (ids) => {
       const newIds: string[] = [];
@@ -203,34 +219,32 @@ export const useCanvasStore = create<CanvasState>((set) => {
     rotate90: (ids) =>
       mutate((d) => {
         const sel = d.objects.filter((o) => ids.includes(o.id));
+
         if (sel.length <= 1) {
           return {
             ...d,
-            objects: d.objects.map((o) =>
-              ids.includes(o.id) ? { ...o, rotation: (o.rotation + 90) % 360 } : o,
-            ),
+            objects: d.objects.map((o) => {
+              if (!ids.includes(o.id)) return o;
+              return rotate90InPlace(o);
+            }),
           };
         }
-        const c = bboxCenter(sel);
+
+        // Multiselección: cada objeto rota sobre el centroide visual del grupo.
+        const centers = sel.map(visualCenterOf);
+        const gc = {
+          x: centers.reduce((s, c) => s + c.x, 0) / centers.length,
+          y: centers.reduce((s, c) => s + c.y, 0) / centers.length,
+        };
         return {
           ...d,
           objects: d.objects.map((o) => {
             if (!ids.includes(o.id)) return o;
-            const ocx = o.x + o.width / 2;
-            const ocy = o.y + o.height / 2;
-            // 90° horaria del centro del objeto alrededor del centro común.
-            const rx = c.x - (ocy - c.y);
-            const ry = c.y + (ocx - c.x);
-            const nw = o.height;
-            const nh = o.width;
-            return {
-              ...o,
-              x: rx - nw / 2,
-              y: ry - nh / 2,
-              width: nw,
-              height: nh,
-              rotation: (o.rotation + 90) % 360,
-            };
+            const vc = visualCenterOf(o);
+            // Rotar el centro visual 90° CW alrededor del centroide del grupo.
+            const rx = gc.x - (vc.y - gc.y);
+            const ry = gc.y + (vc.x - gc.x);
+            return tlForVisualCenter(o, rx, ry);
           }),
         };
       }),
@@ -280,8 +294,9 @@ export const useCanvasStore = create<CanvasState>((set) => {
     setFloorOutline: (vertices) =>
       mutate((d) => {
         if (vertices.length < 3) return d;
-        // Grosor de muro en px: se conserva el del contorno actual (el lado corto del primer
-        // muro existente) para no cambiarlo al editar; si no hay muros, el grosor por defecto.
+        // Muros axis-aligned (wizard con meta, grosor hacia fuera) desde el contorno. Así el
+        // 3D cierra esquinas perfectamente (como las plantillas). Las diagonales (triángulos)
+        // requieren muros orientados rotados — plan dedicado, no parche.
         const existingWalls = d.objects.filter((o) => o.kind === 'wall');
         const pxPerMeter = d.scale?.pxPerMeter;
         const defaultT =
@@ -292,11 +307,24 @@ export const useCanvasStore = create<CanvasState>((set) => {
           ? Math.min(...existingWalls.map((w) => Math.min(w.width, w.height)))
           : defaultT;
         const newWalls = outlineToWalls(vertices, t);
-        // Reemplaza SOLO los muros (conserva muebles, ventanas/puertas, luces y su z-order
-        // relativo: los no-muros se mantienen, los muros nuevos van al fondo del array).
         const nonWalls = d.objects.filter((o) => o.kind !== 'wall');
         return { ...d, objects: [...newWalls, ...nonWalls], floorOutline: vertices };
       }),
+
+    addNote: (note) =>
+      mutate((d) => ({ ...d, notes: [...(d.notes ?? []), note] })),
+
+    updateNote: (id, patch) =>
+      mutate((d) => ({
+        ...d,
+        notes: (d.notes ?? []).map((n) => (n.id === id ? { ...n, ...patch } : n)),
+      })),
+
+    removeNote: (id) =>
+      mutate((d) => ({
+        ...d,
+        notes: (d.notes ?? []).filter((n) => n.id !== id),
+      })),
 
     // La selección no participa del historial: cambia sin tocar past/future.
     setSelection: (selection) => set((state) => ({ doc: { ...state.doc, selection } })),
@@ -336,6 +364,44 @@ function clearSelectionOf(
 }
 
 /** Centro del bounding box conjunto de un conjunto de objetos. */
+/** Centro visual de un objeto en coordenadas de canvas.
+ *  La rotación es CW alrededor de (o.x, o.y) — el origen del Group de Konva. */
+function visualCenterOf(o: StructObj): { x: number; y: number } {
+  const rad = (o.rotation * Math.PI) / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+  return {
+    x: o.x + (o.width / 2) * cosR - (o.height / 2) * sinR,
+    y: o.y + (o.width / 2) * sinR + (o.height / 2) * cosR,
+  };
+}
+
+/** Devuelve el objeto con la esquina TL ajustada para que su centro visual
+ *  permanezca en (cx, cy) con la nueva rotación newRot. */
+function tlForVisualCenter(
+  o: StructObj,
+  cx: number,
+  cy: number,
+  newRot?: number,
+): StructObj {
+  const rot = newRot ?? (o.rotation + 90) % 360;
+  const rad = (rot * Math.PI) / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+  return {
+    ...o,
+    x: Math.round(cx - (o.width / 2) * cosR + (o.height / 2) * sinR),
+    y: Math.round(cy - (o.width / 2) * sinR - (o.height / 2) * cosR),
+    rotation: rot,
+  };
+}
+
+/** Rota un objeto 90° CW sobre su propio centro visual (sin desplazarlo). */
+function rotate90InPlace(o: StructObj): StructObj {
+  const vc = visualCenterOf(o);
+  return tlForVisualCenter(o, vc.x, vc.y);
+}
+
 function bboxCenter(objs: StructObj[]) {
   const minX = Math.min(...objs.map((o) => o.x));
   const minY = Math.min(...objs.map((o) => o.y));

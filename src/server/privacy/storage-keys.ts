@@ -29,13 +29,17 @@ export function toStorageKey(ref: string | null | undefined): string | null {
 /** Extrae la clave de storage de un payload de entregable, si lo es de render. */
 export function storageKeyFromDeliverablePayload(payload: unknown): string | null {
   if (
-    payload &&
-    typeof payload === 'object' &&
-    'type' in payload &&
-    (payload as { type: unknown }).type === 'render3d' &&
-    'assetUrl' in payload
+    !payload ||
+    typeof payload !== 'object' ||
+    !('type' in payload) ||
+    (payload as { type: unknown }).type !== 'render3d'
   ) {
-    return toStorageKey((payload as { assetUrl: unknown }).assetUrl as string);
+    return null;
   }
+  // `assetKey` es la clave EXACTA del objeto (la guarda el proveedor); es preferible a
+  // derivarla de la URL, que en path-style (MinIO) incluye el bucket en el pathname.
+  const p = payload as { assetKey?: unknown; assetUrl?: unknown };
+  if (typeof p.assetKey === 'string' && p.assetKey) return p.assetKey;
+  if ('assetUrl' in payload) return toStorageKey(p.assetUrl as string);
   return null;
 }

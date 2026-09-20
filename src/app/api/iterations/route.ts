@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const result = await runFeedback(
       {
-        image: getImageAdapter({ organizationId: ctx.organizationId }),
+        image: await getImageAdapter({ organizationId: ctx.organizationId }),
         debit: createDebitService(ctx.organizationId),
         // La regeneración del subárbol del plano la afina el agente; por ahora
         // se delega a un regenerador mínimo que el orquestador del agente provee.

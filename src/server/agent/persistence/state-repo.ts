@@ -26,12 +26,19 @@ export interface LoadedState {
 
 const EMPTY_COLLECTED: Collected = { entregables: [] };
 
-/** Carga el estado del proyecto, creándolo en `ingesta` si aún no existe. */
-export async function loadState(projectId: string): Promise<LoadedState> {
-  const row = await prisma.agentState.findUnique({ where: { projectId } });
+/**
+ * Carga el estado del asistente de una (proyecto, zona), creándolo en `ingesta` si aún no
+ * existe. `zoneId` null = estado por defecto del proyecto (v1). Se usa `findFirst` porque la
+ * unicidad por (proyecto, zona) la dan índices PARCIALES que Prisma no expone como `findUnique`.
+ */
+export async function loadState(
+  projectId: string,
+  zoneId: string | null = null,
+): Promise<LoadedState> {
+  const row = await prisma.agentState.findFirst({ where: { projectId, zoneId } });
   if (!row) {
     const created = await prisma.agentState.create({
-      data: { projectId, phase: 'ingesta', collected: toJson(EMPTY_COLLECTED) },
+      data: { projectId, zoneId, phase: 'ingesta', collected: toJson(EMPTY_COLLECTED) },
     });
     return { phase: 'ingesta', collected: EMPTY_COLLECTED, version: created.version };
   }
@@ -43,16 +50,17 @@ export async function loadState(projectId: string): Promise<LoadedState> {
 }
 
 /**
- * Guarda fase y `collected` exigiendo la `version` leída. Devuelve la nueva
- * versión; lanza `AgentError('conflict')` si otro turno se adelantó.
+ * Guarda fase y `collected` de una (proyecto, zona) exigiendo la `version` leída. Devuelve la
+ * nueva versión; lanza `AgentError('conflict')` si otro turno se adelantó.
  */
 export async function saveState(
   projectId: string,
+  zoneId: string | null,
   expectedVersion: number,
   next: { phase: AgentPhase; collected: Collected },
 ): Promise<number> {
   const result = await prisma.agentState.updateMany({
-    where: { projectId, version: expectedVersion },
+    where: { projectId, zoneId, version: expectedVersion },
     data: {
       phase: next.phase,
       collected: toJson(next.collected),

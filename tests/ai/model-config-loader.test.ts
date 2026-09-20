@@ -5,7 +5,9 @@ import { MODEL_DEFAULTS } from '@/server/ai/model-defaults';
 import { prisma } from '@/server/db/prisma';
 import type { ModelAction } from '@/generated/prisma/enums';
 
+// Las rutas por acción tienen prioridad sobre las filas antiguas: hay que vaciar ambas para probar los defaults.
 async function clearModelConfig() {
+  await prisma.aiModelRoute.deleteMany();
   await prisma.modelConfig.deleteMany();
   invalidate();
 }

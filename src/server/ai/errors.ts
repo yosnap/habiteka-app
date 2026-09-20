@@ -32,3 +32,9 @@ export class AiError extends Error {
 export function aiError(kind: AiErrorKind, message: string, cause?: unknown): AiError {
   return new AiError(kind, message, cause);
 }
+
+/** No duplicar una generación que el proveedor ya aceptó y sigue pendiente. */
+export function canFailover(error: unknown): boolean {
+  if ((error as { code?: string } | null)?.code === 'kie_task_pending') return false;
+  return error instanceof AiError && ['provider_down', 'gateway_down', 'timeout', 'rate_limit'].includes(error.kind);
+}

@@ -1,0 +1,792 @@
+'use client';
+import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
+import dynamic from 'next/dynamic';
+import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useStore } from 'zustand';
+import {
+  Box,
+  Download,
+  Save,
+  SlidersHorizontal,
+  Sparkles,
+  Square,
+  Type,
+  Undo2,
+  Redo2,
+  X,
+} from 'lucide-react';
+import type { EditorStore, EditorTool } from '@/canvas/editor-v2/store';
+import type { Point, Stair } from '@/lib/editor-document/schema';
+import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
+import {
+  addFurniture,
+  addWallPath,
+  deleteEntities,
+  editDocument,
+  newId,
+  nudgeSpatialEntities,
+  repairLandingProtectionWalls,
+  shapePoints,
+} from '@/canvas/editor-v2/editing-operations';
+import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
+import { Toolbar } from './toolbar';
+import { Inspector } from './inspector';
+import { CatalogPanel } from './catalog-panel';
+import { ConstructionMenu } from './construction-menu';
+import { SelectionPropertiesBar } from './selection-properties-bar';
+import { ElementDetailsPanel } from './element-details-panel';
+import { walkthroughKeyframes } from '@/lib/editor-document/walkthrough-keyframes';
+import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
+import { sameCameraPose, type StoryboardGalleryImage } from '@/lib/contracts/storyboard-image';
+import { setStoryboardImage } from '@/lib/editor-document/walkthrough-storyboard';
+import { WalkthroughPanel } from './walkthrough-panel';
+import { StoryboardPanel } from './storyboard-panel';
+import { VisibilityMenu, type EditorVisibility } from './visibility-menu';
+import { loadEditorPreferences, saveEditorPreferences } from './editor-preferences';
+import { CeilingLightingPanel } from './ceiling-lighting-panel';
+import { FloorFinishPanel } from './floor-finish-panel';
+import { BuildingLevelMenu } from './building-level-menu';
+import { SelectByKindMenu } from './select-by-kind-menu';
+import { FurnitureContextPanel } from './furniture-context-panel';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
+import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
+import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
+import { placeLandingAtStairArrival } from '@/lib/editor-document/stair-landing-placement';
+import { EditorGenerateDialog } from './editor-generate-dialog';
+import { renderDesignOptionsSchema, type RenderDesignOptions, type RenderGeneratedResult } from '@/lib/editor-document/render-design-options';
+import type { Estilo } from '@/lib/contracts';
+import type { DesignSpaceKind } from '@/lib/design-space-kind';
+import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
+import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import styles from './editor.module.css';
+import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
+
+const CanvasView = dynamic(() => import('./canvas-view').then((module) => module.CanvasView), {
+  ssr: false,
+  loading: () => <div className={styles.loading}>Preparando el lienzo…</div>,
+});
+const EditorSceneView = dynamic(
+  () => import('./scene/editor-scene-view').then((module) => module.EditorSceneView),
+  { ssr: false, loading: () => <div className={styles.loading}>Preparando el espacio 3D…</div> },
+);
+export interface EditorShellProps {
+  store: EditorStore;
+  projectName: string;
+  loadStoryboardImages?: () => Promise<StoryboardGalleryImage[]>;
+  saveStatus?: string;
+  onSave?: () => void;
+  saveEnabled?: boolean;
+  onImport?: () => void;
+  onExport?: () => void;
+  onAddStair?: (kind: Stair['kind']) => void;
+  projectId?: string;
+  onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
+  onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
+  onGenerateDesign?: (input: {
+    estilo: Estilo;
+    objetivo: string;
+    promptLibre: string;
+    options: RenderDesignOptions;
+  }) => Promise<NativeDesignProposal>;
+  onGenerateRender?: (input: {
+    estilo: Estilo;
+    objetivo: string;
+    promptLibre: string;
+    capture?: RenderCapture;
+    options?: RenderDesignOptions;
+    batchId?: string;
+    referenceDesignId?: string;
+  }) => Promise<RenderGeneratedResult>;
+  onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
+  generateEnabled?: boolean;
+  generateDisabledReason?: string;
+}
+export function EditorShell({
+  store,
+  projectName,
+  loadStoryboardImages,
+  saveStatus,
+  onSave,
+  saveEnabled = true,
+  onImport,
+  onExport,
+  onAddStair,
+  projectId,
+  onSaveNativeVideo,
+  onSaveNativeRender,
+  onGenerateDesign,
+  onGenerateRender,
+  onEstimateRender,
+  generateEnabled = true,
+  generateDisabledReason,
+}: EditorShellProps) {
+  const past = useStore(store, (s) => s.past.length),
+    future = useStore(store, (s) => s.future.length);
+  const error = useStore(store, (s) => s.error),
+    selection = useStore(store, (s) => s.selection);
+  const designSpaceKind = useStore(store, (s) => s.document.designSpaceKind);
+  const readOnly = useStore(store, (s) => s.readOnly);
+  const tool = useStore(store, (s) => s.tool);
+  const detailPanel = useStore(store, (s) => s.detailPanel);
+  const [catalog, setCatalog] = useState(false);
+  // El panel de propiedades sigue a la selección: se abre al seleccionar y se cierra al deseleccionar.
+  // `toggled` guarda solo la desviación manual (botón Propiedades) y se reinicia al cambiar la selección.
+  const selectionKey = selection.join('|'), hasSelection = selection.length > 0;
+  const [toggled, setToggled] = useState(false), [toggledFor, setToggledFor] = useState(selectionKey);
+  if (toggledFor !== selectionKey) { setToggledFor(selectionKey); setToggled(false); }
+  const inspector = hasSelection !== (toggled && toggledFor === selectionKey);
+  const setInspector = useCallback((open: boolean) => setToggled(open !== store.getState().selection.length > 0), [store]);
+  const [construction, setConstruction] = useState(false);
+  const [walkthroughPanel, setWalkthroughPanel] = useState(false);
+  const walkthroughId = useStore(store, (s) => s.walkthroughId);
+  const hideWalkthrough = () => {
+    store.getState().hideWalkthrough();
+    setWalkthroughPanel(false);
+  };
+  const [ceilingPanel, setCeilingPanel] = useState(false);
+  // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
+  const [preferences, setPreferences] = useState(loadEditorPreferences);
+  const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
+  const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
+  const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
+  const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
+  const [mode, setMode] = useState<'2d' | '3d'>('2d');
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
+  const captureView = useRef<CaptureRenderView | null>(null);
+  const captureDocument = useRef('');
+  const keyframeCamera = useRef<ReturnType<typeof cameraPoseFromView> | null>(null);
+  const keyframeTarget = useRef<{ routeId: string; waypointId: string } | null>(null);
+  const [imageRevision, setImageRevision] = useState(0);
+  const [preparingPoint, setPreparingPoint] = useState(false);
+  const onCaptureReady = useCallback((capture: CaptureRenderView | null) => { captureView.current = capture; }, []);
+  const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
+    if (!captureView.current) throw new Error('Abre la vista 3D para previsualizar el diseño.');
+    return captureView.current({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true,
+      ...(keyframeCamera.current && options.views[0] === 'current' ? { camera: keyframeCamera.current } : {}) });
+  }, []);
+  const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });
+  const designWalkthroughPoint = async (waypointId: string) => {
+    if (preparingPoint) return;
+    setPreparingPoint(true);
+    try {
+      const state = store.getState(), route = state.document.walkthroughs?.find((item) => item.id === state.walkthroughId);
+      if (!route) throw new Error('Selecciona un recorrido.');
+      const frame = walkthroughKeyframes(state.document, route).find((item) => item.waypointId === waypointId);
+      if (!frame) throw new Error('El punto ya no existe.');
+      const snapshot = documentGeometry();
+      state.setWalkthroughPlaying(false); setMode('3d'); setWalkthroughPanel(false);
+      const deadline = Date.now() + 15000;
+      while (!captureView.current && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!captureView.current) throw new Error('No se pudo preparar la escena 3D.');
+      const capture = await captureView.current({ camera: frame.camera });
+      if (snapshot !== documentGeometry()) throw new Error('El plano cambió. Vuelve a elegir el punto.');
+      keyframeCamera.current = frame.camera;
+      keyframeTarget.current = { routeId: route.id, waypointId };
+      captureDocument.current = snapshot; setRenderCapture(capture); setGenerateOpen(true);
+    } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo preparar la vista.'); }
+    finally { setPreparingPoint(false); }
+  };
+  const openGenerate = async () => {
+    keyframeCamera.current = null;
+    keyframeTarget.current = null;
+    try {
+      if (mode === '3d') {
+        if (!captureView.current) throw new Error('Espera a que termine de cargar la vista 3D.');
+        const snapshot = documentGeometry();
+        const capture = await captureView.current();
+        if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la captura. Vuelve a abrir Diseñar con IA.');
+        captureDocument.current = snapshot;
+        setRenderCapture(capture);
+      } else setRenderCapture(undefined);
+      setGenerateOpen(true);
+    } catch (error) {
+      store.getState().setError(error instanceof Error ? error.message : 'No se pudo capturar la vista.');
+    }
+  };
+  const [center, setCenter] = useState<Point>({ x: 3000, y: 2000 });
+  const constructionButton = useRef<HTMLButtonElement>(null),
+    canvasHost = useRef<HTMLDivElement>(null);
+  const onCenter = useCallback((point: Point) => setCenter(point), []);
+  const run = (operation: () => void) => {
+    try {
+      operation();
+    } catch (error) {
+      store
+        .getState()
+        .setError(error instanceof Error ? error.message : 'No se pudo completar la edición.');
+    }
+  };
+  const setSpaceKind = (spaceKind: DesignSpaceKind) => {
+    if (store.getState().readOnly) return;
+    store.getState().apply(setDesignSpaceKind(store.getState().document, spaceKind));
+  };
+  const repairLandingWalls = () =>
+    run(() => {
+      const state = store.getState();
+      state.apply(repairLandingProtectionWalls(state.document));
+      state.setError(null);
+    });
+  const closeConstruction = () => {
+    setConstruction(false);
+    constructionButton.current?.focus();
+  };
+  const chooseTool = (next: EditorTool) => {
+    if (store.getState().readOnly && next !== 'select') return;
+    store.getState().setTool(next);
+    setConstruction(false);
+    setCatalog(false);
+    setInspector(false);
+    if (next !== 'select') setMode('2d');
+    canvasHost.current?.querySelector<HTMLElement>('[aria-label="Lienzo del plano"]')?.focus();
+  };
+  const insertStair = (kind: Stair['kind']) =>
+    run(() => {
+      if (store.getState().readOnly) return;
+      chooseTool('select');
+      if (onAddStair) {
+        onAddStair(kind);
+        return;
+      }
+      const id = newId(),
+        dimensions =
+          kind === 'straight'
+            ? [1000, 3600, 2700]
+            : kind === 'L'
+              ? [2600, 2600, 2700]
+              : [3000, 2160, 3040];
+      const source = store.getState().document;
+      const candidate = upgradeSpatialDocument(
+        addStair(source, {
+          id,
+          kind,
+          catalogId: `builtin:stairs-${kind}`,
+          x: center.x - dimensions[0]! / 2,
+          y: center.y - dimensions[1]! / 2,
+          widthMm: dimensions[0]!,
+          depthMm: dimensions[1]!,
+          heightMm: dimensions[2]!,
+          elevationMm: 0,
+          rotation: 0,
+          stepCount: 16,
+          materialId: 'oak-natural',
+        }),
+      );
+      store.getState().apply(placeNewObject(source, candidate, id));
+      store.getState().select([id]);
+    });
+  const insertRamp = () =>
+    run(() => {
+      if (store.getState().readOnly) return;
+      chooseTool('select');
+      const id = newId(),
+        source = store.getState().document;
+      const candidate = addRamp(source, {
+        id,
+        catalogId: 'builtin:ramp-straight',
+        x: center.x - 600,
+        y: center.y - 7500,
+        widthMm: 1200,
+        depthMm: 15000,
+        riseMm: 1200,
+        elevationMm: 0,
+        rotation: 0,
+        materialId: 'concrete-grey',
+      });
+      store.getState().apply(placeNewObject(source, candidate, id));
+      store.getState().select([id]);
+    });
+  const insertLanding = () =>
+    run(() => {
+      if (store.getState().readOnly) return;
+      const prior = store.getState(),
+        selectedRampId = prior.selection[0];
+      chooseTool('select');
+      const id = newId(),
+        state = store.getState(),
+        source = state.document;
+      const landing = {
+        id,
+        catalogId: RAMP_LANDING_CATALOG_ID,
+        x: center.x - 600,
+        y: center.y - 600,
+        widthMm: 1200,
+        depthMm: 1200,
+        riseMm: 0,
+        elevationMm: 0,
+        rotation: 0,
+        materialId: 'concrete-grey',
+      };
+      const ramp = source.ramps?.find(
+        (item) => item.id === selectedRampId && item.catalogId !== RAMP_LANDING_CATALOG_ID,
+      );
+      const stair = source.stairs?.find((item) => item.id === selectedRampId);
+      const attached = ramp
+        ? placeLandingAtRampArrival(landing, ramp)
+        : stair
+          ? placeLandingAtStairArrival(landing, stair)
+          : landing;
+      const candidate = addRamp(source, attached);
+      state.apply(ramp || stair ? candidate : placeNewObject(source, candidate, id));
+      state.select([id]);
+    });
+  const insertColumn = () =>
+    run(() => {
+      if (store.getState().readOnly) return;
+      chooseTool('select');
+      const id = newId(),
+        source = store.getState().document;
+      const candidate = addColumn(source, {
+        id,
+        catalogId: 'builtin:column-rectangular',
+        x: center.x - 200,
+        y: center.y - 200,
+        widthMm: 400,
+        depthMm: 400,
+        heightMm: 2700,
+        elevationMm: 0,
+        rotation: 0,
+        materialId: 'concrete-grey',
+        color: '#a6a6a0',
+      });
+      store.getState().apply(candidate);
+      store.getState().select([id]);
+    });
+  const toolLabel = {
+    'valla-madera': 'Dibujar valla · clics por tramos · Esc para salir',
+    'cerca-metal': 'Dibujar cerca · clics por tramos · Esc para salir',
+    seto: 'Dibujar seto · clics por tramos · Esc para salir',
+    walkthrough: 'Añadir puntos al recorrido',
+    patio: 'Dibujar patio / terraza · clics para cerrar el contorno',
+    kitchen: 'Dibujar mueble de cocina · clics por tramos pegados al muro · Esc para salir',
+    select: 'Seleccionar',
+    wall: 'Dibujar pared · clics por tramos · Esc para salir',
+    'guard-wall': 'Dibujar murete · clics por tramos · Esc para salir',
+    rectangle: 'Dibujar habitación',
+    door: 'Colocar puerta',
+    window: 'Colocar ventana',
+    passage: 'Colocar hueco',
+    measure: 'Medir distancia',
+    'split-wall': 'Añadir esquina',
+    'place-object': 'Colocar copia',
+  } satisfies Record<EditorTool, string>;
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        !shortcutsEnabled ||
+        (target instanceof HTMLElement &&
+          (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable))
+      )
+        return;
+      const state = store.getState(),
+        command = event.metaKey || event.ctrlKey;
+      // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
+      if (event.key === 'Escape') {
+        if (state.selection.length) state.select([]);
+        setCatalog(false); setConstruction(false); setInspector(false);
+        return;
+      }
+      if (!command && !event.altKey) {
+        const shortcut = plainShortcutFor(event.key);
+        const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
+          select: 'select', wall: 'wall', rectangle: 'rectangle', door: 'door', window: 'window', passage: 'passage', measure: 'measure',
+        };
+        const closePanels = () => { setConstruction(false); setCatalog(false); setInspector(false); };
+        if (shortcut === 'furnish') { event.preventDefault(); if (readOnly) return; setCatalog(true); setConstruction(false); setInspector(false); state.setTool('select'); return; }
+        if (shortcut === 'construct') { event.preventDefault(); setConstruction((open) => !open); setCatalog(false); setInspector(false); state.setTool('select'); return; }
+        if (shortcut === 'snap') { event.preventDefault(); state.setSnap(!state.snap); return; }
+        if (shortcut === 'pan') { event.preventDefault(); state.setPan(!state.pan); return; }
+        if (shortcut === 'fit') { event.preventDefault(); state.requestView('fit'); return; }
+        if (shortcut === 'zoomIn') { event.preventDefault(); state.requestView('zoom-in'); return; }
+        if (shortcut === 'zoomOut') { event.preventDefault(); state.requestView('zoom-out'); return; }
+        const nextTool = shortcut ? toolByShortcut[shortcut] : undefined;
+        if (nextTool) {
+          event.preventDefault();
+          if (readOnly && nextTool !== 'select') return;
+          state.setTool(nextTool); closePanels();
+          if (nextTool !== 'select') setMode('2d');
+          return;
+        }
+      }
+      if (command && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) state.redo();
+        else state.undo();
+        return;
+      }
+      if (command && event.key.toLowerCase() === 'c' && state.selection.length === 1) {
+        event.preventDefault();
+        state.copySpatial(state.selection[0]!);
+        return;
+      }
+      if (command && event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+        state.beginPasteSpatial();
+        return;
+      }
+      if (command && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        state.select(selectableEntityIds(state.document));
+        return;
+      }
+      const delta =
+        event.key === 'ArrowLeft'
+          ? { x: -1, y: 0 }
+          : event.key === 'ArrowRight'
+            ? { x: 1, y: 0 }
+            : event.key === 'ArrowUp'
+              ? { x: 0, y: -1 }
+              : event.key === 'ArrowDown'
+                ? { x: 0, y: 1 }
+                : null;
+      if (delta && state.selection.length) {
+        event.preventDefault();
+        const stepMm = event.shiftKey ? 100 : 10;
+        try {
+          state.apply(
+            nudgeSpatialEntities(state.document, state.selection, {
+              x: delta.x * stepMm,
+              y: delta.y * stepMm,
+            }),
+          );
+        } catch (error) {
+          state.setError(error instanceof Error ? error.message : 'No se pudo mover la selección.');
+        }
+        return;
+      }
+      if ((event.key !== 'Delete' && event.key !== 'Backspace') || !state.selection.length) return;
+      event.preventDefault();
+      try {
+        state.apply(deleteEntities(state.document, state.selection));
+        state.select([]);
+      } catch (error) {
+        state.setError(
+          error instanceof Error ? error.message : 'No se pudo eliminar la selección.',
+        );
+      }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, [readOnly, shortcutsEnabled, store, setInspector]);
+  return (
+    <section className={styles.shell} onPointerDownCapture={(event) => {
+      if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
+    }} aria-label={`Editor de ${projectName}`}>
+      <header className={styles.header}>
+        <div className={styles.identity}>
+          <strong>{projectName}</strong>
+          <span role="status">{saveStatus ?? 'Guardado no conectado'}</span>
+        </div>
+        <div className={styles.actions}>
+          <BuildingLevelMenu store={store} />
+          <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
+          <SelectByKindMenu store={store} />
+          <button type="button" aria-pressed={walkthroughPanel || !!walkthroughId} onClick={() => { if (walkthroughPanel || walkthroughId) hideWalkthrough(); else { setWalkthroughPanel(true); setCeilingPanel(false); } }}>{walkthroughPanel || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
+          <FurnitureContextPanel store={store} />
+          <button type="button" aria-pressed={ceilingPanel || selectedLuminaire} onClick={() => { setCeilingPanel(!(ceilingPanel || selectedLuminaire)); if (selectedLuminaire) store.getState().select([]); }}>Techo y luces</button>
+          <button
+            type="button"
+            disabled={readOnly || !past}
+            onClick={() => store.getState().undo()}
+            aria-label="Deshacer"
+            title="Deshacer (⌘Z)"
+          >
+            <Undo2 size={20} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            disabled={readOnly || !future}
+            onClick={() => store.getState().redo()}
+            aria-label="Rehacer"
+            title="Rehacer (⇧⌘Z)"
+          >
+            <Redo2 size={20} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            disabled={
+              readOnly || !projectId || !onGenerateDesign || !onGenerateRender || !generateEnabled
+            }
+            onClick={() => void openGenerate()}
+            title={
+              generateDisabledReason ??
+              (!onGenerateDesign
+                ? 'Generación IA no disponible en este documento'
+                : 'Generar diseño profesional desde este plano')
+            }
+          >
+            <Sparkles size={18} aria-hidden="true" />
+            <span>Diseñar con IA</span>
+          </button>
+          <button
+            type="button"
+            onClick={onExport}
+            disabled={!onExport}
+            title={!onExport ? 'Exportación no disponible' : undefined}
+          >
+            <Download size={18} aria-hidden="true" />
+            <span>Exportar</span>
+          </button>
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={onSave}
+            disabled={readOnly || !onSave || !saveEnabled}
+            title={!saveEnabled ? 'No hay cambios pendientes de guardar' : undefined}
+          >
+            <Save size={18} aria-hidden="true" />
+            <span>Guardar</span>
+          </button>
+        </div>
+      </header>
+      <div className={styles.secondary}>
+        <div className={styles.viewSwitch} role="group" aria-label="Vista del espacio">
+          <button type="button" aria-pressed={mode === '2d'} onClick={() => setMode('2d')}>
+            <Square size={16} aria-hidden="true" />
+            2D
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === '3d'}
+            onClick={() => {
+              const state = store.getState(),
+                selectedIds = state.selection;
+              state.setTool('select');
+              state.select(selectedIds);
+              setConstruction(false);
+              setCatalog(false);
+              setMode('3d');
+            }}
+          >
+            <Box size={16} aria-hidden="true" />
+            3D
+          </button>
+        </div>
+        <span className={styles.currentTool} role="status">
+          {readOnly ? 'Solo lectura' : toolLabel[tool]}
+        </span>
+        {tool !== 'select' && (
+          <button type="button" onClick={() => chooseTool('select')}>
+            <X size={16} aria-hidden="true" />
+            Finalizar
+          </button>
+        )}
+        <button
+          type="button"
+          disabled={readOnly}
+          onClick={() =>
+            run(() => {
+              const id = newId();
+              store
+                .getState()
+                .apply(
+                  editDocument(store.getState().document, (next) =>
+                    next.labels.push({ id, ...center, text: 'Texto' }),
+                  ),
+                );
+              store.getState().setTool('select');
+              store.getState().select([id]);
+              setInspector(true);
+              setCatalog(false);
+              setConstruction(false);
+            })
+          }
+        >
+          <Type size={18} aria-hidden="true" />
+          Texto
+        </button>
+        <button
+          type="button"
+          aria-expanded={inspector}
+          onClick={() => {
+            setInspector(!inspector);
+            setCatalog(false);
+            setConstruction(false);
+          }}
+        >
+          <SlidersHorizontal size={18} aria-hidden="true" />
+          Propiedades{selection.length ? ` (${selection.length})` : ''}
+        </button>
+      </div>
+      {preparingPoint && <p role="status">Preparando la vista del recorrido…</p>}
+      {walkthroughPanel && <WalkthroughPanel store={store} onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} onClose={hideWalkthrough} onDraw={() => { setMode('2d'); store.getState().setTool('walkthrough'); }} onPreview={() => { setMode('3d'); store.getState().setTool('select'); setWalkthroughPanel(false); }} />}
+      {error && (
+        <div className={styles.error} role="alert">
+          <span>{error}</span>
+          {(error === 'Intersección de muros sin vértice compartido' ||
+            error ===
+              'El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.') && (
+            <button onClick={repairLandingWalls}>Reparar muretes del descansillo</button>
+          )}
+          <button onClick={() => store.getState().setError(null)}>Cerrar aviso</button>
+        </div>
+      )}
+      <div className={styles.workspace}>
+        <Toolbar
+          store={store}
+          constructionOpen={construction}
+          catalogOpen={catalog}
+          constructionButtonRef={constructionButton}
+          onConstruction={() => {
+            if (!construction) store.getState().setTool('select');
+            setConstruction(!construction);
+            setCatalog(false);
+            setInspector(false);
+          }}
+          onCatalog={() => {
+            if (!catalog) store.getState().setTool('select');
+            setCatalog(!catalog);
+            setConstruction(false);
+            setInspector(false);
+          }}
+          onSelectTool={() => chooseTool('select')}
+        />
+        <div
+          className={styles.canvasHost}
+          hidden={mode !== '2d'}
+          ref={canvasHost}
+          onPointerDownCapture={() => {
+            if (construction) setConstruction(false);
+          }}
+        >
+          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} />
+        </div>
+        {mode === '3d' && (
+          <div
+            className={styles.sceneHost}
+            onPointerDownCapture={() => {
+              if (construction) setConstruction(false);
+            }}
+          >
+            <EditorSceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} />
+          </div>
+        )}
+        {construction && (
+          <ConstructionMenu
+            readOnly={readOnly}
+            onClose={closeConstruction}
+            onImport={onImport}
+            onTool={chooseTool}
+            onShape={(shape) =>
+              run(() => {
+                if (store.getState().readOnly) return;
+                store
+                  .getState()
+                  .apply(addWallPath(store.getState().document, shapePoints(shape, center), true));
+                chooseTool('select');
+              })
+            }
+            onAddStair={insertStair}
+            onAddRamp={insertRamp}
+            onAddLanding={insertLanding}
+            onAddColumn={insertColumn}
+            onAddOutdoor={(item) => run(() => {
+              if (store.getState().readOnly) return;
+              if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
+              // El elemento nuevo sigue al ratón y se coloca con un clic, igual que al pegar.
+              const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
+              setMode('2d'); store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
+            })}
+          />
+        )}
+        <div
+          className={styles.sidebar}
+          data-open={inspector || catalog}
+          style={catalog ? { width: 336 } : undefined}
+        >
+          {catalog ? (
+            <CatalogPanel
+              readOnly={readOnly}
+              onClose={() => setCatalog(false)}
+              onAdd={(item) =>
+                run(() => {
+                  if (store.getState().readOnly) return;
+                  // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
+                  const source = store.getState().document,
+                    next = upgradeSpatialDocument(addFurniture(source, item, center));
+                  setMode('2d');
+                  store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
+                })
+              }
+            />
+          ) : (
+            <Inspector store={store} onClose={() => setInspector(false)} />
+          )}
+        </div>
+      </div>
+      <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
+        onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
+      <SelectionPropertiesBar
+        store={store}
+        onProperties={() => {
+          setInspector(true);
+          setCatalog(false);
+          setConstruction(false);
+        }}
+      />
+      <ElementDetailsPanel key={`${selection[0]}:${detailPanel}`} store={store} />
+      {!ceilingPanel && !selectedLuminaire && <FloorFinishPanel store={store} />}
+      {(ceilingPanel || selectedLuminaire) && <CeilingLightingPanel store={store} onClose={() => { setCeilingPanel(false); if (selectedLuminaire) store.getState().select([]); }} />}
+      {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
+        <EditorGenerateDialog
+          document={store.getState().document}
+          onGenerate={onGenerateDesign}
+          capture={renderCapture}
+          onPreview={mode === '3d' ? previewRender : undefined}
+          onEstimate={onEstimateRender}
+          onPrepare={async (rawOptions) => {
+            const options = renderDesignOptionsSchema.parse(rawOptions);
+            if (mode !== '3d' || !captureView.current) throw new Error('Cierra este diálogo y cambia a 3D para preparar las vistas.');
+            const snapshot = documentGeometry();
+            const capture = captureView.current;
+            const captures: RenderCapture[] = [];
+            for (const view of options.views) {
+              captures.push(await capture({ view, lighting: options.lighting, fit: true,
+                ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) }));
+              if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
+            }
+            captureDocument.current = snapshot;
+            return captures;
+          }}
+          onRender={async (input) => {
+            if ((input.capture || renderCapture) && captureDocument.current !== documentGeometry()) throw new Error('El plano cambió desde la captura. Cierra este diálogo y vuelve a capturar la vista.');
+            const target = keyframeTarget.current, expectedCamera = keyframeCamera.current;
+            const capture = input.capture ?? renderCapture;
+            const snapshot = documentGeometry();
+            const result = await onGenerateRender({ ...input, capture });
+            setImageRevision((value) => value + 1);
+            if (result.id && target && capture && expectedCamera && sameCameraPose(cameraPoseFromView(capture.view), expectedCamera)) {
+              const state = store.getState();
+              if (state.readOnly || snapshot !== documentGeometry()) {
+                state.setError('La imagen se guardó en Diseños. El plano cambió durante la generación; elígela de la galería para asociarla.');
+              } else {
+                try {
+                  state.apply(setStoryboardImage(state.document, target.routeId, { waypointId: target.waypointId, deliverableId: result.id, camera: expectedCamera }));
+                  captureDocument.current = documentGeometry();
+                } catch {
+                  state.setError('La imagen se guardó en Diseños, pero no pudo asociarse a la vista.');
+                }
+              }
+            }
+            return result;
+          }}
+          onApply={(proposal, selection) => {
+            const state = store.getState();
+            const next = applyNativeDesignProposal(state.document, proposal, selection);
+            if (JSON.stringify({ ...next, revision: 0 }) === JSON.stringify({ ...state.document, revision: 0 })) {
+              throw new Error('La selección no contiene cambios nuevos. Elige otros acabados o muebles.');
+            }
+            // El diálogo debe recibir el error: no cerrarlo si la validación rechaza la propuesta.
+            state.apply(next);
+          }}
+          spaceKind={designSpaceKind}
+          onSpaceKindChange={setSpaceKind}
+          onClose={() => setGenerateOpen(false)}
+        />
+      )}
+    </section>
+  );
+}

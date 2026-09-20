@@ -22,6 +22,7 @@ enum AccountType {
 enum DeliverableType {
   PLANO_2D
   RENDER_3D
+  VIDEO
   MEMORIA
 }
 
@@ -62,6 +63,7 @@ enum ModelAction {
 
 // Unidad de consumo telemetrado (UsageEvent).
 enum UsageUnit {
+  second
   token
   image
 }

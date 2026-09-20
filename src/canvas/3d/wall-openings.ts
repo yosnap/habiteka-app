@@ -75,6 +75,28 @@ export function wallAxis(wall: Pick<StructObj, 'width' | 'height' | 'rotation'>)
 }
 
 /**
+ * Extremos del muro en espacio mundo XZ (metros, centrado en `planCenter`).
+ * p1 corresponde a u=0 en el eje del muro, p2 a u=L.
+ */
+export function wallEndpointsXZ(
+  wall: Pick<StructObj, 'x' | 'y' | 'width' | 'height' | 'rotation'>,
+  planCenter: readonly [number, number],
+  pxPerMeter: number,
+): { p1: [number, number]; p2: [number, number] } {
+  const axis = wallAxis(wall);
+  const [wcx, wcz] = planPointToXZ(
+    wall as StructObj,
+    planCenter,
+    pxPerMeter,
+  );
+  const halfM = pxToMeters(axis.L / 2, { pxPerMeter });
+  return {
+    p1: [wcx - axis.u[0] * halfM, wcz - axis.u[1] * halfM],
+    p2: [wcx + axis.u[0] * halfM, wcz + axis.u[1] * halfM],
+  };
+}
+
+/**
  * Distancia perpendicular (px) del centro de un hueco al eje longitudinal (recta) del muro.
  * Se mide respecto a la recta que pasa por el centro del muro con dirección `u`.
  */
@@ -147,6 +169,10 @@ interface LocalOpening {
   span: [number, number];
   /** Altura propia del hueco (m), si la trae (puerta con heightM). */
   heightM?: number;
+  /** Altura del alféizar desde el suelo (m). Por defecto SILL_M. Ignorado en puertas. */
+  sillM?: number;
+  /** Tipo de vidrio (meta.glassType del StructObj original). */
+  glassType?: 'simple' | 'doble' | 'oscurecido';
 }
 
 /**
@@ -167,6 +193,8 @@ export function splitWallWithOpenings(
   ceilingHeightM: number,
   planCenter: readonly [number, number],
   pxPerMeter: number,
+  extendP1Px = 0,
+  extendP2Px = 0,
 ): { boxes: WallBox[]; panes: GlassPane[]; frames: OpeningFrame[] } {
   const axis = wallAxis(wall);
   const H = effectiveHeightM(wall, ceilingHeightM);
@@ -214,6 +242,8 @@ export function splitWallWithOpenings(
       kind: (o.kind === 'door' ? 'door' : 'window') as 'window' | 'door',
       span: openingSpanLocal(o, wall, axis),
       heightM: o.heightM,
+      sillM: o.elevationM, // undefined → cae a SILL_M por defecto
+      glassType: (o.meta as { glassType?: 'simple' | 'doble' | 'oscurecido' } | undefined)?.glassType,
     }))
     .filter((o) => o.span[1] > o.span[0])
     .sort((a, b) => a.span[0] - b.span[0]);
@@ -236,13 +266,13 @@ export function splitWallWithOpenings(
     });
   };
 
-  // Sin huecos: una sola caja igual que antes (segmento completo 0..L).
+  // Sin huecos: una sola caja extendida en los extremos de junta.
   if (locals.length === 0) {
-    pushFullSegment(0, axis.L, 'full');
+    pushFullSegment(-extendP1Px, axis.L + extendP2Px, 'full');
     return { boxes, panes, frames };
   }
 
-  let cursor = 0;
+  let cursor = -extendP1Px;
   locals.forEach((op, i) => {
     const [u0, u1] = op.span;
     // Tramo macizo a la izquierda del hueco (si lo hay).
@@ -251,7 +281,7 @@ export function splitWallWithOpenings(
     // Span vertical del vano (m): ventana [SILL, H−GAP]; puerta [0, heightM ?? H−GAP].
     const lintelBottom = Math.max(0, H - LINTEL_GAP_M);
     const vTop = op.kind === 'door' ? Math.min(op.heightM ?? lintelBottom, H) : lintelBottom;
-    const vBottom = op.kind === 'door' ? 0 : Math.min(SILL_M, vTop);
+    const vBottom = op.kind === 'door' ? 0 : Math.min(op.sillM ?? SILL_M, vTop);
 
     const widthM = pxToMeters(u1 - u0, { pxPerMeter });
     const [cx, cz] = worldCenterXZ((u0 + u1) / 2);
@@ -294,6 +324,7 @@ export function splitWallWithOpenings(
         center: [cx, (vBottom + vTop) / 2, cz],
         size: [widthM, vTop - vBottom, tM * 0.4],
         rotationY,
+        ...(op.glassType ? { glassType: op.glassType } : {}),
       });
     } else if (op.kind === 'door' && vTop - vBottom > 1e-6) {
       // PUERTA = hoja de madera que rellena el vano (algo más fina que el muro).
@@ -309,8 +340,8 @@ export function splitWallWithOpenings(
     cursor = Math.max(cursor, u1);
   });
 
-  // Tramo macizo final a la derecha del último hueco.
-  if (cursor < axis.L) pushFullSegment(cursor, axis.L, 'segEnd');
+  // Tramo macizo final a la derecha del último hueco (con extensión de junta en p2).
+  if (cursor < axis.L + extendP2Px) pushFullSegment(cursor, axis.L + extendP2Px, 'segEnd');
 
   return { boxes, panes, frames };
 }

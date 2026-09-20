@@ -7,13 +7,37 @@
  */
 import type { Plano2dPayload } from './plano2d-payload';
 import type { DesignElement } from './design-element';
+import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 
 export type DeliverableType = 'plano2d' | 'render3d' | 'memoria';
 
 /** Payload tipado según el tipo de entregable (unión discriminada). */
 export type DeliverablePayload =
   | { type: 'plano2d'; plano: Plano2dPayload }
-  | { type: 'render3d'; assetUrl: string }
+  | {
+      type: 'render3d';
+      /**
+       * URL del render. Si es PRESIGNADA (storage propio) caduca; por eso se guarda
+       * también `assetKey` y se RE-FIRMA al servir. `assetUrl` queda como respaldo
+       * (proveedores que devuelven URL pública/remota, o filas antiguas sin key).
+       */
+      assetUrl: string;
+      /**
+       * Clave estable en el object storage para re-firmar una URL fresca al mostrar.
+       * Ausente si el render no vive en nuestro storage (URL remota/data URL) o en
+       * entregables creados antes de guardar la key.
+       */
+      assetKey?: string;
+      camera?: import('./walkthrough-keyframe').CameraPose;
+      generation?: {
+        provider?: string; model?: string; fallbackIndex?: number;
+        promptVersion: string; documentRevision: number;
+        view?: import('@/lib/editor-document/render-view').RenderView;
+        options?: RenderDesignOptions;
+        batchId?: string;
+        referenceDesignId?: string;
+      };
+    }
   | { type: 'memoria'; markdown: string };
 
 export interface Deliverable {

@@ -15,6 +15,15 @@ function mockFetchOk(imageUrl: string) {
 afterEach(() => vi.restoreAllMocks());
 
 describe('NanoBananaImageProvider (OpenRouter, sin red real)', () => {
+  it('conserva la proporción pedida por el plano', async () => {
+    vi.stubGlobal('fetch', mockFetchOk(PNG_DATA_URL));
+    await new NanoBananaImageProvider('test-key').generate({
+      prompt: 'plano',
+      aspectRatio: '16:9',
+    });
+    const init = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(JSON.parse(String(init?.body)).image_config).toEqual({ aspect_ratio: '16:9' });
+  });
   it('generate extrae la imagen de la respuesta y, sin storage, devuelve el data URL', async () => {
     vi.stubGlobal('fetch', mockFetchOk(PNG_DATA_URL));
     const provider = new NanoBananaImageProvider('test-key');
@@ -37,6 +46,7 @@ describe('NanoBananaImageProvider (OpenRouter, sin red real)', () => {
     const storage = {
       put,
       delete: vi.fn(),
+      get: vi.fn(),
       getPresignedUploadUrl: vi.fn(),
       getPresignedDownloadUrl: vi.fn().mockResolvedValue('https://cdn.test/render.png'),
     };
@@ -46,6 +56,10 @@ describe('NanoBananaImageProvider (OpenRouter, sin red real)', () => {
 
     expect(put).toHaveBeenCalledOnce();
     expect(result.assetUrl).toBe('https://cdn.test/render.png');
+    // Devuelve la clave estable del objeto (para re-firmar la URL al servir).
+    expect(result.assetKey).toMatch(/^renders\/nano-banana\/.+\.png$/);
+    // La key coincide con la usada al subir (no es derivada de la URL presignada).
+    expect(result.assetKey).toBe(put.mock.calls[0]?.[0]?.key);
   });
 
   it('si la respuesta no trae imagen, falla con provider_down', async () => {
@@ -53,6 +67,26 @@ describe('NanoBananaImageProvider (OpenRouter, sin red real)', () => {
       'fetch',
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: {} }] }) }),
     );
+    const provider = new NanoBananaImageProvider('test-key');
+    await expect(provider.generate({ prompt: 'x' })).rejects.toMatchObject({
+      kind: 'provider_down',
+    });
+  });
+
+  it('si el proveedor agota el tiempo (timeout), falla con un error claro y reintetable', async () => {
+    // fetch rechaza como lo hace AbortSignal.timeout: un error name 'TimeoutError'.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'TimeoutError' })),
+    );
+    const provider = new NanoBananaImageProvider('test-key');
+    const err = await provider.generate({ prompt: 'x' }).catch((e) => e);
+    expect(err).toMatchObject({ kind: 'provider_down' });
+    expect(String(err.message).toLowerCase()).toContain('tardó');
+  });
+
+  it('si la red falla (no timeout), también da provider_down sin colgarse', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNRESET')));
     const provider = new NanoBananaImageProvider('test-key');
     await expect(provider.generate({ prompt: 'x' })).rejects.toMatchObject({
       kind: 'provider_down',

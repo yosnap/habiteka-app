@@ -16,9 +16,12 @@ import { useCanvasStore } from './canvas-store';
 import { isValidScale, metersToPx } from './scale';
 import type { CanvasScale } from './types';
 import { segmentToWall, snapAngle, applyExactLength, type Point } from './draw-wall';
+import { nearestWallEndpoint } from './wall-endpoints';
 import { useValueChangeEffect } from '@/lib/use-value-change-effect';
 
-let wallSeq = 0;
+// Imán a extremos de muros existentes (px de mundo): cerrar una esquina debe
+// ser aterrizar EXACTO en el vértice del vecino, no acertar a pulso.
+const ENDPOINT_SNAP_PX = 14;
 
 /** Muro en curso para previsualizar (puntos en coordenadas de mundo). */
 export interface DrawWallPreview {
@@ -38,14 +41,22 @@ function currentScale(): CanvasScale | null {
   return isValidScale(s) ? s! : null;
 }
 
+/** Imán a extremos de muros existentes; devuelve el punto tal cual si no hay vecino. */
+function magnetToEndpoints(p: Point): Point {
+  const near = nearestWallEndpoint(p, useCanvasStore.getState().doc.objects, ENDPOINT_SNAP_PX);
+  return near ?? p;
+}
+
 /**
- * Punto final ajustado con snap de ángulo (0/45/90…): mantiene los muros rectos sin
- * esfuerzo. El snap a rejilla NO se aplica aquí a propósito (vive en `grid-layer`, capa de
- * UI; meterlo cuantizaría longitudes y chocaría con la medida exacta tecleada — red-team #8).
- * El usuario puede alinear a rejilla moviendo el muro luego (snap on-drag ya existente).
+ * Punto final ajustado: primero el IMÁN a extremos de muros existentes (cerrar la
+ * esquina manda sobre todo lo demás) y, sin vecino cerca, snap de ángulo
+ * (0/45/90…) para mantener los muros rectos sin esfuerzo. El snap a rejilla NO
+ * se aplica aquí a propósito (vive en `grid-layer`, capa de UI; meterlo
+ * cuantizaría longitudes y chocaría con la medida exacta tecleada — red-team #8).
  */
 function resolveEnd(start: Point, raw: Point): Point {
-  return snapAngle(start, raw);
+  const near = nearestWallEndpoint(raw, useCanvasStore.getState().doc.objects, ENDPOINT_SNAP_PX);
+  return near ?? snapAngle(start, raw);
 }
 
 export function useDrawWall({ enabled, worldPointer }: UseDrawWallOptions) {
@@ -63,8 +74,7 @@ export function useDrawWall({ enabled, worldPointer }: UseDrawWallOptions) {
   const commit = useCallback(
     (end: Point) => {
       if (!start.current) return;
-      wallSeq += 1;
-      const wall = segmentToWall(`wall-${wallSeq}`, start.current, end, currentScale());
+      const wall = segmentToWall(`wall-${crypto.randomUUID()}`, start.current, end, currentScale());
       if (wall) addObject(wall);
       start.current = { x: end.x, y: end.y };
       setPreview({ start: end, end });
@@ -77,8 +87,10 @@ export function useDrawWall({ enabled, worldPointer }: UseDrawWallOptions) {
     const pos = worldPointer();
     if (!pos) return;
     if (!start.current) {
-      start.current = { x: pos.x, y: pos.y };
-      setPreview({ start: pos, end: pos });
+      // El inicio también imanta: empezar un muro DESDE la esquina de otro.
+      const anchored = magnetToEndpoints(pos);
+      start.current = { x: anchored.x, y: anchored.y };
+      setPreview({ start: anchored, end: anchored });
       return;
     }
     commit(resolveEnd(start.current, pos));

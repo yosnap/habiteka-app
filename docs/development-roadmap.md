@@ -4,9 +4,11 @@
 
 ## Estado General
 
-**Fase actual:** Planificación completada (2026-06-16). MVP especificado, stack cerrado, plan validado por arquitectura + predict + consistencia + TDD + red team. Implementación pendiente.
-
-**Progreso:** 0% (bootstrap completado).
+**Estado actualizado (2026-09-08):** aplicación implementada, en estabilización del pivote planos 2D.
+El plan de junio que sigue es histórico y sus estados no representan el avance actual.
+Prioridad vigente: plano fiel y editable → amueblar → cenital condicionada; 3D congelado.
+Consulta el [plan activo](../plans/260711-1018-planos-ia-boceto-y-render/plan.md) y el
+[informe de validación](../plans/reports/260908-estudio-validacion.md).
 
 ## Fases por Hito
 

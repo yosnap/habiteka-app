@@ -12,14 +12,17 @@ model Project {
   // Soft-delete: marca de borrado lógico (papelera/retención). El borrado RGPD
   // (art. 17) y la purga por TTL hacen hard-delete real; esto NO los sustituye.
   deletedAt      DateTime?
+  // Último trabajo del estudio; las imágenes usan claves estables del storage.
+  studioState    Json?
 
   conversations Conversation[]
   canvasStates  CanvasState[]
-  agentState    AgentState?
+  agentStates   AgentState[]
   deliverables  Deliverable[]
   votingRooms   VotingRoom[]
   sourceImages  SourceImage[]
   zones         ProjectZone[]
+  editorDocuments EditorDocumentState[]
 
   @@index([organizationId])
   @@index([deletedAt])
@@ -48,6 +51,8 @@ model ProjectZone {
   canvasStates CanvasState[]
   sourceImages SourceImage[]
   deliverables Deliverable[]
+  agentStates  AgentState[]
+  editorDocuments EditorDocumentState[]
 
   @@index([organizationId])
   @@index([projectId])
@@ -102,16 +107,26 @@ model CanvasState {
 
 // Estado persistido de la máquina de 5 fases. `version` habilita lock optimista
 // para que el orquestador no pise una actualización concurrente.
+// Estado del asistente por (proyecto, zona): `zoneId` null = asistente por defecto del
+// proyecto (v1); con valor = asistente de esa zona. Igual que CanvasState, la unicidad la
+// garantizan dos índices únicos PARCIALES creados a mano en la migración (uno para zoneId
+// NOT NULL, otro para el default con zoneId IS NULL), porque en SQL NULL != NULL y un
+// @@unique([projectId, zoneId]) normal dejaría colar varios estados-default. Por eso aquí
+// NO se declara @unique ni @@unique.
 model AgentState {
-  id        String   @id @default(cuid())
-  projectId String   @unique
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  zoneId    String?
+  zone      ProjectZone? @relation(fields: [zoneId], references: [id], onDelete: Cascade)
   phase     String
   // `Collected` (objetivo/estilo/entregables/detectados) serializado.
   collected Json
-  version   Int      @default(1)
-  updatedAt DateTime @updatedAt
+  version   Int          @default(1)
+  updatedAt DateTime     @updatedAt
 
+  @@index([projectId])
+  @@index([zoneId])
   @@map("agent_state")
 }
 

@@ -30,7 +30,7 @@ export function ProjectCard({ id, title, createdLabel, coverUrl }: Props) {
 
   return (
     <Card className="hover:border-brand-500 relative h-full p-5 transition-colors">
-      <Link href={`/projects/${id}/chat`} className="block">
+      <Link href={`/projects/${id}/plano`} className="block">
         {coverUrl ? (
           // Portada: primer render del proyecto.
           // eslint-disable-next-line @next/next/no-img-element

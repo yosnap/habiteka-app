@@ -7,7 +7,7 @@
  * son CC0 de Quaternius (mismo estilo low-poly, coherente) vía Poly Pizza; silla/ducha de otros
  * autores CC0; sofa es CC-BY (atribución). Comprimidos con `@gltf-transform/cli` (WebP+meshopt).
  *
- * La `lampara` sigue como placeholder (no se encontró una lámpara de interior CC0 adecuada).
+ * Todos los kinds de tipo mueble tienen modelo; `foco` (luz puntual) no necesita .glb.
  */
 import type { StructKind } from '../types';
 
@@ -32,6 +32,8 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   // Mobiliario
   silla: { url: '/models/cc0/silla.glb' },
   sofa: { url: '/models/cc0/sofa.glb' },
+  sofa_grande: { url: '/models/cc0/sofa_grande.glb' },
+  butaca: { url: '/models/cc0/butaca.glb' },
   // Frente medido de la geometría: el cabecero de la cama está en +Z, así que su frente (pies)
   // mira a −Z. Declararlo fija el sentido (cabecero contra la pared), no solo el eje.
   cama: { url: '/models/cc0/cama.glb', front: '-z' },
@@ -40,20 +42,46 @@ export const FURNITURE_MODELS: Partial<Record<StructKind, FurnitureModel>> = {
   mesa: { url: '/models/cc0/mesa.glb' },
   // Cocina
   nevera: { url: '/models/cc0/nevera.glb' },
+  nevera_americana: { url: '/models/cc0/nevera_americana.glb' },
+  nevera_mini: { url: '/models/cc0/nevera_mini.glb' },
   horno: { url: '/models/cc0/horno.glb' },
   fregadero: { url: '/models/cc0/fregadero.glb' },
+  encimera: { url: '/models/cc0/encimera.glb' },
+  vitroceramica: { url: '/models/cc0/vitroceramica.glb' },
+  microondas: { url: '/models/cc0/microondas.glb' },
+  // Cocina (isla y bidet adicionales)
+  isla: { url: '/models/cc0/isla.glb' },
   // Sanitarios
   inodoro: { url: '/models/cc0/inodoro.glb' },
   lavabo: { url: '/models/cc0/lavabo.glb' },
   ducha: { url: '/models/cc0/ducha.glb' },
+  banera: { url: '/models/cc0/banera.glb' },
+  bidet: { url: '/models/cc0/bidet.glb' },
+  // Mobiliario adicional
+  mesilla: { url: '/models/cc0/mesilla.glb' },
+  estanteria: { url: '/models/cc0/estanteria.glb' },
   // Electrónica / decoración
   tv: { url: '/models/cc0/tv.glb' },
+  ordenador: { url: '/models/cc0/ordenador.glb' },
+  lampara: { url: '/models/cc0/lampara.glb' },
   planta: { url: '/models/cc0/planta.glb' },
+  alfombra: { url: '/models/cc0/alfombra.glb' },
+  chimenea: { url: '/models/cc0/chimenea.glb' },
 };
 
-/** URL del modelo de un kind, o null si no hay (→ placeholder). */
-export function furnitureModelUrl(kind: StructKind): string | null {
-  return FURNITURE_MODELS[kind]?.url ?? null;
+/**
+ * URL del modelo de un kind, o null si no hay (→ placeholder).
+ *
+ * Kinds builtin → ruta estática de `FURNITURE_MODELS` (public/models/cc0/*.glb).
+ * Kinds custom (`custom_*`, subidos por el usuario) → ruta estable
+ * `/api/catalog/<kind>/model`, que redirige a una URL presignada fresca de S3/MinIO.
+ * Así el render 3D (`useGLTF`) carga el .glb real del item custom sin gestionar caducidades.
+ */
+export function furnitureModelUrl(kind: StructKind | string): string | null {
+  if (typeof kind === 'string' && kind.startsWith('custom_')) {
+    return `/api/catalog/${encodeURIComponent(kind)}/model`;
+  }
+  return FURNITURE_MODELS[kind as StructKind]?.url ?? null;
 }
 
 /** ¿El modelo declara su `front`? Si sí, el render usa ese dato; si no, infiere la orientación

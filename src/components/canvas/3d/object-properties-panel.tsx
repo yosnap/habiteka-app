@@ -1,0 +1,282 @@
+'use client';
+
+/**
+ * Panel de propiedades del objeto seleccionado en 3D (F3 editor): medidas en metros,
+ * ángulo (°) y elevación en metros. Cada campo soporta tipeo libre y scrub
+ * (clic+arrastrar ←→). `onLive` escribe al store en cada frame del scrub para que la
+ * vista 3D se actualice en vivo.
+ */
+import { useState, useRef } from 'react';
+import type { StructObj } from '@/canvas/types';
+import { pxToMeters, metersToPx, effectiveHeightM, DEFAULT_CEILING_M } from '@/canvas/scale';
+import { rotatePatch, type SceneCoords } from '@/canvas/3d/scene-to-doc';
+import { rotation2DToY } from '@/canvas/3d/doc-to-scene';
+
+/** Solo los muros carecen de Elevación editable (ventanas y puertas sí la tienen: alféizar). */
+const STRUCTURAL_KINDS = new Set(['wall', 'window', 'door']);
+
+export function ObjectPropertiesPanel({
+  obj,
+  pxPerMeter,
+  scene,
+  onChange,
+  ceilingHeightM = DEFAULT_CEILING_M,
+}: {
+  obj: StructObj;
+  pxPerMeter: number;
+  scene: SceneCoords;
+  onChange: (patch: Partial<StructObj>) => void;
+  ceilingHeightM?: number;
+}) {
+  const scale = { pxPerMeter };
+  const isFurniture = !STRUCTURAL_KINDS.has(obj.kind);
+
+  const [widthM, setWidthM] = useState(() => toMeters(obj.width, pxPerMeter));
+  const [depthM, setDepthM] = useState(() => toMeters(obj.height, pxPerMeter));
+  const [heightM, setHeightM] = useState(() => effectiveHeightM(obj, ceilingHeightM));
+  const [deg, setDeg] = useState(() => Math.round(obj.rotation || 0));
+  const [elevationM, setElevationM] = useState(() => obj.elevationM ?? 0);
+
+  // Al cambiar de objeto (o de escala) los campos se rellenan de nuevo durante el render, sin efecto intermedio.
+  const fieldsKey = `${obj.id}|${pxPerMeter}|${ceilingHeightM ?? ''}`;
+  const [seenFieldsKey, setSeenFieldsKey] = useState(fieldsKey);
+  if (seenFieldsKey !== fieldsKey) {
+    setSeenFieldsKey(fieldsKey);
+    setWidthM(toMeters(obj.width, pxPerMeter));
+    setDepthM(toMeters(obj.height, pxPerMeter));
+    setHeightM(effectiveHeightM(obj, ceilingHeightM));
+    setDeg(Math.round(obj.rotation || 0));
+    setElevationM(obj.elevationM ?? 0);
+  }
+
+  // ── Commits ────────────────────────────────────────────────────────────────
+  const commitWidth = () => {
+    const px = Math.round(metersToPx(Math.max(0.01, widthM), scale));
+    if (Math.abs(px - obj.width) > 0.5) onChange({ width: px });
+  };
+  const commitHeight = () => {
+    const px = Math.round(metersToPx(Math.max(0.01, depthM), scale));
+    if (Math.abs(px - obj.height) > 0.5) onChange({ height: px });
+  };
+  const commitAlt = () => {
+    const m = Math.max(0.01, heightM);
+    if (Math.abs(m - effectiveHeightM(obj, ceilingHeightM)) < 0.005) return;
+    onChange({ heightM: m });
+  };
+  const commitAngle = () => {
+    const normalized = ((deg % 360) + 360) % 360;
+    if (Math.abs(normalized - (obj.rotation || 0)) < 0.5) return;
+    onChange(rotatePatch(obj, rotation2DToY(normalized), scene));
+  };
+  const commitElev = () => {
+    const m = Math.max(0, elevationM);
+    if (Math.abs(m - (obj.elevationM ?? 0)) < 0.005) return;
+    onChange({ elevationM: m });
+  };
+
+  // ── Live (scrub en vivo → store) ───────────────────────────────────────────
+  const liveWidth = (v: number) => onChange({ width: Math.round(metersToPx(Math.max(0.01, v), scale)) });
+  const liveHeight = (v: number) => onChange({ height: Math.round(metersToPx(Math.max(0.01, v), scale)) });
+  const liveAlt = (v: number) => onChange({ heightM: Math.max(0.01, v) });
+  const liveAngle = (v: number) => {
+    const normalized = ((v % 360) + 360) % 360;
+    onChange(rotatePatch(obj, rotation2DToY(normalized), scene));
+  };
+  const liveElev = (v: number) => onChange({ elevationM: Math.max(0, v) });
+
+  const isHidden = !!obj.hidden;
+
+  return (
+    <div className="absolute bottom-0 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 rounded-t-lg bg-neutral-900/95 px-4 py-2 shadow-xl ring-1 ring-white/20">
+      <span className="text-xs text-white/50">Propiedades</span>
+      <NumInput label="Ancho m" value={widthM} onChange={setWidthM} onCommit={commitWidth} onLive={liveWidth} step={.01} />
+      <NumInput label="Fondo m" value={depthM} onChange={setDepthM} onCommit={commitHeight} onLive={liveHeight} step={.01} />
+      <NumInput label="Alt. m" value={heightM} onChange={setHeightM} onCommit={commitAlt} onLive={liveAlt} step={.01} />
+      <NumInput label="Ángulo °" value={deg} onChange={setDeg} onCommit={commitAngle} onLive={liveAngle} step={15} />
+      {(isFurniture || obj.kind === 'window') && (
+        <NumInput
+          label={obj.kind === 'window' ? 'Alféizar m' : 'Elev. m'}
+          value={elevationM}
+          onChange={setElevationM}
+          onCommit={commitElev}
+          onLive={liveElev}
+        />
+      )}
+      {obj.kind === 'window' ? (() => {
+        const meta = (obj.meta ?? {}) as { glassType?: string };
+        const gt = meta.glassType ?? 'simple';
+        const setGlass = (t: string) => onChange({ meta: { ...obj.meta, glassType: t } });
+        return (
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px] text-white/50">Vidrio</span>
+            <div className="flex gap-0.5">
+              {(['simple', 'doble', 'oscurecido'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setGlass(t)}
+                  className={`rounded px-1.5 py-0.5 text-[10px] ${gt === t ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-white/60'}`}
+                >
+                  {t === 'simple' ? 'Sim' : t === 'doble' ? 'Dob' : 'Osc'}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })() : null}
+      {!isFurniture && obj.kind === 'wall' && (
+        <button
+          type="button"
+          onClick={() => onChange({ hidden: !isHidden })}
+          className="flex flex-col items-center gap-0.5"
+          title={isHidden ? 'Mostrar pared' : 'Ocultar pared'}
+        >
+          <span className="text-[10px] text-white/50">Visib.</span>
+          <span className="rounded bg-neutral-800 px-2 py-1 text-xs text-white hover:bg-neutral-700">
+            {isHidden ? '👁' : '🚫'}
+          </span>
+        </button>
+      )}
+      {obj.light ? (() => {
+        const lp = obj.light;
+        const isOn = lp.on !== false;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() => onChange({ light: { ...lp, on: !isOn } })}
+              className="flex flex-col items-center gap-0.5"
+              title={isOn ? 'Apagar luz' : 'Encender luz'}
+            >
+              <span className="text-[10px] text-white/50">Luz</span>
+              <span className={`rounded px-2 py-1 text-xs ${isOn ? 'bg-yellow-600 text-white' : 'bg-neutral-800 text-white/50'}`}>
+                {isOn ? '💡' : '⬛'}
+              </span>
+            </button>
+            {isOn && (
+              <>
+                <label className="flex flex-col items-center gap-0.5 select-none">
+                  <span className="text-[10px] text-white/50">Intens. %</span>
+                  <input
+                    type="range" min={0} max={100} value={lp.intensidad}
+                    onChange={(e) => onChange({ light: { ...lp, intensidad: Number(e.target.value) } })}
+                    className="w-16 accent-yellow-500"
+                  />
+                </label>
+                <label className="flex flex-col items-center gap-0.5 select-none">
+                  <span className="text-[10px] text-white/50">Temp. K</span>
+                  <input
+                    type="range" min={2700} max={6500} step={100}
+                    value={lp.temperature ?? 4000}
+                    onChange={(e) => onChange({ light: { ...lp, temperature: Number(e.target.value) } })}
+                    className="w-16 accent-sky-500"
+                  />
+                </label>
+              </>
+            )}
+          </>
+        );
+      })() : null}
+      {obj.kind === 'art_frame' ? (() => {
+        const meta = (obj.meta ?? {}) as { imageUrl?: string };
+        return (
+          <label className="flex flex-col items-center gap-0.5 cursor-pointer select-none">
+            <span className="text-[10px] text-white/50">Imagen</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const url = reader.result as string;
+                  onChange({ meta: { ...obj.meta, imageUrl: url } });
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+            <span className={`rounded px-2 py-1 text-xs ${meta.imageUrl ? 'bg-green-700 text-white' : 'bg-neutral-800 text-white/60'}`}>
+              {meta.imageUrl ? '✓' : 'Subir'}
+            </span>
+          </label>
+        );
+      })() : null}
+    </div>
+  );
+}
+
+function toMeters(px: number, pxPerMeter: number): number {
+  return Math.round(pxToMeters(px, { pxPerMeter }) * 1000) / 1000;
+}
+
+/**
+ * Input numérico con scrub: clic+arrastrar ←→ decrementa/incrementa (1 px = 1 unidad).
+ * - `onChange`  → estado local (el input muestra el valor mientras se escribe/arrastra).
+ * - `onLive`   → store en cada frame del scrub → vista 3D en vivo.
+ * - `onCommit` → store al soltar o al blur/Enter.
+ */
+function NumInput({
+  label,
+  value,
+  onChange,
+  onCommit,
+  onLive,
+  step = 1,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  onCommit: () => void;
+  onLive?: (v: number) => void;
+  step?: number;
+}) {
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startVal = useRef(0);
+
+  return (
+    <label className="flex flex-col items-center gap-0.5 select-none">
+      <span className="text-[10px] text-white/50">{label}</span>
+      <input
+        type="number"
+        value={value}
+        step={step}
+        onChange={(e) => {
+          if (isDragging.current) return;
+          const v = Number(e.target.value);
+          if (!Number.isNaN(v)) onChange(v);
+        }}
+        onBlur={() => { if (!isDragging.current) onCommit(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          isDragging.current = false;
+          startX.current = e.clientX;
+          startVal.current = value;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (e.buttons !== 1) return;
+          const dx = e.clientX - startX.current;
+          if (!isDragging.current) {
+            if (Math.abs(dx) < 3) return;
+            isDragging.current = true;
+            e.currentTarget.blur();
+          }
+          const newVal = Math.round((startVal.current + dx * step) * 1000) / 1000;
+          onChange(newVal);
+          onLive?.(newVal);
+        }}
+        onPointerUp={() => {
+          if (isDragging.current) {
+            isDragging.current = false;
+            onCommit();
+          }
+        }}
+        className="w-20 cursor-ew-resize rounded bg-neutral-800 px-2 py-1 text-center text-xs text-white"
+      />
+    </label>
+  );
+}

@@ -1,62 +1,101 @@
 'use client';
 
 /**
- * Botón + diálogo mínimo para crear un proyecto. Al crearlo, navega directo a su
- * canvas para empezar a trabajar. Usa la Server Action `createProject` (que valida
- * sesión y rol en el servidor).
+ * Botón para crear un proyecto nuevo con flujo de 2 pasos:
+ * 1. Nombre del proyecto.
+ * 2. Template picker — elige plantilla builtin o lienzo en blanco.
+ *
+ * Si elige plantilla → navega al canvas con el doc ya cargado.
+ * Si elige en blanco → navega al chat (flujo original).
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createProject } from '@/server/actions/projects';
+import { saveCanvas } from '@/server/actions/canvas';
+import { serializeCanvas } from '@/canvas/serialize';
+import { TemplatePickerModal } from '@/components/templates/template-picker-modal';
+import type { BuiltinTemplate } from '@/canvas/templates';
+
+type Step = 'idle' | 'naming' | 'picking' | 'creating';
 
 export function NewProjectButton() {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<Step>('idle');
   const [title, setTitle] = useState('');
-  const [pending, setPending] = useState(false);
 
-  async function create() {
-    const name = title.trim() || 'Proyecto sin título';
-    setPending(true);
-    try {
-      const project = await createProject(name);
-      // Un proyecto nuevo arranca en el asistente: el primer paso es subir la
-      // foto y conversar, no el lienzo vacío.
-      router.push(`/projects/${project.id}/chat`);
-    } finally {
-      setPending(false);
-    }
+  function openNaming() {
+    setTitle('');
+    setStep('naming');
   }
 
-  if (!open) {
+  function cancel() {
+    setStep('idle');
+    setTitle('');
+  }
+
+  function goToPicking() {
+    if (!title.trim()) return;
+    setStep('picking');
+  }
+
+  /** Crea el proyecto y navega al canvas con la plantilla pre-cargada. */
+  async function createWithTemplate(template: BuiltinTemplate) {
+    setStep('creating');
+    const name = title.trim() || 'Proyecto sin título';
+    const project = await createProject(name);
+    await saveCanvas(project.id, serializeCanvas(template.doc));
+    router.push(`/projects/${project.id}`);
+  }
+
+  /** Crea el proyecto en blanco y navega al chat (flujo original). */
+  async function createBlank() {
+    setStep('creating');
+    const name = title.trim() || 'Proyecto sin título';
+    const project = await createProject(name);
+    router.push(`/projects/${project.id}/chat`);
+  }
+
+  if (step === 'idle') {
     return (
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button type="button" onClick={openNaming}>
         Nuevo proyecto
       </Button>
     );
   }
 
+  if (step === 'naming') {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          autoFocus
+          placeholder="Nombre del proyecto"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') goToPicking();
+            if (e.key === 'Escape') cancel();
+          }}
+          className="max-w-xs"
+        />
+        <Button type="button" onClick={goToPicking} disabled={!title.trim()}>
+          Siguiente →
+        </Button>
+        <Button type="button" variant="ghost" onClick={cancel}>
+          Cancelar
+        </Button>
+      </div>
+    );
+  }
+
+  // 'picking' | 'creating'
   return (
-    <div className="flex items-center gap-2">
-      <Input
-        autoFocus
-        placeholder="Nombre del proyecto"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') void create();
-          if (e.key === 'Escape') setOpen(false);
-        }}
-        className="max-w-xs"
-      />
-      <Button type="button" onClick={create} disabled={pending}>
-        {pending ? 'Creando…' : 'Crear'}
-      </Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
-        Cancelar
-      </Button>
-    </div>
+    <TemplatePickerModal
+      projectName={title.trim() || 'Proyecto sin título'}
+      onSelect={createWithTemplate}
+      onSkip={createBlank}
+      disabled={step === 'creating'}
+    />
   );
 }

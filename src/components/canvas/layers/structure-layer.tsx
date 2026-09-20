@@ -11,16 +11,19 @@ import { useMemo, useRef, useState } from 'react';
 import { Layer, Group, Rect, Transformer, Label, Tag, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import type { StructObj } from '@/canvas/types';
+import { placementOf, type StructObj } from '@/canvas/types';
+import { snapToWall } from '@/canvas/snap-to-wall';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 import { objectShape } from '../object-shapes';
 import { snap } from './grid-layer';
 import { selectionAabb, type WorldRect } from '@/canvas/floating-menu-anchor';
 import { computeSnap, type SnapResult } from '@/canvas/snap';
-import { formatObjectSize, isValidScale } from '@/canvas/scale';
+import { formatObjectSize, formatLength, pxToMeters, isValidScale } from '@/canvas/scale';
 import { LiveDimensionOverlay, type LiveDimension } from './live-dimension-overlay';
 import { SnapGuidesOverlay } from './snap-guides-overlay';
 import { useTransformerNodes } from '@/canvas/use-transformer-nodes';
+import { WallHandlesLayer } from './wall-handles-layer';
+import { computeWallMiters } from './wall-junction-caps';
 
 export function StructureLayer({ objects }: { objects: StructObj[] }) {
   const selection = useCanvasStore((s) => s.doc.selection);
@@ -51,6 +54,9 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
     () => (selection?.type === 'object' ? selection.objectIds : []),
     [selection],
   );
+
+  // Cortes de inglete calculados una sola vez por render cuando cambian los objetos.
+  const wallMiters = useMemo(() => computeWallMiters(objects), [objects]);
 
   // Sincroniza el Transformer con los nodos seleccionados (sin useEffect directo).
   useTransformerNodes(trRef, layerRef, selectedIds, objects);
@@ -86,6 +92,30 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
   };
 
   const hoveredObj = objects.find((o) => o.id === hovered);
+
+  // Muro dibujado único seleccionado SIN contorno (floorOutline) → handles de extremo
+  // (segmento libre + vecinos). Si hay floorOutline, la edición se hace con el editor de
+  // contorno (vértices del polígono), así que aquí no mostramos handles para no duplicar.
+  const hasFloorOutline = !!useCanvasStore((s) => s.doc.floorOutline);
+  const singleSelectedDrawnWall =
+    selectedIds.length === 1 && !hasFloorOutline
+      ? objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall' && o.drawn)
+      : undefined;
+
+  /** Centro visual en coordenadas de mundo para una wall (u objeto genérico). */
+  const wallLabelPos = (o: StructObj) => {
+    const angle = (o.rotation * Math.PI) / 180;
+    return {
+      x: o.x + Math.cos(angle) * o.width / 2 - Math.sin(angle) * o.height / 2,
+      y: o.y + Math.sin(angle) * o.width / 2 + Math.cos(angle) * o.height / 2,
+    };
+  };
+
+  /** Etiqueta de longitud para muros, con escala si está disponible. */
+  const wallLengthLabel = (o: StructObj): string => {
+    if (isValidScale(scale)) return formatLength(pxToMeters(o.width, scale));
+    return `${Math.round(o.width)} px`;
+  };
 
   return (
     <Layer ref={layerRef}>
@@ -159,18 +189,41 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           onDragEnd={(e) => {
             setLive(null);
             setGuides(null);
-            // La posición del nodo ya viene enganchada por dragBoundFunc. Si NO hubo enganche
-            // (sin guías), se cae a la rejilla; si hubo enganche, se respeta tal cual para no
-            // pelear el magnetismo con el snap de rejilla.
-            const aabbEnd = selectionAabb([{ ...o, x: e.target.x(), y: e.target.y() }], [o.id]);
-            const snappedNow =
-              !snapDisabled.current && aabbEnd
-                ? computeSnap(aabbEnd, neighborsRef.current)
-                : null;
-            const engaged = snappedNow != null && (snappedNow.dx !== 0 || snappedNow.dy !== 0);
-            const nx = engaged ? e.target.x() : snap(e.target.x());
-            const ny = engaged ? e.target.y() : snap(e.target.y());
             const others = selectedIds.filter((id) => id !== o.id);
+
+            // Hijos de muro (puertas/ventanas) y elementos de superficie: al
+            // soltar se RE-ENGANCHAN a su muro más cercano — deslizan por el
+            // eje con precisión y nunca quedan flotando ni desalineados.
+            const placement = placementOf(o.kind);
+            if ((placement === 'wall-child' || placement === 'wall-surface') && !others.length) {
+              const walls = objects.filter((w) => w.kind === 'wall');
+              const angle = (o.rotation * Math.PI) / 180;
+              const cx =
+                e.target.x() + (Math.cos(angle) * o.width) / 2 - (Math.sin(angle) * o.height) / 2;
+              const cy =
+                e.target.y() + (Math.sin(angle) * o.width) / 2 + (Math.cos(angle) * o.height) / 2;
+              const snapped = snapToWall({ x: cx, y: cy }, walls, o.width, true);
+              if (snapped) {
+                updateObject(o.id, {
+                  x: snapped.x,
+                  y: snapped.y,
+                  height: snapped.height,
+                  rotation: snapped.rotation,
+                  parentId: snapped.wallId,
+                });
+                dragStart.current = null;
+                draggingSize.current = null;
+                return;
+              }
+            }
+
+            // Resto de objetos: la posición se respeta EXACTA donde se suelta.
+            // El redondeo a rejilla al soltar movía el objeto hasta medio paso
+            // (20 px = ~20 cm) después de colocarlo — había que ubicarlo dos
+            // veces. El magnetismo con vecinos (dragBoundFunc) sigue activo
+            // durante el arrastre; la rejilla queda como referencia visual.
+            const nx = e.target.x();
+            const ny = e.target.y();
             // Si el objeto arrastrado forma parte de una multiselección, el resto se
             // desplaza el mismo delta (mover varios a la vez con el ratón).
             if (others.length && dragStart.current) {
@@ -180,9 +233,7 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
                 if (selectedIds.includes(obj.id)) {
                   updateObject(
                     obj.id,
-                    obj.id === o.id
-                      ? { x: nx, y: ny }
-                      : { x: snap(obj.x + dx), y: snap(obj.y + dy) },
+                    obj.id === o.id ? { x: nx, y: ny } : { x: obj.x + dx, y: obj.y + dy },
                   );
                 }
               }
@@ -215,14 +266,25 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           onTransformEnd={(e) => {
             setLive(null);
             const node = e.target;
-            // El Group no expone un width/height intrínseco fiable: se parte del
-            // tamaño conocido del objeto y se le aplica la escala del transform.
-            // Posición y tamaño se ajustan a la rejilla.
+            const rawX = node.x();
+            const rawY = node.y();
+            const rawW = o.width * node.scaleX();
+            const rawH = o.height * node.scaleY();
+            // boundBoxFunc ya snapeó los bordes en tiempo real.
+            // Solo aplicamos snap al borde que el usuario movió; el borde fijo
+            // se redondea a entero (limpia float) pero NO se desplaza al grid.
+            const xMoved = Math.abs(rawX - o.x) > 0.5;
+            const yMoved = Math.abs(rawY - o.y) > 0.5;
+            const newX = xMoved ? snap(rawX) : Math.round(rawX);
+            const newY = yMoved ? snap(rawY) : Math.round(rawY);
+            // El borde opuesto (der/inf) siempre snapea para que quede en rejilla.
+            const newW = Math.max(8, snap(rawX + rawW) - newX);
+            const newH = Math.max(8, snap(rawY + rawH) - newY);
             updateObject(o.id, {
-              x: snap(node.x()),
-              y: snap(node.y()),
-              width: Math.max(8, snap(o.width * node.scaleX())),
-              height: Math.max(8, snap(o.height * node.scaleY())),
+              x: newX,
+              y: newY,
+              width: newW,
+              height: newH,
               rotation: node.rotation(),
             });
             node.scaleX(1);
@@ -234,8 +296,29 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
           {/* Espejo horizontal: cada primitiva de la forma se dibuja con su X
               reflejada respecto al ancho. Se hace en el modelo de la forma (no con
               un Group scaleX anidado, que no compensaba bien dentro del Group que
-              además rota). */}
-          {objectShape(o.kind, o.width, o.height, o.flipX === true, o.light?.color)}
+              además rota). Los muros reciben su propio color (o.color); el foco recibe
+              el color de la luz (o.light?.color). */}
+          {objectShape(
+            o.kind,
+            o.width,
+            o.height,
+            o.flipX === true,
+            o.kind === 'wall' ? o.color : o.light?.color,
+            o.drawn === true,
+            o.kind === 'wall' ? wallMiters.get(o.id) : undefined,
+            o.meta,
+          )}
+          {/* Highlight verde semitransparente al pasar el ratón sobre un muro. */}
+          {hovered === o.id && o.kind === 'wall' ? (
+            <Rect
+              x={o.drawn ? -o.height / 2 : 0}
+              width={o.drawn ? o.width + o.height : o.width}
+              height={o.height}
+              fill="#4caf50"
+              opacity={0.28}
+              listening={false}
+            />
+          ) : null}
           {/* Resalte individual de los objetos seleccionados, para distinguir cuáles
               están en la selección (el Transformer dibuja solo el recuadro conjunto). */}
           {selectedIds.includes(o.id) ? (
@@ -251,24 +334,32 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
         </Group>
       ))}
 
-      {/* Etiqueta flotante con el nombre del objeto bajo el ratón. */}
-      {hoveredObj ? (
-        <Label x={hoveredObj.x} y={hoveredObj.y - 22} listening={false}>
-          <Tag fill="#3a322e" cornerRadius={3} />
-          <Text
-            text={CATALOG_BY_KIND[hoveredObj.kind]?.label ?? hoveredObj.kind}
-            fontSize={12}
-            padding={4}
-            fill="#fff"
-          />
-        </Label>
-      ) : null}
+      {/* Etiqueta flotante con nombre o cota del objeto bajo el ratón.
+          Para muros: posición centrada sobre el muro + longitud real. */}
+      {hoveredObj ? (() => {
+        const isWall = hoveredObj.kind === 'wall';
+        const pos = isWall ? wallLabelPos(hoveredObj) : { x: hoveredObj.x, y: hoveredObj.y };
+        const label = isWall
+          ? wallLengthLabel(hoveredObj)
+          : (CATALOG_BY_KIND[hoveredObj.kind]?.label ?? hoveredObj.kind);
+        return (
+          <Label x={pos.x} y={pos.y - 22} listening={false}>
+            <Tag fill={isWall ? '#2e7d32' : '#3a322e'} cornerRadius={3} />
+            <Text text={label} fontSize={12} padding={4} fill="#fff" />
+          </Label>
+        );
+      })() : null}
 
       {/* Guías de alineación del snap en curso (líneas finas tipo CAD). */}
       <SnapGuidesOverlay guides={guides} />
 
       {/* Cota en vivo del gesto en curso (mover → huecos; resize → tamaño). */}
       <LiveDimensionOverlay live={live} scale={scale} />
+
+      {/* Handles de extremo (p1/p2) para el muro dibujado único seleccionado. */}
+      {singleSelectedDrawnWall ? (
+        <WallHandlesLayer wall={singleSelectedDrawnWall} />
+      ) : null}
 
       <Transformer
         ref={trRef}
@@ -280,9 +371,38 @@ export function StructureLayer({ objects }: { objects: StructObj[] }) {
         anchorStroke="#b5532f"
         anchorFill="#fff"
         borderStroke="#b5532f"
-        // El tirador de rotación, más separado y visible, para girar desde fuera
-        // de la esquina superior del objeto.
         rotateAnchorOffset={28}
+        boundBoxFunc={(oldBox, newBox) => {
+          // Los boxes están en coordenadas de MUNDO (layer). Solo snapeamos
+          // el borde que el usuario realmente movió (comparando con oldBox =
+          // estado en mousedown). Así el borde fijo no salta al soltar.
+          // Para rotaciones no múltiplo de 90° el AABB no corresponde al
+          // grid del plano, así que se omite el snap.
+          const allOnAxis = selectedIds.every((id) => {
+            const obj = objects.find((o) => o.id === id);
+            return !obj || Math.abs(obj.rotation % 90) <= 0.5;
+          });
+          if (!allOnAxis) return newBox;
+
+          const EPS = 0.5;
+          const oldRight  = oldBox.x + oldBox.width;
+          const oldBottom = oldBox.y + oldBox.height;
+          const newRight  = newBox.x + newBox.width;
+          const newBottom = newBox.y + newBox.height;
+
+          const snappedX      = Math.abs(newBox.x - oldBox.x) > EPS ? snap(newBox.x) : newBox.x;
+          const snappedY      = Math.abs(newBox.y - oldBox.y) > EPS ? snap(newBox.y) : newBox.y;
+          const snappedRight  = Math.abs(newRight  - oldRight)  > EPS ? snap(newRight)  : newRight;
+          const snappedBottom = Math.abs(newBottom - oldBottom) > EPS ? snap(newBottom) : newBottom;
+
+          return {
+            x: snappedX,
+            y: snappedY,
+            width:  Math.max(8, snappedRight  - snappedX),
+            height: Math.max(8, snappedBottom - snappedY),
+            rotation: newBox.rotation,
+          };
+        }}
       />
     </Layer>
   );

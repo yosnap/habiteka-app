@@ -17,6 +17,7 @@ import {
   createZone,
   renameZone,
   deleteZone,
+  duplicateZone,
 } from '@/app/(app)/projects/[id]/_actions/zone-actions';
 import { ZoneTrash } from './zone-trash';
 
@@ -125,6 +126,22 @@ export function ZoneSwitcher({
                 className="text-ink-soft hover:text-ink rounded-control px-1 text-xs"
               >
                 ✎
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(async () => {
+                    const dup = await duplicateZone(projectId, z.id, `${z.name} (copia)`);
+                    router.push(`/projects/${projectId}?zona=${dup.id}`);
+                    router.refresh();
+                  });
+                }}
+                disabled={pending}
+                aria-label={`Duplicar ${z.name}`}
+                title="Duplicar zona (copia el plano)"
+                className="text-ink-soft hover:text-ink rounded-control px-1 text-xs disabled:opacity-50"
+              >
+                ⧉
               </button>
               <button
                 type="button"

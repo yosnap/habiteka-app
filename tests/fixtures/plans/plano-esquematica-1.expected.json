@@ -1,0 +1,11 @@
+{
+  "descripcion": "Boceto a mano sin cotas por estancia; escala aprox. 1 cm = 1 m; superficie aprox. 85 m².",
+  "general": { "areaM2": 85 },
+  "estancias": [
+    { "nombre": "Dormitorio principal" }, { "nombre": "Dormitorio 2" }, { "nombre": "Salón" },
+    { "nombre": "Patio / Terraza", "exterior": true }, { "nombre": "Baño" }, { "nombre": "Pasillo" },
+    { "nombre": "Comedor" }, { "nombre": "Aseo" }, { "nombre": "Entrada" }, { "nombre": "Cocina" },
+    { "nombre": "Lavadero" }
+  ],
+  "toleranciaRelativa": 0.1
+}

@@ -1,0 +1,47 @@
+# Infraestructura de desarrollo local.
+#
+# MinIO: object storage compatible con S3 para las imágenes de origen y los entregables
+# (en producción es S3/R2; en local, MinIO sin coste ni cuenta). El servicio `minio-init`
+# crea el bucket al arrancar y termina. Postgres ya corre aparte (contenedor
+# `habiteka-postgres` en :5440); no se gestiona aquí para no duplicarlo.
+#
+# Uso:
+#   docker compose up -d minio minio-init
+# Consola web: http://localhost:9001  (usuario/clave: ver MINIO_ROOT_* abajo).
+# Las credenciales y el endpoint van en .env.local como STORAGE_* (ver README/.env.example).
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: habiteka-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: habiteka
+      MINIO_ROOT_PASSWORD: habiteka-dev-secret
+    ports:
+      - '9000:9000' # API S3
+      - '9001:9001' # consola web
+    volumes:
+      - habiteka-minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Crea el bucket de la app una vez que MinIO está listo, y termina.
+  minio-init:
+    image: minio/mc:latest
+    container_name: habiteka-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 habiteka habiteka-dev-secret; do sleep 1; done;
+      mc mb --ignore-existing local/habiteka-dev;
+      mc anonymous set download local/habiteka-dev;
+      exit 0;
+      "
+
+volumes:
+  habiteka-minio-data:

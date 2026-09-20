@@ -6,6 +6,8 @@
  */
 import {
   S3Client,
+  HeadObjectCommand,
+  CopyObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
@@ -22,6 +24,17 @@ export class S3StorageAdapter implements StorageAdapter {
     private readonly bucket: string,
   ) {}
 
+  async inspect(key: string) {
+    const head = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+    const first = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: 'bytes=0-31' }));
+    return { bytes: head.ContentLength ?? 0, contentType: head.ContentType ?? '',
+      header: await first.Body!.transformToByteArray() };
+  }
+  async promote(sourceKey: string, destinationKey: string) {
+    await this.client.send(new CopyObjectCommand({ Bucket: this.bucket, Key: destinationKey,
+      CopySource: `${this.bucket}/${sourceKey.split('/').map(encodeURIComponent).join('/')}` }));
+    await this.delete(sourceKey);
+  }
   async put(input: PutObjectInput): Promise<void> {
     await this.client.send(
       new PutObjectCommand({
@@ -35,6 +48,15 @@ export class S3StorageAdapter implements StorageAdapter {
 
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  async get(key: string): Promise<Buffer> {
+    const out = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!out.Body) throw new Error(`Objeto no encontrado en storage: ${key}`);
+    // El SDK v3 expone el cuerpo como stream web/node; `transformToByteArray` lo
+    // colecciona sin que tengamos que distinguir el runtime.
+    const bytes = await out.Body.transformToByteArray();
+    return Buffer.from(bytes);
   }
 
   async getPresignedUploadUrl(key: string, maxBytes: number, contentType: string): Promise<string> {

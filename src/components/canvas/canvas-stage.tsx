@@ -9,6 +9,8 @@ import { useState, useCallback, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import { WALL_SURFACE_KINDS, type StructKind } from '@/canvas/types';
+import { snapToWall } from '@/canvas/snap-to-wall';
 import { useFreehand } from '@/canvas/use-freehand';
 import { useDrawWall } from '@/canvas/use-draw-wall';
 import { pixelRectToZone } from '@/canvas/selection-math';
@@ -19,8 +21,10 @@ import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
 import { OutlineEditorLayer } from './layers/outline-editor-layer';
+import { NotesLayer } from './layers/notes-layer';
 import { DrawWallLengthInput } from './draw-wall-length-input';
 import { FloatingObjectMenu } from './floating-object-menu';
+import { LightControlPanel } from './light-control-panel';
 import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
@@ -48,9 +52,13 @@ const MIN_SCALE = 0.2;
 const MAX_SCALE = 4;
 const ZOOM_STEP = 1.15;
 
+/** Kinds que se enganchan a un muro al colocarse. */
+const WALL_CHILD_KINDS = new Set(['door', 'window']);
+
 export function CanvasStage({ tool, width, height, onObjectCreated, onContextMenu }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
+  const addNote = useCanvasStore((s) => s.addNote);
   const setSelection = useCanvasStore((s) => s.setSelection);
 
   const stageRef = useRef<Konva.Stage>(null);
@@ -162,25 +170,39 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
       if (tool === 'draw-wall') {
         drawWall.handlers.onClick();
+      } else if (tool === 'note') {
+        addNote({
+          id: `note-${globalThis.crypto.randomUUID()}`,
+          x: pos.x - 80,
+          y: pos.y - 40,
+          text: '',
+        });
+        onObjectCreated?.();
       } else if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
         const id = `obj-${globalThis.crypto.randomUUID()}`;
-        // Con escala activa, el objeto nace con sus MEDIDAS REALES del catálogo
-        // convertidas a px (una puerta de 0,9 m, no "lo que midan 60 px"). Sin
-        // escala, usa el tamaño en px por defecto. Lógica pura en `catalogSizePx`.
         const scale = isValidScale(doc.scale) ? doc.scale : null;
         const { w, h } = catalogSizePx(catalogEntry, scale);
-        // Se coloca centrado en el punto pulsado (en coordenadas de mundo).
+
+        let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
+        let parentWallId: string | undefined;
+        const isWallSurface = (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind);
+        if (WALL_CHILD_KINDS.has(catalogEntry.kind) || isWallSurface) {
+          const walls = doc.objects.filter((o) => o.kind === 'wall');
+          const snapped = snapToWall(pos, walls, w, isWallSurface);
+          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; parentWallId = snapped.wallId; }
+        }
+
         addObject({
           id,
           kind: catalogEntry.kind,
-          x: pos.x - w / 2,
-          y: pos.y - h / 2,
+          x: objX,
+          y: objY,
           width: w,
-          height: h,
-          rotation: 0,
-          // Las luces de primera clase nacen con sus atributos por defecto.
+          height: objH,
+          rotation: objRot,
+          ...(parentWallId ? { parentId: parentWallId } : {}),
           ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
         });
         setSelection({ type: 'object', objectIds: [id] });
@@ -193,6 +215,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       tool,
       catalogEntry,
       doc.scale,
+      doc.objects,
       freehand.handlers,
       drawWall.handlers,
       addObject,
@@ -257,11 +280,70 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const fitView = () =>
     setView(fitToContent(doc.objects, width, height, { minScale: MIN_SCALE, maxScale: MAX_SCALE }));
 
+  // Drop de items del catálogo (arrastrados desde el panel lateral).
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes('text/catalog')) e.preventDefault();
+  };
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const raw = e.dataTransfer.getData('text/catalog');
+      if (!raw) return;
+      let parsed: { kind: string; widthM?: number; depthM?: number };
+      try { parsed = JSON.parse(raw); } catch { return; }
+
+      const container = stageRef.current?.container();
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - view.x) / view.scale;
+      const worldY = (e.clientY - rect.top - view.y) / view.scale;
+
+      const scale = isValidScale(doc.scale) ? doc.scale : null;
+      const builtin = CATALOG_BY_KIND[parsed.kind];
+      let w: number, h: number;
+      if (builtin) {
+        const sz = catalogSizePx(builtin, scale);
+        w = sz.w; h = sz.h;
+      } else if (parsed.widthM && parsed.depthM) {
+        const fallback = { defaultWidth: Math.round(parsed.widthM * 100), defaultHeight: Math.round(parsed.depthM * 100), realWidthM: parsed.widthM, realDepthM: parsed.depthM };
+        const sz = catalogSizePx(fallback, scale);
+        w = sz.w; h = sz.h;
+      } else {
+        w = 60; h = 60;
+      }
+
+      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación y parentId.
+      let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
+      let parentWallId: string | undefined;
+      const isWsDrop = (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind);
+      if (WALL_CHILD_KINDS.has(parsed.kind) || isWsDrop) {
+        const walls = doc.objects.filter((o) => o.kind === 'wall');
+        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w, isWsDrop);
+        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; parentWallId = snapped.wallId; }
+      }
+
+      const id = `obj-${globalThis.crypto.randomUUID()}`;
+      const isLightKind = isLight(parsed.kind as StructKind);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation, ...(parentWallId ? { parentId: parentWallId } : {}), ...(isLightKind ? { light: defaultLight() } : {}) });
+      setSelection({ type: 'object', objectIds: [id] });
+    },
+    [view, doc.scale, doc.objects, addObject, setSelection],
+  );
+
   // Anclaje del menú flotante de acciones: estado DERIVADO de selección + vista +
   // geometría (no un efecto). Solo para selección de objetos, con la herramienta
   // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
   const selectedIds =
     doc.selection?.type === 'object' ? doc.selection.objectIds : [];
+  // Muro seleccionado en una sala CON contorno (floorOutline) → activa el editor de contorno
+  // (puntos en los vértices del polígono, tiempo real, guías H/V), sea el muro de plantilla
+  // o drawn (tras editar). Al mover un vértice se regeneran los muros y el inglete se mantiene.
+  const hasOutline = !!doc.floorOutline && doc.floorOutline.length >= 3;
+  const selectedWallWithOutline =
+    selectedIds.length === 1 && hasOutline
+      ? doc.objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall')
+      : undefined;
   const menuAabb =
     tool === 'select' && !dragging && !drawWall.drawing && selectedIds.length > 0
       ? selectionAabb(doc.objects, selectedIds)
@@ -269,9 +351,13 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   const menuAnchor = menuAabb
     ? anchorPosition(menuAabb, view, { width, height }, { width: 132, height: 32 })
     : null;
+  // ¿Todos los objetos seleccionados son muros? Cambia el conjunto de acciones del menú.
+  const allWalls =
+    selectedIds.length > 0 &&
+    selectedIds.every((id) => doc.objects.find((o) => o.id === id)?.kind === 'wall');
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" onDragOver={handleDragOver} onDrop={handleDrop}>
     <Stage
       ref={stageRef}
       width={width}
@@ -335,13 +421,18 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
-      {/* Modo "Editar contorno": handles de los vértices del suelo (capa interactiva propia).
-          Solo visible/activa en ese modo, para no interferir con la selección de objetos. */}
-      {tool === 'edit-outline' ? (
+      {/* Editor de contorno (puntos en los vértices del polígono): en modo "Editar contorno"
+          o al seleccionar un muro de plantilla. Al mover un vértice se regeneran los muros
+          manteniendo el inglete; guías de alineación H/V en tiempo real (estilo Planner5D). */}
+      {tool === 'edit-outline' || selectedWallWithOutline ? (
         <Layer>
           <OutlineEditorLayer />
         </Layer>
       ) : null}
+      {/* Notas/anotaciones de texto (B4). */}
+      <Layer>
+        <NotesLayer />
+      </Layer>
       {/* Una sola capa de overlays efímeros (marquesina + muro en curso): ambos son ligeros y
           no interactivos, así se mantiene el nº de capas de Konva en el máximo recomendado. */}
       <Layer listening={false}>
@@ -352,8 +443,12 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       {/* Entrada de longitud exacta del muro en curso (F7.3). */}
       <DrawWallLengthInput visible={tool === 'draw-wall' && drawWall.drawing} onConfirm={drawWall.confirmWithLengthM} />
       {menuAnchor ? (
-        <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} />
+        <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} allWalls={allWalls} />
       ) : null}
+      {menuAnchor && selectedIds.length === 1 ? (() => {
+        const obj = doc.objects.find((o) => o.id === selectedIds[0]);
+        return obj?.light ? <LightControlPanel obj={obj} x={menuAnchor.x} y={menuAnchor.y} /> : null;
+      })() : null}
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
         <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">

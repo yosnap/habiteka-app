@@ -1,0 +1,6 @@
+.stepper { position: relative; display: inline-flex; min-width: 0; width: 100%; }
+.stepper.stepper input { width: 100%; padding-right: 24px; }
+.buttons { position: absolute; right: 2px; top: 2px; bottom: 2px; display: flex; flex-direction: column; visibility: hidden; }
+.stepper:focus-within .buttons, .stepper:hover .buttons { visibility: visible; }
+.stepper .buttons button { flex: 1; min-height: 0; min-width: 20px; padding: 0 3px; line-height: 1; border: 0; border-radius: 3px; background: #edf3f0; color: #25443a; cursor: pointer; }
+.stepper .buttons button:hover { background: #cde7dd; }

@@ -2,8 +2,8 @@
  * Construcción del cliente del gateway de IA (OpenAI SDK apuntando a OpenRouter).
  *
  * OpenRouter expone la Chat Completions API estándar, así que se usa el SDK
- * oficial de OpenAI con `baseURL` propio. La clave se lee solo del entorno
- * (server-only) y se falla rápido si falta. El SDK se inyecta a través de una
+ * oficial de OpenAI con `baseURL` propio. La clave llega cifrada desde la
+ * configuración server-side y se falla rápido si falta. El SDK se inyecta a través de una
  * factory para que los tests sustituyan la red por un doble determinista.
  */
 import OpenAI from 'openai';
@@ -12,6 +12,8 @@ import { aiError } from '../errors';
 export interface GatewaySpec {
   /** baseURL del gateway; null ⇒ OpenRouter por defecto. */
   baseURL: string | null;
+  /** Clave de un proveedor OpenAI-compatible configurado en administración. */
+  apiKey?: string;
 }
 
 const DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -20,9 +22,9 @@ export type ClientFactory = (spec: GatewaySpec) => OpenAI;
 
 // Factory por defecto: SDK real. Sustituible en tests vía `setClientFactory`.
 let factory: ClientFactory = (spec) => {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = spec.apiKey;
   if (!apiKey) {
-    throw aiError('gateway_down', 'OPENROUTER_API_KEY no está definida');
+    throw aiError('gateway_down', 'La credencial del proveedor no está configurada o está desactivada');
   }
   return new OpenAI({
     apiKey,

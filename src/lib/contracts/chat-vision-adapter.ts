@@ -65,6 +65,12 @@ export interface ChatRequest {
   /** Fuerza salida estructurada vía `response_format: json_schema`. */
   responseSchema?: JsonSchema;
   temperature?: number;
+  /**
+   * Tope de tokens de salida de ESTA llamada (acotado al límite duro global).
+   * Útil en extracciones estructuradas largas, donde el tope por defecto puede
+   * truncar el JSON (los modelos con razonamiento gastan parte del presupuesto).
+   */
+  maxTokens?: number;
 }
 
 /** Invocación de herramienta emitida por el modelo. */

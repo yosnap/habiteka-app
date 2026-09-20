@@ -44,3 +44,11 @@ describe('planToPrimitives — proyección del plano a primitivas', () => {
     expect(DELIVERABLE_LEGAL_SEAL).toContain('Revisión técnica requerida');
   });
 });
+
+it('omite zonas sin geometría en vez de romper y lo indica con la lista de dibujables', async () => {
+  const { drawableZones } = await import('@/components/deliverables/plan2d-to-konva');
+  const broken = { schemaVersion: 1, zones: [{}, {}, {}] } as unknown as Parameters<typeof planToPrimitives>[0];
+  expect(() => planToPrimitives(broken, { width: 400, height: 300 })).not.toThrow();
+  expect(drawableZones(broken)).toHaveLength(0);
+  expect(planToPrimitives(broken, { width: 400, height: 300 }).walls).toHaveLength(0);
+});

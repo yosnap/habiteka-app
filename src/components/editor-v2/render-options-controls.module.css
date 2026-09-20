@@ -1,0 +1,91 @@
+.optionButton {
+  display: flex;
+  min-height: 2.5rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-size: 0.8rem;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.controls input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 18px;
+}
+.viewChoice {
+  color: #263d38;
+  background: #fff;
+  cursor: pointer;
+}
+.viewChoice:hover, .viewChoice:focus-within {
+  color: #134e42;
+  background: #e2f1eb;
+  outline: 1px solid #40806f;
+}
+.viewChoice:has(input:checked) {
+  color: #134e42;
+  background: #e2f1eb;
+  font-weight: 600;
+}
+.optionButton:hover {
+  border-color: color-mix(in oklch, var(--primary), transparent 45%);
+}
+.optionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.active {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary), transparent 90%);
+}
+.optionButton small {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+.map {
+  aspect-ratio: 1.45;
+  touch-action: none;
+}
+.furniture {
+  fill: var(--muted-foreground);
+  opacity: 0.3;
+}
+.selected {
+  fill: color-mix(in oklch, var(--primary), transparent 78%);
+  stroke: var(--primary);
+  stroke-width: 30;
+}
+.draft {
+  fill: color-mix(in oklch, var(--primary), transparent 88%);
+  stroke: var(--primary);
+  stroke-width: 20;
+  stroke-dasharray: 60 30;
+}
+.stair {
+  fill: color-mix(in oklch, var(--primary), transparent 82%);
+  stroke: var(--primary);
+  stroke-width: 16;
+}
+.ramp {
+  fill: color-mix(in oklch, #d97706, transparent 78%);
+  stroke: #d97706;
+  stroke-width: 16;
+}
+.landing {
+  fill: color-mix(in oklch, #2563eb, transparent 78%);
+  stroke: #2563eb;
+  stroke-width: 16;
+}
+.column {
+  fill: color-mix(in oklch, #7c3aed, transparent 75%);
+  stroke: #7c3aed;
+  stroke-width: 16;
+}

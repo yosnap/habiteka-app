@@ -29,9 +29,12 @@ export class ProviderImageAdapter implements ImageAdapter {
 
 /**
  * Crea el proveedor según `IMAGE_PROVIDER`. Por defecto `nano-banana`, que va por
- * OpenRouter y reutiliza `OPENROUTER_API_KEY` (no exige una key de imagen aparte).
+ * OpenRouter y reutiliza su credencial cifrada de administración (no exige una
+ * key de imagen aparte).
+ * `model` (opcional) fija el slug del modelo de imagen — viene de la configuración
+ * por acción del back-office; sin él, el proveedor usa su modelo por defecto.
  */
-export function createActiveProvider(): ImageProvider {
+export function createActiveProvider(model?: string, apiKey?: string): ImageProvider {
   const choice = process.env.IMAGE_PROVIDER ?? 'nano-banana';
   switch (choice) {
     case 'flux': {
@@ -42,8 +45,8 @@ export function createActiveProvider(): ImageProvider {
     case 'nano-banana': {
       // Nano Banana va por OpenRouter (mismo gateway que el resto de IA): usa la
       // key de OpenRouter, no una key de proveedor de imagen aparte.
-      const key = process.env.OPENROUTER_API_KEY;
-      if (!key) throw aiError('provider_down', 'OPENROUTER_API_KEY no está definida');
+      const key = apiKey;
+      if (!key) throw aiError('provider_down', 'OpenRouter no está configurado o está desactivado');
       // El storage se resuelve de forma perezosa: si no está configurado, el
       // proveedor cae a un data URL (útil para el spike sin MinIO).
       let storage;
@@ -52,7 +55,9 @@ export function createActiveProvider(): ImageProvider {
       } catch {
         storage = undefined;
       }
-      return new NanoBananaImageProvider(key, storage);
+      return model
+        ? new NanoBananaImageProvider(key, storage, model)
+        : new NanoBananaImageProvider(key, storage);
     }
     case 'imagen':
       return new ImagenImageProvider();
