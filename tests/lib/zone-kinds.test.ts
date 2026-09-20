@@ -14,7 +14,7 @@ describe('zone-kinds — vocabulario controlado de tipo de zona', () => {
   it('isValidZoneKind acepta solo valores del vocabulario', () => {
     expect(isValidZoneKind('interior')).toBe(true);
     expect(isValidZoneKind('fachada')).toBe(true);
-    expect(isValidZoneKind('patio')).toBe(false);
+    expect(isValidZoneKind('sotano')).toBe(false);
     expect(isValidZoneKind('')).toBe(false);
   });
 

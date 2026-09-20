@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Los resolutores de claves de proveedor importan 'server-only'; en Vitest no hay Server Components.
+vi.mock('server-only', () => ({}));
 import { updateModelConfig, listModelConfig } from '@/server/admin/config/model-config-ops';
 import { updateSystemSetting, listSystemSettings } from '@/server/admin/config/system-setting-ops';
 import { updateBranding } from '@/server/admin/branding/branding-ops';
 import { getBranding, invalidateBranding } from '@/server/admin/branding/branding-loader';
 import { getModelConfig } from '@/server/ai/model-config-loader';
+import { resolveRoute } from '@/server/ai/model-routing';
 import { ConfigValidationError } from '@/server/admin/config/config-errors';
 import { prisma } from '@/server/db/prisma';
 import { resetDb, makeUser } from '../helpers/db';
@@ -26,7 +29,7 @@ describe('model-config-ops', () => {
     await updateModelConfig(ADMIN, {
       action: 'chat',
       primaryModel: 'openai/gpt-4o',
-      fallbacks: [],
+      backups: [], provider: 'openrouter',
       enabled: true,
     });
     // El loader de F3 debe ver el valor nuevo: la action invalidó su caché.
@@ -39,10 +42,16 @@ describe('model-config-ops', () => {
       updateModelConfig(ADMIN, {
         action: 'chat',
         primaryModel: 'modelo/carisimo-arbitrario',
-        fallbacks: [],
+        backups: [], provider: 'openrouter',
         enabled: true,
       }),
     ).rejects.toBeInstanceOf(ConfigValidationError);
+  });
+
+  it('no permite asignar de nuevo un modelo deprecado', async () => {
+    await expect(updateModelConfig(ADMIN, {
+      action: 'chat', primaryModel: 'anthropic/claude-3.7-sonnet', backups: [], enabled: true, provider: 'openrouter',
+    })).rejects.toBeInstanceOf(ConfigValidationError);
   });
 
   it('rechaza más de 3 respaldos', async () => {
@@ -50,8 +59,9 @@ describe('model-config-ops', () => {
       updateModelConfig(ADMIN, {
         action: 'chat',
         primaryModel: 'openai/gpt-4o',
-        fallbacks: ['a', 'b', 'c', 'd'],
+        backups: [{ model: 'a', provider: 'openrouter' }, { model: 'b', provider: 'openrouter' }, { model: 'c', provider: 'openrouter' }, { model: 'd', provider: 'openrouter' }],
         enabled: true,
+        provider: 'openrouter',
       }),
     ).rejects.toBeInstanceOf(ConfigValidationError);
   });
@@ -60,12 +70,22 @@ describe('model-config-ops', () => {
     await updateModelConfig(ADMIN, {
       action: 'vision',
       primaryModel: 'google/gemini-2.5-flash',
-      fallbacks: [],
+      backups: [], provider: 'openrouter',
       enabled: true,
     });
     const audit = await prisma.auditLog.findFirst({ where: { action: 'update_model_config' } });
     expect(audit?.actorId).toBe(ADMIN);
     expect(await listModelConfig()).toHaveLength(1);
+  });
+
+  it('asigna KIE sólo a acciones de imagen y conserva ese proveedor al resolver la ruta', async () => {
+    await updateModelConfig(ADMIN, {
+      action: 'render3d', primaryModel: 'nano-banana-2-lite', backups: [], enabled: true, provider: 'kie',
+    });
+    await expect(resolveRoute('render3d')).resolves.toMatchObject({ primaryModel: 'nano-banana-2-lite', provider: 'kie' });
+    await expect(updateModelConfig(ADMIN, {
+      action: 'chat', primaryModel: 'openai/gpt-4o', backups: [], enabled: true, provider: 'kie',
+    })).rejects.toBeInstanceOf(ConfigValidationError);
   });
 });
 

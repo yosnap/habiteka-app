@@ -13,13 +13,13 @@
  * Reúsa `scale.ts` (pxToMeters, effectiveHeightM, DEFAULT_CEILING_M): la conversión
  * px↔m y la altura efectiva ya viven allí, puras y testeadas. Aquí NO se duplican.
  */
-import type { CanvasDoc, StructKind, StructObj } from '../types';
-import { CEILING_KINDS } from '../types';
+import type { CanvasDoc, StructKind, StructObj, WallSurfaceKind } from '../types';
+import { CEILING_KINDS, WALL_SURFACE_KINDS } from '../types';
 import { pxToMeters, effectiveHeightM, DEFAULT_CEILING_M } from '../scale';
-import { clampIntensity, defaultLight } from '../light';
+import { clampIntensity, defaultLight, lightColor } from '../light';
 import { associateOpening, splitWallWithOpenings, wallAxis, wallEndpointsXZ } from './wall-openings';
 import { floorPolygonFromWalls } from './floor-from-walls';
-import { objectCenterY } from './placement';
+import { objectCenterY, wallSurfaceElevationM, WALL_SURFACE_SIZE_M } from './placement';
 
 /** Escala por defecto (px por metro) cuando el doc no trae escala. */
 const DEFAULT_PX_PER_METER = 100;
@@ -65,9 +65,19 @@ function isCeilingItem(o: StructObj): boolean {
   return (CEILING_KINDS as Set<string>).has(o.kind);
 }
 
-/** ¿El objeto es un mueble colocable en suelo/pared? (no estructural, no luz, no techo). */
+/** ¿El objeto es un mueble colocable en suelo/pared? (no estructural, no luz, no techo, no wall-surface). */
 function isFurniture(o: StructObj): boolean {
-  return !STRUCTURAL_KINDS.has(o.kind) && !isLight(o) && !isCeilingItem(o);
+  return (
+    !STRUCTURAL_KINDS.has(o.kind) &&
+    !isLight(o) &&
+    !isCeilingItem(o) &&
+    !(WALL_SURFACE_KINDS as Set<string>).has(o.kind)
+  );
+}
+
+/** ¿El objeto es un elemento de superficie de muro (enchufe, interruptor, TV…)? */
+function isWallSurfaceItem(o: StructObj): boolean {
+  return (WALL_SURFACE_KINDS as Set<string>).has(o.kind);
 }
 
 /** Caja de un muro en metros, ya centrada en el origen de la escena (plano XZ). */
@@ -100,6 +110,8 @@ export interface GlassPane {
   size: [number, number, number];
   /** Rotación alrededor del eje vertical (Y), en radianes (la del muro). */
   rotationY: number;
+  /** Tipo de vidrio: simple (claro), doble (azulado), oscurecido (gris). */
+  glassType?: 'simple' | 'doble' | 'oscurecido';
 }
 
 /**
@@ -167,6 +179,26 @@ export interface FurnitureItem {
 }
 
 /**
+ * Elemento anclado a la superficie de un muro (enchufe, interruptor, TV de pared…).
+ * El centro se calcula proyectando la posición 2D del objeto sobre el muro más cercano,
+ * a la altura `center[1]` (elevación + alto/2). `rotationY` alinea su cara ancha con el muro.
+ */
+export interface WallSurfaceItem {
+  id: string;
+  kind: WallSurfaceKind;
+  /** Centro en metros: [x, y, z], con y = elevación + alto/2. */
+  center: [number, number, number];
+  /** Tamaño real en metros: [ancho (a lo largo del muro), alto (vertical), profundidad]. */
+  size: [number, number, number];
+  /** Rotación alrededor de Y (rad) para alinear la cara ancha con el muro. */
+  rotationY: number;
+  /** Color del material opcional (p. ej. marco del cuadro); si no, el render usa un default. */
+  color?: string;
+  /** URL de imagen (data URL) para art_frame; si está, el render la usa como textura. */
+  imageUrl?: string;
+}
+
+/**
  * Luz de la escena derivada de una luz de primera clase (F-LUZ) del doc. Se renderiza
  * como una luz puntual (PointLight) en `position`, con `color` e `intensity` físicos.
  */
@@ -205,6 +237,8 @@ export interface Scene3D {
   furniture: FurnitureItem[];
   /** Elementos de techo (ceiling_light, pendant_lamp), colgados desde arriba. */
   ceilingItems: FurnitureItem[];
+  /** Elementos anclados a la superficie de un muro (enchufes, interruptores, TV…). */
+  wallSurfaceItems: WallSurfaceItem[];
   /** Luces de primera clase (F-LUZ) del doc, como luces puntuales. */
   lights: SceneLight[];
   /** Altura de techo efectiva usada (m). */
@@ -213,6 +247,9 @@ export interface Scene3D {
   pxPerMeter: number;
   /** Centro del plano en px, para reusar al posicionar muebles del doc. */
   planCenterPx: [number, number];
+  /** ¿Hay una cenefa LED (led_strip) en el doc? Si true, el render dibuja una línea
+   *  perimetral a la altura del techo siguiendo el polígono del suelo. */
+  hasLedStrip: boolean;
 }
 
 /** Sub-tipo geométrico mínimo: posición (esquina sup-izq) + tamaño en planta (px). */
@@ -394,18 +431,23 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   const furniture: FurnitureItem[] = doc.objects.filter(isFurniture).map(buildFurnitureItem);
   const ceilingItems: FurnitureItem[] = doc.objects.filter(isCeilingItem).map(buildFurnitureItem);
 
-  const allLights: SceneLight[] = doc.objects.filter(isLight).map((o) => {
-    const [x, z] = planPointToXZ(o, center, pxPerMeter);
-    const props = o.light ?? defaultLight();
-    return {
-      id: o.id,
-      position: [x, ceilingHeightM * LIGHT_HEIGHT_FRACTION, z],
-      color: props.color,
-      intensity: intensity0to100ToPhysical(props.intensidad),
-      distance: DEFAULT_LIGHT_DISTANCE_M,
-      decay: DEFAULT_LIGHT_DECAY,
-    };
-  });
+  const allLights: SceneLight[] = doc.objects
+    .filter(isLight)
+    .map((o) => {
+      const [x, z] = planPointToXZ(o, center, pxPerMeter);
+      const props = o.light ?? defaultLight();
+      const color = lightColor(props);
+      if (!color) return null; // on === false → sin luz
+      return {
+        id: o.id,
+        position: [x, ceilingHeightM * LIGHT_HEIGHT_FRACTION, z],
+        color,
+        intensity: intensity0to100ToPhysical(props.intensidad),
+        distance: DEFAULT_LIGHT_DISTANCE_M,
+        decay: DEFAULT_LIGHT_DECAY,
+      };
+    })
+    .filter((l): l is SceneLight => l !== null);
   const lights = limitLights(allLights);
 
   // Muros con HUECOS reales: cada ventana/puerta se asocia (por cercanía geométrica) al muro
@@ -414,17 +456,31 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   // sin huecos sigue siendo una sola caja. Las ventanas añaden cristales (`glassPanes`).
   const wallObjs = structural.filter((o) => o.kind === 'wall');
   const openings = structural.filter((o) => o.kind === 'window' || o.kind === 'door');
-  // Agrupa los huecos por el muro al que se asocian (clave = id del muro).
+  // Agrupa los huecos por el muro al que se asocian (clave = id del muro). Preferimos el
+  // `parentId` explícito (vínculo wall-child) y caemos a la asociación geométrica por distancia
+  // para aperturas antiguas sin parentId.
+  const wallById = new Map(wallObjs.map((w) => [w.id, w] as const));
   const openingsByWall = new Map<string, StructObj[]>();
   for (const op of openings) {
-    const wall = associateOpening(op, wallObjs);
+    const wall =
+      (op.parentId && wallById.get(op.parentId)) || associateOpening(op, wallObjs);
     if (!wall) continue; // hueco sin muro (inalcanzable con datos válidos): se omite, no caja maciza.
     const list = openingsByWall.get(wall.id);
     if (list) list.push(op);
     else openingsByWall.set(wall.id, [op]);
   }
-  // Extensión de juntas 3D: cada extremo de muro que toca a otro recibe
+
+  // Muros de wizard horizontales llevan un bbox EXTENDIDO (loExt/hiExt en meta) para que el
+  // flood-fill del suelo cierre las esquinas. Esa misma extensión (+t en convexas, 0 en
+  // cóncavas) es la que CIERRA las esquinas en 3D: cubre el cuadrado t×t de la esquina con el
+  // muro perpendicular. NO hay que recortarla (dejaría hueco) ni añadirle la extensión de junta
+  // 3D por encima (se pasaría de medida: 1.5t). La extensión de junta 3D (~t/2) solo aplica a
+  // muros DIBUJADOS a mano (rotados, sin bbox extendido), que necesitan solaparse entre sí.
+  const wallObjMap = new Map<string, StructObj>(wallObjs.map((w) => [w.id, w]));
+
+  // Extensión de juntas 3D: cada extremo de muro DIBUJADO que toca a otro recibe
   // extendP1Px/P2Px ≈ t_vecino/2 para que las BoxGeometry se solapen en la esquina.
+  // Los muros de wizard (axis-aligned, bbox extendido) ya cierran solos → no reciben extensión.
   const JUNCTION_THRESH2 = 0.09; // (0.3 m)² — umbral de proximidad en XZ
   type EndExt = { p1: number; p2: number };
   const wallExtensions = new Map<string, EndExt>();
@@ -436,8 +492,10 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   }));
   for (let i = 0; i < wEndpoints.length; i++) {
     const a = wEndpoints[i]!;
+    const aObj = wallObjMap.get(a.id)!;
     for (let j = i + 1; j < wEndpoints.length; j++) {
       const b = wEndpoints[j]!;
+      const bObj = wallObjMap.get(b.id)!;
       for (const aEnd of ['p1', 'p2'] as const) {
         const pa = a[aEnd];
         for (const bEnd of ['p1', 'p2'] as const) {
@@ -450,10 +508,11 @@ export function docToScene(doc: CanvasDoc): Scene3D {
           if (sinTheta < 0.1) continue; // casi paralelos: sin extensión
           const eA = Math.min(1.5 * a.axis.t, b.axis.t / (2 * sinTheta));
           const eB = Math.min(1.5 * b.axis.t, a.axis.t / (2 * sinTheta));
+          // Solo los muros dibujados necesitan solape 3D; los wizard cierran con su bbox.
           const extA = wallExtensions.get(a.id)!;
           const extB = wallExtensions.get(b.id)!;
-          extA[aEnd] = Math.max(extA[aEnd], eA);
-          extB[bEnd] = Math.max(extB[bEnd], eB);
+          if (aObj.drawn) extA[aEnd] = Math.max(extA[aEnd], eA);
+          if (bObj.drawn) extB[bEnd] = Math.max(extB[bEnd], eB);
         }
       }
     }
@@ -462,6 +521,7 @@ export function docToScene(doc: CanvasDoc): Scene3D {
   const walls: WallBox[] = [];
   const glassPanes: GlassPane[] = [];
   const openingFrames: OpeningFrame[] = [];
+
   for (const wall of wallObjs) {
     const ext = wallExtensions.get(wall.id) ?? { p1: 0, p2: 0 };
     const { boxes, panes, frames } = splitWallWithOpenings(
@@ -484,6 +544,40 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     );
     glassPanes.push(...panes);
     openingFrames.push(...frames);
+  }
+
+  // Elementos de superficie de muro: se anclan al muro más cercano (asociación geométrica,
+  // igual que las aperturas). Su posición 2D se proyecta sobre la línea del muro y se elevan
+  // a su altura de instalación. Sin muro cercano no se renderizan (un enchufe flotando no aporta).
+  const wallSurfaceItems: WallSurfaceItem[] = [];
+  for (const o of doc.objects.filter(isWallSurfaceItem)) {
+    const wall = (o.parentId && wallById.get(o.parentId)) || associateOpening(o, wallObjs);
+    if (!wall) continue;
+    const axis = wallAxis(wall);
+    const { p1, p2 } = wallEndpointsXZ(wall, center, pxPerMeter);
+    // Centro 2D del objeto en mundo XZ.
+    const [ox, oz] = planPointToXZ(o, center, pxPerMeter);
+    // Proyectar (ox,oz) sobre el segmento p1→p2 del muro (punto más cercano de la recta).
+    const segx = p2[0] - p1[0];
+    const segz = p2[1] - p1[1];
+    const segLen2 = segx * segx + segz * segz || 1;
+    let t = ((ox - p1[0]) * segx + (oz - p1[1]) * segz) / segLen2;
+    t = Math.max(0, Math.min(1, t)); // clamp al tramo del muro
+    const px = p1[0] + segx * t;
+    const pz = p1[1] + segz * t;
+    const kind = o.kind as WallSurfaceKind;
+    const [wM, hM, dM] = WALL_SURFACE_SIZE_M[kind];
+    const elevM = wallSurfaceElevationM(kind, o.elevationM);
+    const meta = o.meta as { imageUrl?: string } | undefined;
+    wallSurfaceItems.push({
+      id: o.id,
+      kind,
+      center: [px, elevM + hM / 2, pz],
+      size: [wM, hM, dM],
+      rotationY: rotation2DToY(axis.angleDeg),
+      ...(o.color ? { color: o.color } : {}),
+      ...(meta?.imageUrl ? { imageUrl: meta.imageUrl } : {}),
+    });
   }
 
   // Suelo: bounding box de SOLO los muros (no de ventanas/puertas, que pueden sobresalir
@@ -535,10 +629,12 @@ export function docToScene(doc: CanvasDoc): Scene3D {
     openingFrames,
     furniture,
     ceilingItems,
+    wallSurfaceItems,
     lights,
     ceilingHeightM,
     pxPerMeter,
     planCenterPx: center,
+    hasLedStrip: doc.objects.some((o) => o.kind === 'led_strip'),
   };
 }
 

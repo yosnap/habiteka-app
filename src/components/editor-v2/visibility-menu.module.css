@@ -1,0 +1,19 @@
+/* Mismo aspecto que el resto de botones de la cabecera: va junto a «Planta». */
+.menu { position: relative; z-index: 40; font: inherit; }
+.menu summary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: var(--space) calc(var(--space) * 1.5); cursor: pointer; color: var(--ink); list-style: none; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); transition: background-color 150ms ease-out; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary:hover, .menu[open] summary { background: var(--surface); }
+.menu[open] summary { color: var(--brand); border-color: var(--brand); }
+.popover { position: absolute; left: 0; top: calc(100% + 6px); width: 240px; padding: 12px; display: grid; gap: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-panel); color: var(--ink); }
+.popover fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.popover legend { margin-bottom: 4px; color: var(--muted); font-size: .6875rem; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
+/* Campo con etiqueta arriba y control debajo (Medidas). Las casillas traen su propio estilo. */
+.field { display: grid; gap: 4px; font-size: .75rem; color: var(--muted); font-weight: 600; }
+.field > :not(span) { color: var(--ink); font-weight: 400; }
+.popover p { margin: 0; color: var(--muted); line-height: 1.35; font-size: .6875rem; }
+/* Elementos del menú de selección por tipo: nombre, contador y en gris cuando no hay ninguno. */
+.item { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 4px 8px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; }
+.item:hover:not(:disabled), .item:focus-visible { background: var(--surface); }
+.item:disabled { color: var(--muted); opacity: .55; cursor: not-allowed; }
+.item small { min-width: 24px; padding: 1px 6px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: .6875rem; font-variant-numeric: tabular-nums; text-align: center; }
+.item:disabled small { background: transparent; }

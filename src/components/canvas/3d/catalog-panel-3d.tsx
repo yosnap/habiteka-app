@@ -3,11 +3,15 @@
 /**
  * Panel de catálogo para el overlay 3D: pestañas por categoría, elementos
  * agrupados en familias y mostrados con miniatura + nombre.
- * Al hacer clic en un ítem llama a `onAdd(kind)`.
+ * - Clic en un ítem → `onAdd(kind)` (lo coloca en el centro; usado también para reemplazar).
+ * - Arrastrar un ítem al escenario 3D → el overlay lo suelta donde apunta el raycast al suelo
+ *   (payload `text/catalog-3d`), colocándolo en su sitio sin tener que moverlo después.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CATALOG } from '@/canvas/catalog';
 import type { StructKind } from '@/canvas/types';
+
+export const CATALOG_3D_MIME = 'text/catalog-3d';
 
 const EXCLUDED_KINDS = new Set(['wall']);
 const CATEGORIES = CATALOG
@@ -29,7 +33,9 @@ export function CatalogPanel3D({ onAdd, swapMode }: { onAdd: (kind: StructKind) 
   const [open, setOpen] = useState(false);
   const [activeCat, setActiveCat] = useState(CATEGORIES[0]?.id ?? '');
 
-  useEffect(() => { if (swapMode) setOpen(true); }, [swapMode]);
+  // Entrar en modo intercambio abre el panel una vez; después el usuario puede cerrarlo.
+  const [seenSwapMode, setSeenSwapMode] = useState(swapMode);
+  if (swapMode !== seenSwapMode) { setSeenSwapMode(swapMode); if (swapMode) setOpen(true); }
 
   if (!open) {
     return (
@@ -99,12 +105,20 @@ export function CatalogPanel3D({ onAdd, swapMode }: { onAdd: (kind: StructKind) 
                 <button
                   key={item.kind}
                   type="button"
+                  draggable
+                  onDragStart={(e) => {
+                    // Arrastrar al escenario 3D: el overlay hace raycast al suelo y coloca el
+                    // mueble donde se suelta. effectAllowed=copy para no mover el origen.
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData(CATALOG_3D_MIME, JSON.stringify({ kind: item.kind }));
+                    setOpen(false);
+                  }}
                   onClick={() => {
                     onAdd(item.kind);
                     setOpen(false);
                   }}
                   className="group flex flex-col items-center rounded-lg p-1 hover:bg-blue-50 transition-colors"
-                  title={item.label}
+                  title={`${item.label} (arrastra al escenario o haz clic)`}
                 >
                   {item.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

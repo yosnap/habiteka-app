@@ -53,6 +53,29 @@ describe('OpenRouterChatVisionAdapter', () => {
     expect(result.usage).toEqual({ promptTokens: 5, completionTokens: 7 });
   });
 
+  it('rescata el JSON cuando el modelo lo envuelve en vallas markdown o prosa', async () => {
+    const wrapped = 'Aquí tienes el resultado:\n```json\n{"objetivo":"reforma"}\n```\nEspero que sirva.';
+    const f = setClientFactory(
+      () =>
+        ({
+          chat: {
+            completions: {
+              create: () =>
+                Promise.resolve({ choices: [{ message: { content: wrapped } }], usage: {} }),
+            },
+          },
+        }) as never,
+    );
+    restoreFn = () => setClientFactory(f);
+
+    const adapter = new OpenRouterChatVisionAdapter();
+    const result = await adapter.chat({
+      ...baseReq,
+      responseSchema: { type: 'object', properties: { objetivo: { type: 'string' } } },
+    });
+    expect(result.structured).toEqual({ objetivo: 'reforma' });
+  });
+
   it('JSON inválido con responseSchema lanza AiError(schema)', async () => {
     const f = setClientFactory(
       () =>

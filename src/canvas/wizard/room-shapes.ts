@@ -273,26 +273,38 @@ export function outlineToWalls(vertices: Pt[], t: number, idPrefix = 'wall'): St
     // el interior (el bug que se veía en el escalón). Convexa: cross > 0; cóncava: cross < 0.
     const startConvex = turnCross(prev, a, b) > 0; // esquina en el vértice `a`
     const endConvex = turnCross(a, b, next) > 0; // esquina en el vértice `b`
-    const extStart = horizontal && startConvex ? t : 0;
-    const extEnd = horizontal && endConvex ? t : 0;
+    // Convex: el muro horizontal cubre la esquina (+t). Concave: SIN extensión (0);
+    // el muro vertical perpendicular comparte el cuadrado t×t de la esquina y el inglete
+    // diagonal corta ambos (computeWallMiters + wallPolygon). Recortar (-t) rompía ese
+    // solape y dejaba la esquina sin diagonal.
+    const extStart = horizontal ? (startConvex ? t : 0) : 0;
+    const extEnd = horizontal ? (endConvex ? t : 0) : 0;
 
     if (horizontal) {
       const goingRight = b.x > a.x; // sentido de la arista en X
       const loExt = goingRight ? extStart : extEnd; // extensión en el extremo de menor X
       const hiExt = goingRight ? extEnd : extStart; // extensión en el extremo de mayor X
+      // El bbox INCLUYE la extensión de esquina (necesaria para el flood-fill del suelo 3D
+      // y para el rendering 2D con pivot). `loExt`/`hiExt` numéricos en meta permiten que el
+      // render 3D de boxes use las dimensiones naturales (sin extensión) para mayor exactitud.
       const x0 = Math.min(a.x, b.x) - loExt;
       const len = Math.abs(b.x - a.x) + loExt + hiExt;
-      // La normal en Y indica el lado: +Y abajo (muro arranca en el borde), −Y arriba.
       const y0 = nrm.y > 0 ? a.y : a.y - t;
-      walls.push({ id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: len, height: t, rotation: 0 });
+      walls.push({
+        id: `${idPrefix}-${crypto.randomUUID()}`, kind: 'wall', x: x0, y: y0, width: len, height: t, rotation: 0,
+        meta: { nx: nrm.x, ny: nrm.y, extLeft: loExt > 0, extRight: hiExt > 0, loExt, hiExt },
+      });
     } else {
-      const goingDown = b.y > a.y; // sentido de la arista en Y
-      const loExt = goingDown ? extStart : extEnd; // extensión en el extremo de menor Y
-      const hiExt = goingDown ? extEnd : extStart; // extensión en el extremo de mayor Y
-      const y0 = Math.min(a.y, b.y) - loExt;
-      const len = Math.abs(b.y - a.y) + loExt + hiExt;
+      const goingDown = b.y > a.y;
+      const y0 = Math.min(a.y, b.y);
+      const len = Math.abs(b.y - a.y);
       const x0 = nrm.x > 0 ? a.x : a.x - t;
-      walls.push({ id: `${idPrefix}-${i}`, kind: 'wall', x: x0, y: y0, width: t, height: len, rotation: 0 });
+      const topConvex = goingDown ? startConvex : endConvex;
+      const bottomConvex = goingDown ? endConvex : startConvex;
+      walls.push({
+        id: `${idPrefix}-${crypto.randomUUID()}`, kind: 'wall', x: x0, y: y0, width: t, height: len, rotation: 0,
+        meta: { nx: nrm.x, ny: nrm.y, topConvex, bottomConvex },
+      });
     }
   }
   return walls;

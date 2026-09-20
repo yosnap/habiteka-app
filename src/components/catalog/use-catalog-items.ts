@@ -30,17 +30,17 @@ interface State {
 }
 
 export function useCatalogItems(category?: string) {
-  const [state, setState] = useState<State>({ items: [], loading: false, error: null });
+  // La petición vigente se identifica por clave; "cargando" es que el resultado guardado no es de esa clave.
+  const [state, setState] = useState<State & { key: string }>({ items: [], loading: false, error: null, key: '' });
   // Contador que fuerza una recarga cuando se incrementa.
   const [revision, setRevision] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const requestKey = `${category ?? ''}|${revision}`;
 
   useEffect(() => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-
-    setState((s) => ({ ...s, loading: true, error: null }));
 
     const url = new URL('/api/catalog', window.location.origin);
     if (category) url.searchParams.set('category', category);
@@ -52,7 +52,7 @@ export function useCatalogItems(category?: string) {
       })
       .then(({ items }) => {
         if (!ctrl.signal.aborted) {
-          setState({ items, loading: false, error: null });
+          setState({ items, loading: false, error: null, key: requestKey });
         }
       })
       .catch((err: unknown) => {
@@ -61,16 +61,17 @@ export function useCatalogItems(category?: string) {
             ...s,
             loading: false,
             error: err instanceof Error ? err.message : 'Error desconocido',
+            key: requestKey,
           }));
         }
       });
 
     return () => ctrl.abort();
     // revision se incluye para forzar recarga tras un upload exitoso.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, revision]);
+  }, [category, revision, requestKey]);
 
   const reload = () => setRevision((r) => r + 1);
+  const current = state.key === requestKey;
 
-  return { ...state, reload };
+  return { items: state.items, loading: !current, error: current ? state.error : null, reload };
 }

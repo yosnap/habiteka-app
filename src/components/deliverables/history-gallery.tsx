@@ -10,7 +10,8 @@ import type { DeliverableType } from '@/lib/contracts';
 /** Resumen de un entregable para la galería (sin payload completo). */
 export interface HistoryDeliverable {
   id: string;
-  type: DeliverableType;
+  type: DeliverableType | 'video';
+  videoUrl?: string | null;
   /** URL del render, si el entregable es de tipo render3d; null en otro caso. */
   renderUrl: string | null;
   sourceImageId: string | null;
@@ -24,10 +25,11 @@ export interface HistoryGroup {
   deliverables: HistoryDeliverable[];
 }
 
-const TYPE_LABEL: Record<DeliverableType, string> = {
+const TYPE_LABEL: Record<DeliverableType | 'video', string> = {
   plano2d: 'Plano 2D',
   render3d: 'Render',
   memoria: 'Memoria',
+  video: 'Recorrido 3D',
 };
 
 export function HistoryGallery({ groups }: { groups: HistoryGroup[] }) {
@@ -88,7 +90,7 @@ function HistoryOrigin({ url }: { url: string | null }) {
 function HistoryDeliverableCard({ deliverable }: { deliverable: HistoryDeliverable }) {
   return (
     <div className="rounded-card border-line flex w-28 flex-col items-center gap-1 border p-2">
-      {deliverable.renderUrl ? (
+      {deliverable.videoUrl ? <video controls preload="metadata" src={deliverable.videoUrl} className="h-20 w-full" /> : deliverable.renderUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- URL prefirmada de storage, no servida por Next
         <img
           src={deliverable.renderUrl}

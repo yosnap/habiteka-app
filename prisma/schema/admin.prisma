@@ -34,6 +34,49 @@ model ModelConfig {
   @@map("model_config")
 }
 
+// Cadena ordenada de proveedores/modelos para cada uso de IA. A diferencia de
+// `ModelConfig.fallbacks`, cada respaldo conoce el proveedor que lo ejecuta,
+// permitiendo conmutar entre KIE, NaN y OpenRouter de forma real.
+model AiModelRoute {
+  id        String      @id @default(cuid())
+  action    ModelAction
+  position  Int
+  provider  String
+  model     String
+  enabled   Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([action, position])
+  @@index([action, enabled])
+  @@map("ai_model_route")
+}
+
+// Perfiles reutilizables de mapeo IA. Los perfiles de sistema viven en código;
+// esta tabla guarda las variantes personalizadas creadas desde administración.
+model AiModelProfile {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String?
+  configurations Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("ai_model_profile")
+}
+
+// Credenciales de proveedores de IA administradas en runtime. La clave se guarda
+// cifrada; el panel sólo recibe su huella y nunca puede volver a leerla.
+model AiProviderCredential {
+  provider        String   @id
+  encryptedApiKey String
+  keyHint         String
+  enabled         Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  @@map("ai_provider_credential")
+}
+
 // Configuración de marca (singleton). El logo referencia un MediaAsset.
 model BrandSettings {
   id                String   @id @default(cuid())
@@ -104,4 +147,37 @@ model UsageEvent {
   @@index([action])
   @@index([userId])
   @@map("usage_event")
+}
+
+// Coste operativo de cada intento contra un proveedor de IA. No forma parte del
+// ledger de créditos: conserva por separado importes confirmados, estimados y
+// desconocidos. requestId + attempt hace la escritura reintentable/idempotente.
+model AiRequestCost {
+  id             String      @id @default(cuid())
+  requestId      String
+  attempt        Int
+  organizationId String
+  userId         String?
+  projectId      String?
+  refId          String?
+  batchId        String?
+  action         ModelAction
+  operation      String
+  provider       String
+  model          String
+  status         String
+  latencyMs      Int
+  units          Json?
+  costUsd        Decimal?    @db.Decimal(14, 8)
+  costType       String
+  errorCode      String?
+  createdAt      DateTime    @default(now())
+
+  @@unique([requestId, attempt])
+  @@index([createdAt])
+  @@index([organizationId, createdAt])
+  @@index([provider, model, status])
+  @@index([projectId, createdAt])
+  @@index([refId, createdAt])
+  @@map("ai_request_cost")
 }

@@ -1,0 +1,1 @@
+Texturas procedurales originales de Habiteka, generadas por scripts/generate-outdoor-materials.ts. Sin assets de terceros.

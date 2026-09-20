@@ -1,4 +1,5 @@
 'use client';
+import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControlsEnabled } from './pointer-interaction';
 
 /**
  * Capa de elementos de techo (ceiling_light, pendant_lamp) en la escena 3D (F2).
@@ -11,11 +12,16 @@
  *   - ceiling_light → disco plano + emisión blanca (plafón LED enrasado).
  *   - pendant_lamp  → esfera colgante + cable desde el techo (lámpara colgante).
  */
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { Html } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
+import type { ThreeEvent } from '@react-three/fiber';
+import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 import type { FurnitureItem } from '@/canvas/3d/doc-to-scene';
+import type { SceneCoords } from '@/canvas/3d/scene-to-doc';
+import { translatePatch } from '@/canvas/3d/scene-to-doc';
 import { useCanvasStore } from '@/canvas/canvas-store';
-import { ObjectFloatingMenu } from './object-floating-menu';
+import { RadialContextMenu } from './radial-context-menu';
 import type { SelectionMode } from './use-3d-selection';
 
 // ── Plafón enrasado ───────────────────────────────────────────────────────────
@@ -95,7 +101,7 @@ function CeilingSelectionOverlay({
         zIndexRange={[100, 0]}
         style={{ pointerEvents: 'none' }}
       >
-        <ObjectFloatingMenu
+        <RadialContextMenu
           mode={mode}
           onMove={() => onSetMode('translate')}
           onRotate={() => onSetMode('rotate')}
@@ -108,7 +114,130 @@ function CeilingSelectionOverlay({
   );
 }
 
+// ── Viga (beam) ───────────────────────────────────────────────────────────────
+
+function BeamMesh({ item }: { item: FurnitureItem }) {
+  const [w, h, d] = item.size;
+  return (
+    <mesh position={[0, 0, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color="#a08060" />
+    </mesh>
+  );
+}
+
 // ── Item individual ───────────────────────────────────────────────────────────
+
+/**
+ * Drag de un elemento de techo por el plano del techo (Y fijo, mover solo XZ).
+ * Versión simplificada de `useDragOnFloor`: sin snap a muros ni colisiones (las luces
+ * de techo no colisionan con muebles de suelo). El rayo se corta contra el plano
+ * horizontal a la altura del centro del item (y = item.center[1]).
+ */
+function useDragOnCeiling(
+  item: FurnitureItem,
+  isSelected: boolean,
+  sceneCoords: SceneCoords,
+  groupRef: React.RefObject<{ position: { x: number; z: number } }>,
+) {
+  const { camera, gl } = useThree();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const controls = useThree((s) => s.controls) as any;
+  const dragRef = useRef<{
+    active: boolean;
+    pointerId: number;
+    startPlaneXZ: [number, number];
+    startObjXZ: [number, number];
+  } | null>(null);
+
+  /** Rayo desde la cámara contra el plano horizontal a la altura del techo del item. */
+  const hitCeiling = useCallback(
+    (clientX: number, clientY: number): [number, number] | null => {
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+      const raycaster = new Raycaster();
+      raycaster.setFromCamera(new Vector2(ndcX, ndcY), camera);
+      // Plano y = item.center[1] → Plane(normal=(0,1,0), constant = -y).
+      const plane = new Plane(new Vector3(0, 1, 0), -item.center[1]);
+      const target = new Vector3();
+      return raycaster.ray.intersectPlane(plane, target) ? [target.x, target.z] : null;
+    },
+    [camera, gl, item.center],
+  );
+
+  useEffect(() => {
+    const el = gl.domElement;
+    if (!isSelected) {
+      setCanvasCursor(gl, '');
+      return;
+    }
+
+    const onMove = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d?.active || d.pointerId !== e.pointerId) return;
+      const xz = hitCeiling(e.clientX, e.clientY);
+      if (!xz || !groupRef.current) return;
+      groupRef.current.position.x = d.startObjXZ[0] + (xz[0] - d.startPlaneXZ[0]);
+      groupRef.current.position.z = d.startObjXZ[1] + (xz[1] - d.startPlaneXZ[1]);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d?.active || d.pointerId !== e.pointerId) return;
+      dragRef.current = null;
+      setControlsEnabled(controls, true);
+      releaseCanvasPointer(gl, e.pointerId);
+      setCanvasCursor(gl, 'grab');
+      const group = groupRef.current;
+      if (!group) return;
+      const movedX = Math.abs(group.position.x - d.startObjXZ[0]);
+      const movedZ = Math.abs(group.position.z - d.startObjXZ[1]);
+      if (movedX < 0.001 && movedZ < 0.001) return;
+      const { doc, updateObject } = useCanvasStore.getState();
+      const structObj = doc.objects.find((o) => o.id === item.id);
+      if (structObj) {
+        const patch = translatePatch(structObj, [group.position.x, group.position.z], sceneCoords);
+        updateObject(item.id, patch);
+      }
+    };
+
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+    return () => {
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+    };
+  }, [isSelected, hitCeiling, groupRef, controls, gl, item.id, sceneCoords]);
+
+  const onPointerDown = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      const ne = e.nativeEvent;
+      const xz = hitCeiling(ne.clientX, ne.clientY);
+      if (!xz) return;
+      setControlsEnabled(controls, false);
+      captureCanvasPointer(gl, ne.pointerId);
+      setCanvasCursor(gl, 'grabbing');
+      dragRef.current = {
+        active: true,
+        pointerId: ne.pointerId,
+        startPlaneXZ: xz,
+        startObjXZ: [item.center[0], item.center[2]],
+      };
+    },
+    [hitCeiling, controls, gl, item.center],
+  );
+
+  const onPointerEnter = useCallback(() => {
+    setCanvasCursor(gl, 'grab');
+  }, [gl]);
+  const onPointerLeave = useCallback(() => {
+    if (!dragRef.current?.active) setCanvasCursor(gl, '');
+  }, [gl]);
+
+  return { onPointerDown, onPointerEnter, onPointerLeave };
+}
 
 function CeilingItem({
   item,
@@ -118,6 +247,7 @@ function CeilingItem({
   onDeselect,
   mode,
   onSetMode,
+  sceneCoords,
 }: {
   item: FurnitureItem;
   ceilingHeightM: number;
@@ -126,20 +256,36 @@ function CeilingItem({
   onDeselect: () => void;
   mode: SelectionMode;
   onSetMode: (m: SelectionMode) => void;
+  sceneCoords: SceneCoords;
 }) {
   const isSelected = selectedId === item.id;
+  const canDrag = isSelected && mode === 'translate';
   // Posición real: item.center ya tiene el Y correcto calculado por objectCenterY
   const [cx, cy, cz] = item.center;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupRef = useRef<any>(null);
+  const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnCeiling(
+    item,
+    canDrag,
+    sceneCoords,
+    groupRef,
+  );
 
   return (
     <group
+      ref={groupRef}
       name={item.id}
       position={[cx, cy, cz]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       {item.kind === 'pendant_lamp' ? (
         <PendantLampMesh item={item} ceilingLocalY={ceilingHeightM - cy} />
+      ) : item.kind === 'beam' ? (
+        <BeamMesh item={item} />
       ) : (
         <CeilingLightMesh item={item} />
       )}
@@ -165,6 +311,7 @@ export const CeilingLayer = memo(function CeilingLayer({
   onDeselect,
   mode,
   onSetMode,
+  sceneCoords,
 }: {
   items: FurnitureItem[];
   ceilingHeightM: number;
@@ -173,6 +320,7 @@ export const CeilingLayer = memo(function CeilingLayer({
   onDeselect: () => void;
   mode: SelectionMode;
   onSetMode: (m: SelectionMode) => void;
+  sceneCoords: SceneCoords;
 }) {
   if (items.length === 0) return null;
   return (
@@ -187,6 +335,7 @@ export const CeilingLayer = memo(function CeilingLayer({
           onDeselect={onDeselect}
           mode={mode}
           onSetMode={onSetMode}
+          sceneCoords={sceneCoords}
         />
       ))}
     </group>

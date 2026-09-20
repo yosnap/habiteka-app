@@ -85,9 +85,16 @@ export type AgentInput =
       /** Instrucción libre en lenguaje natural ("haz la sala más cálida"); '' si no se indicó. */
       promptLibre: string;
       description: string;
+      /** Contrato con IDs, reservado para la auditoría post-render. */
+      structuralAudit?: string;
       referenceImage: { base64: string; mimeType: string };
+      referenceImages?: Array<{ base64: string; mimeType: string }>;
       /** Proporción de la sala (ancho:alto) para encuadrar el render. */
       aspectRatio: string;
+      /** Uso declarado del espacio: evita que un patio se interprete como salón. */
+      spaceKind?: string;
+      /** El plano procede del documento nativo V2, no de una escritura legacy. */
+      documentSource?: 'editor-v2';
       /**
        * Identificador único de ESTE intento de generación, creado por la Server
        * Action. Es la clave idempotente del cobro: cada clic de "Generar" trae uno
@@ -258,7 +265,12 @@ async function handleGoBack(
 function sanitizeElements(e: StructuralElements): StructuralElements {
   const int = (v: unknown) =>
     typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.trunc(v)) : 0;
-  return { walls: int(e?.walls), doors: int(e?.doors), windows: int(e?.windows), pillars: int(e?.pillars) };
+  return {
+    walls: int(e?.walls),
+    doors: int(e?.doors),
+    windows: int(e?.windows),
+    pillars: int(e?.pillars),
+  };
 }
 
 async function handleQualify(
@@ -357,11 +369,15 @@ async function handleGenerateFromCanvas(
     // Prefijo `canvas:` distinto de `deliver:` para que ambos flujos coexistan.
     idempotencyKey: `canvas:${projectId}:${input.requestId}`,
     estimateCredits: 1000,
+    zoneKind: input.spaceKind ?? 'interior',
     sketch: {
       description: input.description,
+      ...(input.structuralAudit ? { structuralAudit: input.structuralAudit } : {}),
       referenceImage: input.referenceImage,
+      ...(input.referenceImages ? { referenceImages: input.referenceImages } : {}),
       aspectRatio: input.aspectRatio,
       ...(input.promptLibre ? { promptLibre: input.promptLibre } : {}),
+      ...(input.documentSource === 'editor-v2' ? { requiresStructuralValidation: true } : {}),
     },
   };
 
@@ -375,7 +391,9 @@ async function handleGenerateFromCanvas(
     deliveryInput,
   );
 
-  await persistDeliverables(projectId, deliverables, undefined, zoneId);
+  await persistDeliverables(projectId, deliverables, undefined, zoneId, {
+    allowEditorV2: input.documentSource === 'editor-v2',
+  });
 
   // Si se generó un render, la IA explica sus decisiones (2ª llamada de chat,
   // barata). Es un extra: si falla, se devuelve el render igual (sin explicación).

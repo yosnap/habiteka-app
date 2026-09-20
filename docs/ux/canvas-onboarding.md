@@ -1,5 +1,7 @@
 # Onboarding del canvas y affordances
 
+Para el editor espacial de construcción: [controles, cierre y acabados](./editor-spatial-controls.md).
+
 > Dos problemas de descubribilidad que el diseño resuelve: la parálisis del
 > lienzo en blanco y la edición por zona (no evidente sola).
 

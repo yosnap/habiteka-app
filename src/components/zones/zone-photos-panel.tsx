@@ -13,6 +13,7 @@ import { useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { ZONE_KINDS } from '@/lib/zone-kinds';
 import {
   listZonePhotos,
@@ -100,7 +101,7 @@ export function ZonePhotosPanel({ projectId, zoneId = null, title = 'Fotos del e
       {zoneId ? (
         <label className="text-ink-soft flex items-center gap-2 text-xs">
           <span className="shrink-0">Tipo de espacio:</span>
-          <select
+          <ModernSelect
             value={kind}
             disabled={pending}
             onChange={(e) => onChangeKind(e.target.value)}
@@ -112,7 +113,7 @@ export function ZonePhotosPanel({ projectId, zoneId = null, title = 'Fotos del e
                 {k.label}
               </option>
             ))}
-          </select>
+          </ModernSelect>
         </label>
       ) : null}
 

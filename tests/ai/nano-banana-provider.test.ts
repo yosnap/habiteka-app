@@ -15,6 +15,15 @@ function mockFetchOk(imageUrl: string) {
 afterEach(() => vi.restoreAllMocks());
 
 describe('NanoBananaImageProvider (OpenRouter, sin red real)', () => {
+  it('conserva la proporción pedida por el plano', async () => {
+    vi.stubGlobal('fetch', mockFetchOk(PNG_DATA_URL));
+    await new NanoBananaImageProvider('test-key').generate({
+      prompt: 'plano',
+      aspectRatio: '16:9',
+    });
+    const init = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(JSON.parse(String(init?.body)).image_config).toEqual({ aspect_ratio: '16:9' });
+  });
   it('generate extrae la imagen de la respuesta y, sin storage, devuelve el data URL', async () => {
     vi.stubGlobal('fetch', mockFetchOk(PNG_DATA_URL));
     const provider = new NanoBananaImageProvider('test-key');

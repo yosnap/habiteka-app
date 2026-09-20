@@ -66,20 +66,23 @@ function wallGeom(o: StructObj): WallGeom | null {
     return { p1, p2, nx, ny, half };
   }
 
-  // Muro de plantilla (rotation ≈ 0): top-left en (o.x, o.y)
+  // Muro de plantilla (rotation ≈ 0): top-left en (o.x, o.y).
+  // Usa la normal guardada en meta si la tiene (generada por outlineToWalls, correcta);
+  // en caso contrario asume la normal "genérica" (solo correcta para sup/der).
+  const meta = o.meta as { nx?: number; ny?: number } | undefined;
   if (o.width >= o.height) {
     const half = o.height / 2;
     return {
       p1: { x: o.x, y: o.y + half },
       p2: { x: o.x + o.width, y: o.y + half },
-      nx: 0, ny: -1, half,
+      nx: meta?.nx ?? 0, ny: meta?.ny ?? -1, half,
     };
   }
   const half = o.width / 2;
   return {
     p1: { x: o.x + half, y: o.y },
     p2: { x: o.x + half, y: o.y + o.height },
-    nx: 1, ny: 0, half,
+    nx: meta?.nx ?? 1, ny: meta?.ny ?? 0, half,
   };
 }
 
@@ -92,9 +95,16 @@ function toLocal(bx: number, by: number, rot_rad: number): MiterDir {
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 /**
- * Calcula el corte de inglete para cada muro.
+ * Calcula el corte de inglete para cada muro (esquinas convexas Y cóncavas).
  * Devuelve un Map<id, WallMiter>; solo contiene entradas para muros con al
  * menos una junta detectada.
+ *
+ * En esquinas convexas la bisectriz de las normales apunta hacia afuera; en cóncavas
+ * hacia el interior del ángulo. Ambas pasan por el vértice de la esquina, y
+ * `wallPolygon`/`wallPolygonVertical` las recortan con el pivot adecuado (h/2 para
+ * horizontales, ±w/2 para verticales según topConvex/bottomConvex). No se filtran
+ * juntas: el corte diagonal se aplica a todas las esquinas reales, incluidas las
+ * cóncavas de formas L/U/T.
  */
 export function computeWallMiters(walls: StructObj[]): Map<string, WallMiter> {
   const result = new Map<string, WallMiter>();
@@ -118,11 +128,21 @@ export function computeWallMiters(walls: StructObj[]): Map<string, WallMiter> {
           const pb = bEnd === 'p1' ? b.geom.p1 : b.geom.p2;
           if (Math.hypot(pa.x - pb.x, pa.y - pb.y) > SNAP_DIST) continue;
 
-          // Bisectriz mundial de las normales de ambos muros
-          const bx = a.geom.nx + b.geom.nx;
-          const by = a.geom.ny + b.geom.ny;
+          // Bisectriz desde las DIRECCIONES que se alejan del vértice, no desde
+          // las normales: la normal de un muro dibujado/importado tiene sentido
+          // arbitrario (según el orden p1→p2 del segmento) y una normal
+          // invertida espejaba el corte — esquinas rotas. La dirección "hacia el
+          // otro extremo" es inequívoca, y el corte resultante es invariante al
+          // signo global de la bisectriz (wallPolygon usa la pendiente lbx/lby).
+          const oa = aEnd === 'p1' ? a.geom.p2 : a.geom.p1;
+          const ob = bEnd === 'p1' ? b.geom.p2 : b.geom.p1;
+          const la = Math.hypot(oa.x - pa.x, oa.y - pa.y);
+          const lb = Math.hypot(ob.x - pb.x, ob.y - pb.y);
+          if (la < 1e-6 || lb < 1e-6) continue;
+          const bx = (oa.x - pa.x) / la + (ob.x - pb.x) / lb;
+          const by = (oa.y - pa.y) / la + (ob.y - pb.y) / lb;
           const len = Math.hypot(bx, by);
-          if (len < 0.01) continue; // muros antiparalelos: sin inglete
+          if (len < 0.01) continue; // continuación colineal: sin inglete
 
           const ubx = bx / len, uby = by / len;
 

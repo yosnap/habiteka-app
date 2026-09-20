@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { emptyCanvasDoc, type StructObj } from '@/canvas/types';
+import sharp from 'sharp';
 
 const obj = (kind: StructObj['kind'], x: number, y: number): StructObj => ({
   id: `${kind}-${x}`,
@@ -13,6 +14,22 @@ const obj = (kind: StructObj['kind'], x: number, y: number): StructObj => ({
 });
 
 describe('rasterizeCanvasDoc', () => {
+  it('conserva el pivote de Konva y encuadra completo un muro dibujado a 90 grados', async () => {
+    const doc = {
+      ...emptyCanvasDoc(),
+      objects: [{ ...obj('wall', 100, 100), width: 400, height: 10, rotation: 90, drawn: true as const }],
+    };
+    const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
+    const { data, info } = await sharp(Buffer.from(base64, 'base64'))
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect(aspectRatio).toBe('9:16');
+    expect(info.height).toBeGreaterThan(info.width);
+    const center =
+      (Math.floor(info.height / 2) * info.width + Math.floor(info.width / 2)) * info.channels;
+    expect(data[center]).toBeLessThan(150);
+  });
   it('devuelve un PNG en base64 (cabecera PNG válida) y la proporción de la sala', async () => {
     // Muros que definen una sala apaisada (ancha): 400×200 ⇒ ~2:1 → 16:9.
     const wall = (x: number, y: number, w: number, h: number) => ({

@@ -12,6 +12,8 @@ model Project {
   // Soft-delete: marca de borrado lógico (papelera/retención). El borrado RGPD
   // (art. 17) y la purga por TTL hacen hard-delete real; esto NO los sustituye.
   deletedAt      DateTime?
+  // Último trabajo del estudio; las imágenes usan claves estables del storage.
+  studioState    Json?
 
   conversations Conversation[]
   canvasStates  CanvasState[]
@@ -20,6 +22,7 @@ model Project {
   votingRooms   VotingRoom[]
   sourceImages  SourceImage[]
   zones         ProjectZone[]
+  editorDocuments EditorDocumentState[]
 
   @@index([organizationId])
   @@index([deletedAt])
@@ -49,6 +52,7 @@ model ProjectZone {
   sourceImages SourceImage[]
   deliverables Deliverable[]
   agentStates  AgentState[]
+  editorDocuments EditorDocumentState[]
 
   @@index([organizationId])
   @@index([projectId])

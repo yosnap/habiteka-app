@@ -82,7 +82,7 @@ function buildBoxes(doc: CanvasDoc, ceilingH: number): { boxes: DocBox[]; roomW:
       w: wm,
       d: dm,
       h: isWall ? ceilingH : Math.min(1.0, Math.max(0.4, dm * 0.6)),
-      color: kindColor(obj.kind),
+      color: obj.color ?? kindColor(obj.kind),
       isWall,
     });
   }
@@ -90,32 +90,27 @@ function buildBoxes(doc: CanvasDoc, ceilingH: number): { boxes: DocBox[]; roomW:
   return { boxes, roomW: maxX, roomD: maxZ };
 }
 
+/** Coloca y encuadra la cámara ortográfica; fuera del componente porque muta el objeto de three.js. */
+function applyIsoCamera(cam: THREE.OrthographicCamera, canvas: { width: number; height: number }, cx: number, cz: number, s: number) {
+  cam.position.set(cx + s * 1.2, s * 1.0, cz + s * 1.2);
+  cam.near = -200;
+  cam.far = 400;
+  cam.up.set(0, 1, 0);
+  cam.lookAt(cx, 0, cz);
+  // Frustum en unidades de mundo (metros), no en píxeles: 0.65 · span en la mitad del frustum vertical,
+  // así la sala isométrica ocupa ~70 % del área del preview considerando ángulo y techo.
+  const aspect = canvas.width / canvas.height, viewHalf = s * 0.65;
+  cam.left = -viewHalf * aspect; cam.right = viewHalf * aspect; cam.top = viewHalf; cam.bottom = -viewHalf; cam.zoom = 1;
+  cam.updateProjectionMatrix();
+  return cam;
+}
 /** Configura la cámara ortográfica con lookAt imperativo para vista isométrica. */
 function IsoCamera({ cx, cz, span }: { cx: number; cz: number; span: number }) {
   const { camera, gl } = useThree();
   const camRef = useRef<THREE.OrthographicCamera | null>(null);
 
   useEffect(() => {
-    const s = span || 1;
-    const cam = camera as THREE.OrthographicCamera;
-    cam.position.set(cx + s * 1.2, s * 1.0, cz + s * 1.2);
-    cam.near = -200;
-    cam.far = 400;
-    cam.up.set(0, 1, 0);
-    cam.lookAt(cx, 0, cz);
-    // Frustum en unidades de mundo (metros), no en píxeles.
-    // 0.65 * span metros en la mitad del frustum vertical: la sala isométrica
-    // ocupa ~70% del área del preview considerando ángulo y techo.
-    const { width, height } = gl.domElement;
-    const aspect = width / height;
-    const viewHalf = s * 0.65;
-    cam.left   = -viewHalf * aspect;
-    cam.right  =  viewHalf * aspect;
-    cam.top    =  viewHalf;
-    cam.bottom = -viewHalf;
-    cam.zoom   = 1;
-    cam.updateProjectionMatrix();
-    camRef.current = cam;
+    camRef.current = applyIsoCamera(camera as THREE.OrthographicCamera, gl.domElement, cx, cz, span || 1);
   }, [camera, cx, cz, span, gl]);
 
   return null;

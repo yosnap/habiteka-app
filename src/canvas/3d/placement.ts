@@ -12,9 +12,43 @@
  *
  * Lógica pura y testeable, sin dependencias de React ni Three.
  */
-import type { StructObj } from '../types';
+import type { StructObj, WallSurfaceKind } from '../types';
 import { placementOf } from '../types';
 import { effectiveHeightM } from '../scale';
+
+/**
+ * Altura de la BASE del elemento sobre el suelo (metros) para items de superficie de muro,
+ * cuando el objeto no trae `elevationM` propio. Valores realistas de instalación.
+ */
+export const WALL_SURFACE_ELEVATION_M: Partial<Record<WallSurfaceKind, number>> = {
+  outlet: 0.3, // enchufe a 30 cm del suelo
+  switch: 1.2, // interruptor a 1,2 m
+  thermostat: 1.4, // termostato a 1,4 m
+  tv_mount: 1.1, // TV centrado a ~1,1 m
+  wall_sconce: 1.7, // aplique alto
+  art_frame: 1.5, // cuadro centrado a ~1,5 m
+  radiator: 0.15, // radiador con base baja
+};
+
+/** Elevación efectiva (m) de un item de superficie de muro: la del objeto o la por defecto. */
+export function wallSurfaceElevationM(kind: WallSurfaceKind, elevationM?: number): number {
+  return elevationM ?? WALL_SURFACE_ELEVATION_M[kind] ?? 1.2;
+}
+
+/**
+ * Tamaño 3D real (metros) de un item de superficie de muro: [ancho (a lo largo del muro),
+ * alto (vertical), profundidad (perpendicular al muro)]. El plano 2D no codifica el alto
+ * vertical de estos elementos, así que el render usa esta tabla realista por kind.
+ */
+export const WALL_SURFACE_SIZE_M: Record<WallSurfaceKind, [number, number, number]> = {
+  outlet: [0.08, 0.08, 0.04],
+  switch: [0.08, 0.08, 0.04],
+  thermostat: [0.12, 0.12, 0.04],
+  tv_mount: [1.2, 0.7, 0.08],
+  wall_sconce: [0.12, 0.15, 0.1],
+  art_frame: [0.6, 0.8, 0.04],
+  radiator: [0.6, 0.9, 0.1],
+};
 
 /**
  * Retorna el centro Y (metros) de un objeto en la escena 3D según su placement.

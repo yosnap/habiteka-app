@@ -4,6 +4,7 @@
  * montar OAuth. Se muestra solo con sesión activa o con el dev-login habilitado.
  */
 import Link from 'next/link';
+import { SignOutButton } from '@/components/app/sign-out-button';
 
 const NAV = [
   { href: '/users', label: 'Back-office · Usuarios' },
@@ -59,12 +60,7 @@ export function DevNavPanel({ userName, isAdmin, canvasProjectId }: Props) {
         ))}
       </nav>
       {userName ? (
-        <Link
-          href="/api/auth/sign-out"
-          className="text-ink-soft mt-3 inline-block text-xs underline"
-        >
-          Cerrar sesión
-        </Link>
+        <div className="mt-3"><SignOutButton /></div>
       ) : (
         <a
           href="/api/dev/login"

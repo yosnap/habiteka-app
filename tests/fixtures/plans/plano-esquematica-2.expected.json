@@ -1,0 +1,18 @@
+{
+  "descripcion": "Borrador a mano con cotas escritas por estancia (escala aprox. 1:100).",
+  "general": { "anchoM": 12.0, "altoM": 8.5 },
+  "estancias": [
+    { "nombre": "Dormitorio principal", "anchoM": 3.5, "altoM": 3.2 },
+    { "nombre": "Dormitorio 2", "anchoM": 3.0, "altoM": 3.0 },
+    { "nombre": "Dormitorio 3", "anchoM": 3.0, "altoM": 3.0 },
+    { "nombre": "Estudio", "anchoM": 2.5, "altoM": 3.0 },
+    { "nombre": "Baño", "anchoM": 2.0, "altoM": 1.8 },
+    { "nombre": "Pasillo", "altoM": 1.0 },
+    { "nombre": "Baño", "anchoM": 2.0, "altoM": 2.0 },
+    { "nombre": "Cocina", "anchoM": 3.0, "altoM": 3.5 },
+    { "nombre": "Recibidor", "anchoM": 2.0, "altoM": 2.5 },
+    { "nombre": "Salón-comedor", "anchoM": 6.0, "altoM": 3.5 },
+    { "nombre": "Jardín / Terraza", "anchoM": 12.0, "altoM": 3.0, "exterior": true }
+  ],
+  "toleranciaRelativa": 0.08
+}

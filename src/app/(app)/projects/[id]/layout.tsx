@@ -21,9 +21,13 @@ export default async function ProjectLayout({ children, params }: Props) {
   if (!project) notFound();
 
   return (
-    <div className="flex flex-1 flex-col">
+    // `min-h-0` en los dos niveles: sin él, un hijo alto (el editor a pantalla
+    // completa) fuerza a este flex a crecer más allá del hueco disponible bajo
+    // la cabecera y las pestañas, y la página entera gana scroll. Con él, cada
+    // hijo recibe exactamente el hueco restante y decide su propio overflow.
+    <div className="flex min-h-0 flex-1 flex-col">
       <ProjectTabs projectId={id} title={project.title} />
-      <div className="flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

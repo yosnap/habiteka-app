@@ -12,6 +12,8 @@
 export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
+  /** Importe reportado por el proveedor; no son créditos internos de Habiteka. */
+  reportedCostUsd?: number;
 }
 
 /** Coste monetario reportado por un proveedor (típicamente imagen/render). */

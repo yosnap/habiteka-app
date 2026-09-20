@@ -1,0 +1,108 @@
+.controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid rgba(38, 67, 62, 0.14);
+  border-radius: 12px;
+  background: rgba(250, 252, 250, 0.94);
+  box-shadow: 0 8px 24px rgba(31, 57, 52, 0.12);
+  backdrop-filter: blur(12px);
+  scrollbar-width: thin;
+}
+.group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  border-right: 1px solid rgba(38, 67, 62, 0.12);
+  white-space: nowrap;
+}
+.group:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+.iconButton,
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #294640;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.iconButton:hover:not(:disabled),
+.actionButton:hover:not(:disabled) {
+  border-color: rgba(8, 127, 117, 0.22);
+  background: rgba(8, 127, 117, 0.08);
+}
+.iconButton:focus-visible,
+.actionButton:focus-visible,
+.viewSelect:focus-visible {
+  outline: 2px solid #087f75;
+  outline-offset: 2px;
+}
+.actionButton[aria-pressed='true'] {
+  border-color: rgba(8, 127, 117, 0.3);
+  color: #087f75;
+  background: rgba(8, 127, 117, 0.12);
+}
+.exportButton {
+  color: #087f75;
+}
+.selectLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #087f75;
+}
+.viewSelect {
+  width: 112px !important;
+  min-height: 32px !important;
+  padding: 5px 24px 5px 7px !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #294640 !important;
+  background: transparent !important;
+  font-size: 0.75rem !important;
+  font-weight: 600;
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 680px) {
+  .controls {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
+  }
+  .actionButton span {
+    display: none;
+  }
+  .viewSelect {
+    width: 96px !important;
+  }
+}

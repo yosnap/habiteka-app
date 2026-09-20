@@ -6,6 +6,8 @@
  */
 import {
   S3Client,
+  HeadObjectCommand,
+  CopyObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
@@ -22,6 +24,17 @@ export class S3StorageAdapter implements StorageAdapter {
     private readonly bucket: string,
   ) {}
 
+  async inspect(key: string) {
+    const head = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+    const first = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: 'bytes=0-31' }));
+    return { bytes: head.ContentLength ?? 0, contentType: head.ContentType ?? '',
+      header: await first.Body!.transformToByteArray() };
+  }
+  async promote(sourceKey: string, destinationKey: string) {
+    await this.client.send(new CopyObjectCommand({ Bucket: this.bucket, Key: destinationKey,
+      CopySource: `${this.bucket}/${sourceKey.split('/').map(encodeURIComponent).join('/')}` }));
+    await this.delete(sourceKey);
+  }
   async put(input: PutObjectInput): Promise<void> {
     await this.client.send(
       new PutObjectCommand({

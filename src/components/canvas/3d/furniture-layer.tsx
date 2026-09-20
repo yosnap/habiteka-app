@@ -1,4 +1,5 @@
 'use client';
+import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControlsEnabled } from './pointer-interaction';
 
 /**
  * Capa de muebles de la escena 3D (F6.2). Por cada `FurnitureItem` (ya posicionado en
@@ -28,10 +29,12 @@ import { CATALOG } from '@/canvas/catalog';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import type { SelectionMode } from './use-3d-selection';
 import type { SceneCoords } from '@/canvas/3d/scene-to-doc';
+import { ModelErrorBoundary } from './model-error-boundary';
+import { RadialContextMenu } from './radial-context-menu';
 import { translatePatch } from '@/canvas/3d/scene-to-doc';
 import { buildFloorAABB, resolveFloorCollisions } from '@/canvas/3d/collision';
 import { isFloorCollidable } from '@/canvas/3d/placement';
-import { ObjectFloatingMenu } from './object-floating-menu';
+
 
 /** Color de placeholder por categoría del catálogo (cae a un gris neutro). */
 const CATEGORY_COLOR: Record<string, string> = {
@@ -332,7 +335,7 @@ function useDragOnFloor({
     const el = gl.domElement;
 
     if (!isSelected) {
-      el.style.cursor = '';
+      setCanvasCursor(gl, '');
       snapStateRef.current = null;
       if (snapGuideRef) snapGuideRef.current = null;
       return;
@@ -365,9 +368,9 @@ function useDragOnFloor({
       dragRef.current = null;
       snapStateRef.current = null;
       if (snapGuideRef) snapGuideRef.current = null;
-      if (controls) controls.enabled = true;
-      el.releasePointerCapture(e.pointerId);
-      el.style.cursor = 'grab';
+      setControlsEnabled(controls, true);
+      releaseCanvasPointer(gl, e.pointerId);
+      setCanvasCursor(gl, 'grab');
       const group = groupRef.current;
       if (!group) return;
       const movedX = Math.abs(group.position.x - d.startObjXZ[0]);
@@ -405,12 +408,20 @@ function useDragOnFloor({
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
+      // Seleccionar al hacer clic SIEMPRE, pero solo arrastrar si el modo es 'translate'.
+      if (!isSelected) return; // Si no está seleccionado, el clic solo selecciona (lo maneja onClick).
+      const sel = useCanvasStore.getState();
+      const currentMode = sel.doc.selection?.type === 'object' ? null : null; // El modo vive en use3DSelection
+      // Leer el modo del store de selección 3D (no del canvas store):
+      // useDragOnFloor no tiene acceso al mode directamente, pero el caller (FurnitureModel)
+      // sí lo pasa via sel.mode. Lo simplificamos: si no hay modo translate activo, no arrastrar.
+      // El caller decide si pasar onPointerDown o no según el modo.
       const ne = e.nativeEvent;
       const xz = hitFloor(ne.clientX, ne.clientY);
       if (!xz) return;
-      if (controls) controls.enabled = false;
-      gl.domElement.setPointerCapture(ne.pointerId);
-      gl.domElement.style.cursor = 'grabbing';
+      setControlsEnabled(controls, false);
+      captureCanvasPointer(gl, ne.pointerId);
+      setCanvasCursor(gl, 'grabbing');
       dragRef.current = {
         active: true,
         pointerId: ne.pointerId,
@@ -418,15 +429,15 @@ function useDragOnFloor({
         startObjXZ: [item.center[0], item.center[2]],
       };
     },
-    [hitFloor, controls, gl, item.center],
+    [hitFloor, controls, gl, item.center, isSelected],
   );
 
   const onPointerEnter = useCallback(() => {
-    gl.domElement.style.cursor = 'grab';
-  }, [gl]);
+    if (isSelected) setCanvasCursor(gl, 'grab');
+  }, [gl, isSelected]);
 
   const onPointerLeave = useCallback(() => {
-    if (!dragRef.current?.active) gl.domElement.style.cursor = '';
+    if (!dragRef.current?.active) setCanvasCursor(gl, '');
   }, [gl]);
 
   return { onPointerDown, onPointerEnter, onPointerLeave };
@@ -496,7 +507,7 @@ function SelectionOverlay({
         zIndexRange={[100, 0]}
         style={{ pointerEvents: 'none' }}
       >
-        <ObjectFloatingMenu
+        <RadialContextMenu
           mode={mode}
           onMove={() => onSetMode('translate')}
           onRotate={() => onSetMode('rotate')}
@@ -558,10 +569,11 @@ function FurnitureModel({
   }, [scene, item.size, item.flipX, item.kind]);
 
   const isSelected = sel.selectedId === item.id;
+  const canDrag = isSelected && sel.mode === 'translate';
   const groupRef = useRef<Group>(null);
   const snapStateRef = useRef<SnapState>(null);
   const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnFloor({
-    groupRef, item, isSelected, sceneCoords,
+    groupRef, item, isSelected: canDrag, sceneCoords,
     walls: sel.walls, items: sel.items, snapStateRef, snapGuideRef: sel.snapGuideRef,
   });
 
@@ -573,9 +585,9 @@ function FurnitureModel({
       position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); sel.onSelect(item.id); }}
-      onPointerDown={isSelected ? onPointerDown : undefined}
-      onPointerEnter={isSelected ? onPointerEnter : undefined}
-      onPointerLeave={isSelected ? onPointerLeave : undefined}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       <group rotation={[0, transform.modelRot, 0]}>
         <group scale={transform.scale} position={transform.offset}>
@@ -609,10 +621,11 @@ function FurniturePlaceholder({
   sceneCoords: SceneCoords;
 }) {
   const isSelected = sel.selectedId === item.id;
+  const canDrag = isSelected && sel.mode === 'translate';
   const groupRef = useRef<Group>(null);
   const snapStateRef = useRef<SnapState>(null);
   const { onPointerDown, onPointerEnter, onPointerLeave } = useDragOnFloor({
-    groupRef, item, isSelected, sceneCoords,
+    groupRef, item, isSelected: canDrag, sceneCoords,
     walls: sel.walls, items: sel.items, snapStateRef, snapGuideRef: sel.snapGuideRef,
   });
 
@@ -624,9 +637,9 @@ function FurniturePlaceholder({
       position={[item.center[0], item.floorElevationM, item.center[2]]}
       rotation={[0, item.rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); sel.onSelect(item.id); }}
-      onPointerDown={isSelected ? onPointerDown : undefined}
-      onPointerEnter={isSelected ? onPointerEnter : undefined}
-      onPointerLeave={isSelected ? onPointerLeave : undefined}
+      onPointerDown={canDrag ? onPointerDown : undefined}
+      onPointerEnter={canDrag ? onPointerEnter : undefined}
+      onPointerLeave={canDrag ? onPointerLeave : undefined}
     >
       <mesh position={[0, item.size[1] / 2, 0]}>
         <boxGeometry args={item.size} />
@@ -688,10 +701,16 @@ export const FurnitureLayer = memo(function FurnitureLayer({
         if (!url) {
           return <FurniturePlaceholder key={item.id} item={item} sel={sel} sceneCoords={sceneCoords} />;
         }
+        // El GLB puede fallar al cargar (item custom sin .glb → 404, o .glb corrupto):
+        // ErrorBoundary aísla el fallo a este mueble y cae a placeholder; Suspense muestra
+        // placeholder mientras carga. Así un custom que no cargue no rompe el Canvas entero.
+        const placeholder = <FurniturePlaceholder item={item} sel={sel} sceneCoords={sceneCoords} />;
         return (
-          <Suspense key={item.id} fallback={<FurniturePlaceholder item={item} sel={sel} sceneCoords={sceneCoords} />}>
-            <FurnitureModel item={item} url={url} sel={sel} sceneCoords={sceneCoords} />
-          </Suspense>
+          <ModelErrorBoundary key={item.id} fallback={placeholder}>
+            <Suspense fallback={placeholder}>
+              <FurnitureModel item={item} url={url} sel={sel} sceneCoords={sceneCoords} />
+            </Suspense>
+          </ModelErrorBoundary>
         );
       })}
     </group>

@@ -42,3 +42,4 @@ tests/spikes/out-*.png
 
 # Capturas de verificación de planes (artefactos locales pesados; los reportes .md sí se versionan)
 plans/reports/*.png
+plans/reports/offline-*/

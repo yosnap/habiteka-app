@@ -67,7 +67,11 @@ export type StructKind =
   | ElectronicsKind
   | DecorKind
   | LightKind
-  | CeilingLightKind;
+  | CeilingLightKind
+  | WallSurfaceKind
+  | 'led_strip'
+  | 'recessed_light'
+  | 'beam';
 
 // --- F0: Placement system (kinds futuros; no forman parte de StructKind aún) ---
 
@@ -167,6 +171,11 @@ export interface LightProps {
   color: string;
   /** Intensidad relativa, 0–100. */
   intensidad: number;
+  /** Temperatura de color en Kelvin (2700 = cálido, 6500 = frío). Si está, el render 3D
+   *  usa kelvinToRGB para el color de la PointLight (más realista que el hex manual). */
+  temperature?: number;
+  /** ¿Encendida? Si false, el render 3D no emite PointLight. Por defecto true (ausente). */
+  on?: boolean;
 }
 
 /** Objeto colocable y editable del plano (estructura o mobiliario). */
@@ -307,6 +316,17 @@ export interface CanvasDoc {
    * Se recalculan al cargar el doc cuando `walls` está presente.
    */
   rooms?: DetectedRoom[];
+  /** Notas/anotaciones de texto en el plano (B4). */
+  notes?: CanvasNote[];
+}
+
+/** Nota de texto anclada a una posición del plano. */
+export interface CanvasNote {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  color?: string;
 }
 
 /** Documento vacío inicial (proyecto recién creado). */
@@ -320,5 +340,6 @@ export function emptyCanvasDoc(): CanvasDoc {
     objects: [],
     products: [],
     selection: null,
+    notes: [],
   };
 }

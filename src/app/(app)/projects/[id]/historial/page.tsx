@@ -55,13 +55,15 @@ async function toHistoryDeliverable(row: {
   payload: unknown;
   sourceImageId: string | null;
 }): Promise<HistoryDeliverable | null> {
+  if (row.type === 'VIDEO') return { id: row.id, type: 'video', renderUrl: null,
+    videoUrl: await resolveRenderUrl(row.payload as { assetKey?: string }), sourceImageId: row.sourceImageId };
   const payload = row.payload as DeliverablePayload | null;
   if (!payload || typeof payload !== 'object' || !('type' in payload)) return null;
   // El render se re-firma desde su `assetKey` (la presignada guardada caduca → imagen rota).
   const renderUrl = payload.type === 'render3d' ? await resolveRenderUrl(payload) : null;
   return {
     id: row.id,
-    type: row.type as DeliverableType,
+    type: payload.type as DeliverableType,
     renderUrl,
     sourceImageId: row.sourceImageId,
   };

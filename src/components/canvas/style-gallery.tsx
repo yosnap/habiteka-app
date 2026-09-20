@@ -39,7 +39,7 @@ export function StyleGallery({
             onClick={() => onChange(s.value)}
             className={`relative w-[46%] shrink-0 snap-start overflow-hidden rounded-card text-left transition disabled:opacity-50 ${
               selected
-                ? 'ring-accent shadow-[var(--shadow-float)] ring-[3px]'
+                ? 'ring-emerald-700 shadow-[var(--shadow-float)] ring-[3px]'
                 : 'ring-line hover:ring-accent/50 opacity-80 ring-1 hover:opacity-100'
             }`}
           >
@@ -53,16 +53,17 @@ export function StyleGallery({
               />
               {/* Marca de selección clara en la esquina. */}
               {selected ? (
-                <span className="bg-accent text-accent-foreground absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full shadow">
+                <span className="absolute right-1.5 top-1.5 flex items-center justify-center gap-1 rounded-full bg-emerald-800 px-2 py-1 text-xs font-semibold text-white shadow">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
+                  Seleccionado
                 </span>
               ) : null}
             </div>
             <span
               className={`block px-2 py-1.5 text-sm ${
-                selected ? 'bg-accent text-accent-foreground font-semibold' : 'text-ink-soft bg-surface'
+                selected ? 'bg-emerald-800 text-white font-semibold' : 'text-ink-soft bg-surface'
               }`}
             >
               {s.label}

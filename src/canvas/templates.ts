@@ -13,6 +13,7 @@
  */
 import { buildShapeDoc } from './wizard/build-room-doc';
 import { CATALOG_BY_KIND } from './catalog';
+import { selectionAabb } from './floating-menu-anchor';
 import type { CanvasDoc, StructObj, StructKind } from './types';
 import type { RoomShapeParams } from './wizard/room-shapes';
 
@@ -43,7 +44,10 @@ function obj(id: string, kind: StructKind, x: number, y: number, rotation = 0): 
   const entry = CATALOG_BY_KIND[kind];
   const w = Math.round((entry?.realWidthM ?? 0.5) * PPM);
   const h = Math.round((entry?.realDepthM ?? 0.5) * PPM);
-  return { id, kind, x: Math.round(x), y: Math.round(y), width: w, height: h, rotation };
+  const base = { id, kind, x: 0, y: 0, width: w, height: h, rotation };
+  const bounds = selectionAabb([base], [id])!;
+  // Las plantillas expresan esquina visible; Konva necesita el origen de giro.
+  return { ...base, x: Math.round(x - bounds.x), y: Math.round(y - bounds.y) };
 }
 
 /** Centra horizontalmente un objeto de anchura `objW` dentro del interior de `widthM`. */
@@ -134,7 +138,7 @@ function salonComedor(): BuiltinTemplate {
 
   // Sofá: zona salón, centrado, a ≈ 1/3 de altura
   const sofaX = centerX(W, sofaW);
-  const sofaY = iy(L) + Math.round(ih(L) * 0.28);
+  const sofaY = iy(L) + Math.round(ih(L) * 0.20);
 
   // Mesa comedor: zona comedor, centrada, ≈ 65% de altura
   const mesaX = centerX(W, mesaW);

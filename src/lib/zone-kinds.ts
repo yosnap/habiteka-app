@@ -20,6 +20,8 @@ export const ZONE_KINDS: readonly ZoneKindOption[] = [
   { value: 'interior', label: 'Interior', exterior: false },
   { value: 'fachada', label: 'Fachada', exterior: true },
   { value: 'entrada', label: 'Entrada', exterior: true },
+  { value: 'patio', label: 'Patio', exterior: true },
+  { value: 'terraza', label: 'Terraza o azotea', exterior: true },
   { value: 'jardin', label: 'Jardín', exterior: true },
   { value: 'aerea', label: 'Vista aérea', exterior: true },
   { value: 'trasera', label: 'Parte trasera', exterior: true },

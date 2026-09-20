@@ -1,0 +1,12 @@
+.panel { flex: 0 0 auto; border-top: 1px solid var(--line); padding: 8px 12px; background: var(--paper); max-height: 360px; overflow: auto; }
+.header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.header label { display: flex; align-items: center; gap: 8px; }
+.header span, .card span, .panel p { color: var(--muted); font-size: 12px; }
+.panel .header button, .panel .header select, .panel .actions button { min-height: 32px; padding: 4px 8px; }
+.strip { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0; margin: 0; list-style: none; }
+.card { flex: 0 0 210px; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.actions { display: flex; gap: 6px; }
+
+.thumbnail { width: 100%; height: 105px; object-fit: cover; border-radius: 6px; }
+.gallery { display: grid; gap: 8px; max-height: 230px; overflow-y: auto; }
+.card summary { cursor: pointer; }

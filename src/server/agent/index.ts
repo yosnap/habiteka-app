@@ -33,7 +33,7 @@ export async function getAgent(
   // El modelo de chat se resuelve por la acción 'chat'; las fases que necesiten
   // otra acción (visión) la piden a su propio adaptador en el futuro.
   const chat = await getChatVisionAdapter({ organizationId }, 'chat');
-  const image = getImageAdapter({ organizationId });
+  const image = await getImageAdapter({ organizationId });
   const debit = createDebitService(organizationId);
 
   return {

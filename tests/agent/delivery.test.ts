@@ -181,6 +181,14 @@ describe('renderPrompt — variante interior/exterior por tipo de zona', () => {
     expect(out).not.toContain('INTERIOR del espacio');
   });
 
+  it('prohíbe mostrar los identificadores internos del contrato en el render', () => {
+    const out = renderPrompt({ ...base, sketch: {
+      description: 'CONTRATO ESTRUCTURAL INALTERABLE\nR-01 | rampa',
+      referenceImage: { base64: 'QUJD', mimeType: 'image/png' }, aspectRatio: '3:2',
+    } });
+    expect(out).toContain('NUNCA los dibujes');
+  });
+
   it('interior y exterior producen prompts distintos', () => {
     const interior = renderPrompt({ ...base, zoneKind: 'interior' });
     const exterior = renderPrompt({ ...base, zoneKind: 'trasera' });
@@ -251,5 +259,18 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
   it('sin sketch no menciona el plano', () => {
     const out = memoriaPrompt({ ...input, collected: { ...ready, entregables: ['memoria'] } });
     expect(out).not.toContain('plano del espacio');
+  });
+});
+
+describe('runDelivery — plano 2D siempre dibujable', () => {
+  it('si el modelo devuelve zonas vacías, el entregable cae al plano base con geometría', async () => {
+    const { deps } = makeDeps();
+    deps.chat.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
+    expect(plano?.payload.type).toBe('plano2d');
+    if (plano?.payload.type !== 'plano2d') return;
+    expect(plano.payload.plano.zones).toHaveLength(1);
+    expect(plano.payload.plano.zones[0]!.outline).toHaveLength(4);
+    expect(plano.payload.plano.zones[0]!.walls).toHaveLength(4);
   });
 });

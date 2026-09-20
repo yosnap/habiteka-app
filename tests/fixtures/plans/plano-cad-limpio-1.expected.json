@@ -1,0 +1,84 @@
+{
+  "descripcion": "Planta unifamiliar CAD limpia, escala 1:100. Cotas generales y por estancia escritas.",
+  "general": {
+    "anchoM": 15.2,
+    "altoM": 10.5
+  },
+  "estancias": [
+    {
+      "nombre": "Dormitorio 2",
+      "anchoM": 3.0,
+      "altoM": 3.4
+    },
+    {
+      "nombre": "Dormitorio 3",
+      "anchoM": 3.0,
+      "altoM": 3.4
+    },
+    {
+      "nombre": "Baño común",
+      "anchoM": 1.6,
+      "altoM": 2.3,
+      "cotaIncompatible": "1,60 + Lavandería 1,80 + Cocina 3,60 (+ tabiques) no llenan el tramo de fachada que comparten con Recibidor + Salón + Comedor (9,40)"
+    },
+    {
+      "nombre": "Lavandería",
+      "anchoM": 1.8,
+      "altoM": 2.3
+    },
+    {
+      "nombre": "Cocina",
+      "anchoM": 3.6,
+      "altoM": 2.5
+    },
+    {
+      "nombre": "Pasillo",
+      "anchoM": 5.1,
+      "altoM": 1.2
+    },
+    {
+      "nombre": "Vestidor",
+      "anchoM": 2.0,
+      "altoM": 1.2,
+      "cotaIncompatible": "Vestidor 1,20 + Baño principal 1,80 + tabique no suman los 3,50 del Dormitorio principal con el que comparten muros"
+    },
+    {
+      "nombre": "Recibidor",
+      "anchoM": 1.8,
+      "altoM": 3.0,
+      "cotaIncompatible": "comparte las mismas dos líneas que el Salón (4,00) con cota 3,00"
+    },
+    {
+      "nombre": "Dormitorio principal",
+      "anchoM": 3.6,
+      "altoM": 3.5,
+      "cotaIncompatible": "3,50 de alto frente a Vestidor 1,20 + Baño principal 1,80 + tabique, con los que comparte las dos líneas"
+    },
+    {
+      "nombre": "Baño principal",
+      "anchoM": 2.0,
+      "altoM": 1.8
+    },
+    {
+      "nombre": "Salón",
+      "anchoM": 4.0,
+      "altoM": 4.0
+    },
+    {
+      "nombre": "Comedor",
+      "anchoM": 3.6,
+      "altoM": 3.0
+    },
+    {
+      "nombre": "Terraza",
+      "anchoM": 5.8,
+      "altoM": 2.5,
+      "exterior": true
+    },
+    {
+      "nombre": "Entrada",
+      "exterior": true
+    }
+  ],
+  "toleranciaRelativa": 0.05
+}

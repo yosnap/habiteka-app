@@ -19,6 +19,9 @@ export function AppHeader({ userName, balance }: Props) {
           Habiteka
         </Link>
         <div className="flex items-center gap-4 text-sm">
+          <Link href="/ayuda" className="text-ink-soft hover:text-ink">
+            Ayuda
+          </Link>
           <span
             className="bg-brand-50 text-brand-700 rounded-full px-3 py-1 text-xs font-medium"
             title="Créditos disponibles"

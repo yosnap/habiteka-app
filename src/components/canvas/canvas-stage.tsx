@@ -9,6 +9,8 @@ import { useState, useCallback, useRef } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import { useCanvasStore } from '@/canvas/canvas-store';
+import { WALL_SURFACE_KINDS, type StructKind } from '@/canvas/types';
+import { snapToWall } from '@/canvas/snap-to-wall';
 import { useFreehand } from '@/canvas/use-freehand';
 import { useDrawWall } from '@/canvas/use-draw-wall';
 import { pixelRectToZone } from '@/canvas/selection-math';
@@ -19,8 +21,10 @@ import { ProductLayer } from './layers/product-layer';
 import { SelectionOverlay, type MarqueeRect } from './layers/selection-overlay';
 import { DrawWallOverlay } from './layers/draw-wall-overlay';
 import { OutlineEditorLayer } from './layers/outline-editor-layer';
+import { NotesLayer } from './layers/notes-layer';
 import { DrawWallLengthInput } from './draw-wall-length-input';
 import { FloatingObjectMenu } from './floating-object-menu';
+import { LightControlPanel } from './light-control-panel';
 import { selectionAabb, anchorPosition } from '@/canvas/floating-menu-anchor';
 import type { Tool } from './canvas-toolbar';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
@@ -51,50 +55,10 @@ const ZOOM_STEP = 1.15;
 /** Kinds que se enganchan a un muro al colocarse. */
 const WALL_CHILD_KINDS = new Set(['door', 'window']);
 
-/**
- * Busca el muro más cercano al punto `worldPt` y, si está dentro del umbral,
- * devuelve la posición/rotación del objeto hijo alineado sobre ese muro.
- * El grosor del objeto se hereda del muro para sellar el hueco visualmente.
- */
-function snapToWall(
-  worldPt: { x: number; y: number },
-  walls: Array<{ x: number; y: number; width: number; height: number; rotation: number }>,
-  objWidth: number,
-): { x: number; y: number; height: number; rotation: number } | null {
-  const SNAP_PX = Math.max(60, (walls[0]?.height ?? 12) * 4);
-  let bestDist = SNAP_PX;
-  let best: { x: number; y: number; height: number; rotation: number } | null = null;
-
-  for (const wall of walls) {
-    const θ = (wall.rotation * Math.PI) / 180;
-    const cosθ = Math.cos(θ), sinθ = Math.sin(θ);
-    const dx = worldPt.x - wall.x, dy = worldPt.y - wall.y;
-    const localX = dx * cosθ + dy * sinθ;
-    const localY = -dx * sinθ + dy * cosθ;
-    const perpDist = Math.abs(localY - wall.height / 2);
-    if (perpDist >= SNAP_PX) continue;
-    if (localX < -wall.height || localX > wall.width + wall.height) continue;
-    if (perpDist < bestDist) {
-      bestDist = perpDist;
-      const clamped = Math.max(objWidth / 2, Math.min(wall.width - objWidth / 2, localX));
-      // Centro del objeto pegado al eje del muro (local_y = wall.height/2).
-      const cx = wall.x + clamped * cosθ + (wall.height / 2) * (-sinθ);
-      const cy = wall.y + clamped * sinθ + (wall.height / 2) * cosθ;
-      const H = wall.height;
-      best = {
-        x: cx - (objWidth / 2) * cosθ + (H / 2) * sinθ,
-        y: cy - (objWidth / 2) * sinθ - (H / 2) * cosθ,
-        height: H,
-        rotation: wall.rotation,
-      };
-    }
-  }
-  return best;
-}
-
 export function CanvasStage({ tool, width, height, onObjectCreated, onContextMenu }: Props) {
   const doc = useCanvasStore((s) => s.doc);
   const addObject = useCanvasStore((s) => s.addObject);
+  const addNote = useCanvasStore((s) => s.addNote);
   const setSelection = useCanvasStore((s) => s.setSelection);
 
   const stageRef = useRef<Konva.Stage>(null);
@@ -206,6 +170,14 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
 
       if (tool === 'draw-wall') {
         drawWall.handlers.onClick();
+      } else if (tool === 'note') {
+        addNote({
+          id: `note-${globalThis.crypto.randomUUID()}`,
+          x: pos.x - 80,
+          y: pos.y - 40,
+          text: '',
+        });
+        onObjectCreated?.();
       } else if (tool === 'freehand') {
         freehand.handlers.onPointerDown(e);
       } else if (catalogEntry) {
@@ -214,10 +186,12 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         const { w, h } = catalogSizePx(catalogEntry, scale);
 
         let objX = pos.x - w / 2, objY = pos.y - h / 2, objH = h, objRot = 0;
-        if (WALL_CHILD_KINDS.has(catalogEntry.kind)) {
+        let parentWallId: string | undefined;
+        const isWallSurface = (WALL_SURFACE_KINDS as Set<string>).has(catalogEntry.kind);
+        if (WALL_CHILD_KINDS.has(catalogEntry.kind) || isWallSurface) {
           const walls = doc.objects.filter((o) => o.kind === 'wall');
-          const snapped = snapToWall(pos, walls, w);
-          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; }
+          const snapped = snapToWall(pos, walls, w, isWallSurface);
+          if (snapped) { objX = snapped.x; objY = snapped.y; objH = snapped.height; objRot = snapped.rotation; parentWallId = snapped.wallId; }
         }
 
         addObject({
@@ -228,6 +202,7 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
           width: w,
           height: objH,
           rotation: objRot,
+          ...(parentWallId ? { parentId: parentWallId } : {}),
           ...(isLight(catalogEntry.kind) ? { light: defaultLight() } : {}),
         });
         setSelection({ type: 'object', objectIds: [id] });
@@ -337,17 +312,20 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
         w = 60; h = 60;
       }
 
-      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación.
+      // Puertas y ventanas se enganchan al muro más cercano, heredando su rotación y parentId.
       let finalX = worldX - w / 2, finalY = worldY - h / 2, finalH = h, finalRotation = 0;
-      if (WALL_CHILD_KINDS.has(parsed.kind)) {
+      let parentWallId: string | undefined;
+      const isWsDrop = (WALL_SURFACE_KINDS as Set<string>).has(parsed.kind);
+      if (WALL_CHILD_KINDS.has(parsed.kind) || isWsDrop) {
         const walls = doc.objects.filter((o) => o.kind === 'wall');
-        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w);
-        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; }
+        const snapped = snapToWall({ x: worldX, y: worldY }, walls, w, isWsDrop);
+        if (snapped) { finalX = snapped.x; finalY = snapped.y; finalH = snapped.height; finalRotation = snapped.rotation; parentWallId = snapped.wallId; }
       }
 
       const id = `obj-${globalThis.crypto.randomUUID()}`;
+      const isLightKind = isLight(parsed.kind as StructKind);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation });
+      addObject({ id, kind: parsed.kind as any, x: finalX, y: finalY, width: w, height: finalH, rotation: finalRotation, ...(parentWallId ? { parentId: parentWallId } : {}), ...(isLightKind ? { light: defaultLight() } : {}) });
       setSelection({ type: 'object', objectIds: [id] });
     },
     [view, doc.scale, doc.objects, addObject, setSelection],
@@ -358,6 +336,14 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
   // 'select', y oculto durante drag/pan o mientras se dibuja un muro.
   const selectedIds =
     doc.selection?.type === 'object' ? doc.selection.objectIds : [];
+  // Muro seleccionado en una sala CON contorno (floorOutline) → activa el editor de contorno
+  // (puntos en los vértices del polígono, tiempo real, guías H/V), sea el muro de plantilla
+  // o drawn (tras editar). Al mover un vértice se regeneran los muros y el inglete se mantiene.
+  const hasOutline = !!doc.floorOutline && doc.floorOutline.length >= 3;
+  const selectedWallWithOutline =
+    selectedIds.length === 1 && hasOutline
+      ? doc.objects.find((o) => o.id === selectedIds[0] && o.kind === 'wall')
+      : undefined;
   const menuAabb =
     tool === 'select' && !dragging && !drawWall.drawing && selectedIds.length > 0
       ? selectionAabb(doc.objects, selectedIds)
@@ -435,13 +421,18 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       />
       <StructureLayer objects={doc.objects} />
       <ProductLayer products={doc.products} />
-      {/* Modo "Editar contorno": handles de los vértices del suelo (capa interactiva propia).
-          Solo visible/activa en ese modo, para no interferir con la selección de objetos. */}
-      {tool === 'edit-outline' ? (
+      {/* Editor de contorno (puntos en los vértices del polígono): en modo "Editar contorno"
+          o al seleccionar un muro de plantilla. Al mover un vértice se regeneran los muros
+          manteniendo el inglete; guías de alineación H/V en tiempo real (estilo Planner5D). */}
+      {tool === 'edit-outline' || selectedWallWithOutline ? (
         <Layer>
           <OutlineEditorLayer />
         </Layer>
       ) : null}
+      {/* Notas/anotaciones de texto (B4). */}
+      <Layer>
+        <NotesLayer />
+      </Layer>
       {/* Una sola capa de overlays efímeros (marquesina + muro en curso): ambos son ligeros y
           no interactivos, así se mantiene el nº de capas de Konva en el máximo recomendado. */}
       <Layer listening={false}>
@@ -454,6 +445,10 @@ export function CanvasStage({ tool, width, height, onObjectCreated, onContextMen
       {menuAnchor ? (
         <FloatingObjectMenu x={menuAnchor.x} y={menuAnchor.y} ids={selectedIds} allWalls={allWalls} />
       ) : null}
+      {menuAnchor && selectedIds.length === 1 ? (() => {
+        const obj = doc.objects.find((o) => o.id === selectedIds[0]);
+        return obj?.light ? <LightControlPanel obj={obj} x={menuAnchor.x} y={menuAnchor.y} /> : null;
+      })() : null}
       {/* Controles de vista flotantes (overlay HTML sobre el Stage de Konva). */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-control border border-line bg-surface/90 p-1 shadow-sm">
         <button type="button" onClick={zoomOut} aria-label="Alejar" className="text-ink hover:bg-canvas h-6 w-6 rounded-control text-sm">

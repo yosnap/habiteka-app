@@ -12,30 +12,293 @@ import type { ModelAction } from '@/generated/prisma/enums';
 
 export interface AllowedModel {
   id: string;
+  provider: 'openrouter' | 'kie' | 'nan' | 'openai';
+  /** Nombre claro para administración; el id es el valor que recibe el proveedor. */
+  label: string;
+  status: 'current' | 'legacy' | 'deprecated';
   /** Precio orientativo por 1M tokens (o por imagen), para el techo por acción. */
   priceUsdPerUnit: number;
 }
+
+// Modelos de imagen de KIE que su documentación confirma para generación y/o
+// edición. Se mantienen fuera de los usos de texto: KIE no sustituye el router
+// conversacional. El adaptador asíncrono de KIE los ejecutará con el payload
+// específico de cada familia.
+const kieImageModels: AllowedModel[] = [
+  {
+    id: 'google/nano-banana',
+    provider: 'kie',
+    label: 'Google Nano Banana',
+    status: 'legacy',
+    priceUsdPerUnit: 0.04,
+  },
+  {
+    id: 'nano-banana-pro',
+    provider: 'kie',
+    label: 'Google Nano Banana Pro',
+    status: 'current',
+    priceUsdPerUnit: 0.08,
+  },
+  {
+    id: 'nano-banana-2',
+    provider: 'kie',
+    label: 'Google Nano Banana 2',
+    status: 'current',
+    priceUsdPerUnit: 0.06,
+  },
+  {
+    id: 'nano-banana-2-lite',
+    provider: 'kie',
+    label: 'Google Nano Banana 2 Lite',
+    status: 'current',
+    priceUsdPerUnit: 0.03,
+  },
+  {
+    id: 'flux-2/pro-image-to-image',
+    provider: 'kie',
+    label: 'FLUX.2 Pro · edición con referencias',
+    status: 'current',
+    priceUsdPerUnit: 0.12,
+  },
+  {
+    id: 'flux-2/flex-image-to-image',
+    provider: 'kie',
+    label: 'FLUX.2 Flex · control estructural',
+    status: 'current',
+    priceUsdPerUnit: 0.15,
+  },
+  {
+    id: 'gpt-image-2-5-sunburst-image-to-image',
+    provider: 'kie',
+    label: 'GPT Image 2.5 Sunburst · precisión de edición',
+    status: 'current',
+    priceUsdPerUnit: 0.15,
+  },
+  {
+    // Variante Flare: fidelidad a la referencia y refinado más preciso (planos).
+    id: 'gpt-image-2-5-flare-image-to-image',
+    provider: 'kie',
+    label: 'GPT Image 2.5 Flare · fidelidad a la referencia',
+    status: 'current',
+    priceUsdPerUnit: 0.08,
+  },
+];
+
+const openAiImageModels: AllowedModel[] = [{
+  id: 'gpt-image-2', provider: 'openai', label: 'GPT Image 2 · OpenAI directo',
+  status: 'current', priceUsdPerUnit: 0.15,
+}];
+
+// Catálogo actual de NaN para chat/visión. Se excluyen embeddings, rerank, voz y
+// Flux hasta que esas capacidades tengan un adaptador en Habiteka.
+const nanChatModels: AllowedModel[] = [
+  {
+    id: 'deepseek-v4-flash',
+    provider: 'nan',
+    label: 'NaN DeepSeek V4 Flash',
+    status: 'current',
+    priceUsdPerUnit: 0.1,
+  },
+  {
+    id: 'glm5.3-flash',
+    provider: 'nan',
+    label: 'NaN GLM 5.3 Flash',
+    status: 'current',
+    priceUsdPerUnit: 0.12,
+  },
+  {
+    id: 'qwen3.8-flash',
+    provider: 'nan',
+    label: 'NaN Qwen 3.8 Flash',
+    status: 'current',
+    priceUsdPerUnit: 0.08,
+  },
+  {
+    id: 'mimo-v2.5',
+    provider: 'nan',
+    label: 'NaN MiMo V2.5',
+    status: 'current',
+    priceUsdPerUnit: 0.14,
+  },
+  { id: 'gemma4', provider: 'nan', label: 'NaN Gemma 4', status: 'current', priceUsdPerUnit: 0.05 },
+  {
+    id: 'qwen3.6',
+    provider: 'nan',
+    label: 'NaN Qwen 3.6',
+    status: 'legacy',
+    priceUsdPerUnit: 0.08,
+  },
+];
 
 // Modelos permitidos por acción. Mantener sincronizado con lo que el proveedor
 // ofrece; ampliar aquí es la vía controlada de habilitar un modelo nuevo.
 const ALLOWED: Record<ModelAction, AllowedModel[]> = {
   vision: [
-    { id: 'google/gemini-2.5-flash', priceUsdPerUnit: 0.3 },
-    { id: 'anthropic/claude-3.7-sonnet', priceUsdPerUnit: 3 },
+    ...nanChatModels,
+    {
+      id: 'google/gemini-3.7-flash',
+      provider: 'openrouter',
+      label: 'Gemini 3.7 Flash',
+      status: 'current',
+      priceUsdPerUnit: 0.75,
+    },
+    {
+      id: 'anthropic/claude-sonnet-5',
+      provider: 'openrouter',
+      label: 'Claude Sonnet 5',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'google/gemini-2.5-flash',
+      provider: 'openrouter',
+      label: 'Gemini 2.5 Flash',
+      status: 'legacy',
+      priceUsdPerUnit: 0.3,
+    },
   ],
   chat: [
-    { id: 'anthropic/claude-3.7-sonnet', priceUsdPerUnit: 3 },
-    { id: 'openai/gpt-4o', priceUsdPerUnit: 5 },
+    ...nanChatModels,
+    {
+      id: 'anthropic/claude-sonnet-5',
+      provider: 'openrouter',
+      label: 'Claude Sonnet 5',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'openai/gpt-5.2-chat',
+      provider: 'openrouter',
+      label: 'GPT-5.2 Chat',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'anthropic/claude-3.7-sonnet',
+      provider: 'openrouter',
+      label: 'Claude 3.7 Sonnet',
+      status: 'deprecated',
+      priceUsdPerUnit: 3,
+    },
+    {
+      id: 'openai/gpt-4o',
+      provider: 'openrouter',
+      label: 'GPT-4o',
+      status: 'legacy',
+      priceUsdPerUnit: 5,
+    },
   ],
   plano2d: [
-    { id: 'anthropic/claude-3.7-sonnet', priceUsdPerUnit: 3 },
-    { id: 'openai/gpt-4o', priceUsdPerUnit: 5 },
+    ...nanChatModels,
+    {
+      id: 'anthropic/claude-sonnet-5',
+      provider: 'openrouter',
+      label: 'Claude Sonnet 5',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'openai/gpt-5.2-chat',
+      provider: 'openrouter',
+      label: 'GPT-5.2 Chat',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'anthropic/claude-3.7-sonnet',
+      provider: 'openrouter',
+      label: 'Claude 3.7 Sonnet',
+      status: 'deprecated',
+      priceUsdPerUnit: 3,
+    },
+    {
+      id: 'openai/gpt-4o',
+      provider: 'openrouter',
+      label: 'GPT-4o',
+      status: 'legacy',
+      priceUsdPerUnit: 5,
+    },
   ],
-  render3d: [{ id: 'black-forest-labs/flux-1.1-pro', priceUsdPerUnit: 0.04 }],
-  inpaint: [{ id: 'black-forest-labs/flux-1.1-pro', priceUsdPerUnit: 0.04 }],
+  render3d: [
+    {
+      id: 'google/gemini-3-pro-image',
+      provider: 'openrouter',
+      label: 'Gemini 3 Pro Image (Nano Banana Pro)',
+      status: 'current',
+      priceUsdPerUnit: 0.12,
+    },
+    {
+      id: 'google/gemini-3.1-flash-image',
+      provider: 'openrouter',
+      label: 'Gemini 3.1 Flash Image (Nano Banana 2)',
+      status: 'current',
+      priceUsdPerUnit: 0.06,
+    },
+    {
+      id: 'google/gemini-2.5-flash-image',
+      provider: 'openrouter',
+      label: 'Gemini 2.5 Flash Image',
+      status: 'legacy',
+      priceUsdPerUnit: 0.04,
+    },
+    ...kieImageModels,
+    ...openAiImageModels,
+  ],
+  inpaint: [
+    {
+      id: 'google/gemini-3-pro-image',
+      provider: 'openrouter',
+      label: 'Gemini 3 Pro Image (Nano Banana Pro)',
+      status: 'current',
+      priceUsdPerUnit: 0.12,
+    },
+    {
+      id: 'google/gemini-3.1-flash-image',
+      provider: 'openrouter',
+      label: 'Gemini 3.1 Flash Image (Nano Banana 2)',
+      status: 'current',
+      priceUsdPerUnit: 0.06,
+    },
+    {
+      id: 'google/gemini-2.5-flash-image',
+      provider: 'openrouter',
+      label: 'Gemini 2.5 Flash Image',
+      status: 'legacy',
+      priceUsdPerUnit: 0.04,
+    },
+    ...kieImageModels,
+    ...openAiImageModels,
+  ],
   memoria: [
-    { id: 'anthropic/claude-3.7-sonnet', priceUsdPerUnit: 3 },
-    { id: 'openai/gpt-4o', priceUsdPerUnit: 5 },
+    ...nanChatModels,
+    {
+      id: 'anthropic/claude-sonnet-5',
+      provider: 'openrouter',
+      label: 'Claude Sonnet 5',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'openai/gpt-5.2-chat',
+      provider: 'openrouter',
+      label: 'GPT-5.2 Chat',
+      status: 'current',
+      priceUsdPerUnit: 5,
+    },
+    {
+      id: 'anthropic/claude-3.7-sonnet',
+      provider: 'openrouter',
+      label: 'Claude 3.7 Sonnet',
+      status: 'deprecated',
+      priceUsdPerUnit: 3,
+    },
+    {
+      id: 'openai/gpt-4o',
+      provider: 'openrouter',
+      label: 'GPT-4o',
+      status: 'legacy',
+      priceUsdPerUnit: 5,
+    },
   ],
 };
 
@@ -44,8 +307,8 @@ const PRICE_CEILING: Record<ModelAction, number> = {
   vision: 4,
   chat: 6,
   plano2d: 6,
-  render3d: 0.1,
-  inpaint: 0.1,
+  render3d: 0.15,
+  inpaint: 0.15,
   memoria: 6,
 };
 
@@ -54,9 +317,23 @@ export function allowedModels(action: ModelAction): AllowedModel[] {
   return ALLOWED[action];
 }
 
+export function allowedModel(
+  action: ModelAction,
+  modelId: string,
+  provider?: string | null,
+): AllowedModel | undefined {
+  return ALLOWED[action].find(
+    (model) => model.id === modelId && (!provider || model.provider === provider),
+  );
+}
+
 /** Verdadero si el modelo está permitido para la acción y no supera el techo. */
-export function isModelAllowed(action: ModelAction, modelId: string): boolean {
-  const model = ALLOWED[action].find((m) => m.id === modelId);
+export function isModelAllowed(
+  action: ModelAction,
+  modelId: string,
+  provider?: string | null,
+): boolean {
+  const model = allowedModel(action, modelId, provider);
   if (!model) return false;
   return model.priceUsdPerUnit <= PRICE_CEILING[action];
 }

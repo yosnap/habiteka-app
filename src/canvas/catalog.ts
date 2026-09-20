@@ -7,6 +7,16 @@
  */
 import type { StructKind, PlacementRule, CeilingKind, WallSurfaceKind } from './types';
 
+/**
+ * Genera un thumbnail SVG con un emoji sobre fondo de color, como data URL.
+ * Para items del catálogo sin miniatura externa (Poly Pizza). Mantiene el catálogo
+ * visualmente completo sin depender de URLs externas para cada item.
+ */
+function emojiThumb(emoji: string, bg: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="8" fill="${bg}"/><text x="32" y="42" font-size="32" text-anchor="middle">${emoji}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 export interface CatalogEntry {
   kind: StructKind;
   label: string;
@@ -97,12 +107,12 @@ export const CATALOG: CatalogCategory[] = [
     id: 'mobiliario',
     label: 'Mobiliario',
     items: [
-      { kind: 'sofa', label: 'Sofá', defaultWidth: 200, defaultHeight: 90, realWidthM: 2.0, realDepthM: 0.9, family: 'Sofás' },
+      { kind: 'sofa', label: 'Sofá', defaultWidth: 200, defaultHeight: 90, realWidthM: 2.0, realDepthM: 0.9, family: 'Sofás', thumbnailUrl: emojiThumb('🛋️', '#e8d5c4') },
       { kind: 'sofa_grande', label: 'Sofá grande', defaultWidth: 280, defaultHeight: 100, realWidthM: 2.8, realDepthM: 1.0, family: 'Sofás', thumbnailUrl: 'https://static.poly.pizza/7ac6188b-72be-4c82-81c8-85deab020a1c.webp' },
       { kind: 'butaca', label: 'Butaca', defaultWidth: 90, defaultHeight: 90, realWidthM: 0.9, realDepthM: 0.9, family: 'Sofás', thumbnailUrl: 'https://static.poly.pizza/21d3c956-0747-422c-b06d-6d4392380384.webp' },
       { kind: 'cama', label: 'Cama', defaultWidth: 150, defaultHeight: 200, realWidthM: 1.5, realDepthM: 2.0, family: 'Camas', thumbnailUrl: 'https://static.poly.pizza/1e5a13d0-0dfe-464a-a50c-9a53f69122f2.webp' },
       { kind: 'mesa', label: 'Mesa', defaultWidth: 120, defaultHeight: 80, realWidthM: 1.2, realDepthM: 0.8, family: 'Mesas', thumbnailUrl: 'https://static.poly.pizza/c8fa18f9-e1e9-4aed-905d-cbc945cb44d9.webp' },
-      { kind: 'silla', label: 'Silla', defaultWidth: 45, defaultHeight: 45, realWidthM: 0.45, realDepthM: 0.45, family: 'Sillas' },
+      { kind: 'silla', label: 'Silla', defaultWidth: 45, defaultHeight: 45, realWidthM: 0.45, realDepthM: 0.45, family: 'Sillas', thumbnailUrl: emojiThumb('🪑', '#d8c4a8') },
       { kind: 'armario', label: 'Armario', defaultWidth: 120, defaultHeight: 60, realWidthM: 1.2, realDepthM: 0.6, family: 'Almacenaje', thumbnailUrl: 'https://static.poly.pizza/87908291-7b01-45e9-90b9-fe41d63f511b.webp' },
       { kind: 'estanteria', label: 'Estantería', defaultWidth: 100, defaultHeight: 30, realWidthM: 1.0, realDepthM: 0.3, family: 'Almacenaje', thumbnailUrl: 'https://static.poly.pizza/7d59d0aa-6447-4bbb-afc7-0452e9a34353.webp' },
       { kind: 'mesilla', label: 'Mesilla', defaultWidth: 45, defaultHeight: 45, realWidthM: 0.45, realDepthM: 0.4, family: 'Almacenaje', thumbnailUrl: 'https://static.poly.pizza/1c26c1fe-7fb1-4511-b5f0-3dd73ea10c86.webp' },
@@ -132,10 +142,28 @@ export const CATALOG: CatalogCategory[] = [
     items: [
       // El foco es una luz de PRIMERA CLASE: además del kind, lleva atributos
       // `light` (color/intensidad). La `lampara` (en Electrónica) es solo mueble.
-      { kind: 'foco', label: 'Foco', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.3, realDepthM: 0.3 },
+      { kind: 'foco', label: 'Foco', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.3, realDepthM: 0.3, thumbnailUrl: emojiThumb('🔦', '#fff3d0') },
       // Luces de techo (CeilingLightKind): placement = 'ceiling', se renderizan en CeilingLayer.
-      { kind: 'ceiling_light', label: 'Plafón', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.4, realDepthM: 0.4, family: 'Techo' },
-      { kind: 'pendant_lamp', label: 'Colgante', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo' },
+      { kind: 'ceiling_light', label: 'Plafón', defaultWidth: 40, defaultHeight: 40, realWidthM: 0.4, realDepthM: 0.4, family: 'Techo', thumbnailUrl: emojiThumb('💡', '#fff3d0') },
+      { kind: 'pendant_lamp', label: 'Colgante', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo', thumbnailUrl: emojiThumb('🔆', '#fff3d0') },
+      { kind: 'led_strip', label: 'Cenefa LED', defaultWidth: 60, defaultHeight: 10, realWidthM: 0.6, realDepthM: 0.1, family: 'Techo', thumbnailUrl: emojiThumb('▬', '#2196f3') },
+      { kind: 'recessed_light', label: 'Foco empotrado', defaultWidth: 30, defaultHeight: 30, realWidthM: 0.3, realDepthM: 0.3, family: 'Techo', thumbnailUrl: emojiThumb('⬇', '#fff3d0') },
+      { kind: 'beam', label: 'Viga', defaultWidth: 120, defaultHeight: 30, realWidthM: 1.2, realDepthM: 0.3, family: 'Estructura', thumbnailUrl: emojiThumb('▮', '#a08060') },
+    ],
+  },
+  {
+    id: 'pared',
+    label: 'Pared',
+    items: [
+      // Elementos de superficie de muro (WallSurfaceKind): placement = 'wall-surface', se anclan
+      // al muro más cercano en 3D a la altura `elevationM` (ver WALL_SURFACE_ELEVATION_M).
+      { kind: 'outlet', label: 'Enchufe', defaultWidth: 16, defaultHeight: 16, realWidthM: 0.08, realDepthM: 0.04, family: 'Eléctrico', thumbnailUrl: emojiThumb('🔌', '#e8ecef') },
+      { kind: 'switch', label: 'Interruptor', defaultWidth: 16, defaultHeight: 16, realWidthM: 0.08, realDepthM: 0.04, family: 'Eléctrico', thumbnailUrl: emojiThumb('🔘', '#e8ecef') },
+      { kind: 'thermostat', label: 'Termostato', defaultWidth: 24, defaultHeight: 24, realWidthM: 0.12, realDepthM: 0.04, family: 'Eléctrico', thumbnailUrl: emojiThumb('🌡️', '#e8ecef') },
+      { kind: 'tv_mount', label: 'TV de pared', defaultWidth: 120, defaultHeight: 70, realWidthM: 1.2, realDepthM: 0.08, family: 'Entretenimiento', thumbnailUrl: emojiThumb('📺', '#1a1a1f') },
+      { kind: 'wall_sconce', label: 'Aplique', defaultWidth: 24, defaultHeight: 24, realWidthM: 0.12, realDepthM: 0.1, family: 'Iluminación', thumbnailUrl: emojiThumb('🪔', '#fff3d0') },
+      { kind: 'art_frame', label: 'Cuadro', defaultWidth: 60, defaultHeight: 80, realWidthM: 0.6, realDepthM: 0.04, family: 'Decoración', thumbnailUrl: emojiThumb('🖼️', '#8a6f4a') },
+      { kind: 'radiator', label: 'Radiador', defaultWidth: 60, defaultHeight: 90, realWidthM: 0.6, realDepthM: 0.1, family: 'Calefacción', thumbnailUrl: emojiThumb('♨️', '#c8ccd0') },
     ],
   },
 ];

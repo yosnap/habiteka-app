@@ -1,0 +1,73 @@
+'use client';
+import { useMemo, useState } from 'react';
+import { useStore } from 'zustand';
+import type { EditorStore } from '@/canvas/editor-v2/store';
+import { deriveRooms } from '@/lib/editor-document/rooms';
+import { autoTour } from '@/lib/editor-document/auto-tour';
+import { putWalkthrough, removeWalkthrough, type WalkthroughWaypoint } from '@/lib/editor-document/walkthrough';
+import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
+import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
+import styles from './ceiling-lighting.module.css';
+
+export function WalkthroughPanel({ store, onClose, onDraw, onPreview, onDesignPoint }: {
+  store: EditorStore; onClose: () => void; onDraw: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
+}) {
+  const state = useStore(store), doc = state.document;
+  const [zones, setZones] = useState<string[]>([]);
+  const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
+  const route = doc.walkthroughs?.find((p) => p.id === state.walkthroughId);
+  const compiled = useMemo(() => {
+    if (!route) return { error: '', value: null };
+    try { return { value: buildWalkthrough(doc, route), error: '' }; }
+    catch (error) { return { error: error instanceof Error ? error.message : 'Ruta inválida', value: null }; }
+  }, [doc, route]);
+  const run = (work: () => void) => { try { work(); state.setError(null); } catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo preparar el recorrido'); } };
+  const update = (id: string, patch: Partial<WalkthroughWaypoint>) => run(() => {
+    if (route) state.apply(putWalkthrough(doc, { ...route, waypoints: route.waypoints.map((p) => p.id === id ? { ...p, ...patch } : p) }));
+  });
+  return <aside className={styles.panel} aria-label="Recorrido por el plano">
+    <header><h2>Recorrido</h2><button type="button" onClick={onClose} aria-label="Ocultar recorrido">Ocultar</button></header>
+    <p>Crea un paseo de cámara por las habitaciones para verlo en 3D o exportarlo como vídeo. 1. Marca las habitaciones y los pasillos que las conectan. 2. Pulsa Preparar recorrido automático. 3. Abre Ver y exportar en 3D y pulsa Reproducir. Las puertas de paso deben estar abiertas.</p>
+    <fieldset disabled={state.readOnly}>
+      <legend>Estancias a visitar</legend>
+      {rooms.map((room, index) => <label className={styles.check} key={room.id}>
+        <input type="checkbox" checked={zones.includes(room.id)} onChange={(e) => setZones(e.target.checked ? [...zones, room.id] : zones.filter((id) => id !== room.id))} />
+        {doc.labels.find((label) => insideRoom(label, room.boundary))?.text ?? `Estancia ${index + 1}`} · {(room.areaMm2 / 1e6).toFixed(1)} m²
+      </label>)}
+      {!rooms.length && <p>Primero dibuja una habitación cerrada.</p>}
+      <button type="button" disabled={!zones.length} onClick={() => run(() => {
+        const path = autoTour(doc, zones); state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id);
+      })}>Preparar recorrido automático</button>
+      <button type="button" onClick={() => run(() => {
+        const path = { id: crypto.randomUUID(), name: 'Recorrido manual', zoneIds: [], waypoints: [], loop: false };
+        state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id); onDraw();
+      })}>Dibujar recorrido</button>
+    </fieldset>
+    {!!doc.walkthroughs?.length && <label>Recorrido guardado (elige uno para recuperarlo)<select value={route?.id ?? ''} onChange={(e) => state.setWalkthrough(e.target.value || null)}>
+      <option value="">Elige un recorrido</option>{doc.walkthroughs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+    </select></label>}
+    {route && <>
+      <fieldset disabled={state.readOnly}>
+        <label>Nombre<input value={route.name} maxLength={80} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, name: e.target.value })))} /></label>
+        <label className={styles.check}><input type="checkbox" checked={route.loop} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, loop: e.target.checked })))} />Cerrar ruta en bucle</label>
+        <button type="button" onClick={onDraw}>Añadir puntos en el plano</button>
+        <p>Arrastra los puntos numerados en 2D para ajustar el paso.</p>
+        {route.waypoints.map((point, index) => <details key={point.id} className={styles.light}>
+          <summary>Punto {index + 1}</summary>
+          {onDesignPoint && <button type="button" disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={() => onDesignPoint(point.id)}>Diseñar desde este punto</button>}<div className={styles.fields}>
+            {(['x', 'y', 'eyeHeightMm', 'speedMmPerS', 'dwellMs'] as const).map((key) => <label key={key}>
+              {{ x: 'X (m)', y: 'Y (m)', eyeHeightMm: 'Altura cámara (m)', speedMmPerS: 'Velocidad (m/s)', dwellMs: 'Pausa (s)' }[key]}
+              <input type="number" step="0.1" value={point[key] / 1000} onChange={(e) => update(point.id, { [key]: Number(e.target.value) * 1000 })} />
+            </label>)}
+            <label>Orientación (°)<input type="number" placeholder="Según la ruta" value={point.yawDeg ?? ''} onChange={(e) => update(point.id, { yawDeg: e.target.value === '' ? undefined : Number(e.target.value) })} /></label>
+          </div><button type="button" onClick={() => run(() => state.apply(putWalkthrough(doc, { ...route, waypoints: route.waypoints.filter((p) => p.id !== point.id) })))}>Eliminar punto</button>
+        </details>)}
+        <button type="button" className={styles.danger} onClick={() => run(() => { state.apply(removeWalkthrough(doc, route.id)); state.setWalkthrough(null); })}>Eliminar recorrido</button>
+      </fieldset>
+      {compiled.error && <p role="status">{compiled.error}</p>}
+      {!!compiled.value?.invalidSegments.length && <p role="alert">Tramos bloqueados: {compiled.value.invalidSegments.map((i) => i + 1).join(', ')}. Ajusta los puntos o despeja el paso.</p>}
+      {compiled.value && <p>Duración: {(compiled.value.durationMs / 1000).toFixed(1)} s · Sin consumo de IA</p>}
+      <button type="button" className={styles.primary} disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={onPreview}>Ver y exportar en 3D</button>
+    </>}
+  </aside>;
+}

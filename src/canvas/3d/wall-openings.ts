@@ -171,6 +171,8 @@ interface LocalOpening {
   heightM?: number;
   /** Altura del alféizar desde el suelo (m). Por defecto SILL_M. Ignorado en puertas. */
   sillM?: number;
+  /** Tipo de vidrio (meta.glassType del StructObj original). */
+  glassType?: 'simple' | 'doble' | 'oscurecido';
 }
 
 /**
@@ -241,6 +243,7 @@ export function splitWallWithOpenings(
       span: openingSpanLocal(o, wall, axis),
       heightM: o.heightM,
       sillM: o.elevationM, // undefined → cae a SILL_M por defecto
+      glassType: (o.meta as { glassType?: 'simple' | 'doble' | 'oscurecido' } | undefined)?.glassType,
     }))
     .filter((o) => o.span[1] > o.span[0])
     .sort((a, b) => a.span[0] - b.span[0]);
@@ -321,6 +324,7 @@ export function splitWallWithOpenings(
         center: [cx, (vBottom + vTop) / 2, cz],
         size: [widthM, vTop - vBottom, tM * 0.4],
         rotationY,
+        ...(op.glassType ? { glassType: op.glassType } : {}),
       });
     } else if (op.kind === 'door' && vTop - vBottom > 1e-6) {
       // PUERTA = hoja de madera que rellena el vano (algo más fina que el muro).

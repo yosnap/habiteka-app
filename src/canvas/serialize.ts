@@ -8,6 +8,7 @@
  */
 import {
   type CanvasDoc,
+  type CanvasNote,
   type Stroke,
   type StructObj,
   type ProductRef,
@@ -39,6 +40,8 @@ export function serializeCanvas(doc: CanvasDoc): unknown {
     ...(doc.floorOutline && doc.floorOutline.length >= 3
       ? { floorOutline: doc.floorOutline }
       : {}),
+    // Notas de texto en el plano (B4): se persisten si hay.
+    ...(doc.notes && doc.notes.length > 0 ? { notes: doc.notes } : {}),
   };
 }
 
@@ -60,6 +63,7 @@ export function deserializeCanvas(raw: unknown): CanvasDoc {
       const outline = parseFloorOutline(raw.floorOutline);
       return outline ? { floorOutline: outline } : {};
     })(),
+    notes: parseNotes(raw.notes),
   };
 }
 
@@ -133,13 +137,21 @@ function parseStruct(v: unknown): StructObj | null {
     width: num(v.width),
     height: num(v.height),
     rotation: num(v.rotation),
+    ...(v.drawn === true ? { drawn: true } : {}),
     ...(v.flipX === true ? { flipX: true } : {}),
+    ...(v.hidden === true ? { hidden: true } : {}),
     ...(typeof v.groupId === 'string' ? { groupId: v.groupId } : {}),
+    // parentId vincula aperturas/elementos de pared a su muro (wall-child); catalogId al
+    // item de catálogo. Se preservan para no perder la asociación al recargar.
+    ...(typeof v.parentId === 'string' ? { parentId: v.parentId } : {}),
+    ...(typeof v.catalogId === 'string' ? { catalogId: v.catalogId } : {}),
     ...(light ? { light } : {}),
     // Altura real (metros, 3ª dimensión) opcional: solo si es positiva y finita.
     ...(posMeters(v.heightM) ? { heightM: v.heightM as number } : {}),
     // Color del material (pintura de pared) opcional: solo un string hex válido.
     ...(isHexColor(v.color) ? { color: v.color as string } : {}),
+    // Meta de muros de wizard (extLeft, extRight, topConvex, etc.): se preserva tal cual.
+    ...(isRecord(v.meta) ? { meta: v.meta } : {}),
   };
 }
 
@@ -150,12 +162,15 @@ function isHexColor(v: unknown): boolean {
 
 function parseLight(v: unknown): LightProps | null {
   if (!isRecord(v)) return null;
-  // El color debe ser un string; si falta, se descarta la luz entera (no se
-  // inventa). La intensidad se acota a 0–100 (un valor inválido cae a 0).
   if (typeof v.color !== 'string') return null;
   return {
     color: v.color,
     intensidad: clampIntensity(typeof v.intensidad === 'number' ? v.intensidad : 0),
+    // Temperatura de color (Kelvin) y on/off: opcionales, se preservan si son válidos.
+    ...(typeof v.temperature === 'number' && Number.isFinite(v.temperature)
+      ? { temperature: v.temperature }
+      : {}),
+    ...(typeof v.on === 'boolean' ? { on: v.on } : {}),
   };
 }
 
@@ -204,4 +219,22 @@ function num(v: unknown): number {
 }
 function isPresent<T>(v: T | null): v is T {
   return v !== null;
+}
+
+/** Parsea las notas de texto del plano: lista de { id, x, y, text, color? }. */
+function parseNotes(v: unknown): CanvasNote[] {
+  if (!Array.isArray(v)) return [];
+  const notes: CanvasNote[] = [];
+  for (const n of v) {
+    if (!isRecord(n) || typeof n.id !== 'string' || typeof n.text !== 'string') continue;
+    if (typeof n.x !== 'number' || typeof n.y !== 'number') continue;
+    notes.push({
+      id: n.id,
+      x: n.x,
+      y: n.y,
+      text: n.text,
+      ...(typeof n.color === 'string' ? { color: n.color } : {}),
+    });
+  }
+  return notes;
 }
