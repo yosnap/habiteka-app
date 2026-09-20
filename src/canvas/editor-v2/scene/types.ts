@@ -6,6 +6,8 @@ export interface SceneBox {
   emissive?: string;
   shape?: 'box' | 'cylinder';
   boundaryPart?: 'post' | 'gate' | 'slot';
+  /** Transparencia del sólido; por defecto opaco (el vidrio de aberturas usa su propio rol). */
+  opacity?: number;
   materialId?: string;
   sideColors?: [string, string];
   sideMaterials?: [string, string];

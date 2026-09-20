@@ -6,8 +6,8 @@ import { furnitureSpatial } from './spatial-properties';
 export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
   const { heightMm: h, elevationMm: e, color } = furnitureSpatial(item), w = item.widthMm, d = item.depthMm;
   const parts: FurnitureVolume[] = [];
-  const box = (x: number, y: number, z: number, a: number, b: number, c: number, tint = color) => {
-    parts.push({ x: x * w, y: y * d, widthMm: a * w, depthMm: b * d, bottom: e + z * h, top: e + (z + c) * h, color: tint });
+  const box = (x: number, y: number, z: number, a: number, b: number, c: number, tint = color, extra: Partial<FurnitureVolume> = {}) => {
+    parts.push({ x: x * w, y: y * d, widthMm: a * w, depthMm: b * d, bottom: e + z * h, top: e + (z + c) * h, color: tint, ...extra });
   };
   const posts = (top = .9) => { for (const x of [0, .94]) for (const y of [0, .94]) box(x, y, 0, .06, .06, top); };
   const basin = () => {
@@ -15,8 +15,16 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
     box(.06, 0, .08, .88, .06, .92); box(.06, .94, .08, .88, .06, .92);
   };
   switch (item.kind) {
-    case 'pergola': posts(); box(0, 0, .86, 1, .08, .08); box(0, .92, .86, 1, .08, .08);
+    case 'pergola': case 'pergola-aluminio': case 'pergola-metal': posts(); box(0, 0, .86, 1, .08, .08); box(0, .92, .86, 1, .08, .08);
       for (let i = 0; i < 9; i++) box(i / 9, 0, .94, .06, 1, .06); break;
+    case 'carpa': {
+      // Cuatro postes, cubierta a dos niveles y lona transparente en el fondo y los laterales; el frente queda abierto.
+      posts(.8);
+      box(0, 0, .8, 1, 1, .04); box(.08, .08, .84, .84, .84, .06); box(.2, .2, .9, .6, .6, .06); box(.35, .35, .96, .3, .3, .04);
+      const clear = { opacity: .3 };
+      box(0, 0, 0, 1, .015, .8, '#dfe9ec', clear); box(0, 0, 0, .015, 1, .8, '#dfe9ec', clear); box(.985, 0, 0, .015, 1, .8, '#dfe9ec', clear);
+      break;
+    }
     case 'toldo':
       box(0, 0, .92, 1, .05, .08, '#737976');
       for (const x of [.08, .88]) box(x, 0, .88, .04, 1, .03, '#737976');

@@ -8,6 +8,8 @@ export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
   rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
+  opacity?: number;
 }
 
 /** El mueble lleva un color distinto al de catálogo: el usuario lo ha pintado. */
@@ -20,8 +22,19 @@ export function isPainted(item: Furniture): boolean {
 
 // Herrajes y patas oscuros conservan su color aunque el mueble se pinte; el resto de acentos (encimera, cojines,
 // frentes) siguen al color pintado para que el mueble se vea del color elegido también en 3D.
-const HARDWARE = new Set(['#67513b', '#434743', '#444944', '#64716f', '#313d3e']);
+const HARDWARE = new Set(['#67513b', '#434743', '#444944', '#64716f', '#313d3e', '#665849', '#6d6a66', '#8a8d89', '#a5a8a3']);
 
+const WINDOW_DRESSING = new Set(['curtain', 'curtain-open', 'roller', 'venetian', 'vertical-blind', 'shutter']);
+/** Cortinas, estores y persianas: objetos con una cobertura de ventana regulable. */
+export function isWindowDressing(item: Pick<Furniture, 'catalogId'>): boolean {
+  const profile = getFurnitureCatalogEntry(item.catalogId)?.profile;
+  return !!profile && WINDOW_DRESSING.has(profile);
+}
+/** Cobertura efectiva: la guardada o, por defecto, cerrada del todo salvo la cortina abierta, que nace recogida. */
+export function windowCoverage(item: Pick<Furniture, 'catalogId' | 'coverage'>): number {
+  if (item.coverage !== undefined) return Math.max(0, Math.min(1, item.coverage));
+  return getFurnitureCatalogEntry(item.catalogId)?.profile === 'curtain-open' ? .4 : 1;
+}
 /** Normalized local solids: one geometry contract for rendering and collision. */
 export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | null {
   const entry = getFurnitureCatalogEntry(item.catalogId);
@@ -29,7 +42,7 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
   if (entry.profile === 'outdoor') return outdoorVolumes(item);
   const { heightMm: h, elevationMm: elevation, color } = furnitureSpatial(item);
   const painted = isPainted(item);
-  const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [];
+  const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [], coverage = windowCoverage(item);
   const box = (x: number, y: number, z: number, width: number, depth: number, height: number, tint = color) => {
     const applied = painted && tint !== color && !HARDWARE.has(tint) ? color : tint;
     result.push({ x: x * w, y: y * d, widthMm: width * w, depthMm: depth * d,
@@ -44,6 +57,33 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       legs(.2); box(0, 0, .2, 1, 1, .23); box(0, 0, .43, 1, .18, .57);
       box(0, .18, .43, .12, .82, .32); box(.88, .18, .43, .12, .82, .32);
       for (let i = 0; i < 3; i++) box(.13 + i * .25, .2, .43, .24, .77, .16);
+      break;
+    case 'sofa-chaise':
+      // Cuerpo de tres plazas y módulo alargado a la derecha que llega al fondo completo; sin patas bajo el hueco de la L.
+      for (const [x, y] of [[.03, .03], [.91, .03], [.03, .51], [.6, .51], [.66, .91], [.91, .91]]) box(x!, y!, 0, .06, .06, .2, '#67513b');
+      box(0, 0, .2, 1, .6, .23); box(0, 0, .43, 1, .11, .57); box(0, .11, .43, .07, .49, .32);
+      box(.66, .58, .2, .34, .42, .23);
+      for (let i = 0; i < 2; i++) box(.09 + i * .29, .13, .43, .28, .45, .16);
+      box(.67, .13, .43, .31, .85, .16);
+      break;
+    case 'sofa-corner':
+      // Tramo largo arriba y tramo corto a la derecha, unidos por el módulo de esquina; sin patas bajo el hueco de la L.
+      for (const [x, y] of [[.03, .03], [.91, .03], [.03, .34], [.6, .34], [.66, .91], [.91, .91]]) box(x!, y!, 0, .06, .06, .2, '#67513b');
+      box(0, 0, .2, 1, .43, .23); box(.66, .43, .2, .34, .57, .23);
+      box(0, 0, .43, 1, .08, .57); box(.92, .08, .43, .08, .92, .57);
+      box(0, .08, .43, .06, .35, .32); box(.66, .94, .43, .26, .06, .32);
+      for (let i = 0; i < 3; i++) box(.08 + i * .28, .1, .43, .26, .31, .16);
+      for (let j = 0; j < 2; j++) box(.68, .45 + j * .24, .43, .23, .22, .16);
+      break;
+    case 'sofa-modular':
+      legs(.2);
+      for (let m = 0; m < 3; m++) { box(m / 3 + .005, 0, .2, .323, 1, .23); box(m / 3 + .005, 0, .43, .323, .18, .57); box(m / 3 + .02, .2, .43, .293, .77, .16); }
+      box(0, .18, .43, .06, .82, .32); box(.94, .18, .43, .06, .82, .32);
+      break;
+    case 'sofa-bed':
+      legs(.2); box(0, 0, .2, 1, 1, .28); box(0, 0, .48, 1, .18, .52);
+      box(0, .18, .48, .1, .82, .3); box(.9, .18, .48, .1, .82, .3);
+      box(.1, .2, .48, .8, .76, .12); box(.1, .94, .3, .8, .04, .1, '#f3eee3');
       break;
     case 'bed':
       legs(.25); box(.02, .02, .25, .96, .96, .23, '#866b4c');
@@ -102,9 +142,39 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(0, 0, 0, 1, 1, 1);
       break;
     case 'curtain':
-      for (let i = 0; i < 10; i++) box(i / 10, i % 2 ? .25 : 0, 0, .1, .75, .97);
+    case 'curtain-open': {
+      // Dos paños que se corren desde los extremos hacia el centro: la cobertura reparte los pliegues entre ambos lados.
+      const folds = Math.round(5 * coverage);
+      for (let i = 0; i < folds; i++) { box(i * .1, i % 2 ? .25 : 0, 0, .1, .75, .97); box(.9 - i * .1, i % 2 ? .25 : 0, 0, .1, .75, .97); }
       box(0, .4, .97, 1, .2, .03, '#665849');
       break;
+    }
+    case 'roller': {
+      // El tubo arriba; la tela baja desde él tanto como indique la cobertura.
+      const drop = .93 * coverage;
+      box(0, 0, .95, 1, 1, .05, '#6d6a66');
+      if (drop > .01) { box(.02, .4, .95 - drop, .96, .2, drop); box(.02, .35, .95 - drop, .96, .3, .02, '#6d6a66'); }
+      break;
+    }
+    case 'venetian': {
+      box(0, 0, .95, 1, 1, .05, '#8a8d89');
+      const slats = Math.round(12 * coverage);
+      for (let i = 0; i < slats; i++) box(.02, .25, .95 - (i + 1) * .078, .96, .5, .02);
+      break;
+    }
+    case 'vertical-blind': {
+      // Las lamas se recogen hacia un lado: cubren desde la izquierda la fracción indicada.
+      box(0, .3, .97, 1, .4, .03, '#8a8d89');
+      const slats = Math.round(12 * coverage);
+      for (let i = 0; i < slats; i++) box(i / 12 + .005, .2, 0, .06, .6, .96);
+      break;
+    }
+    case 'shutter': {
+      box(0, 0, .8, 1, 1, .2, '#a5a8a3');
+      const slats = Math.round(10 * coverage);
+      for (let i = 0; i < slats; i++) box(.03, .3, .8 - (i + 1) * .08, .94, .4, .06);
+      break;
+    }
     case 'screen':
       box(.25, .1, 0, .5, .8, .06, '#363b3b'); box(.46, .42, .06, .08, .16, .16, '#363b3b');
       box(0, .36, .22, 1, .28, .78); box(.04, .64, .26, .92, .02, .7, '#263c42');

@@ -2,7 +2,8 @@ import { OUTDOOR_CATALOG } from './outdoor-catalog';
 import type { Furniture } from './schema';
 import { ASSET_CATALOG } from './furniture-assets';
 
-export type FurnitureProfile = 'outdoor' | 'sofa' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'rug' | 'curtain' | 'appliance' | 'screen' | 'bench';
+export type FurnitureProfile = 'outdoor' | 'sofa' | 'sofa-chaise' | 'sofa-corner' | 'sofa-modular' | 'sofa-bed' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'rug'
+  | 'curtain' | 'curtain-open' | 'roller' | 'venetian' | 'vertical-blind' | 'shutter' | 'appliance' | 'screen' | 'bench';
 export type FurnitureRoom = 'salon' | 'dormitorio' | 'comedor' | 'cocina' | 'bano' | 'oficina' | 'exterior' | 'iluminacion' | 'decoracion';
 export interface FurnitureCatalogEntry {
   id: string; productId: string; variantLabel: string; kind: string; label: string;
@@ -74,6 +75,15 @@ const essentials = [
   entry('alfombra', 'Alfombra', 'decoracion', 'rug', [2000, 1500, 10], 'Lana', '#b79f83', 'Delimitar zona y aportar confort', 'Mediterráneo'),
   entry('planta', 'Planta de interior', 'decoracion', 'plant', [500, 500, 1200], 'Cerámica y vegetación', '#658661', 'Vegetación interior', 'Mediterráneo'),
   entry('cortina', 'Cortina independiente', 'decoracion', 'curtain', [1800, 180, 2400], 'Lino', '#cfc6b8', 'Filtrar luz; colocación independiente', 'Mediterráneo'),
+  entry('chaise-longue', 'Sofá con chaise longue', 'salon', 'sofa-chaise', [2600, 1600, 850], 'Tela', '#9aa39e', 'Descanso con módulo alargado a la derecha'),
+  entry('rinconera', 'Sofá rinconero', 'salon', 'sofa-corner', [2800, 2200, 850], 'Tela', '#b3ab9c', 'Asiento en esquina para varias personas'),
+  entry('sofa-modular', 'Sofá modular de tres módulos', 'salon', 'sofa-modular', [2700, 950, 820], 'Tela', '#8b9a95', 'Módulos independientes combinables', 'Nórdico'),
+  entry('sofa-cama', 'Sofá cama', 'salon', 'sofa-bed', [2000, 950, 850], 'Tela', '#a89b8a', 'Sofá que se convierte en cama'),
+  entry('cortina-abierta', 'Cortina abierta (dos paños)', 'decoracion', 'curtain-open', [1800, 180, 2400], 'Lino', '#d8cfc0', 'Paños recogidos a los lados', 'Mediterráneo'),
+  entry('estor-enrollable', 'Estor enrollable', 'decoracion', 'roller', [1200, 80, 1600], 'Tejido técnico', '#e4e0d6', 'Pantalla que se enrolla en un tubo', 'Contemporáneo', 900),
+  entry('persiana-veneciana', 'Persiana veneciana', 'decoracion', 'venetian', [1200, 60, 1500], 'Aluminio', '#c9ccc8', 'Lamas horizontales orientables', 'Contemporáneo', 900),
+  entry('persiana-vertical', 'Persiana de lamas verticales', 'decoracion', 'vertical-blind', [1800, 100, 2400], 'Tejido', '#d5d2c8', 'Lamas verticales giratorias', 'Contemporáneo'),
+  entry('persiana-exterior', 'Persiana enrollable exterior', 'exterior', 'shutter', [1200, 150, 1400], 'Aluminio', '#b9bcb6', 'Cajón y lamas enrollables sobre la ventana', 'Contemporáneo', 900),
 ];
 export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
   if (item.kind === 'cama-doble') return [item, variant(item, 'king', 'King · 180 cm', { widthMm: 1800, color: '#9caaa6', material: 'Tela acolchada y madera' })];
@@ -81,6 +91,10 @@ export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CAT
   if (item.kind === 'mesa-comedor') return [item, variant(item, 'grande', 'Nogal · 200 cm', { widthMm: 2000, depthMm: 1000, material: 'Nogal', color: '#785b43', style: 'Clásico' })];
   if (item.kind === 'alfombra') return [item, variant(item, 'grande', 'Yute · 300 × 200 cm', { widthMm: 3000, depthMm: 2000, material: 'Yute', color: '#bda777', style: 'Rústico' })];
   if (item.kind === 'armario') return [item, variant(item, 'grande', 'Roble · 180 cm', { widthMm: 1800, material: 'Roble', color: '#b49267', style: 'Nórdico' })];
+  if (item.kind === 'sofa-cama') return [item, variant(item, 'abierto', 'Abierto · cama 200 × 190 cm', { depthMm: 1900, heightMm: 450 })];
+  if (item.kind === 'cortina' || item.kind === 'cortina-abierta') return [item, variant(item, 'gris', 'Gris piedra', { color: '#9a9a96' }), variant(item, 'azul', 'Azul noche', { color: '#6c7f93' }), variant(item, 'blanco', 'Blanco roto', { color: '#efeae0' })];
+  if (item.kind === 'estor-enrollable') return [item, variant(item, 'gris', 'Gris grafito', { color: '#8f8f8b' }), variant(item, 'screen', 'Screen negro', { color: '#3a3d3c', material: 'Tejido screen' })];
+  if (item.kind === 'persiana-veneciana') return [item, variant(item, 'madera', 'Madera clara', { color: '#c9a878', material: 'Madera' }), variant(item, 'negra', 'Negra', { color: '#3a3d3c' })];
   return [item];
 })];
 const catalogById = new Map(FURNITURE_CATALOG.map((item) => [item.id, item]));

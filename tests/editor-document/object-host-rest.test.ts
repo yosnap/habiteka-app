@@ -61,7 +61,7 @@ it('un microondas sobre la encimera se apoya en el mueble de cocina y sube con l
   expect(doc.furniture.find((f) => f.id === 'micro')!.elevationMm).toBe(1300);
 });
 
-it('un mueble que se acerca a un muro se gira con la trasera contra la cara; uno perpendicular a propósito se respeta', () => {
+it('un mueble que se acerca a un muro adopta su dirección con la trasera contra la cara, llegue como llegue', () => {
   const doc = house(), t = doc.walls[0]!.thicknessMm / 2;
   // Muro sur (y = 4000): la trasera debe quedar en y = 4000 − t mirando hacia −y (rotación 180).
   const near = alignBackToWall(doc, piece('sofa', 'sofa-3', 3000, 4000 - t - 950 - 60, [2300, 950, 850]), 200);
@@ -71,9 +71,11 @@ it('un mueble que se acerca a un muro se gira con la trasera contra la cara; uno
   // Ya orientado correctamente hacia la estancia: solo se ajusta la distancia.
   const north = alignBackToWall(doc, piece('sofa2', 'sofa-3', 3000, t + 40, [2300, 950, 850]), 200);
   expect(north.rotation).toBe(0); expect(north.y).toBeCloseTo(t);
-  // Perpendicular al muro oeste (el largo hacia la estancia): no se toca.
-  const desk = piece('mesa', 'mesa-comedor', t + 30, 1000, [1600, 900, 750]);
-  expect(alignBackToWall(doc, desk, 200)).toEqual(desk);
+  // Llega perpendicular al muro oeste: adopta la dirección del muro con la trasera contra su cara.
+  const desk = alignBackToWall(doc, piece('mesa', 'mesa-comedor', t + 30, 1000, [1600, 900, 750]), 200);
+  expect(Math.abs(desk.rotation)).toBeCloseTo(90);
+  expect(localToWorld(desk, { x: 0, y: 0 }).x).toBeCloseTo(t);
+  expect(localToWorld(desk, { x: 0, y: desk.depthMm }).x).toBeCloseTo(t + 900);
   // Lejos de cualquier muro: no se toca.
   const far = piece('sofa3', 'sofa-3', 3000, 2000, [2300, 950, 850]);
   expect(alignBackToWall(doc, far, 200)).toEqual(far);

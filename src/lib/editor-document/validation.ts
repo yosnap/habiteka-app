@@ -200,7 +200,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         allowed.openings += ' colors';
         allowed.stairs += ' color';
         allowed.ramps += ' color';
-        allowed.furniture += ' heightMm elevationMm color hostId';
+        allowed.furniture += ' heightMm elevationMm color hostId coverage';
       }
       keys(e, allowed[key]!);
       if (e.name !== undefined) {
@@ -218,6 +218,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         positive(e.heightMm);
         nonnegative(e.elevationMm);
         if (e.hostId !== undefined) text(e.hostId);
+        if (e.coverage !== undefined) { finite(e.coverage); if ((e.coverage as number) < 0 || (e.coverage as number) > 1) throw new Error('La cobertura va de 0 a 1'); }
       }
       if (key === 'comments') {
         text(e.targetEntityId);

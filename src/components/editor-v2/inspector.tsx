@@ -23,6 +23,7 @@ import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishe
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { furnitureSpatial } from '@/lib/editor-document/spatial-properties';
+import { isWindowDressing, windowCoverage } from '@/lib/editor-document/furniture-profiles';
 import { MeterField, NumberField } from './property-number-field';
 import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields, WallConstructionFields } from './construction-fields';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
@@ -137,9 +138,14 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
         ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
         <MeterField key={key} label={(isBoundary(furniture) || isKitchenRun(furniture)) && key === 'widthMm' ? 'Longitud' : isBoundary(furniture) && key === 'depthMm' ? 'Espesor' : isKitchenRun(furniture) && key === 'heightMm' ? 'Altura de encimera' : label} valueMm={({ ...furniture, ...furnitureSpatial(furniture) })[key]}
-          change={(value) => apply((doc) => updateFurniture(doc, furniture.id, { [key]: value }))} />)}
+          change={(value) => apply((doc) => updateFurniture(doc, furniture.id, key === 'heightMm' && isWindowDressing(furniture)
+            // Cortinas, estores y persianas cuelgan de arriba: la altura crece hacia abajo con el tubo o la barra fijos.
+            ? { heightMm: value, elevationMm: Math.max(0, furnitureSpatial(furniture).elevationMm + furnitureSpatial(furniture).heightMm - value) }
+            : { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={furniture.rotation}
         change={(rotation) => apply((doc) => updateFurniture(doc, furniture.id, { rotation }))} />
+      {isWindowDressing(furniture) && <NumberField label="Cobertura de la ventana (%)" value={Math.round(windowCoverage(furniture) * 100)}
+        change={(percent) => apply((doc) => updateFurniture(doc, furniture.id, { coverage: Math.max(0, Math.min(100, percent)) / 100 }))} />}
     </div>}
     {furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
     {furniture && isKitchenRun(furniture) && <KitchenFields item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}

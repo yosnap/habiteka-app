@@ -3,6 +3,9 @@ import type { FurnitureCatalogEntry } from './furniture-catalog';
 type Row = [string, string, number, number, number, string, string, string];
 const rows: Row[] = [
   ['pergola', 'Pérgola de madera', 3000, 3000, 2500, 'Madera', '#a98256', 'Sombra con cubierta de lamas'],
+  ['pergola-aluminio', 'Pérgola de aluminio', 3000, 3000, 2500, 'Aluminio', '#8f979c', 'Sombra con estructura de aluminio'],
+  ['pergola-metal', 'Pérgola de acero', 3000, 3000, 2500, 'Acero lacado', '#3f484d', 'Sombra con estructura metálica'],
+  ['carpa', 'Carpa con laterales transparentes', 3000, 3000, 2800, 'Lona y PVC transparente', '#e9e4d8', 'Cubierta de bar cerrada por tres lados con lona transparente'],
   ['toldo', 'Toldo de terraza', 3500, 2500, 2600, 'Lona y aluminio', '#e5d5b6', 'Sombra con brazos y lona'],
   ['sombrilla', 'Sombrilla de jardín', 2500, 2500, 2400, 'Lona y metal', '#e6d9bd', 'Sombra independiente'],
   ['puf-exterior', 'Puf de exterior', 750, 750, 450, 'Tejido exterior', '#c6a885', 'Asiento informal interior y exterior'],

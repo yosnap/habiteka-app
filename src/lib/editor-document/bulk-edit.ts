@@ -24,7 +24,7 @@ export function bulkPeers(doc: EditorDocument, primaryId: string, selection: str
 
 const WALL_KEYS = ['heightMm', 'baseElevationMm', 'materials', 'colors', 'thicknessMm'] as const;
 const OPENING_KEYS = ['heightMm', 'elevationMm', 'openAngleDeg', 'hinge', 'swing', 'catalogId', 'widthMm'] as const;
-const OBJECT_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'rotation', 'color', 'materialId', 'construction', 'kitchen'] as const;
+const OBJECT_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'rotation', 'color', 'materialId', 'construction', 'kitchen', 'coverage'] as const;
 const COLUMN_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'materialId', 'color'] as const;
 const FINISH_KEYS = ['color', 'texture', 'tileSizeMm', 'rotation', 'elevationMm', 'slabThicknessMm'] as const;
 

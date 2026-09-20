@@ -118,6 +118,8 @@ export interface Furniture extends Point {
   color?: string;
   /** Mueble sobre el que se apoya (televisor sobre mueble, microondas sobre encimera); su cota sigue a la cara superior del anfitrión. */
   hostId?: string;
+  /** Fracción de la ventana que cubre una cortina, estor o persiana (0 abierta, 1 tapada del todo). */
+  coverage?: number;
 }
 export interface ElementComment {
   id: string;

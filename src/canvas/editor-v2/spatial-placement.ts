@@ -13,7 +13,8 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
-import { alignBackToWall } from './wall-back-alignment';
+import { alignBackToWall, dockToWindow } from './wall-back-alignment';
+import { elementName } from '@/lib/editor-document/element-classification';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
@@ -126,6 +127,20 @@ function snapOriginToWallEndpoint(doc: EditorDocument, item: Furniture | Stair |
   }
   return closest ? { ...item, x: closest.x, y: closest.y } : item;
 }
+/** Nombre legible de cada sólido en conflicto, para que el aviso diga con qué choca el elemento. */
+function collisionLabel(doc: EditorDocument, id: string): string {
+  const object = planObjects(doc).find((item) => item.id === id);
+  if (object) return `«${elementName(object)}»`;
+  const wall = doc.walls.find((item) => item.id === id);
+  if (wall) return wall.name?.trim() ? `la pared «${wall.name.trim()}»` : 'la pared';
+  const column = doc.columns?.find((item) => item.id === id);
+  if (column) return column.name?.trim() ? `la columna «${column.name.trim()}»` : 'la columna';
+  const stair = doc.stairs?.find((item) => item.id === id);
+  if (stair) return stair.name?.trim() ? `la escalera «${stair.name.trim()}»` : 'la escalera';
+  const ramp = doc.ramps?.find((item) => item.id === id);
+  if (ramp) return ramp.name?.trim() ? `«${ramp.name.trim()}»` : isRampLanding(ramp) ? 'el descansillo' : 'la rampa';
+  return 'otro elemento';
+}
 /** Legacy intersections remain repairable; edits cannot introduce or deepen one. */
 export function assertSpatialPlacement(previous: EditorDocument, candidate: EditorDocument): void {
   const before = collisions(previous), after = collisions(candidate);
@@ -156,7 +171,7 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
     if (depth > (before.get(key) ?? 0) + .1)
-    throw new Error('El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.');
+      throw new Error(`${collisionLabel(candidate, first)} atraviesa ${collisionLabel(candidate, second)} (${Math.max(1, Math.round(depth / 10))} cm). Ajusta posición, tamaño o elevación.`);
   }
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
@@ -218,7 +233,7 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   result = { ...result, x: result.x + aligned.delta.x, y: result.y + aligned.delta.y };
   const furniture = 'kind' in result && !('stepCount' in result) && !isBoundary(result) && !isKitchenRun(result);
   // Un mueble se gira con la trasera contra el muro y, si cae sobre otro mueble, se apoya en él y toma su orientación.
-  if (furniture) result = restOnHost(doc, alignBackToWall(doc, result as Furniture, faceTolerance), { alignRotation: true });
+  if (furniture) result = restOnHost(doc, dockToWindow(doc, alignBackToWall(doc, result as Furniture, faceTolerance), faceTolerance), { alignRotation: true });
   // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
   return snapToWallFace(doc, result, faceTolerance);
 }

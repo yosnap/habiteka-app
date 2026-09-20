@@ -32,7 +32,7 @@ export function FurnitureSymbol({ item, scale, selected, document, selectedPartI
       const id = partId(part), interactive = !!id && !!onPartSelect;
       if (part.shape === 'cylinder') return <Ellipse key={index} x={part.x + part.widthMm / 2} y={part.y + part.depthMm / 2} radiusX={part.widthMm / 2} radiusY={part.depthMm / 2} fill={partFill(part)} stroke="#59635c" strokeWidth={.7 / scale} listening={false} />;
       return <Rect key={index} x={part.x} y={part.y} width={part.widthMm} height={part.depthMm} rotation={part.rotation ?? 0}
-        fill={id && id === selectedPartId ? '#43b6a0' : partFill(part)} stroke="#59635c" strokeWidth={.7 / scale}
+        fill={id && id === selectedPartId ? '#43b6a0' : partFill(part)} stroke="#59635c" strokeWidth={.7 / scale} opacity={part.opacity ?? 1}
         draggable={!!id && !!onPartMove} onDragStart={(e) => { e.cancelBubble = true; if (id) onPartSelect?.(id); }}
         onDragMove={(e) => { e.cancelBubble = true; e.target.y(part.y); if (id && onPartSnap) e.target.x(part.x + onPartSnap(id, e.target.x() - part.x)); }}
         onDragEnd={(e) => { e.cancelBubble = true; const delta = e.target.x() - part.x; e.target.position({ x: part.x, y: part.y }); if (id) onPartMove?.(id, delta); }}
