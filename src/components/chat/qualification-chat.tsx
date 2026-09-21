@@ -9,7 +9,6 @@
  * cualificación → (estilo/entregables) → entrega → feedback.
  */
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { MessageList, type ChatTurn } from './message-list';
 import { MessageInput } from './message-input';
 import { StyleQuickPicks } from './style-quick-picks';
@@ -20,6 +19,7 @@ import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
 import { Button } from '@/components/ui/button';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { acceptCurrentTos, checkTosAccepted } from '@/server/legal/actions';
+import { TosAcceptanceNotice } from '@/components/legal/tos-acceptance';
 import type { AgentInput, AgentOutcome } from '@/server/agent';
 import type { Estilo, DeliverableType, ChatMessage, StructuralElements } from '@/lib/contracts';
 
@@ -27,11 +27,7 @@ type Phase = 'ingesta' | 'cualificacion' | 'entrega' | 'feedback';
 
 interface Props {
   projectId: string;
-  advance: (
-    projectId: string,
-    input: AgentInput,
-    zoneId?: string | null,
-  ) => Promise<AgentOutcome>;
+  advance: (projectId: string, input: AgentInput, zoneId?: string | null) => Promise<AgentOutcome>;
   initialPhase?: Phase;
   /** Zona activa del proyecto; null = flujo por defecto. El asistente es por zona. */
   zoneId?: string | null;
@@ -82,7 +78,10 @@ export function QualificationChat({
     });
 
   const pushTurn = (role: 'user' | 'assistant', text: string, imageUrl?: string) =>
-    setTurns((prev) => [...prev, { id: `t${++turnSeq}`, role, text, ...(imageUrl ? { imageUrl } : {}) }]);
+    setTurns((prev) => [
+      ...prev,
+      { id: `t${++turnSeq}`, role, text, ...(imageUrl ? { imageUrl } : {}) },
+    ]);
 
   // Ejecuta una acción del agente y refleja la fase y el estado resultantes; ante
   // un error de guarda, lo muestra como mensaje en vez de romper la pantalla.
@@ -104,7 +103,11 @@ export function QualificationChat({
   const onUploadImage = (image: UploadedImage) => {
     // Muestra la imagen subida en el chat (data URL) para que el usuario compruebe qué
     // envió sin abrir el explorador. El `run` va sin echo para no duplicar el turno.
-    pushTurn('user', '📷 Imagen del espacio subida', `data:${image.mimeType};base64,${image.base64}`);
+    pushTurn(
+      'user',
+      '📷 Imagen del espacio subida',
+      `data:${image.mimeType};base64,${image.base64}`,
+    );
     run(
       {
         action: 'ingest',
@@ -219,8 +222,8 @@ export function QualificationChat({
         <div className="border-brand-200 bg-brand-50 flex items-start gap-2 rounded-control border p-3 text-sm">
           <span className="border-brand-500 mt-0.5 inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
           <span className="text-ink">
-            Generando tus diseños… El render puede tardar hasta ~2 minutos. No cierres esta
-            pestaña; te aviso aquí cuando esté listo (o si algo falla).
+            Generando tus diseños… El render puede tardar hasta ~2 minutos. No cierres esta pestaña;
+            te aviso aquí cuando esté listo (o si algo falla).
           </span>
         </div>
       ) : pending ? (
@@ -283,20 +286,7 @@ export function QualificationChat({
               <MessageInput onSend={onSend} disabled={pending} />
             </div>
 
-            {tosAccepted === false ? (
-              <div className="border-line bg-surface-muted flex flex-col gap-2 rounded-control border p-3 text-sm">
-                <p className="text-ink-soft">
-                  Antes de generar, acepta los{' '}
-                  <Link href="/legal/terminos" target="_blank" className="text-brand-700 underline">
-                    Términos de Servicio
-                  </Link>
-                  . Las propuestas son conceptuales y requieren validación profesional.
-                </p>
-                <Button type="button" size="sm" onClick={acceptTos} disabled={pending}>
-                  Acepto los Términos de Servicio
-                </Button>
-              </div>
-            ) : null}
+            <TosAcceptanceNotice accepted={tosAccepted} onAccept={acceptTos} disabled={pending} />
 
             {deliverError ? (
               <div className="flex flex-col gap-2 rounded-control border border-red-300 bg-red-50 p-3 text-sm">

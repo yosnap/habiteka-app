@@ -17,6 +17,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
+import {
+  TOS_REQUIRED_MESSAGE,
+  TosAcceptanceNotice,
+  useTosAcceptance,
+} from '@/components/legal/tos-acceptance';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
 import { SketchPad } from './sketch-pad';
 import { PlanImportPanel, type PlanImportActions } from './plan-import-panel';
@@ -44,7 +49,10 @@ interface Props extends PlanImportActions {
     mode: RedrawMode,
   ) => Promise<{ imageUrl: string; assetKey?: string }>;
   /** Activa el redibujado ya generado de ese modo como plano de trabajo. */
-  selectRedrawAction: (projectId: string, mode: RedrawMode) => Promise<{ imageUrl: string; assetKey?: string }>;
+  selectRedrawAction: (
+    projectId: string,
+    mode: RedrawMode,
+  ) => Promise<{ imageUrl: string; assetKey?: string }>;
   /** Importa la imagen activa del estudio (redibujado u original) por el pipeline de planos. */
   importCurrentAction: (
     projectId: string,
@@ -109,20 +117,34 @@ export function PlanoStudio({
   const [redrawMode, setRedrawMode] = useState<RedrawMode>(initialState.redrawMode ?? 'tecnico');
   // Redibujados ya generados por modo: se alterna entre ellos sin regenerar.
   // Se identifican por CLAVE de asset: las URL son firmadas y cambian en cada carga.
-  const [redraws, setRedraws] = useState<Partial<Record<RedrawMode, { url: string; key?: string }>>>({
+  const [redraws, setRedraws] = useState<
+    Partial<Record<RedrawMode, { url: string; key?: string }>>
+  >({
     ...(initialState.redraws?.tecnico
-      ? { tecnico: { url: initialState.redraws.tecnico.assetUrl, key: initialState.redraws.tecnico.assetKey } }
+      ? {
+          tecnico: {
+            url: initialState.redraws.tecnico.assetUrl,
+            key: initialState.redraws.tecnico.assetKey,
+          },
+        }
       : {}),
     ...(initialState.redraws?.decorado
-      ? { decorado: { url: initialState.redraws.decorado.assetUrl, key: initialState.redraws.decorado.assetKey } }
+      ? {
+          decorado: {
+            url: initialState.redraws.decorado.assetUrl,
+            key: initialState.redraws.decorado.assetKey,
+          },
+        }
       : {}),
   });
   const [activeKey, setActiveKey] = useState<string | undefined>(initialState.plan?.assetKey);
   // Qué se está viendo: el redibujado de un modo (aunque el selector esté en otro) o el original.
   const shownMode: RedrawMode | null =
-    activeKey !== undefined && redraws.tecnico?.key === activeKey ? 'tecnico'
-    : activeKey !== undefined && redraws.decorado?.key === activeKey ? 'decorado'
-    : null;
+    activeKey !== undefined && redraws.tecnico?.key === activeKey
+      ? 'tecnico'
+      : activeKey !== undefined && redraws.decorado?.key === activeKey
+        ? 'decorado'
+        : null;
   const [vista, setVista] = useState<RenderVista>(initialState.vista ?? 'cenital');
   // Detalles del propietario para el render: mobiliario real, singularidades
   // ("cocina con isla", "registros de placas solares en la entrada"…).
@@ -130,6 +152,23 @@ export function PlanoStudio({
   const [busy, setBusy] = useState<Busy>(null);
   const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  // Gate de los Términos: el servidor lo exige en todas las acciones del estudio y
+  // en producción su error llega como un 500 opaco; se comprueba y acepta aquí.
+  const { tosAccepted, acceptTos, pending: tosPending } = useTosAcceptance();
+  // Al aceptar se retira el aviso de bloqueo que pudo dejar una acción previa.
+  const onAcceptTos = () => {
+    setError(null);
+    acceptTos();
+  };
+  // La importación CAD/PDF tiene sus propias acciones (no pasan por `run`), pero
+  // el servidor también le exige los Términos: se bloquea la entrada al panel.
+  const openImport = () => {
+    if (tosAccepted === false) {
+      setError(TOS_REQUIRED_MESSAGE);
+      return;
+    }
+    setImporting(true);
+  };
 
   const svgUrl = useMemo(() => {
     if (!plano) return null;
@@ -152,6 +191,10 @@ export function PlanoStudio({
 
   const run = async (kind: Exclude<Busy, null>, fn: () => Promise<void>) => {
     if (inFlight.current) return;
+    if (tosAccepted === false) {
+      setError(TOS_REQUIRED_MESSAGE);
+      return;
+    }
     inFlight.current = true;
     setBusy(kind);
     setError(null);
@@ -239,7 +282,10 @@ export function PlanoStudio({
         const result = await redrawAction(projectId, [], redrawMode);
         setPlanImageUrl(result.imageUrl);
         setActiveKey(result.assetKey);
-        setRedraws((prev) => ({ ...prev, [redrawMode]: { url: result.imageUrl, key: result.assetKey } }));
+        setRedraws((prev) => ({
+          ...prev,
+          [redrawMode]: { url: result.imageUrl, key: result.assetKey },
+        }));
         setFromCanvas(false);
         setPlano(null);
         setCenitalUrl(null);
@@ -359,11 +405,19 @@ export function PlanoStudio({
               className="mt-3 w-full"
               variant="outline"
               disabled={busy !== null}
-              onClick={() => setImporting(true)}
+              onClick={openImport}
             >
-              {importResult ? '📐 Continuar importación de plano' : '📐 Importar plano dibujado (CAD / PDF)'}
+              {importResult
+                ? '📐 Continuar importación de plano'
+                : '📐 Importar plano dibujado (CAD / PDF)'}
             </Button>
           </div>
+          <TosAcceptanceNotice
+            accepted={tosAccepted}
+            onAccept={onAcceptTos}
+            disabled={tosPending}
+            className="mt-5"
+          />
           {drawing && (
             <div className="mt-5">
               <SketchPad onUse={onDrawing} disabled={busy !== null} />
@@ -415,13 +469,18 @@ export function PlanoStudio({
               onChange={(e) => onChangeMode(e.target.value as RedrawMode)}
               className="border-line bg-surface text-ink rounded-control border px-2 py-1 text-xs"
             >
-              <option value="tecnico">Técnico (solo estructura){redraws.tecnico ? '' : ' · no generado'}</option>
-              <option value="decorado">Decorado (con mobiliario){redraws.decorado ? '' : ' · no generado'}</option>
+              <option value="tecnico">
+                Técnico (solo estructura){redraws.tecnico ? '' : ' · no generado'}
+              </option>
+              <option value="decorado">
+                Decorado (con mobiliario){redraws.decorado ? '' : ' · no generado'}
+              </option>
             </ModernSelect>
           )}
           {!fromCanvas && !fromDrawing && !redraws[redrawMode] && (
             <span className="text-destructive text-xs" role="status">
-              Sin redibujado {redrawMode === 'decorado' ? 'decorado' : 'técnico'}: pulsa «Redibujar con IA».
+              Sin redibujado {redrawMode === 'decorado' ? 'decorado' : 'técnico'}: pulsa «Redibujar
+              con IA».
             </span>
           )}
           {!fromCanvas && !fromDrawing && (
@@ -499,7 +558,7 @@ export function PlanoStudio({
           <Button size="sm" variant="outline" disabled={busy !== null} onClick={onImportCanvas}>
             Traer el plano del editor
           </Button>
-          <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => setImporting(true)}>
+          <Button size="sm" variant="outline" disabled={busy !== null} onClick={openImport}>
             Importar plano dibujado (CAD / PDF)
           </Button>
           <a
@@ -526,8 +585,9 @@ export function PlanoStudio({
             <div className="border-line bg-surface rounded-card border p-4">
               <p className="text-ink mb-1 text-sm font-medium">Llevar al editor</p>
               <p className="text-ink-soft mb-2 text-xs">
-                Lee muros, huecos, estancias y cotas escritas de la imagen que estás viendo y abre la
-                tabla de medidas para revisarla antes de enviar. Mejor desde el redibujado técnico.
+                Lee muros, huecos, estancias y cotas escritas de la imagen que estás viendo y abre
+                la tabla de medidas para revisarla antes de enviar. Mejor desde el redibujado
+                técnico.
               </p>
               <Button
                 type="button"
@@ -578,7 +638,6 @@ export function PlanoStudio({
             </div>
           ) : null}
 
-
           <div className="border-line bg-surface rounded-card border p-4">
             <label htmlFor="estilo" className="text-ink mb-2 block text-sm font-medium">
               Estilo de interiorismo
@@ -625,7 +684,11 @@ export function PlanoStudio({
               onClick={onGenerateCenital}
               disabled={busy !== null}
             >
-              {busy === 'cenital' ? 'Generando…' : vista === 'maqueta' ? 'Generar maqueta 3D' : 'Generar vista cenital'}
+              {busy === 'cenital'
+                ? 'Generando…'
+                : vista === 'maqueta'
+                  ? 'Generar maqueta 3D'
+                  : 'Generar vista cenital'}
             </Button>
             {busy === 'cenital' ? (
               <p className="text-ink-soft mt-2 animate-pulse text-xs">
@@ -634,6 +697,12 @@ export function PlanoStudio({
             ) : null}
           </div>
 
+          <TosAcceptanceNotice
+            accepted={tosAccepted}
+            onAccept={onAcceptTos}
+            disabled={tosPending}
+            className="mb-3"
+          />
           {error ? (
             <p className="text-destructive text-sm" role="alert">
               {error}

@@ -6,6 +6,7 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ### Fixed — 2026-09-21
 
+- Estudio de plano: aviso y botón para aceptar los Términos de Servicio en la propia pantalla, con mensaje claro en lugar de un 500 cuando faltan (también al entrar en la importación CAD/PDF). Componente compartido con el chat. `docker-compose.yml` de desarrollo usa las imágenes de MinIO de quay.io.
 - Imagen Docker: se incluye la librería nativa libvips de `sharp`; las páginas que rasterizan imágenes (chat de proyecto) devolvían 500 en producción. Test de rendimiento del canvas medido como p95 real con calentamiento para que no falle en CI.
 
 ### Changed — 2026-09-20

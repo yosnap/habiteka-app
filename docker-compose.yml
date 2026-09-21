@@ -12,7 +12,8 @@
 
 services:
   minio:
-    image: minio/minio:latest
+    # MinIO ya no publica en Docker Hub; las imágenes viven en quay.io.
+    image: quay.io/minio/minio:latest
     container_name: habiteka-minio
     command: server /data --console-address ":9001"
     environment:
@@ -31,7 +32,7 @@ services:
 
   # Crea el bucket de la app una vez que MinIO está listo, y termina.
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     container_name: habiteka-minio-init
     depends_on:
       - minio
