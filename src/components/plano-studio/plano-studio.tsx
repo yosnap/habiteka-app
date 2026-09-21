@@ -155,6 +155,20 @@ export function PlanoStudio({
   // Gate de los Términos: el servidor lo exige en todas las acciones del estudio y
   // en producción su error llega como un 500 opaco; se comprueba y acepta aquí.
   const { tosAccepted, acceptTos, pending: tosPending } = useTosAcceptance();
+  // Al aceptar se retira el aviso de bloqueo que pudo dejar una acción previa.
+  const onAcceptTos = () => {
+    setError(null);
+    acceptTos();
+  };
+  // La importación CAD/PDF tiene sus propias acciones (no pasan por `run`), pero
+  // el servidor también le exige los Términos: se bloquea la entrada al panel.
+  const openImport = () => {
+    if (tosAccepted === false) {
+      setError(TOS_REQUIRED_MESSAGE);
+      return;
+    }
+    setImporting(true);
+  };
 
   const svgUrl = useMemo(() => {
     if (!plano) return null;
@@ -391,7 +405,7 @@ export function PlanoStudio({
               className="mt-3 w-full"
               variant="outline"
               disabled={busy !== null}
-              onClick={() => setImporting(true)}
+              onClick={openImport}
             >
               {importResult
                 ? '📐 Continuar importación de plano'
@@ -400,7 +414,7 @@ export function PlanoStudio({
           </div>
           <TosAcceptanceNotice
             accepted={tosAccepted}
-            onAccept={acceptTos}
+            onAccept={onAcceptTos}
             disabled={tosPending}
             className="mt-5"
           />
@@ -548,7 +562,7 @@ export function PlanoStudio({
             size="sm"
             variant="outline"
             disabled={busy !== null}
-            onClick={() => setImporting(true)}
+            onClick={openImport}
           >
             Importar plano dibujado (CAD / PDF)
           </Button>
@@ -690,7 +704,7 @@ export function PlanoStudio({
 
           <TosAcceptanceNotice
             accepted={tosAccepted}
-            onAccept={acceptTos}
+            onAccept={onAcceptTos}
             disabled={tosPending}
             className="mb-3"
           />
