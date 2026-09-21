@@ -558,12 +558,7 @@ export function PlanoStudio({
           <Button size="sm" variant="outline" disabled={busy !== null} onClick={onImportCanvas}>
             Traer el plano del editor
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy !== null}
-            onClick={openImport}
-          >
+          <Button size="sm" variant="outline" disabled={busy !== null} onClick={openImport}>
             Importar plano dibujado (CAD / PDF)
           </Button>
           <a
