@@ -110,7 +110,7 @@ function svg(
     .join('');
   // width/height en píxeles de salida: sin ellos librsvg rasteriza a un píxel por
   // milímetro del viewBox y un plano grande supera el límite de píxeles de sharp.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}"><rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="#fbfaf7"/><g>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" preserveAspectRatio="none" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}"><rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="#fbfaf7"/><g>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
 }
 
 export async function rasterizeEditorDocument(doc: EditorDocument): Promise<RasterResult> {
