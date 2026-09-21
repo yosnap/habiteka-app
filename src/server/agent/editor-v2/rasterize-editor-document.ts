@@ -50,7 +50,11 @@ function pathData(points: Point[]) {
 }
 
 /** PNG arquitectónico limpio: geometría y tipos visuales, nunca rejilla ni controles de edición. */
-function svg(doc: EditorDocument, view: ReturnType<typeof bounds>) {
+function svg(
+  doc: EditorDocument,
+  view: ReturnType<typeof bounds>,
+  size: { width: number; height: number },
+) {
   const walls = doc.walls
     .filter((wall) => !wall.hidden)
     .map((wall) => {
@@ -104,7 +108,9 @@ function svg(doc: EditorDocument, view: ReturnType<typeof bounds>) {
       return `<polygon points="${polygon(rotatedBox(item.x, item.y, item.widthMm, item.depthMm, item.rotation))}" fill="#cda777" stroke="#795f40" stroke-width="35"/>${steps}`;
     })
     .join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}"><rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="#fbfaf7"/><g>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
+  // width/height en píxeles de salida: sin ellos librsvg rasteriza a un píxel por
+  // milímetro del viewBox y un plano grande supera el límite de píxeles de sharp.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" preserveAspectRatio="none" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}"><rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="#fbfaf7"/><g>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
 }
 
 export async function rasterizeEditorDocument(doc: EditorDocument): Promise<RasterResult> {
@@ -113,7 +119,7 @@ export async function rasterizeEditorDocument(doc: EditorDocument): Promise<Rast
     view.width >= view.height ? MAX_SIDE : Math.round((MAX_SIDE * view.width) / view.height);
   const outHeight =
     view.height > view.width ? MAX_SIDE : Math.round((MAX_SIDE * view.height) / view.width);
-  const png = await sharp(Buffer.from(svg(doc, bounds(doc))))
+  const png = await sharp(Buffer.from(svg(doc, view, { width: outWidth, height: outHeight })))
     .resize(outWidth, outHeight, { fit: 'fill' })
     .png()
     .toBuffer();
