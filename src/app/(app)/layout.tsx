@@ -23,12 +23,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const [balance, user] = await Promise.all([
     getBalance(ctx.organizationId),
-    prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true, role: true } }),
   ]);
 
   return (
     <>
-      <AppHeader userName={user?.name} balance={balance} />
+      <AppHeader userName={user?.name} balance={balance} isAdmin={user?.role === 'admin'} />
       {children}
     </>
   );

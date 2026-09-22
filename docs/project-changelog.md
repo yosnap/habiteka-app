@@ -4,6 +4,15 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Added — 2026-09-22
+
+- Enlace "Administración" en la cabecera cuando el usuario en sesión tiene rol admin.
+- Icono para mostrar/ocultar la contraseña y etiquetas visibles en los formularios de registro y acceso.
+
+### Changed — 2026-09-22
+
+- Registro: sin `RESEND_API_KEY` configurada, el alta no exige verificar el correo (se abriría sesión sin poder enviar el email de verificación). Se activa sola en cuanto se configura la clave.
+
 ### Fixed — 2026-09-22
 
 - Errores de negocio (Términos sin aceptar, consentimiento pendiente, proveedor de IA caído, saldo insuficiente, guardas del estudio y del agente) ya no llegan como un 500 sin explicación: las Server Actions expuestas al cliente los devuelven como dato y la pantalla muestra el mensaje real.
