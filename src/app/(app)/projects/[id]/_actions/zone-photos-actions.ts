@@ -17,6 +17,7 @@ import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
 import { assertConsent } from '@/server/privacy/consent-service';
+import { runAction, fail } from '@/server/errors/run-action';
 
 /** Foto de una zona lista para la UI: miniatura presignada + si es la activa. */
 export interface ZonePhoto {
@@ -76,6 +77,14 @@ export async function uploadZonePhoto(
   projectId: string,
   zoneId: string | null,
   image: { base64: string; mimeType: string },
+) {
+  return runAction(() => uploadZonePhotoImpl(projectId, zoneId, image));
+}
+
+async function uploadZonePhotoImpl(
+  projectId: string,
+  zoneId: string | null,
+  image: { base64: string; mimeType: string },
 ): Promise<ZonePhoto[]> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
@@ -83,7 +92,7 @@ export async function uploadZonePhoto(
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
 
   const base64 = String(image?.base64 ?? '');
-  if (!base64) throw new Error('Imagen vacía');
+  if (!base64) fail('Imagen vacía');
   const body = Buffer.from(base64, 'base64');
 
   const { id } = await persistSourceImage(withOrg(ctx), getStorageAdapter(), {

@@ -27,6 +27,7 @@ import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { importPlanToEditor } from '@/server/plan/import-plan-to-editor';
 import { sanitizeExtractedText } from '@/server/ai/sketch/sanitize-extracted-text';
 import { assertPlanoRasterizable } from '@/server/ai/design/cenital-pipeline';
+import { runAction, fail } from '@/server/errors/run-action';
 
 async function context(projectId: string) {
   const ctx = await requireOrgContext();
@@ -41,9 +42,17 @@ export async function redrawStudio(
   parts: Array<{ base64: string }>,
   mode: RedrawMode = 'tecnico',
 ) {
+  return runAction(() => redrawStudioImpl(projectId, parts, mode));
+}
+
+async function redrawStudioImpl(
+  projectId: string,
+  parts: Array<{ base64: string }>,
+  mode: RedrawMode = 'tecnico',
+) {
   const { ctx, state } = await context(projectId);
   const source = parts[0] ? await persistStudioSource(parts[0].base64) : state.source;
-  if (!source) throw new Error('Sube o dibuja un plano primero.');
+  if (!source) fail('Sube o dibuja un plano primero.');
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const result = await redrawPlan({ image }, await readStudioImage(source), redrawMode);
@@ -58,16 +67,24 @@ export async function redrawStudio(
  * de trabajo: es la imagen de la que se extrae geometría y se genera la vista.
  */
 export async function selectRedrawStudio(projectId: string, mode: RedrawMode) {
+  return runAction(() => selectRedrawStudioImpl(projectId, mode));
+}
+
+async function selectRedrawStudioImpl(projectId: string, mode: RedrawMode) {
   const { ctx, state } = await context(projectId);
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
   const plan = state.redraws?.[redrawMode];
-  if (!plan) throw new Error('Ese redibujado aún no se ha generado.');
+  if (!plan) fail('Ese redibujado aún no se ha generado.');
   await saveStudio(ctx, projectId, { ...state, plan, redrawMode, plano: undefined, cenital: undefined });
   return { imageUrl: plan.assetUrl, assetKey: plan.assetKey };
 }
 
 /** Primero conservar el original; redibujar con IA es una acción explícita. */
 export async function uploadStudio(projectId: string, base64: string) {
+  return runAction(() => uploadStudioImpl(projectId, base64));
+}
+
+async function uploadStudioImpl(projectId: string, base64: string) {
   const { ctx } = await context(projectId);
   const source = await persistStudioSource(base64);
   await saveStudio(ctx, projectId, { source, plan: source, sourceKind: 'upload' });
@@ -75,6 +92,10 @@ export async function uploadStudio(projectId: string, base64: string) {
 }
 
 export async function drawingStudio(projectId: string, base64: string) {
+  return runAction(() => drawingStudioImpl(projectId, base64));
+}
+
+async function drawingStudioImpl(projectId: string, base64: string) {
   const { ctx } = await context(projectId);
   const source = await persistStudioSource(base64);
   const sanitized = await readStudioImage(source);
@@ -91,9 +112,19 @@ export async function cenitalStudio(
   detalles = '',
   vista: RenderVista = 'cenital',
 ) {
+  return runAction(() => cenitalStudioImpl(projectId, _url, estilo, detalles, vista));
+}
+
+async function cenitalStudioImpl(
+  projectId: string,
+  _url: string,
+  estilo: Estilo,
+  detalles = '',
+  vista: RenderVista = 'cenital',
+) {
   const { ctx, state } = await context(projectId);
-  if (!state.plan) throw new Error('Falta el plano de origen.');
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido.');
+  if (!state.plan) fail('Falta el plano de origen.');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido.');
   const renderVista: RenderVista = vista === 'maqueta' ? 'maqueta' : 'cenital';
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const notes = String(detalles).slice(0, 800);
@@ -119,6 +150,10 @@ export async function cenitalStudio(
 
 /** El canvas amueblado viaja directamente como referencia, sin eliminar muebles. */
 export async function importCanvasStudio(projectId: string) {
+  return runAction(() => importCanvasStudioImpl(projectId));
+}
+
+async function importCanvasStudioImpl(projectId: string) {
   const { ctx } = await context(projectId);
   const editor = await withEditorDocuments(ctx).load({ projectId });
   let base64: string;
@@ -126,12 +161,12 @@ export async function importCanvasStudio(projectId: string) {
   if (editor.authority === 'v2') {
     // Proyecto en el editor v2: se rasteriza el documento (planta cenital).
     if (editor.document.walls.length === 0)
-      throw new Error('Dibuja los muros y guarda el editor antes de traer el plano.');
+      fail('Dibuja los muros y guarda el editor antes de traer el plano.');
     base64 = (await rasterizeEditorDocument(editor.document)).base64;
   } else {
     const doc = deserializeCanvas(await withOrg(ctx).canvas.load(projectId));
     if (!doc.objects.some((o) => o.kind === 'wall'))
-      throw new Error('Dibuja los muros y guarda el editor antes de traer el plano.');
+      fail('Dibuja los muros y guarda el editor antes de traer el plano.');
     base64 = (await rasterizeCanvasDoc(doc)).base64;
     canvasDescription = serializeDocToPrompt(doc) ?? undefined;
   }
@@ -152,6 +187,14 @@ export async function importPlanStudio(
   projectId: string,
   base64: string,
   options: { includeFurniture?: boolean } = {},
+) {
+  return runAction(() => importPlanStudioImpl(projectId, base64, options));
+}
+
+async function importPlanStudioImpl(
+  projectId: string,
+  base64: string,
+  options: { includeFurniture?: boolean } = {},
 ): Promise<PlanImportResult & { imageUrl: string }> {
   const { ctx, state } = await context(projectId);
   const source = await persistStudioSource(base64);
@@ -167,9 +210,16 @@ export async function importPlanStudio(
 export async function importStudioPlanStudio(
   projectId: string,
   options: { includeFurniture?: boolean } = {},
+) {
+  return runAction(() => importStudioPlanStudioImpl(projectId, options));
+}
+
+async function importStudioPlanStudioImpl(
+  projectId: string,
+  options: { includeFurniture?: boolean } = {},
 ): Promise<PlanImportResult & { imageUrl: string }> {
   const { ctx, state } = await context(projectId);
-  if (!state.plan) throw new Error('Sube o redibuja un plano primero.');
+  if (!state.plan) fail('Sube o redibuja un plano primero.');
   return importPlanFromImage(ctx, projectId, state.plan, options, state);
 }
 
@@ -213,9 +263,17 @@ export async function refitPlanImportStudio(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
   options: { includeFurniture?: boolean; generalWidthMm?: number } = {},
+) {
+  return runAction(() => refitPlanImportStudioImpl(projectId, roomOverrides, options));
+}
+
+async function refitPlanImportStudioImpl(
+  projectId: string,
+  roomOverrides: WrittenRoomDimensions[],
+  options: { includeFurniture?: boolean; generalWidthMm?: number } = {},
 ): Promise<PlanImportResult> {
   const { ctx, state } = await context(projectId);
-  if (!state.planImport) throw new Error('Importa un plano primero.');
+  if (!state.planImport) fail('Importa un plano primero.');
   const { raw, detected } = state.planImport;
   const width = options.generalWidthMm;
   const generalWidthMm =
@@ -235,6 +293,13 @@ export async function refitPlanImportStudio(
  * REEMPLAZA el plano del proyecto: la UI pide confirmación antes de llamar.
  */
 export async function applyPlanImportStudio(
+  projectId: string,
+  result: PlanImportResult,
+) {
+  return runAction(() => applyPlanImportStudioImpl(projectId, result));
+}
+
+async function applyPlanImportStudioImpl(
   projectId: string,
   result: PlanImportResult,
 ): Promise<{ issues: string[] }> {

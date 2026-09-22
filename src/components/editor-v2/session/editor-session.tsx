@@ -18,6 +18,7 @@ import {
   proposeNativeDesignFromEditor,
   saveNativeRender,
 } from '@/app/(app)/projects/[id]/_actions/agent-actions';
+import { callAction } from '@/lib/action-result';
 import { EditorShell } from '../editor-shell';
 
 export function EditorSession({
@@ -120,15 +121,17 @@ export function EditorSession({
     const designSpaceKind = store.getState().document.designSpaceKind;
     if (!designSpaceKind)
       throw new Error('Define el tipo de espacio en el canvas antes de generar un diseño.');
-    return proposeNativeDesignFromEditor(
-      scope.projectId,
-      store.getState().document,
-      input.estilo,
-      designSpaceKind,
-      input.objetivo,
-      input.promptLibre,
-      scope.zoneId,
-      input.options,
+    return callAction(
+      proposeNativeDesignFromEditor(
+        scope.projectId,
+        store.getState().document,
+        input.estilo,
+        designSpaceKind,
+        input.objetivo,
+        input.promptLibre,
+        scope.zoneId,
+        input.options,
+      ),
     );
   };
   const render = async (input: {
@@ -148,15 +151,21 @@ export function EditorSession({
     if (current.conflict) throw new Error('Resuelve el conflicto de edición antes de crear un render.');
     if (hasPendingRemoteChanges(current)) throw new Error('No se pudieron sincronizar todos los cambios. Revisa tu conexión e inténtalo de nuevo.');
     if (input.capture && geometry !== JSON.stringify({ ...store.getState().document, revision: 0 })) throw new Error('El plano cambió mientras se guardaba. Vuelve a capturar la vista.');
-    return generateConceptRenderFromEditor(
-      scope.projectId,
-      store.getState().document,
-      input.estilo,
-      input.objetivo,
-      input.promptLibre,
-      scope.zoneId,
-      input.capture,
-      { options: input.options, batchId: input.batchId, referenceDesignId: input.referenceDesignId },
+    return callAction(
+      generateConceptRenderFromEditor(
+        scope.projectId,
+        store.getState().document,
+        input.estilo,
+        input.objetivo,
+        input.promptLibre,
+        scope.zoneId,
+        input.capture,
+        {
+          options: input.options,
+          batchId: input.batchId,
+          referenceDesignId: input.referenceDesignId,
+        },
+      ),
     );
   };
   return (
@@ -204,11 +213,15 @@ export function EditorSession({
           await saveWalkthroughVideo(scope, blob, routeId);
         }}
         onSaveNativeRender={async (capture) => {
-          await saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view);
+          await callAction(
+            saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view),
+          );
         }}
         onGenerateDesign={generate}
         onGenerateRender={render}
-        onEstimateRender={(viewCount) => estimateConceptRenderFromEditor(scope.projectId, viewCount)}
+        onEstimateRender={(viewCount) =>
+          callAction(estimateConceptRenderFromEditor(scope.projectId, viewCount))
+        }
         generateEnabled={!status.closed && !status.conflict}
         generateDisabledReason={
           status.conflict

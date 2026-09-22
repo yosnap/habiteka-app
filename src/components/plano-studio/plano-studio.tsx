@@ -23,6 +23,7 @@ import {
   useTosAcceptance,
 } from '@/components/legal/tos-acceptance';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
+import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import { SketchPad } from './sketch-pad';
 import { PlanImportPanel, type PlanImportActions } from './plan-import-panel';
 import { PlanImageViewer } from './plan-image-viewer';
@@ -37,27 +38,30 @@ interface Props extends PlanImportActions {
   /** Importación de plano dibujado ya extraída y guardada (se retoma sin IA). */
   initialImport?: (PlanImportResult & { imageUrl: string }) | null;
   initialState: StudioState;
-  uploadAction: (projectId: string, base64: string) => Promise<{ imageUrl: string }>;
+  uploadAction: (
+    projectId: string,
+    base64: string,
+  ) => Promise<{ imageUrl: string } | ActionErrorResult>;
   drawingAction: (
     projectId: string,
     base64: string,
-  ) => Promise<SketchPlanResult & { imageUrl: string }>;
-  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string }>;
+  ) => Promise<(SketchPlanResult & { imageUrl: string }) | ActionErrorResult>;
+  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string } | ActionErrorResult>;
   redrawAction: (
     projectId: string,
     imageParts: ImagePart[],
     mode: RedrawMode,
-  ) => Promise<{ imageUrl: string; assetKey?: string }>;
+  ) => Promise<{ imageUrl: string; assetKey?: string } | ActionErrorResult>;
   /** Activa el redibujado ya generado de ese modo como plano de trabajo. */
   selectRedrawAction: (
     projectId: string,
     mode: RedrawMode,
-  ) => Promise<{ imageUrl: string; assetKey?: string }>;
+  ) => Promise<{ imageUrl: string; assetKey?: string } | ActionErrorResult>;
   /** Importa la imagen activa del estudio (redibujado u original) por el pipeline de planos. */
   importCurrentAction: (
     projectId: string,
     options: { includeFurniture?: boolean },
-  ) => Promise<PlanImportResult & { imageUrl: string }>;
+  ) => Promise<(PlanImportResult & { imageUrl: string }) | ActionErrorResult>;
   /** Cenital directamente desde la IMAGEN del plano redibujado. */
   cenitalAction: (
     projectId: string,
@@ -65,8 +69,11 @@ interface Props extends PlanImportActions {
     estilo: Estilo,
     instrucciones?: string,
     vista?: RenderVista,
-  ) => Promise<{ imageUrl: string }>;
-  sendToEditorAction: (projectId: string, plano: Plano2dPayload) => Promise<void>;
+  ) => Promise<{ imageUrl: string } | ActionErrorResult>;
+  sendToEditorAction: (
+    projectId: string,
+    plano: Plano2dPayload,
+  ) => Promise<void | ActionErrorResult>;
 }
 
 /** Modo de redibujado y tipo de vista: tipos locales para no importar código server en el cliente. */
@@ -210,7 +217,9 @@ export function PlanoStudio({
 
   const redrawFrom = (image: UploadedImage) =>
     run('redraw', async () => {
-      const { imageUrl, assetKey } = await redrawAction(projectId, parts(image), redrawMode);
+      const { imageUrl, assetKey } = await callAction(
+        redrawAction(projectId, parts(image), redrawMode),
+      );
       setSource(image);
       setFromCanvas(false);
       setFromDrawing(false);
@@ -226,7 +235,7 @@ export function PlanoStudio({
 
   const onUpload = (image: UploadedImage) =>
     run('import', async () => {
-      const result = await uploadAction(projectId, image.base64);
+      const result = await callAction(uploadAction(projectId, image.base64));
       setSource(image);
       setRedraws({});
       setActiveKey(undefined);
@@ -242,7 +251,7 @@ export function PlanoStudio({
 
   const onDrawing = (image: UploadedImage) =>
     run('import', async () => {
-      const result = await drawingAction(projectId, image.base64);
+      const result = await callAction(drawingAction(projectId, image.base64));
       setSource(null);
       setRedraws({});
       setActiveKey(undefined);
@@ -265,7 +274,7 @@ export function PlanoStudio({
     const target = redraws[mode];
     if (!target || (target.key !== undefined && target.key === activeKey)) return;
     void run('redraw', async () => {
-      const { imageUrl, assetKey } = await selectRedrawAction(projectId, mode);
+      const { imageUrl, assetKey } = await callAction(selectRedrawAction(projectId, mode));
       setPlanImageUrl(imageUrl);
       setActiveKey(assetKey);
       setPlano(null);
@@ -279,7 +288,7 @@ export function PlanoStudio({
     if (source) void redrawFrom(source);
     else
       void run('redraw', async () => {
-        const result = await redrawAction(projectId, [], redrawMode);
+        const result = await callAction(redrawAction(projectId, [], redrawMode));
         setPlanImageUrl(result.imageUrl);
         setActiveKey(result.assetKey);
         setRedraws((prev) => ({
@@ -296,7 +305,7 @@ export function PlanoStudio({
 
   const onImportCanvas = () =>
     run('import', async () => {
-      const result = await importCanvasAction(projectId);
+      const result = await callAction(importCanvasAction(projectId));
       setFromCanvas(true);
       setFromDrawing(false);
       setOriginalUrl(result.imageUrl);
@@ -313,7 +322,7 @@ export function PlanoStudio({
     if (!planImageUrl) return;
     return run('import', async () => {
       // Sólo estructura: muros, huecos y estancias. El mobiliario se activa en el panel si se quiere.
-      const result = await importCurrentAction(projectId, { includeFurniture: false });
+      const result = await callAction(importCurrentAction(projectId, { includeFurniture: false }));
       setImportResult(result);
       setImporting(true);
     });
@@ -323,7 +332,9 @@ export function PlanoStudio({
     // Desde la IMAGEN redibujada (imagen→imagen): no requiere extraer geometría.
     if (!planImageUrl) return;
     return run('cenital', async () => {
-      const { imageUrl } = await cenitalAction(projectId, planImageUrl, estilo, detalles, vista);
+      const { imageUrl } = await callAction(
+        cenitalAction(projectId, planImageUrl, estilo, detalles, vista),
+      );
       setCenitalUrl(imageUrl);
       setTab('cenital');
     });
@@ -336,7 +347,7 @@ export function PlanoStudio({
       return;
     }
     return run('send', async () => {
-      await sendToEditorAction(projectId, plano);
+      await callAction(sendToEditorAction(projectId, plano));
       router.push(`/projects/${projectId}`); // pestaña Editor, con el plano ya cargado
     });
   };
