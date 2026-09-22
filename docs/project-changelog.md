@@ -4,6 +4,10 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Fixed — 2026-09-22
+
+- Errores de negocio (Términos sin aceptar, consentimiento pendiente, proveedor de IA caído, saldo insuficiente, guardas del estudio y del agente) ya no llegan como un 500 sin explicación: las Server Actions expuestas al cliente los devuelven como dato y la pantalla muestra el mensaje real.
+
 ### Fixed — 2026-09-21
 
 - Editor v2: la rasterización del documento declara el tamaño de salida en el SVG; los planos grandes superaban el límite de píxeles de sharp y la acción del proyecto devolvía 500.
