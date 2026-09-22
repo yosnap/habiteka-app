@@ -18,6 +18,7 @@ import { ESTILOS } from '@/lib/design-options';
 import { useCanvasStore } from '@/canvas/canvas-store';
 import { planCenterPx as computePlanCenter, resolvePxPerMeter } from '@/canvas/3d/doc-to-scene';
 import { generateViewFrom3D } from '@/app/(app)/projects/[id]/_actions/agent-actions';
+import { callAction } from '@/lib/action-result';
 import { CATALOG } from '@/canvas/catalog';
 import { catalogSizePx, DEFAULT_CEILING_M } from '@/canvas/scale';
 import { isLight, defaultLight } from '@/canvas/light';
@@ -226,7 +227,9 @@ export function Plan3DOverlay({
     setResultUrl(null);
     startTransition(async () => {
       try {
-        const outcome = await generateViewFrom3D(projectId, dataUrl, estilo, '16:9', zoneId);
+        const outcome = await callAction(
+          generateViewFrom3D(projectId, dataUrl, estilo, '16:9', zoneId),
+        );
         const url = outcome.deliverables?.find((d) => d.type === 'render3d')?.payload;
         const assetUrl = url && 'assetUrl' in url ? url.assetUrl : null;
         if (assetUrl) setResultUrl(assetUrl);

@@ -8,6 +8,7 @@
  */
 import { prisma } from '@/server/db/prisma';
 import type { ConsentPurpose } from '@/generated/prisma/client';
+import { UserFacingError } from '@/server/errors/user-facing-error';
 
 export interface RecordConsentInput {
   userId: string;
@@ -56,7 +57,7 @@ export async function assertConsent(userId: string, purpose: ConsentPurpose): Pr
   }
 }
 
-export class ConsentRequiredError extends Error {
+export class ConsentRequiredError extends UserFacingError {
   constructor(public readonly purpose: ConsentPurpose) {
     super(`Falta el consentimiento para: ${purpose}`);
     this.name = 'ConsentRequiredError';

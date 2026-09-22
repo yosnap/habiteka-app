@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { acceptCurrentTos, checkTosAccepted } from '@/server/legal/actions';
 import { TosAcceptanceNotice } from '@/components/legal/tos-acceptance';
+import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import type { AgentInput, AgentOutcome } from '@/server/agent';
 import type { Estilo, DeliverableType, ChatMessage, StructuralElements } from '@/lib/contracts';
 
@@ -27,7 +28,11 @@ type Phase = 'ingesta' | 'cualificacion' | 'entrega' | 'feedback';
 
 interface Props {
   projectId: string;
-  advance: (projectId: string, input: AgentInput, zoneId?: string | null) => Promise<AgentOutcome>;
+  advance: (
+    projectId: string,
+    input: AgentInput,
+    zoneId?: string | null,
+  ) => Promise<AgentOutcome | ActionErrorResult>;
   initialPhase?: Phase;
   /** Zona activa del proyecto; null = flujo por defecto. El asistente es por zona. */
   zoneId?: string | null;
@@ -89,7 +94,7 @@ export function QualificationChat({
     if (echo) pushTurn('user', echo);
     startTransition(async () => {
       try {
-        const out = await advance(projectId, input, zoneId);
+        const out = await callAction(advance(projectId, input, zoneId));
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);
@@ -184,7 +189,7 @@ export function QualificationChat({
     setGenerating(true);
     startTransition(async () => {
       try {
-        const out = await advance(projectId, { action: 'deliver' }, zoneId);
+        const out = await callAction(advance(projectId, { action: 'deliver' }, zoneId));
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);

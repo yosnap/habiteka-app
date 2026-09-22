@@ -10,8 +10,9 @@
  */
 import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/server/db/prisma';
+import { UserFacingError } from '@/server/errors/user-facing-error';
 
-export class InsufficientCreditsError extends Error {
+export class InsufficientCreditsError extends UserFacingError {
   constructor(public readonly organizationId: string) {
     super(`Saldo insuficiente para la organización ${organizationId}`);
     this.name = 'InsufficientCreditsError';
