@@ -25,8 +25,10 @@ export function RegistroPanel() {
       values.captchaToken ? { headers: { 'x-captcha-response': values.captchaToken } } : undefined,
     );
     if (res.error) return { error: translateAuthError(res.error.code, res.error.message) };
-    // Con verificación de email obligatoria, el alta no abre sesión (token null).
-    if (!res.data?.user?.emailVerified) {
+    // Con verificación de email obligatoria (proveedor de correo configurado en
+    // el servidor), el alta no abre sesión: llega sin `token` y hay que esperar
+    // el correo. Sin verificación exigida, `token` llega ya con la sesión abierta.
+    if (!res.data?.token) {
       setVerifyNotice(
         'Te hemos enviado un correo para verificar tu cuenta. Revísalo y luego accede.',
       );

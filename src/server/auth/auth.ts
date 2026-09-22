@@ -12,7 +12,7 @@ import { betterAuth, type BetterAuthPlugin } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { organization, admin, emailOTP, captcha } from 'better-auth/plugins';
 import { prisma } from '@/server/db/prisma';
-import { getEmailSender } from './send-email';
+import { getEmailSender, isEmailSendingConfigured } from './send-email';
 import { provisionOrganization } from './provision-organization';
 
 const otpSubjects: Record<string, string> = {
@@ -59,7 +59,11 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    // Sin proveedor de email configurado (ver isEmailSendingConfigured), no se
+    // puede exigir verificación: el correo nunca llegaría y el alta quedaría
+    // bloqueada para siempre. Se activa sola en cuanto se configura el proveedor
+    // (RESEND_API_KEY), sin tocar código.
+    requireEmailVerification: isEmailSendingConfigured(),
   },
   socialProviders: {
     google: {
