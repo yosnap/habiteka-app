@@ -9,6 +9,7 @@
  * del ToS, una aceptación anterior no basta y se debe volver a aceptar.
  */
 import { prisma } from '@/server/db/prisma';
+import { UserFacingError } from '@/server/errors/user-facing-error';
 
 /** Versión vigente de los Términos. Subir al publicar un ToS nuevo. */
 export const CURRENT_TOS_VERSION = '2026-06';
@@ -30,7 +31,7 @@ export async function hasAcceptedCurrentTos(userId: string): Promise<boolean> {
   return accepted !== null;
 }
 
-export class TosNotAcceptedError extends Error {
+export class TosNotAcceptedError extends UserFacingError {
   constructor() {
     super('Debes aceptar los Términos de Servicio vigentes antes de generar');
     this.name = 'TosNotAcceptedError';

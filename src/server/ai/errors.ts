@@ -17,7 +17,9 @@ export type AiErrorKind =
   | 'sanitizer'
   | 'timeout';
 
-export class AiError extends Error {
+import { UserFacingError } from '@/server/errors/user-facing-error';
+
+export class AiError extends UserFacingError {
   constructor(
     public readonly kind: AiErrorKind,
     message: string,
@@ -36,5 +38,8 @@ export function aiError(kind: AiErrorKind, message: string, cause?: unknown): Ai
 /** No duplicar una generación que el proveedor ya aceptó y sigue pendiente. */
 export function canFailover(error: unknown): boolean {
   if ((error as { code?: string } | null)?.code === 'kie_task_pending') return false;
-  return error instanceof AiError && ['provider_down', 'gateway_down', 'timeout', 'rate_limit'].includes(error.kind);
+  return (
+    error instanceof AiError &&
+    ['provider_down', 'gateway_down', 'timeout', 'rate_limit'].includes(error.kind)
+  );
 }

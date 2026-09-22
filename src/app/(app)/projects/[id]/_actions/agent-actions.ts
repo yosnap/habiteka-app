@@ -53,6 +53,7 @@ import { renderDesignOptionsSchema, type RenderDesignOptions } from '@/lib/edito
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { assertSafeImportUrl } from '@/server/admin/media/url-safety';
+import { runAction, fail } from '@/server/errors/run-action';
 import { z } from 'zod';
 import type {
   DeliverableType,
@@ -74,16 +75,16 @@ const conceptRenderSettingsSchema = z.object({
 async function readRenderReference(payload: { assetKey?: unknown; assetUrl?: unknown }) {
   if (typeof payload.assetKey === 'string' && payload.assetKey.length > 0)
     return sanitizeImageBuffer(await getStorageAdapter().get(payload.assetKey));
-  if (typeof payload.assetUrl !== 'string') throw new Error('El diseño de referencia no tiene una imagen recuperable.');
+  if (typeof payload.assetUrl !== 'string') fail('El diseño de referencia no tiene una imagen recuperable.');
   const data = STORED_RENDER_DATA_URL.exec(payload.assetUrl);
   if (data?.[1] && data[2]) return sanitizeImageBuffer(Buffer.from(data[2], 'base64'));
   const url = assertSafeImportUrl(payload.assetUrl);
   const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error('No se pudo recuperar el diseño de referencia.');
+  if (!response.ok) fail('No se pudo recuperar el diseño de referencia.');
   const declaredLength = Number(response.headers.get('content-length'));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BYTES)
-    throw new Error('El diseño de referencia excede el tamaño permitido.');
-  if (!response.body) throw new Error('No se pudo leer el diseño de referencia.');
+    fail('El diseño de referencia excede el tamaño permitido.');
+  if (!response.body) fail('No se pudo leer el diseño de referencia.');
   const reader = response.body.getReader();
   const chunks: Buffer[] = [];
   let total = 0;
@@ -92,7 +93,7 @@ async function readRenderReference(payload: { assetKey?: unknown; assetUrl?: unk
       const part = await reader.read();
       if (part.done) break;
       total += part.value.byteLength;
-      if (total > MAX_IMAGE_BYTES) throw new Error('El diseño de referencia excede el tamaño permitido.');
+      if (total > MAX_IMAGE_BYTES) fail('El diseño de referencia excede el tamaño permitido.');
       chunks.push(Buffer.from(part.value));
     }
   } finally {
@@ -112,7 +113,7 @@ async function assertProjectInOrg(
   zoneId: string | null = null,
 ): Promise<void> {
   const project = await withOrg(ctx).projects.findById(projectId);
-  if (!project) throw new Error('Proyecto no encontrado en tu organización');
+  if (!project) fail('Proyecto no encontrado en tu organización');
   // These actions still consume legacy documents. Reject migrated scopes before IA/cost.
   await withLegacyAuthority(ctx, { projectId, zoneId }, async () => undefined);
 }
@@ -120,7 +121,7 @@ async function assertProjectInOrg(
 /** El documento V2 ya tiene su propia autoridad; no debe pasar por la puerta legacy. */
 async function assertV2ProjectInOrg(ctx: OrgContext, projectId: string): Promise<void> {
   const project = await withOrg(ctx).projects.findById(projectId);
-  if (!project) throw new Error('Proyecto no encontrado en tu organización');
+  if (!project) fail('Proyecto no encontrado en tu organización');
 }
 
 /**
@@ -135,12 +136,20 @@ async function assertZoneInProject(
   if (!zoneId) return null;
   const zones = await withOrg(ctx).zones.list(projectId);
   if (!zones.some((z) => z.id === zoneId)) {
-    throw new Error('Zona no encontrada en el proyecto');
+    fail('Zona no encontrada en el proyecto');
   }
   return zoneId;
 }
 
 export async function advanceAgent(
+  projectId: string,
+  input: AgentInput,
+  zoneId: string | null = null,
+) {
+  return runAction(() => advanceAgentImpl(projectId, input, zoneId));
+}
+
+async function advanceAgentImpl(
   projectId: string,
   input: AgentInput,
   zoneId: string | null = null,
@@ -246,14 +255,14 @@ export async function generateDesignFromCanvas(
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
   // selección de rama de generación.
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
-  if (!isValidEntregable(entregable)) throw new Error('Tipo de entregable no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
+  if (!isValidEntregable(entregable)) fail('Tipo de entregable no válido');
 
   // Normaliza el doc del cliente con el mismo deserializador defensivo del canvas.
   const doc = deserializeCanvas(rawDoc);
   const description = serializeDocToPrompt(doc);
   if (!description) {
-    throw new Error('El plano está vacío: añade elementos antes de generar un diseño.');
+    fail('El plano está vacío: añade elementos antes de generar un diseño.');
   }
   const { base64, aspectRatio } = await rasterizeCanvasDoc(doc);
 
@@ -300,22 +309,22 @@ export async function generateDesignFromEditor(
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
-  if (!isValidEntregable(entregable)) throw new Error('Tipo de entregable no válido');
-  if (!isDesignSpaceKind(spaceKind)) throw new Error('Selecciona el tipo de espacio en el canvas.');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
+  if (!isValidEntregable(entregable)) fail('Tipo de entregable no válido');
+  if (!isDesignSpaceKind(spaceKind)) fail('Selecciona el tipo de espacio en el canvas.');
 
   const document = parseEditorDocument(rawDocument);
   if (!document.designSpaceKind)
-    throw new Error('Define el tipo de espacio en el canvas antes de generar un diseño.');
+    fail('Define el tipo de espacio en el canvas antes de generar un diseño.');
   if (document.designSpaceKind !== spaceKind)
-    throw new Error('El tipo de espacio cambió. Guarda el canvas e inténtalo de nuevo.');
+    fail('El tipo de espacio cambió. Guarda el canvas e inténtalo de nuevo.');
   if (
     !document.walls.length &&
     !document.furniture.length &&
     !document.stairs?.length &&
     !document.ramps?.length
   ) {
-    throw new Error(
+    fail(
       'El plano está vacío: añade estructura o elementos antes de generar un diseño.',
     );
   }
@@ -360,17 +369,41 @@ export async function proposeNativeDesignFromEditor(
   promptLibre = '',
   zoneId: string | null = null,
   rawOptions?: RenderDesignOptions,
+) {
+  return runAction(() =>
+    proposeNativeDesignFromEditorImpl(
+      projectId,
+      rawDocument,
+      estilo,
+      spaceKind,
+      objetivo,
+      promptLibre,
+      zoneId,
+      rawOptions,
+    ),
+  );
+}
+
+async function proposeNativeDesignFromEditorImpl(
+  projectId: string,
+  rawDocument: unknown,
+  estilo: Estilo,
+  spaceKind: DesignSpaceKind,
+  objetivo = '',
+  promptLibre = '',
+  zoneId: string | null = null,
+  rawOptions?: RenderDesignOptions,
 ): Promise<NativeDesignProposal> {
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   await assertZoneInProject(ctx, projectId, zoneId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
-  if (!isDesignSpaceKind(spaceKind)) throw new Error('Selecciona el tipo de espacio en el canvas.');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
+  if (!isDesignSpaceKind(spaceKind)) fail('Selecciona el tipo de espacio en el canvas.');
   const document = parseEditorDocument(rawDocument);
   if (!document.designSpaceKind || document.designSpaceKind !== spaceKind)
-    throw new Error('El tipo de espacio cambió. Guarda el canvas e inténtalo de nuevo.');
+    fail('El tipo de espacio cambió. Guarda el canvas e inténtalo de nuevo.');
   if (!document.walls.length && !document.furniture.length && !document.stairs?.length && !document.ramps?.length)
-    throw new Error('El plano está vacío: añade estructura o elementos antes de pedir una propuesta.');
+    fail('El plano está vacío: añade estructura o elementos antes de pedir una propuesta.');
 
   const options = renderDesignOptionsSchema.parse(rawOptions ?? {});
   const references = await rasterizeEditorDesignReferences(document);
@@ -397,31 +430,55 @@ export async function generateConceptRenderFromEditor(
   zoneId: string | null = null,
   capture?: RenderCapture,
   settings?: { options?: RenderDesignOptions; batchId?: string; referenceDesignId?: string },
+) {
+  return runAction(() =>
+    generateConceptRenderFromEditorImpl(
+      projectId,
+      rawDocument,
+      estilo,
+      objetivo,
+      promptLibre,
+      zoneId,
+      capture,
+      settings,
+    ),
+  );
+}
+
+async function generateConceptRenderFromEditorImpl(
+  projectId: string,
+  rawDocument: unknown,
+  estilo: Estilo,
+  objetivo = '',
+  promptLibre = '',
+  zoneId: string | null = null,
+  capture?: RenderCapture,
+  settings?: { options?: RenderDesignOptions; batchId?: string; referenceDesignId?: string },
 ): Promise<{ id: string; assetUrl: string; generation?: import('@/lib/contracts').ImageResult['generation'] }> {
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
   await assertTosAccepted(ctx.userId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   const document = parseEditorDocument(rawDocument);
   if (!document.walls.length && !document.stairs?.length && !document.ramps?.length) {
-    throw new Error('El plano está vacío: añade estructura antes de crear un render.');
+    fail('El plano está vacío: añade estructura antes de crear un render.');
   }
   const view = capture ? renderViewSchema.parse(capture.view) : undefined;
   const camera = view ? cameraPoseFromView(view) : undefined;
   const parsedSettings = conceptRenderSettingsSchema.parse(settings ?? {});
   const options = renderDesignOptionsSchema.parse(parsedSettings.options ?? {});
   if (options.views.length > 1 && !capture)
-    throw new Error('Las vistas múltiples requieren una captura por vista.');
+    fail('Las vistas múltiples requieren una captura por vista.');
   if (view?.lighting && view.lighting !== options.lighting)
-    throw new Error('La iluminación de las opciones no coincide con la captura de la vista.');
+    fail('La iluminación de las opciones no coincide con la captura de la vista.');
   let reference: Awaited<ReturnType<typeof sanitizeImageBuffer>> | undefined;
   if (capture) {
-    if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) throw new Error('La captura excede el tamaño permitido.');
+    if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) fail('La captura excede el tamaño permitido.');
     const match = NATIVE_RENDER_DATA_URL.exec(capture.dataUrl);
-    if (!match?.[1]) throw new Error('La captura de referencia no tiene formato PNG válido.');
+    if (!match?.[1]) fail('La captura de referencia no tiene formato PNG válido.');
     reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
   }
   let referenceDesign: { base64: string; mimeType: string } | undefined;
@@ -431,7 +488,7 @@ export async function generateConceptRenderFromEditor(
     );
     const payload = deliverable?.payload as { type?: string; assetKey?: unknown; assetUrl?: unknown } | undefined;
     if (!deliverable || payload?.type !== 'render3d') {
-      throw new Error('El diseño de referencia no pertenece al proyecto, organización o zona.');
+      fail('El diseño de referencia no pertenece al proyecto, organización o zona.');
     }
     const sourceImage = await readRenderReference(payload);
     referenceDesign = { base64: sourceImage.base64, mimeType: sourceImage.mimeType };
@@ -471,16 +528,23 @@ export async function generateConceptRenderFromEditor(
 export async function estimateConceptRenderFromEditor(
   projectId: string,
   viewCount: number,
+) {
+  return runAction(() => estimateConceptRenderFromEditorImpl(projectId, viewCount));
+}
+
+async function estimateConceptRenderFromEditorImpl(
+  projectId: string,
+  viewCount: number,
 ): Promise<{ estimatedUsd: number; model: string }> {
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > 8)
-    throw new Error('El número de vistas debe ser un entero entre 1 y 8.');
+    fail('El número de vistas debe ser un entero entre 1 y 8.');
   const route = (await resolveRoutes('render3d'))[0];
-  if (!route) throw new Error('No hay modelo de render configurado.');
+  if (!route) fail('No hay modelo de render configurado.');
   const price = allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
   if (price === undefined || !Number.isFinite(price) || price < 0)
-    throw new Error(`No hay precio estimado conocido para ${route.provider}:${route.model}.`);
+    fail(`No hay precio estimado conocido para ${route.provider}:${route.model}.`);
   return { estimatedUsd: Number((price * viewCount).toFixed(4)), model: `${route.provider}:${route.model}` };
 }
 
@@ -497,15 +561,27 @@ export async function generateViewFrom3D(
   estilo: Estilo,
   aspectRatio: string,
   zoneId: string | null = null,
+) {
+  return runAction(() =>
+    generateViewFrom3DImpl(projectId, captureDataUrl, estilo, aspectRatio, zoneId),
+  );
+}
+
+async function generateViewFrom3DImpl(
+  projectId: string,
+  captureDataUrl: string,
+  estilo: Estilo,
+  aspectRatio: string,
+  zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId, zoneId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   // La captura llega como data URL ("data:image/png;base64,XXXX"); se extrae el base64.
   const base64 = captureDataUrl.includes(',') ? captureDataUrl.split(',')[1]! : captureDataUrl;
-  if (!base64) throw new Error('Captura de la vista 3D vacía');
+  if (!base64) fail('Captura de la vista 3D vacía');
 
   // La captura 3D es la propia referencia (sketch): no resuelve contexto de zona.
   const agent = await getAgent(ctx.organizationId, ctx.userId, noZoneContext);
@@ -537,13 +613,22 @@ export async function saveNativeRender(
   captureDataUrl: string,
   zoneId: string | null = null,
   rawView?: RenderView,
+) {
+  return runAction(() => saveNativeRenderImpl(projectId, captureDataUrl, zoneId, rawView));
+}
+
+async function saveNativeRenderImpl(
+  projectId: string,
+  captureDataUrl: string,
+  zoneId: string | null = null,
+  rawView?: RenderView,
 ): Promise<{ id: string; assetUrl: string }> {
   const ctx = await requireOrgContext();
   await assertV2ProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   const camera = rawView ? cameraPoseFromView(renderViewSchema.parse(rawView)) : undefined;
   const match = NATIVE_RENDER_DATA_URL.exec(String(captureDataUrl ?? ''));
-  if (!match?.[1]) throw new Error('La captura nativa no tiene un formato PNG válido.');
+  if (!match?.[1]) fail('La captura nativa no tiene un formato PNG válido.');
 
   const image = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
@@ -558,7 +643,7 @@ export async function saveNativeRender(
     });
     assetUrl = await storage.getPresignedDownloadUrl(assetKey);
   } catch {
-    throw new Error('El almacenamiento de renders no está disponible. Revisa su configuración.');
+    fail('El almacenamiento de renders no está disponible. Revisa su configuración.');
   }
   await persistDeliverables(
     projectId,
@@ -592,12 +677,12 @@ export async function recommendDecoration(
 ): Promise<DecorRecommendation[]> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   const doc = deserializeCanvas(rawDoc);
   const description = serializeDocToPrompt(doc);
   if (!description) {
-    throw new Error('El plano está vacío: añade elementos antes de pedir sugerencias.');
+    fail('El plano está vacío: añade elementos antes de pedir sugerencias.');
   }
 
   const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'chat');
@@ -646,7 +731,7 @@ export async function redrawPlanFromImage(
   const source = imageParts.find(
     (p): p is Extract<MessagePart, { type: 'image_url' }> => p.type === 'image_url',
   );
-  if (!source?.base64) throw new Error('Falta la imagen del plano.');
+  if (!source?.base64) fail('Falta la imagen del plano.');
 
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const result = await redrawPlan(
@@ -661,7 +746,11 @@ export async function redrawPlanFromImage(
  * editables (mismo camino que el dibujo a mano) más la escala. REEMPLAZA el
  * plano por defecto del proyecto — la UI pide confirmación antes de llamar.
  */
-export async function sendPlanoToEditor(projectId: string, plano: Plano2dPayload): Promise<void> {
+export async function sendPlanoToEditor(projectId: string, plano: Plano2dPayload) {
+  return runAction(() => sendPlanoToEditorImpl(projectId, plano));
+}
+
+async function sendPlanoToEditorImpl(projectId: string, plano: Plano2dPayload): Promise<void> {
   const ctx = await requireOrgContext();
   // Escribe con autoridad de EDITOR (activa v2 si el proyecto aún vive en el
   // canvas legacy; revisión nueva si ya está activado). No pasa por la puerta
@@ -690,14 +779,14 @@ async function imageBytesFromTrustedUrl(
   const storageEndpoint = process.env.STORAGE_ENDPOINT;
   if (storageEndpoint && url.startsWith(storageEndpoint)) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error('No se pudo recuperar el plano redibujado del storage.');
+    if (!res.ok) fail('No se pudo recuperar el plano redibujado del storage.');
     const bytes = Buffer.from(await res.arrayBuffer());
     return {
       base64: bytes.toString('base64'),
       mimeType: res.headers.get('content-type') ?? 'image/png',
     };
   }
-  throw new Error('URL de imagen no permitida.');
+  fail('URL de imagen no permitida.');
 }
 
 /**
@@ -715,7 +804,7 @@ export async function generateCenitalFromRedrawn(
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await assertTosAccepted(ctx.userId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   const source = await imageBytesFromTrustedUrl(imageUrl);
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
@@ -742,7 +831,7 @@ export async function generateCenitalFromPlano(
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   await assertTosAccepted(ctx.userId);
-  if (!isValidEstilo(estilo)) throw new Error('Estilo no válido');
+  if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const result = await generateCenital({ image }, plano, estilo);

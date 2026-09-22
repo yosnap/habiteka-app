@@ -22,6 +22,7 @@ import {
   type ZonePhoto,
 } from '@/app/(app)/projects/[id]/_actions/zone-photos-actions';
 import { listZones, setZoneKind } from '@/app/(app)/projects/[id]/_actions/zone-actions';
+import { callAction } from '@/lib/action-result';
 
 interface Props {
   projectId: string;
@@ -71,7 +72,7 @@ export function ZonePhotosPanel({ projectId, zoneId = null, title = 'Fotos del e
     setError(null);
     startTransition(async () => {
       try {
-        setPhotos(await uploadZonePhoto(projectId, zoneId, image));
+        setPhotos(await callAction(uploadZonePhoto(projectId, zoneId, image)));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No se pudo subir la foto.');
       }

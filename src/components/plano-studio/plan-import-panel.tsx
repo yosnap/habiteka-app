@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
 import type { PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
+import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import { pdfFirstPageToPng } from './pdf-to-png';
 
 export interface PlanImportActions {
@@ -23,13 +24,16 @@ export interface PlanImportActions {
     projectId: string,
     base64: string,
     options: { includeFurniture?: boolean },
-  ) => Promise<PlanImportResult & { imageUrl: string }>;
+  ) => Promise<(PlanImportResult & { imageUrl: string }) | ActionErrorResult>;
   refitAction: (
     projectId: string,
     roomOverrides: WrittenRoomDimensions[],
     options: { includeFurniture?: boolean; generalWidthMm?: number },
-  ) => Promise<PlanImportResult>;
-  applyAction: (projectId: string, result: PlanImportResult) => Promise<{ issues: string[] }>;
+  ) => Promise<PlanImportResult | ActionErrorResult>;
+  applyAction: (
+    projectId: string,
+    result: PlanImportResult,
+  ) => Promise<{ issues: string[] } | ActionErrorResult>;
 }
 
 interface Props extends PlanImportActions {
@@ -87,7 +91,9 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
 
   const importFrom = (image: UploadedImage) =>
     run('import', async () => {
-      const imported = await importAction(projectId, image.base64, { includeFurniture });
+      const imported = await callAction(
+        importAction(projectId, image.base64, { includeFurniture }),
+      );
       setImageUrl(imported.imageUrl);
       setResult(imported);
       setRows(imported.writtenDimensions);
@@ -119,7 +125,12 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
     run('refit', async () => {
       const meters = Number(generalWidth.replace(',', '.'));
       const generalWidthMm = generalWidth.trim() !== '' && Number.isFinite(meters) ? Math.round(meters * 1000) : undefined;
-      const refitted = await refitAction(projectId, rows, { includeFurniture, ...(generalWidthMm ? { generalWidthMm } : {}) });
+      const refitted = await callAction(
+        refitAction(projectId, rows, {
+          includeFurniture,
+          ...(generalWidthMm ? { generalWidthMm } : {}),
+        }),
+      );
       setResult(refitted);
       setRows(refitted.writtenDimensions.map((w) => rows.find((r) => r.zoneId === w.zoneId) ?? w));
       setConfirmApply(false);
@@ -132,7 +143,7 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
       return;
     }
     return run('apply', async () => {
-      await applyAction(projectId, result);
+      await callAction(applyAction(projectId, result));
       router.push(`/projects/${projectId}`);
     });
   };
