@@ -24,9 +24,9 @@ GitHub instalada en el panel, sin webhook desde CI.
 | `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | secret | OAuth Meta |
 | `TURNSTILE_SECRET_KEY` | secret | CAPTCHA server-side |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | público | Expuesto al cliente |
-| `EMAIL_PROVIDER` | config | `resend` (por defecto) o `smtp` |
-| `RESEND_API_KEY` | secret | Si `EMAIL_PROVIDER=resend` |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | secret | Si `EMAIL_PROVIDER=smtp` |
+| `EMAIL_PROVIDER` | config | Solo `resend` implementado (por defecto); `smtp` está en `.env.example` pero el código aún no lo soporta |
+| `RESEND_API_KEY` | secret | Sin ella, el registro no exige verificar el email (se abriría sesión sin poder enviar el correo); con ella puesta, la verificación se activa sola |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | secret | Reservadas para cuando se implemente `EMAIL_PROVIDER=smtp`; hoy no tienen efecto |
 | `OPENROUTER_API_KEY` | secret | Chat/visión |
 | `IMAGE_PROVIDER` | config | `flux` / `nano-banana` / `imagen` |
 | `IMAGE_PROVIDER_KEY` | secret | Render 3D / inpainting |

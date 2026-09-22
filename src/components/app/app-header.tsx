@@ -9,9 +9,11 @@ import { SignOutButton } from './sign-out-button';
 interface Props {
   userName?: string;
   balance: number;
+  /** Muestra el enlace al back-office; el acceso real lo revalida el layout de admin. */
+  isAdmin?: boolean;
 }
 
-export function AppHeader({ userName, balance }: Props) {
+export function AppHeader({ userName, balance, isAdmin }: Props) {
   return (
     <header className="border-line bg-surface sticky top-0 z-40 border-b">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-3">
@@ -22,6 +24,11 @@ export function AppHeader({ userName, balance }: Props) {
           <Link href="/ayuda" className="text-ink-soft hover:text-ink">
             Ayuda
           </Link>
+          {isAdmin ? (
+            <Link href="/config" className="text-ink-soft hover:text-ink">
+              Administración
+            </Link>
+          ) : null}
           <span
             className="bg-brand-50 text-brand-700 rounded-full px-3 py-1 text-xs font-medium"
             title="Créditos disponibles"

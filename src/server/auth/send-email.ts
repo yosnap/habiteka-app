@@ -71,3 +71,15 @@ export function getEmailSender(): EmailSender {
 export function setEmailSender(sender: EmailSender): void {
   cached = sender;
 }
+
+/**
+ * true si hay un proveedor de email realmente operativo (mismas condiciones que
+ * `getEmailSender`, sin lanzar). La usa `auth.ts` para decidir si puede exigir
+ * verificación de correo: sin proveedor, exigirla dejaría a cualquiera que se
+ * registre bloqueado para siempre esperando un correo que nunca llega.
+ */
+export function isEmailSendingConfigured(): boolean {
+  const provider = process.env.EMAIL_PROVIDER ?? 'resend';
+  if (provider === 'resend') return !!process.env.RESEND_API_KEY;
+  return false;
+}
