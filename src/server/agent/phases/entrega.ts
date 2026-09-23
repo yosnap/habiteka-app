@@ -25,7 +25,12 @@ import { AiError } from '@/server/ai/errors';
 import { isDrawablePlano } from '@/lib/contracts/plano2d-validation';
 
 export interface DeliveryDeps {
-  chat: ChatVisionAdapter;
+  /** Auditoría del render contra el plano (sección «vision» del perfil). */
+  vision: ChatVisionAdapter;
+  /** Plano 2D estructurado (sección «plano2d»). */
+  plano2d: ChatVisionAdapter;
+  /** Memoria de materiales (sección «memoria»). */
+  memoria: ChatVisionAdapter;
   image: ImageAdapter;
   debit: DebitService;
   /** Genera un id estable para cada entregable (inyectado para testabilidad). */
@@ -144,7 +149,7 @@ async function generateOne(
       ...(referenceImages.length ? { referenceImages } : {}),
     });
     if (input.sketch?.requiresStructuralValidation)
-      await assertStructuralRender(deps.chat, input, result.assetUrl, referenceImages);
+      await assertStructuralRender(deps.vision, input, result.assetUrl, referenceImages);
     return {
       ...base,
       // `assetKey` (si el render vive en nuestro storage) permite re-firmar la URL al
@@ -157,7 +162,7 @@ async function generateOne(
     };
   }
   // memoria de materiales (texto)
-  const memoria = await deps.chat.chat({
+  const memoria = await deps.memoria.chat({
     model: '',
     messages: [{ role: 'user', content: [{ type: 'text', text: memoriaPrompt(input) }] }],
   });
@@ -215,7 +220,7 @@ async function generatePlano(deps: DeliveryDeps, input: DeliveryInput): Promise<
   // con planos métricos), se cae a un plano base derivado de lo detectado en vez
   // de fallar: el feedback por zona permitirá refinarlo después.
   try {
-    const result = await deps.chat.chat({
+    const result = await deps.plano2d.chat({
       model: '',
       messages: [{ role: 'user', content: [{ type: 'text', text: planoPrompt(input) }] }],
       responseSchema: PLANO_SCHEMA,

@@ -7,7 +7,25 @@
 import type { AgentInput, AgentOutcome, ZoneDeliveryContext } from './orchestrator';
 import { advance } from './orchestrator';
 import { getChatVisionAdapter, getImageAdapter } from '@/server/ai';
+import type { ChatVisionAdapter } from '@/lib/contracts';
+import type { ModelAction } from '@/generated/prisma/enums';
 import { createDebitService } from './debit-service-impl';
+
+/**
+ * Adaptador de chat de una sección del perfil de IA que se resuelve en la primera
+ * llamada: una sección que no se usa en este turno (o mal configurada) no impide
+ * arrancar el agente, y el error, si lo hay, salta donde se usa.
+ */
+function lazyChatAdapter(organizationId: string, action: ModelAction): ChatVisionAdapter {
+  let adapter: Promise<ChatVisionAdapter> | undefined;
+  const resolve = () => (adapter ??= getChatVisionAdapter({ organizationId }, action));
+  return {
+    chat: async (req) => (await resolve()).chat(req),
+    chatStream: async function* (req) {
+      yield* (await resolve()).chatStream(req);
+    },
+  };
+}
 
 export interface AgentSession {
   advance(
@@ -30,9 +48,12 @@ export async function getAgent(
   userId: string,
   resolveZoneContext: (projectId: string, zoneId: string | null) => Promise<ZoneDeliveryContext>,
 ): Promise<AgentSession> {
-  // El modelo de chat se resuelve por la acción 'chat'; las fases que necesiten
-  // otra acción (visión) la piden a su propio adaptador en el futuro.
+  // Cada uso de IA toma su sección del perfil: conversación ('chat'), análisis de
+  // imágenes ('vision'), plano 2D ('plano2d') y memoria de materiales ('memoria').
   const chat = await getChatVisionAdapter({ organizationId }, 'chat');
+  const vision = lazyChatAdapter(organizationId, 'vision');
+  const plano2d = lazyChatAdapter(organizationId, 'plano2d');
+  const memoria = lazyChatAdapter(organizationId, 'memoria');
   const image = await getImageAdapter({ organizationId });
   const debit = createDebitService(organizationId);
 
@@ -41,6 +62,9 @@ export async function getAgent(
       return advance(
         {
           chat,
+          vision,
+          plano2d,
+          memoria,
           image,
           debit,
           userId,

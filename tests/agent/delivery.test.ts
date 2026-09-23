@@ -8,7 +8,7 @@ import {
   type DeliveryDeps,
 } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
-import type { ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
+import type { ChatVisionAdapter, ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
 
 const ready: ReadyForDelivery = {
   estilo: 'moderno',
@@ -24,15 +24,19 @@ function makeDeps(opts: { failImage?: boolean } = {}): {
 } {
   const calls: string[] = [];
   const imageRequests: ImageGenRequest[] = [];
+  // Un objeto por sección del perfil: sustituir uno en un test no afecta a los demás.
+  const textModel = (): ChatVisionAdapter => ({
+    chat: async () => ({
+      content: 'memoria',
+      structured: { schemaVersion: 1, zones: [] },
+      usage: { promptTokens: 1, completionTokens: 1 },
+    }),
+    chatStream: async function* () {},
+  });
   const deps: DeliveryDeps = {
-    chat: {
-      chat: async () => ({
-        content: 'memoria',
-        structured: { schemaVersion: 1, zones: [] },
-        usage: { promptTokens: 1, completionTokens: 1 },
-      }),
-      chatStream: async function* () {},
-    },
+    vision: textModel(),
+    plano2d: textModel(),
+    memoria: textModel(),
     image: {
       generate: async (req) => {
         calls.push('generate');
@@ -265,12 +269,28 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
 describe('runDelivery — plano 2D siempre dibujable', () => {
   it('si el modelo devuelve zonas vacías, el entregable cae al plano base con geometría', async () => {
     const { deps } = makeDeps();
-    deps.chat.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    deps.plano2d.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
     const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
     expect(plano?.payload.type).toBe('plano2d');
     if (plano?.payload.type !== 'plano2d') return;
     expect(plano.payload.plano.zones).toHaveLength(1);
     expect(plano.payload.plano.zones[0]!.outline).toHaveLength(4);
     expect(plano.payload.plano.zones[0]!.walls).toHaveLength(4);
+  });
+});
+
+describe('runDelivery — cada entregable usa su sección del perfil de IA', () => {
+  it('el plano 2D pide a «plano2d» y la memoria a «memoria»', async () => {
+    const { deps } = makeDeps();
+    const used: string[] = [];
+    const record = (section: string): ChatVisionAdapter['chat'] => async () => {
+      used.push(section);
+      return { content: 'texto', structured: { schemaVersion: 1, zones: [] }, usage: { promptTokens: 1, completionTokens: 1 } };
+    };
+    deps.plano2d.chat = record('plano2d');
+    deps.memoria.chat = record('memoria');
+    deps.vision.chat = record('vision');
+    await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d', 'memoria'] } });
+    expect(used.sort()).toEqual(['memoria', 'plano2d']);
   });
 });

@@ -41,7 +41,14 @@ export interface ZoneDeliveryContext {
 }
 
 export interface AgentDeps {
+  /** Conversación: cualificación y explicación del render (sección «chat» del perfil). */
   chat: ChatVisionAdapter;
+  /** Análisis de imágenes: foto de la ingesta y auditoría del render (sección «vision»). */
+  vision: ChatVisionAdapter;
+  /** Plano 2D estructurado del entregable (sección «plano2d»). */
+  plano2d: ChatVisionAdapter;
+  /** Memoria de materiales del entregable (sección «memoria»). */
+  memoria: ChatVisionAdapter;
   image: ImageAdapter;
   debit: DebitService;
   /** Usuario en cuyo nombre actúa el agente (gates de consentimiento/ToS). */
@@ -179,7 +186,7 @@ async function handleIngest(
   // Minimización/base legal: no se trata la imagen sin consentimiento explícito
   // (RGPD). El gate corta antes de enviar nada al modelo de visión.
   await assertConsent(deps.userId, 'IMAGE_PROCESSING');
-  const { detected, disclaimer } = await runIngesta(deps.chat, image);
+  const { detected, disclaimer } = await runIngesta(deps.vision, image);
   const nextCollected: Collected = { ...collected, detected };
   // Permanece en ingesta hasta que el usuario confirme lo detectado.
   await saveState(projectId, zoneId, version, { phase: 'ingesta', collected: nextCollected });
@@ -311,7 +318,9 @@ async function handleDeliver(
   const zoneCtx = await deps.resolveZoneContext(projectId, zoneId);
   const deliverables = await runDelivery(
     {
-      chat: deps.chat,
+      vision: deps.vision,
+      plano2d: deps.plano2d,
+      memoria: deps.memoria,
       image: deps.image,
       debit: deps.debit,
       newId: (type) => deps.newDeliverableId(projectId, type),
@@ -383,7 +392,9 @@ async function handleGenerateFromCanvas(
 
   const deliverables = await runDelivery(
     {
-      chat: deps.chat,
+      vision: deps.vision,
+      plano2d: deps.plano2d,
+      memoria: deps.memoria,
       image: deps.image,
       debit: deps.debit,
       newId: (type) => deps.newDeliverableId(projectId, type),

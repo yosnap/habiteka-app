@@ -51,6 +51,9 @@ async function makeProject(): Promise<{ pid: string; deps: AgentDeps }> {
   const project = await prisma.project.create({ data: { organizationId: org, title: 'P' } });
   const deps: AgentDeps = {
     chat,
+    vision: chat,
+    plano2d: chat,
+    memoria: chat,
     image,
     debit: noopDebit,
     userId: user.id,
@@ -72,6 +75,23 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
 
     const confirm = await advance(deps, pid, { action: 'confirm-detection' });
     expect(confirm.phase).toBe('cualificacion');
+  });
+
+  it('la ingesta analiza la foto con la sección «vision» del perfil, no con «chat»', async () => {
+    const { pid, deps } = await makeProject();
+    const used: string[] = [];
+    const recording = (section: string): ChatVisionAdapter => ({
+      chat: async (req) => {
+        used.push(section);
+        return chat.chat(req);
+      },
+      chatStream: async function* () {},
+    });
+    await advance({ ...deps, chat: recording('chat'), vision: recording('vision') }, pid, {
+      action: 'ingest',
+      image: [{ type: 'text', text: 'img' }],
+    });
+    expect(used).toEqual(['vision']);
   });
 
   it('correct-detection sobrescribe los números detectados sin avanzar de fase', async () => {
@@ -168,6 +188,9 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     const project = await prisma.project.create({ data: { organizationId: org, title: 'P' } });
     const noConsentDeps: AgentDeps = {
       chat,
+      vision: chat,
+      plano2d: chat,
+      memoria: chat,
       image,
       debit: noopDebit,
       userId: user.id,
