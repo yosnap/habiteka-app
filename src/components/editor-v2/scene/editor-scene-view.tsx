@@ -125,7 +125,7 @@ function SceneView({
     if (!rendererReady || contextLost) { captureRender.current = null; onCaptureReady?.(null); return; }
     const capture: CaptureScene = (options, fullResolution = false) => {
       if (abortRecording.current || store.getState().walkthroughPlaying) return Promise.reject(new Error('Detén el recorrido antes de capturar una imagen.'));
-      const job = withTimeout(captureQueue.current.then(async (): Promise<SceneCapture> => {
+      const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
       const initial = root.current?.get();
       if (!initial) throw new Error('La vista 3D no está disponible.');
       const originalPosition = initial.camera.position.clone();
@@ -226,10 +226,12 @@ function SceneView({
         initial.invalidate();
         await frames();
       }
-      }), CAPTURE_TIMEOUT_MS, 'La captura del 3D tardó demasiado. Comprueba que la vista 3D se ve y vuelve a intentarlo.');
-      // La cola sigue a la promesa ya acotada: una captura atascada no puede
-      // dejar en espera indefinida a las que vengan detrás.
-      captureQueue.current = job.catch(() => undefined);
+      });
+      const job = withTimeout(inner, CAPTURE_TIMEOUT_MS, 'La captura del 3D tardó demasiado. Comprueba que la vista 3D se ve y vuelve a intentarlo.');
+      // La cola sigue a la TAREA real, no a la promesa acotada: tras un plazo
+      // agotado, la captura anterior aún mueve cámara, cortes y visibilidad, y su
+      // `finally` pisaría a la siguiente. Las esperas internas tienen su propio plazo.
+      captureQueue.current = inner.catch(() => undefined);
       return job;
     };
     captureRender.current = capture;

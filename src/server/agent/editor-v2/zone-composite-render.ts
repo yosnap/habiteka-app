@@ -8,7 +8,8 @@ import { readRenderReference } from './render-asset-reader';
 export const ZONE_EMPTY_COVERAGE = 0.005;
 export const ZONE_FULL_COVERAGE = 0.995;
 
-export type ZoneCompositeMode = 'two_pass' | 'base_only' | 'design_only';
+/** `*_fallback`: una pasada o la composición falló y se entrega la imagen ya pagada. */
+export type ZoneCompositeMode = 'two_pass' | 'base_only' | 'design_only' | 'design_fallback' | 'base_fallback';
 
 /** Fracción de la imagen que ocupa la zona permitida (0–1). */
 export async function zoneMaskCoverage(mask: Buffer): Promise<number> {
@@ -58,13 +59,24 @@ export async function generateZoneCompositeRender(input: {
     const result = await input.image.generate(mode === 'base_only' ? input.base : input.design);
     return { ...result, zoneComposite: { mode, coverage } };
   }
-  const [base, design] = await Promise.all([input.image.generate(input.base), input.image.generate(input.design)]);
-  const [baseImage, designImage] = await Promise.all([readRenderReference(base), readRenderReference(design)]);
-  const composite = await compositeZoneImages(
-    Buffer.from(baseImage.base64, 'base64'), Buffer.from(designImage.base64, 'base64'), input.mask);
+  const [baseRun, designRun] = await Promise.allSettled([input.image.generate(input.base), input.image.generate(input.design)]);
+  // Nunca cobrar sin entregar: si una pasada falla se entrega la otra, marcada como respaldo.
+  if (baseRun.status === 'rejected' || designRun.status === 'rejected') {
+    if (designRun.status === 'fulfilled') return { ...designRun.value, zoneComposite: { mode: 'design_fallback', coverage } };
+    if (baseRun.status === 'fulfilled') return { ...baseRun.value, zoneComposite: { mode: 'base_fallback', coverage } };
+    throw designRun.reason;
+  }
+  const base = baseRun.value, design = designRun.value;
   const storage = getStorageAdapter();
   const assetKey = `renders/zones/${globalThis.crypto.randomUUID()}.jpg`;
-  await storage.put({ key: assetKey, body: composite, contentType: 'image/jpeg' });
+  try {
+    const [baseImage, designImage] = await Promise.all([readRenderReference(base), readRenderReference(design)]);
+    const composite = await compositeZoneImages(
+      Buffer.from(baseImage.base64, 'base64'), Buffer.from(designImage.base64, 'base64'), input.mask);
+    await storage.put({ key: assetKey, body: composite, contentType: 'image/jpeg' });
+  } catch {
+    return { ...design, zoneComposite: { mode: 'design_fallback', coverage } };
+  }
   return {
     assetUrl: await storage.getPresignedDownloadUrl(assetKey),
     assetKey,

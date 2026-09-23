@@ -61,7 +61,8 @@ async function redrawStudioImpl(
   const result = await redrawPlan({ image }, await readStudioImage(source), redrawMode);
   // Se conserva el redibujado del otro modo: el usuario alterna entre ambos.
   const redraws = { ...state.redraws, [redrawMode]: result };
-  await saveStudio(ctx, projectId, { ...state, source, plan: result, redrawMode, redraws });
+  // Otra imagen de trabajo: el veredicto y la extracción del plano anterior ya no valen.
+  await saveStudio(ctx, projectId, { ...state, source, plan: result, redrawMode, redraws, quality: undefined, planImport: undefined });
   return { imageUrl: result.assetUrl, assetKey: result.assetKey };
 }
 
@@ -78,7 +79,7 @@ async function selectRedrawStudioImpl(projectId: string, mode: RedrawMode) {
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
   const plan = state.redraws?.[redrawMode];
   if (!plan) fail('Ese redibujado aún no se ha generado.');
-  await saveStudio(ctx, projectId, { ...state, plan, redrawMode, plano: undefined, cenital: undefined });
+  await saveStudio(ctx, projectId, { ...state, plan, redrawMode, plano: undefined, cenital: undefined, quality: undefined, planImport: undefined });
   return { imageUrl: plan.assetUrl, assetKey: plan.assetKey };
 }
 

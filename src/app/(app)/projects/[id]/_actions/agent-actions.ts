@@ -528,6 +528,8 @@ async function generateConceptRenderFromEditorImpl(
   }
   // Zonas permitidas: sin la máscara de la misma cámara no se pueden garantizar.
   let zoneMask: Buffer | undefined;
+  // Sin captura no hay máscara: las zonas no se podrían garantizar y se pagaría otra cosa.
+  if (zoneCompositeActive(options) && !capture) fail('Las zonas permitidas necesitan las vistas de referencia. Prepáralas antes de generar.');
   if (zoneCompositeActive(options) && capture) {
     const maskMatch = typeof capture.maskDataUrl === 'string' && capture.maskDataUrl.length <= 14_000_000
       ? NATIVE_RENDER_DATA_URL.exec(capture.maskDataUrl) : null;
@@ -567,7 +569,8 @@ async function generateConceptRenderFromEditorImpl(
   let zoneComposite: { mode: string; coverage: number } | undefined;
   let result: { assetUrl: string; assetKey?: string; generation?: import('@/lib/contracts').ImageResult['generation'] };
   if (zoneMask && view) {
-    // Misma semilla en las dos pasadas: acabados coherentes a ambos lados del borde.
+    // Misma semilla en las dos pasadas para acercar los acabados a ambos lados del
+    // borde; solo la usan los proveedores que la admiten, el borde difuminado hace el resto.
     const seed = Math.floor(Math.random() * 2_147_483_647);
     const baseOptions: RenderDesignOptions = { ...options, freedom: 'strict', additions: [], placement: 'all', regions: [] };
     const basePrompt = (compact: boolean) => selectedViewPrompt(document, view, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), baseOptions, compact) + referenceStyleNote;

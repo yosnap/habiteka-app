@@ -86,4 +86,17 @@ describe('pasadas de render con zonas', () => {
     expect((await pixel(composed, 190, 50))[0]).toBeGreaterThan(240);
     expect(result.generation?.model).toBe('design');
   });
+
+  it('si una pasada falla entrega la otra en vez de cobrar sin entregar', async () => {
+    const generate = vi.fn(async (request: { prompt: string }) => {
+      if (request.prompt === 'base') throw new Error('KIE caído');
+      const key = 'renders/test/solo-diseno.png';
+      stored.set(key, await solid(0, 0, 255));
+      return { assetUrl: `https://storage.test/${key}`, assetKey: key, cost: { usd: 0.08 } };
+    });
+    const result = await generateZoneCompositeRender({ image: { generate, inpaint: vi.fn() } as never, mask: await halfMask(),
+      base: { prompt: 'base' }, design: { prompt: 'design' } });
+    expect(result.zoneComposite.mode).toBe('design_fallback');
+    expect(result.assetKey).toBe('renders/test/solo-diseno.png');
+  });
 });
