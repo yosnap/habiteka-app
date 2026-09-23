@@ -7,6 +7,7 @@ import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-c
 import { wallPoints } from '@/lib/editor-document/geometry';
 import { mergeVertexInto } from '@/lib/editor-document/vertex-merge';
 import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
+import { snapRadiusMm } from './snap-radius';
 
 export interface VertexPreview {
   document: EditorDocument; point: Point; guides: { from: Point; to: Point }[]; error: string | null;
@@ -15,12 +16,21 @@ export interface VertexPreview {
 export function previewVertex(doc: EditorDocument, id: string, pointer: Point, scale: number, snap: boolean): VertexPreview {
   const vertex = doc.vertices.find((v) => v.id === id);
   if (!vertex) throw new Error('Vértice inexistente');
-  const tolerance = 10 / Math.max(scale, .001), others = [...doc.vertices.filter((v) => v.id !== id), ...magneticReferences(doc, doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id).map((w) => w.id))];
+  const tolerance = snapRadiusMm(scale, 10), incidentWalls = doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id);
+  const incident = new Set(incidentWalls.map((w) => w.id));
+  // Un vértice de un muro incidente no es destino: fusionarlo degeneraría ese muro.
+  const neighbors = new Set(incidentWalls.flatMap((w) => [w.startVertexId, w.endVertexId]));
+  // La esquina real más cercana gana en 2D antes que cualquier alineación por ejes: es lo que el usuario quiere unir.
+  const corner = snap ? doc.vertices.filter((v) => v.id !== id && !neighbors.has(v.id))
+    .map((v) => ({ v, gap: Math.hypot(v.x - pointer.x, v.y - pointer.y) })).filter((c) => c.gap <= snapRadiusMm(scale, 12))
+    .sort((a, b) => a.gap - b.gap)[0]?.v : undefined;
+  // Ejes y vértices de otros muros, nunca sus caras: una cara a medio grosor de la esquina crearía un vértice fantasma.
+  const others = [...doc.vertices.filter((v) => v.id !== id), ...magneticReferences(doc, [...incident], { faces: false })];
   const closest = (axis: 'x' | 'y') => others.filter((v) => Math.abs(v[axis] - pointer[axis]) < tolerance)
     .sort((a, b) => Math.abs(a[axis] - pointer[axis]) - Math.abs(b[axis] - pointer[axis]))[0];
-  const x = closest('x'), y = closest('y');
-  let point = { x: snap && x ? x.x : pointer.x, y: snap && y ? y.y : pointer.y };
-  const axes = doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id).flatMap((w) => {
+  const x = corner ? undefined : closest('x'), y = corner ? undefined : closest('y');
+  let point = corner ? { x: corner.x, y: corner.y } : { x: snap && x ? x.x : pointer.x, y: snap && y ? y.y : pointer.y };
+  const axes = corner ? [] : incidentWalls.flatMap((w) => {
     const [a, b] = wallPoints(doc, w), origin = w.startVertexId === id ? b : a;
     const length = Math.hypot(b.x - a.x, b.y - a.y), ux = (b.x - a.x) / length, uy = (b.y - a.y) / length;
     return [{ origin, dx: ux, dy: uy }, { origin, dx: -uy, dy: ux }].map(({ origin, dx, dy }) => {
@@ -33,9 +43,8 @@ export function previewVertex(doc: EditorDocument, id: string, pointer: Point, s
   if (snap && axis) point = axis.target;
   point = constrainExteriorVertex(doc, id, point);
   // Soltar exactamente sobre otro vértice lo fusiona: así un patio puede compartir esquinas y muros con la casa.
-  const twin = snap ? doc.vertices.find((v) => v.id !== id && Math.hypot(v.x - point.x, v.y - point.y) < .5) : undefined;
+  const twin = snap ? doc.vertices.find((v) => v.id !== id && !neighbors.has(v.id) && Math.hypot(v.x - point.x, v.y - point.y) < .5) : undefined;
   // Soltarlo sobre el cuerpo de otro muro lo divide ahí y une ambos (unión en T): cierra estancias trazadas hasta la cara.
-  const incident = new Set(doc.walls.filter((w) => w.startVertexId === id || w.endVertexId === id).map((w) => w.id));
   const support = snap && !twin ? wallSupportAt(doc, point, { exclude: incident }) : undefined;
   if (support) point = support.point;
   const moved = structuredClone({ ...doc, vertices: doc.vertices.map((v) => v.id === id ? { ...v, ...point } : v) });

@@ -43,10 +43,13 @@ describe('intelligent room closure', () => {
   });
   it('uses screen tolerance, respects disabled snap and does not mutate on preview', () => {
     const doc = chain(), snapshot = structuredClone(doc);
-    for (const scale of [.015, .08, .5]) {
+    for (const scale of [.015, .08]) {
       expect(snapWallPoint(doc, { x: -11 / scale, y: 0 }, scale, true, anchor).kind).toBe('extension');
       expect(snapWallPoint(doc, { x: -13 / scale, y: 0 }, scale, true, anchor).kind).not.toBe('extension');
     }
+    // Con mucho zoom el radio no baja de 50 mm.
+    expect(snapWallPoint(doc, { x: -49, y: 0 }, .5, true, anchor).kind).toBe('extension');
+    expect(snapWallPoint(doc, { x: -51, y: 0 }, .5, true, anchor).kind).not.toBe('extension');
     expect(snapWallPoint(doc, { x: 0, y: 0 }, .08, false, anchor).kind).toBe('free');
     expect(doc).toEqual(snapshot);
   });
