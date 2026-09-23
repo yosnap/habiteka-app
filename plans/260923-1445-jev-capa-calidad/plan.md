@@ -1,6 +1,6 @@
 ---
 title: "Jev como capa central de calidad y fiabilidad"
-status: pending
+status: in-review
 mode: deep
 created: 2026-09-23
 branch: feat/jev-capa-calidad (desde fix/asistente-plano-y-disenos; merge local tras prueba en local, nunca en GitHub)
@@ -31,16 +31,30 @@ registrada junto a su coste para medir la eficacia de cada generación, gasto y 
 - Implementar vídeo/dron (el tipo `VIDEO` no tiene pipeline); la puerta de la fase 4 queda
   preparada para enchufarlo cuando exista.
 - Sustituir al auditor de visión: Jev puntúa su veredicto, no mira la imagen.
+- **Lienzo legacy** (`generateDesignFromCanvas`): queda EXCLUIDO de la puerta previa. Es un
+  flujo en retirada y no produce un documento estructurado que Jev pueda juzgar (no hay muros,
+  huecos ni escala que medir), así que una puerta ahí daría un veredicto inventado. Todo lo que
+  lo sustituye —editor v2 y estudio del plano— sí pasa por la puerta.
+
+## Alcance cubierto por las puertas previas (generaciones de pago)
+- Editor v2: diseño, propuesta editable, render de concepto y vista 3D (`editor_structure`).
+- Instrucciones de cambio: «pedir cambios» y `/api/iterations` (`change_instruction`).
+- **Vistas cenitales**: `cenitalStudio` del estudio y las acciones `generateCenitalFromPlano` /
+  `generateCenitalFromRedrawn`, con el veredicto `plan_extraction` guardado en el estado del
+  estudio (leído en servidor); sin veredicto se evalúa en el momento con la extracción cruda y,
+  sin evidencia ninguna, se falla en cerrado pidiendo confirmación.
 
 ## Fases
 | # | Fase | Estado | Depende de |
 |---|------|--------|-----------|
-| 1 | [Núcleo Jev: cliente, credencial en admin y registro de evaluaciones](phase-01-nucleo-jev.md) | pending | — |
-| 2 | [Puerta de fiabilidad del plano (estudio y asistente)](phase-02-fiabilidad-plano.md) | pending | 1 |
-| 3 | [Asistente por intención: diseño vs convertir plano](phase-03-asistente-intencion.md) | pending | 2 |
-| 4 | [Puerta previa a generar desde el editor (render, 3D, recorrido)](phase-04-puerta-editor.md) | pending | 1 |
-| 5 | [Evaluación posterior y pre-chequeo de instrucciones](phase-05-calidad-resultados.md) | pending | 1 |
-| 6 | [Panel de eficacia: calidad × coste](phase-06-panel-eficacia.md) | pending | 1, 5 |
+| 1 | [Núcleo Jev: cliente, credencial en admin y registro de evaluaciones](phase-01-nucleo-jev.md) | completed | — |
+| 2 | [Puerta de fiabilidad del plano (estudio y asistente)](phase-02-fiabilidad-plano.md) | completed | 1 |
+| 3 | [Asistente por intención: diseño vs convertir plano](phase-03-asistente-intencion.md) | completed | 2 |
+| 4 | [Puerta previa a generar desde el editor (render, 3D, recorrido)](phase-04-puerta-editor.md) | completed | 1 |
+| 5 | [Evaluación posterior y pre-chequeo de instrucciones](phase-05-calidad-resultados.md) | completed | 1 |
+| 6 | [Panel de eficacia: calidad × coste](phase-06-panel-eficacia.md) | completed | 1, 5 |
+| 7 | [Vistas realistas desde el plano y detección plano/foto](phase-07-vistas-realistas.md) | completed | 2, 3, 4 |
+| 8 | [Zonas permitidas garantizadas y alzados sin muro delantero](phase-08-zonas-y-alzados.md) | in-review (falta prueba en navegador) | 7 |
 
 Modo deep: las fases 1–3 están detalladas; 4–6 se escoutean y detallan al empezarlas.
 

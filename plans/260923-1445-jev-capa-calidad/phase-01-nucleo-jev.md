@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Núcleo Jev: cliente, credencial en admin y registro de evaluaciones"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: []

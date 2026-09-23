@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Puerta de fiabilidad del plano (estudio y asistente)"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1]
