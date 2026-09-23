@@ -32,6 +32,12 @@ export interface DeliveryDeps {
   /** Memoria de materiales (sección «memoria»). */
   memoria: ChatVisionAdapter;
   image: ImageAdapter;
+  /**
+   * Extrae el plano real de la imagen de referencia (mismo camino que el estudio de
+   * planos). Opcional: sin él, o si la imagen no es una planta legible, se cae al
+   * modelo de plano y, en último término, al plano base orientativo.
+   */
+  planoFromImage?: (image: { base64: string; mimeType: string }) => Promise<Plano2dPayload>;
   debit: DebitService;
   /** Genera un id estable para cada entregable (inyectado para testabilidad). */
   newId: (type: DeliverableType) => string;
@@ -216,51 +222,79 @@ function isStructuralVerdict(value: unknown): value is { accepted: boolean; viol
 }
 
 async function generatePlano(deps: DeliveryDeps, input: DeliveryInput): Promise<Plano2dPayload> {
-  // Se pide al modelo un plano estructurado; si no respeta el formato (frecuente
-  // con planos métricos), se cae a un plano base derivado de lo detectado en vez
-  // de fallar: el feedback por zona permitirá refinarlo después.
+  // 1) Con imagen del espacio, se lee su planta con el extractor del estudio: es lo
+  //    único que produce un plano fiel. Antes el modelo recibía solo el objetivo en
+  //    texto, nunca devolvía un plano válido y se entregaba un rectángulo genérico.
+  const reference = input.referenceImage;
+  if (reference && deps.planoFromImage) {
+    try {
+      const plano = await deps.planoFromImage(reference);
+      if (isPlano(plano)) return plano;
+    } catch (err) {
+      // Una imagen que no es una planta legible (p. ej. foto en perspectiva) degrada;
+      // un fallo del proveedor (cuota, caída, credenciales) se muestra al usuario.
+      rethrowProviderFailure(err);
+    }
+  }
+  // 2) Modelo de plano estructurado, con la imagen adjunta si la hay.
   try {
     const result = await deps.plano2d.chat({
       model: '',
-      messages: [{ role: 'user', content: [{ type: 'text', text: planoPrompt(input) }] }],
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: planoPrompt(input) },
+          ...(reference ? [{ type: 'image_url' as const, base64: reference.base64, mimeType: reference.mimeType }] : []),
+        ],
+      }],
       responseSchema: PLANO_SCHEMA,
     });
-    if (isPlano(result.structured)) return result.structured;
-  } catch {
-    // Cae al plano base.
+    // Geometría escrita por el modelo sin lectura de la planta: útil, pero no fiel.
+    if (isPlano(result.structured)) return { ...result.structured, aproximado: true };
+  } catch (err) {
+    rethrowProviderFailure(err);
   }
+  // 3) Plano base orientativo, marcado como tal para que la UI no lo presente como fiel.
   return basePlano(input.elements);
+}
+
+// Fallos de infraestructura: el usuario debe saber que puede reintentar o revisar la
+// configuración, en vez de recibir (y pagar) un plano genérico sin explicación.
+const PROVIDER_FAILURES = new Set(['rate_limit', 'spend_cap', 'call_limit', 'provider_down', 'gateway_down', 'timeout']);
+
+function rethrowProviderFailure(err: unknown): void {
+  if (err instanceof AiError && PROVIDER_FAILURES.has(err.kind)) throw err;
 }
 
 // El esquema describe la zona completa: con `items: { type: 'object' }` a secas, la salida estructurada
 // del proveedor devolvía zonas vacías `{}` que el visor no podía dibujar.
 const POINT_SCHEMA = { type: 'object', additionalProperties: false, required: ['x', 'y'], properties: { x: { type: 'number' }, y: { type: 'number' } } };
+/** Esquema de una zona (estancia) del plano; también lo usa la regeneración parcial. */
+export const PLAN_ZONE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'name', 'outline', 'walls', 'apertures', 'dimensions'],
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    outline: { type: 'array', items: POINT_SCHEMA },
+    walls: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'thicknessMm'],
+      properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, thicknessMm: { type: 'number' } } } },
+    apertures: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'kind', 'wallId', 'position', 'widthMm'],
+      properties: { id: { type: 'string' }, kind: { type: 'string', enum: ['puerta', 'ventana', 'hueco'] }, wallId: { type: 'string' },
+        position: { type: 'number' }, widthMm: { type: 'number' } } } },
+    dimensions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'label'],
+      properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, label: { type: 'string' } } } },
+  },
+};
+
 const PLANO_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['schemaVersion', 'zones'],
   properties: {
     schemaVersion: { type: 'integer' },
-    zones: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['id', 'name', 'outline', 'walls', 'apertures', 'dimensions'],
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          outline: { type: 'array', items: POINT_SCHEMA },
-          walls: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'thicknessMm'],
-            properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, thicknessMm: { type: 'number' } } } },
-          apertures: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'kind', 'wallId', 'position', 'widthMm'],
-            properties: { id: { type: 'string' }, kind: { type: 'string', enum: ['puerta', 'ventana', 'hueco'] }, wallId: { type: 'string' },
-              position: { type: 'number' }, widthMm: { type: 'number' } } } },
-          dimensions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'from', 'to', 'label'],
-            properties: { id: { type: 'string' }, from: POINT_SCHEMA, to: POINT_SCHEMA, label: { type: 'string' } } } },
-        },
-      },
-    },
+    zones: { type: 'array', items: PLAN_ZONE_SCHEMA },
   },
 };
 
@@ -287,26 +321,28 @@ function basePlano(elements?: StructuralElements): Plano2dPayload {
     const to = corners[(i + 1) % corners.length]!;
     return { id: `w${i}`, from, to, thicknessMm: 120 };
   });
-  const doors = elements?.doors ?? 1;
-  const windows = elements?.windows ?? 0;
+  // Los recuentos detectados son de TODA la vivienda; en una sola estancia se
+  // acotan y se reparten entre paredes para no apilar huecos en una misma pared.
+  const doors = Math.min(Math.max(elements?.doors ?? 1, 1), 2);
+  const windows = Math.min(elements?.windows ?? 0, 4);
+  const spread = (count: number, wallIds: string[]) =>
+    Array.from({ length: count }, (_, i) => {
+      const wallId = wallIds[i % wallIds.length]!;
+      const onWall = Math.ceil((count - (i % wallIds.length)) / wallIds.length);
+      const slot = Math.floor(i / wallIds.length);
+      return { wallId, position: (slot + 1) / (onWall + 1) };
+    });
   const apertures = [
-    ...Array.from({ length: doors }, (_, i) => ({
-      id: `d${i}`,
-      kind: 'puerta' as const,
-      wallId: 'w3',
-      position: (i + 1) / (doors + 1),
-      widthMm: 900,
+    ...spread(doors, ['w3', 'w1']).map((a, i) => ({
+      id: `d${i}`, kind: 'puerta' as const, ...a, widthMm: 900,
     })),
-    ...Array.from({ length: windows }, (_, i) => ({
-      id: `v${i}`,
-      kind: 'ventana' as const,
-      wallId: 'w0',
-      position: (i + 1) / (windows + 1),
-      widthMm: 1200,
+    ...spread(windows, ['w0', 'w2']).map((a, i) => ({
+      id: `v${i}`, kind: 'ventana' as const, ...a, widthMm: 1200,
     })),
   ];
   return {
     schemaVersion: 1,
+    aproximado: true,
     zones: [{ id: 'z0', name: 'Estancia', outline: corners, walls, apertures, dimensions: [] }],
   };
 }
@@ -435,5 +471,12 @@ export function memoriaPrompt(input: DeliveryInput): string {
   return lines.join('\n');
 }
 function planoPrompt(input: DeliveryInput): string {
-  return `Plano 2D estructurado en zonas para el objetivo: ${input.collected.objetivo ?? 'reforma'}.`;
+  return [
+    'Devuelve el plano 2D en planta del espacio, estructurado en zonas (una por estancia).',
+    'Coordenadas en milímetros; muros con grosor; puertas y ventanas sobre su muro.',
+    input.referenceImage
+      ? 'Básate EXCLUSIVAMENTE en la imagen adjunta: respeta su distribución, estancias y huecos.'
+      : '',
+    `Objetivo del usuario: ${input.collected.objetivo ?? 'reforma'}.`,
+  ].filter(Boolean).join('\n');
 }

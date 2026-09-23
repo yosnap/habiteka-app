@@ -22,10 +22,11 @@ import { persistDeliverables } from './persistence/deliverable-repo';
 import { assertTransition, isReadyForDelivery, previousPhase } from './state-machine';
 import { runIngesta } from './phases/ingesta';
 import { runQualification } from './phases/cualificacion';
-import { runDelivery, explanationPrompt } from './phases/entrega';
+import { runDelivery, explanationPrompt, type DeliveryDeps } from './phases/entrega';
 import { agentError } from './errors';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
+import { isValidEstilo, ENTREGABLE_VALUES } from '@/lib/design-options';
 
 /**
  * Contexto de la zona necesario para la entrega por chat: el tipo de zona (adapta el
@@ -50,6 +51,8 @@ export interface AgentDeps {
   /** Memoria de materiales del entregable (sección «memoria»). */
   memoria: ChatVisionAdapter;
   image: ImageAdapter;
+  /** Lee la planta real de la imagen de referencia (ver `DeliveryDeps`). */
+  planoFromImage?: DeliveryDeps['planoFromImage'];
   debit: DebitService;
   /** Usuario en cuyo nombre actúa el agente (gates de consentimiento/ToS). */
   userId: string;
@@ -79,6 +82,14 @@ export type AgentInput =
   // anterior (cualificación→ingesta, feedback→cualificación).
   | { action: 'go-back' }
   | { action: 'qualify'; history: ChatMessage[] }
+  // Preferencias elegidas en el asistente por pasos (galería de estilos, tarjetas de
+  // entregables, objetivo). Deterministas: se validan aquí sin pasar por el modelo.
+  | {
+      action: 'set-preferences';
+      estilo?: Estilo;
+      entregables?: DeliverableType[];
+      objetivo?: string;
+    }
   | { action: 'deliver' }
   // Generación desde el lienzo (CRL-4): flujo paralelo al chat. El usuario aporta
   // estilo y entregable en el propio canvas (mini-formulario), más la descripción
@@ -166,6 +177,8 @@ export async function advance(
         state.version,
         input.history,
       );
+    case 'set-preferences':
+      return handleSetPreferences(projectId, zoneId, state.phase, state.collected, state.version, input);
     case 'deliver':
       return handleDeliver(deps, projectId, zoneId, state.phase, state.collected, state.version);
     case 'generate-from-canvas':
@@ -295,6 +308,37 @@ async function handleQualify(
   return { phase: 'cualificacion', collected: next };
 }
 
+const MAX_OBJETIVO_CHARS = 600;
+
+/**
+ * Fija estilo, entregables y objetivo desde los controles del asistente. Solo en
+ * cualificación; los valores fuera del catálogo se ignoran (defensa de boundary) y
+ * lo que no llega se conserva.
+ */
+async function handleSetPreferences(
+  projectId: string,
+  zoneId: string | null,
+  phase: string,
+  collected: Collected,
+  version: number,
+  input: Extract<AgentInput, { action: 'set-preferences' }>,
+): Promise<AgentOutcome> {
+  if (phase !== 'cualificacion') throw agentError('phase_guard', 'No se está cualificando');
+  const next: Collected = { ...collected, entregables: [...collected.entregables] };
+  if (input.estilo !== undefined && isValidEstilo(input.estilo)) next.estilo = input.estilo;
+  if (Array.isArray(input.entregables)) {
+    const valid = input.entregables.filter((t) => (ENTREGABLE_VALUES as readonly string[]).includes(t));
+    next.entregables = [...new Set(valid)];
+  }
+  if (typeof input.objetivo === 'string') {
+    const objetivo = input.objetivo.trim().slice(0, MAX_OBJETIVO_CHARS);
+    if (objetivo) next.objetivo = objetivo;
+    else delete next.objetivo;
+  }
+  await saveState(projectId, zoneId, version, { phase: 'cualificacion', collected: next });
+  return { phase: 'cualificacion', collected: next };
+}
+
 async function handleDeliver(
   deps: AgentDeps,
   projectId: string,
@@ -322,6 +366,7 @@ async function handleDeliver(
       plano2d: deps.plano2d,
       memoria: deps.memoria,
       image: deps.image,
+      ...(deps.planoFromImage ? { planoFromImage: deps.planoFromImage } : {}),
       debit: deps.debit,
       newId: (type) => deps.newDeliverableId(projectId, type),
     },
@@ -396,6 +441,7 @@ async function handleGenerateFromCanvas(
       plano2d: deps.plano2d,
       memoria: deps.memoria,
       image: deps.image,
+      ...(deps.planoFromImage ? { planoFromImage: deps.planoFromImage } : {}),
       debit: deps.debit,
       newId: (type) => deps.newDeliverableId(projectId, type),
     },

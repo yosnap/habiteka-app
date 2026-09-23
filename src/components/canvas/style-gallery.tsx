@@ -16,7 +16,8 @@ export function StyleGallery({
   onChange,
   disabled,
 }: {
-  value: Estilo;
+  /** Estilo seleccionado; `undefined` = ninguno todavía (asistente por pasos). */
+  value?: Estilo;
   onChange: (estilo: Estilo) => void;
   disabled?: boolean;
 }) {

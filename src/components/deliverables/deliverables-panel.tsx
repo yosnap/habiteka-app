@@ -9,6 +9,8 @@ import dynamic from 'next/dynamic';
 import type { Deliverable } from '@/lib/contracts';
 import { Render3dViewer } from './render3d-viewer';
 import { MaterialsMemo } from './materials-memo';
+import { DeliverableActions } from './deliverable-actions';
+import { ENTREGABLES } from '@/lib/design-options';
 
 // El visor de plano usa Konva: se carga solo en cliente.
 const Plan2dViewer = dynamic(() => import('./plan2d-viewer').then((m) => m.Plan2dViewer), {
@@ -41,17 +43,30 @@ export function DeliverablesPanel({
   return (
     <div className="flex flex-col gap-4">
       {deliverables.map((d) => (
-        <section key={d.id} aria-label={`Entregable ${d.type}`}>
+        <section
+          key={d.id}
+          aria-label={`${typeLabel(d.type)} · versión ${d.version}`}
+          className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4"
+        >
+          <header className="flex items-center justify-between gap-2">
+            <h2 className="text-ink text-base font-semibold">{typeLabel(d.type)}</h2>
+            <span className="text-ink-soft text-xs">Versión {d.version}</span>
+          </header>
           {d.sourceImageUrl && <SourceImageOrigin url={d.sourceImageUrl} />}
-          {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} />}
+          {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} downloadable />}
           {d.payload.type === 'render3d' && (
             <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} zoneId={d.zoneId} />
           )}
           {d.payload.type === 'memoria' && <MaterialsMemo markdown={d.payload.markdown} />}
+          <DeliverableActions projectId={projectId} deliverable={d} />
         </section>
       ))}
     </div>
   );
+}
+
+function typeLabel(type: DeliverableView['type']): string {
+  return ENTREGABLES.find((o) => o.value === type)?.label ?? type;
 }
 
 /** Miniatura de la imagen de origen sobre el diseño (trazabilidad "origen → diseño"). */

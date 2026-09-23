@@ -158,6 +158,38 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     expect(out.collected.detected).toBeTruthy();
   });
 
+  it('set-preferences fija estilo, entregables y objetivo sin llamar al modelo', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    let calls = 0;
+    deps.chat = { ...chat, chat: async (req) => { calls++; return chat.chat(req); } };
+
+    const out = await advance(deps, pid, {
+      action: 'set-preferences',
+      estilo: 'costero',
+      entregables: ['render3d', 'memoria', 'render3d', 'inventado' as never],
+      objetivo: '  salón luminoso  ',
+    });
+    expect(calls).toBe(0);
+    expect(out.collected.estilo).toBe('costero');
+    expect(out.collected.entregables).toEqual(['render3d', 'memoria']);
+    expect(out.collected.objetivo).toBe('salón luminoso');
+
+    // Lo que no llega se conserva; un estilo fuera del catálogo se ignora.
+    const kept = await advance(deps, pid, { action: 'set-preferences', estilo: 'marciano' as never });
+    expect(kept.collected.estilo).toBe('costero');
+    expect(kept.collected.entregables).toEqual(['render3d', 'memoria']);
+  });
+
+  it('set-preferences fuera de cualificación lanza phase_guard', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await expect(advance(deps, pid, { action: 'set-preferences', estilo: 'moderno' })).rejects.toMatchObject({
+      kind: 'phase_guard',
+    });
+  });
+
   it('go-back desde ingesta (sin anterior) lanza phase_guard', async () => {
     const { pid, deps } = await makeProject();
     await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });

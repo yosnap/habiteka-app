@@ -64,4 +64,9 @@ export interface Plano2dPayload {
   /** Versión del esquema del plano (para migraciones de formato). */
   schemaVersion: number;
   zones: PlanZone[];
+  /**
+   * Plano orientativo: no procede de leer una planta real (plano base genérico o
+   * geometría escrita por el modelo). La UI no lo presenta como el plano del espacio.
+   */
+  aproximado?: boolean;
 }

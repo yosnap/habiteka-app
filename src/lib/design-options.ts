@@ -42,6 +42,27 @@ const ESTILO_LABELS: Record<Estilo, string> = {
   tropical: 'Tropical',
 };
 
+// Descripción breve de cada estilo, para explicar al usuario qué va a recibir cuando
+// lo selecciona en la galería. `Record<Estilo, string>` fuerza exhaustividad igual que
+// las etiquetas: un estilo nuevo sin descripción rompe el build.
+const ESTILO_DESCRIPCIONES: Record<Estilo, string> = {
+  minimalista: 'Pocas piezas, líneas limpias y mucho espacio libre. Paleta neutra y orden visual.',
+  moderno: 'Formas actuales, materiales mixtos y contrastes suaves. Práctico y sin recargar.',
+  clasico: 'Maderas nobles, simetría y textiles cuidados. Un ambiente atemporal y acogedor.',
+  industrial: 'Ladrillo, metal negro y hormigón vistos. Aire de loft urbano y techos altos.',
+  rustico: 'Madera envejecida, piedra y tejidos naturales. Calidez de casa de campo.',
+  mediterraneo: 'Blancos encalados, azules y cerámica artesanal. Luz y frescor del sur.',
+  nordico: 'Madera clara, blanco y textiles suaves. Luminoso y muy funcional.',
+  japandi: 'Mezcla japonesa y nórdica: madera natural, líneas bajas y calma.',
+  boho: 'Fibras naturales, estampados y plantas. Relajado, con mezcla de piezas.',
+  midcentury: 'Muebles de los años 50-60: patas finas, maderas cálidas y colores mostaza o verde.',
+  costero: 'Tonos arena y azul, madera clara y fibras. Ambiente de casa junto al mar.',
+  contemporaneo: 'Lo que se lleva ahora: neutros elegantes, formas suaves y detalles de diseño.',
+  escandinavo: 'Sencillez nórdica llevada al máximo: blancos, madera y confort.',
+  artdeco: 'Geometría, latón, terciopelo y espejos. Elegante y con carácter.',
+  tropical: 'Verdes intensos, ratán y plantas grandes. Fresco y exuberante.',
+};
+
 const ENTREGABLE_LABELS: Record<DeliverableType, string> = {
   plano2d: 'Plano 2D',
   render3d: 'Render 3D',
@@ -77,6 +98,11 @@ export function isValidEstilo(v: unknown): v is Estilo {
  */
 export function estiloLabel(estilo: string): string {
   return isValidEstilo(estilo) ? ESTILO_LABELS[estilo] : estilo;
+}
+
+/** Descripción breve del estilo para la UI ('' si el valor no es un estilo conocido). */
+export function estiloDescripcion(estilo: string): string {
+  return isValidEstilo(estilo) ? ESTILO_DESCRIPCIONES[estilo] : '';
 }
 
 export function isValidEntregable(v: unknown): v is DeliverableType {

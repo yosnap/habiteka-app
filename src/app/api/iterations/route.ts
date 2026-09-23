@@ -8,13 +8,12 @@
  */
 import { NextResponse } from 'next/server';
 import { requireOrgContext } from '@/server/auth/require-org-context';
-import { getImageAdapterForAction } from '@/server/ai';
-import { createDebitService } from '@/server/agent/debit-service-impl';
+import { buildFeedbackDeps, ITERATION_CREDITS } from '@/server/agent/feedback/feedback-deps';
 import { runFeedback } from '@/server/agent/feedback/feedback-orchestrator';
-import { listIterations } from '@/server/agent/feedback/iteration-repo';
+import { listIterations, loadDeliverable } from '@/server/agent/feedback/iteration-repo';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { assertConsent } from '@/server/privacy/consent-service';
-import type { CanvasZone, PlanZone } from '@/lib/contracts';
+import type { CanvasZone } from '@/lib/contracts';
 
 export async function POST(request: Request) {
   const ctx = await requireOrgContext();
@@ -40,24 +39,17 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Mismas dependencias que «Diseños»: imagen base desde storage, memoria y plano.
+    const deliverable = await loadDeliverable(ctx.organizationId, body.deliverableId);
     const result = await runFeedback(
-      {
-        // Los retoques usan la sección «inpaint» del perfil de IA, no la de render.
-        image: await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'inpaint'),
-        debit: createDebitService(ctx.organizationId),
-        // La regeneración del subárbol del plano la afina el agente; por ahora
-        // se delega a un regenerador mínimo que el orquestador del agente provee.
-        regenerateZone: async (): Promise<PlanZone> => {
-          throw new Error('regeneración de plano no disponible en este endpoint');
-        },
-      },
+      await buildFeedbackDeps(ctx.organizationId, deliverable),
       {
         organizationId: ctx.organizationId,
         deliverableId: body.deliverableId,
         zone: body.zone,
         instruction: body.instruction,
         planZoneId: body.planZoneId,
-        estimateCredits: 500,
+        estimateCredits: ITERATION_CREDITS,
       },
     );
     return NextResponse.json(result, { status: 201 });

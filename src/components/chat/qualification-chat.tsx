@@ -1,30 +1,28 @@
 'use client';
 
 /**
- * Asistente del proyecto, guiado por la fase de la máquina de estados del agente.
+ * Asistente del proyecto: flujo guiado en seis pasos (espacio → detección → estilo
+ * → entregables → confirmación → resultado).
  *
- * Muestra SOLO los controles válidos en la fase actual para que el usuario no
- * choque con las guardas del servidor (p. ej. no se puede cualificar antes de
- * confirmar la detección de la imagen). Las fases: ingesta → (confirmar) →
- * cualificación → (estilo/entregables) → entrega → feedback.
+ * El paso visible se deriva de la fase persistida en el servidor, que sigue siendo
+ * la fuente de verdad: la navegación local nunca ofrece acciones que las guardas
+ * del agente vayan a rechazar. Las preferencias se guardan con `set-preferences`
+ * (determinista, sin modelo); solo la generación (`deliver`) es cara.
  */
 import { useState, useTransition } from 'react';
-import { MessageList, type ChatTurn } from './message-list';
-import { MessageInput } from './message-input';
-import { StyleQuickPicks } from './style-quick-picks';
-import { DeliverablePicker } from './deliverable-picker';
+import { StepSpace } from './step-space';
+import { StepStyle } from './step-style';
+import { StepDeliverables } from './step-deliverables';
+import { StepReview } from './step-review';
+import { StepResult } from './step-result';
+import { WizardStepper } from './wizard-stepper';
 import { type UploadedImage } from './image-upload';
-import { IngestaControls } from './ingesta-controls';
-import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
-import { Button } from '@/components/ui/button';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { acceptCurrentTos, checkTosAccepted } from '@/server/legal/actions';
-import { TosAcceptanceNotice } from '@/components/legal/tos-acceptance';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
+import { isStepReachable, stepFromPhase, type Phase, type StepId } from './wizard-steps';
 import type { AgentInput, AgentOutcome } from '@/server/agent';
-import type { Estilo, DeliverableType, ChatMessage, StructuralElements } from '@/lib/contracts';
-
-type Phase = 'ingesta' | 'cualificacion' | 'entrega' | 'feedback';
+import type { Deliverable, DeliverableType, Estilo, StructuralElements } from '@/lib/contracts';
 
 interface Props {
   projectId: string;
@@ -36,38 +34,50 @@ interface Props {
   initialPhase?: Phase;
   /** Zona activa del proyecto; null = flujo por defecto. El asistente es por zona. */
   zoneId?: string | null;
+  /** Lo ya recogido en el servidor: al recargar, los pasos completados siguen accesibles. */
+  initialCollected?: {
+    estilo?: Estilo;
+    entregables?: DeliverableType[];
+    objetivo?: string;
+    detected?: StructuralElements;
+  };
 }
-
-let turnSeq = 0;
 
 export function QualificationChat({
   projectId,
   advance,
   initialPhase = 'ingesta',
   zoneId = null,
+  initialCollected = {},
 }: Props) {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  // Paso actual + sentido del último cambio (la animación entra por la derecha al
+  // avanzar y por la izquierda al retroceder).
+  const [nav, setNav] = useState<{ step: StepId; dir: 'forward' | 'back' }>(() => ({
+    step: stepFromPhase(initialPhase, initialCollected.detected !== undefined),
+    dir: 'forward',
+  }));
+  const step = nav.step;
+  const setStep = (next: StepId) =>
+    setNav((prev) => ({ step: next, dir: next >= prev.step ? 'forward' : 'back' }));
   const [phase, setPhase] = useState<Phase>(initialPhase);
-  // La detección debe confirmarse antes de pasar a cualificación. Si el proyecto
-  // ya avanzó más allá de la ingesta, se considera confirmada.
-  const [detected, setDetected] = useState(initialPhase !== 'ingesta');
-  // Números detectados (para los controles de ingesta: corregir/confirmar). null hasta
-  // que se analiza una foto en esta sesión (tras recargar en ingesta no se rehidratan;
-  // el usuario re-sube si quiere corregir).
-  const [detectedEls, setDetectedEls] = useState<StructuralElements | null>(null);
-  // Estado acumulado de la cualificación (el servidor es la fuente de verdad; se
-  // refleja aquí para guiar y habilitar la generación cuando está completo).
-  const [estilo, setEstilo] = useState<Estilo | undefined>();
-  const [entregables, setEntregables] = useState<DeliverableType[]>([]);
-  // Aceptación de los Términos: condición para generar (gate del servidor).
+  // Números detectados (para revisar/corregir), rehidratados de lo persistido.
+  const [detectedEls, setDetectedEls] = useState<StructuralElements | null>(
+    initialCollected.detected ?? null,
+  );
+  const [disclaimer, setDisclaimer] = useState<string | null>(null);
+  // Estado acumulado de la cualificación (reflejo de lo persistido en el servidor).
+  const [estilo, setEstilo] = useState<Estilo | undefined>(initialCollected.estilo);
+  const [entregables, setEntregables] = useState<DeliverableType[]>(
+    initialCollected.entregables ?? [],
+  );
+  const [objetivo, setObjetivo] = useState(initialCollected.objetivo ?? '');
   const [tosAccepted, setTosAccepted] = useState<boolean | null>(null);
-  // Error de la generación de diseños: si falla, la fase NO avanza (queda en
-  // cualificación) y se muestra un aviso con opción de REINTENTAR, en vez de dejar al
-  // usuario mirando el paso sin saber qué pasó (era el bug del "vuelve a salir el paso").
   const [deliverError, setDeliverError] = useState<string | null>(null);
-  // Generación en curso (entrega de diseños): muestra un estado explícito en pantalla
-  // porque el render puede tardar; sin esto el usuario no sabe si está pasando algo.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  // Entregables del turno actual, para la vista previa del paso 6. null = no se ha
+  // generado en esta sesión (p. ej. se entra ya en feedback tras recargar).
+  const [result, setResult] = useState<Deliverable[] | null>(null);
   const [pending, startTransition] = useTransition();
 
   useMountEffect(() => {
@@ -82,180 +92,204 @@ export function QualificationChat({
       setTosAccepted(true);
     });
 
-  const pushTurn = (role: 'user' | 'assistant', text: string, imageUrl?: string) =>
-    setTurns((prev) => [
-      ...prev,
-      { id: `t${++turnSeq}`, role, text, ...(imageUrl ? { imageUrl } : {}) },
-    ]);
-
-  // Ejecuta una acción del agente y refleja la fase y el estado resultantes; ante
-  // un error de guarda, lo muestra como mensaje en vez de romper la pantalla.
-  const run = (input: AgentInput, echo?: string, onOk?: (out: AgentOutcome) => void) => {
-    if (echo) pushTurn('user', echo);
+  /**
+   * Ejecuta una acción del agente y refleja el estado resultante. `nextStep` fija el
+   * paso destino cuando la acción sale bien; si se omite, se deriva de la fase.
+   */
+  const run = (
+    input: AgentInput,
+    options: { nextStep?: StepId; onOk?: (out: AgentOutcome) => void } = {},
+  ) => {
+    setActionError(null);
     startTransition(async () => {
       try {
         const out = await callAction(advance(projectId, input, zoneId));
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);
-        onOk?.(out);
+        if (out.detected) setDetectedEls(out.detected);
+        setStep(options.nextStep ?? stepFromPhase(out.phase as Phase, out.detected !== undefined));
+        options.onOk?.(out);
       } catch (err) {
-        pushTurn('assistant', err instanceof Error ? err.message : 'No se pudo continuar.');
+        setActionError(err instanceof Error ? err.message : 'No se pudo continuar.');
       }
     });
   };
 
   const onUploadImage = (image: UploadedImage) => {
-    // Muestra la imagen subida en el chat (data URL) para que el usuario compruebe qué
-    // envió sin abrir el explorador. El `run` va sin echo para no duplicar el turno.
-    pushTurn(
-      'user',
-      '📷 Imagen del espacio subida',
-      `data:${image.mimeType};base64,${image.base64}`,
-    );
+    setDisclaimer(null);
     run(
       {
         action: 'ingest',
         image: [{ type: 'image_url', base64: image.base64, mimeType: image.mimeType }],
       },
-      undefined,
-      (out) => {
-        if (out.detected) {
-          const d = out.detected;
-          pushTurn(
-            'assistant',
-            `Detecté ${d.walls} muros, ${d.doors} puertas, ${d.windows} ventanas y ${d.pillars} pilares. Revísalo, corrígelo o confirma para continuar.`,
-          );
-          setDetected(true);
-          setDetectedEls(d);
-        }
-        if (out.disclaimer) pushTurn('assistant', out.disclaimer);
-      },
+      { onOk: (out) => setDisclaimer(out.disclaimer ?? null) },
     );
   };
 
-  const onConfirmDetection = () =>
-    run({ action: 'confirm-detection' }, '✅ Confirmo lo detectado', () =>
-      pushTurn('assistant', 'Genial. Cuéntame el estilo y qué entregables quieres.'),
-    );
-
-  // Corrige a mano los números detectados (no avanza de fase): el plano base partirá de
-  // los valores corregidos. Refleja la corrección en los controles de ingesta.
+  const onConfirmDetection = () => run({ action: 'confirm-detection' }, { nextStep: 3 });
+  const onSkipDetection = () => run({ action: 'skip-detection' }, { nextStep: 3 });
+  // Corregir no avanza de fase: el plano base partirá de los números corregidos.
   const onCorrectDetection = (els: StructuralElements) =>
-    run({ action: 'correct-detection', detected: els }, '✏️ Corrijo lo detectado', (out) => {
-      if (out.detected) setDetectedEls(out.detected);
-      pushTurn('assistant', 'Hecho, lo dejé como me dijiste. Confirma cuando quieras seguir.');
-    });
+    run({ action: 'correct-detection', detected: els }, { nextStep: 2 });
 
-  // Avanza a cualificación sin endosar la detección (era pobre o se subió por el panel).
-  const onSkipDetection = () =>
-    run({ action: 'skip-detection' }, '⏭️ Continuar sin la detección', () =>
-      pushTurn('assistant', 'Seguimos. Podrás afinar el plano más tarde. Cuéntame el estilo.'),
+  // Del paso 3 al 2: hay que retroceder también en el servidor (cualificación → ingesta).
+  const onBackToSpace = () =>
+    run(
+      { action: 'go-back' },
+      {
+        nextStep: 2,
+        onOk: () => setDisclaimer(null),
+      },
     );
 
-  // Vuelve al paso anterior para corregir sin perder lo recogido.
-  const onGoBack = () =>
-    run({ action: 'go-back' }, '↩️ Volver al paso anterior', (out) => {
-      // Al volver a ingesta, se reabre la confirmación de la detección si la había.
-      if (out.phase === 'ingesta') setDetected(detectedEls !== null);
-      pushTurn('assistant', 'Volvimos un paso atrás. Ajusta lo que necesites.');
-    });
-
-  const sendQualify = (history: ChatMessage[], echo: string) =>
-    run({ action: 'qualify', history }, echo, (out) => {
-      const summary = describeCollected(out);
-      if (summary) pushTurn('assistant', summary);
-    });
-
-  const onSend = (text: string) =>
-    sendQualify([{ role: 'user', content: [{ type: 'text', text }] }], text);
-  const onPickStyle = (estilo: Estilo) =>
-    sendQualify(
-      [{ role: 'user', content: [{ type: 'text', text: `Estilo: ${estilo}` }] }],
-      `Estilo: ${estilo}`,
-    );
-  const onPickDeliverables = (types: DeliverableType[]) =>
-    sendQualify(
-      [{ role: 'user', content: [{ type: 'text', text: `Entregables: ${types.join(', ')}` }] }],
-      `Entregables: ${types.join(', ')}`,
+  const onPickStyle = (value: Estilo) => setEstilo(value);
+  const onToggleDeliverable = (value: DeliverableType) =>
+    setEntregables((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
 
-  // Generación de diseños: maneja el error de forma EXPLÍCITA. `advance` espera a que la
-  // generación termine, así que al resolver los diseños ya están listos (fase → feedback);
-  // si lanza, la fase no avanza y se ofrece reintentar (sin recargar).
+  // Con un resultado ya generado, cambiar preferencias abre una variante: el servidor
+  // vuelve a cualificación antes de guardarlas. Navegar sin cambiar nada no lo hace.
+  const reopenIfDelivered = async () => {
+    if (phase !== 'feedback') return;
+    await callAction(advance(projectId, { action: 'go-back' }, zoneId));
+    setPhase('cualificacion');
+    setResult(null);
+    setDeliverError(null);
+  };
+
+  // Guarda lo elegido al avanzar de paso (determinista, sin modelo) para que la
+  // generación encuentre estilo y entregables ya persistidos. Se envían siempre ambos:
+  // la respuesta del servidor reemplaza el estado local y no debe perderse nada.
+  const savePreferences = (nextStep: StepId) => {
+    setActionError(null);
+    startTransition(async () => {
+      try {
+        await reopenIfDelivered();
+        const out = await callAction(
+          advance(projectId, { action: 'set-preferences', estilo, entregables }, zoneId),
+        );
+        setPhase(out.phase as Phase);
+        setEstilo(out.collected.estilo);
+        setEntregables(out.collected.entregables);
+        setStep(nextStep);
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'No se pudo continuar.');
+      }
+    });
+  };
+
+  const onNextFromStyle = () => {
+    if (estilo === undefined) return;
+    savePreferences(4);
+  };
+  const onNextFromDeliverables = () => {
+    if (entregables.length === 0) return;
+    savePreferences(5);
+  };
+
+  /**
+   * Generación: guarda el objetivo y lanza `deliver`. Si falla, la fase no avanza y
+   * se ofrece reintentar sin recargar.
+   */
   const onDeliver = () => {
     setDeliverError(null);
-    if (deliverError === null) pushTurn('user', '🎨 Generar mis diseños');
+    setActionError(null);
     setGenerating(true);
     startTransition(async () => {
       try {
+        await reopenIfDelivered();
+        await callAction(
+          advance(projectId, { action: 'set-preferences', estilo, entregables, objetivo }, zoneId),
+        );
         const out = await callAction(advance(projectId, { action: 'deliver' }, zoneId));
         setPhase(out.phase as Phase);
         setEstilo(out.collected.estilo);
         setEntregables(out.collected.entregables);
-        // Muestra el render AQUÍ MISMO (no obliga a saltar a otra pestaña): el
-        // entregable ya trae su URL presignada. Así ves el resultado donde lo pediste.
-        const render = out.deliverables?.find((d) => d.payload.type === 'render3d');
-        if (render && render.payload.type === 'render3d') {
-          pushTurn('assistant', '🎨 Aquí está tu render:', render.payload.assetUrl);
-        }
-        // Resumen de lo generado + dónde encontrarlo todo (memoria, plano, versiones).
-        const tipos = (out.deliverables ?? []).map((d) => d.payload.type);
-        const otros = tipos.filter((t) => t !== 'render3d');
-        pushTurn(
-          'assistant',
-          otros.length > 0
-            ? `Listo. También generé: ${otros.join(', ')}. Todo queda guardado en la pestaña «Diseños».`
-            : 'Listo. También lo tienes guardado en la pestaña «Diseños».',
-        );
+        setResult(out.deliverables ?? []);
+        setStep(stepFromPhase(out.phase as Phase, false));
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'No se pudieron generar los diseños.';
-        setDeliverError(msg);
+        setDeliverError(err instanceof Error ? err.message : 'No se pudieron generar los diseños.');
       } finally {
         setGenerating(false);
       }
     });
   };
 
-  const ready = estilo !== undefined && entregables.length > 0;
+  // Otra variante: vuelve de feedback a cualificación y al paso del estilo.
+  const onNewVariant = () =>
+    run(
+      { action: 'go-back' },
+      {
+        nextStep: 3,
+        onOk: () => {
+          setResult(null);
+          setDeliverError(null);
+        },
+      },
+    );
+
+  const reachable = (destino: StepId) =>
+    isStepReachable(destino, {
+      phase,
+      hasDetection: detectedEls !== null,
+      selection: { estilo, entregables },
+    });
+
+  // Salto desde la cabecera. Solo toca el servidor cuando el paso exige otra fase:
+  // adelante desde la revisión (confirma lo detectado) o atrás hasta la subida. Con un
+  // resultado ya generado se navega libremente entre preferencias y resultado.
+  const onSelectStep = (destino: StepId) => {
+    if (!reachable(destino) || destino === step) return;
+    if (phase === 'ingesta' && destino >= 3) {
+      run({ action: 'confirm-detection' }, { nextStep: destino });
+      return;
+    }
+    if (phase === 'cualificacion' && destino <= 2) {
+      onBackToSpace();
+      return;
+    }
+    setStep(destino);
+  };
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <PhaseHint phase={phase} />
-      <MessageList turns={turns} streamingText="" />
-      {generating ? (
-        <div className="border-brand-200 bg-brand-50 flex items-start gap-2 rounded-control border p-3 text-sm">
-          <span className="border-brand-500 mt-0.5 inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
-          <span className="text-ink">
-            Generando tus diseños… El render puede tardar hasta ~2 minutos. No cierres esta pestaña;
-            te aviso aquí cuando esté listo (o si algo falla).
-          </span>
-        </div>
-      ) : pending ? (
-        <p className="text-ink-soft flex items-center gap-2 text-sm">
-          <span className="border-brand-500 inline-block size-3 animate-spin rounded-full border-2 border-t-transparent" />
-          El asistente está pensando…
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-3 overflow-y-auto">
+      <WizardStepper
+        current={step}
+        isReachable={reachable}
+        onSelect={onSelectStep}
+        disabled={pending || generating}
+      />
+
+      {actionError ? (
+        <p
+          role="alert"
+          className="rounded-control border border-red-300 bg-red-50 p-2 text-sm text-red-700"
+        >
+          {actionError}
         </p>
       ) : null}
-      <div className="flex flex-col gap-2">
-        {/* Volver al paso anterior: disponible en las fases de reposo con anterior
-            (cualificación→ingesta, feedback→cualificación). Corrige sin perder lo recogido. */}
-        {phase === 'cualificacion' || phase === 'feedback' ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="self-start"
-            onClick={onGoBack}
-            disabled={pending}
-          >
-            ← Volver al paso anterior
-          </Button>
-        ) : null}
 
-        {phase === 'ingesta' ? (
-          <IngestaControls
+      {pending && !generating ? (
+        <p className="text-ink-soft flex items-center gap-2 text-sm">
+          <span className="border-brand-500 inline-block size-3 animate-spin rounded-full border-2 border-t-transparent" />
+          Un momento…
+        </p>
+      ) : null}
+
+      <div
+        key={step}
+        className={`animate-in fade-in flex flex-col gap-3 duration-300 ease-out ${
+          nav.dir === 'forward' ? 'slide-in-from-right-6' : 'slide-in-from-left-6'
+        }`}
+      >
+        {step <= 2 ? (
+          <StepSpace
+            projectId={projectId}
+            zoneId={zoneId}
             detected={detectedEls}
+            disclaimer={disclaimer}
             pending={pending}
             onUpload={onUploadImage}
             onConfirm={onConfirmDetection}
@@ -264,115 +298,52 @@ export function QualificationChat({
           />
         ) : null}
 
-        {phase === 'cualificacion' ? (
-          <>
-            <SelectionSummary estilo={estilo} entregables={entregables} />
-            {estilo === undefined ? (
-              <div className="flex flex-col gap-1">
-                <p className="text-ink text-sm font-medium">1. ¿Qué estilo quieres?</p>
-                <StyleQuickPicks onPick={onPickStyle} />
-              </div>
-            ) : null}
-            {entregables.length === 0 ? (
-              <div className="flex flex-col gap-1">
-                <p className="text-ink text-sm font-medium">
-                  2. ¿Qué quieres que generemos? (elige uno o varios)
-                </p>
-                <p className="text-ink-soft text-xs">
-                  Render 3D = imagen realista · Plano 2D = planta acotada · Memoria = materiales.
-                </p>
-                <DeliverablePicker onConfirm={onPickDeliverables} />
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1">
-              <p className="text-ink-soft text-xs">
-                ¿Algo más que deba saber? (objetivo, colores, presupuesto…). Opcional.
-              </p>
-              <MessageInput onSend={onSend} disabled={pending} />
-            </div>
-
-            <TosAcceptanceNotice accepted={tosAccepted} onAccept={acceptTos} disabled={pending} />
-
-            {deliverError ? (
-              <div className="flex flex-col gap-2 rounded-control border border-red-300 bg-red-50 p-3 text-sm">
-                <p className="text-red-700">No se pudieron generar los diseños: {deliverError}</p>
-                <Button type="button" size="sm" onClick={onDeliver} disabled={pending}>
-                  Reintentar
-                </Button>
-              </div>
-            ) : null}
-
-            <Button
-              type="button"
-              onClick={onDeliver}
-              disabled={pending || !ready || tosAccepted !== true}
-            >
-              🎨 Generar mis diseños
-            </Button>
-            {!ready ? (
-              <p className="text-ink-soft text-xs">
-                Para generar, elige {estilo === undefined ? 'un estilo' : ''}
-                {estilo === undefined && entregables.length === 0 ? ' y ' : ''}
-                {entregables.length === 0 ? 'al menos un entregable' : ''}.
-              </p>
-            ) : null}
-          </>
+        {step === 3 ? (
+          <StepStyle
+            estilo={estilo}
+            pending={pending}
+            onPick={onPickStyle}
+            onBack={onBackToSpace}
+            onNext={onNextFromStyle}
+          />
         ) : null}
 
-        {phase === 'feedback' ? (
-          <p className="text-ink-soft text-sm">
-            Tus diseños están listos en la pestaña «Diseños». Puedes pedir cambios por zona desde
-            allí.
-          </p>
+        {step === 4 ? (
+          <StepDeliverables
+            entregables={entregables}
+            pending={pending}
+            onToggle={onToggleDeliverable}
+            onBack={() => setStep(3)}
+            onNext={onNextFromDeliverables}
+          />
         ) : null}
 
-        {/* Panel de fotos de la zona: disponible una vez superada la subida inicial de
-            ingesta (que dispara la detección). Permite añadir más fotos y elegir la
-            ACTIVA, que es la referencia del render por foto (img2img). */}
-        {!(phase === 'ingesta' && !detected) ? (
-          <ZonePhotosPanel projectId={projectId} zoneId={zoneId} />
+        {step === 5 ? (
+          <StepReview
+            estilo={estilo}
+            entregables={entregables}
+            objetivo={objetivo}
+            onObjetivoChange={setObjetivo}
+            tosAccepted={tosAccepted}
+            onAcceptTos={acceptTos}
+            generating={generating}
+            pending={pending}
+            error={deliverError}
+            onGenerate={onDeliver}
+            onBack={() => setStep(4)}
+          />
+        ) : null}
+
+        {step === 6 ? (
+          <StepResult
+            projectId={projectId}
+            zoneId={zoneId}
+            deliverables={result}
+            pending={pending}
+            onNewVariant={onNewVariant}
+          />
         ) : null}
       </div>
     </div>
   );
-}
-
-function SelectionSummary({
-  estilo,
-  entregables,
-}: {
-  estilo?: Estilo;
-  entregables: DeliverableType[];
-}) {
-  if (estilo === undefined && entregables.length === 0) return null;
-  return (
-    <div className="border-line bg-surface-muted flex flex-wrap gap-2 rounded-control border p-2 text-xs">
-      {estilo ? <span className="text-ink">Estilo: {estilo} ✓</span> : null}
-      {entregables.length ? (
-        <span className="text-ink">Entregables: {entregables.join(', ')} ✓</span>
-      ) : null}
-    </div>
-  );
-}
-
-function PhaseHint({ phase }: { phase: Phase }) {
-  const map: Record<Phase, string> = {
-    ingesta: 'Paso 1 · Sube una foto o boceto de tu espacio',
-    cualificacion: 'Paso 2 · Elige estilo y entregables, y cuéntame tu idea',
-    entrega: 'Generando tus diseños…',
-    feedback: 'Paso 3 · Revisa tus diseños',
-  };
-  return (
-    <div className="bg-brand-50 text-brand-700 rounded-control px-3 py-2 text-xs font-medium">
-      {map[phase]}
-    </div>
-  );
-}
-
-function describeCollected(out: AgentOutcome): string {
-  const c = out.collected;
-  const parts: string[] = [];
-  if (c.estilo) parts.push(`estilo ${c.estilo}`);
-  if (c.entregables.length) parts.push(`entregables ${c.entregables.join(', ')}`);
-  return parts.length ? `Anotado: ${parts.join(' · ')}.` : '';
 }

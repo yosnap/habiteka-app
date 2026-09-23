@@ -146,3 +146,152 @@ describe('runFeedback — versionado, inmutabilidad y cobro', () => {
     ).rejects.toBeTruthy();
   });
 });
+
+describe('runFeedback — cambios por texto desde «Diseños»', () => {
+  beforeEach(resetDb);
+  const noZone = async () => { throw new Error('no se usa'); };
+
+  it('el render se retoca sobre la imagen base aportada y la versión hereda zona y origen', async () => {
+    const { orgId, deliverableId, projectId } = await makeRender();
+    const zoneRow = await prisma.projectZone.create({ data: { organizationId: orgId, projectId, name: 'Salón' } });
+    await prisma.deliverable.update({ where: { id: deliverableId }, data: { zoneId: zoneRow.id } });
+    let base: unknown;
+    const image: ImageAdapter = {
+      ...okImage,
+      inpaint: async (req) => {
+        base = req.baseImage;
+        return { assetUrl: 'https://cdn/iterated.png', cost: { amountUsd: 0.04, unit: 'image' } };
+      },
+    };
+    const result = await runFeedback(
+      {
+        image,
+        debit: trackedDebit([]),
+        regenerateZone: noZone,
+        loadRenderBase: async () => ({ base64: 'QUJD', mimeType: 'image/jpeg' }),
+      },
+      {
+        organizationId: orgId,
+        deliverableId,
+        zone: { id: 'global', bbox: { x: 0, y: 0, width: 1, height: 1 } },
+        instruction: 'suelo de madera',
+        estimateCredits: 500,
+      },
+    );
+    expect(base).toEqual({ base64: 'QUJD', mimeType: 'image/jpeg' });
+    const created = await prisma.deliverable.findUnique({ where: { id: result.newDeliverableId } });
+    expect(created?.zoneId).toBe(zoneRow.id);
+  });
+
+  it('la memoria se reescribe con la instrucción en una versión nueva', async () => {
+    const orgId = await makeOrg(1000);
+    const project = await prisma.project.create({ data: { organizationId: orgId, title: 'P' } });
+    const del = await prisma.deliverable.create({
+      data: {
+        projectId: project.id,
+        type: 'MEMORIA',
+        payload: { type: 'memoria', markdown: '# Suelo\nMicrocemento' },
+        legalSeal: DELIVERABLE_LEGAL_SEAL,
+        version: 1,
+      },
+    });
+    const seen: string[] = [];
+    const result = await runFeedback(
+      {
+        image: okImage,
+        debit: trackedDebit([]),
+        regenerateZone: noZone,
+        reviseMemoria: async (markdown, instruction) => {
+          seen.push(markdown, instruction);
+          return '# Suelo\nBaldosa';
+        },
+      },
+      { organizationId: orgId, deliverableId: del.id, zone, instruction: 'cambia a baldosa', estimateCredits: 500 },
+    );
+    expect(seen).toEqual(['# Suelo\nMicrocemento', 'cambia a baldosa']);
+    const created = await prisma.deliverable.findUnique({ where: { id: result.newDeliverableId } });
+    expect(created?.type).toBe('MEMORIA');
+    expect((created?.payload as { markdown: string }).markdown).toBe('# Suelo\nBaldosa');
+  });
+
+  it('el plano recibe la estancia actual para regenerarla', async () => {
+    const orgId = await makeOrg(1000);
+    const project = await prisma.project.create({ data: { organizationId: orgId, title: 'P' } });
+    const room = {
+      id: 'z0', name: 'Estancia', apertures: [], dimensions: [],
+      outline: [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 3000 }],
+      walls: [{ id: 'w0', from: { x: 0, y: 0 }, to: { x: 4000, y: 0 }, thicknessMm: 120 }],
+    };
+    const del = await prisma.deliverable.create({
+      data: {
+        projectId: project.id,
+        type: 'PLANO_2D',
+        payload: { type: 'plano2d', plano: { schemaVersion: 1, zones: [room] } },
+        legalSeal: DELIVERABLE_LEGAL_SEAL,
+        version: 1,
+      },
+    });
+    let received: unknown;
+    await runFeedback(
+      {
+        image: okImage,
+        debit: trackedDebit([]),
+        regenerateZone: async (_instruction, _zoneId, current) => {
+          received = current;
+          return { ...room, name: 'Salón' };
+        },
+      },
+      { organizationId: orgId, deliverableId: del.id, zone, instruction: 'llámalo salón', planZoneId: 'z0', estimateCredits: 500 },
+    );
+    expect(received).toEqual(room);
+  });
+});
+
+describe('runFeedback — idempotencia del cobro por intento', () => {
+  beforeEach(resetDb);
+
+  it('repetir la misma instrucción sobre el mismo diseño es otra operación y se cobra', async () => {
+    const { orgId, deliverableId } = await makeRender();
+    const keys: string[] = [];
+    const debit: DebitService = {
+      hold: async (k): Promise<Hold> => {
+        keys.push(k);
+        return { idempotencyKey: k, amount: 1 };
+      },
+      settle: async () => {},
+      revert: async () => {},
+    };
+    const deps = { image: okImage, debit, regenerateZone: async () => { throw new Error('no se usa'); } };
+    const req = { organizationId: orgId, deliverableId, zone, instruction: 'más luz', estimateCredits: 500 };
+    await runFeedback(deps, req);
+    await runFeedback(deps, req);
+    expect(new Set(keys).size).toBe(2);
+  });
+
+  it('un reintento con el mismo attemptId reutiliza la clave', async () => {
+    const { orgId, deliverableId } = await makeRender();
+    const keys: string[] = [];
+    const debit: DebitService = {
+      hold: async (k): Promise<Hold> => {
+        keys.push(k);
+        return { idempotencyKey: k, amount: 1 };
+      },
+      settle: async () => {},
+      revert: async () => {},
+    };
+    const deps = { image: okImage, debit, regenerateZone: async () => { throw new Error('no se usa'); } };
+    const req = { organizationId: orgId, deliverableId, zone, instruction: 'más luz', estimateCredits: 500, attemptId: 'a1' };
+    await runFeedback(deps, req);
+    await runFeedback(deps, req);
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('un diseño borrado no se puede iterar', async () => {
+    const { orgId, deliverableId } = await makeRender();
+    await prisma.deliverable.update({ where: { id: deliverableId }, data: { deletedAt: new Date() } });
+    await expect(runFeedback(
+      { image: okImage, debit: trackedDebit([]), regenerateZone: async () => { throw new Error('no se usa'); } },
+      { organizationId: orgId, deliverableId, zone, instruction: 'más luz', estimateCredits: 500 },
+    )).rejects.toThrow();
+  });
+});
