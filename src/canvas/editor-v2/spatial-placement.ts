@@ -193,9 +193,11 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
 export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean) {
-  // Objects use the same 10 cm grid as drawing points, then can refine to a wall face.
-  let result = enabled ? { ...item, x: Math.round(item.x / 100) * 100, y: Math.round(item.y / 100) * 100 } : item;
-  if (!enabled) return result;
+  if (!enabled) return item;
+  // El imán manda: la rejilla de 10 cm solo actúa en el eje sin referencia, y después el objeto puede afinar a una cara.
+  const magnet = alignPoints(doc, footprintAnchors(item), scale, enabled, [item.id]);
+  let result = { ...item, x: magnet.snapped.x ? item.x + magnet.delta.x : Math.round(item.x / 100) * 100,
+    y: magnet.snapped.y ? item.y + magnet.delta.y : Math.round(item.y / 100) * 100 };
   const landing = 'riseMm' in result ? result as Ramp : null;
   const endpointTolerance = 12 / Math.max(.001, scale), faceTolerance = Math.max(150, 24 / Math.max(.001, scale));
   if (isColumn(result)) {

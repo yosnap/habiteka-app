@@ -7,6 +7,7 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { landingEdgeSnap } from '@/lib/editor-document/landing-wall-placement';
 import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
+import { snapRadiusMm } from './snap-radius';
 
 export interface SnapCandidate { guides?: MagneticGuide[]; point: Point; kind: 'vertex' | 'wall' | 'landing' | 'object' | 'orthogonal' | 'extension' | 'free'; id?: string; extension?: WallExtension; guide?: { from: Point; to: Point } }
 function spatialCorners(item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }): Point[] {
@@ -20,10 +21,10 @@ function spatialSnapCandidates(doc: EditorDocument) {
     .map((point) => ({ point, id: ramp.id }))));
   return [...objects, ...ramps];
 }
-/** Distances are measured in screen pixels, so magnetic reach does not grow when zooming in. */
+/** Distances are measured in screen pixels (with a floor in mm), so magnetic reach does not grow when zooming in. */
 export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, enabled: boolean, anchor?: Point): SnapCandidate {
   if (!enabled) return { point, kind: 'free' };
-  const radius = 12 / Math.max(.001, scale);
+  const radius = snapRadiusMm(scale, 12);
   const candidates: (SnapCandidate & { gap: number; priority: number })[] = [];
   for (const v of doc.vertices) candidates.push({ point: { x: v.x, y: v.y }, kind: 'vertex', id: v.id, gap: distance(point, v), priority: 0 });
   for (const wall of doc.walls) {
@@ -47,6 +48,7 @@ export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, 
       return { kind: 'orthogonal', point: aligned, guides: [{ from: anchor, to: aligned }] };
     }
   }
-  const aligned = alignPoint(doc, point, scale, enabled);
+  // Un extremo de muro se alinea con ejes y vértices, nunca con caras: así no nacen esquinas fantasma a medio grosor.
+  const aligned = alignPoint(doc, point, scale, enabled, [], { faces: false, toleranceMm: snapRadiusMm(scale, 10) });
   return { point: aligned.point, kind: Math.hypot(aligned.delta.x, aligned.delta.y) > .001 ? 'object' : 'free', guides: aligned.guides };
 }

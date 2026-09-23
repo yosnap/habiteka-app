@@ -17,7 +17,7 @@ export interface WallSupport { wall: Wall; t: number; point: Point }
  * Es la situación típica de un tabique trazado hasta la cara de una fachada: toca el muro pero no comparte vértice.
  */
 export function wallSupportAt(doc: EditorDocument, point: Point, options: { exclude?: Set<string>; endClearanceMm?: number; slackMm?: number } = {}): WallSupport | undefined {
-  const { exclude, endClearanceMm = 150, slackMm = 50 } = options;
+  const { exclude, endClearanceMm = END_CLEARANCE_MM, slackMm = 50 } = options;
   return doc.walls.filter((wall) => !wall.hidden && !wall.curveHeightMm && !exclude?.has(wall.id))
     .map((wall) => { const [a, b] = wallPoints(doc, wall); return { wall, ...projectOnSegment(point, a, b) }; })
     .filter((c) => c.distance <= c.wall.thicknessMm / 2 + slackMm && c.t * c.length > endClearanceMm && (1 - c.t) * c.length > endClearanceMm)
@@ -31,7 +31,22 @@ export function joinPointToWall(doc: EditorDocument, support: WallSupport): stri
   return vertexId;
 }
 
-const DANGLING_CORNER_MM = 100;
+const DANGLING_CORNER_MM = 100, END_CLEARANCE_MM = 150, ON_AXIS_MM = 10;
+
+/**
+ * Extremo de un muro recto cuya prolongación (más allá de ese extremo, sobre su mismo eje) pasa por el punto a menos
+ * de la holgura de extremo. Es la banda en la que `wallSupportAt` no divide, y un extremo que el imán dejó sobre el
+ * eje a un palmo de la esquina debe cerrar en ella. Un punto a un lado del eje (un tabique que llega a la cara) no cuenta.
+ */
+export function wallEndAt(doc: EditorDocument, point: Point, options: { exclude?: Set<string>; endClearanceMm?: number } = {}): string | undefined {
+  const { exclude, endClearanceMm = END_CLEARANCE_MM } = options;
+  return doc.walls.filter((wall) => !wall.hidden && !wall.curveHeightMm && !exclude?.has(wall.id))
+    .flatMap((wall) => { const [a, b] = wallPoints(doc, wall), p = projectOnSegment(point, a, b);
+      if (p.distance > ON_AXIS_MM) return [];
+      const beyond = p.t < 0 ? { id: wall.startVertexId, gap: -p.t * p.length } : p.t > 1 ? { id: wall.endVertexId, gap: (p.t - 1) * p.length } : null;
+      return beyond && beyond.gap <= endClearanceMm ? [beyond] : []; })
+    .sort((a, b) => a.gap - b.gap)[0]?.id;
+}
 
 /**
  * Une los extremos sueltos de muros visibles a la construcción: un extremo que solo pertenece a un muro y queda a un
@@ -52,7 +67,11 @@ export function joinDanglingWallEnds(source: EditorDocument): EditorDocument {
       .filter((c) => c.distance <= DANGLING_CORNER_MM).sort((a, b) => a.distance - b.distance)[0];
     if (corner) { doc = mergeVertexInto(doc, vertexId, corner.v.id); changed = true; continue; }
     const support = wallSupportAt(doc, vertex, { exclude: own });
-    if (!support) continue;
+    if (!support) {
+      const end = wallEndAt(doc, vertex, { exclude: own });
+      if (end && end !== vertexId) { doc = mergeVertexInto(doc, vertexId, end); changed = true; }
+      continue;
+    }
     if (doc === source) doc = structuredClone(source);
     doc = mergeVertexInto(doc, vertexId, joinPointToWall(doc, support)); changed = true;
   }

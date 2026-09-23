@@ -65,12 +65,14 @@ describe('screen-space drawing snap', () => {
     // Remove wall candidates to isolate competing vertices.
     expect(snapWallPoint({ ...doc, walls: [] }, { x: 90, y: 30 }, .1, true).id).toBe(doc.vertices[1]!.id);
   });
-  it('keeps a twelve pixel capture radius at every zoom', () => {
+  it('keeps a twelve pixel capture radius at every zoom, with a 50 mm floor when zoomed in', () => {
     const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }]);
-    for (const scale of [.015, .08, .5]) {
+    for (const scale of [.015, .08]) {
       expect(snapWallPoint(doc, { x: -11 / scale, y: 0 }, scale, true).kind).toBe('vertex');
       expect(snapWallPoint(doc, { x: -13 / scale, y: 0 }, scale, true).kind).toBe('free');
     }
+    expect(snapWallPoint(doc, { x: -49, y: 0 }, .5, true).kind).toBe('vertex');
+    expect(snapWallPoint(doc, { x: -51, y: 0 }, .5, true).kind).toBe('free');
   });
   it('aligns orthogonally and permits free diagonals with snapping disabled', () => {
     const point = { x: 2000, y: 50 }, anchor = { x: 0, y: 0 }, doc = emptyEditorDocument();

@@ -15,7 +15,7 @@ it('alinea el centro de un objeto con centros y extremos aunque las huellas sean
   expect(result.delta.x).toBe(-40);
   expect(result.guides[0]!.from.x).toBe(1500);
   expect(result.guides[0]!.to.y).toBeGreaterThan(3500);
-  expect(alignPoints(doc, anchors, .1, false)).toEqual({ delta: { x: 0, y: 0 }, guides: [] });
+  expect(alignPoints(doc, anchors, .1, false)).toEqual({ delta: { x: 0, y: 0 }, guides: [], snapped: { x: false, y: false } });
 });
 it('guías de etiquetas, luminarias y medidas con alcance constante en píxeles', () => {
   const doc = emptyEditorDocument(); doc.labels.push({ id: 'label', text: 'Eje', x: 1200, y: 1800 });
