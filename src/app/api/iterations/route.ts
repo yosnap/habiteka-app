@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireOrgContext } from '@/server/auth/require-org-context';
-import { getImageAdapter } from '@/server/ai';
+import { getImageAdapterForAction } from '@/server/ai';
 import { createDebitService } from '@/server/agent/debit-service-impl';
 import { runFeedback } from '@/server/agent/feedback/feedback-orchestrator';
 import { listIterations } from '@/server/agent/feedback/iteration-repo';
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
   try {
     const result = await runFeedback(
       {
-        image: await getImageAdapter({ organizationId: ctx.organizationId }),
+        // Los retoques usan la sección «inpaint» del perfil de IA, no la de render.
+        image: await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'inpaint'),
         debit: createDebitService(ctx.organizationId),
         // La regeneración del subárbol del plano la afina el agente; por ahora
         // se delega a un regenerador mínimo que el orquestador del agente provee.
