@@ -28,6 +28,14 @@ export type Estilo =
   | 'artdeco'
   | 'tropical';
 
+/**
+ * Qué quiere hacer el usuario en el asistente, elegido en el paso 0:
+ * `design` = crear un diseño a partir de una foto (flujo de seis pasos);
+ * `plan` = convertir un plano al editor (lectura + fiabilidad + importación).
+ * Se persiste para que al recargar el asistente retome la ruta elegida.
+ */
+export type AssistantIntent = 'design' | 'plan';
+
 /** Elementos estructurales detectados por visión en la fase de ingesta. */
 export interface StructuralElements {
   walls: number;
@@ -35,6 +43,13 @@ export interface StructuralElements {
   windows: number;
   pillars: number;
 }
+
+/**
+ * Qué clase de imagen ha subido el usuario en la ingesta. Un `floor_plan` en la
+ * ruta de diseño avisa: el render por imagen partiría de una planta y devolvería
+ * una maqueta, no una perspectiva fiel.
+ */
+export type ImageKind = 'floor_plan' | 'room_photo' | 'other';
 
 /**
  * Estilo/objetivo específicos de una zona, que prevalecen sobre los globales del
@@ -50,11 +65,15 @@ export interface ZoneStyleOverride {
  * `estilo` y `entregables` son la condición del guard legal de entrega.
  */
 export interface Collected {
+  /** Ruta elegida en el paso 0 del asistente; sin valor aún no se ha elegido. */
+  intent?: AssistantIntent;
   objetivo?: string;
   estilo?: Estilo;
   /** Tipos de entregable solicitados. Vacío ⇒ no se puede entregar. */
   entregables: DeliverableType[];
   detected?: StructuralElements;
+  /** Qué era la última imagen analizada; sin valor, aún no se ha subido ninguna. */
+  imageKind?: ImageKind;
   /**
    * Overrides de estilo/objetivo por zona (multi-zona), indexados por `zoneId`.
    * El chat fija lo GLOBAL del inmueble; cada zona puede especializarlo desde el

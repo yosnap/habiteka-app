@@ -62,7 +62,7 @@ describe('selected view render prompt', () => {
     const data = payload(selectedViewPrompt(project(), { ...view, lighting: 'daylight' }, 'moderno', '', '', {
       lighting: 'daylight', freedom: 'controlled', additions: ['plants'], placement: 'selected',
       regions: [{ id: 'r1', name: 'Terraza', polygon: [{ x: 1000, y: 2500 }, { x: 3000, y: 2500 }, { x: 3000, y: 4500 }] }],
-      views: ['current'],
+      views: ['current'], interiorRoomIds: [],
     }));
     expect(data.designOptions.regionsM[0].polygon).toEqual([{ x: 1, y: 2.5 }, { x: 3, y: 2.5 }, { x: 3, y: 4.5 }]);
     expect(data.designOptions.additions).toEqual(['plants']);
@@ -71,18 +71,18 @@ describe('selected view render prompt', () => {
   it('exige coherencia entre iluminación de captura y opciones', () => {
     expect(() => selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno')).toThrow('iluminación');
     expect(selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno', '', '', {
-      lighting: 'warm', freedom: 'free', additions: ['decor'], placement: 'all', regions: [], views: ['current'],
+      lighting: 'warm', freedom: 'free', additions: ['decor'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     })).toContain('MODO LIBRE DECORATIVO');
   });
   it('mantiene strict sin adiciones efectivas y distingue noche de warm', () => {
     const strict = selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno', '', '', {
-      lighting: 'warm', freedom: 'strict', additions: ['lights', 'plants'], placement: 'all', regions: [], views: ['current'],
+      lighting: 'warm', freedom: 'strict', additions: ['lights', 'plants'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     });
     expect(payload(strict).designOptions.additions).toEqual([]);
     expect(strict).toContain('no añadas luces artificiales nuevas');
 
     const night = selectedViewPrompt(project(), { ...view, lighting: 'evening' }, 'moderno', '', '', {
-      lighting: 'evening', freedom: 'controlled', additions: ['plants'], placement: 'all', regions: [], views: ['current'],
+      lighting: 'evening', freedom: 'controlled', additions: ['plants'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     });
     expect(night).toContain('claramente de noche');
     expect(night).not.toContain('atardecer/noche');

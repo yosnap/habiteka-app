@@ -8,7 +8,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { deleteEntities, editDocument, newId } from '@/canvas/editor-v2/editing-operations';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { applyCommand } from '@/lib/editor-document/commands';
-import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance';
+import { assertOpeningClearance, fillWallWithOpening } from '@/lib/editor-document/opening-clearance';
 import { openingConstruction, wallConstruction } from '@/lib/editor-document/construction-properties';
 import { setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
 import type { EditorDocument } from '@/lib/editor-document/schema';
@@ -77,6 +77,8 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
           onCommit={(n) => run((current) => setOpeningConstruction(current, id, { heightMm: n * 1000 }))} />
         <MeasureField label="Elevación" value={openingConstruction(opening).elevationMm / 1000} minimum={0}
           onCommit={(n) => run((current) => setOpeningConstruction(current, id, { elevationMm: n * 1000 }))} />
+        <button type="button" title="Estira la abertura de esquina a esquina del muro"
+          onClick={() => run((current) => fillWallWithOpening(current, id))}>Ocupar todo el muro</button>
       </>}
       {stair && ([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, text]) =>
         <MeasureField key={key} label={text} value={stair[key] / 1000}

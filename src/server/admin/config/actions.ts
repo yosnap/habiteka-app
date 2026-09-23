@@ -10,7 +10,7 @@ import { updateModelConfig, replaceModelConfigs, listModelConfig, type UpdateMod
 import { updateSystemSetting, listSystemSettings } from './system-setting-ops';
 import { updateBranding, type BrandingInput } from '../branding/branding-ops';
 import { createPolarProduct, type CreateProductInput } from '../billing/product-ops';
-import { getKieProviderStatus, getNanProviderStatus, getOpenAiProviderStatus, getOpenRouterProviderStatus, updateKieProvider, updateNanProvider, updateOpenAiProvider, updateOpenRouterProvider } from './ai-provider-ops';
+import { getKieProviderStatus, getNanProviderStatus, getOpenAiProviderStatus, getOpenRouterProviderStatus, updateKieProvider, updateNanProvider, updateOpenAiProvider, updateOpenRouterProvider, getTypesafeProviderStatus, updateTypesafeProvider } from './ai-provider-ops';
 import { listCustomModelProfiles, saveCustomModelProfile } from './model-profile-ops';
 
 export async function adminListModelConfig() {
@@ -73,6 +73,14 @@ export async function adminUpdateNanProvider(input: { apiKey: string; enabled: b
   revalidateAiConfigPages();
 }
 
+export async function adminGetTypesafeProviderStatus() { await requireAdmin(); return getTypesafeProviderStatus(); }
+
+export async function adminUpdateTypesafeProvider(input: { apiKey: string; enabled: boolean }) {
+  const actor = await requireAdmin();
+  await updateTypesafeProvider(actor.userId, input);
+  revalidateAiConfigPages();
+}
+
 export async function adminListSystemSettings() {
   await requireAdmin();
   return listSystemSettings();
@@ -81,6 +89,7 @@ export async function adminListSystemSettings() {
 export async function adminUpdateSystemSetting(key: string, value: unknown) {
   const actor = await requireAdmin();
   await updateSystemSetting(actor.userId, key, value);
+  revalidatePath('/config/system');
 }
 
 export async function adminUpdateBranding(input: BrandingInput) {

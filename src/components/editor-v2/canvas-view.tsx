@@ -46,7 +46,7 @@ function placementLabel(item: SpatialClipboardItem): string {
   return elementName(item);
 }
 
-export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean }) {
+export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -297,7 +297,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       }} onPointerUp={() => { if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }} >
 
       <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} /></Layer>
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} /></Layer>
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
       <>{start && pointer && <Line points={(tool === 'rectangle')

@@ -7,9 +7,11 @@ import { draftKey, type DraftScope, type EditorDraft } from '@/canvas/editor-v2/
 import { indexedDbDraftStorage, listScopeDrafts, openAuthorizedDrafts } from '@/canvas/editor-v2/draft-storage';
 import { checkEditorSession } from '@/server/editor/check-session';
 import { EditorSession } from './editor-session';
+import type { AutoGenerateRequest } from '../auto-generate-request';
 
-export function DurableEditor({ scope, projectName, initial }: {
+export function DurableEditor({ scope, projectName, initial, autoGenerate }: {
   scope: DraftScope; projectName: string; initial: EditorDocument;
+  autoGenerate?: AutoGenerateRequest | null;
 }) {
   const [ready, setReady] = useState<{ scope: DraftScope; recovered?: EditorDraft } | null>(null);
   const [choices, setChoices] = useState<{ scope: DraftScope; drafts: EditorDraft[] } | null>(null);
@@ -67,6 +69,6 @@ export function DurableEditor({ scope, projectName, initial }: {
         Abrir la revisión del servidor sin borrar los borradores
       </button>
     </section>}
-    {ready && <EditorSession scope={ready.scope} initial={initial} recovered={ready.recovered} projectName={projectName} />}
+    {ready && <EditorSession scope={ready.scope} initial={initial} recovered={ready.recovered} projectName={projectName} autoGenerate={autoGenerate ?? null} />}
   </>;
 }

@@ -181,3 +181,33 @@ model AiRequestCost {
   @@index([refId, createdAt])
   @@map("ai_request_cost")
 }
+
+// Evaluaciones de calidad de Jev por punto de control. Aditiva y sin FKs: es
+// telemetría de decisión (también guarda los fallos en los que no se pudo
+// evaluar) y su coste lo absorbe la plataforma, no los créditos del usuario.
+model AiQualityEvaluation {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  projectId      String?
+  checkpoint     String
+  refId          String?
+  score          Int?
+  decision       String
+  confidence     Float?
+  answers        Json
+  reasons        Json
+  evidenceHash   String
+  jevModel       String?
+  inputTokens    Int?
+  costUsd        Decimal  @db.Decimal(14, 8)
+  failOpen       Boolean
+  errorCode      String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([checkpoint, createdAt])
+  @@index([refId])
+  @@index([organizationId, checkpoint, evidenceHash])
+  @@map("ai_quality_evaluation")
+}

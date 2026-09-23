@@ -10,6 +10,7 @@ const SECTIONS: Array<{ href: string; label: string }> = [
   { href: '/media', label: 'Media' },
   { href: '/analytics', label: 'Analítica' },
   { href: '/analytics/ai-costs', label: 'Costes IA' },
+  { href: '/analytics/quality', label: 'Eficacia IA' },
 ];
 
 export function AdminNav() {

@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// La evaluación de calidad posterior importa 'server-only'; en Vitest no hay Server Components.
+vi.mock('server-only', () => ({}));
 import { advance, type AgentDeps } from '@/server/agent/orchestrator';
 import { prisma } from '@/server/db/prisma';
 import { resetDb, makeOrg, makeUser } from '../helpers/db';
@@ -56,6 +58,7 @@ async function makeProject(): Promise<{ pid: string; deps: AgentDeps }> {
     memoria: chat,
     image,
     debit: noopDebit,
+    organizationId: org,
     userId: user.id,
     newDeliverableId: () => `del-${++seq}`,
     resolveZoneContext: async () => ({ zoneKind: null, reference: null }),
@@ -158,6 +161,38 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     expect(out.collected.detected).toBeTruthy();
   });
 
+  it('set-preferences fija estilo, entregables y objetivo sin llamar al modelo', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    let calls = 0;
+    deps.chat = { ...chat, chat: async (req) => { calls++; return chat.chat(req); } };
+
+    const out = await advance(deps, pid, {
+      action: 'set-preferences',
+      estilo: 'costero',
+      entregables: ['render3d', 'memoria', 'render3d', 'inventado' as never],
+      objetivo: '  salón luminoso  ',
+    });
+    expect(calls).toBe(0);
+    expect(out.collected.estilo).toBe('costero');
+    expect(out.collected.entregables).toEqual(['render3d', 'memoria']);
+    expect(out.collected.objetivo).toBe('salón luminoso');
+
+    // Lo que no llega se conserva; un estilo fuera del catálogo se ignora.
+    const kept = await advance(deps, pid, { action: 'set-preferences', estilo: 'marciano' as never });
+    expect(kept.collected.estilo).toBe('costero');
+    expect(kept.collected.entregables).toEqual(['render3d', 'memoria']);
+  });
+
+  it('set-preferences fuera de cualificación lanza phase_guard', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await expect(advance(deps, pid, { action: 'set-preferences', estilo: 'moderno' })).rejects.toMatchObject({
+      kind: 'phase_guard',
+    });
+  });
+
   it('go-back desde ingesta (sin anterior) lanza phase_guard', async () => {
     const { pid, deps } = await makeProject();
     await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
@@ -193,6 +228,7 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
       memoria: chat,
       image,
       debit: noopDebit,
+      organizationId: org,
       userId: user.id,
       newDeliverableId: () => `del-${++seq}`,
       resolveZoneContext: async () => ({ zoneKind: null, reference: null }),
@@ -347,6 +383,46 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     expect(del?.sourceImageId).toBe(photo.id);
   });
 
+  it('la entrega del asistente se guarda aunque el plano del proyecto ya viva en el editor v2', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId);
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    await advance(deps, pid, { action: 'set-preferences', estilo: 'moderno', entregables: ['render3d'] });
+    // El usuario convirtió antes su plano al editor: existe documento v2 del proyecto.
+    await prisma.editorDocumentState.create({
+      data: { projectId: pid, legacySnapshot: {}, legacyFingerprint: 'f' },
+    });
+
+    const out = await advance(deps, pid, { action: 'deliver' });
+    expect(out.phase).toBe('feedback');
+    expect(await prisma.deliverable.count({ where: { projectId: pid } })).toBe(1);
+  });
+
+  it('si el guardado falla, la reserva se libera y no se cobra', async () => {
+    const { pid, deps } = await makeProject();
+    await acceptTos(deps.userId);
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    await advance(deps, pid, { action: 'set-preferences', estilo: 'moderno', entregables: ['render3d'] });
+    // Proyecto borrado entre la generación y el guardado: la persistencia lo rechaza.
+    const calls: string[] = [];
+    const tracked: DebitService = {
+      hold: async (k): Promise<Hold> => ({ idempotencyKey: k, amount: 1 }),
+      settle: async () => { calls.push('settle'); },
+      revert: async () => { calls.push('revert'); },
+    };
+    const deleting: ImageAdapter = {
+      ...image,
+      generate: async (req) => {
+        await prisma.project.update({ where: { id: pid }, data: { deletedAt: new Date() } });
+        return image.generate(req);
+      },
+    };
+    await expect(advance({ ...deps, debit: tracked, image: deleting }, pid, { action: 'deliver' })).rejects.toBeTruthy();
+    expect(calls).toEqual(['revert']);
+  });
+
   it('dos avances concurrentes: solo uno confirma, el otro falla (no hay doble avance)', async () => {
     const { pid, deps } = await makeProject();
     // Estado inicial creado por la primera carga.
@@ -365,5 +441,47 @@ describe('orchestrator — flujo y concurrencia (Postgres real)', () => {
     expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
       kind: expect.stringMatching(/^(conflict|phase_guard)$/),
     });
+  });
+});
+
+describe('paso 0 del asistente: ruta elegida (set-intent)', () => {
+  beforeEach(resetDb);
+
+  it('persiste la ruta en `collected` sin mover la fase', async () => {
+    const { pid, deps } = await makeProject();
+    const out = await advance(deps, pid, { action: 'set-intent', intent: 'plan' });
+    expect(out.phase).toBe('ingesta');
+    expect(out.collected.intent).toBe('plan');
+
+    const row = await prisma.agentState.findFirst({ where: { projectId: pid, zoneId: null } });
+    expect((row?.collected as { intent?: string }).intent).toBe('plan');
+  });
+
+  it('acepta cambiar de ruta y conserva lo ya recogido', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    const out = await advance(deps, pid, { action: 'set-intent', intent: 'design' });
+    expect(out.collected.intent).toBe('design');
+    expect(out.collected.detected).toBeTruthy();
+  });
+
+  it('rechaza un valor fuera del catálogo (defensa de boundary)', async () => {
+    const { pid, deps } = await makeProject();
+    await expect(
+      advance(deps, pid, { action: 'set-intent', intent: 'video' as never }),
+    ).rejects.toMatchObject({ kind: 'phase_guard' });
+  });
+
+  it('no se elige ruta fuera de la ingesta: hay que volver atrás primero', async () => {
+    const { pid, deps } = await makeProject();
+    await advance(deps, pid, { action: 'ingest', image: [{ type: 'text', text: 'img' }] });
+    await advance(deps, pid, { action: 'confirm-detection' });
+    await expect(
+      advance(deps, pid, { action: 'set-intent', intent: 'plan' }),
+    ).rejects.toMatchObject({ kind: 'phase_guard' });
+
+    await advance(deps, pid, { action: 'go-back' });
+    const out = await advance(deps, pid, { action: 'set-intent', intent: 'plan' });
+    expect(out.collected.intent).toBe('plan');
   });
 });

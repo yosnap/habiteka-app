@@ -17,6 +17,9 @@ const INTEGER_SETTINGS: Record<string, number> = {
   global_spend_cap_usd: 1_000_000,
 };
 
+/** Bandas de fiabilidad de Jev: ≥ proceed sigue solo, ≥ confirm pide confirmación. */
+export const QUALITY_THRESHOLDS_SETTING = 'quality_thresholds';
+
 /** Persiste un ajuste tras validarlo según su tipo; registra la acción. */
 export async function updateSystemSetting(
   actorId: string,
@@ -25,6 +28,9 @@ export async function updateSystemSetting(
 ): Promise<void> {
   if (key in INTEGER_SETTINGS) {
     assertNonNegativeInteger(key, value, INTEGER_SETTINGS[key]!);
+  }
+  if (key === QUALITY_THRESHOLDS_SETTING) {
+    assertQualityThresholds(value);
   }
 
   await prisma.systemSetting.upsert({
@@ -45,6 +51,19 @@ export async function updateSystemSetting(
 /** Lista los ajustes de sistema actuales. */
 export async function listSystemSettings() {
   return prisma.systemSetting.findMany({ orderBy: { key: 'asc' } });
+}
+
+function assertQualityThresholds(value: unknown): void {
+  const raw = value as { proceed?: unknown; confirm?: unknown } | null;
+  for (const band of ['proceed', 'confirm'] as const) {
+    const candidate = raw?.[band];
+    if (typeof candidate !== 'number' || !Number.isInteger(candidate) || candidate < 0 || candidate > 100) {
+      throw configError(`quality_thresholds.${band} debe ser un entero entre 0 y 100`);
+    }
+  }
+  if ((raw!.confirm as number) >= (raw!.proceed as number)) {
+    throw configError('quality_thresholds.confirm debe ser menor que proceed');
+  }
 }
 
 function assertNonNegativeInteger(key: string, value: unknown, ceiling: number): void {

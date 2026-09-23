@@ -6,11 +6,23 @@ export const MAX_LUMINAIRE_LIGHTS = 12;
 
 export function captureCeilingView(view: string | null | undefined, custom?: {
   cutaway: boolean; cameraHeightM: number; highestCeilingM: number | null;
+  /** Captura para diseñar con IA: desde encima del techo la IA vería una losa, no el interior. */
+  forDesign?: boolean;
 }): CeilingView {
   if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
-  if ((!view || view === 'current' || view === 'custom') && custom?.cutaway &&
+  if ((!view || view === 'current' || view === 'custom') && (custom?.cutaway || custom?.forDesign) &&
     custom.highestCeilingM !== null && custom.cameraHeightM > custom.highestCeilingM) return 'hidden';
   return 'solid';
+}
+
+/**
+ * Los alzados e isométrica miran la planta desde fuera: sin recorte solo se ve
+ * la fachada. En esas capturas se ocultan los muros exteriores hacia la cámara
+ * aunque el 3D de trabajo los muestre; el resto respeta la elección del usuario.
+ */
+export function captureCutaway(view: string | null | undefined, cutaway: boolean): boolean {
+  if (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'isometric') return true;
+  return cutaway;
 }
 
 /** El plano usa milímetros X/Y; Three usa metros X/Z. */

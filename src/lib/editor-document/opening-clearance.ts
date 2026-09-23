@@ -1,6 +1,9 @@
 import type { EditorDocument, Opening, Wall } from './schema';
 import { EPSILON } from './geometry';
 import { wallPath } from './wall-path';
+import { parseEditorDocument } from './validation';
+import { upgradeConstructionDocument } from './migrations';
+import { wallConstruction } from './construction-properties';
 
 const CONTINUATION_SINE = Math.sin(15 * Math.PI / 180);
 export interface WallOpeningClearance { startMm: number; endMm: number }
@@ -47,4 +50,36 @@ export function assertOpeningClearanceNotWorse(previous: EditorDocument, candida
   const tolerated = earlier ? openingClearanceDeficitMm(previous, earlier) : 0;
   if (openingClearanceDeficitMm(candidate, opening) > tolerated + EPSILON)
     throw new Error('La abertura invade una esquina: deja espacio para los muros adyacentes');
+}
+
+/**
+ * El hueco más ancho que admite el muro: de esquina a esquina, dejando solo el
+ * cuerpo de los muros que llegan a ellas. Es «ocupar todo el muro» sin romper
+ * la regla de esquinas; para quitar el muro entero se oculta el muro.
+ */
+export function fullWallOpeningSpan(doc: EditorDocument, opening: Opening): { position: number; widthMm: number } {
+  const wall = doc.walls.find((candidate) => candidate.id === opening.wallId);
+  if (!wall) throw new Error('Abertura sin muro');
+  const length = wallPath(doc, wall).length, clearance = wallOpeningClearance(doc, wall);
+  const widthMm = length - clearance.startMm - clearance.endMm;
+  if (widthMm < 50) throw new Error('El muro es demasiado corto para abrir un hueco entre sus esquinas');
+  return { position: (clearance.startMm + widthMm / 2) / length, widthMm };
+}
+
+/** Comando: estira la abertura al máximo del muro (ver `fullWallOpeningSpan`); un hueco, también en altura. */
+export function fillWallWithOpening(source: EditorDocument, openingId: string): EditorDocument {
+  // Altura y cota de un hueco solo existen en documentos con construcción.
+  const doc = upgradeConstructionDocument(source);
+  const opening = doc.openings.find((item) => item.id === openingId);
+  if (!opening) throw new Error('Abertura no encontrada');
+  Object.assign(opening, fullWallOpeningSpan(doc, opening));
+  // Un hueco (paso sin puerta ni carpintería) ocupa también toda la altura: sin dintel.
+  // Puertas y ventanas conservan su altura, que es la de su carpintería.
+  if (opening.kind === 'hueco') {
+    const wall = doc.walls.find((item) => item.id === opening.wallId)!;
+    opening.elevationMm = wall.baseElevationMm ?? 0;
+    opening.heightMm = wallConstruction(wall).heightMm;
+  }
+  assertOpeningClearance(doc, opening);
+  return parseEditorDocument(doc);
 }

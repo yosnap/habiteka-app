@@ -36,6 +36,8 @@ export type DeliverablePayload =
         options?: RenderDesignOptions;
         batchId?: string;
         referenceDesignId?: string;
+        /** Zonas permitidas compuestas desde dos pasadas (base estricta + diseño). */
+        zoneComposite?: { mode: string; coverage: number };
       };
     }
   | { type: 'memoria'; markdown: string };

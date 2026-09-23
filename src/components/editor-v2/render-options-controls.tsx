@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { ShieldCheck, SlidersHorizontal, Sparkles, Sun, Sunset, Moon } from 'lucide-react';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import {
@@ -10,6 +10,11 @@ import {
   RENDER_VIEWS,
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
+import {
+  roomInteriorCameras,
+  type RoomInteriorCamera,
+} from '@/lib/editor-document/room-interior-cameras';
+import InteriorRoomsPicker from './interior-rooms-picker';
 import RenderRegionPicker from './render-region-picker';
 import styles from './render-options-controls.module.css';
 
@@ -23,6 +28,11 @@ interface Props {
 
 export function RenderOptionsControls({ document, options, onChange, disabled, editable }: Props) {
   const update = (patch: Partial<RenderDesignOptions>) => onChange({ ...options, ...patch });
+  const interiorCameras: RoomInteriorCamera[] = useMemo(
+    () => (document ? roomInteriorCameras(document) : []),
+    [document],
+  );
+  const interiorMode = options.interiorRoomIds.length > 0;
   const allViews = RENDER_VIEWS.filter((view) => view !== 'current');
   const toggleView = (view: RenderDesignOptions['views'][number]) =>
     update({
@@ -97,7 +107,8 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
         )}
         {options.freedom === 'free' && (
           <p className="bg-canvas text-muted-foreground mt-2 rounded-control p-2 text-xs">
-            Todas las categorías decorativas están permitidas. Solo se añadirán objetos sin construcción.
+            La IA amueblará y decorará según el estilo elegido, sin tocar muros, huecos ni ninguna
+            otra construcción del plano.
           </p>
         )}
       </section>
@@ -135,7 +146,42 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           )}
         </section>
       )}
-      {!editable && <section>
+      {!editable && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h3 className="text-ink text-sm font-medium">Vistas interiores por estancia</h3>
+            <label className="text-ink-soft flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={interiorMode}
+                disabled={disabled || !interiorCameras.length}
+                onChange={(event) =>
+                  update({
+                    interiorRoomIds: event.target.checked
+                      ? interiorCameras.filter((room) => room.habitable).map((room) => room.roomId)
+                      : [],
+                  })
+                }
+              />
+              Activar
+            </label>
+          </div>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Una imagen por estancia, tomada desde dentro a altura de ojos sobre la geometría real
+            de tu plano. Es la forma de obtener perspectivas fieles a tus muros. Mientras esté
+            activo, los ángulos generales no se usan.
+          </p>
+          {interiorMode || !interiorCameras.length ? (
+            <InteriorRoomsPicker
+              cameras={interiorCameras}
+              selected={options.interiorRoomIds}
+              disabled={disabled}
+              onChange={(interiorRoomIds) => update({ interiorRoomIds })}
+            />
+          ) : null}
+        </section>
+      )}
+      {!editable && !interiorMode && <section>
         <div className="flex items-center justify-between">
           <h3 className="text-ink text-sm font-medium">Ángulos del diseño</h3>
           <label className="text-ink-soft flex items-center gap-2 text-xs">

@@ -7,6 +7,8 @@ export const KIE_PROVIDER = 'kie';
 export const NAN_PROVIDER = 'nan';
 export const OPENROUTER_PROVIDER = 'openrouter';
 export const OPENAI_PROVIDER = 'openai';
+// Jev (TypeSafe): evalúa la calidad de cada generación, no genera contenido.
+export const TYPESAFE_PROVIDER = 'typesafe';
 export interface ProviderStatus { provider: string; configured: boolean; enabled: boolean; keyHint: string | null; updatedAt: Date | null; }
 
 export async function getKieProviderStatus(): Promise<ProviderStatus> {
@@ -19,6 +21,14 @@ export async function getOpenRouterProviderStatus(): Promise<ProviderStatus> {
 
 export async function getOpenAiProviderStatus(): Promise<ProviderStatus> {
   return getProviderStatus(OPENAI_PROVIDER);
+}
+
+export async function getTypesafeProviderStatus(): Promise<ProviderStatus> {
+  return getProviderStatus(TYPESAFE_PROVIDER);
+}
+
+export async function updateTypesafeProvider(actorId: string, input: { apiKey: string; enabled: boolean }): Promise<void> {
+  return updateProvider(actorId, TYPESAFE_PROVIDER, input);
 }
 
 export async function updateKieProvider(actorId: string, input: { apiKey: string; enabled: boolean }): Promise<void> {

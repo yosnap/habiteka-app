@@ -25,18 +25,23 @@ import {
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import { SketchPad } from './sketch-pad';
-import { PlanImportPanel, type PlanImportActions } from './plan-import-panel';
+import { PlanImportPanel, type ImportedPlan, type PlanImportActions } from './plan-import-panel';
 import { PlanImageViewer } from './plan-image-viewer';
-import type { StudioState } from '@/lib/studio-state';
+import {
+  CenitalQualityGate,
+  cenitalGateBlocks,
+  cenitalGateDecision,
+} from './cenital-quality-gate';
+import type { StudioQuality, StudioState } from '@/lib/studio-state';
 import { ESTILOS } from '@/lib/design-options';
-import type { Estilo, PlanImportResult, Plano2dPayload, SketchPlanResult } from '@/lib/contracts';
+import type { Estilo, Plano2dPayload, SketchPlanResult } from '@/lib/contracts';
 
 type ImagePart = { type: 'image_url'; base64: string; mimeType: string };
 
 interface Props extends PlanImportActions {
   projectId: string;
   /** Importación de plano dibujado ya extraída y guardada (se retoma sin IA). */
-  initialImport?: (PlanImportResult & { imageUrl: string }) | null;
+  initialImport?: ImportedPlan | null;
   initialState: StudioState;
   uploadAction: (
     projectId: string,
@@ -61,7 +66,7 @@ interface Props extends PlanImportActions {
   importCurrentAction: (
     projectId: string,
     options: { includeFurniture?: boolean },
-  ) => Promise<(PlanImportResult & { imageUrl: string }) | ActionErrorResult>;
+  ) => Promise<ImportedPlan | ActionErrorResult>;
   /** Cenital directamente desde la IMAGEN del plano redibujado. */
   cenitalAction: (
     projectId: string,
@@ -69,6 +74,8 @@ interface Props extends PlanImportActions {
     estilo: Estilo,
     instrucciones?: string,
     vista?: RenderVista,
+    /** Confirmación expresa cuando la puerta de calidad del plano pide confirmar. */
+    qualityAck?: boolean,
   ) => Promise<{ imageUrl: string } | ActionErrorResult>;
   sendToEditorAction: (
     projectId: string,
@@ -153,6 +160,10 @@ export function PlanoStudio({
         ? 'decorado'
         : null;
   const [vista, setVista] = useState<RenderVista>(initialState.vista ?? 'cenital');
+  // Fiabilidad del plano leído: la decide el servidor y decide qué se puede
+  // generar. Se actualiza al importar, igual que hace el panel de importación.
+  const [quality, setQuality] = useState<StudioQuality | null>(initialState.quality ?? null);
+  const [cenitalAck, setCenitalAck] = useState(false);
   // Detalles del propietario para el render: mobiliario real, singularidades
   // ("cocina con isla", "registros de placas solares en la entrada"…).
   const [detalles, setDetalles] = useState(initialState.detalles ?? '');
@@ -324,6 +335,8 @@ export function PlanoStudio({
       // Sólo estructura: muros, huecos y estancias. El mobiliario se activa en el panel si se quiere.
       const result = await callAction(importCurrentAction(projectId, { includeFurniture: false }));
       setImportResult(result);
+      setQuality(result.quality);
+      setCenitalAck(false);
       setImporting(true);
     });
   };
@@ -331,9 +344,11 @@ export function PlanoStudio({
   const onGenerateCenital = () => {
     // Desde la IMAGEN redibujada (imagen→imagen): no requiere extraer geometría.
     if (!planImageUrl) return;
+    // El servidor vuelve a decidir con el veredicto guardado; esto evita el viaje.
+    if (cenitalGateBlocks(quality, cenitalAck)) return;
     return run('cenital', async () => {
       const { imageUrl } = await callAction(
-        cenitalAction(projectId, planImageUrl, estilo, detalles, vista),
+        cenitalAction(projectId, planImageUrl, estilo, detalles, vista, cenitalAck),
       );
       setCenitalUrl(imageUrl);
       setTab('cenital');
@@ -689,11 +704,17 @@ export function PlanoStudio({
               placeholder="Ej.: la cocina tiene una isla con la placa en la isla; en la entrada están los registros de las placas solares; el dormitorio grande tiene cama de matrimonio…"
               className="border-line bg-surface text-ink w-full rounded-control border px-2 py-1.5 text-xs"
             />
+            <CenitalQualityGate
+              quality={quality}
+              ack={cenitalAck}
+              onAckChange={setCenitalAck}
+              disabled={busy !== null}
+            />
             <Button
               type="button"
               className="mt-3 w-full"
               onClick={onGenerateCenital}
-              disabled={busy !== null}
+              disabled={busy !== null || cenitalGateBlocks(quality, cenitalAck)}
             >
               {busy === 'cenital'
                 ? 'Generando…'
@@ -701,6 +722,11 @@ export function PlanoStudio({
                   ? 'Generar maqueta 3D'
                   : 'Generar vista cenital'}
             </Button>
+            {cenitalGateDecision(quality) === 'block' ? (
+              <p className="text-ink-soft mt-2 text-xs">
+                No se generará ninguna vista con este plano hasta que lo corrijas en el editor.
+              </p>
+            ) : null}
             {busy === 'cenital' ? (
               <p className="text-ink-soft mt-2 animate-pulse text-xs">
                 El render puede tardar hasta un par de minutos.

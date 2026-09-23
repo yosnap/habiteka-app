@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, ceilingShape, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, ceilingShape, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 
 describe('representación de techos e iluminación', () => {
   it('triangula un techo cóncavo en metros sin rellenar el hueco exterior', () => {
@@ -66,9 +66,24 @@ describe('representación de techos e iluminación', () => {
     expect(captureCeilingView(null, { ...context, cameraHeightM: 4 })).toBe('solid');
     expect(captureCeilingView(null, { ...context, cameraHeightM: 5.4 })).toBe('solid');
     expect(captureCeilingView(null, { ...context, cutaway: false })).toBe('solid');
+    // Para diseñar con IA, desde encima del techo nunca se manda la losa.
+    expect(captureCeilingView('current', { ...context, cutaway: false, forDesign: true })).toBe('hidden');
+    expect(captureCeilingView('current', { ...context, cutaway: false, forDesign: true, cameraHeightM: 1.6 })).toBe('solid');
     expect(captureCeilingView(null, { ...context, highestCeilingM: null })).toBe('solid');
     expect(captureCeilingView('front', context)).toBe('solid');
     expect(captureCeilingView('top', { ...context, cameraHeightM: 1, cutaway: false })).toBe('hidden');
   });
 
+});
+
+describe('recorte de muros en capturas', () => {
+  it('fuerza el recorte en alzados e isométrica aunque el 3D muestre todos los muros', () => {
+    for (const view of ['front', 'back', 'left', 'right', 'isometric']) expect(captureCutaway(view, false)).toBe(true);
+  });
+  it('respeta la elección del usuario en cenital, dron y vista libre', () => {
+    for (const view of ['top', 'drone', 'custom', 'current', null]) {
+      expect(captureCutaway(view, false)).toBe(false);
+      expect(captureCutaway(view, true)).toBe(true);
+    }
+  });
 });

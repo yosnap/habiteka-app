@@ -42,7 +42,9 @@ export type { DesignElementKind, DesignElement } from './design-element';
 export type { DeliverableType, DeliverablePayload, Deliverable } from './deliverable';
 export type {
   AgentPhase,
+  AssistantIntent,
   Estilo,
+  ImageKind,
   StructuralElements,
   ZoneStyleOverride,
   Collected,

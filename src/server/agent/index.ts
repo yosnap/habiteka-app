@@ -10,6 +10,14 @@ import { getChatVisionAdapter, getImageAdapter } from '@/server/ai';
 import type { ChatVisionAdapter } from '@/lib/contracts';
 import type { ModelAction } from '@/generated/prisma/enums';
 import { createDebitService } from './debit-service-impl';
+import { extractPlanSource } from '@/server/plan/extract-plan-source';
+import { buildPlanImport } from '@/server/plan/build-plan-import';
+import { evaluateCheckpoint } from '@/server/quality/evaluate';
+import { buildPlanEvidence } from '@/server/quality/evidence/plan-evidence';
+import { applyPlanQuality } from '@/lib/plan-quality';
+
+// Mínimo de muros medidos en la imagen para tratarla como una planta.
+const MIN_PLAN_WALLS = 4;
 
 /**
  * Adaptador de chat de una sección del perfil de IA que se resuelve en la primera
@@ -66,7 +74,35 @@ export async function getAgent(
           plano2d,
           memoria,
           image,
+          // Lectura de la planta de la imagen: el mismo camino que el estudio de planos.
+          planoFromImage: async (img) => {
+            const { raw, detected } = await extractPlanSource(
+              vision,
+              [{ type: 'image_url', base64: img.base64, mimeType: img.mimeType }],
+              'plano',
+            );
+            // Sin muros medidos en píxeles no hay evidencia de planta (una foto en
+            // perspectiva también devuelve "muros" del modelo): no se presenta como fiel.
+            if (!detected || detected.walls.length < MIN_PLAN_WALLS) {
+              throw new Error('La imagen no es una planta legible.');
+            }
+            const result = buildPlanImport(raw, {
+              includeFurniture: false,
+              normalize: { wallsOverride: detected.walls, imageHeightOverWidth: detected.heightOverWidth },
+            });
+            // Puerta de fiabilidad: solo una lectura que Jev da por buena se
+            // entrega como plano fiel; con dudas o sin evaluación posible, el
+            // plano se marca como aproximado y el usuario lo ve así.
+            const quality = await evaluateCheckpoint(
+              { organizationId, userId },
+              'plan_extraction',
+              buildPlanEvidence({ raw, detected, result }),
+              { projectId },
+            );
+            return applyPlanQuality(result.plano, quality);
+          },
           debit,
+          organizationId,
           userId,
           resolveZoneContext,
           // Id ÚNICO por entregable. Antes un contador de módulo (`del-pid-type-N`)

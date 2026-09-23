@@ -18,19 +18,23 @@ import {
   proposeNativeDesignFromEditor,
   saveNativeRender,
 } from '@/app/(app)/projects/[id]/_actions/agent-actions';
+import { evaluateEditorQuality } from '@/app/(app)/projects/[id]/_actions/editor-quality-actions';
 import { callAction } from '@/lib/action-result';
 import { EditorShell } from '../editor-shell';
+import type { AutoGenerateRequest } from '../auto-generate-request';
 
 export function EditorSession({
   scope,
   initial,
   recovered,
   projectName,
+  autoGenerate,
 }: {
   scope: DraftScope;
   initial: EditorDocument;
   recovered?: EditorDraft;
   projectName: string;
+  autoGenerate?: AutoGenerateRequest | null;
 }) {
   const [queue] = useState(
     () =>
@@ -103,6 +107,7 @@ export function EditorSession({
     objetivo: string;
     promptLibre: string;
     options: import('@/lib/editor-document/render-design-options').RenderDesignOptions;
+    qualityAck: boolean;
   }) => {
     // Zustand notifica la captura sincrónicamente; esta pausa deja que entre en la
     // cola durable antes de forzar el flush. Nunca se manda a IA un conflicto o un
@@ -131,6 +136,7 @@ export function EditorSession({
         input.promptLibre,
         scope.zoneId,
         input.options,
+        input.qualityAck,
       ),
     );
   };
@@ -142,6 +148,7 @@ export function EditorSession({
     options?: import('@/lib/editor-document/render-design-options').RenderDesignOptions;
     batchId?: string;
     referenceDesignId?: string;
+    qualityAck: boolean;
   }) => {
     const geometry = JSON.stringify({ ...store.getState().document, revision: 0 });
     await Promise.resolve();
@@ -164,6 +171,7 @@ export function EditorSession({
           options: input.options,
           batchId: input.batchId,
           referenceDesignId: input.referenceDesignId,
+          qualityAck: input.qualityAck,
         },
       ),
     );
@@ -217,10 +225,19 @@ export function EditorSession({
             saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view),
           );
         }}
+        autoGenerate={autoGenerate ?? null}
         onGenerateDesign={generate}
         onGenerateRender={render}
         onEstimateRender={(viewCount) =>
           callAction(estimateConceptRenderFromEditor(scope.projectId, viewCount))
+        }
+        onEvaluateQuality={() =>
+          // El documento EN PANTALLA, no el guardado: es el que juzgará la
+          // puerta al generar, así que el veredicto del diálogo y el del
+          // servidor hablan del mismo plano (y comparten caché).
+          callAction(
+            evaluateEditorQuality(scope.projectId, store.getState().document, scope.zoneId),
+          )
         }
         generateEnabled={!status.closed && !status.conflict}
         generateDisabledReason={
