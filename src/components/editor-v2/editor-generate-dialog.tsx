@@ -5,11 +5,18 @@ import type { RenderCapture } from '@/lib/editor-document/render-view';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import {
   defaultRenderDesignOptions,
+  isInteriorRenderMode,
+  renderItemCount,
+  zoneCompositeActive,
   RENDER_ADDITION_LABELS,
   RENDER_VIEW_LABELS,
   type RenderDesignOptions,
   type RenderGeneratedResult,
 } from '@/lib/editor-document/render-design-options';
+import {
+  roomInteriorCameras,
+  selectedInteriorCameras,
+} from '@/lib/editor-document/room-interior-cameras';
 import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { DESIGN_SPACE_KINDS, type DesignSpaceKind } from '@/lib/design-space-kind';
@@ -21,22 +28,37 @@ import type {
 } from '@/lib/editor-document/native-design-proposal';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
+import { EditorQualityGate, type EditorQualityState } from './editor-quality-gate';
+import type { QualityVerdict } from '@/lib/quality-verdict';
+import { needsQualityConfirmation } from '@/lib/quality-messages';
 import RenderOptionsControls from './render-options-controls';
 import { runRenderBatch } from './render-batch';
 import { RenderLivePreview, type PreviewRender } from './render-live-preview';
 import { RenderInstructionField } from './render-instruction-field';
+import { useMountEffect } from '@/lib/use-mount-effect';
+import { ZoneOverlayImage } from './zone-overlay-image';
 
 interface EditorGenerateDialogProps {
   document?: EditorDocument;
   capture?: RenderCapture;
   onPreview?: PreviewRender;
   onPrepare?: (options: RenderDesignOptions) => Promise<RenderCapture[]>;
+  /**
+   * Si la escena 3D ya puede capturar. Falso mientras carga: el diálogo se abre
+   * igualmente (cargar el 3D lleva decenas de segundos) y avisa de que está
+   * esperando en vez de dejar botones mudos. Preparar no se bloquea: la espera
+   * la hace `onPrepare`, con plazo.
+   */
+  sceneReady?: boolean;
   onEstimate?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
+  /** Evaluación de calidad del plano guardado; sin coste de imagen. */
+  onEvaluateQuality?: () => Promise<QualityVerdict | null>;
   onGenerate: (input: {
     estilo: Estilo;
     objetivo: string;
     promptLibre: string;
     options: RenderDesignOptions;
+    qualityAck: boolean;
   }) => Promise<NativeDesignProposal>;
   onRender: (input: {
     estilo: Estilo;
@@ -46,10 +68,16 @@ interface EditorGenerateDialogProps {
     options?: RenderDesignOptions;
     batchId?: string;
     referenceDesignId?: string;
+    qualityAck: boolean;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
   spaceKind?: DesignSpaceKind;
   onSpaceKindChange: (spaceKind: DesignSpaceKind) => void;
+  /**
+   * Arranque preconfigurado cuando se llega desde el asistente: estilo ya
+   * elegido y vistas interiores de todas las estancias habitables marcadas.
+   */
+  initialSetup?: { estilo?: Estilo; interiorRooms?: boolean };
   onClose: () => void;
 }
 
@@ -58,17 +86,43 @@ export function EditorGenerateDialog({
   capture,
   onPreview,
   onPrepare,
+  sceneReady = true,
+  onEvaluateQuality,
   onGenerate,
   onRender,
   onApply,
   spaceKind,
   onSpaceKindChange,
+  initialSetup,
   onClose,
 }: EditorGenerateDialogProps) {
-  const [estilo, setEstilo] = useState<Estilo>('moderno');
+  const [estilo, setEstilo] = useState<Estilo>(initialSetup?.estilo ?? 'moderno');
   const [objetivo, setObjetivo] = useState('');
   const [promptLibre, setPromptLibre] = useState('');
-  const [options, setOptions] = useState<RenderDesignOptions>(() => defaultRenderDesignOptions());
+  const [options, setOptions] = useState<RenderDesignOptions>(() => {
+    const base = defaultRenderDesignOptions();
+    if (!document) return base;
+    // Un plano sin muebles con «Estricto» devuelve estancias vacías: no es lo
+    // que espera quien viene del asistente a ver su casa amueblada.
+    const empty = document.furniture.length === 0;
+    const freedom = initialSetup?.interiorRooms || empty ? ('free' as const) : base.freedom;
+    if (!initialSetup?.interiorRooms) return { ...base, freedom };
+    return {
+      ...base,
+      freedom,
+      interiorRoomIds: roomInteriorCameras(document)
+        .filter((room) => room.habitable)
+        .map((room) => room.roomId),
+    };
+  });
+  /**
+   * Las vistas interiores por estancia son, por definición, habitaciones: pedir
+   * además el tipo de espacio solo servía para dejar el botón de preparar
+   * desactivado sin decir por qué.
+   */
+  useMountEffect(() => {
+    if (initialSetup?.interiorRooms && !spaceKind) onSpaceKindChange('interior');
+  });
   const [prepared, setPrepared] = useState<RenderCapture[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [results, setResults] = useState<RenderGeneratedResult[]>([]);
@@ -79,13 +133,59 @@ export function EditorGenerateDialog({
   const [proposal, setProposal] = useState<NativeDesignProposal | null>(null);
   const [selection, setSelection] = useState<NativeDesignSelection | null>(null);
   const [mode, setMode] = useState<'choose' | 'renders' | 'proposal'>('choose');
-  const [largePreview, setLargePreview] = useState<{ src: string; label: string } | null>(null);
+  const [largePreview, setLargePreview] = useState<{ src: string; label: string; maskSrc?: string } | null>(null);
   const preparedReady = prepared.length > 0;
   const [applied, setApplied] = useState(false);
   const [intent, setIntent] = useState<'image' | 'editable'>('image');
+  const [quality, setQuality] = useState<EditorQualityState>({
+    quality: null,
+    ack: false,
+    blocked: false,
+  });
+  // Mensaje del servidor cuando ha cortado pidiendo confirmación expresa: la
+  // tarjeta con la casilla se enseña aunque el veredicto local dijera otra cosa.
+  const [serverConfirm, setServerConfirm] = useState<string | null>(null);
+  /** Un fallo de generación: si el servidor pide confirmar, se abre la casilla. */
+  const showFailure = (message: string) => {
+    setError(message);
+    setServerConfirm(needsQualityConfirmation(message) ? message : null);
+  };
+  // El servidor vuelve a evaluar y exige lo mismo; esto evita el viaje inútil.
+  const qualityBlocked =
+    quality.blocked || (quality.quality?.decision === 'confirm' && !quality.ack);
+  const itemCount = renderItemCount(options);
+  const interiorMode = isInteriorRenderMode(options);
+  // Un botón desactivado sin explicación deja al usuario atascado: el motivo se
+  // enseña al lado, con la acción concreta que lo desbloquea.
+  const prepareBlockedReason = !spaceKind
+    ? 'Elige antes el tipo de espacio.'
+    : !itemCount
+      ? interiorMode
+        ? 'Marca al menos una estancia.'
+        : 'Marca al menos un ángulo.'
+      : null;
+  const proposalBlockedReason = !spaceKind
+    ? 'Elige antes el tipo de espacio.'
+    : qualityBlocked
+      ? 'Confirma antes el aviso de calidad del plano.'
+      : null;
+  // Nombre de cada imagen del lote: la estancia en modo interior, el ángulo si no.
+  const interiorNames = useMemo(
+    () =>
+      document && interiorMode
+        ? selectedInteriorCameras(roomInteriorCameras(document), options.interiorRoomIds).map(
+            (room) => room.name,
+          )
+        : [],
+    [document, interiorMode, options.interiorRoomIds],
+  );
+  const labelAt = (index: number) =>
+    interiorMode
+      ? (interiorNames[index] ?? `Estancia ${index + 1}`)
+      : RENDER_VIEW_LABELS[options.views[index] ?? 'current'];
   const renderableCaptures = useMemo(
-    () => prepared.slice(0, options.views.length),
-    [prepared, options.views.length],
+    () => prepared.slice(0, itemCount),
+    [prepared, itemCount],
   );
 
   const invalidatePrepared = () => {
@@ -96,6 +196,8 @@ export function EditorGenerateDialog({
   };
   const changeOptions = (next: RenderDesignOptions) => {
     setOptions(next);
+    // Activar las vistas interiores ya dice qué clase de espacio es.
+    if (isInteriorRenderMode(next) && !spaceKind) onSpaceKindChange('interior');
     invalidatePrepared();
   };
   const changeContext = (setter: (value: string) => void, value: string) => {
@@ -119,13 +221,13 @@ export function EditorGenerateDialog({
       setPrepared(captures);
       setMode('renders');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudieron preparar las vistas.');
+      showFailure(cause instanceof Error ? cause.message : 'No se pudieron preparar las vistas.');
     } finally {
       setBusy(false);
     }
   };
   const renderBatch = async () => {
-    if (!preparedReady || busy) return;
+    if (!preparedReady || busy || qualityBlocked) return;
     setBusy(true);
     stopRequested.current = false;
     setStopping(false);
@@ -143,6 +245,7 @@ export function EditorGenerateDialog({
           capture,
           options,
           batchId: stableBatchId,
+          qualityAck: quality.ack,
           ...(referenceDesignId ? { referenceDesignId } : {}),
         }),
       shouldStop: () => stopRequested.current,
@@ -153,7 +256,7 @@ export function EditorGenerateDialog({
     });
     setResults(state.results.filter((result): result is RenderGeneratedResult => Boolean(result)));
     if (state.error)
-      setError(
+      showFailure(
         state.error instanceof Error
           ? state.error.message
           : 'No se pudo completar el lote de renders.',
@@ -163,6 +266,7 @@ export function EditorGenerateDialog({
     stopRequested.current = false;
   };
   const generateProposal = async () => {
+    if (qualityBlocked) return;
     setBusy(true);
     setError(null);
     try {
@@ -171,6 +275,7 @@ export function EditorGenerateDialog({
         objetivo: objetivo.trim(),
         promptLibre: promptLibre.trim(),
         options,
+        qualityAck: quality.ack,
       });
       setProposal(next);
       setSelection({
@@ -183,7 +288,7 @@ export function EditorGenerateDialog({
       });
       setMode('proposal');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo generar el diseño.');
+      showFailure(cause instanceof Error ? cause.message : 'No se pudo generar el diseño.');
     } finally {
       setBusy(false);
     }
@@ -231,6 +336,13 @@ export function EditorGenerateDialog({
           </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} onChange={setSelection} /></fieldset></>
         ) : (
           <>
+            {onEvaluateQuality ? (
+              <EditorQualityGate
+                evaluate={onEvaluateQuality}
+                onChange={setQuality}
+                serverConfirmMessage={serverConfirm}
+              />
+            ) : null}
             <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Qué quieres crear">
               {([['image', 'Crear imágenes', 'Render del diseño, sin modificar el plano.'], ['editable', 'Cambiar acabados y muebles', 'Revisa una propuesta y aplícala al plano.']] as const).map(([value, label, hint]) => (
                 <button key={value} type="button" disabled={busy} aria-pressed={intent === value}
@@ -264,19 +376,22 @@ export function EditorGenerateDialog({
                           onClick={() =>
                             setLargePreview({
                               src: item.dataUrl,
-                              label: RENDER_VIEW_LABELS[options.views[index] ?? 'current'],
+                              label: labelAt(index),
+                              ...(item.maskDataUrl ? { maskSrc: item.maskDataUrl } : {}),
                             })
                           }
-                          aria-label={`Abrir ${RENDER_VIEW_LABELS[options.views[index] ?? 'current']} en grande`}
+                          aria-label={`Abrir ${labelAt(index)} en grande`}
                         >
-                          <img
+                          <ZoneOverlayImage
                             src={item.dataUrl}
-                            alt={`Preview ${RENDER_VIEW_LABELS[options.views[index] ?? 'current']}`}
+                            maskSrc={item.maskDataUrl}
+                            alt={`Preview ${labelAt(index)}`}
                             className="aspect-video w-full object-contain"
                           />
                         </button>
                         <figcaption className="text-ink-soft p-2 text-xs">
-                          {RENDER_VIEW_LABELS[options.views[index] ?? 'current']} · pulsa para
+                          {labelAt(index)}
+                          {item.maskDataUrl && ' · en verde, la zona permitida'} · pulsa para
                           ampliar
                         </figcaption>
                       </figure>
@@ -355,9 +470,9 @@ export function EditorGenerateDialog({
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
                     {options.placement === 'selected'
-                      ? `${options.regions.length} zona(s) permitida(s)`
+                      ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', 2 pasadas por vista para no tocar nada fuera' : ''}`
                       : 'toda la planta'}{' '}
-                    {intent === 'image' && <> · {options.views.length} vista(s).</>}
+                    {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
                   <p className="text-ink-soft mt-2">{intent === 'image' ? 'Revisa las vistas de referencia antes de generar las imágenes.' : 'Los cambios no se aplican hasta que pulses Aplicar al plano. No se modifica la geometría.'}</p>
                 </div>
@@ -383,19 +498,19 @@ export function EditorGenerateDialog({
                         onClick={() =>
                           setLargePreview({
                             src: result.assetUrl,
-                            label: RENDER_VIEW_LABELS[options.views[index] ?? 'current'],
+                            label: labelAt(index),
                           })
                         }
-                        aria-label={`Abrir resultado ${RENDER_VIEW_LABELS[options.views[index] ?? 'current']} en grande`}
+                        aria-label={`Abrir resultado ${labelAt(index)} en grande`}
                       >
                         <img
                           src={result.assetUrl}
-                          alt={`Render ${RENDER_VIEW_LABELS[options.views[index] ?? 'current']}`}
+                          alt={`Render ${labelAt(index)}`}
                           className="aspect-video w-full object-contain"
                         />
                       </button>
                       <figcaption className="text-ink-soft p-2 text-xs">
-                        {RENDER_VIEW_LABELS[options.views[index] ?? 'current']}
+                        {labelAt(index)}
                         {result.generation && (
                           <>
                             {' '}
@@ -444,24 +559,43 @@ export function EditorGenerateDialog({
               <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onClose}>
                 Cancelar
               </Button>
-              {intent === 'editable' && <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={busy || !spaceKind}
-                onClick={() => void generateProposal()}
-              >
-                Proponer acabados y muebles con IA
-              </Button>}
-              {intent === 'image' && onPrepare && !preparedReady && (
+              {intent === 'editable' && <>
+                {proposalBlockedReason && (
+                  <p className="text-muted-foreground self-center text-xs">{proposalBlockedReason}</p>
+                )}
                 <Button
                   type="button"
                   size="sm"
-                  disabled={busy || !spaceKind || !options.views.length}
-                  onClick={() => void prepare()}
+                  variant="secondary"
+                  disabled={busy || Boolean(proposalBlockedReason)}
+                  onClick={() => void generateProposal()}
                 >
-                  {busy ? 'Preparando…' : 'Ver vistas de referencia'}
+                  Proponer acabados y muebles con IA
                 </Button>
+              </>}
+              {intent === 'image' && onPrepare && !preparedReady && (
+                <>
+                  {!sceneReady && !busy && (
+                    <p className="text-muted-foreground self-center text-xs" role="status">
+                      Cargando el 3D… la preparación empezará sola al terminar.
+                    </p>
+                  )}
+                  {prepareBlockedReason && (
+                    <p className="text-muted-foreground self-center text-xs">{prepareBlockedReason}</p>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={busy || Boolean(prepareBlockedReason)}
+                    onClick={() => void prepare()}
+                  >
+                    {busy
+                      ? sceneReady
+                        ? 'Preparando…'
+                        : 'Esperando al 3D…'
+                      : 'Ver vistas de referencia'}
+                  </Button>
+                </>
               )}
               {intent === 'image' && preparedReady && (
                 <>
@@ -480,7 +614,7 @@ export function EditorGenerateDialog({
                   <Button
                     type="button"
                     size="sm"
-                    disabled={busy || results.length >= renderableCaptures.length}
+                    disabled={busy || qualityBlocked || results.length >= renderableCaptures.length}
                     onClick={() => void renderBatch()}
                   >
                     {busy
@@ -509,8 +643,9 @@ export function EditorGenerateDialog({
               className="bg-surface max-h-[92vh] max-w-6xl rounded-card border border-line p-2 shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <img
+              <ZoneOverlayImage
                 src={largePreview.src}
+                maskSrc={largePreview.maskSrc}
                 alt={largePreview.label}
                 className="max-h-[86vh] max-w-full object-contain"
               />

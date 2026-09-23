@@ -3,6 +3,7 @@
  * sesión, verifica la pertenencia del proyecto y monta el chat, que dispara las
  * acciones del agente en el servidor.
  */
+import type { ComponentProps } from 'react';
 import { prisma } from '@/server/db/prisma';
 import { QualificationChat } from '@/components/chat/qualification-chat';
 import { advanceAgent } from '../_actions/agent-actions';
@@ -22,15 +23,17 @@ export default async function ChatPage({ params, searchParams }: Props) {
   // unicidad por (proyecto, zona) la dan índices parciales, no una clave compuesta simple.
   const state = await prisma.agentState.findFirst({
     where: { projectId: id, zoneId },
-    select: { phase: true },
+    select: { phase: true, collected: true },
   });
+  // Lo ya elegido (estilo, entregables, objetivo, detección) para rehidratar el asistente.
+  const collected = (state?.collected ?? {}) as ComponentProps<typeof QualificationChat>['initialCollected'];
   const initialPhase = (state?.phase ?? 'ingesta') as
     | 'ingesta'
     | 'cualificacion'
     | 'entrega'
     | 'feedback';
   return (
-    <main className="mx-auto flex h-[calc(100vh-7rem)] max-w-2xl flex-col gap-3 p-4">
+    <main className="mx-auto flex h-[calc(100vh-7rem)] w-full max-w-2xl flex-col gap-3 p-4">
       <p className="text-ink-soft text-sm">
         Sube una foto o un boceto de tu espacio y cuéntame qué quieres conseguir.
       </p>
@@ -40,6 +43,7 @@ export default async function ChatPage({ params, searchParams }: Props) {
           advance={advanceAgent}
           initialPhase={initialPhase}
           zoneId={zoneId}
+          initialCollected={collected}
         />
       </div>
     </main>

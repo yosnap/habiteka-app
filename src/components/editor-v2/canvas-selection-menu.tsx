@@ -6,7 +6,7 @@ import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { interiorPoint } from '@/canvas/editor-v2/editing-operations';
 import { editableOutdoorRoom, deleteOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
 import { useStore } from 'zustand';
-import { Copy, FlipHorizontal, FlipVertical, RotateCw, Trash2, DoorOpen, Eye, EyeOff, Paintbrush, MessageSquare } from 'lucide-react';
+import { Copy, MoveHorizontal, FlipHorizontal, FlipVertical, RotateCw, Trash2, DoorOpen, Eye, EyeOff, Paintbrush, MessageSquare } from 'lucide-react';
 import { AddWallVertexIcon, CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
 import { objectCenter, localToWorld } from '@/lib/editor-document/spatial-properties';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
@@ -17,6 +17,7 @@ import { openingConstruction } from '@/lib/editor-document/construction-properti
 import { setOpeningConstruction, setWallVisibility, updateStair } from '@/lib/editor-document/construction-commands';
 import { SelectionContextMenu, type SelectionContextAction } from './selection-context-menu';
 import { wallPath } from '@/lib/editor-document/wall-path';
+import { fillWallWithOpening } from '@/lib/editor-document/opening-clearance';
 import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
 
 export function CanvasSelectionMenu({ store, view, size }: {
@@ -41,7 +42,11 @@ export function CanvasSelectionMenu({ store, view, size }: {
   }
   else if (opening) {
     const host = doc.walls.find((w) => w.id === opening.wallId);
-    if (host) position = wallPath(doc, host).at(opening.position);
+    if (host) {
+      // Igual que con las paredes: el menú se aparta del muro para no tapar el hueco ni sus tiradores.
+      const path = wallPath(doc, host), at = path.at(opening.position), direction = path.tangent(opening.position);
+      position = { x: at.x - direction.y * 190 / view.scale, y: at.y + direction.x * 190 / view.scale };
+    }
   } else { const object = stair ?? furniture ?? ramp ?? column; position = object ? objectCenter(object) : position; }
   if (gateOwner) position = localToWorld(gateOwner.boundary, { x: gateOwner.gate.positionMm, y: gateOwner.boundary.depthMm / 2 });
   if (!position) return null;
@@ -66,7 +71,9 @@ export function CanvasSelectionMenu({ store, view, size }: {
   if (wall) actions.push({ id: 'visibility', label: wall.hidden ? 'Mostrar pared' : 'Ocultar pared', icon: wall.hidden ? Eye : EyeOff,
     onSelect: () => run(() => state.apply(setWallVisibility(doc, id, !wall.hidden))) });
   if (opening) actions.push({ id: 'copy', label: 'Copiar y colocar', icon: Copy,
-    onSelect: () => state.copyOpening(id) });
+    onSelect: () => state.copyOpening(id) },
+  { id: 'fill-wall', label: 'Ocupar todo el muro', icon: MoveHorizontal,
+    onSelect: () => run(() => state.apply(fillWallWithOpening(doc, id))) });
   if (opening?.kind === 'puerta') {
     const props = openingConstruction(opening);
     actions.push({ id: 'hinge', label: 'Cambiar bisagra', icon: FlipHorizontal,

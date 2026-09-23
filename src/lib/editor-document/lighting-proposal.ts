@@ -57,3 +57,15 @@ export function proposeLighting(doc: EditorDocument, ceilingId: string, style: s
   proposal.warnings.push('Distribución orientativa de diseño; revisa posición, caída e intensidad antes de aceptar.');
   return proposal;
 }
+
+/**
+ * Propuesta para toda la planta: una por cada techo que todavía no tiene luces.
+ * Los techos ya iluminados no se tocan para no duplicar luminarias.
+ */
+export function proposeLightingForPlan(doc: EditorDocument, style: string): LightingProposal[] {
+  const lit = new Set((doc.luminaires ?? []).map((light) => light.ceilingId));
+  return ceilingSurfaces(doc)
+    .filter(({ ceiling }) => !lit.has(ceiling.id))
+    .map(({ ceiling }) => proposeLighting(doc, ceiling.id, style))
+    .filter((proposal) => proposal.lights.length > 0);
+}

@@ -5,16 +5,18 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 
 export type MagneticGuide = { from: Point; to: Point };
+/** `faces: false` deja solo el eje de cada muro: la geometría estructural se une a ejes y vértices, no a caras. */
+export interface MagneticOptions { faces?: boolean; toleranceMm?: number }
 export function footprintAnchors(item: Footprint): Point[] {
   return [0, .5, 1].flatMap((x) => [0, .5, 1].map((y) => localToWorld(item, { x: x * item.widthMm, y: y * item.depthMm })));
 }
-export function magneticReferences(doc: EditorDocument, exclude: string[] = []): Point[] {
-  const excluded = new Set(exclude);
+export function magneticReferences(doc: EditorDocument, exclude: string[] = [], options: MagneticOptions = {}): Point[] {
+  const excluded = new Set(exclude), sides = options.faces === false ? [0] : [-1, 0, 1];
   const points = doc.walls.filter((w) => !excluded.has(w.id)).flatMap((wall) => {
     const path = wallPath(doc, wall);
     return [0, .5, 1].flatMap((t) => {
       const p = path.at(t), n = path.tangent(t), half = wall.hidden ? 0 : wall.thicknessMm / 2;
-      return [-1, 0, 1].map((side) => ({ x: p.x - n.y * half * side, y: p.y + n.x * half * side }));
+      return sides.map((side) => ({ x: p.x - n.y * half * side, y: p.y + n.x * half * side }));
     });
   });
   for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])])
@@ -41,10 +43,10 @@ export function magneticReferences(doc: EditorDocument, exclude: string[] = []):
   return points;
 }
 /** Ejes, centros y extremos comparten el mismo alcance de 10 píxeles a cualquier zoom. */
-export function alignPoints(doc: EditorDocument, moving: Point[], scale: number, enabled: boolean, exclude: string[] = []) {
-  const delta = { x: 0, y: 0 }, guides: MagneticGuide[] = [];
-  if (!enabled || !moving.length) return { delta, guides };
-  const targets = magneticReferences(doc, exclude), tolerance = 10 / Math.max(.001, scale);
+export function alignPoints(doc: EditorDocument, moving: Point[], scale: number, enabled: boolean, exclude: string[] = [], options: MagneticOptions = {}) {
+  const delta = { x: 0, y: 0 }, guides: MagneticGuide[] = [], snapped = { x: false, y: false };
+  if (!enabled || !moving.length) return { delta, guides, snapped };
+  const targets = magneticReferences(doc, exclude, options), tolerance = options.toleranceMm ?? 10 / Math.max(.001, scale);
   for (const axis of ['x', 'y'] as const) {
     let best: { source: Point; target: Point; gap: number } | undefined;
     for (const source of moving) for (const target of targets) {
@@ -52,17 +54,17 @@ export function alignPoints(doc: EditorDocument, moving: Point[], scale: number,
       if (Math.abs(gap) <= tolerance && (!best || Math.abs(gap) < Math.abs(best.gap))) best = { source, target, gap };
     }
     if (!best) continue;
-    delta[axis] = best.gap;
+    delta[axis] = best.gap; snapped[axis] = true;
     const other = axis === 'x' ? 'y' : 'x', pad = 30 / Math.max(.001, scale);
     const from = { ...best.target }, to = { ...best.target };
     from[other] = Math.min(best.source[other], best.target[other]) - pad;
     to[other] = Math.max(best.source[other], best.target[other]) + pad;
     guides.push({ from, to });
   }
-  return { delta, guides };
+  return { delta, guides, snapped };
 }
-export function alignPoint(doc: EditorDocument, point: Point, scale: number, enabled: boolean, exclude: string[] = []) {
-  const result = alignPoints(doc, [point], scale, enabled, exclude);
+export function alignPoint(doc: EditorDocument, point: Point, scale: number, enabled: boolean, exclude: string[] = [], options: MagneticOptions = {}) {
+  const result = alignPoints(doc, [point], scale, enabled, exclude, options);
   return { ...result, point: { x: point.x + result.delta.x, y: point.y + result.delta.y } };
 }
 export function alignRoom(doc: EditorDocument, roomId: string, raw: Point, scale: number, enabled: boolean) {

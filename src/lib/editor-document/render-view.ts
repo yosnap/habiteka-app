@@ -17,10 +17,18 @@ export const renderViewSchema = z.object({
   cutawayWallIds: z.array(z.string().max(200)).max(10000).optional(),
 });
 export type RenderView = z.infer<typeof renderViewSchema>;
-export interface RenderCapture { dataUrl: string; view: RenderView }
+export interface RenderCapture {
+  dataUrl: string;
+  view: RenderView;
+  /** Máscara PNG (blanco = zona permitida visible) desde la misma cámara. */
+  maskDataUrl?: string;
+}
+/** Polígonos de zona en milímetros de planta. */
+export type ZoneMaskRegions = ReadonlyArray<ReadonlyArray<{ x: number; y: number }>>;
 export type CaptureRenderView = (options?: {
   view?: import('./render-design-options').RenderViewChoice;
   lighting?: 'daylight' | 'warm' | 'evening';
   fit?: boolean;
   camera?: CameraPose;
+  maskRegions?: ZoneMaskRegions;
 }) => Promise<RenderCapture>;

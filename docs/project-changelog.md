@@ -4,6 +4,28 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Added — 2026-09-23
+
+- Jev (TypeSafe) como capa de fiabilidad: evalúa el plano, las instrucciones y los resultados antes de gastar en generaciones de pago; con fiabilidad media explica el porqué al usuario y pide confirmar, con baja manda a corregir el plano. Credencial y umbrales en el panel de admin; panel de eficacia calidad × coste. Sin Jev disponible, las generaciones de pago piden confirmación expresa.
+- Asistente por intención (crear diseño o convertir un plano) y detección de plano frente a foto.
+- Vistas interiores por estancia a altura de ojos; render por defecto con Flare.
+- Zonas permitidas garantizadas: máscara exacta desde el 3D y dos pasadas (base y diseño) compuestas en servidor; cada vista encuadra y recorta la zona, y la zona se ve en verde en las vistas de referencia.
+- Techo en todas las estancias de una vez, propuesta de luces para toda la planta y edición en bloque de luces (Mayús+clic).
+- Opción «Iluminación» en Vista; muros ocultos visibles como guía discontinua; huecos que ocupan todo el muro (ancho y alto).
+
+### Changed — 2026-09-23
+
+- Los alzados e isométrica ocultan en la captura los muros exteriores que miran a la cámara (con sus puertas y ventanas); las vistas desde fuera se describen a la IA como maqueta seccionada.
+- Los huecos se estiran por un solo borde (Alt: por ambos) y el menú contextual ya no tapa el hueco.
+- Imán estructural sin caras y uniones de muro fiables; cada flujo de IA usa su sección del perfil.
+
+### Fixed — 2026-09-23
+
+- Las capturas para diseñar no muestran la losa del techo desde arriba; ocultar un muro ya no deja rastro en 3D.
+- Un paso abierto sin puerta ya no baja la fiabilidad del plano.
+- El prompt compacto de las vistas exteriores cabe en el límite de los modelos de respaldo.
+- El chat ya no rechaza proyectos del editor v2.
+
 ### Added — 2026-09-22
 
 - Enlace "Administración" en la cabecera cuando el usuario en sesión tiene rol admin.

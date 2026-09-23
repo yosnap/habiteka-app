@@ -13,6 +13,8 @@ export interface EditorVisibility {
   dimensions: DimensionVisibility;
   furniture: boolean;
   walls: boolean;
+  /** Símbolos de luces y contornos de techo en el plano; molestan al dibujar muros. */
+  lighting: boolean;
 }
 
 interface VisibilityMenuProps {
@@ -33,6 +35,7 @@ export function VisibilityMenu({ value, onChange, shortcutsEnabled, onShortcutsC
       <legend>Mostrar</legend>
       <CheckToggle ariaLabel="Mostrar paredes" checked={value.walls} onChange={(walls) => patch({ walls })} label={<>{eye(value.walls)} Paredes</>} />
       <CheckToggle ariaLabel="Mostrar muebles" checked={value.furniture} onChange={(furniture) => patch({ furniture })} label={<>{eye(value.furniture)} Muebles</>} />
+      <CheckToggle ariaLabel="Mostrar iluminación" checked={value.lighting} onChange={(lighting) => patch({ lighting })} label={<>{eye(value.lighting)} Iluminación</>} />
       <label className={styles.field}><span>Medidas</span><ModernSelect aria-label="Visibilidad de medidas" value={value.dimensions} onChange={(event) => patch({ dimensions: event.target.value as DimensionVisibility })}>
         <option value="all">Todas</option><option value="external">Solo exteriores</option><option value="none">Ocultas</option>
       </ModernSelect></label>

@@ -10,37 +10,42 @@
  * pasos). UI mínima funcional: la lógica vive en servidor y contratos.
  */
 import { useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
 import type { PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
+import type { StudioQuality } from '@/lib/studio-state';
 import { pdfFirstPageToPng } from './pdf-to-png';
+import { PlanQualityCard } from './plan-quality-card';
+
+/** Importación con su veredicto de fiabilidad, tal y como la devuelve el servidor. */
+export type ImportedPlan = PlanImportResult & { imageUrl: string; quality: StudioQuality };
 
 export interface PlanImportActions {
   importAction: (
     projectId: string,
     base64: string,
     options: { includeFurniture?: boolean },
-  ) => Promise<(PlanImportResult & { imageUrl: string }) | ActionErrorResult>;
+  ) => Promise<ImportedPlan | ActionErrorResult>;
   refitAction: (
     projectId: string,
     roomOverrides: WrittenRoomDimensions[],
     options: { includeFurniture?: boolean; generalWidthMm?: number },
-  ) => Promise<PlanImportResult | ActionErrorResult>;
+  ) => Promise<(PlanImportResult & { quality: StudioQuality }) | ActionErrorResult>;
   applyAction: (
     projectId: string,
     result: PlanImportResult,
-  ) => Promise<{ issues: string[] } | ActionErrorResult>;
+  ) => Promise<{ issues: string[]; needsCorrection: boolean } | ActionErrorResult>;
 }
 
 interface Props extends PlanImportActions {
   projectId: string;
   onBack: () => void;
   /** Importación ya extraída (guardada en el estudio): se retoma sin volver a llamar a la IA. */
-  initialResult?: (PlanImportResult & { imageUrl: string }) | null;
+  initialResult?: ImportedPlan | null;
 }
 
 type Busy = 'import' | 'refit' | 'apply' | 'pdf' | null;
@@ -48,12 +53,15 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 export function PlanImportPanel({ projectId, importAction, refitAction, applyAction, onBack, initialResult }: Props) {
   const router = useRouter();
+  // La zona en curso se conserva al saltar al editor a corregir el plano.
+  const zona = useSearchParams().get('zona');
   const pdfInput = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(initialResult?.imageUrl ?? null);
   const [result, setResult] = useState<PlanImportResult | null>(initialResult ?? null);
+  const [quality, setQuality] = useState<StudioQuality | null>(initialResult?.quality ?? null);
   const [rows, setRows] = useState<WrittenRoomDimensions[]>(initialResult?.writtenDimensions ?? []);
   // En esta fase importamos la ESTRUCTURA; el mobiliario leído es opcional y viene desactivado.
   const [includeFurniture, setIncludeFurniture] = useState(false);
@@ -61,6 +69,8 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
   // Ancho total real (m) cuando el plano no trae cotas generales legibles.
   const [generalWidth, setGeneralWidth] = useState('');
   const [confirmApply, setConfirmApply] = useState(false);
+  // Veredicto del SERVIDOR al aplicar: el plano queda en el editor «a corregir».
+  const [needsCorrection, setNeedsCorrection] = useState(false);
 
   const run = async (kind: Exclude<Busy, null>, fn: () => Promise<void>) => {
     if (inFlight.current) return;
@@ -96,6 +106,7 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
       );
       setImageUrl(imported.imageUrl);
       setResult(imported);
+      setQuality(imported.quality);
       setRows(imported.writtenDimensions);
       setConfirmApply(false);
     });
@@ -132,19 +143,30 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
         }),
       );
       setResult(refitted);
+      setQuality(refitted.quality);
       setRows(refitted.writtenDimensions.map((w) => rows.find((r) => r.zoneId === w.zoneId) ?? w));
       setConfirmApply(false);
     });
 
+  const editorUrl = `/projects/${projectId}${zona ? `?zona=${encodeURIComponent(zona)}` : ''}`;
+
   const onApply = () => {
     if (!result) return;
-    if (!confirmApply) {
+    // Con fiabilidad baja el destino ES el editor (allí se corrige): no tiene
+    // sentido una confirmación extra; en el resto se confirma el reemplazo.
+    if (quality?.decision !== 'block' && !confirmApply) {
       setConfirmApply(true);
       return;
     }
     return run('apply', async () => {
-      await callAction(applyAction(projectId, result));
-      router.push(`/projects/${projectId}`);
+      const outcome = await callAction(applyAction(projectId, result));
+      // Con el plano marcado «a corregir» no se salta al editor sin avisar: el
+      // usuario tiene que saber que va a corregirlo, no a seguir generando.
+      if (outcome.needsCorrection) {
+        setNeedsCorrection(true);
+        return;
+      }
+      router.push(editorUrl);
     });
   };
 
@@ -289,21 +311,35 @@ export function PlanImportPanel({ projectId, importAction, refitAction, applyAct
             </ul>
           ) : null}
 
-          <div className="border-line bg-surface rounded-card border p-3">
-            <p className="text-ink-soft mb-2 text-xs">
-              {confirmApply
-                ? 'Esto REEMPLAZA el plano actual del editor de este proyecto. ¿Continuar?'
-                : 'Envía muros, huecos, estancias y mobiliario al editor para seguir trabajando.'}
-            </p>
-            <Button type="button" size="sm" variant={confirmApply ? 'default' : 'outline'} className="w-full" onClick={onApply} disabled={busy !== null}>
-              {busy === 'apply' ? 'Enviando…' : confirmApply ? 'Sí, reemplazar y abrir el editor' : 'Enviar al editor'}
-            </Button>
-            {confirmApply ? (
-              <Button type="button" size="sm" variant="ghost" className="mt-1 w-full" onClick={() => setConfirmApply(false)} disabled={busy !== null}>
-                Cancelar
+          {needsCorrection ? (
+            <div
+              role="status"
+              className="rounded-control border border-red-300 bg-red-50 p-3 text-xs text-red-700"
+            >
+              <p className="font-medium">El plano está en el editor, pero hay que corregirlo.</p>
+              <p className="mt-1">
+                La lectura no es fiable: no se generarán diseños ni vistas con él hasta que lo
+                arregles (cierra las estancias, une los muros y revisa las medidas).
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={() => router.push(editorUrl)}
+              >
+                Corregir en el editor
               </Button>
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <PlanQualityCard
+              quality={quality}
+              confirmApply={confirmApply}
+              busy={busy !== null}
+              applying={busy === 'apply'}
+              onApply={onApply}
+              onCancel={() => setConfirmApply(false)}
+            />
+          )}
           {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
         </aside>
       </div>

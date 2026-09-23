@@ -5,15 +5,16 @@ import { Canvas, type RootState } from '@react-three/fiber';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import { Bounds, Html } from '@react-three/drei';
-import { Vector3, PerspectiveCamera } from 'three';
+import { Vector3, PerspectiveCamera, Plane } from 'three';
 import { cameraPoseSchema } from '@/lib/contracts/walkthrough-keyframe';
 import { commentAnchor } from '@/lib/editor-document/comment-anchor';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
+import type { EditorDocument } from '@/lib/editor-document/schema';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
-import { CutawayWall } from './cutaway-wall';
+import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
 import { FurnitureModel } from './furniture-model';
@@ -23,16 +24,38 @@ import { recordWalkthrough } from './offline-recorder';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
-import { captureCeilingView, MAX_LUMINAIRE_LIGHTS, type CeilingView } from './ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, MAX_LUMINAIRE_LIGHTS, type CeilingView } from './ceiling-scene-utils';
 import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
+import { withTimeout } from '@/lib/async-wait';
+import { renderZoneMask } from './zone-mask';
+import { zoneFraming } from './zone-framing';
+import { wallConstruction } from '@/lib/editor-document/construction-properties';
 
 const unavailable = <div role="alert" style={{ padding: 24 }}>No se puede mostrar WebGL. Tu plano sigue disponible en 2D.</div>;
 const MAX_PERSISTED_RENDER_SIDE = 2048;
+/**
+ * Plazo de una captura. Las capturas se encolan, así que una que se quedara
+ * esperando un fotograma que no llega bloquearía TODAS las siguientes y el
+ * diálogo se quedaría en «Preparando…» para siempre. Con plazo, la cola avanza
+ * y el usuario lee qué ha pasado.
+ */
+const CAPTURE_TIMEOUT_MS = 45_000;
 type SceneCapture = RenderCapture & { downloadDataUrl?: string };
 type CaptureScene = (options?: Parameters<CaptureRenderView>[0], fullResolution?: boolean) => Promise<SceneCapture>;
 
 /** Ajusta la copia destinada al servidor al mismo techo que valida el saneador. */
+/** Altura de la planta activa para encuadrar una zona: el muro más alto (m). */
+function levelHeightM(document: EditorDocument): number {
+  const heights = document.walls.map((wall) => (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm);
+  return (heights.length ? Math.max(...heights) : 2700) / 1000;
+}
+
+/** Base de la planta activa en la escena (la vista de todas las plantas la desplaza). */
+function levelElevationM(document: EditorDocument): number {
+  return (buildingDocuments(document).find((level) => level.id === document.activeLevelId)?.elevationMm ?? 0) / 1000;
+}
+
 function captureForPersistence(canvas: HTMLCanvasElement): string {
   const largestSide = Math.max(canvas.width, canvas.height);
   if (largestSide <= MAX_PERSISTED_RENDER_SIDE) return canvas.toDataURL('image/png');
@@ -57,16 +80,19 @@ function SceneView({
   onSaveNativeVideo,
   onSaveNativeRender,
   onCaptureReady,
+  showLighting = true,
 }: {
   store: EditorStore;
   onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
+  showLighting?: boolean;
 }) {
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const ceilingView = useStore(store, (s) => s.ceilingView);
   const [captureCeilings, setCaptureCeilings] = useState<CeilingView | null>(null);
   const scene = useMemo(() => editorDocumentToScene(document), [document]);
+  const openingHosts = useMemo(() => new Map(document.openings.map((opening) => [opening.id, opening.wallId])), [document]);
   const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
   const [request, setRequest] = useState<CameraRequest>({ sequence: 0, action: 'fit' });
   const [activeView, setActiveView] = useState<SceneViewPreset | null>(null);
@@ -79,7 +105,8 @@ function SceneView({
   useEffect(() => () => { abortRecording.current?.abort(); store.getState().setWalkthroughPlaying(false); }, [store]);
   const [contextLost, setContextLost] = useState(false);
   const [rendererReady, setRendererReady] = useState(false);
-  const [cutaway, setCutaway] = useState(true);
+  // Por defecto se ve el modelo completo; ocultar los muros hacia la cámara es opcional.
+  const [cutaway, setCutaway] = useState(false);
   const [allLevels, setAllLevels] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
@@ -98,7 +125,7 @@ function SceneView({
     if (!rendererReady || contextLost) { captureRender.current = null; onCaptureReady?.(null); return; }
     const capture: CaptureScene = (options, fullResolution = false) => {
       if (abortRecording.current || store.getState().walkthroughPlaying) return Promise.reject(new Error('Detén el recorrido antes de capturar una imagen.'));
-      const job = captureQueue.current.then(async (): Promise<SceneCapture> => {
+      const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
       const initial = root.current?.get();
       if (!initial) throw new Error('La vista 3D no está disponible.');
       const originalPosition = initial.camera.position.clone();
@@ -110,10 +137,16 @@ function SceneView({
       const originalEnabled = controls?.enabled;
       const originalTarget = controls?.target.clone();
       const originalSelection = [...store.getState().selection];
+      let restoreWalls: (() => void) | null = null;
+      let restoreLighting: (() => void) | null = null;
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
       store.getState().select([]);
       if (options?.lighting) flushSync(() => setLighting(options.lighting!));
+      // Con zonas, un ángulo pedido enseña solo la zona: encuadre y cortes a su medida.
+      const framing = !options?.camera && options?.maskRegions?.length && options.view && options.view !== 'current'
+        ? zoneFraming(options.maskRegions, options.view, levelHeightM(store.getState().document), allLevels ? levelElevationM(store.getState().document) : 0)
+        : null;
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
         const sequence = ++captureSequence.current;
         await new Promise<void>((resolve, reject) => {
@@ -121,10 +154,14 @@ function SceneView({
           cameraApplied.current = (applied) => {
             if (applied === sequence) { clearTimeout(timeout); cameraApplied.current = null; resolve(); }
           };
-          setRequest({ sequence, action: options?.view && options.view !== 'current' ? options.view : 'fit' });
+          setRequest({ sequence, action: options?.view && options.view !== 'current' ? options.view : 'fit',
+            ...(framing ? { focus: framing.focus } : {}) });
         });
       }
       const currentDocument = store.getState().document;
+      const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
+      // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
+      const cut = options?.camera ? false : options?.view && options.view !== 'current' ? captureCutaway(options.view, cutaway) : cutaway;
       if (options?.camera) {
         const pose = cameraPoseSchema.parse(options.camera);
         if (allLevels) throw new Error('Activa Solo planta activa antes de capturar un punto del recorrido.');
@@ -139,26 +176,43 @@ function SceneView({
       const ceilingHeights = visibleLevels.flatMap((level) => ceilingSurfaces(level.document)
         .map((surface) => (surface.heightMm + level.elevationMm) / 1000));
       flushSync(() => setCaptureCeilings(options?.camera ? 'solid' : captureCeilingView(
-        options?.view && options.view !== 'current' ? options.view : activeView,
-        { cutaway, cameraHeightM: initial.camera.position.y,
+        capturedView,
+        { cutaway: cut, forDesign: !fullResolution, cameraHeightM: initial.camera.position.y,
           highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null },
       )));
+      // El bucle es bajo demanda: sin esto una captura que solo mueve la cámara
+      // no dibujaría ningún fotograma y el recorte de muros quedaría el de antes.
+      initial.invalidate();
       await frames();
       const state = root.current?.get();
       if (!state || state.gl.getContext().isContextLost()) throw new Error('La vista 3D no está disponible.');
+      // Recorte aplicado aquí mismo y no vía estado: debe estar en ESTA foto.
+      if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
+      // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
+      if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
+      if (framing) state.gl.clippingPlanes = framing.planes.map((plane) => new Plane(new Vector3(...plane.normal), plane.constant));
       state.gl.render(state.scene, state.camera);
       const camera = state.camera;
       if (!('fov' in camera) || typeof camera.fov !== 'number') throw new Error('Cámara no compatible.');
-      return { dataUrl: captureForPersistence(state.gl.domElement),
-        ...(fullResolution ? { downloadDataUrl: state.gl.domElement.toDataURL('image/png') } : {}), view: {
+      const dataUrl = captureForPersistence(state.gl.domElement);
+      const downloadDataUrl = fullResolution ? state.gl.domElement.toDataURL('image/png') : undefined;
+      // Misma cámara y mismo encuadre: la máscara casa píxel a píxel con la captura.
+      const maskDataUrl = options?.maskRegions?.length
+        ? renderZoneMask(state.gl, state.scene, camera, options.maskRegions, captureForPersistence) : undefined;
+      return { dataUrl, ...(maskDataUrl ? { maskDataUrl } : {}),
+        ...(downloadDataUrl ? { downloadDataUrl } : {}), view: {
         preset: options?.camera ? 'custom' : options?.view && options.view !== 'current' ? options.view : activeView ?? 'custom', focus: camera.position.clone().add(camera.getWorldDirection(new Vector3())).toArray(), levelId: currentDocument.activeLevelId ?? null, levelElevationM: allLevels ? (buildingDocuments(currentDocument).find((level) => level.id === currentDocument.activeLevelId)?.elevationMm ?? 0) / 1000 : 0, position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
-        fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: options?.camera ? false : cutaway,
+        fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: cut,
         lighting: options?.lighting ?? originalLighting,
-        cutawayWallIds: !options?.camera && cutaway ? scene.exteriorWalls.filter((wall) =>
+        cutawayWallIds: cut ? scene.exteriorWalls.filter((wall) =>
           (camera.position.x - wall.x) * wall.normalX + (camera.position.z - wall.z) * wall.normalZ > .01,
         ).map((wall) => wall.sourceEntityId) : [],
       } };
       } finally {
+        restoreWalls?.();
+        restoreLighting?.();
+        const renderer = root.current?.get().gl;
+        if (renderer?.clippingPlanes.length) renderer.clippingPlanes = [];
         initial.camera.position.copy(originalPosition);
         initial.camera.quaternion.copy(originalQuaternion);
         if (initial.camera instanceof PerspectiveCamera && originalFov !== null) initial.camera.fov = originalFov;
@@ -173,7 +227,11 @@ function SceneView({
         await frames();
       }
       });
-      captureQueue.current = job.catch(() => undefined);
+      const job = withTimeout(inner, CAPTURE_TIMEOUT_MS, 'La captura del 3D tardó demasiado. Comprueba que la vista 3D se ve y vuelve a intentarlo.');
+      // La cola sigue a la TAREA real, no a la promesa acotada: tras un plazo
+      // agotado, la captura anterior aún mueve cámara, cortes y visibilidad, y su
+      // `finally` pisaría a la siguiente. Las esperas internas tienen su propio plazo.
+      captureQueue.current = inner.catch(() => undefined);
       return job;
     };
     captureRender.current = capture;
@@ -278,21 +336,29 @@ function SceneView({
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]}>
           <OutdoorLighting document={document} />
-          <CeilingLightingMeshes document={document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} selection={selection} onSelect={select} />
-          {scene.polygons.map((polygon) => <CutawayWall key={polygon.id} enabled={!walking && !recording && !capturingPose && cutaway && polygon.role !== 'floor'}
+          <group visible={showLighting} userData={{ lightingLayer: true }}>
+            <CeilingLightingMeshes document={document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} selection={selection} onSelect={select} />
+          </group>
+          {scene.polygons.map((polygon) => <CutawayWall key={polygon.id} cuttable={polygon.role !== 'floor'} enabled={!walking && !recording && !capturingPose && cutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall>)}
-          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => <CutawayWall key={box.id} enabled={!walking && !recording && !capturingPose && cutaway && box.role === 'wall'}
-            exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === box.sourceEntityId)} selected={selection.includes(box.sourceEntityId)}>
+          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => {
+            // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
+            const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
+            return <CutawayWall key={box.id} cuttable={cuttable} enabled={!walking && !recording && !capturingPose && cutaway && cuttable}
+            exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
-          </CutawayWall>)}
+          </CutawayWall>;
+          })}
           {scene.ramps.map((ramp) => <RampMesh key={ramp.id} ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} />)}
           {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <FurnitureModel key={item.id} item={item}
             boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} />)}
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
-          <CeilingLightingMeshes document={level.document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} lightBudget={lightBudgets[index]} />
+          <group visible={showLighting} userData={{ lightingLayer: true }}>
+            <CeilingLightingMeshes document={level.document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} lightBudget={lightBudgets[index]} />
+          </group>
           {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
             .map((box) => <BoxMesh key={box.id} box={box} selected={false} onSelect={() => {}} />)}
@@ -333,12 +399,14 @@ export function EditorSceneView({
   onSaveNativeVideo,
   onSaveNativeRender,
   onCaptureReady,
+  showLighting,
 }: {
   store: EditorStore;
   onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
+  showLighting?: boolean;
 }) {
-  return <SceneErrorBoundary><SceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} /></SceneErrorBoundary>;
+  return <SceneErrorBoundary><SceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={showLighting} /></SceneErrorBoundary>;
 }
 export default EditorSceneView;

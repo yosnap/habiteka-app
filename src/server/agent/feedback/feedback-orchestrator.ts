@@ -14,20 +14,34 @@ import type {
   CanvasZone,
   Plano2dPayload,
   PlanZone,
+  InpaintRequest,
 } from '@/lib/contracts';
 import type { Prisma } from '@/generated/prisma/client';
 import { resolveZone } from './zone-resolver';
 import { buildInpaintZone } from './mask-builder';
 import { directedInpaint } from './directed-inpaint';
 import { replaceZone } from './partial-plan-editor';
-import { loadDeliverable, createIteration, type IterationResult } from './iteration-repo';
+import {
+  loadDeliverable,
+  createIteration,
+  countIterations,
+  type IterationResult,
+} from './iteration-repo';
 import { agentError } from '../errors';
+import { evaluateIterationResult } from '@/server/quality/iteration-result-gate';
 
 export interface FeedbackDeps {
   image: ImageAdapter;
   debit: DebitService;
   /** Regenera el subárbol de una zona del plano (structured output del fragmento). */
-  regenerateZone: (instruction: string, zoneId: string) => Promise<PlanZone>;
+  regenerateZone: (instruction: string, zoneId: string, current?: PlanZone) => Promise<PlanZone>;
+  /**
+   * Imagen base del render a retocar. Sin él se usa la `assetUrl` guardada, que es
+   * una presignada que caduca: el llamador con acceso al storage debe aportarlo.
+   */
+  loadRenderBase?: (payload: unknown) => Promise<InpaintRequest['baseImage']>;
+  /** Reescribe la memoria de materiales según la instrucción; sin él no es iterable. */
+  reviseMemoria?: (markdown: string, instruction: string) => Promise<string>;
 }
 
 export interface FeedbackInput {
@@ -38,6 +52,17 @@ export interface FeedbackInput {
   /** Para planos: id de la zona del plano a regenerar. */
   planZoneId?: string;
   estimateCredits: number;
+  /**
+   * Id único de ESTE intento (lo genera el servidor por invocación). Es la clave
+   * idempotente del cobro: repetir la misma instrucción sobre el mismo diseño es otra
+   * operación y se cobra; un reintento de red con el mismo id, no.
+   */
+  attemptId?: string;
+  /**
+   * Con quién y sobre qué proyecto registrar la calidad de la versión nueva. Sin
+   * él la iteración no se puntúa (útil en pruebas y en llamadas sin sesión).
+   */
+  quality?: { userId: string; projectId: string };
 }
 
 export async function runFeedback(
@@ -45,7 +70,10 @@ export async function runFeedback(
   input: FeedbackInput,
 ): Promise<IterationResult> {
   const deliverable = await loadDeliverable(input.organizationId, input.deliverableId);
-  const idempotencyKey = `iterate:${input.deliverableId}:v${deliverable.version}:${hash(input.instruction)}`;
+  // Sin `attemptId` (endpoint del lienzo), el nº de iteraciones ya registradas separa
+  // un intento nuevo de uno repetido: la versión del diseño base no cambia nunca.
+  const attempt = input.attemptId ?? `n${await countIterations(input.deliverableId)}:${hash(input.instruction)}`;
+  const idempotencyKey = `iterate:${input.deliverableId}:${attempt}`;
 
   const hold = await deps.debit.hold(idempotencyKey, {
     kind: 'tokens',
@@ -66,9 +94,23 @@ export async function runFeedback(
       kind: 'tokens',
       usage: { promptTokens: input.estimateCredits, completionTokens: 0 },
     });
+    // Calidad de la versión nueva: DESPUÉS de persistirla y cobrarla (la referencia
+    // es su id) y sin poder romper la iteración, igual que en la entrega inicial.
+    if (input.quality) {
+      await evaluateIterationResult(
+        { organizationId: input.organizationId, userId: input.quality.userId },
+        {
+          projectId: input.quality.projectId,
+          newDeliverableId: result.newDeliverableId,
+          type,
+          payload,
+        },
+      );
+    }
     return result;
   } catch (err) {
-    await deps.debit.revert(hold);
+    // El error que ve el usuario es siempre el original, aunque liberar la reserva falle.
+    await deps.debit.revert(hold).catch(() => undefined);
     throw err;
   }
 }
@@ -81,9 +123,11 @@ async function regenerate(
   if (deliverable.type === 'RENDER_3D' || deliverable.type === 'render3d') {
     const box = resolveZone(input.zone);
     const zone = buildInpaintZone({ zoneId: input.zone.id, box, maskRef: input.zone.maskRef });
-    const baseAssetUrl = readRenderUrl(deliverable.payload);
+    const baseImage = deps.loadRenderBase
+      ? await deps.loadRenderBase(deliverable.payload)
+      : { url: readRenderUrl(deliverable.payload) };
     const result = await directedInpaint(deps.image, {
-      baseAssetUrl,
+      baseImage,
       zone,
       instruction: input.instruction,
     });
@@ -102,11 +146,24 @@ async function regenerate(
   if (deliverable.type === 'PLANO_2D' || deliverable.type === 'plano2d') {
     if (!input.planZoneId) throw agentError('phase_guard', 'Falta la zona del plano a regenerar');
     const plano = readPlano(deliverable.payload);
-    const regenerated = await deps.regenerateZone(input.instruction, input.planZoneId);
+    const current = plano.zones.find((z) => z.id === input.planZoneId);
+    if (!current) throw agentError('phase_guard', 'La zona del plano no existe');
+    const regenerated = await deps.regenerateZone(input.instruction, input.planZoneId, current);
     const next = replaceZone(plano, input.planZoneId, regenerated);
     return {
       payload: { type: 'plano2d', plano: next } as unknown as Prisma.InputJsonValue,
       type: 'plano2d',
+    };
+  }
+
+  if ((deliverable.type === 'MEMORIA' || deliverable.type === 'memoria') && deps.reviseMemoria) {
+    const markdown = (deliverable.payload as { markdown?: unknown })?.markdown;
+    if (typeof markdown !== 'string') throw agentError('schema_repair_failed', 'Memoria inválida');
+    const revised = await deps.reviseMemoria(markdown, input.instruction);
+    if (!revised.trim()) throw agentError('schema_repair_failed', 'La memoria revisada llegó vacía');
+    return {
+      payload: { type: 'memoria', markdown: revised } as Prisma.InputJsonValue,
+      type: 'memoria',
     };
   }
 

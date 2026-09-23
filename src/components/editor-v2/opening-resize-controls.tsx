@@ -8,6 +8,7 @@ import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance'
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { assertSpatialPlacement } from '@/canvas/editor-v2/spatial-placement';
 import { wallPath } from '@/lib/editor-document/wall-path';
+import { resizeOpeningFromEdge } from '@/lib/editor-document/resize-opening';
 
 export function OpeningResizeControls({ store, source, preview, id, scale, onPreview }: {
   store: EditorStore; source: EditorDocument; preview: EditorDocument; id: string; scale: number; onPreview: (doc: EditorDocument | null) => void;
@@ -31,8 +32,10 @@ export function OpeningResizeControls({ store, source, preview, id, scale, onPre
     return <Circle key={side} x={point.x} y={point.y} radius={6 / scale} fill="white" stroke="#087f75" strokeWidth={2 / scale} draggable
       onDragStart={(e) => { e.cancelBubble = true; active.current = { node: e.target, doc: null, error: null }; }}
       onDragMove={(e) => { e.cancelBubble = true; const gesture = active.current, p = e.target.getStage()?.getRelativePointerPosition(); if (!gesture || !p) return;
-        const widthMm = Math.max(50, 2 * Math.abs(path.project(p) - opening.position) * length);
-        const candidate = { ...source, openings: source.openings.map((o) => o.id === id ? { ...o, widthMm } : o) };
+        // El borde opuesto queda fijo; con Alt el hueco crece por ambos lados alrededor de su centro.
+        const base = source.openings.find((o) => o.id === id)!;
+        const resized = resizeOpeningFromEdge(base, length, side as -1 | 1, path.project(p), e.evt.altKey);
+        const candidate = { ...source, openings: source.openings.map((o) => o.id === id ? { ...o, ...resized } : o) };
         let error: string | null = null;
         try { assertEditorDocument(candidate); assertOpeningClearance(candidate, candidate.openings.find((o) => o.id === id)!); assertSpatialPlacement(source, candidate); }
         catch (cause) { error = cause instanceof Error ? cause.message : 'Ancho inválido'; }

@@ -78,7 +78,7 @@ describe('directedInpaint — consume la primitiva de inpaint', () => {
       },
     };
     const result = await directedInpaint(image, {
-      baseAssetUrl: 'https://cdn/base.png',
+      baseImage: { url: 'https://cdn/base.png' },
       zone: { id: 'z1', bbox: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 } },
       instruction: 'cambia el suelo a parquet',
     });

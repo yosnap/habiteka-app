@@ -9,6 +9,8 @@ export type SceneCameraPreset = 'top' | 'isometric' | 'front' | 'back' | 'left' 
 export interface CameraRequest {
   sequence: number;
   action: 'fit' | 'in' | 'out' | SceneCameraPreset;
+  /** Caja a encuadrar en lugar de toda la escena (p. ej. la zona permitida). */
+  focus?: { center: [number, number, number]; size: [number, number, number] };
 }
 
 const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, number]> = {
@@ -46,7 +48,10 @@ export function SceneCamera({ request, sceneVersion, onManualChange, onContextLo
     } else {
       // Bounds only measures geometry. A single controller owns the camera,
       // avoiding a pending Bounds animation overwriting a preset on the next frame.
-      const { center, size: extent } = bounds.refresh().getSize();
+      const focus = isNewRequest ? request.focus : undefined;
+      const { center, size: extent } = focus
+        ? { center: new Vector3(...focus.center), size: new Vector3(...focus.size) }
+        : bounds.refresh().getSize();
       const direction = action in PRESET_DIRECTIONS
         ? new Vector3(...PRESET_DIRECTIONS[action as SceneCameraPreset]).normalize()
         : camera.position.clone().sub(orbit.target).normalize();

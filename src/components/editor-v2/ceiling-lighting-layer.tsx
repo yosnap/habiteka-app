@@ -3,6 +3,7 @@ import { snapPointDrag } from './magnetic-drag';
 import { useMemo } from 'react';
 import { useStore } from 'zustand';
 import { Circle, Group, Line } from 'react-konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { updateLuminaire } from '@/lib/editor-document/ceiling-commands';
 import { ceilingSurfaces } from '@/lib/editor-document/ceiling-geometry';
@@ -13,15 +14,26 @@ export function CeilingLightingLayer({ store, scale, disabled }: { store: Editor
   const surfaces = useMemo(() => {
     try { return ceilingSurfaces(doc); } catch { return []; }
   }, [doc]);
+  // Mayús, Cmd o Ctrl suman o quitan luces de la selección para editarlas en bloque.
+  const pick = (event: KonvaEventObject<MouseEvent | TouchEvent>, id: string) => {
+    if (state.tool !== 'select') return;
+    event.cancelBubble = true;
+    const native = event.evt as MouseEvent;
+    const current = store.getState().selection;
+    if (!(native.shiftKey || native.metaKey || native.ctrlKey)) { state.select([id]); return; }
+    const lights = new Set((doc.luminaires ?? []).map((light) => light.id));
+    const kept = current.filter((item) => lights.has(item));
+    state.select(kept.includes(id) ? kept.filter((item) => item !== id) : [...kept, id]);
+  };
   return <Group listening={!disabled}>
     {surfaces.filter(({ ceiling }) => state.selection.includes(ceiling.id) || doc.luminaires?.some((light) => light.ceilingId === ceiling.id && state.selection.includes(light.id))).map(({ ceiling, room }) => <Line key={ceiling.id}
       points={room.boundary.flatMap((point) => [point.x, point.y])} closed stroke="#087f75" strokeWidth={1.5 / scale} dash={[6 / scale, 4 / scale]} listening={false} />)}
     {(doc.luminaires ?? []).map((light) => {
       const active = state.selection.includes(light.id), ink = active ? '#087f75' : '#75521d';
       return <Group key={light.id} x={light.x} y={light.y} draggable={!state.readOnly && state.tool === 'select'}
-        onClick={(e) => { if (state.tool === 'select') { e.cancelBubble = true; state.select([light.id]); } }}
-        onTap={(e) => { if (state.tool === 'select') { e.cancelBubble = true; state.select([light.id]); } }}
-        onDragStart={() => state.select([light.id])}
+        onClick={(e) => pick(e, light.id)}
+        onTap={(e) => pick(e, light.id)}
+        onDragStart={() => { if (!store.getState().selection.includes(light.id)) state.select([light.id]); }}
         onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [light.id]))}
         onDragEnd={(e) => {
           const point = e.target.position(); e.target.position({ x: light.x, y: light.y });

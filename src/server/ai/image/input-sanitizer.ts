@@ -71,6 +71,31 @@ export async function sanitizeImageBuffer(buf: Buffer): Promise<SanitizedImage> 
 }
 
 /**
+ * Para imágenes PROPIAS (renders ya generados y guardados por la plataforma que se
+ * reutilizan como referencia): si superan el máximo de lado, se reducen
+ * proporcionalmente en vez de rechazarse, y después pasan el saneado normal. Las
+ * imágenes que sube el usuario siguen yendo directas a `sanitizeImageBuffer`.
+ */
+export async function sanitizeOwnRenderBuffer(buf: Buffer): Promise<SanitizedImage> {
+  assertImageBytes(buf.byteLength);
+  if (detectMime(buf) === null) {
+    throw aiError('sanitizer', 'Formato de imagen no reconocido por sus bytes');
+  }
+  const meta = await sharp(buf).metadata();
+  if (!meta.width || !meta.height) {
+    throw aiError('sanitizer', 'No se pudieron leer las dimensiones de la imagen');
+  }
+  if (meta.width <= MAX_IMAGE_DIMENSION && meta.height <= MAX_IMAGE_DIMENSION) {
+    return sanitizeImageBuffer(buf);
+  }
+  const resized = await sharp(buf)
+    .resize({ width: MAX_IMAGE_DIMENSION, height: MAX_IMAGE_DIMENSION, fit: 'inside', withoutEnlargement: true })
+    .png()
+    .toBuffer();
+  return sanitizeImageBuffer(resized);
+}
+
+/**
  * Rechaza explícitamente una URL externa aportada por el usuario: el proveedor de
  * visión la fetchearía (SSRF). Solo se permiten assets propios ya saneados.
  */

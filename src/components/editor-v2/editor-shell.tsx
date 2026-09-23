@@ -2,6 +2,7 @@
 import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import dynamic from 'next/dynamic';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import {
@@ -55,13 +56,23 @@ import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
 import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
 import { placeLandingAtStairArrival } from '@/lib/editor-document/stair-landing-placement';
 import { EditorGenerateDialog } from './editor-generate-dialog';
-import { renderDesignOptionsSchema, type RenderDesignOptions, type RenderGeneratedResult } from '@/lib/editor-document/render-design-options';
+import {
+  roomInteriorCameras,
+  selectedInteriorCameras,
+} from '@/lib/editor-document/room-interior-cameras';
+import type { AutoGenerateRequest } from './auto-generate-request';
+import { useMountEffect } from '@/lib/use-mount-effect';
+import { waitUntil } from '@/lib/async-wait';
+import { isInteriorRenderMode, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions, type RenderGeneratedResult } from '@/lib/editor-document/render-design-options';
 import type { Estilo } from '@/lib/contracts';
 import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
+
+/** Plazo para que la escena 3D quede lista: aquí tarda decenas de segundos. */
+const SCENE_READY_TIMEOUT_MS = 90_000;
 
 const CanvasView = dynamic(() => import('./canvas-view').then((module) => module.CanvasView), {
   ssr: false,
@@ -89,6 +100,7 @@ export interface EditorShellProps {
     objetivo: string;
     promptLibre: string;
     options: RenderDesignOptions;
+    qualityAck: boolean;
   }) => Promise<NativeDesignProposal>;
   onGenerateRender?: (input: {
     estilo: Estilo;
@@ -98,10 +110,15 @@ export interface EditorShellProps {
     options?: RenderDesignOptions;
     batchId?: string;
     referenceDesignId?: string;
+    qualityAck: boolean;
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
+  /** Evaluación de calidad del plano guardado que ve el diálogo al abrirse. */
+  onEvaluateQuality?: () => Promise<QualityVerdict | null>;
   generateEnabled?: boolean;
   generateDisabledReason?: string;
+  /** Arranque pedido por la URL: abre el diálogo de generación ya preparado. */
+  autoGenerate?: AutoGenerateRequest | null;
 }
 export function EditorShell({
   store,
@@ -119,8 +136,10 @@ export function EditorShell({
   onGenerateDesign,
   onGenerateRender,
   onEstimateRender,
+  onEvaluateQuality,
   generateEnabled = true,
   generateDisabledReason,
+  autoGenerate = null,
 }: EditorShellProps) {
   const past = useStore(store, (s) => s.past.length),
     future = useStore(store, (s) => s.future.length);
@@ -155,18 +174,37 @@ export function EditorShell({
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
+  // La escena 3D se carga en diferido y tarda segundos: lo que dependa de ella
+  // se espera, se informa y vence; nunca se queda colgado sin explicación.
+  const [sceneReady, setSceneReady] = useState(false);
   const captureView = useRef<CaptureRenderView | null>(null);
   const captureDocument = useRef('');
   const keyframeCamera = useRef<ReturnType<typeof cameraPoseFromView> | null>(null);
   const keyframeTarget = useRef<{ routeId: string; waypointId: string } | null>(null);
   const [imageRevision, setImageRevision] = useState(0);
   const [preparingPoint, setPreparingPoint] = useState(false);
-  const onCaptureReady = useCallback((capture: CaptureRenderView | null) => { captureView.current = capture; }, []);
-  const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
-    if (!captureView.current) throw new Error('Abre la vista 3D para previsualizar el diseño.');
-    return captureView.current({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true,
-      ...(keyframeCamera.current && options.views[0] === 'current' ? { camera: keyframeCamera.current } : {}) });
+  const onCaptureReady = useCallback((capture: CaptureRenderView | null) => {
+    captureView.current = capture;
+    setSceneReady(Boolean(capture));
   }, []);
+  /**
+   * Única puerta a la escena 3D: conmuta a 3D si hace falta y espera a que la
+   * vista avise de que puede capturar. Con plazo, porque cargar el 3D puede
+   * fallar (WebGL perdido, modelo enorme) y entonces hay que decirlo.
+   */
+  const awaitScene = useCallback(async (): Promise<CaptureRenderView> => {
+    if (!captureView.current) setMode('3d');
+    await waitUntil(() => Boolean(captureView.current), {
+      timeoutMs: SCENE_READY_TIMEOUT_MS,
+      message: 'La vista 3D no terminó de cargar. Espera a que aparezca el modelo y vuelve a intentarlo.',
+    });
+    return captureView.current!;
+  }, []);
+  const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
+    const capture = await awaitScene();
+    return capture({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true,
+      ...(keyframeCamera.current && options.views[0] === 'current' ? { camera: keyframeCamera.current } : {}) });
+  }, [awaitScene]);
   const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });
   const designWalkthroughPoint = async (waypointId: string) => {
     if (preparingPoint) return;
@@ -177,11 +215,8 @@ export function EditorShell({
       const frame = walkthroughKeyframes(state.document, route).find((item) => item.waypointId === waypointId);
       if (!frame) throw new Error('El punto ya no existe.');
       const snapshot = documentGeometry();
-      state.setWalkthroughPlaying(false); setMode('3d'); setWalkthroughPanel(false);
-      const deadline = Date.now() + 15000;
-      while (!captureView.current && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 100));
-      if (!captureView.current) throw new Error('No se pudo preparar la escena 3D.');
-      const capture = await captureView.current({ camera: frame.camera });
+      state.setWalkthroughPlaying(false); setWalkthroughPanel(false);
+      const capture = await (await awaitScene())({ camera: frame.camera });
       if (snapshot !== documentGeometry()) throw new Error('El plano cambió. Vuelve a elegir el punto.');
       keyframeCamera.current = frame.camera;
       keyframeTarget.current = { routeId: route.id, waypointId };
@@ -189,23 +224,54 @@ export function EditorShell({
     } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo preparar la vista.'); }
     finally { setPreparingPoint(false); }
   };
-  const openGenerate = async () => {
+  /**
+   * Ruta única para abrir «Diseñar con IA», venga del botón (en 2D o en 3D) o
+   * del asistente. El diálogo se abre siempre y de inmediato —también con el 3D
+   * a medio cargar, que aquí tarda decenas de segundos— y él mismo enseña que
+   * la escena sigue cargando; la captura de cortesía de la vista actual se
+   * rellena en cuanto la escena avisa de que está lista.
+   *
+   * Que el diálogo espere en vez de bloquearse es lo que impide el «Preparando…»
+   * eterno: toda espera pasa por `awaitScene`, que tiene plazo y mensaje.
+   */
+  const openGenerate = () => {
     keyframeCamera.current = null;
     keyframeTarget.current = null;
-    try {
-      if (mode === '3d') {
-        if (!captureView.current) throw new Error('Espera a que termine de cargar la vista 3D.');
+    setRenderCapture(undefined);
+    setMode('3d');
+    setGenerateOpen(true);
+    void (async () => {
+      try {
+        const capture = await awaitScene();
         const snapshot = documentGeometry();
-        const capture = await captureView.current();
-        if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la captura. Vuelve a abrir Diseñar con IA.');
+        const shot = await capture();
+        if (snapshot !== documentGeometry()) return; // El plano cambió: sin captura de cortesía.
         captureDocument.current = snapshot;
-        setRenderCapture(capture);
-      } else setRenderCapture(undefined);
-      setGenerateOpen(true);
-    } catch (error) {
-      store.getState().setError(error instanceof Error ? error.message : 'No se pudo capturar la vista.');
-    }
+        setRenderCapture(shot);
+      } catch {
+        // La captura de cortesía es un extra: el diálogo funciona sin ella y ya
+        // indica si la escena no está lista. Un aviso rojo aquí solo estorba.
+      }
+    })();
   };
+  /**
+   * Llegada desde el asistente: misma ruta que el botón.
+   *
+   * La petición se borra de la URL nada más atenderla para que recargar no
+   * vuelva a abrirla. Se hace con `history.replaceState` y no con
+   * `router.replace` porque una navegación del App Router reejecuta el
+   * componente de servidor, y eso reabre la rama de borrador de la sesión del
+   * editor: limpiar la URL no puede costar el espacio de trabajo.
+   */
+  useMountEffect(() => {
+    if (!autoGenerate || !projectId || !onGenerateRender) return;
+    openGenerate();
+    const url = new URL(window.location.href);
+    url.searchParams.delete('generar');
+    url.searchParams.delete('estilo');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+  });
+
   const [center, setCenter] = useState<Point>({ x: 3000, y: 2000 });
   const constructionButton = useRef<HTMLButtonElement>(null),
     canvasHost = useRef<HTMLDivElement>(null);
@@ -510,7 +576,7 @@ export function EditorShell({
             disabled={
               readOnly || !projectId || !onGenerateDesign || !onGenerateRender || !generateEnabled
             }
-            onClick={() => void openGenerate()}
+            onClick={openGenerate}
             title={
               generateDisabledReason ??
               (!onGenerateDesign
@@ -652,7 +718,7 @@ export function EditorShell({
             if (construction) setConstruction(false);
           }}
         >
-          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} />
+          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting} />
         </div>
         {mode === '3d' && (
           <div
@@ -661,7 +727,7 @@ export function EditorShell({
               if (construction) setConstruction(false);
             }}
           >
-            <EditorSceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} />
+            <EditorSceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
           </div>
         )}
         {construction && (
@@ -735,16 +801,39 @@ export function EditorShell({
           document={store.getState().document}
           onGenerate={onGenerateDesign}
           capture={renderCapture}
-          onPreview={mode === '3d' ? previewRender : undefined}
+          onPreview={previewRender}
+          sceneReady={sceneReady}
           onEstimate={onEstimateRender}
+          onEvaluateQuality={onEvaluateQuality}
           onPrepare={async (rawOptions) => {
             const options = renderDesignOptionsSchema.parse(rawOptions);
-            if (mode !== '3d' || !captureView.current) throw new Error('Cierra este diálogo y cambia a 3D para preparar las vistas.');
+            // No se rechaza por «todavía no hay 3D»: se espera a que cargue, con
+            // plazo. Quien llega del asistente pulsa antes de que termine.
+            const capture = await awaitScene();
             const snapshot = documentGeometry();
-            const capture = captureView.current;
             const captures: RenderCapture[] = [];
+            // Con zonas, cada captura lleva su máscara: el servidor compone dos
+            // pasadas con ella y así nada cambia fuera de la zona.
+            const zoneMask = zoneCompositeActive(options)
+              ? { maskRegions: options.regions.map((region) => region.polygon) } : {};
+            // Vistas interiores: una captura por estancia con su cámara a altura
+            // de ojos. La geometría va en la imagen; la IA solo pone el aspecto.
+            if (isInteriorRenderMode(options)) {
+              const rooms = selectedInteriorCameras(
+                roomInteriorCameras(store.getState().document),
+                options.interiorRoomIds,
+              );
+              if (!rooms.length) throw new Error('Elige al menos una estancia con muros cerrados.');
+              for (const room of rooms) {
+                captures.push(await capture({ lighting: options.lighting, camera: room.camera, ...zoneMask }));
+                if (snapshot !== documentGeometry())
+                  throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
+              }
+              captureDocument.current = snapshot;
+              return captures;
+            }
             for (const view of options.views) {
-              captures.push(await capture({ view, lighting: options.lighting, fit: true,
+              captures.push(await capture({ view, lighting: options.lighting, fit: true, ...zoneMask,
                 ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) }));
               if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
             }
@@ -784,6 +873,14 @@ export function EditorShell({
           }}
           spaceKind={designSpaceKind}
           onSpaceKindChange={setSpaceKind}
+          {...(autoGenerate
+            ? {
+                initialSetup: {
+                  interiorRooms: autoGenerate.interiorRooms,
+                  ...(autoGenerate.estilo ? { estilo: autoGenerate.estilo } : {}),
+                },
+              }
+            : {})}
           onClose={() => setGenerateOpen(false)}
         />
       )}

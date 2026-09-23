@@ -74,6 +74,41 @@ export function applyLightingProposal(source: EditorDocument, proposal: Lighting
   lights.forEach((light) => assertLightPlacement(doc, light));
   return doc;
 }
+/**
+ * Techo para toda la planta: el mismo tipo y acabado en cada estancia interior
+ * cerrada, en un solo paso deshacible. Las estancias donde ese techo no cabe
+ * (altura libre) se saltan y se devuelven para avisar, en vez de frenar al resto.
+ */
+export function setCeilingsForAllRooms(source: EditorDocument, patch: Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color'>> = {}): { document: EditorDocument; applied: number; skipped: number } {
+  let doc = upgradeCeilingDocument(source), applied = 0, skipped = 0;
+  for (const room of eligibleCeilingRooms(doc)) {
+    try { doc = setRoomCeiling(doc, room.id, patch); applied += 1; } catch { skipped += 1; }
+  }
+  if (!applied) throw new Error('Ninguna estancia admite ese techo: revisa el cierre de las habitaciones y la altura libre.');
+  return { document: doc, applied, skipped };
+}
+/** Mismo cambio en varias luces a la vez; todo o nada, con el motivo del primer fallo. */
+export function updateLuminaires(source: EditorDocument, ids: readonly string[], patch: Partial<Omit<Luminaire, 'id' | 'ceilingId' | 'x' | 'y'>>): EditorDocument {
+  if (!ids.length) throw new Error('Selecciona al menos una luminaria');
+  let doc = source;
+  for (const id of ids) {
+    try { doc = updateLuminaire(doc, id, patch); }
+    catch (error) {
+      throw new Error(`No se aplicó a ninguna de las ${ids.length} luces: ${error instanceof Error ? error.message : 'cambio no válido'}`);
+    }
+  }
+  return doc;
+}
+export function removeLuminaires(source: EditorDocument, ids: readonly string[]): EditorDocument {
+  const doc = parseEditorDocument(source), drop = new Set(ids);
+  doc.luminaires = doc.luminaires?.filter((item) => !drop.has(item.id));
+  return parseEditorDocument(doc);
+}
+/** Varias propuestas (una por techo) en un solo paso deshacible. */
+export function applyLightingProposals(source: EditorDocument, proposals: readonly LightingProposal[]): EditorDocument {
+  if (!proposals.length) throw new Error('No hay propuestas que añadir');
+  return proposals.reduce((doc, proposal) => applyLightingProposal(doc, proposal), source);
+}
 function assertLightPlacement(doc: EditorDocument, light: Luminaire): void {
   const issue = luminairePlacementIssue(doc, light);
   if (issue) throw new Error(issue);

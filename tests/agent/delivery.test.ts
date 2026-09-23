@@ -8,7 +8,8 @@ import {
   type DeliveryDeps,
 } from '@/server/agent/phases/entrega';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
-import type { ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
+import { aiError } from '@/server/ai/errors';
+import type { ChatVisionAdapter, ReadyForDelivery, Hold, ImageGenRequest } from '@/lib/contracts';
 
 const ready: ReadyForDelivery = {
   estilo: 'moderno',
@@ -24,15 +25,19 @@ function makeDeps(opts: { failImage?: boolean } = {}): {
 } {
   const calls: string[] = [];
   const imageRequests: ImageGenRequest[] = [];
+  // Un objeto por sección del perfil: sustituir uno en un test no afecta a los demás.
+  const textModel = (): ChatVisionAdapter => ({
+    chat: async () => ({
+      content: 'memoria',
+      structured: { schemaVersion: 1, zones: [] },
+      usage: { promptTokens: 1, completionTokens: 1 },
+    }),
+    chatStream: async function* () {},
+  });
   const deps: DeliveryDeps = {
-    chat: {
-      chat: async () => ({
-        content: 'memoria',
-        structured: { schemaVersion: 1, zones: [] },
-        usage: { promptTokens: 1, completionTokens: 1 },
-      }),
-      chatStream: async function* () {},
-    },
+    vision: textModel(),
+    plano2d: textModel(),
+    memoria: textModel(),
     image: {
       generate: async (req) => {
         calls.push('generate');
@@ -265,12 +270,119 @@ describe('memoriaPrompt — borrador de materiales (F5b)', () => {
 describe('runDelivery — plano 2D siempre dibujable', () => {
   it('si el modelo devuelve zonas vacías, el entregable cae al plano base con geometría', async () => {
     const { deps } = makeDeps();
-    deps.chat.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    deps.plano2d.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [{}, {}, {}] }, usage: { promptTokens: 1, completionTokens: 1 } });
     const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
     expect(plano?.payload.type).toBe('plano2d');
     if (plano?.payload.type !== 'plano2d') return;
     expect(plano.payload.plano.zones).toHaveLength(1);
     expect(plano.payload.plano.zones[0]!.outline).toHaveLength(4);
     expect(plano.payload.plano.zones[0]!.walls).toHaveLength(4);
+    expect(plano.payload.plano.aproximado).toBe(true);
+  });
+
+  it('el plano base reparte y acota los huecos detectados en toda la vivienda', async () => {
+    const { deps } = makeDeps();
+    const [plano] = await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['plano2d'] },
+      elements: { walls: 38, doors: 8, windows: 9, pillars: 2 },
+    });
+    if (plano?.payload.type !== 'plano2d') throw new Error('se esperaba un plano');
+    const apertures = plano.payload.plano.zones[0]!.apertures;
+    expect(apertures.filter((a) => a.kind === 'puerta')).toHaveLength(2);
+    expect(apertures.filter((a) => a.kind === 'ventana')).toHaveLength(4);
+    const perWall = new Map<string, number>();
+    for (const a of apertures) perWall.set(a.wallId, (perWall.get(a.wallId) ?? 0) + 1);
+    expect(Math.max(...perWall.values())).toBeLessThanOrEqual(2);
+  });
+
+  it('con imagen de referencia, el plano se lee de la imagen y no del modelo de texto', async () => {
+    const { deps } = makeDeps();
+    const real = {
+      schemaVersion: 1,
+      zones: [{
+        id: 'salon', name: 'Salón', dimensions: [], apertures: [],
+        outline: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }],
+        walls: [{ id: 'm1', from: { x: 0, y: 0 }, to: { x: 5000, y: 0 }, thicknessMm: 150 }],
+      }],
+    };
+    const seen: string[] = [];
+    deps.planoFromImage = async (img) => {
+      seen.push(img.mimeType);
+      return real;
+    };
+    deps.plano2d.chat = async () => {
+      throw new Error('no debería llamarse');
+    };
+    const [plano] = await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['plano2d'] },
+      referenceImage: { base64: 'AAAA', mimeType: 'image/png' },
+    });
+    expect(seen).toEqual(['image/png']);
+    if (plano?.payload.type !== 'plano2d') throw new Error('se esperaba un plano');
+    expect(plano.payload.plano).toEqual(real);
+  });
+
+  it('el plano escrito por el modelo (sin leer la planta) se marca como orientativo', async () => {
+    const { deps } = makeDeps();
+    const zone = {
+      id: 'z', name: 'Salón', apertures: [], dimensions: [],
+      outline: [{ x: 0, y: 0 }, { x: 3000, y: 0 }, { x: 3000, y: 3000 }],
+      walls: [{ id: 'w', from: { x: 0, y: 0 }, to: { x: 3000, y: 0 }, thicknessMm: 100 }],
+    };
+    deps.plano2d.chat = async () => ({ content: '', structured: { schemaVersion: 1, zones: [zone] }, usage: { promptTokens: 1, completionTokens: 1 } });
+    const [plano] = await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d'] } });
+    if (plano?.payload.type !== 'plano2d') throw new Error('se esperaba un plano');
+    expect(plano.payload.plano.aproximado).toBe(true);
+  });
+
+  it('un fallo del proveedor al leer la planta no se oculta tras un plano genérico', async () => {
+    const { deps, calls } = makeDeps();
+    deps.planoFromImage = async () => {
+      throw aiError('rate_limit', 'Demasiadas peticiones al proveedor');
+    };
+    await expect(runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['plano2d'] },
+      referenceImage: { base64: 'AAAA', mimeType: 'image/png' },
+    })).rejects.toThrow('Demasiadas peticiones');
+    expect(calls).toContain('revert');
+  });
+
+  it('si la imagen no es una planta legible, el modelo de plano recibe la imagen adjunta', async () => {
+    const { deps } = makeDeps();
+    deps.planoFromImage = async () => {
+      throw new Error('No se reconocieron muros');
+    };
+    let hadImage = false;
+    deps.plano2d.chat = async (req) => {
+      hadImage = req.messages[0]!.content.some((p) => p.type === 'image_url');
+      return { content: '', structured: null, usage: { promptTokens: 1, completionTokens: 1 } };
+    };
+    const [plano] = await runDelivery(deps, {
+      ...input,
+      collected: { ...ready, entregables: ['plano2d'] },
+      referenceImage: { base64: 'AAAA', mimeType: 'image/png' },
+    });
+    expect(hadImage).toBe(true);
+    if (plano?.payload.type !== 'plano2d') throw new Error('se esperaba un plano');
+    expect(plano.payload.plano.aproximado).toBe(true);
+  });
+});
+
+describe('runDelivery — cada entregable usa su sección del perfil de IA', () => {
+  it('el plano 2D pide a «plano2d» y la memoria a «memoria»', async () => {
+    const { deps } = makeDeps();
+    const used: string[] = [];
+    const record = (section: string): ChatVisionAdapter['chat'] => async () => {
+      used.push(section);
+      return { content: 'texto', structured: { schemaVersion: 1, zones: [] }, usage: { promptTokens: 1, completionTokens: 1 } };
+    };
+    deps.plano2d.chat = record('plano2d');
+    deps.memoria.chat = record('memoria');
+    deps.vision.chat = record('vision');
+    await runDelivery(deps, { ...input, collected: { ...ready, entregables: ['plano2d', 'memoria'] } });
+    expect(used.sort()).toEqual(['memoria', 'plano2d']);
   });
 });

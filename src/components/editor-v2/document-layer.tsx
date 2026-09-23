@@ -48,7 +48,7 @@ import { ColumnLayer } from './column-layer';
 import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
-export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean }) {
+export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
@@ -57,6 +57,9 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls);
+  // Muros que el usuario ocultó: se ven como guía discontinua y se pueden seleccionar para volver a mostrarlos.
+  // Los bordes lógicos de patios y del perímetro exterior no son muros del usuario y siguen sin dibujarse.
+  const ghostWalls = doc.walls.filter((wall) => wall.hidden && showWalls && !wall.id.startsWith('hidden:') && !wall.id.startsWith('outdoor:'));
   const junctions = useMemo(() => wallJunctions({ ...doc, walls: doc.walls.filter((wall) => !wall.hidden) }), [doc]);
   const rooms = useMemo(() => {
     try { return { value: deriveRooms(doc), error: null }; }
@@ -147,6 +150,12 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
             label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />}
       </Group>;
     })}
+    {ghostWalls.map((wall) => {
+      const points = wallPath(doc, wall).samples();
+      return <Line key={`ghost:${wall.id}`} points={points.flatMap((p) => [p.x, p.y])}
+        stroke={selected.includes(wall.id) ? ACCENT : '#8a9591'} strokeWidth={1.5 / scale} dash={[8 / scale, 6 / scale]}
+        hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)} />;
+    })}
     {wallMoveSnap?.guides.map((guide, index) => <Line key={`wall-move-guide:${index}`} points={[guide.from.x, guide.from.y, guide.to.x, guide.to.y]}
       stroke={ACCENT} strokeWidth={2 / scale} dash={[8 / scale, 5 / scale]} listening={false} />)}
     {showWalls && <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />}
@@ -200,7 +209,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     <WalkthroughLayer store={store} scale={scale} disabled={disabled} />
-    <CeilingLightingLayer store={store} scale={scale} disabled={disabled} />
+    {showLighting && <CeilingLightingLayer store={store} scale={scale} disabled={disabled} />}
     <CommentMarkers doc={doc} store={store} scale={scale} />
   </Group>;
 }

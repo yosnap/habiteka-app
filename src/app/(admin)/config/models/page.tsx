@@ -3,11 +3,12 @@
  * la capa de IA lee en runtime; la edición valida contra la allowlist y techo de
  * precio antes de persistir, e invalida la caché para aplicar el cambio sin redeploy.
  */
-import { adminGetKieProviderStatus, adminGetNanProviderStatus, adminGetOpenAiProviderStatus, adminGetOpenRouterProviderStatus, adminListCustomModelProfiles, adminListModelConfig } from '@/server/admin/config/actions';
+import { adminGetKieProviderStatus, adminGetNanProviderStatus, adminGetOpenAiProviderStatus, adminGetOpenRouterProviderStatus, adminGetTypesafeProviderStatus, adminListCustomModelProfiles, adminListModelConfig } from '@/server/admin/config/actions';
 import { KieProviderForm } from '@/components/admin/kie-provider-form';
 import { NanProviderForm } from '@/components/admin/nan-provider-form';
 import { OpenRouterProviderForm } from '@/components/admin/openrouter-provider-form';
 import { OpenAiProviderForm } from '@/components/admin/openai-provider-form';
+import { TypesafeProviderForm } from '@/components/admin/typesafe-provider-form';
 import { AiConfigurationTabs } from '@/components/admin/ai-configuration-tabs';
 import { ModelConfigForm } from '@/components/admin/model-config-form';
 import { allowedModels } from '@/server/admin/config/model-allowlist';
@@ -15,7 +16,7 @@ import { MODEL_PROFILES } from '@/server/admin/config/model-profiles';
 import type { ModelAction } from '@/generated/prisma/enums';
 
 export default async function ModelsPage() {
-  const [configs, kie, nan, openAi, openRouter, customProfiles] = await Promise.all([adminListModelConfig(), adminGetKieProviderStatus(), adminGetNanProviderStatus(), adminGetOpenAiProviderStatus(), adminGetOpenRouterProviderStatus(), adminListCustomModelProfiles()]);
+  const [configs, kie, nan, openAi, openRouter, typesafe, customProfiles] = await Promise.all([adminListModelConfig(), adminGetKieProviderStatus(), adminGetNanProviderStatus(), adminGetOpenAiProviderStatus(), adminGetOpenRouterProviderStatus(), adminGetTypesafeProviderStatus(), adminListCustomModelProfiles()]);
   const actions: ModelAction[] = ['vision', 'chat', 'plano2d', 'render3d', 'inpaint', 'memoria'];
   const savedByAction = new Map(configs.map((config) => [config.action, config]));
   const options = Object.fromEntries(actions.map((action) => {
@@ -58,6 +59,10 @@ export default async function ModelsPage() {
           ))}
         </tbody>
       </table></>}
+        qualitySettings={<div className="flex flex-col gap-3">
+          <p className="text-muted-foreground max-w-2xl text-sm">Jev evalúa la calidad de cada generación antes de gastar tokens: puntúa la evidencia del plano o de la petición y decide si se sigue, se pide confirmación o se manda a corregir. Su coste lo absorbe la plataforma. Los umbrales se ajustan en Ajustes de sistema (<span className="font-mono text-xs">quality_thresholds</span>).</p>
+          <TypesafeProviderForm configured={typesafe.configured} enabled={typesafe.enabled} keyHint={typesafe.keyHint} />
+        </div>}
       />
     </section>
   );

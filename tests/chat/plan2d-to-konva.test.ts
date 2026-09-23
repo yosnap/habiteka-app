@@ -52,3 +52,24 @@ it('omite zonas sin geometría en vez de romper y lo indica con la lista de dibu
   expect(drawableZones(broken)).toHaveLength(0);
   expect(planToPrimitives(broken, { width: 400, height: 300 }).walls).toHaveLength(0);
 });
+
+describe('planToPrimitives — huecos y rótulos', () => {
+  it('proyecta cada hueco como un tramo de su muro y rotula la estancia en su centro', () => {
+    const withAperture: Plano2dPayload = {
+      ...plano,
+      zones: [{
+        ...plano.zones[0]!,
+        apertures: [
+          { id: 'v1', kind: 'ventana', wallId: 'w1', position: 0.5, widthMm: 1000 },
+          { id: 'x', kind: 'puerta', wallId: 'inexistente', position: 0.5, widthMm: 900 },
+        ],
+      }],
+    };
+    const out = planToPrimitives(withAperture, { width: 400, height: 300 });
+    expect(out.apertures).toHaveLength(1);
+    const [x1, , x2] = out.apertures[0]!.points;
+    // 1000 mm de un muro de 4000 mm, centrado: un cuarto del ancho del muro.
+    expect(x2! - x1!).toBeCloseTo(1000 * out.scale);
+    expect(out.labels).toEqual([{ text: 'Salón', x: expect.any(Number), y: expect.any(Number) }]);
+  });
+});

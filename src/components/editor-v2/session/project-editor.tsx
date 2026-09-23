@@ -8,16 +8,26 @@ import type { EditorDocument } from '@/lib/editor-document/schema';
 import { activateEditorDocument } from '@/server/editor/save-document';
 import { EditorShell } from '../editor-shell';
 import { DurableEditor } from './durable-editor';
+import type { AutoGenerateRequest } from '../auto-generate-request';
 
-export function ProjectEditor({ scope, projectName, initial, writable, migration }: {
+export function ProjectEditor({ scope, projectName, initial, writable, migration, autoGenerate }: {
   scope: DraftScope; projectName: string; initial: EditorDocument; writable: boolean;
   migration: { fingerprint: string; complete: boolean; issues: string[] } | null;
+  autoGenerate?: AutoGenerateRequest | null;
 }) {
   const router = useRouter();
   const [store] = useState(() => createEditorStore(initial, { readOnly: true }));
   const [confirmed, setConfirmed] = useState(false), [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!migration && writable) return <DurableEditor scope={scope} projectName={projectName} initial={initial} />;
+  if (!migration && writable)
+    return (
+      <DurableEditor
+        scope={scope}
+        projectName={projectName}
+        initial={initial}
+        autoGenerate={autoGenerate ?? null}
+      />
+    );
   return <div>
     <section className="border-b bg-amber-50 p-4 text-sm text-amber-950">
       <h1 className="font-semibold">{migration ? 'Revisar antes de activar el editor nuevo' : 'Documento en modo solo lectura'}</h1>

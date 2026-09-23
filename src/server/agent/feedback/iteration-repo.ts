@@ -47,7 +47,8 @@ export async function loadDeliverable(
   deliverableId: string,
 ): Promise<LoadedDeliverable> {
   const row = await prisma.deliverable.findFirst({
-    where: { id: deliverableId, project: { organizationId } },
+    // Un diseño borrado no se puede iterar (ni resucitar como versión nueva).
+    where: { id: deliverableId, deletedAt: null, project: { organizationId } },
     select: { id: true, projectId: true, type: true, payload: true, version: true },
   });
   if (!row) throw new DeliverableNotFoundError();
@@ -77,8 +78,8 @@ export interface IterationResult {
 export async function createIteration(input: IterationInput): Promise<IterationResult> {
   return prisma.$transaction(async (tx) => {
     const current = await tx.deliverable.findFirst({
-      where: { id: input.deliverableId, project: { organizationId: input.organizationId } },
-      select: { id: true, projectId: true },
+      where: { id: input.deliverableId, deletedAt: null, project: { organizationId: input.organizationId } },
+      select: { id: true, projectId: true, zoneId: true, sourceImageId: true },
     });
     if (!current) throw new DeliverableNotFoundError();
 
@@ -93,6 +94,9 @@ export async function createIteration(input: IterationInput): Promise<IterationR
     const created = await tx.deliverable.create({
       data: {
         projectId: current.projectId,
+        // La versión nueva sigue siendo de la misma zona e imagen de origen.
+        zoneId: current.zoneId,
+        sourceImageId: current.sourceImageId,
         type: enumType,
         payload: input.newPayload,
         legalSeal: DELIVERABLE_LEGAL_SEAL,
@@ -112,6 +116,11 @@ export async function createIteration(input: IterationInput): Promise<IterationR
 
     return { newDeliverableId: created.id, version: created.version };
   });
+}
+
+/** Iteraciones ya registradas de un entregable (distingue intentos sucesivos). */
+export async function countIterations(deliverableId: string): Promise<number> {
+  return prisma.iteration.count({ where: { deliverableId } });
 }
 
 /** Historial de iteraciones de un entregable (de la org), más recientes primero. */
