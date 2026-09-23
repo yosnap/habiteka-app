@@ -106,22 +106,25 @@ async function readRenderReference(payload: { assetKey?: unknown; assetUrl?: unk
  * Verifica que el proyecto pertenece a la organización de la sesión. El agente
  * (`loadState`/`persistDeliverables`) opera por `projectId` sin acotar org, así que
  * la pertenencia se valida AQUÍ, en la única puerta de entrada, antes de delegar.
+ * No distingue entre planos legacy y del editor v2: el chat, la vista 3D y la
+ * importación de planos no leen ni escriben el lienzo antiguo.
  */
-async function assertProjectInOrg(
+async function assertProjectInOrg(ctx: OrgContext, projectId: string): Promise<void> {
+  const project = await withOrg(ctx).projects.findById(projectId);
+  if (!project) fail('Proyecto no encontrado en tu organización');
+}
+
+/**
+ * Solo para las acciones que reciben un documento del lienzo antiguo: un plano ya
+ * migrado al editor v2 no admite ese flujo, y se rechaza antes de IA/coste.
+ */
+async function assertLegacyCanvasProjectInOrg(
   ctx: OrgContext,
   projectId: string,
   zoneId: string | null = null,
 ): Promise<void> {
-  const project = await withOrg(ctx).projects.findById(projectId);
-  if (!project) fail('Proyecto no encontrado en tu organización');
-  // These actions still consume legacy documents. Reject migrated scopes before IA/cost.
+  await assertProjectInOrg(ctx, projectId);
   await withLegacyAuthority(ctx, { projectId, zoneId }, async () => undefined);
-}
-
-/** El documento V2 ya tiene su propia autoridad; no debe pasar por la puerta legacy. */
-async function assertV2ProjectInOrg(ctx: OrgContext, projectId: string): Promise<void> {
-  const project = await withOrg(ctx).projects.findById(projectId);
-  if (!project) fail('Proyecto no encontrado en tu organización');
 }
 
 /**
@@ -155,7 +158,7 @@ async function advanceAgentImpl(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId, zoneId);
+  await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
 
   // La imagen de origen se persiste en esta capa (la que posee el scope de org),
@@ -250,7 +253,7 @@ export async function generateDesignFromCanvas(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId, zoneId);
+  await assertLegacyCanvasProjectInOrg(ctx, projectId, zoneId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   // Validación de entrada en el boundary RSC: el cliente puede enviar cualquier
   // string pese al tipo. Estilo/entregable inválidos no llegan al prompt ni a la
@@ -307,7 +310,7 @@ export async function generateDesignFromEditor(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
   if (!isValidEntregable(entregable)) fail('Tipo de entregable no válido');
@@ -395,7 +398,7 @@ async function proposeNativeDesignFromEditorImpl(
   rawOptions?: RenderDesignOptions,
 ): Promise<NativeDesignProposal> {
   const ctx = await requireOrgContext();
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   await assertZoneInProject(ctx, projectId, zoneId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
   if (!isDesignSpaceKind(spaceKind)) fail('Selecciona el tipo de espacio en el canvas.');
@@ -456,7 +459,7 @@ async function generateConceptRenderFromEditorImpl(
   settings?: { options?: RenderDesignOptions; batchId?: string; referenceDesignId?: string },
 ): Promise<{ id: string; assetUrl: string; generation?: import('@/lib/contracts').ImageResult['generation'] }> {
   const ctx = await requireOrgContext();
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
   await assertTosAccepted(ctx.userId);
@@ -537,7 +540,7 @@ async function estimateConceptRenderFromEditorImpl(
   viewCount: number,
 ): Promise<{ estimatedUsd: number; model: string }> {
   const ctx = await requireOrgContext();
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > 8)
     fail('El número de vistas debe ser un entero entre 1 y 8.');
   const route = (await resolveRoutes('render3d'))[0];
@@ -575,7 +578,7 @@ async function generateViewFrom3DImpl(
   zoneId: string | null = null,
 ): Promise<AgentOutcome> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId, zoneId);
+  await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
@@ -624,7 +627,7 @@ async function saveNativeRenderImpl(
   rawView?: RenderView,
 ): Promise<{ id: string; assetUrl: string }> {
   const ctx = await requireOrgContext();
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
   const camera = rawView ? cameraPoseFromView(renderViewSchema.parse(rawView)) : undefined;
   const match = NATIVE_RENDER_DATA_URL.exec(String(captureDataUrl ?? ''));
@@ -676,7 +679,7 @@ export async function recommendDecoration(
   objetivo = '',
 ): Promise<DecorRecommendation[]> {
   const ctx = await requireOrgContext();
-  await assertProjectInOrg(ctx, projectId);
+  await assertLegacyCanvasProjectInOrg(ctx, projectId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
   const doc = deserializeCanvas(rawDoc);
@@ -755,7 +758,7 @@ async function sendPlanoToEditorImpl(projectId: string, plano: Plano2dPayload): 
   // Escribe con autoridad de EDITOR (activa v2 si el proyecto aún vive en el
   // canvas legacy; revisión nueva si ya está activado). No pasa por la puerta
   // legacy: un proyecto ya migrado también puede recibir un plano extraído.
-  await assertV2ProjectInOrg(ctx, projectId);
+  await assertProjectInOrg(ctx, projectId);
   // Mismas cotas de cordura que el resto de consumidores del payload cliente.
   assertPlanoRasterizable(plano);
   await importPlanToEditor(ctx, projectId, {
