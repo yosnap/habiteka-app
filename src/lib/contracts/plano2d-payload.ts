@@ -69,4 +69,14 @@ export interface Plano2dPayload {
    * geometría escrita por el modelo). La UI no lo presenta como el plano del espacio.
    */
   aproximado?: boolean;
+  /**
+   * Veredicto de fiabilidad de la lectura (puerta de calidad). `score` es el
+   * porcentaje (null si no se pudo evaluar) y `motivos` va en español para el
+   * usuario. Ausente = plano no sometido a la puerta.
+   */
+  calidad?: {
+    score: number | null;
+    decision: 'proceed' | 'confirm' | 'block';
+    motivos: string[];
+  };
 }

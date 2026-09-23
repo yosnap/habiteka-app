@@ -12,6 +12,9 @@ import type { ModelAction } from '@/generated/prisma/enums';
 import { createDebitService } from './debit-service-impl';
 import { extractPlanSource } from '@/server/plan/extract-plan-source';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
+import { evaluateCheckpoint } from '@/server/quality/evaluate';
+import { buildPlanEvidence } from '@/server/quality/evidence/plan-evidence';
+import { applyPlanQuality } from '@/lib/plan-quality';
 
 // Mínimo de muros medidos en la imagen para tratarla como una planta.
 const MIN_PLAN_WALLS = 4;
@@ -83,14 +86,23 @@ export async function getAgent(
             if (!detected || detected.walls.length < MIN_PLAN_WALLS) {
               throw new Error('La imagen no es una planta legible.');
             }
-            return buildPlanImport(raw, {
+            const result = buildPlanImport(raw, {
               includeFurniture: false,
-              normalize: detected
-                ? { wallsOverride: detected.walls, imageHeightOverWidth: detected.heightOverWidth }
-                : {},
-            }).plano;
+              normalize: { wallsOverride: detected.walls, imageHeightOverWidth: detected.heightOverWidth },
+            });
+            // Puerta de fiabilidad: solo una lectura que Jev da por buena se
+            // entrega como plano fiel; con dudas o sin evaluación posible, el
+            // plano se marca como aproximado y el usuario lo ve así.
+            const quality = await evaluateCheckpoint(
+              { organizationId, userId },
+              'plan_extraction',
+              buildPlanEvidence({ raw, detected, result }),
+              { projectId },
+            );
+            return applyPlanQuality(result.plano, quality);
           },
           debit,
+          organizationId,
           userId,
           resolveZoneContext,
           // Id ÚNICO por entregable. Antes un contador de módulo (`del-pid-type-N`)

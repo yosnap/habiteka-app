@@ -7,10 +7,20 @@
  */
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { STEPS, type StepId } from './wizard-steps';
+import { stepTitle, type StepId } from './wizard-steps';
+import type { AssistantIntent } from '@/lib/contracts';
 
-export function StepHeading({ step, children }: { step: StepId; children: ReactNode }) {
-  const title = STEPS.find((s) => s.id === step)?.title ?? '';
+export function StepHeading({
+  step,
+  intent = 'design',
+  children,
+}: {
+  step: StepId;
+  /** Ruta del asistente: decide el título del paso. */
+  intent?: AssistantIntent;
+  children: ReactNode;
+}) {
+  const title = stepTitle(intent, step);
   return (
     <header className="flex flex-col gap-1">
       <h2 className="text-ink text-base font-semibold">

@@ -4,6 +4,7 @@
  * con sus guardas. Es stateless por petición: el estado vive en la base de datos.
  */
 import type {
+  AssistantIntent,
   ChatVisionAdapter,
   ImageAdapter,
   DebitService,
@@ -21,8 +22,11 @@ import { appendMessage } from './persistence/message-repo';
 import { persistDeliverables } from './persistence/deliverable-repo';
 import { assertTransition, isReadyForDelivery, previousPhase } from './state-machine';
 import { runIngesta } from './phases/ingesta';
+import { setIntent } from './phases/intent';
 import { runQualification } from './phases/cualificacion';
 import { runDelivery, explanationPrompt, type DeliveryDeps } from './phases/entrega';
+import { evaluateDeliverableResults } from '@/server/quality/result-gate';
+import type { RenderAuditVerdict } from '@/server/quality/evidence/result-evidence';
 import { agentError } from './errors';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
@@ -54,6 +58,8 @@ export interface AgentDeps {
   /** Lee la planta real de la imagen de referencia (ver `DeliveryDeps`). */
   planoFromImage?: DeliveryDeps['planoFromImage'];
   debit: DebitService;
+  /** Organización del agente (ámbito de las evaluaciones de calidad). */
+  organizationId: string;
   /** Usuario en cuyo nombre actúa el agente (gates de consentimiento/ToS). */
   userId: string;
   newDeliverableId: (projectId: string, type: string) => string;
@@ -68,6 +74,9 @@ export interface AgentDeps {
 
 // Inputs posibles de un turno, discriminados por acción.
 export type AgentInput =
+  // Paso 0: ruta del asistente (diseño desde foto o convertir un plano). Determinista
+  // y solo válida en ingesta; se persiste para retomarla al recargar.
+  | { action: 'set-intent'; intent: AssistantIntent }
   | { action: 'ingest'; image: MessagePart[] }
   | { action: 'confirm-detection' }
   // Corrige a mano lo detectado (la visión se equivocó) ANTES de confirmar. No avanza
@@ -142,6 +151,8 @@ export async function advance(
   const state = await loadState(projectId, zoneId);
 
   switch (input.action) {
+    case 'set-intent':
+      return setIntent(projectId, zoneId, state.phase, state.collected, state.version, input.intent);
     case 'ingest':
       return handleIngest(
         deps,
@@ -199,8 +210,8 @@ async function handleIngest(
   // Minimización/base legal: no se trata la imagen sin consentimiento explícito
   // (RGPD). El gate corta antes de enviar nada al modelo de visión.
   await assertConsent(deps.userId, 'IMAGE_PROCESSING');
-  const { detected, disclaimer } = await runIngesta(deps.vision, image);
-  const nextCollected: Collected = { ...collected, detected };
+  const { detected, imageKind, disclaimer } = await runIngesta(deps.vision, image);
+  const nextCollected: Collected = { ...collected, detected, imageKind };
   // Permanece en ingesta hasta que el usuario confirme lo detectado.
   await saveState(projectId, zoneId, version, { phase: 'ingesta', collected: nextCollected });
   await appendMessage(projectId, 'assistant', [{ type: 'text', text: disclaimer }]);
@@ -360,6 +371,10 @@ async function handleDeliver(
   // (img2img) y el tipo de zona adapta el prompt. Una sola resolución sirve a la
   // generación y, después, a la trazabilidad (su id).
   const zoneCtx = await deps.resolveZoneContext(projectId, zoneId);
+  const audits = new Map<string, RenderAuditVerdict>();
+  // Trazabilidad origen→diseño: vincula la entrega con la imagen de origen que el
+  // usuario subió en la ingesta de ESTA zona (PRIMARY más reciente), si la hay.
+  const sourceImageId = zoneCtx.reference?.sourceImageId ?? undefined;
   const deliverables = await runDelivery(
     {
       vision: deps.vision,
@@ -368,6 +383,11 @@ async function handleDeliver(
       image: deps.image,
       ...(deps.planoFromImage ? { planoFromImage: deps.planoFromImage } : {}),
       debit: deps.debit,
+      // Se persiste antes de confirmar el cobro (ver `DeliveryDeps.persist`). Los
+      // diseños del asistente parten de la foto, no del lienzo: se admiten también
+      // cuando el plano del proyecto ya vive en el editor v2.
+      persist: (generated) =>
+        persistDeliverables(projectId, generated, sourceImageId, zoneId, { allowEditorV2: true }),
       newId: (type) => deps.newDeliverableId(projectId, type),
     },
     {
@@ -376,17 +396,23 @@ async function handleDeliver(
       elements: collected.detected,
       idempotencyKey: `deliver:${projectId}:v${version}`,
       estimateCredits: 1000,
+      audits,
       zoneKind: zoneCtx.zoneKind,
       // La foto de la zona (si existe) ancla el render a la estructura real.
       ...(zoneCtx.reference ? { referenceImage: zoneCtx.reference.image } : {}),
     },
   );
-  // Trazabilidad origen→diseño: vincula la entrega con la imagen de origen que el
-  // usuario subió en la ingesta de ESTA zona (PRIMARY más reciente), si la hay.
-  const sourceImageId = zoneCtx.reference?.sourceImageId ?? undefined;
-  // Persistir los entregables (de esta zona) ANTES de avanzar de fase: la vista de
-  // «Diseños» los lee de la base de datos; sin esto, la generación se perdería.
-  await persistDeliverables(projectId, deliverables, sourceImageId, zoneId);
+  // Calidad del resultado: se registra DESPUÉS de persistir (la referencia es el
+  // id del entregable) y nunca rompe la entrega, que ya está cobrada.
+  await evaluateDeliverableResults(
+    { organizationId: deps.organizationId, userId: deps.userId },
+    {
+      projectId,
+      deliverables,
+      audits,
+      memoriaContext: { estilo: collected.estilo, objetivo: collected.objetivo ?? '' },
+    },
+  );
   await saveState(projectId, zoneId, version, { phase: 'feedback', collected });
   return { phase: 'feedback', collected, deliverables };
 }
@@ -415,6 +441,7 @@ async function handleGenerateFromCanvas(
     entregables: [input.entregable],
   };
 
+  const audits = new Map<string, RenderAuditVerdict>();
   const deliveryInput = {
     projectId,
     collected: ready,
@@ -423,6 +450,7 @@ async function handleGenerateFromCanvas(
     // Prefijo `canvas:` distinto de `deliver:` para que ambos flujos coexistan.
     idempotencyKey: `canvas:${projectId}:${input.requestId}`,
     estimateCredits: 1000,
+    audits,
     zoneKind: input.spaceKind ?? 'interior',
     sketch: {
       description: input.description,
@@ -443,14 +471,25 @@ async function handleGenerateFromCanvas(
       image: deps.image,
       ...(deps.planoFromImage ? { planoFromImage: deps.planoFromImage } : {}),
       debit: deps.debit,
+      // Guardado antes de confirmar el cobro: si el plano legacy ya migró, se libera la reserva.
+      persist: (generated) =>
+        persistDeliverables(projectId, generated, undefined, zoneId, {
+          allowEditorV2: input.documentSource === 'editor-v2',
+        }),
       newId: (type) => deps.newDeliverableId(projectId, type),
     },
     deliveryInput,
   );
 
-  await persistDeliverables(projectId, deliverables, undefined, zoneId, {
-    allowEditorV2: input.documentSource === 'editor-v2',
-  });
+  await evaluateDeliverableResults(
+    { organizationId: deps.organizationId, userId: deps.userId },
+    {
+      projectId,
+      deliverables,
+      audits,
+      memoriaContext: { estilo: ready.estilo, objetivo: ready.objetivo ?? '' },
+    },
+  );
 
   // Si se generó un render, la IA explica sus decisiones (2ª llamada de chat,
   // barata). Es un extra: si falla, se devuelve el render igual (sin explicación).

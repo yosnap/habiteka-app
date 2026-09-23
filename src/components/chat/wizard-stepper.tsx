@@ -1,26 +1,39 @@
 'use client';
 
 /**
- * Cabecera del asistente: seis pasos en columnas iguales, con el número encima del
- * título (ocupa menos y se lee en vertical) y una línea de progreso animada.
- * Cada paso completado o disponible es clicable; el asistente decide qué hace el
- * salto (a veces hay que retroceder también en el servidor).
+ * Cabecera del asistente: los pasos de la ruta elegida en columnas iguales, con el
+ * número encima del título (ocupa menos y se lee en vertical) y una línea de
+ * progreso animada. Cada paso completado o disponible es clicable; el asistente
+ * decide qué hace el salto (a veces hay que retroceder también en el servidor).
+ *
+ * Los pasos llegan por props porque cada ruta tiene los suyos (seis para crear un
+ * diseño, tres para convertir un plano).
  */
-import { STEPS, type StepId } from './wizard-steps';
+import { Button } from '@/components/ui/button';
+import type { StepId, WizardStep } from './wizard-steps';
 
 export function WizardStepper({
+  steps,
   current,
   isReachable,
   onSelect,
+  onChangeIntent,
   disabled = false,
 }: {
+  steps: ReadonlyArray<WizardStep>;
   current: StepId;
   isReachable: (step: StepId) => boolean;
   onSelect: (step: StepId) => void;
+  /** Vuelve al paso 0 para elegir otra ruta. */
+  onChangeIntent?: () => void;
   disabled?: boolean;
 }) {
-  // La línea va del centro del primer círculo al del último: 5 tramos entre 6 pasos.
-  const progress = ((current - 1) / (STEPS.length - 1)) * 100;
+  // La línea va del centro del primer círculo al del último.
+  const count = steps.length;
+  const index = Math.max(0, steps.findIndex((s) => s.id === current));
+  const progress = count > 1 ? (index / (count - 1)) * 100 : 0;
+  // Mitad de una columna a cada lado: así la línea nace y muere en los círculos.
+  const inset = 50 / count;
 
   return (
     <nav
@@ -30,24 +43,29 @@ export function WizardStepper({
       <div className="relative">
         <span
           aria-hidden
-          className="bg-line absolute top-4 right-[8.33%] left-[8.33%] h-0.5 rounded-full"
+          className="bg-line absolute top-4 h-0.5 rounded-full"
+          style={{ left: `${inset}%`, right: `${inset}%` }}
         />
         <span
           aria-hidden
-          className="bg-brand-500 absolute top-4 left-[8.33%] h-0.5 rounded-full transition-[width] duration-500 ease-out"
-          style={{ width: `${(progress * (100 - 16.66)) / 100}%` }}
+          className="bg-brand-500 absolute top-4 h-0.5 rounded-full transition-[width] duration-500 ease-out"
+          style={{ left: `${inset}%`, width: `${(progress * (100 - inset * 2)) / 100}%` }}
         />
-        <ol className="relative grid grid-cols-6">
-          {STEPS.map((s) => {
+        <ol
+          className="relative grid"
+          style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
+        >
+          {steps.map((s, i) => {
             const active = s.id === current;
             const done = s.id < current;
+            const ordinal = i + 1;
             const clickable = !active && !disabled && isReachable(s.id);
             return (
               <li key={s.id} className="relative flex justify-center">
                 <button
                   type="button"
                   aria-current={active ? 'step' : undefined}
-                  aria-label={`Paso ${s.id}: ${s.title}${done ? ' (completado)' : ''}`}
+                  aria-label={`Paso ${ordinal}: ${s.title}${done ? ' (completado)' : ''}`}
                   disabled={!clickable}
                   onClick={() => onSelect(s.id)}
                   className={`group flex w-full flex-col items-center gap-1.5 rounded-control px-1 text-center transition-colors ${
@@ -76,7 +94,7 @@ export function WizardStepper({
                         <path d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      s.id
+                      ordinal
                     )}
                   </span>
                   <span
@@ -92,6 +110,13 @@ export function WizardStepper({
           })}
         </ol>
       </div>
+      {onChangeIntent ? (
+        <div className="mt-2 flex justify-center">
+          <Button type="button" variant="ghost" size="sm" onClick={onChangeIntent} disabled={disabled}>
+            ← Cambiar lo que quiero hacer
+          </Button>
+        </div>
+      ) : null}
     </nav>
   );
 }

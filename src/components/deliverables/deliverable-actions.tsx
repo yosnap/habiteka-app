@@ -10,11 +10,15 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { callAction } from '@/lib/action-result';
 import {
+  evaluateChangeInstruction,
   requestDeliverableChange,
   startDesignVariant,
 } from '@/app/(app)/projects/[id]/_actions/deliverable-actions';
+import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverableView } from './deliverables-panel';
 import { drawableZones } from './plan2d-to-konva';
+import { CheckToggle } from '@/components/ui/check-toggle';
 
 const CHANGE_HINT: Record<DeliverableView['type'], string> = {
   render3d: 'Ej.: «suelo de madera clara», «más luz natural», «sofá en tonos azules».',
@@ -25,9 +29,12 @@ const CHANGE_HINT: Record<DeliverableView['type'], string> = {
 export function DeliverableActions({
   projectId,
   deliverable,
+  highlightChanges = false,
 }: {
   projectId: string;
   deliverable: DeliverableView;
+  /** Resalta «Pedir cambios» cuando la calidad del resultado es baja. */
+  highlightChanges?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -36,21 +43,42 @@ export function DeliverableActions({
   const planZones = deliverable.payload.type === 'plano2d' ? drawableZones(deliverable.payload.plano) : [];
   const [planZoneId, setPlanZoneId] = useState(planZones[0]?.id ?? '');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [verdict, setVerdict] = useState<QualityVerdict | null>(null);
+  const [ack, setAck] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Cambiar el texto invalida el veredicto: la instrucción a juzgar es otra.
+  const changeInstruction = (value: string) => {
+    setInstruction(value);
+    setVerdict(null);
+    setAck(false);
+  };
+
+  // La instrucción se juzga ANTES de gastar: con fiabilidad baja no se llama a la
+  // IA y se pide reformular; con dudas hace falta confirmar expresamente. El
+  // servidor vuelve a evaluar al aplicar (con caché), así que esto no decide nada.
   const submitChange = () =>
     startTransition(async () => {
       setMessage(null);
       try {
+        const quality = await callAction(
+          evaluateChangeInstruction(projectId, deliverable.id, instruction),
+        );
+        setVerdict(quality);
+        if (quality.decision === 'block') return;
+        if (quality.decision === 'confirm' && !ack) return;
         const out = await callAction(
           requestDeliverableChange(
             projectId,
             deliverable.id,
             instruction,
             deliverable.payload.type === 'plano2d' ? planZoneId : undefined,
+            quality.decision === 'confirm',
           ),
         );
         setInstruction('');
+        setVerdict(null);
+        setAck(false);
         setOpen(false);
         setMessage({ ok: true, text: `Listo: versión ${out.version} creada arriba. La anterior se conserva.` });
         router.refresh();
@@ -74,7 +102,14 @@ export function DeliverableActions({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <DownloadButton deliverable={deliverable} />
-        <Button type="button" size="sm" variant={open ? 'default' : 'outline'} aria-expanded={open} onClick={() => setOpen((v) => !v)} disabled={pending}>
+        <Button
+          type="button"
+          size="sm"
+          variant={open || highlightChanges ? 'default' : 'outline'}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          disabled={pending}
+        >
           Pedir cambios
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={startVariant} disabled={pending}>
@@ -110,15 +145,33 @@ export function DeliverableActions({
             className="border-line rounded-control min-h-20 border bg-white p-2 text-sm"
             maxLength={500}
             value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
+            onChange={(e) => changeInstruction(e.target.value)}
             placeholder={CHANGE_HINT[deliverable.type]}
           />
+          {verdict ? (
+            <QualityVerdictCard
+              quality={verdict}
+              blockedNote="No se ha gastado nada: reformula la instrucción y vuelve a intentarlo."
+            />
+          ) : null}
+          {verdict?.decision === 'confirm' ? (
+            <CheckToggle checked={ack} onChange={setAck} label="Entiendo las dudas y quiero aplicar el cambio igualmente" />
+          ) : null}
           <p className="text-ink-soft text-xs">
             Se crea una versión nueva con el cambio; la actual no se pierde. Los primeros
             cambios de cada diseño son gratis; después consumen créditos.
           </p>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={pending || instruction.trim().length < 3}>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={
+                pending ||
+                instruction.trim().length < 3 ||
+                verdict?.decision === 'block' ||
+                (verdict?.decision === 'confirm' && !ack)
+              }
+            >
               {pending ? 'Aplicando…' : 'Aplicar cambio'}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>

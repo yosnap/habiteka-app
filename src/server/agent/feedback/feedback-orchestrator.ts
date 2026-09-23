@@ -28,6 +28,7 @@ import {
   type IterationResult,
 } from './iteration-repo';
 import { agentError } from '../errors';
+import { evaluateIterationResult } from '@/server/quality/iteration-result-gate';
 
 export interface FeedbackDeps {
   image: ImageAdapter;
@@ -57,6 +58,11 @@ export interface FeedbackInput {
    * operación y se cobra; un reintento de red con el mismo id, no.
    */
   attemptId?: string;
+  /**
+   * Con quién y sobre qué proyecto registrar la calidad de la versión nueva. Sin
+   * él la iteración no se puntúa (útil en pruebas y en llamadas sin sesión).
+   */
+  quality?: { userId: string; projectId: string };
 }
 
 export async function runFeedback(
@@ -88,6 +94,19 @@ export async function runFeedback(
       kind: 'tokens',
       usage: { promptTokens: input.estimateCredits, completionTokens: 0 },
     });
+    // Calidad de la versión nueva: DESPUÉS de persistirla y cobrarla (la referencia
+    // es su id) y sin poder romper la iteración, igual que en la entrega inicial.
+    if (input.quality) {
+      await evaluateIterationResult(
+        { organizationId: input.organizationId, userId: input.quality.userId },
+        {
+          projectId: input.quality.projectId,
+          newDeliverableId: result.newDeliverableId,
+          type,
+          payload,
+        },
+      );
+    }
     return result;
   } catch (err) {
     // El error que ve el usuario es siempre el original, aunque liberar la reserva falle.

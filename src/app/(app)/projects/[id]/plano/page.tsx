@@ -22,9 +22,22 @@ import { loadStudio } from '@/server/plan/studio-repo';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { PlanoStudio } from '@/components/plano-studio/plano-studio';
 
+import type { StudioQuality } from '@/lib/studio-state';
+
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+/**
+ * Importación anterior a la puerta de calidad (o guardada sin evaluar): se
+ * trata como pendiente de confirmar, nunca como fiable por omisión.
+ */
+const UNEVALUATED: StudioQuality = {
+  score: null,
+  decision: 'confirm',
+  reasons: ['Este plano se importó sin evaluar su fiabilidad; revísalo antes de seguir.'],
+  failOpen: false,
+};
 
 export default async function PlanoStudioPage({ params }: Props) {
   const { id } = await params;
@@ -44,6 +57,9 @@ export default async function PlanoStudioPage({ params }: Props) {
               : {},
           }),
           imageUrl: importImage.assetUrl,
+          // Veredicto de fiabilidad de la última evaluación: se reutiliza sin
+          // volver a llamar a Jev (el plano recalculado es el mismo).
+          quality: initialState.quality ?? UNEVALUATED,
         }
       : null;
   // El layout del proyecto ya reserva la cabecera y las pestañas (flex + min-h-0);

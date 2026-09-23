@@ -53,7 +53,8 @@ describe('techos y luminarias en prompts de diseño', () => {
     expect(full).toContain('sin borrar luminarias');
     expect(full).toContain('"temperatureK":2700');
     const compact = selectedViewPrompt(doc, view, style, '', '', undefined, true);
-    expect(compact).toContain('nunca un material de cristal');
+    // El compacto lleva la misma política, condensada por el tope de longitud.
+    expect(compact).toContain('nunca cristal');
     expect(compactPayload(compact)).toMatchObject({ designOptions: { additions: [] }, levels: [{ ceilings: [{ heightM: 2.5 }], luminaires: [{ positionM: [2.1, 1.9, 2.18], enabled: false, lumens: 800, temperatureK: 2700 }] }] });
   });
   it('limita luces nuevas a categoría y zonas autorizadas en ambas rutas', () => {
@@ -61,7 +62,9 @@ describe('techos y luminarias en prompts de diseño', () => {
       regions: [{ id: 'zone', name: 'Sala', polygon: [{ x: 1000, y: 1000 }, { x: 4000, y: 1000 }, { x: 2000, y: 3000 }] }] };
     for (const compact of [false, true]) {
       const prompt = selectedViewPrompt(roomWithLighting(), view, 'moderno', '', '', options, compact);
-      expect(prompt).toContain('solo propón luces si additions incluye lights y dentro de las zonas autorizadas');
+      expect(prompt).toContain(compact
+        ? 'solo si additions incluye lights y en zonas autorizadas'
+        : 'solo propón luces si additions incluye lights y dentro de las zonas autorizadas');
     }
   });
   it('no infiere techo ni luces en documentos anteriores o patios cerrados', () => {

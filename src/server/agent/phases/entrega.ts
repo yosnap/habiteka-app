@@ -23,6 +23,7 @@ import { DELIVERABLE_LEGAL_SEAL } from '../legal/seal';
 import { agentError } from '../errors';
 import { AiError } from '@/server/ai/errors';
 import { isDrawablePlano } from '@/lib/contracts/plano2d-validation';
+import type { RenderAuditVerdict } from '@/server/quality/evidence/result-evidence';
 
 export interface DeliveryDeps {
   /** Auditoría del render contra el plano (sección «vision» del perfil). */
@@ -39,6 +40,11 @@ export interface DeliveryDeps {
    */
   planoFromImage?: (image: { base64: string; mimeType: string }) => Promise<Plano2dPayload>;
   debit: DebitService;
+  /**
+   * Guarda los entregables ANTES de confirmar el cobro: si el guardado falla, la
+   * reserva se libera y el usuario no paga un diseño que no llega a «Diseños».
+   */
+  persist?: (deliverables: Deliverable[]) => Promise<void>;
   /** Genera un id estable para cada entregable (inyectado para testabilidad). */
   newId: (type: DeliverableType) => string;
 }
@@ -86,6 +92,13 @@ export interface DeliveryInput {
   idempotencyKey: string;
   /** Créditos estimados a reservar. */
   estimateCredits: number;
+  /**
+   * Recoge el veredicto del auditor de visión de cada render aceptado, por id de
+   * entregable. Lo rellena la entrega y lo consume la evaluación posterior de
+   * calidad (Jev puntúa ese veredicto textual, nunca la imagen). Opcional: sin
+   * mapa, la entrega se comporta igual.
+   */
+  audits?: Map<string, RenderAuditVerdict>;
 }
 
 /**
@@ -107,6 +120,7 @@ export async function runDelivery(
     for (const type of input.collected.entregables) {
       deliverables.push(await generateOne(deps, input, type));
     }
+    await deps.persist?.(deliverables);
     // Éxito: confirmar el cobro con el coste real (aquí, el estimado).
     await deps.debit.settle(hold, {
       kind: 'tokens',
@@ -154,8 +168,10 @@ async function generateOne(
       ...(referenceImage ? { referenceImage } : {}),
       ...(referenceImages.length ? { referenceImages } : {}),
     });
-    if (input.sketch?.requiresStructuralValidation)
-      await assertStructuralRender(deps.vision, input, result.assetUrl, referenceImages);
+    if (input.sketch?.requiresStructuralValidation) {
+      const verdict = await assertStructuralRender(deps.vision, input, result.assetUrl, referenceImages);
+      input.audits?.set(id, verdict);
+    }
     return {
       ...base,
       // `assetKey` (si el render vive en nuestro storage) permite re-firmar la URL al
@@ -190,7 +206,7 @@ async function assertStructuralRender(
   input: DeliveryInput,
   assetUrl: string,
   references: Array<{ base64: string; mimeType: string }>,
-): Promise<void> {
+): Promise<RenderAuditVerdict> {
   const result = await chat.chat({
     model: '', responseSchema: STRUCTURAL_RENDER_SCHEMA, temperature: 0,
     messages: [{
@@ -212,6 +228,7 @@ async function assertStructuralRender(
       ? `: ${verdict.violations.join('; ').slice(0, 300)}` : '';
     throw agentError('schema_repair_failed', `El render se descartó porque no respeta el plano${detail}`);
   }
+  return verdict;
 }
 
 function isStructuralVerdict(value: unknown): value is { accepted: boolean; violations: string[] } {

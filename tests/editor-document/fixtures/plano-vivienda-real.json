@@ -1,0 +1,550 @@
+{
+ "schemaVersion": 3,
+ "units": "mm",
+ "revision": 0,
+ "calibration": null,
+ "vertices": [
+  {
+   "x": 2763,
+   "y": 2474,
+   "id": "vertex:0"
+  },
+  {
+   "x": 5672,
+   "y": 2474,
+   "id": "vertex:1"
+  },
+  {
+   "x": 5672,
+   "y": 6867,
+   "id": "vertex:2"
+  },
+  {
+   "x": 6578,
+   "y": 6867,
+   "id": "vertex:3"
+  },
+  {
+   "x": 6578,
+   "y": 8275,
+   "id": "vertex:4"
+  },
+  {
+   "x": 2763,
+   "y": 8275,
+   "id": "vertex:5"
+  },
+  {
+   "x": 5672,
+   "y": 8275,
+   "id": "vertex:6"
+  },
+  {
+   "x": 8116,
+   "y": 2474,
+   "id": "vertex:7"
+  },
+  {
+   "x": 8116,
+   "y": 3370,
+   "id": "vertex:8"
+  },
+  {
+   "x": 8116,
+   "y": 6867,
+   "id": "vertex:9"
+  },
+  {
+   "x": 5672,
+   "y": 9584,
+   "id": "vertex:10"
+  },
+  {
+   "x": 2763,
+   "y": 9584,
+   "id": "vertex:11"
+  },
+  {
+   "x": 5672,
+   "y": 12474,
+   "id": "vertex:12"
+  },
+  {
+   "x": 2763,
+   "y": 12474,
+   "id": "vertex:13"
+  },
+  {
+   "x": 11643,
+   "y": 3370,
+   "id": "vertex:14"
+  },
+  {
+   "x": 11643,
+   "y": 12474,
+   "id": "vertex:15"
+  },
+  {
+   "x": 8116,
+   "y": 8275,
+   "id": "vertex:16"
+  }
+ ],
+ "walls": [
+  {
+   "id": "w0",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:1",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:0",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w1",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:2",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:1",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w2",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:3",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:2",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w3",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:4",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:3",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w4",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:6",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:5",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w5",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:4",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:6",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w6",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:5",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:0",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w7",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:7",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:1",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w8",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:8",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:7",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w9",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:9",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:8",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w10",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:9",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:3",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w11",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:10",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:6",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w12",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:10",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:11",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w13",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:11",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:5",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w14",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:12",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:10",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w15",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:12",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:13",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w16",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:13",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:11",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w17",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:15",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:14",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w18",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:15",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:12",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w19",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:16",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:4",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w20",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:16",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:9",
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "w21",
+   "heightMm": 2700,
+   "materials": {
+    "left": "plaster-white",
+    "right": "plaster-white"
+   },
+   "endVertexId": "vertex:14",
+   "thicknessMm": 80,
+   "startVertexId": "vertex:8",
+   "dimensionalOrigin": "physical"
+  }
+ ],
+ "openings": [
+  {
+   "id": "a11",
+   "kind": "puerta",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w3",
+   "widthMm": 1068,
+   "heightMm": 2100,
+   "position": 0.49822200864968835,
+   "catalogId": "puerta-basic",
+   "elevationMm": 0,
+   "openAngleDeg": 90,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a3",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w0",
+   "widthMm": 1140,
+   "heightMm": 1200,
+   "position": 0.5169608802789615,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a8",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w6",
+   "widthMm": 1091,
+   "heightMm": 1200,
+   "position": 0.6035560185653089,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a10",
+   "kind": "puerta",
+   "hinge": "left",
+   "swing": "right",
+   "wallId": "w10",
+   "widthMm": 830,
+   "heightMm": 2100,
+   "position": 0.32722437454855896,
+   "catalogId": "puerta-basic",
+   "elevationMm": 0,
+   "openAngleDeg": 90,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a4",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w7",
+   "widthMm": 1140,
+   "heightMm": 1200,
+   "position": 0.480636114699044,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a2",
+   "kind": "puerta",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w11",
+   "widthMm": 1047,
+   "heightMm": 2100,
+   "position": 0.39992360580595876,
+   "catalogId": "puerta-basic",
+   "elevationMm": 0,
+   "openAngleDeg": 90,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a7",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w15",
+   "widthMm": 1172,
+   "heightMm": 1200,
+   "position": 0.4290848384347154,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a1",
+   "kind": "puerta",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w14",
+   "widthMm": 633,
+   "heightMm": 2100,
+   "position": 0.5165035212366458,
+   "catalogId": "puerta-basic",
+   "elevationMm": 0,
+   "openAngleDeg": 90,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a0",
+   "kind": "puerta",
+   "hinge": "left",
+   "swing": "right",
+   "wallId": "w18",
+   "widthMm": 946,
+   "heightMm": 2100,
+   "position": 0.0792162116898342,
+   "catalogId": "puerta-basic",
+   "elevationMm": 0,
+   "openAngleDeg": 90,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a5",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w17",
+   "widthMm": 1896,
+   "heightMm": 1200,
+   "position": 0.48022585214609054,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  },
+  {
+   "id": "a6",
+   "kind": "ventana",
+   "hinge": "left",
+   "swing": "left",
+   "wallId": "w18",
+   "widthMm": 1172,
+   "heightMm": 1200,
+   "position": 0.7680382109031584,
+   "catalogId": "ventana-basic",
+   "elevationMm": 900,
+   "openAngleDeg": 0,
+   "dimensionalOrigin": "physical"
+  }
+ ],
+ "labels": [
+  {
+   "x": 4991,
+   "y": 5885.333333333333,
+   "id": "z0",
+   "text": "Dormitorio"
+  },
+  {
+   "x": 6894,
+   "y": 4670.5,
+   "id": "z1",
+   "text": "Dormitorio"
+  },
+  {
+   "x": 4217.5,
+   "y": 8929.5,
+   "id": "z2",
+   "text": "Baño"
+  },
+  {
+   "x": 4217.5,
+   "y": 11029,
+   "id": "z3",
+   "text": "Dormitorio"
+  },
+  {
+   "x": 8490.333333333334,
+   "y": 8053,
+   "id": "z4",
+   "text": "Salón - Cocina"
+  }
+ ],
+ "furniture": [],
+ "dimensions": [],
+ "stairs": []
+}

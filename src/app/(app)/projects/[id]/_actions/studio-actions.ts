@@ -17,17 +17,20 @@ import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-edit
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import type { Estilo, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
-import type { OrgContext } from '@/server/auth/org-context';
-import type { StudioImage, StudioState } from '@/lib/studio-state';
-import type { DetectedWalls } from '@/server/plan/detect-walls-raster';
+import type { StudioQuality } from '@/lib/studio-state';
+import {
+  importPlanFromImage,
+  importNormalizeOptions,
+  evaluatePlanQuality,
+  type PlanImportStudioResult,
+} from '@/server/plan/import-plan-from-image';
 import { drawingToPlano } from '@/server/plan/drawing-to-plano';
-import { getChatVisionAdapter } from '@/server/ai';
-import { extractPlanSource } from '@/server/plan/extract-plan-source';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { importPlanToEditor } from '@/server/plan/import-plan-to-editor';
 import { sanitizeExtractedText } from '@/server/ai/sketch/sanitize-extracted-text';
 import { assertPlanoRasterizable } from '@/server/ai/design/cenital-pipeline';
 import { runAction, fail } from '@/server/errors/run-action';
+import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
 
 async function context(projectId: string) {
   const ctx = await requireOrgContext();
@@ -111,8 +114,9 @@ export async function cenitalStudio(
   estilo: Estilo,
   detalles = '',
   vista: RenderVista = 'cenital',
+  qualityAck = false,
 ) {
-  return runAction(() => cenitalStudioImpl(projectId, _url, estilo, detalles, vista));
+  return runAction(() => cenitalStudioImpl(projectId, _url, estilo, detalles, vista, qualityAck));
 }
 
 async function cenitalStudioImpl(
@@ -121,10 +125,15 @@ async function cenitalStudioImpl(
   estilo: Estilo,
   detalles = '',
   vista: RenderVista = 'cenital',
+  qualityAck = false,
 ) {
   const { ctx, state } = await context(projectId);
   if (!state.plan) fail('Falta el plano de origen.');
   if (!isValidEstilo(estilo)) fail('Estilo no válido.');
+  // Puerta de calidad ANTES de resolver el adaptador de imagen: una vista de
+  // pago no parte de un plano por debajo del umbral. El veredicto sale del
+  // estado guardado en el servidor, nunca del cliente.
+  await assertStudioPlanQuality(ctx, projectId, state, qualityAck === true, 'cenital_estudio');
   const renderVista: RenderVista = vista === 'maqueta' ? 'maqueta' : 'cenital';
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const notes = String(detalles).slice(0, 800);
@@ -195,7 +204,7 @@ async function importPlanStudioImpl(
   projectId: string,
   base64: string,
   options: { includeFurniture?: boolean } = {},
-): Promise<PlanImportResult & { imageUrl: string }> {
+): Promise<PlanImportStudioResult> {
   const { ctx, state } = await context(projectId);
   const source = await persistStudioSource(base64);
   // Los redibujados del estudio se conservan: importar un fichero no debe borrar trabajo.
@@ -217,42 +226,10 @@ export async function importStudioPlanStudio(
 async function importStudioPlanStudioImpl(
   projectId: string,
   options: { includeFurniture?: boolean } = {},
-): Promise<PlanImportResult & { imageUrl: string }> {
+): Promise<PlanImportStudioResult> {
   const { ctx, state } = await context(projectId);
   if (!state.plan) fail('Sube o redibuja un plano primero.');
   return importPlanFromImage(ctx, projectId, state.plan, options, state);
-}
-
-/** Extracción (visión + raster) → importación; guarda la extracción cruda para recalcular sin IA. */
-async function importPlanFromImage(
-  ctx: OrgContext,
-  projectId: string,
-  imageRef: StudioImage,
-  options: { includeFurniture?: boolean },
-  nextState: StudioState,
-): Promise<PlanImportResult & { imageUrl: string }> {
-  const image = await readStudioImage(imageRef);
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
-  const { raw, detected } = await extractPlanSource(
-    chat,
-    [{ type: 'image_url', base64: image.base64, mimeType: image.mimeType }],
-    'plano',
-  );
-  const result = buildPlanImport(raw, {
-    includeFurniture: options.includeFurniture !== false,
-    normalize: importNormalizeOptions(detected),
-  });
-  await saveStudio(ctx, projectId, {
-    ...nextState,
-    plano: result.plano,
-    escalaEstimada: result.escalaEstimada,
-    planImport: { raw, detected, image: imageRef },
-  });
-  return { ...result, imageUrl: imageRef.assetUrl };
-}
-
-function importNormalizeOptions(detected: DetectedWalls | null) {
-  return detected ? { wallsOverride: detected.walls, imageHeightOverWidth: detected.heightOverWidth } : {};
 }
 
 /**
@@ -271,7 +248,7 @@ async function refitPlanImportStudioImpl(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
   options: { includeFurniture?: boolean; generalWidthMm?: number } = {},
-): Promise<PlanImportResult> {
+): Promise<PlanImportResult & { quality: StudioQuality }> {
   const { ctx, state } = await context(projectId);
   if (!state.planImport) fail('Importa un plano primero.');
   const { raw, detected } = state.planImport;
@@ -284,8 +261,20 @@ async function refitPlanImportStudioImpl(
     ...(generalWidthMm !== undefined ? { generalWidthMm } : {}),
     normalize: importNormalizeOptions(detected),
   });
-  await saveStudio(ctx, projectId, { ...state, plano: result.plano, escalaEstimada: result.escalaEstimada });
-  return result;
+  // La geometría ha cambiado: se reevalúa la fiabilidad (Jev no ve la imagen y
+  // cuesta céntimos, así que reevaluar es más barato que decidir con un dato viejo).
+  const quality = await evaluatePlanQuality(ctx, projectId, state.planImport.image, {
+    raw,
+    detected,
+    result,
+  });
+  await saveStudio(ctx, projectId, {
+    ...state,
+    plano: result.plano,
+    escalaEstimada: result.escalaEstimada,
+    quality,
+  });
+  return { ...result, quality };
 }
 
 /**
@@ -302,11 +291,14 @@ export async function applyPlanImportStudio(
 async function applyPlanImportStudioImpl(
   projectId: string,
   result: PlanImportResult,
-): Promise<{ issues: string[] }> {
-  const { ctx } = await context(projectId);
+): Promise<{ issues: string[]; needsCorrection: boolean }> {
+  const { ctx, state } = await context(projectId);
   assertPlanoRasterizable(result.plano);
   const { issues } = await importPlanToEditor(ctx, projectId, result);
-  return { issues };
+  // Con fiabilidad bajo mínimos el plano SÍ se lleva al editor (es donde el
+  // usuario lo arregla), pero queda marcado: nada de pago se genera hasta que
+  // lo corrija. El veredicto se lee del estudio, no del cliente.
+  return { issues, needsCorrection: state.quality?.decision === 'block' };
 }
 
 /** Solo números plausibles y nombres saneados entran en el solver desde la tabla. */

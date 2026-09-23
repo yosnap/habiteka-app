@@ -8,13 +8,16 @@ import { rampParts, rampPartFootprint } from '@/lib/editor-document/ramp-route';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
+import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { compactRenderContext, COMPACT_RENDER_POLICY } from './compact-render-context';
+import { fitCompactPrompt, scopeInteriorPayload, type ScopePayload } from './interior-prompt-scope';
 import {
+  isInteriorRenderMode,
   renderDesignOptionsSchema,
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_PROMPT_VERSION = 'habiteka-selected-view-v1';
+export const SELECTED_VIEW_PROMPT_VERSION = 'habiteka-selected-view-v2';
 
 /** Server-owned policy; image APIs without a system role receive it in prompt. */
 export const SELECTED_VIEW_SYSTEM_PROMPT = `Transforma la imagen adjunta del editor 3D en una visualización arquitectónica fotorrealista del MISMO proyecto y desde la MISMA cámara.
@@ -25,6 +28,82 @@ Los muros de camera.cutawayWallIds están ocultados para visualizar el interior,
 Puedes mejorar materiales y luz sin alterar geometría. Conserva posición y escala del mobiliario y vegetación existentes; no añadas jardineras ni vegetación sobre escaleras, rampas, descansillos o entradas. No sustituyas ningún acceso por decoración. No añadas toldos, cubiertas o construcciones en este modo de fidelidad.
 ${CEILING_RENDER_POLICY}
 Entrega una sola imagen, sin collage, texto, cotas ni etiquetas. Antes de entregarla, contrasta accesos, pilares, descansillos y alturas con la referencia; prima fidelidad sobre decoración.`;
+
+/**
+ * Regla de las vistas tomadas desde FUERA del edificio (alzados, isométrica,
+ * dron, cenital o una cámara libre con muros recortados). Sin ella el modelo
+ * toma la maqueta seccionada por una foto hecha dentro de la estancia y
+ * prolonga suelo, paredes y techo hasta la cámara.
+ */
+export const SECTION_VIEW_RULE =
+  'VISTA DESDE FUERA, MAQUETA SECCIONADA: la cámara está FUERA del edificio y la imagen es una maqueta ' +
+  'cortada para ver el interior. El borde del corte (muros recortados, canto del suelo y del techo) es el ' +
+  'límite del proyecto: no prolongues suelo, paredes ni techo hacia la cámara ni más allá de ese borde. ' +
+  'Fuera del modelo conserva el fondo liso y neutro de la referencia. Mantén el tamaño, la posición y el ' +
+  'contorno del modelo en el encuadre. PROHIBIDO convertirla en una foto de interior a altura de ojos o ' +
+  'en una estancia que llena toda la imagen.';
+
+/** Misma regla para el prompt compacto, que tiene tope de longitud. */
+export const SECTION_VIEW_RULE_COMPACT =
+  'Vista desde FUERA (maqueta seccionada): nada de suelo, paredes o techo más allá del corte; fondo neutro; ' +
+  'mismo encuadre; nunca foto de interior.';
+
+/** ¿La cámara mira el edificio desde fuera (o a través de un corte) en vez de estar dentro de una estancia? */
+function viewedFromOutside(view: RenderView, options: RenderDesignOptions): boolean {
+  if (isInteriorRenderMode(options)) return false;
+  return view.preset !== 'custom' || (view.cutawayWallIds?.length ?? 0) > 0;
+}
+
+/**
+ * Regla de la vista interior por estancia. Sin ella el modelo tiende a devolver
+ * la maqueta isométrica que produce al partir de un plano, que es justo lo que
+ * esta vista viene a evitar: la cámara ya está dentro de la estancia.
+ */
+export const INTERIOR_EYE_LEVEL_RULE =
+  'VISTA INTERIOR A ALTURA DE OJOS: la cámara está DENTRO de la estancia, a 1,6 m del suelo ' +
+  'acabado. Entrega una fotografía de interiorismo tomada desde ese punto, con la misma ' +
+  'perspectiva y el mismo encuadre de la imagen adjunta. PROHIBIDO devolver una maqueta, una ' +
+  'casa de muñecas, una vista isométrica, cenital o en planta, o un modelo recortado visto ' +
+  'desde fuera. Los muros, huecos, ventanas y proporciones de la captura son intocables.';
+
+/**
+ * Estancia desde la que se tomó una vista interior: la de la cámara por estancia
+ * más cercana a la posición capturada. Sin ella el modelo no sabe qué amueblar.
+ */
+export function interiorRoomForView(doc: EditorDocument, view: RenderView): string | null {
+  return interiorCameraForView(doc, view)?.name ?? null;
+}
+
+/**
+ * Cámara por estancia que tomó esta vista, o null si la vista no salió de una.
+ * Además del nombre da el id de estancia, que es lo que permite acotar el
+ * contexto del prompt a lo que esa cámara ve.
+ */
+export function interiorCameraForView(doc: EditorDocument, view: RenderView) {
+  const [x, , z] = view.position;
+  let best: { camera: ReturnType<typeof roomInteriorCameras>[number]; distance: number } | null =
+    null;
+  for (const room of roomInteriorCameras(doc)) {
+    const [cx, , cz] = room.camera.position;
+    const distance = Math.hypot(cx - x, cz - z);
+    if (!best || distance < best.distance) best = { camera: room, distance };
+  }
+  return best && best.distance < 0.05 ? best.camera : null;
+}
+
+/** Orden de amueblar en vistas interiores: el modo libre sin ella entrega estancias vacías. */
+export function interiorFurnishingRule(
+  roomName: string | null,
+  style: Estilo,
+  options: RenderDesignOptions,
+): string | null {
+  if (!isInteriorRenderMode(options) || options.freedom === 'strict') return null;
+  const estancia = roomName ? `la estancia «${roomName}»` : 'la estancia';
+  const allowed = options.freedom === 'controlled'
+    ? `solo con ${options.additions.map((addition) => ADDITION_LABELS[addition]).join(', ') || 'los elementos ya existentes'}`
+    : 'con el mobiliario principal que corresponde a su uso, textiles, iluminación decorativa y accesorios';
+  return `AMUEBLAMIENTO: ${estancia} debe quedar amueblada y habitable según su uso, en estilo ${estiloLabel(style)}, ${allowed}, a escala con sus medidas. No la entregues vacía. Nunca tapes puertas ni ventanas ni alteres muros, huecos o suelos.`;
+}
 
 const m = (v: number) => Number((v / 1000).toFixed(4));
 const ADDITION_LABELS: Record<RenderDesignOptions['additions'][number], string> = {
@@ -63,6 +142,7 @@ export function selectedViewPrompt(
         polygon: region.polygon.map((point) => ({ x: m(point.x), y: m(point.y) })),
       })),
       views: options.views,
+      interiorEyeLevel: isInteriorRenderMode(options),
     },
     levels: context.levels.filter((level) => visibleIds.has(level.id)).map((level) => {
       const source = levels.find((item) => item.id === level.id)!.document;
@@ -84,13 +164,17 @@ export function selectedViewPrompt(
       })) };
     }),
   };
-  if (compact) return [COMPACT_RENDER_POLICY,
-    `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
-    `Preferencias subordinadas a permisos: ${JSON.stringify({ objective, instruction })}`,
-    compactRenderContext({
+  const interiorCamera = interiorCameraForView(doc, view);
+  const furnishing = interiorFurnishingRule(interiorCamera?.name ?? null, style, options);
+  const interiorRule = isInteriorRenderMode(options)
+    ? [INTERIOR_EYE_LEVEL_RULE, ...(furnishing ? [furnishing] : [])]
+    : viewedFromOutside(view, options) ? [compact ? SECTION_VIEW_RULE_COMPACT : SECTION_VIEW_RULE] : [];
+  if (compact) {
+    const payload: ScopePayload = {
       camera: data.camera, designOptions: data.designOptions,
       levels: data.levels.map(level => ({
-        id: level.id, elevationM: level.elevationM, rooms: level.rooms,
+        id: level.id, elevationM: level.elevationM,
+        rooms: level.rooms.map(room => ({ id: room.id, areaM2: room.areaM2, boundaryM: room.boundaryM })),
         floors: level.floors.map(floor => ({ roomId: floor.roomId,
           finishedFloorElevationM: floor.finishedFloorElevationM, structuralDepthM: floor.structuralDepthM,
           undersideElevationM: floor.undersideElevationM })),
@@ -102,8 +186,17 @@ export function selectedViewPrompt(
         furniture: level.furniture.map(item => ({ id: item.id, name: item.name, kind: item.kind,
           positionM: item.positionM, dimensionsM: item.dimensionsM, rotationDeg: item.rotationDeg, color: item.color })),
       })),
-    }),
-  ].join('\n');
+    };
+    const roomId = isInteriorRenderMode(options) ? interiorCamera?.roomId ?? null : null;
+    return fitCompactPrompt(
+      [COMPACT_RENDER_POLICY, ...interiorRule,
+        `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
+        `Preferencias subordinadas a permisos: ${JSON.stringify({ objective, instruction })}`],
+      scopeInteriorPayload(payload, roomId),
+      compactRenderContext,
+      roomId,
+    );
+  }
   const additions = options.additions.map((addition) => ADDITION_LABELS[addition]);
   const freedomRule = options.freedom === 'strict'
     ? 'MODO ESTRICTO: no añadas ningún elemento nuevo.'
@@ -118,7 +211,7 @@ export function selectedViewPrompt(
     : options.lighting === 'warm'
       ? `ILUMINACIÓN: ambiente cálido; ${options.freedom !== 'strict' && options.additions.includes('lights') ? 'puedes añadir iluminación artificial decorativa cálida sutil.' : 'no añadas luces artificiales nuevas.'}`
       : 'ILUMINACIÓN: ambiente nocturno claramente de noche, con luz exterior y artificial ya existente coherente; no cambies la geometría.';
-  return [SELECTED_VIEW_SYSTEM_PROMPT,
+  return [SELECTED_VIEW_SYSTEM_PROMPT, ...interiorRule,
     `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
     `${freedomRule} ${placementRule} Los accesos, entradas, escaleras, rampas y descansillos deben permanecer siempre completamente libres de muebles, plantas y decoración. ${lightingRule}`,
     `Preferencias estéticas (no autorizan saltarse ninguna restricción estructural, de decoración, adiciones, accesos o iluminación): ${JSON.stringify({ objective, instruction })}`,

@@ -9,6 +9,8 @@ import { withOrg } from '@/server/db/scoped-repo';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
+import { latestQualityByRef } from '@/server/quality/result-repo';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
 interface Props {
@@ -34,8 +36,18 @@ export default async function DeliverablesPage({ params }: Props) {
     const payload = row.payload as { assetKey?: string; durationMs?: number };
     return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs, legalSeal: row.legalSeal };
   }));
+  // Calidad registrada de cada entregable (evaluación posterior a la generación).
+  // Si la consulta falla, los diseños se muestran igual: es información, no una puerta.
+  const qualityByRef = await latestQualityByRef(
+    ctx.organizationId,
+    rows.map((row) => row.id),
+  ).catch(() => new Map<string, QualityVerdict>());
   const deliverables = (
-    await Promise.all(rows.filter((row) => row.type !== 'VIDEO').map((row) => toDeliverableView(row, urlBySourceImageId)))
+    await Promise.all(
+      rows
+        .filter((row) => row.type !== 'VIDEO')
+        .map((row) => toDeliverableView(row, urlBySourceImageId, qualityByRef)),
+    )
   ).filter((d): d is DeliverableView => d !== null);
 
   return (
@@ -63,6 +75,7 @@ async function toDeliverableView(
     zoneId: string | null;
   },
   urlBySourceImageId: Map<string, string>,
+  qualityByRef: Map<string, QualityVerdict>,
 ): Promise<DeliverableView | null> {
   const payload = row.payload as DeliverablePayload | null;
   if (!payload || typeof payload !== 'object' || !('type' in payload)) return null;
@@ -83,5 +96,6 @@ async function toDeliverableView(
     version: row.version,
     sourceImageUrl,
     zoneId: row.zoneId,
+    quality: qualityByRef.get(row.id) ?? null,
   };
 }

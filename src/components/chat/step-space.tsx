@@ -7,14 +7,19 @@
  */
 import { ZonePhotosPanel } from '@/components/zones/zone-photos-panel';
 import { IngestaControls } from './ingesta-controls';
+import { PlanDetectedNotice } from './plan-detected-notice';
 import { StepHeading } from './step-layout';
 import type { UploadedImage } from './image-upload';
-import type { StructuralElements } from '@/lib/contracts';
+import type { ImageKind, StructuralElements } from '@/lib/contracts';
 
 interface Props {
   projectId: string;
   zoneId: string | null;
   detected: StructuralElements | null;
+  /** Qué era la imagen analizada; un plano no sirve para el render por foto. */
+  imageKind: ImageKind | null;
+  /** Lleva el mismo plano a la ruta «convertir un plano al editor». */
+  onConvertPlan: () => void;
   /** Aviso del análisis (lo devuelve el agente tras leer la imagen). */
   disclaimer: string | null;
   pending: boolean;
@@ -28,6 +33,8 @@ export function StepSpace({
   projectId,
   zoneId,
   detected,
+  imageKind,
+  onConvertPlan,
   disclaimer,
   pending,
   onUpload,
@@ -43,6 +50,10 @@ export function StepSpace({
           ? 'Esto es lo que he reconocido en tu imagen. Si algo no cuadra, corrige los números: el plano partirá de lo que confirmes.'
           : 'Sube una foto de la estancia o un plano en planta. Con una foto entiendo el ambiente y los muebles; con un plano en planta nítido puedo dibujar un plano 2D fiel a tus medidas.'}
       </StepHeading>
+
+      {reviewing && imageKind === 'floor_plan' ? (
+        <PlanDetectedNotice pending={pending} onConvertPlan={onConvertPlan} />
+      ) : null}
 
       {reviewing ? (
         <p className="border-line bg-surface-muted text-ink rounded-control border p-3 text-sm">

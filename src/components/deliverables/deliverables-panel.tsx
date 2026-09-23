@@ -11,6 +11,8 @@ import { Render3dViewer } from './render3d-viewer';
 import { MaterialsMemo } from './materials-memo';
 import { DeliverableActions } from './deliverable-actions';
 import { ENTREGABLES } from '@/lib/design-options';
+import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 
 // El visor de plano usa Konva: se carga solo en cliente.
 const Plan2dViewer = dynamic(() => import('./plan2d-viewer').then((m) => m.Plan2dViewer), {
@@ -23,6 +25,8 @@ export type DeliverableView = Deliverable & {
   sourceImageUrl: string | null;
   /** Zona que originó el diseño (multi-zona); null = plano por defecto. */
   zoneId: string | null;
+  /** Calidad registrada del resultado (evaluación posterior); null si no se evaluó. */
+  quality?: QualityVerdict | null;
 };
 
 export function DeliverablesPanel({
@@ -58,7 +62,18 @@ export function DeliverablesPanel({
             <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} zoneId={d.zoneId} />
           )}
           {d.payload.type === 'memoria' && <MaterialsMemo markdown={d.payload.markdown} />}
-          <DeliverableActions projectId={projectId} deliverable={d} />
+          {d.quality ? (
+            <QualityVerdictCard
+              quality={d.quality}
+              compact
+              blockedNote="Pide cambios para mejorarlo: los primeros cambios de cada diseño no cuestan créditos."
+            />
+          ) : null}
+          <DeliverableActions
+            projectId={projectId}
+            deliverable={d}
+            highlightChanges={d.quality?.decision === 'block'}
+          />
         </section>
       ))}
     </div>

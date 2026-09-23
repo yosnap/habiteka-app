@@ -15,11 +15,25 @@ import { runRenderBatch } from './render-batch';
 import { storyboardBatchPoints } from '@/lib/editor-document/storyboard-batch';
 
 interface Frame { waypointId: string; label: string; capture: RenderCapture }
-export function WalkthroughBatchDialog({ store, getCapture, render, estimate, onResult, onClose }: {
+
+/**
+ * Lote de vistas de un recorrido.
+ *
+ * PENDIENTE DE MONTAJE: hoy ningún componente renderiza este diálogo. Cuando se
+ * monte, `qualityAck` NO puede quedarse en su valor por defecto (`false`): debe
+ * venir de un `EditorQualityGate` montado en este mismo diálogo, con el mismo
+ * documento que evaluará la puerta del servidor. Si no, un plano en banda
+ * «confirmar» hará fallar todas las imágenes del lote una a una, sin que el
+ * usuario tenga dónde confirmar. El corte real lo sigue haciendo el servidor:
+ * dejarlo en `false` es seguro (nunca genera de más), pero no es usable.
+ */
+export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qualityAck = false, onResult, onClose }: {
   store: EditorStore;
   getCapture: () => Promise<CaptureRenderView>;
   render: NonNullable<EditorShellProps['onGenerateRender']>;
   estimate: NonNullable<EditorShellProps['onEstimateRender']>;
+  /** Confirmación de la puerta de calidad cuando el veredicto de Jev pide confirmar. */
+  qualityAck?: boolean;
   onResult: () => void;
   onClose: () => void;
 }) {
@@ -72,7 +86,7 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, on
           if (store.getState().readOnly || snapshot.current !== fingerprint()) throw new Error('El plano cambió. Conservamos las imágenes terminadas en Diseños; prepara de nuevo las pendientes.');
           setStatus(`Generando ${index + 1} de ${frames.length}…`);
           const result = await render({ estilo, objetivo: '', promptLibre: instructions, options,
-            capture: frame.capture, batchId: batchId.current, ...(referenceDesignId ? { referenceDesignId } : {}) });
+            capture: frame.capture, batchId: batchId.current, qualityAck, ...(referenceDesignId ? { referenceDesignId } : {}) });
           // Una asociación fallida nunca debe hacer repetir una generación que ya terminó.
           if (result.id && !store.getState().readOnly && snapshot.current === fingerprint()) {
             try {

@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// La iteración puntúa la versión nueva, y esa capa es solo de servidor.
+vi.mock('server-only', () => ({}));
 import { runFeedback } from '@/server/agent/feedback/feedback-orchestrator';
 import { listIterations } from '@/server/agent/feedback/iteration-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';

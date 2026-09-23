@@ -1,4 +1,5 @@
 import type { Estilo, Plano2dPayload } from '@/lib/contracts';
+import type { QualityDecisionValue, QualityVerdict } from '@/lib/quality-verdict';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
 import type { DetectedWalls } from '@/server/plan/detect-walls-raster';
 
@@ -6,6 +7,10 @@ export interface StudioImage {
   assetUrl: string;
   assetKey?: string;
 }
+
+/** Veredicto de la puerta de calidad sobre el último análisis del estudio. */
+export type StudioQuality = QualityVerdict;
+export type { QualityDecisionValue };
 
 export interface StudioState {
   sourceKind?: 'drawing' | 'canvas' | 'upload';
@@ -36,4 +41,6 @@ export interface StudioState {
     /** Imagen de la que se extrajo (subida o redibujado): la superposición del panel la usa. */
     image?: StudioImage;
   };
+  /** Fiabilidad del último plano importado; decide si se puede seguir sin corregirlo. */
+  quality?: StudioQuality;
 }

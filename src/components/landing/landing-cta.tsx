@@ -19,7 +19,7 @@ export function LandingCTA() {
           <Button asChild size="lg" variant="secondary">
             <Link href="/registro">Crear cuenta gratis</Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10">
+          <Button asChild size="lg" variant="outline" className="border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white">
             <Link href="/acceder">Iniciar sesión</Link>
           </Button>
         </div>

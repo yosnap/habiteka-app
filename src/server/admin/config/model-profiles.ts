@@ -138,11 +138,16 @@ export const MODEL_PROFILES = {
         { model: 'openai/gpt-5.2-chat', provider: 'openrouter' },
       ]),
       {
+        // Un A/B real (mismo dormitorio, misma cámara, mismo prompt) dio calidad
+        // equivalente entre Flare y Sunburst, a mitad de coste por imagen: para
+        // generar de cero manda Flare y Sunburst queda de respaldo. La edición
+        // (`inpaint`) sigue en Sunburst, que es donde sí se nota.
         action: 'render3d',
-        primaryModel: 'gpt-image-2-5-sunburst-image-to-image',
+        primaryModel: 'gpt-image-2-5-flare-image-to-image',
         provider: 'kie',
         enabled: true,
         backups: [
+          { model: 'gpt-image-2-5-sunburst-image-to-image', provider: 'kie' },
           { model: 'flux-2/flex-image-to-image', provider: 'kie' },
           { model: 'flux-2/pro-image-to-image', provider: 'kie' },
           { model: 'google/gemini-3-pro-image', provider: 'openrouter' },

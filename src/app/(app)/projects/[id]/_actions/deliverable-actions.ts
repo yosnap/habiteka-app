@@ -21,6 +21,9 @@ import { loadDeliverable } from '@/server/agent/feedback/iteration-repo';
 import { buildFeedbackDeps, ITERATION_CREDITS } from '@/server/agent/feedback/feedback-deps';
 import { isDrawablePlanZone } from '@/lib/contracts/plano2d-validation';
 import { loadState, saveState } from '@/server/agent/persistence/state-repo';
+import { assertInstructionQuality, instructionQuality } from '@/server/quality/instruction-gate';
+import { instructionTargetOf } from '@/server/quality/evidence/instruction-evidence';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 
 const MIN_INSTRUCTION = 3;
 const MAX_INSTRUCTION = 500;
@@ -39,8 +42,11 @@ export async function requestDeliverableChange(
   deliverableId: string,
   instruction: string,
   planZoneId?: string,
+  qualityAck = false,
 ) {
-  return runAction(() => requestDeliverableChangeImpl(projectId, deliverableId, instruction, planZoneId));
+  return runAction(() =>
+    requestDeliverableChangeImpl(projectId, deliverableId, instruction, planZoneId, qualityAck),
+  );
 }
 
 async function requestDeliverableChangeImpl(
@@ -48,6 +54,7 @@ async function requestDeliverableChangeImpl(
   deliverableId: string,
   instruction: string,
   planZoneId?: string,
+  qualityAck = false,
 ): Promise<{ newDeliverableId: string; version: number }> {
   const text = typeof instruction === 'string' ? instruction.trim() : '';
   if (text.length < MIN_INSTRUCTION) fail('Describe el cambio que quieres (al menos unas palabras).');
@@ -59,6 +66,15 @@ async function requestDeliverableChangeImpl(
   if (deliverable.projectId !== projectId) fail('El diseño no pertenece a este proyecto.');
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
   await assertTosAccepted(ctx.userId);
+  // Puerta de calidad de la instrucción: ANTES de reservar créditos y de llamar a
+  // la IA de imagen. Una petición que no se entiende no cuesta dinero.
+  await assertInstructionQuality(
+    ctx,
+    { projectId, refId: deliverableId },
+    instructionTargetOf(deliverable.type),
+    text,
+    qualityAck === true,
+  );
 
   const result = await runFeedback(
     await buildFeedbackDeps(ctx.organizationId, deliverable),
@@ -71,6 +87,7 @@ async function requestDeliverableChangeImpl(
       ...(deliverable.type === 'PLANO_2D' ? { planZoneId: planZoneId ?? firstPlanZoneId(deliverable.payload) } : {}),
       estimateCredits: ITERATION_CREDITS,
       attemptId: randomUUID(),
+      quality: { userId: ctx.userId, projectId },
     },
   );
   revalidatePath(`/projects/${projectId}/deliverables`);
@@ -105,4 +122,31 @@ async function startDesignVariantImpl(projectId: string, zoneId: string | null):
     await saveState(projectId, zoneId, state.version, { phase: 'cualificacion', collected: state.collected });
   }
   return { ok: true };
+}
+
+/**
+ * Puntúa la instrucción de cambio para que la UI la enseñe antes de gastar. No
+ * cobra ni genera: el servidor vuelve a evaluar (con caché) al aplicar el cambio,
+ * de modo que el veredicto del cliente nunca es la decisión.
+ */
+export async function evaluateChangeInstruction(
+  projectId: string,
+  deliverableId: string,
+  instruction: string,
+) {
+  return runAction(async (): Promise<QualityVerdict> => {
+    const text = typeof instruction === 'string' ? instruction.trim() : '';
+    if (text.length < MIN_INSTRUCTION) fail('Describe el cambio que quieres (al menos unas palabras).');
+    if (text.length > MAX_INSTRUCTION) fail(`El cambio no puede superar ${MAX_INSTRUCTION} caracteres.`);
+    const ctx = await requireOrgContext();
+    await assertProjectInOrg(ctx, projectId);
+    const deliverable = await loadDeliverable(ctx.organizationId, deliverableId);
+    if (deliverable.projectId !== projectId) fail('El diseño no pertenece a este proyecto.');
+    return instructionQuality(
+      ctx,
+      { projectId, refId: deliverableId },
+      instructionTargetOf(deliverable.type),
+      text,
+    );
+  });
 }

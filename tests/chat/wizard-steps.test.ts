@@ -6,9 +6,13 @@ import { describe, expect, it } from 'vitest';
 import {
   canAdvanceFrom,
   deliverablesHref,
+  editorHref,
   isStepReachable,
   missingForGenerate,
+  planStepFromState,
   stepFromPhase,
+  stepTitle,
+  stepsFor,
 } from '@/components/chat/wizard-steps';
 
 describe('stepFromPhase', () => {
@@ -67,17 +71,17 @@ describe('isStepReachable', () => {
   const full = { estilo: 'costero' as const, entregables: ['render3d' as const] };
 
   it('en ingesta sin detección solo deja ir al 1; con detección, adelante según lo elegido', () => {
-    expect(isStepReachable(1, { phase: 'ingesta', hasDetection: false, selection: none })).toBe(true);
-    expect(isStepReachable(2, { phase: 'ingesta', hasDetection: false, selection: none })).toBe(false);
-    expect(isStepReachable(3, { phase: 'ingesta', hasDetection: false, selection: full })).toBe(false);
-    expect(isStepReachable(3, { phase: 'ingesta', hasDetection: true, selection: none })).toBe(true);
-    expect(isStepReachable(4, { phase: 'ingesta', hasDetection: true, selection: none })).toBe(false);
-    expect(isStepReachable(5, { phase: 'ingesta', hasDetection: true, selection: full })).toBe(true);
-    expect(isStepReachable(6, { phase: 'ingesta', hasDetection: true, selection: full })).toBe(false);
+    expect(isStepReachable(1, { intent: 'design', phase: 'ingesta', hasDetection: false, selection: none })).toBe(true);
+    expect(isStepReachable(2, { intent: 'design', phase: 'ingesta', hasDetection: false, selection: none })).toBe(false);
+    expect(isStepReachable(3, { intent: 'design', phase: 'ingesta', hasDetection: false, selection: full })).toBe(false);
+    expect(isStepReachable(3, { intent: 'design', phase: 'ingesta', hasDetection: true, selection: none })).toBe(true);
+    expect(isStepReachable(4, { intent: 'design', phase: 'ingesta', hasDetection: true, selection: none })).toBe(false);
+    expect(isStepReachable(5, { intent: 'design', phase: 'ingesta', hasDetection: true, selection: full })).toBe(true);
+    expect(isStepReachable(6, { intent: 'design', phase: 'ingesta', hasDetection: true, selection: full })).toBe(false);
   });
 
   it('en cualificación exige estilo para el 4 y estilo + entregables para el 5', () => {
-    const base = { phase: 'cualificacion' as const, hasDetection: true };
+    const base = { intent: 'design' as const, phase: 'cualificacion' as const, hasDetection: true };
     expect(isStepReachable(2, { ...base, selection: none })).toBe(true);
     expect(isStepReachable(4, { ...base, selection: none })).toBe(false);
     expect(isStepReachable(4, { ...base, selection: { estilo: 'moderno', entregables: [] } })).toBe(true);
@@ -87,9 +91,47 @@ describe('isStepReachable', () => {
   });
 
   it('tras generar permite volver a los pasos de preferencias y no a la subida; generando, nada', () => {
-    expect(isStepReachable(6, { phase: 'feedback', hasDetection: true, selection: full })).toBe(true);
-    expect(isStepReachable(5, { phase: 'feedback', hasDetection: true, selection: full })).toBe(true);
-    expect(isStepReachable(1, { phase: 'feedback', hasDetection: true, selection: full })).toBe(false);
-    expect(isStepReachable(5, { phase: 'entrega', hasDetection: true, selection: full })).toBe(false);
+    expect(isStepReachable(6, { intent: 'design', phase: 'feedback', hasDetection: true, selection: full })).toBe(true);
+    expect(isStepReachable(5, { intent: 'design', phase: 'feedback', hasDetection: true, selection: full })).toBe(true);
+    expect(isStepReachable(1, { intent: 'design', phase: 'feedback', hasDetection: true, selection: full })).toBe(false);
+    expect(isStepReachable(5, { intent: 'design', phase: 'entrega', hasDetection: true, selection: full })).toBe(false);
+  });
+});
+
+describe('rutas por intención', () => {
+  it('cada ruta tiene sus pasos y sus títulos', () => {
+    expect(stepsFor('design').map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(stepsFor('plan').map((s) => s.id)).toEqual([1, 2, 3]);
+    expect(stepTitle('design', 2)).toBe('Revisa lo detectado');
+    expect(stepTitle('plan', 2)).toBe('Revisa tu plano');
+    // Un paso que no existe en la ruta no inventa título.
+    expect(stepTitle('plan', 6)).toBe('');
+  });
+
+  it('la ruta del plano avanza con la lectura y con la aplicación al editor', () => {
+    expect(planStepFromState({ hasImport: false, applied: false })).toBe(1);
+    expect(planStepFromState({ hasImport: true, applied: false })).toBe(2);
+    expect(planStepFromState({ hasImport: true, applied: true })).toBe(3);
+  });
+
+  it('en la ruta del plano no se salta a revisar sin plano ni a los siguientes pasos sin aplicar', () => {
+    const inicio = { intent: 'plan' as const, hasImport: false, applied: false };
+    expect(isStepReachable(1, inicio)).toBe(true);
+    expect(isStepReachable(2, inicio)).toBe(false);
+    expect(isStepReachable(3, inicio)).toBe(false);
+
+    const leido = { intent: 'plan' as const, hasImport: true, applied: false };
+    expect(isStepReachable(2, leido)).toBe(true);
+    expect(isStepReachable(3, leido)).toBe(false);
+
+    const aplicado = { intent: 'plan' as const, hasImport: true, applied: true };
+    expect(isStepReachable(3, aplicado)).toBe(true);
+    // Subir otro plano siempre es posible.
+    expect(isStepReachable(1, aplicado)).toBe(true);
+  });
+
+  it('el enlace al editor conserva la zona activa', () => {
+    expect(editorHref('p1', null)).toBe('/projects/p1');
+    expect(editorHref('p1', 'z9')).toBe('/projects/p1?zona=z9');
   });
 });

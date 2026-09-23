@@ -5,8 +5,11 @@ import { withEditorDocuments } from '@/server/editor/document-repo';
 import { fromCanvasV1 } from '@/lib/editor-document/adapters/canvas-v1';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { ProjectEditor } from './project-editor';
+import type { AutoGenerateRequest } from '../auto-generate-request';
 
-export async function ProjectEditorPage({ projectId, zoneId }: { projectId: string; zoneId?: string }) {
+export async function ProjectEditorPage({ projectId, zoneId, autoGenerate }: {
+  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null;
+}) {
   const ctx = await requireOrgContext();
   const project = await withOrg(ctx).projects.findById(projectId);
   if (!project) notFound();
@@ -22,6 +25,7 @@ export async function ProjectEditorPage({ projectId, zoneId }: { projectId: stri
       key={JSON.stringify(scope)}
       scope={scope}
       projectName={project.title}
+      autoGenerate={autoGenerate ?? null}
       initial={source.authority === 'v2' ? source.document : conversion?.document ?? emptyEditorDocument()}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {

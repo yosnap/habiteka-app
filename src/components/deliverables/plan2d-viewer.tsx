@@ -12,6 +12,7 @@ import { drawableZones, planToPrimitives } from './plan2d-to-konva';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { Button } from '@/components/ui/button';
 import type { Plano2dPayload } from '@/lib/contracts';
+import { qualityBandClassName } from '@/components/quality/quality-verdict-card';
 
 interface Props {
   plano: Plano2dPayload;
@@ -25,6 +26,18 @@ const WALL = '#3a322d';
 const BACKGROUND = '#faf8f5';
 const WINDOW = '#4a90c2';
 const DOOR = '#b0762f';
+
+/**
+ * Color del aviso según lo que de verdad pasa: una lectura fiable no puede ir
+ * en el recuadro de advertencia, porque entonces el usuario desconfía de un
+ * plano correcto. Ámbar solo si hay que revisar; rojo si la puerta bloqueó.
+ */
+function noticeTone(plano: Pick<Plano2dPayload, 'aproximado' | 'calidad'>): string {
+  if (plano.calidad && plano.calidad.decision !== 'proceed')
+    return qualityBandClassName(plano.calidad.decision);
+  if (plano.aproximado) return qualityBandClassName('confirm');
+  return qualityBandClassName('proceed');
+}
 
 export function Plan2dViewer({ plano, width = 640, height = 420, downloadable = false }: Props) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -44,10 +57,22 @@ export function Plan2dViewer({ plano, width = 640, height = 420, downloadable = 
 
   return (
     <div className="flex flex-col gap-2">
-      {plano.aproximado ? (
-        <p role="note" className="rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
-          Plano orientativo: no se pudo leer una planta nítida en tu imagen, así que es una
-          aproximación. Para un plano fiel, sube un plano en planta nítido o dibújalo en el editor.
+      {plano.aproximado || plano.calidad ? (
+        <p role="note" className={`rounded-control border p-2 text-xs ${noticeTone(plano)}`}>
+          {plano.aproximado ? (
+            <>
+              Plano orientativo: no se pudo leer una planta nítida en tu imagen, así que es una
+              aproximación. Para un plano fiel, sube un plano en planta nítido o dibújalo en el editor.
+            </>
+          ) : null}
+          {plano.calidad ? (
+            <>
+              {plano.aproximado ? ' ' : null}
+              Fiabilidad de la lectura
+              {plano.calidad.score !== null ? `: ${plano.calidad.score} %` : ': no evaluada'}.
+              {plano.calidad.motivos.length > 0 ? ` ${plano.calidad.motivos.join(' ')}` : ''}
+            </>
+          ) : null}
         </p>
       ) : null}
       <div className="max-w-full overflow-x-auto">
