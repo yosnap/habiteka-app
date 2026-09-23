@@ -5,13 +5,13 @@ import { useStore } from 'zustand';
 import { X } from 'lucide-react';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Luminaire } from '@/lib/editor-document/schema';
-import { addLuminaire, applyLightingProposal, removeCeiling, removeLuminaire, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
+import { addLuminaire, applyLightingProposal, removeCeiling, removeLuminaire, removeLuminaires, setRoomCeiling, updateLuminaire, updateLuminaires } from '@/lib/editor-document/ceiling-commands';
 import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { proposeLighting } from '@/lib/editor-document/lighting-proposal';
 import { MeterField, NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
-
-const kinds: Record<Luminaire['kind'], string> = { pendant: 'Colgante', flush: 'Plafón', recessed: 'Foco empotrado' };
+import { CeilingPlanSection } from './ceiling-plan-section';
+import { LUMINAIRE_KINDS as kinds, LuminaireBulkFields } from './luminaire-bulk-fields';
 type LightDraft = Omit<Luminaire, 'id'>;
 
 function LightFields({ light, update }: { light: LightDraft; update: (patch: Partial<LightDraft>) => boolean | void }) {
@@ -40,7 +40,10 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
   const [roomId, setRoomId] = useState('');
   const [style, setStyle] = useState('moderno');
   const [proposal, setProposal] = useState<ReturnType<typeof proposeLighting> | null>(null);
-  const selectedLight = doc.luminaires?.find((light) => state.selection.includes(light.id));
+  const [scope, setScope] = useState<'plan' | 'room'>('plan');
+  const [notice, setNotice] = useState<string | null>(null);
+  const selectedLights = doc.luminaires?.filter((light) => state.selection.includes(light.id)) ?? [];
+  const selectedLight = selectedLights.length === 1 ? selectedLights[0] : undefined;
   const selectedCeiling = doc.ceilings?.find((ceiling) => ceiling.id === selectedLight?.ceilingId || state.selection.includes(ceiling.id));
   const activeRoom = rooms.find((room) => room.id === (selectedCeiling?.roomId ?? roomId)) ?? rooms[0];
   const ceiling = doc.ceilings?.find((item) => item.roomId === activeRoom?.id);
@@ -52,13 +55,29 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo editar la iluminación'); return false; }
   };
   const visibleProposal = proposal?.ceilingId === ceiling?.id ? proposal : null;
+  // Elegir una luz o un techo concreto en el plano lleva a su estancia.
+  const shownScope = selectedLight || selectedCeiling ? 'room' : scope;
+  const selectLights = (ids: string[]) => { setNotice(null); state.select(ids); };
   return <AnchoredEditorPanel store={store} className={styles.panel} label="Techo y luces">
     <div className={styles.heading}><h2>Techo y luces</h2><button type="button" aria-label="Cerrar techo y luces" onClick={onClose}><X size={20} /></button></div>
     <p>El techo transparente permite trabajar dentro. El render conserva su acabado real.</p>
     <label>Visualización del techo<select value={state.ceilingView} onChange={(e) => state.setCeilingView(e.target.value as typeof state.ceilingView)}>
       <option value="hidden">Oculto</option><option value="transparent">Transparente al editar</option><option value="solid">Sólido</option>
     </select></label>
-    {!rooms.length ? <p>{geometry.error ?? 'Cierra una estancia interior para añadir un techo. Los patios y terrazas abiertos quedan fuera.'}</p> : <>
+    {notice && <p role="status">{notice}</p>}
+    {selectedLights.length > 1 ? <LuminaireBulkFields lights={selectedLights} readOnly={state.readOnly}
+      update={(patch) => run((d) => updateLuminaires(d, selectedLights.map((light) => light.id), patch))}
+      remove={() => run((d) => removeLuminaires(d, selectedLights.map((light) => light.id)))}
+      clear={() => selectLights([])} />
+    : !rooms.length ? <p>{geometry.error ?? 'Cierra una estancia interior para añadir un techo. Los patios y terrazas abiertos quedan fuera.'}</p> : <>
+      <div className={styles.buttons} role="group" aria-label="Ámbito">
+        <button type="button" aria-pressed={shownScope === 'plan'} className={shownScope === 'plan' ? styles.primary : undefined}
+          onClick={() => { setScope('plan'); if (selectedLight || selectedCeiling) state.select([]); }}>Toda la planta</button>
+        <button type="button" aria-pressed={shownScope === 'room'} className={shownScope === 'room' ? styles.primary : undefined}
+          onClick={() => setScope('room')}>Una estancia</button>
+      </div>
+      {shownScope === 'plan' ? <CeilingPlanSection doc={doc} roomCount={rooms.length} readOnly={state.readOnly} run={run}
+        onNotice={setNotice} onSelectAll={() => selectLights((doc.luminaires ?? []).map((light) => light.id))} /> : <>
       <label>Estancia<select value={activeRoom?.id ?? ''} onChange={(e) => { setRoomId(e.target.value); state.select([]); setProposal(null); }}>
         {rooms.map((room, index) => <option key={room.id} value={room.id}>{doc.labels.find((label) => insideRoom(label, room.boundary))?.text ?? `Estancia ${index + 1}`} · {(room.areaMm2 / 1e6).toFixed(1)} m²</option>)}
       </select></label>
@@ -75,7 +94,8 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
           <h3>Añadir luminaria</h3><div className={styles.buttons}>
             {(Object.entries(kinds) as [Luminaire['kind'], string][]).map(([kind, label]) => <button type="button" key={kind} disabled={kind === 'recessed' && (ceiling.kind !== 'suspended' || ceiling.dropMm < 80)} title={kind === 'recessed' ? 'Requiere falso techo con al menos 8 cm de descenso' : undefined} onClick={() => run((d) => addLuminaire(d, ceiling.id, kind))}>{label}</button>)}
           </div>
-          <p>Arrastra los símbolos en 2D o ajusta sus coordenadas.</p>
+          <p>Arrastra los símbolos en 2D o ajusta sus coordenadas. Mayús+clic selecciona varias.</p>
+          {lights.length > 1 && <button type="button" onClick={() => selectLights(lights.map((light) => light.id))}>Seleccionar las {lights.length} luces de esta estancia</button>}
           {lights.map((light, index) => <details className={styles.light} key={light.id} open={selectedLight?.id === light.id || undefined}>
             <summary>{kinds[light.kind]} {index + 1} · {light.enabled ? 'Encendida' : 'Apagada'}</summary>
             <LightFields light={light} update={(patch) => run((d) => updateLuminaire(d, light.id, patch))} />
@@ -106,6 +126,7 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
           </button>
         </>}
       </fieldset>
+    </>}
     </>}
     {doc.ceilings?.filter((item) => !rooms.some((room) => room.id === item.roomId)).map((item) =>
       <fieldset key={item.id} disabled={state.readOnly}><p>Techo sin estancia reconocida. Conservamos sus luces para revisión.</p>

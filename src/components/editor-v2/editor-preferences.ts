@@ -4,7 +4,7 @@ import type { EditorVisibility } from './visibility-menu';
 export interface EditorPreferences { visibility: EditorVisibility; shortcutsEnabled: boolean }
 
 const STORAGE_KEY = 'habiteka:editor:preferences:v1';
-export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = { visibility: { dimensions: 'all', furniture: true, walls: true }, shortcutsEnabled: true };
+export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = { visibility: { dimensions: 'all', furniture: true, walls: true, lighting: true }, shortcutsEnabled: true };
 
 export function loadEditorPreferences(): EditorPreferences {
   if (typeof window === 'undefined') return DEFAULT_EDITOR_PREFERENCES;

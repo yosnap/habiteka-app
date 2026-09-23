@@ -55,6 +55,9 @@ export function junctionMeshes(doc: EditorDocument): ScenePolygon[] {
         const end = wall.startVertexId === vertex.id ? 0 : length;
         return Math.abs(o.position * length - end) <= o.widthMm / 2 + .001 && middle > p.elevationMm && middle < p.elevationMm + p.heightMm;
       }));
+      // Dos tramos alineados del mismo grosor ya se tocan cara con cara: una pieza de
+      // unión ahí solo duplica caras (rayas en zigzag), p. ej. donde había un muro ya oculto.
+      if (continuesStraight(doc, vertex.id, walls)) return [];
       const join = wallJunctions({ ...doc, walls }).find((j) => j.id === vertex.id);
       return join ? [{ id: `junction:${vertex.id}:${index}`, sourceEntityId: walls[0]!.id, role: 'junction' as const,
         edgeFinishes: junctionFinishes(doc, walls, join.points),
@@ -62,4 +65,19 @@ export function junctionMeshes(doc: EditorDocument): ScenePolygon[] {
         color: '#d8d5ce', topColor: top === Math.max(...walls.map(ceiling)) ? WALL_PLAN_COLOR : undefined }] : [];
     });
   });
+}
+
+/** ¿Los muros de este vértice son dos tramos rectos alineados e iguales (una pared continua)? */
+function continuesStraight(doc: EditorDocument, vertexId: string, walls: readonly Wall[]): boolean {
+  if (walls.length !== 2) return false;
+  const [first, second] = walls as [Wall, Wall];
+  if (first.curveHeightMm || second.curveHeightMm || Math.abs(first.thicknessMm - second.thicknessMm) > .5) return false;
+  const away = (wall: Wall) => {
+    const [a, b] = wallPoints(doc, wall), [from, to] = wall.startVertexId === vertexId ? [a, b] : [b, a];
+    const length = distance(from, to);
+    return { x: (to.x - from.x) / length, y: (to.y - from.y) / length };
+  };
+  const u = away(first), v = away(second);
+  // Opuestos: uno sale hacia cada lado del vértice sobre la misma recta (menos de ~0,5°).
+  return u.x * v.x + u.y * v.y < -0.99996;
 }
