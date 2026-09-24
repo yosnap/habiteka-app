@@ -20,6 +20,7 @@ import {
   duplicateZone,
 } from '@/app/(app)/projects/[id]/_actions/zone-actions';
 import { ZoneTrash } from './zone-trash';
+import { InlineConfirmButton } from '@/components/ui/inline-confirm-button';
 
 interface ZoneChip {
   id: string;
@@ -74,7 +75,6 @@ export function ZoneSwitcher({
   };
 
   const remove = (zone: ZoneChip) => {
-    if (!window.confirm(`¿Mover "${zone.name}" a la papelera? Podrás restaurarla.`)) return;
     startTransition(async () => {
       await deleteZone(projectId, zone.id);
       // Si se borró la zona activa, volver a Principal para no quedar en una URL muerta.
@@ -143,16 +143,16 @@ export function ZoneSwitcher({
               >
                 ⧉
               </button>
-              <button
-                type="button"
-                onClick={() => remove(z)}
+              <InlineConfirmButton
+                label="🗑"
+                question={`¿Mover «${z.name}» a la papelera? Podrás restaurarla.`}
+                onConfirm={() => remove(z)}
                 disabled={pending}
-                aria-label={`Borrar ${z.name}`}
+                ariaLabel={`Borrar ${z.name}`}
                 title="Mover a la papelera"
                 className="text-ink-soft hover:text-[--color-danger] rounded-control px-1 text-xs disabled:opacity-50"
-              >
-                🗑
-              </button>
+                cancelClassName="text-ink-soft rounded-control px-1 text-xs"
+              />
             </span>
           </span>
         ),
