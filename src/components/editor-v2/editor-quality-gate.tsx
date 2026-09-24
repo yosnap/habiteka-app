@@ -54,8 +54,14 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
 
-  /** Pide el veredicto y lo publica. `active` corta la respuesta si el diálogo se cerró. */
-  const load = (active: () => boolean) => {
+  /**
+   * Pide el veredicto y lo publica. Solo cuenta la petición más reciente (dos
+   * reparaciones seguidas no se pisan) y nada llega si el diálogo se cerró.
+   */
+  const latest = useRef(0);
+  const load = (alive: () => boolean) => {
+    const id = ++latest.current;
+    const active = () => alive() && id === latest.current;
     evaluate()
       .then((verdict) => {
         if (!active()) return;
@@ -89,6 +95,8 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
   /** Tras reparar, el plano es otro: se vuelve a juzgar y se retira la confirmación dada. */
   const reevaluate = () => {
     setAck(false);
+    // El diálogo también debe olvidar la confirmación: era sobre el plano sin reparar.
+    onChange({ quality, ack: false, blocked: quality?.decision === 'block' });
     setPending(true);
     load(() => alive.current);
   };

@@ -44,6 +44,8 @@ export function SceneCamera({ request, sceneVersion, interior = false, onManualC
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null), bounds = useBounds();
   const lastSequence = useRef<number | null>(null);
   const lastAction = useRef<CameraRequest['action'] | null>(null);
+  // Campo de visión de fuera, guardado al entrar en una estancia para devolverlo al salir.
+  const exteriorFov = useRef<number | null>(null);
   const { get, invalidate, gl, size } = useThree();
   // Camera fitting is imperative Three.js state; never writes canonical coordinates.
   useEffect(() => {
@@ -59,6 +61,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, onManualC
     lastAction.current = action;
     if (action === 'interior' && request.pose) {
       const { position, focus: aim, fovDeg } = request.pose;
+      exteriorFov.current ??= camera.fov;
       camera.position.set(...position);
       camera.fov = fovDeg;
       camera.near = .01;
@@ -73,6 +76,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, onManualC
         camera.position.distanceTo(orbit.target) * (action === 'in' ? .8 : 1.25)));
       camera.position.sub(orbit.target).setLength(distance).add(orbit.target);
     } else {
+      if (exteriorFov.current !== null) { camera.fov = exteriorFov.current; exteriorFov.current = null; }
       // Bounds only measures geometry. A single controller owns the camera,
       // avoiding a pending Bounds animation overwriting a preset on the next frame.
       const focus = isNewRequest ? request.focus : undefined;

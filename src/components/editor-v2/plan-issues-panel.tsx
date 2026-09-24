@@ -36,17 +36,23 @@ export function PlanIssuesPanel({ store, onLocate, onRepaired }: Props) {
   const document = useStore(store, (state) => state.document);
   const readOnly = useStore(store, (state) => state.readOnly);
   const [error, setError] = useState<string | null>(null);
+  // Qué ha cambiado la última reparación que no se ve a simple vista (huecos perdidos).
+  const [notice, setNotice] = useState<string | null>(null);
   const issues = useMemo(() => planIssues(document), [document]);
-  if (!issues.length) return null;
+  const noticeLine = notice ? <p className="text-ink mt-2" role="status">{notice}</p> : null;
+  if (!issues.length) return noticeLine;
 
   const repair = (fix: PlanIssueFix) => {
     try {
       const state = store.getState();
-      state.apply(
-        fix === 'collapse-degenerate-walls'
-          ? collapseDegenerateWalls(state.document)
-          : pruneOrphanFloorFinishes(state.document),
-      );
+      const before = state.document.openings.length;
+      const next = fix === 'collapse-degenerate-walls'
+        ? collapseDegenerateWalls(state.document)
+        : pruneOrphanFloorFinishes(state.document);
+      state.apply(next);
+      // Fundir un muro puede dejar sin sitio un hueco que colgaba de él: se dice, no se calla.
+      const lost = before - next.openings.length;
+      setNotice(lost > 0 ? `Al fundir los muros se ${lost === 1 ? 'ha quitado 1 hueco' : `han quitado ${lost} huecos`} que no cabía${lost === 1 ? '' : 'n'} en el muro resultante. Deshaz con ⌘Z si lo necesitas.` : null);
       setError(null);
       onRepaired();
     } catch (cause) {
@@ -73,6 +79,7 @@ export function PlanIssuesPanel({ store, onLocate, onRepaired }: Props) {
           </li>
         ))}
       </ul>
+      {noticeLine}
       {error ? (
         <p className="text-destructive mt-2" role="status">
           {error}

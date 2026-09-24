@@ -9,7 +9,13 @@ import styles from './editor.module.css';
  * de Radix viven en un portal al final del body, y el botón de la cabecera que
  * abre el panel ya lo conmuta él mismo.
  */
-const KEEP_OPEN = '[data-radix-popper-content-wrapper], [data-side-panel-toggle]';
+const KEEP_OPEN = '[data-radix-popper-content-wrapper], [data-side-panel-toggle], [aria-modal="true"]';
+
+/** Un diálogo modal abierto (p. ej. «Diseñar con IA») manda sobre el panel de fondo. */
+const modalOpen = () => Boolean(document.querySelector('[aria-modal="true"]'));
+/** Esc dentro de un campo de texto es de ese campo (renombrar, buscar…), no del panel. */
+const isEditable = (target: EventTarget | null) =>
+  target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA)$/.test(target.tagName));
 
 /**
  * Ranura lateral única del editor: alberga Propiedades, Catálogo, Recorrido,
@@ -31,7 +37,8 @@ export function EditorSidePanel({ store, title, children }: {
       store.getState().closeSidePanel();
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') store.getState().closeSidePanel();
+      if (event.key !== 'Escape' || event.defaultPrevented || modalOpen() || isEditable(event.target)) return;
+      store.getState().closeSidePanel();
     };
     document.addEventListener('pointerdown', closeOnOutside);
     document.addEventListener('keydown', closeOnEscape);
