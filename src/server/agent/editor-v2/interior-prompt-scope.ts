@@ -332,6 +332,34 @@ export function hoistSharedDefaults<T>(value: T): T {
 }
 
 /**
+ * Cada vértice se comparte entre dos o tres muros: sus coordenadas se escriben
+ * una vez en `verticesM` y cada muro recto guarda los índices de sus extremos
+ * (`pathM: [i, j]`). Los curvos conservan su trazado. Sin pérdida.
+ */
+export function indexWallVertices<T>(value: T): T {
+  const payload = value as { levels?: Record<string, unknown>[] } | null;
+  if (!payload || !Array.isArray(payload.levels)) return value;
+  return {
+    ...payload,
+    levels: payload.levels.map((level) => {
+      if (!Array.isArray(level.walls)) return level;
+      const vertices: [number, number][] = [];
+      const index = new Map<string, number>();
+      const at = (point: ScopePoint) => {
+        const key = `${point.x},${point.y}`;
+        if (!index.has(key)) { index.set(key, vertices.length); vertices.push([point.x, point.y]); }
+        return index.get(key)!;
+      };
+      const walls = (level.walls as Record<string, unknown>[]).map((wall) => {
+        const path = wall.pathM as ScopePoint[] | undefined;
+        return Array.isArray(path) && path.length === 2 ? { ...wall, pathM: [at(path[0]!), at(path[1]!)] } : wall;
+      });
+      return vertices.length ? { ...level, verticesM: vertices, walls } : level;
+    }),
+  } as T;
+}
+
+/**
  * Vista exterior: el contorno de cada estancia (y el de su techo, que es el
  * mismo) se deduce de los muros; queda el id, el área y los datos del techo.
  */
@@ -383,7 +411,7 @@ export function fitCompactPrompt(
   let current = payload;
   let prompt = '';
   // Transformaciones sin pérdida que solo cambian cómo se escribe el contexto.
-  const emit = (value: unknown) => serialize(aliasRoomIds(roomId ? value : hoistSharedDefaults(value)));
+  const emit = (value: unknown) => serialize(aliasRoomIds(roomId ? value : indexWallVertices(hoistSharedDefaults(value))));
   for (const step of steps) {
     current = step(current);
     prompt = [...head, emit(current)].join('\n');

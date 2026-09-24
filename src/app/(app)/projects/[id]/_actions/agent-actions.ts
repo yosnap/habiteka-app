@@ -48,7 +48,7 @@ import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { buildEditorRenderContract } from '@/lib/editor-document/render-contract';
 import { isDesignSpaceKind, type DesignSpaceKind } from '@/lib/design-space-kind';
 import type { NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
-import { renderItemCount, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { MAX_RENDER_PASSES, renderItemCount, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { generateZoneCompositeRender } from '@/server/agent/editor-v2/zone-composite-render';
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
@@ -611,8 +611,8 @@ async function estimateConceptRenderFromEditorImpl(
 ): Promise<{ estimatedUsd: number; model: string }> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
-  if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > 8)
-    fail('El número de vistas debe ser un entero entre 1 y 8.');
+  if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > MAX_RENDER_PASSES)
+    fail(`El número de generaciones debe ser un entero entre 1 y ${MAX_RENDER_PASSES}.`);
   const route = (await resolveRoutes('render3d'))[0];
   if (!route) fail('No hay modelo de render configurado.');
   const price = allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;

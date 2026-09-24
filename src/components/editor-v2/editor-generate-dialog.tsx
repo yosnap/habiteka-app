@@ -7,6 +7,7 @@ import {
   defaultRenderDesignOptions,
   isInteriorRenderMode,
   renderItemCount,
+  renderPassCount,
   zoneCompositeActive,
   RENDER_ADDITION_LABELS,
   RENDER_VIEW_LABELS,
@@ -37,6 +38,7 @@ import { RenderLivePreview, type PreviewRender } from './render-live-preview';
 import { RenderInstructionField } from './render-instruction-field';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { ZoneOverlayImage } from './zone-overlay-image';
+import { RenderCostEstimate } from './render-cost-estimate';
 
 interface EditorGenerateDialogProps {
   document?: EditorDocument;
@@ -91,6 +93,7 @@ export function EditorGenerateDialog({
   onGenerate,
   onRender,
   onApply,
+  onEstimate,
   spaceKind,
   onSpaceKindChange,
   initialSetup,
@@ -474,6 +477,10 @@ export function EditorGenerateDialog({
                       : 'toda la planta'}{' '}
                     {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
+                  {intent === 'image' && onEstimate && itemCount > 0 && (
+                    <RenderCostEstimate key={renderPassCount(options)} passes={renderPassCount(options)}
+                      zoneComposite={zoneCompositeActive(options)} estimate={onEstimate} />
+                  )}
                   <p className="text-ink-soft mt-2">{intent === 'image' ? 'Revisa las vistas de referencia antes de generar las imágenes.' : 'Los cambios no se aplican hasta que pulses Aplicar al plano. No se modifica la geometría.'}</p>
                 </div>
               </div>
