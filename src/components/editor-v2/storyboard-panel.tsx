@@ -8,6 +8,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { setWalkthroughStoryboard, setStoryboardImage } from '@/lib/editor-document/walkthrough-storyboard';
 import styles from './storyboard-panel.module.css';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 export function StoryboardPanel({ store, onDesignPoint, onHide, busy, loadImages, imageRevision = 0 }: {
   store: EditorStore;
@@ -67,11 +68,11 @@ export function StoryboardPanel({ store, onDesignPoint, onHide, busy, loadImages
       <span>{ids.length} seleccionadas</span>
       {loadImages && <button type="button" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? 'Cargando imágenes…' : 'Actualizar galería'}</button>}
       <label>Añadir punto
-        <select aria-label="Añadir punto a las vistas" value="" disabled={readOnly || busy || !available.length}
+        <ModernSelect aria-label="Añadir punto a las vistas" value="" disabled={readOnly || busy || !available.length}
           onChange={(event) => { if (event.target.value) save([...ids, event.target.value]); }}>
           <option value="">Elegir…</option>
           {available.map((point) => <option key={point.id} value={point.id}>Punto {route.waypoints.indexOf(point) + 1}</option>)}
-        </select>
+        </ModernSelect>
       </label>
       <button type="button" disabled={readOnly || busy || !available.length}
         onClick={() => save([...ids, ...available.map((point) => point.id)])}>Añadir todos</button>

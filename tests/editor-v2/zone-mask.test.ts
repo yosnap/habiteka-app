@@ -20,3 +20,13 @@ describe('máscara de zonas permitidas', () => {
     expect(zoneCompositeActive({ ...base, freedom: 'free', placement: 'all' })).toBe(false);
   });
 });
+
+describe('generaciones que cuesta un lote', () => {
+  it('con zonas cuenta dos pasadas por vista; sin zonas, una', async () => {
+    const { renderPassCount } = await import('../../src/lib/editor-document/render-design-options');
+    const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
+    const views = ['front', 'right', 'drone'] as ('front' | 'right' | 'drone')[];
+    expect(renderPassCount({ ...defaultRenderDesignOptions(), views })).toBe(3);
+    expect(renderPassCount({ ...defaultRenderDesignOptions(), views, freedom: 'free', placement: 'selected', regions: [region] })).toBe(6);
+  });
+});

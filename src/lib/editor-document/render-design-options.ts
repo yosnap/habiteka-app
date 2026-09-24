@@ -45,6 +45,16 @@ export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
 export const zoneCompositeActive = (options: RenderDesignOptions): boolean =>
   options.freedom !== 'strict' && options.placement === 'selected' && options.regions.length > 0;
 
+/** Tope de generaciones de un lote: 12 estancias con zonas (dos pasadas cada una). */
+export const MAX_RENDER_PASSES = 24;
+
+/**
+ * Generaciones de pago que puede costar el lote: con zonas, dos por imagen. Es
+ * un máximo: si la zona no se ve en una vista, esa vista solo paga una pasada.
+ */
+export const renderPassCount = (options: RenderDesignOptions): number =>
+  renderItemCount(options) * (zoneCompositeActive(options) ? 2 : 1);
+
 /** Cuántas imágenes produce el lote: una por estancia elegida, o una por ángulo. */
 export const renderItemCount = (options: RenderDesignOptions): number =>
   isInteriorRenderMode(options) ? options.interiorRoomIds.length : options.views.length;

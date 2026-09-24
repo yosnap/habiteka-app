@@ -7,6 +7,7 @@ import {
   defaultRenderDesignOptions,
   isInteriorRenderMode,
   renderItemCount,
+  renderPassCount,
   zoneCompositeActive,
   RENDER_ADDITION_LABELS,
   RENDER_VIEW_LABELS,
@@ -37,6 +38,7 @@ import { RenderLivePreview, type PreviewRender } from './render-live-preview';
 import { RenderInstructionField } from './render-instruction-field';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { ZoneOverlayImage } from './zone-overlay-image';
+import { RenderCostEstimate } from './render-cost-estimate';
 
 interface EditorGenerateDialogProps {
   document?: EditorDocument;
@@ -91,6 +93,7 @@ export function EditorGenerateDialog({
   onGenerate,
   onRender,
   onApply,
+  onEstimate,
   spaceKind,
   onSpaceKindChange,
   initialSetup,
@@ -134,6 +137,17 @@ export function EditorGenerateDialog({
   const [selection, setSelection] = useState<NativeDesignSelection | null>(null);
   const [mode, setMode] = useState<'choose' | 'renders' | 'proposal'>('choose');
   const [largePreview, setLargePreview] = useState<{ src: string; label: string; maskSrc?: string } | null>(null);
+  // Un precio por número de generaciones y diálogo: cambiar opciones no repite la consulta.
+  const [estimates] = useState(() => new Map<number, Promise<{ estimatedUsd: number; model: string }>>());
+  const cachedEstimate = onEstimate ? (passes: number) => {
+    let pending = estimates.get(passes);
+    if (!pending) {
+      pending = onEstimate(passes);
+      estimates.set(passes, pending);
+      pending.catch(() => estimates.delete(passes));
+    }
+    return pending;
+  } : undefined;
   const preparedReady = prepared.length > 0;
   const [applied, setApplied] = useState(false);
   const [intent, setIntent] = useState<'image' | 'editable'>('image');
@@ -474,6 +488,10 @@ export function EditorGenerateDialog({
                       : 'toda la planta'}{' '}
                     {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
+                  {intent === 'image' && cachedEstimate && itemCount > 0 && (
+                    <RenderCostEstimate key={renderPassCount(options)} passes={renderPassCount(options)}
+                      zoneComposite={zoneCompositeActive(options)} estimate={cachedEstimate} />
+                  )}
                   <p className="text-ink-soft mt-2">{intent === 'image' ? 'Revisa las vistas de referencia antes de generar las imágenes.' : 'Los cambios no se aplican hasta que pulses Aplicar al plano. No se modifica la geometría.'}</p>
                 </div>
               </div>
