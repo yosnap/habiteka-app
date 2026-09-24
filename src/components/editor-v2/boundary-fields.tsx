@@ -5,6 +5,7 @@ import { addBoundaryGate, putBoundaryGate, splitBoundary, updateBoundary } from 
 import { MeterField, NumberField } from './property-number-field';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 export function BoundaryFields({ item, edit }: { item: Furniture; edit: (operation: (doc: EditorDocument) => EditorDocument) => boolean }) {
   const b = isBoundary(item) ? item : boundaryDefaults(item), c = b.construction;
@@ -12,23 +13,23 @@ export function BoundaryFields({ item, edit }: { item: Furniture; edit: (operati
   const gate = (g: BoundaryGate, patch: Partial<BoundaryGate>) => edit((doc) => putBoundaryGate(doc, b.id, { ...g, ...patch }));
   return <section aria-label="Composición del cerramiento">
     <h3>Cerramiento</h3>
-    <label className={styles.field}>Composición<select aria-label="Composición" value={c.baseHeightMm > 0 ? 'mixed' : 'fence'} onChange={(e) => change({ baseHeightMm: e.target.value === 'mixed' ? b.heightMm / 2 : 0 })}>
+    <label className={styles.field}>Composición<ModernSelect aria-label="Composición" value={c.baseHeightMm > 0 ? 'mixed' : 'fence'} onChange={(e) => change({ baseHeightMm: e.target.value === 'mixed' ? b.heightMm / 2 : 0 })}>
       <option value="fence">Solo valla / seto</option><option value="mixed">Muro inferior + valla / seto</option>
-    </select></label>
+    </ModernSelect></label>
     <div className={styles.fields}>
       <MeterField label="Altura del muro inferior" valueMm={c.baseHeightMm} change={(baseHeightMm) => change({ baseHeightMm })} />
       <MeterField label="Altura de la parte superior" valueMm={b.heightMm - c.baseHeightMm} change={(value) => edit((doc) => updateBoundary(doc, b.id, { heightMm: c.baseHeightMm + value }))} />
     </div>
-    <label className={styles.field}>Relleno superior<select aria-label="Relleno superior" value={c.infill} onChange={(e) => change({ infill: e.target.value as BoundaryConstruction['infill'] })}>
+    <label className={styles.field}>Relleno superior<ModernSelect aria-label="Relleno superior" value={c.infill} onChange={(e) => change({ infill: e.target.value as BoundaryConstruction['infill'] })}>
       <option value="vertical">Lamas verticales</option><option value="horizontal">Lamas horizontales</option><option value="hedge">Seto vegetal</option>
-    </select></label>
+    </ModernSelect></label>
     {c.infill !== 'hedge' && <div className={styles.fields}>
       <MeterField label="Ancho de lama" valueMm={c.slatWidthMm} change={(slatWidthMm) => change({ slatWidthMm })} />
       <MeterField label="Separación de lamas" valueMm={c.gapMm} change={(gapMm) => change({ gapMm })} />
     </div>}
-    <label className={styles.field}>Sección de postes<select aria-label="Sección de postes" value={c.postShape} onChange={(e) => change({ postShape: e.target.value as BoundaryConstruction['postShape'] })}>
+    <label className={styles.field}>Sección de postes<ModernSelect aria-label="Sección de postes" value={c.postShape} onChange={(e) => change({ postShape: e.target.value as BoundaryConstruction['postShape'] })}>
       <option value="rectangle">Rectangular</option><option value="circle">Circular</option>
-    </select></label>
+    </ModernSelect></label>
     <div className={styles.fields}>
       <MeterField label={c.postShape === 'circle' ? 'Diámetro del poste' : 'Ancho del poste'} valueMm={c.postSizeMm} change={(postSizeMm) => change({ postSizeMm })} />
       <MeterField label="Separación máxima de postes" valueMm={c.postSpacingMm} change={(postSpacingMm) => change({ postSpacingMm })} />
@@ -51,7 +52,7 @@ export function BoundaryFields({ item, edit }: { item: Furniture; edit: (operati
         <MeterField label={`Altura de puerta ${index + 1}`} valueMm={g.heightMm} change={(heightMm) => gate(g, { heightMm })} />
         <NumberField label={`Apertura de puerta ${index + 1} (°)`} value={g.openAngleDeg} change={(openAngleDeg) => gate(g, { openAngleDeg })} />
       </div>
-      <label className={styles.field}>Bisagra<select value={g.hinge} onChange={(e) => gate(g, { hinge: e.target.value as BoundaryGate['hinge'] })}><option value="left">Izquierda</option><option value="right">Derecha</option></select></label>
+      <label className={styles.field}>Bisagra<ModernSelect value={g.hinge} onChange={(e) => gate(g, { hinge: e.target.value as BoundaryGate['hinge'] })}><option value="left">Izquierda</option><option value="right">Derecha</option></ModernSelect></label>
       <label className={styles.field}>Color de puerta<input type="color" value={g.color} onChange={(e) => gate(g, { color: e.target.value })} /></label>
       <button type="button" onClick={() => gate(g, { openAngleDeg: g.openAngleDeg ? 0 : 90 })}>{g.openAngleDeg ? 'Cerrar puerta' : 'Abrir puerta'}</button>{' '}
       <button type="button" onClick={() => change({ gates: c.gates.filter((item) => item.id !== g.id) })}>Eliminar puerta</button>

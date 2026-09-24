@@ -8,6 +8,7 @@ import { putWalkthrough, removeWalkthrough, type WalkthroughWaypoint } from '@/l
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import styles from './ceiling-lighting.module.css';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 export function WalkthroughPanel({ store, onClose, onDraw, onPreview, onDesignPoint }: {
   store: EditorStore; onClose: () => void; onDraw: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
@@ -43,9 +44,9 @@ export function WalkthroughPanel({ store, onClose, onDraw, onPreview, onDesignPo
         state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id); onDraw();
       })}>Dibujar recorrido</button>
     </fieldset>
-    {!!doc.walkthroughs?.length && <label>Recorrido guardado (elige uno para recuperarlo)<select value={route?.id ?? ''} onChange={(e) => state.setWalkthrough(e.target.value || null)}>
+    {!!doc.walkthroughs?.length && <label>Recorrido guardado (elige uno para recuperarlo)<ModernSelect value={route?.id ?? ''} onChange={(e) => state.setWalkthrough(e.target.value || null)}>
       <option value="">Elige un recorrido</option>{doc.walkthroughs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-    </select></label>}
+    </ModernSelect></label>}
     {route && <>
       <fieldset disabled={state.readOnly}>
         <label>Nombre<input value={route.name} maxLength={80} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, name: e.target.value })))} /></label>

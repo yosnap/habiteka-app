@@ -2,6 +2,7 @@
 import type { Luminaire } from '@/lib/editor-document/schema';
 import { NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 export const LUMINAIRE_KINDS: Record<Luminaire['kind'], string> = { pendant: 'Colgante', flush: 'Plafón', recessed: 'Foco empotrado' };
 type BulkPatch = Partial<Omit<Luminaire, 'id' | 'ceilingId' | 'x' | 'y'>>;
@@ -30,10 +31,10 @@ export function LuminaireBulkFields({ lights, update, remove, clear, readOnly }:
     <h3>{lights.length} luces seleccionadas</h3>
     <p>Cada cambio se aplica a todas a la vez. Mayús+clic en el plano suma o quita luces.</p>
     <div className={styles.fields}>
-      <label>{label('Tipo', 'kind')}<select value={kind ?? ''} onChange={(e) => update({ kind: e.target.value as Luminaire['kind'] })}>
+      <label>{label('Tipo', 'kind')}<ModernSelect value={kind ?? ''} onChange={(e) => update({ kind: e.target.value as Luminaire['kind'] })}>
         {kind === null && <option value="" disabled>Varios</option>}
         {Object.entries(LUMINAIRE_KINDS).map(([value, text]) => <option key={value} value={value}>{text}</option>)}
-      </select></label>
+      </ModernSelect></label>
       <label>{label('Acabado', 'color')}<input aria-label="Acabado de las luminarias" type="color" value={color ?? first.color} onChange={(e) => update({ color: e.target.value })} /></label>
       <NumberField label={label('Caída desde techo (cm)', 'dropMm')} value={first.dropMm / 10} change={(value) => update({ dropMm: value * 10 })} />
       <NumberField label={label('Temperatura (K)', 'temperatureK')} value={first.temperatureK} step={100} change={(temperatureK) => update({ temperatureK })} />

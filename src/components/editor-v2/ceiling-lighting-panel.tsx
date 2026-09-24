@@ -12,13 +12,14 @@ import { MeterField, NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
 import { CeilingPlanSection } from './ceiling-plan-section';
 import { LUMINAIRE_KINDS as kinds, LuminaireBulkFields } from './luminaire-bulk-fields';
+import { ModernSelect } from '@/components/ui/modern-select';
 type LightDraft = Omit<Luminaire, 'id'>;
 
 function LightFields({ light, update }: { light: LightDraft; update: (patch: Partial<LightDraft>) => boolean | void }) {
   return <div className={styles.fields}>
-    <label>Tipo<select value={light.kind} onChange={(e) => update({ kind: e.target.value as Luminaire['kind'], dropMm: 0 })}>
+    <label>Tipo<ModernSelect value={light.kind} onChange={(e) => update({ kind: e.target.value as Luminaire['kind'], dropMm: 0 })}>
       {Object.entries(kinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-    </select></label>
+    </ModernSelect></label>
     <label>Acabado<input aria-label="Acabado de luminaria" type="color" value={light.color} onChange={(e) => update({ color: e.target.value })} /></label>
     <MeterField label="Posición X" valueMm={light.x} change={(x) => update({ x })} />
     <MeterField label="Posición Y" valueMm={light.y} change={(y) => update({ y })} />
@@ -61,9 +62,9 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
   return <AnchoredEditorPanel store={store} className={styles.panel} label="Techo y luces">
     <div className={styles.heading}><h2>Techo y luces</h2><button type="button" aria-label="Cerrar techo y luces" onClick={onClose}><X size={20} /></button></div>
     <p>El techo transparente permite trabajar dentro. El render conserva su acabado real.</p>
-    <label>Visualización del techo<select value={state.ceilingView} onChange={(e) => state.setCeilingView(e.target.value as typeof state.ceilingView)}>
+    <label>Visualización del techo<ModernSelect value={state.ceilingView} onChange={(e) => state.setCeilingView(e.target.value as typeof state.ceilingView)}>
       <option value="hidden">Oculto</option><option value="transparent">Transparente al editar</option><option value="solid">Sólido</option>
-    </select></label>
+    </ModernSelect></label>
     {notice && <p role="status">{notice}</p>}
     {selectedLights.length > 1 ? <LuminaireBulkFields lights={selectedLights} readOnly={state.readOnly}
       update={(patch) => run((d) => updateLuminaires(d, selectedLights.map((light) => light.id), patch))}
@@ -78,15 +79,15 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
       </div>
       {shownScope === 'plan' ? <CeilingPlanSection doc={doc} roomCount={rooms.length} readOnly={state.readOnly} run={run}
         onNotice={setNotice} onSelectAll={() => selectLights((doc.luminaires ?? []).map((light) => light.id))} /> : <>
-      <label>Estancia<select value={activeRoom?.id ?? ''} onChange={(e) => { setRoomId(e.target.value); state.select([]); setProposal(null); }}>
+      <label>Estancia<ModernSelect value={activeRoom?.id ?? ''} onChange={(e) => { setRoomId(e.target.value); state.select([]); setProposal(null); }}>
         {rooms.map((room, index) => <option key={room.id} value={room.id}>{doc.labels.find((label) => insideRoom(label, room.boundary))?.text ?? `Estancia ${index + 1}`} · {(room.areaMm2 / 1e6).toFixed(1)} m²</option>)}
-      </select></label>
+      </ModernSelect></label>
       <fieldset disabled={state.readOnly}>
         {!ceiling ? <button className={styles.primary} type="button" onClick={() => activeRoom && run((d) => setRoomCeiling(d, activeRoom.id, {}))}>Añadir techo a esta estancia</button> : <>
           <div className={styles.fields}>
-            <label>Tipo de techo<select value={ceiling.kind} onChange={(e) => run((d) => setRoomCeiling(d, ceiling.roomId, { kind: e.target.value as 'plain' | 'suspended' }))}>
+            <label>Tipo de techo<ModernSelect value={ceiling.kind} onChange={(e) => run((d) => setRoomCeiling(d, ceiling.roomId, { kind: e.target.value as 'plain' | 'suspended' }))}>
               <option value="plain">Techo plano</option><option value="suspended">Falso techo</option>
-            </select></label>
+            </ModernSelect></label>
             <label>Acabado<input type="color" aria-label="Acabado del techo" value={ceiling.color} onChange={(e) => run((d) => setRoomCeiling(d, ceiling.roomId, { color: e.target.value }))} /></label>
             {ceiling.kind === 'suspended' && <NumberField label="Descenso del techo (cm)" value={ceiling.dropMm / 10} change={(value) => run((d) => setRoomCeiling(d, ceiling.roomId, { dropMm: value * 10 }))} />}
           </div>
@@ -103,7 +104,7 @@ export function CeilingLightingPanel({ store, onClose }: { store: EditorStore; o
           </details>)}
           <div className={styles.proposal}>
             <h3>Proponer iluminación</h3><p>Distribución local según geometría y estilo, sin consumir créditos IA. Revisa la posición y la altura antes de incorporarla.</p>
-            <label>Estilo<select value={style} onChange={(e) => { setStyle(e.target.value); setProposal(null); }}><option value="moderno">Moderno</option><option value="mediterraneo">Mediterráneo</option></select></label>
+            <label>Estilo<ModernSelect value={style} onChange={(e) => { setStyle(e.target.value); setProposal(null); }}><option value="moderno">Moderno</option><option value="mediterraneo">Mediterráneo</option></ModernSelect></label>
             <button type="button" onClick={() => {
               try { setProposal(proposeLighting(store.getState().document, ceiling.id, style)); }
               catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo proponer iluminación'); }

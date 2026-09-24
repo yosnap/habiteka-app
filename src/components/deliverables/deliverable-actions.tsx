@@ -19,6 +19,7 @@ import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverableView } from './deliverables-panel';
 import { drawableZones } from './plan2d-to-konva';
 import { CheckToggle } from '@/components/ui/check-toggle';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 const CHANGE_HINT: Record<DeliverableView['type'], string> = {
   render3d: 'Ej.: «suelo de madera clara», «más luz natural», «sofá en tonos azules».',
@@ -129,7 +130,7 @@ export function DeliverableActions({
             ¿Qué quieres cambiar?
           </label>
           {planZones.length > 1 ? (
-            <select
+            <ModernSelect
               aria-label="Estancia a modificar"
               className="border-line rounded-control border bg-white p-1 text-sm"
               value={planZoneId}
@@ -138,7 +139,7 @@ export function DeliverableActions({
               {planZones.map((z) => (
                 <option key={z.id} value={z.id}>{z.name || z.id}</option>
               ))}
-            </select>
+            </ModernSelect>
           ) : null}
           <textarea
             id={`change-${deliverable.id}`}

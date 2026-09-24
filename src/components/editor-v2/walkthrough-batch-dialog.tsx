@@ -13,6 +13,7 @@ import { StyleGallery } from '@/components/canvas/style-gallery';
 import type { Estilo } from '@/lib/contracts';
 import { runRenderBatch } from './render-batch';
 import { storyboardBatchPoints } from '@/lib/editor-document/storyboard-batch';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 interface Frame { waypointId: string; label: string; capture: RenderCapture }
 
@@ -114,9 +115,9 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
       <p>Hasta 8 vistas por lote. Primero revisa las capturas sin IA. Cada imagen terminada queda guardada en Diseños.</p>
       <fieldset disabled={busy}>
         <StyleGallery value={estilo} onChange={(value) => { setEstilo(value); reset(); }} />
-        <label>Iluminación<select value={lighting} onChange={(event) => { setLighting(event.target.value as typeof lighting); reset(); }}>
+        <label>Iluminación<ModernSelect value={lighting} onChange={(event) => { setLighting(event.target.value as typeof lighting); reset(); }}>
           <option value="daylight">Día</option><option value="warm">Atardecer</option><option value="evening">Noche</option>
-        </select></label>
+        </ModernSelect></label>
         <label>Instrucciones<input value={instructions} maxLength={500} onChange={(event) => { setInstructions(event.target.value); reset(); }} /></label>
         <button type="button" onClick={() => void prepare()}>Preparar vistas sin IA</button>
       </fieldset>
