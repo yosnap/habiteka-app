@@ -3,7 +3,7 @@ title: "Iluminación a fondo en el editor v2"
 description: "Foco orientable, tiras LED (foseado, bajo módulos altos, tramo libre) y escenas de iluminación por estancia, con 2D, 3D e integración con el diseño IA."
 status: pending
 priority: P2
-effort: 39h
+effort: 43h
 branch: feat/iluminacion-y-costes-zonas
 tags: [editor-v2, iluminacion, schema, 3d, ia]
 created: 2026-09-24
@@ -23,9 +23,9 @@ iluminación completo y escalable:
    por estancia), bajo módulos altos de un tramo de cocina, y tramo libre
    dibujado como línea con cota, color/temperatura y potencia.
 3. **Iluminación por zona**: escenas por estancia (temperatura, intensidad, qué
-   luces encendidas) aplicadas de golpe y respetadas por el diseño IA; y una
-   zona dibujada en el plano que acota qué luces se seleccionan, editan o
-   proponen.
+   luces encendidas) aplicadas de golpe y respetadas por el diseño IA; y zonas
+   de luces **guardadas en el proyecto** (con nombre, reutilizables) que acotan
+   qué luces se seleccionan, editan o proponen.
 
 Todo esto visible en 2D (símbolos/líneas), en 3D (dentro del presupuesto de
 luces reales de WebGL) y descrito al motor de diseño IA sin pasarse del tope del
@@ -33,8 +33,11 @@ prompt compacto.
 
 ## Restricciones
 
-- **Un solo bump de `schemaVersion`**: 11 → 12 cubre foco orientable, tiras LED
-  y escenas. `src/lib/editor-document/schema.ts:181`.
+- **Un solo bump de `schemaVersion`**: 11 → 12 cubre foco orientable, tiras LED,
+  escenas y zonas de luces. `src/lib/editor-document/schema.ts:181`.
+- **Rama**: este trabajo arranca en una rama nueva desde `develop`, después de
+  cerrar y mergear la rama de costes por zona. No se planifica merge conjunto
+  de `interior-prompt-scope.ts`.
 - **Compatibilidad**: leer un documento antiguo no lo cambia nunca. La migración
   solo ocurre al editar, con el patrón `upgradeCeilingDocument`
   (`ceiling-commands.ts:9`) / `upgradeKitchenDocument`
@@ -74,12 +77,12 @@ prompt compacto.
 
 | # | Fase | Esfuerzo | Estado | Depende de |
 |---|------|----------|--------|-----------|
-| 1 | [Modelo v12 + migración compartida](phase-01-modelo-v12.md) | 6h | pending | — |
+| 1 | [Modelo v12 + migración compartida](phase-01-modelo-v12.md) | 7h | pending | — |
 | 2 | [Foco orientable: 2D, 3D y panel](phase-02-foco-orientable.md) | 6h | pending | 1 |
-| 3 | [Tiras LED: geometría, foseado y tramo libre](phase-03-tiras-led-base.md) | 9h | pending | 1 |
-| 4 | [Tira bajo módulos altos de cocina](phase-04-tira-cocina.md) | 4h | pending | 3 |
+| 3 | [Tiras LED: geometría, foseado y tramo libre](phase-03-tiras-led-base.md) | 10h | pending | 1 |
+| 4 | [Tira bajo módulos altos de cocina](phase-04-tira-cocina.md) | 5h | pending | 3 |
 | 5 | [Escenas de iluminación por estancia](phase-05-escenas.md) | 5h | pending | 1 |
-| 6 | [Zona de luces dibujada en el plano](phase-06-zona-luces.md) | 4h | pending | 2, 3, 5 |
+| 6 | [Zonas de luces guardadas](phase-06-zona-luces.md) | 5h | pending | 2, 3, 5 |
 | 7 | [Integración con diseño IA y propuesta de luces](phase-07-ia-y-propuesta.md) | 5h | pending | 2, 3, 4, 5 |
 
 Las fases 2, 3 y 5 son paralelizables entre sí tras la 1 (ficheros disjuntos,
@@ -100,8 +103,9 @@ id: string;
 kind: 'cove' | 'under-cabinet' | 'free';
 ceilingId?: string;      // cove: obligatorio, uno por techo (falso techo ≥80 mm)
 kitchenRunId?: string;   // under-cabinet: obligatorio, uno por tramo con uppers
-pathMm?: Point[];        // free: 2–24 puntos, longitud total ≤ 60 m
-elevationMm?: number;    // free: 0–4000 desde el suelo acabado de su estancia
+pathMm: Point[];         // SIEMPRE guardado: 2–24 puntos, longitud total ≤ 60 m
+derived: boolean;        // true = sigue al muro/mueble; false = recorrido retocado a mano
+elevationMm: number;     // 0–4000 desde el suelo acabado de su estancia
 color: string;           // #rrggbb
 temperatureK: number;    // 1800–6500
 lumensPerMeter: number;  // 50–2000
@@ -116,10 +120,24 @@ intensityPct: number;    // 10–150, factor sobre lumens/lumensPerMeter
 offLightIds: string[];   // luces de la estancia apagadas en la escena
 offStripIds: string[];   // tiras de la estancia apagadas en la escena
 active: boolean;         // máximo una activa por estancia
+
+// LightZone (colección nueva doc.lightZones)
+id: string;
+name: string;            // 1–40 caracteres
+polygonMm: Point[];      // 3–20 vértices, mismo contrato que renderDesignOptionsSchema
 ```
 
-La zona de luces (decisión 3b) es **estado efímero de UI**, no de documento:
-reutiliza `render-region-draw.ts` y filtra por `insideRoom`. No se persiste.
+**Tiras derivadas vs. editadas**: foseado y tira de cocina nacen con
+`derived: true` y su recorrido se recalcula a partir del contorno de la
+estancia o del tramo de cocina (sigue al muro/mueble). En cuanto el usuario
+mueve un punto, la tira pasa a `derived: false` y su `pathMm` manda; el botón
+«Reajustar al muro» / «Reajustar al mueble» vuelve a `derived: true` y
+recalcula. El tramo libre nace siempre con `derived: false`.
+
+**Zonas de luces**: se guardan en el proyecto con nombre y son reutilizables
+(seleccionar, editar en bloque y proponer luces dentro). El dibujo reutiliza
+`render-region-draw.ts`; la validación es la misma forma de polígono que las
+zonas de render.
 
 ## Criterios de aceptación
 
@@ -139,8 +157,12 @@ reutiliza `render-region-draw.ts` y filtra por `insideRoom`. No se persiste.
       lm/m, y editarlo/moverlo después.
 - [ ] Una escena por estancia aplica temperatura, intensidad y encendido a todas
       las luces y tiras de esa estancia en un solo paso deshacible.
-- [ ] Marcada una zona en el plano, «seleccionar luces de la zona» selecciona
-      exactamente las que caen dentro y la propuesta se limita a esa zona.
+- [ ] Una zona de luces guardada con nombre sobrevive a recargar el proyecto;
+      «seleccionar luces de la zona» selecciona exactamente las que caen dentro
+      y la propuesta se limita a esa zona.
+- [ ] Mover un punto del foseado lo desliga del contorno (deja de recalcularse)
+      y «Reajustar al muro» lo devuelve al contorno derivado; lo mismo con la
+      tira de cocina y su tramo.
 - [ ] En 3D nunca se superan 12 luces reales simultáneas con cualquier
       combinación de luminarias y tiras (test sobre el selector de presupuesto).
 - [ ] El prompt compacto de una vista interior de un plano real con focos,

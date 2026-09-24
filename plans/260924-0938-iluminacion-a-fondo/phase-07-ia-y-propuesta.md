@@ -29,7 +29,11 @@ para la general y `pendant` sobre mesas/islas.
      (punto al que apunta, en metros);
    - `lightStrips`: `id`, `roomId`, `kind`, `elevationM`, `lengthM`,
      `lumensPerMeter`, `temperatureK`, `enabled`, `direction`, y `pathM` solo
-     para las `free` (las derivadas se deducen de la geometría ya enviada);
+     cuando `derived === false` (las derivadas se deducen del contorno de la
+     estancia o del tramo de cocina, geometría que el prompt ya lleva);
+   - las **zonas de luces guardadas** NO se envían: son una herramienta de
+     edición, no geometría del proyecto, y cada zona costaría ~90 caracteres
+     del presupuesto del prompt;
    - `lightingScene` por estancia cuando hay una activa:
      `{ roomId, name, temperatureK, intensityPct }`.
    - Los valores de luminarias y tiras son los **efectivos** (fase 5).
@@ -39,7 +43,8 @@ para la general y `pendant` sobre mesas/islas.
    lo que ya se degrada hoy:
    - redondear `tiltDeg`/`azimuthDeg` a grado entero (siempre, no es
      degradación real);
-   - sustituir `pathM` de las tiras libres por sus extremos;
+   - sustituir `pathM` de las tiras con recorrido propio (libres o ajustadas a
+     mano) por sus extremos;
    - resumir tiras por estancia (`{roomId, count, kind}`);
    - eliminar `lightingScene` (su efecto ya va en los valores efectivos de cada
      luz).
@@ -88,7 +93,7 @@ Tests a ampliar: `tests/agent/ceiling-render-prompt.test.ts`,
 | Política compacta ampliada | +180 | +180 (nunca se degrada) |
 | `mount/tilt/azimuth` por foco | ~22 c/foco | ~22 (ya mínimos) |
 | Tira derivada (`cove`/cocina) | ~70 c/tira | ~24 al resumir por estancia |
-| Tira libre con `pathM` | ~110 c/tira | ~40 con solo extremos |
+| Tira con recorrido propio (`free` o ajustada a mano) | ~110 c/tira | ~40 con solo extremos |
 | Escena activa | ~55 c/estancia | 0 al eliminarse |
 
 Con 8 estancias, 8 foseados y 2 tiras libres el peor caso bruto ronda +900
@@ -141,7 +146,8 @@ prompt no cupiera.
 ## Propiedad de ficheros
 
 Exclusiva sobre `interior-prompt-scope.ts`, `selected-view-prompt.ts`,
-`ceiling-design-context.ts` y `lighting-proposal.ts`. Ojo: en la rama actual
-`interior-prompt-scope.ts`, `compact-render-context.ts` y
-`render-design-options.ts` están modificados sin commitear por el trabajo de
-costes por zona; coordinar con Paulo antes de tocarlos.
+`ceiling-design-context.ts` y `lighting-proposal.ts`. La rama de costes por
+zona se cierra y mergea a `develop` antes de empezar, así que estos ficheros
+llegan limpios y no hay merge conjunto que planificar. Sí conviene medir la
+longitud real del prompt compacto **después** de ese merge: el margen de 200
+caracteres puede haber cambiado.

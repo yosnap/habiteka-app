@@ -1,6 +1,6 @@
 # Fase 3 · Tiras LED: geometría, foseado y tramo libre
 
-Esfuerzo: 9h · Depende de: fase 1 · Estado: pending
+Esfuerzo: 10h · Depende de: fase 1 · Estado: pending
 
 ## Contexto
 
@@ -26,19 +26,27 @@ libre). `under-cabinet` va en la fase 4 porque depende de los módulos altos.
    sin pedir recorrido. Requiere `Ceiling.kind === 'suspended'` y `dropMm ≥ 80`;
    si no, el botón se deshabilita con el porqué (como ya hace el foco
    empotrado, `ceiling-lighting-panel.tsx` botón `recessed`).
-2. El recorrido del foseado se **deriva**, no se guarda: contorno de la
+2. El recorrido del foseado nace **derivado** (`derived: true`): contorno de la
    estancia retranqueado 150 mm hacia dentro, a la cota `heightMm` del techo,
-   emitiendo hacia arriba (luz indirecta). Guardar solo `ceilingId` evita que
-   el recorrido quede obsoleto al mover un muro.
-3. **Tramo libre**: se dibuja como polilínea en el plano (2–24 puntos), con
-   cota (`elevationMm`), color, temperatura y lm/m. Editable y desplazable.
-4. 2D: `cove` como línea discontinua interior al contorno; `free` como línea
-   gruesa con puntos de control y etiqueta de longitud en metros.
-5. 3D: material emisivo siempre; como máximo 4 luces reales de tira, dentro del
+   emitiendo hacia arriba (luz indirecta). Mientras siga derivado, se recalcula
+   al mover un muro y sigue al contorno.
+3. **Editable a mano**: arrastrar cualquier punto del foseado (o insertar/quitar
+   un vértice) pasa la tira a `derived: false` con el recorrido resultante
+   guardado en `pathMm`; a partir de ahí ya no sigue al muro. Un botón
+   «Reajustar al contorno de la estancia» vuelve a `derived: true` y recalcula,
+   avisando de que se pierden los retoques.
+4. **Tramo libre**: se dibuja como polilínea en el plano (2–24 puntos), con
+   cota (`elevationMm`), color, temperatura y lm/m. Nace con `derived: false`
+   y no tiene botón de reajuste.
+5. 2D: `cove` como línea discontinua interior al contorno; `free` como línea
+   gruesa con puntos de control y etiqueta de longitud en metros. Una tira
+   editada a mano se distingue de la derivada (trazo continuo + indicador
+   «ajustada a mano» en su ficha).
+6. 3D: material emisivo siempre; como máximo 4 luces reales de tira, dentro del
    presupuesto global de 12. `cove` = luz hacia el techo; `free` = luz según su
    orientación (hacia fuera del muro más cercano si está adosada, si no hacia
    abajo).
-6. Borrar un techo borra su `cove` (igual que `removeCeiling` borra las luces,
+7. Borrar un techo borra su `cove` (igual que `removeCeiling` borra las luces,
    `ceiling-commands.ts:32-37`).
 
 ## Geometría derivada
@@ -57,13 +65,28 @@ interface ResolvedStrip {
 }
 resolvedStrips(doc): ResolvedStrip[]     // omite las que tengan incidencia
 lightStripIssue(doc, strip): string | null
+derivedStripPath(doc, strip): Point[] | null   // null si la geometría de origen falta
 ```
 
+`resolvedStrips` decide el recorrido así:
+
+| `derived` | Recorrido usado |
+|---|---|
+| `true` | `derivedStripPath(doc, strip)`; si devuelve `null`, incidencia y la tira no se dibuja |
+| `false` | `strip.pathMm` tal cual, sin recalcular |
+
+Los comandos que tocan una tira derivada refrescan su `pathMm` con el recorrido
+recalculado (la instantánea de la fase 1), para que 2D, prompt y ficheros
+guardados sean coherentes sin necesidad de recalcular al leer.
+
 Reglas de `lightStripIssue`:
-- `cove`: su techo debe existir en `ceilingSurfaces` y ser `suspended` con
-  `dropMm ≥ 80`; el contorno retranqueado 150 mm debe seguir siendo un
+- `cove` derivado: su techo debe existir en `ceilingSurfaces` y ser `suspended`
+  con `dropMm ≥ 80`; el contorno retranqueado 150 mm debe seguir siendo un
   polígono válido (estancias muy estrechas → «La estancia es demasiado
   estrecha para un foseado»).
+- `cove` editado a mano: su techo debe seguir existiendo, pero el recorrido no
+  se compara con el contorno; si algún punto cae fuera de la estancia, aviso
+  «El foseado ajustado a mano se sale de la estancia; reajústalo al contorno».
 - `free`: cada punto dentro de alguna estancia del documento; `elevationMm`
   entre 0 y la altura libre de esa estancia menos 50 mm; longitud total ≥ 300 mm.
 - Límite de 48 tiras ya validado en fase 1.
@@ -76,8 +99,10 @@ que los avisos salgan por el mismo canal que hoy (`ceilingWarnings`, `:98`).
 Crear:
 - `src/lib/editor-document/light-strip-geometry.ts`
 - `src/lib/editor-document/light-strip-commands.ts` — `addCoveStrip`,
-  `addFreeStrip`, `updateLightStrip`, `removeLightStrip`, `removeLightStrips`
-  (todas sobre `upgradeLightingDocument` y cerrando con `parseEditorDocument`).
+  `addFreeStrip`, `updateLightStrip`, `setLightStripPath` (pasa a
+  `derived: false`), `refitLightStrip` (vuelve a `derived: true` y recalcula),
+  `removeLightStrip`, `removeLightStrips` (todas sobre
+  `upgradeLightingDocument` y cerrando con `parseEditorDocument`).
 - `src/components/editor-v2/light-strip-fields.tsx` — campos de una tira y
   edición en bloque.
 - `src/components/editor-v2/light-strip-layer.tsx` — capa Konva.
@@ -113,7 +138,9 @@ Tests: `tests/editor-document/light-strip-commands.test.ts`,
 4. Herramienta de dibujo: reutilizar la validación de polilínea de
    `polygon-tools` (autointersección y límite de vértices) sin duplicarla.
 5. Capa 2D: dibujo, selección (compatible con la selección múltiple existente
-   por Mayús+clic) y arrastre de vértices en tramo libre.
+   por Mayús+clic) y arrastre de vértices en cualquier tira; arrastrar un
+   vértice de una tira derivada llama a `setLightStripPath` con el recorrido
+   resultante y la desliga.
 6. 3D: mallas emisivas (`cove` = tubo/`TubeGeometry` fino sobre el contorno
    retranqueado; `free` = caja fina a lo largo del recorrido) y reparto de
    luces reales.
@@ -141,9 +168,13 @@ DATABASE_URL=… bun run scripts/test-isolated.ts run \
 ```
 
 Casos: foseado sobre techo plano → error; sobre falso techo de 150 mm → tira
-creada con recorrido derivado de longitud ≈ perímetro − 8·150 mm; dos foseados
-en el mismo techo → error; borrar el techo borra su foseado; tramo libre con
-un punto fuera de toda estancia → error; tramo libre a 2,60 m en estancia de
+creada con `derived: true` y recorrido de longitud ≈ perímetro − 8·150 mm;
+mover un muro cambia el recorrido de la tira derivada y **no** el de la editada
+a mano; `setLightStripPath` deja `derived: false` y conserva los puntos dados;
+`refitLightStrip` devuelve el recorrido derivado y `derived: true`;
+`refitLightStrip` sobre una tira `free` → error; dos foseados en el mismo techo
+→ error; borrar el techo borra su foseado; tramo libre con un punto fuera de
+toda estancia → error; tramo libre a 2,60 m en estancia de
 2,50 m libres → error; `lightBudgetSplit` con 20 luminarias y 6 tiras devuelve
 8 + 4 y nunca más de 12; con 3 luminarias y 1 tira devuelve 3 + 1.
 
@@ -156,9 +187,15 @@ un punto fuera de toda estancia → error; tramo libre a 2,60 m en estancia de
   de polígono puede autointersecarse. Mitigación: si el retranqueo falla o
   produce un polígono inválido, devolver incidencia «estancia demasiado
   estrecha» en vez de un recorrido roto.
-- **Recorrido derivado vs. guardado** (prob. baja, impacto medio): al mover un
-  muro el foseado se recalcula solo; es el comportamiento buscado, pero hay que
-  documentarlo en la UI («sigue el contorno de la estancia»).
+- **Derivado vs. editado a mano** (prob. media, impacto medio): el usuario
+  puede no entender por qué una tira dejó de seguir al muro. Mitigación:
+  indicador visible en 2D y en la ficha («Sigue el contorno» / «Ajustada a
+  mano») y botón de reajuste con confirmación de que se pierden los retoques.
+- **Instantánea `pathMm` desincronizada** (prob. media, impacto bajo): si un
+  comando olvida refrescarla, el prompt y el 2D podrían discrepar. Mitigación:
+  `resolvedStrips` recalcula siempre para las derivadas (la instantánea nunca
+  manda mientras `derived === true`), así que la desincronía es cosmética;
+  test que comprueba el refresco tras `updateLightStrip`.
 - **Crecimiento del panel** por encima de 1000 líneas: extraer sección propia.
 
 ## Rollback

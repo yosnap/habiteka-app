@@ -1,6 +1,6 @@
 # Fase 4 · Tira LED bajo módulos altos de cocina
 
-Esfuerzo: 4h · Depende de: fase 3 · Estado: pending
+Esfuerzo: 5h · Depende de: fase 3 · Estado: pending
 
 ## Contexto
 
@@ -21,14 +21,19 @@ La conversión local→mundo ya existe: `localToWorld` y `projectAlong`
    `addUnderCabinetStrip(doc, kitchenRunId)`).
 2. Solo disponible si el tramo tiene `composition.uppers`; si no, botón
    deshabilitado con el motivo.
-3. Recorrido **derivado** del tramo: línea paralela a la trasera, a
-   `uppers.depthMm − 30 mm` del fondo, recorriendo todo el largo menos 50 mm por
-   extremo, a la cota `elevationMm + uppers.bottomMm − 10 mm`. Se guarda solo
-   `kitchenRunId`: al mover o alargar el tramo, la tira le sigue.
-4. Dirección de emisión `down`: ilumina la encimera.
-5. Mover, girar, alargar o borrar el tramo arrastra su tira (borrado en
-   cascada como `removeCeiling` con sus luces).
-6. Una sola tira `under-cabinet` por tramo (validado en fase 1).
+3. Recorrido **derivado** del tramo (`derived: true`): línea paralela a la
+   trasera, a `uppers.depthMm − 30 mm` del fondo, recorriendo todo el largo
+   menos 50 mm por extremo, a la cota `elevationMm + uppers.bottomMm − 10 mm`.
+   Mientras siga derivada, mover, girar o alargar el tramo la arrastra.
+4. **Editable a mano**: arrastrar sus puntos en 2D (o editar la cota) llama a
+   `setLightStripPath` y la deja en `derived: false`; desde ahí deja de seguir
+   al mueble. Botón «Reajustar al mueble» (`refitLightStrip`) para volver.
+5. Dirección de emisión `down`: ilumina la encimera.
+6. Borrar el tramo borra su tira, esté derivada o editada (borrado en cascada
+   como `removeCeiling` con sus luces). Mover el tramo con la tira ya editada
+   NO la mueve: queda donde estaba y, si se descuelga del mueble, sale aviso
+   «La tira ajustada a mano ya no queda bajo el mueble; reajústala».
+7. Una sola tira `under-cabinet` por tramo (validado en fase 1).
 
 ## Ficheros
 
@@ -39,7 +44,8 @@ Modificar:
 - `src/lib/editor-document/light-strip-commands.ts` — `addUnderCabinetStrip`.
 - `src/lib/editor-document/kitchen-run-commands.ts` — el borrado del tramo
   elimina su tira; quitar `uppers` del tramo deja la tira en incidencia (aviso,
-  no borrado silencioso).
+  no borrado silencioso); `updateKitchenRun` refresca la instantánea `pathMm`
+  de la tira derivada y no toca la editada a mano.
 - El panel de cocina donde se editan los `uppers` (localizar el consumidor de
   `KitchenUppers` en `src/components/editor-v2/`) — botón de alta.
 - `src/components/editor-v2/ceiling-lighting-panel.tsx` (o la sección de tiras)
@@ -68,10 +74,12 @@ DATABASE_URL=… bun run scripts/test-isolated.ts run \
 ```
 
 Casos: tramo sin `uppers` → error al dar de alta; tramo con `uppers` → tira con
-longitud = `widthMm − 100`; girar el tramo 90° mueve el recorrido de forma
-coherente; alargar el tramo alarga la tira sin editarla; borrar el tramo borra
-la tira; quitar `uppers` deja incidencia en `ceilingWarnings`; dos altas
-seguidas sobre el mismo tramo → error.
+longitud = `widthMm − 100` y `derived: true`; girar el tramo 90° mueve el
+recorrido de forma coherente; alargar el tramo alarga la tira sin editarla;
+tras `setLightStripPath`, mover el tramo **no** mueve la tira y aparece el
+aviso de descolgada; `refitLightStrip` la devuelve bajo el mueble; borrar el
+tramo borra la tira en ambos estados; quitar `uppers` deja incidencia en
+`ceilingWarnings`; dos altas seguidas sobre el mismo tramo → error.
 
 ## Riesgos
 
