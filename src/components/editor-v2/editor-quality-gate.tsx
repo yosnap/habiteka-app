@@ -12,7 +12,7 @@
  * casilla se enseña igualmente aunque la tarjeta dijera otra cosa: nunca se deja
  * al usuario en un callejón sin salida.
  */
-import { useState } from 'react';
+import { useState, type ReactNode, useRef } from 'react';
 import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import type { QualityVerdict } from '@/lib/quality-verdict';
@@ -40,34 +40,66 @@ interface Props {
   onChange: (state: EditorQualityState) => void;
   /** Mensaje del servidor cuando ha cortado por falta de confirmación expresa. */
   serverConfirmMessage?: string | null;
+  /**
+   * Lista de incidencias localizables que se pinta bajo la tarjeta. Recibe la
+   * función de reevaluar para volver a juzgar el plano tras una reparación.
+   */
+  renderPlanIssues?: (onRepaired: () => void) => ReactNode;
 }
 
-export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = null }: Props) {
+export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = null, renderPlanIssues }: Props) {
   const [quality, setQuality] = useState<QualityVerdict | null>(null);
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
 
-  useMountEffect(() => {
-    let active = true;
+  /**
+   * Pide el veredicto y lo publica. Solo cuenta la petición más reciente (dos
+   * reparaciones seguidas no se pisan) y nada llega si el diálogo se cerró.
+   */
+  const latest = useRef(0);
+  const load = (alive: () => boolean) => {
+    const id = ++latest.current;
+    const active = () => alive() && id === latest.current;
     evaluate()
       .then((verdict) => {
-        if (!active) return;
+        if (!active()) return;
         setQuality(verdict);
+        setError(null);
         onChange({ quality: verdict, ack: false, blocked: verdict?.decision === 'block' });
       })
       .catch((cause: unknown) => {
-        if (!active) return;
+        if (!active()) return;
         // No se bloquea por no poder consultar: el servidor vuelve a evaluar al generar.
         setError(cause instanceof Error ? cause.message : 'No se pudo comprobar la calidad del plano.');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!active()) return;
+        setLoading(false);
+        setPending(false);
       });
+  };
+
+  // Testigo de vida del diálogo: una respuesta tardía no debe tocar un componente ya cerrado.
+  const alive = useRef(true);
+  useMountEffect(() => {
+    // En desarrollo React monta, desmonta y vuelve a montar: hay que reabrir el testigo.
+    alive.current = true;
+    load(() => alive.current);
     return () => {
-      active = false;
+      alive.current = false;
     };
   });
+
+  /** Tras reparar, el plano es otro: se vuelve a juzgar y se retira la confirmación dada. */
+  const reevaluate = () => {
+    setAck(false);
+    // El diálogo también debe olvidar la confirmación: era sobre el plano sin reparar.
+    onChange({ quality, ack: false, blocked: quality?.decision === 'block' });
+    setPending(true);
+    load(() => alive.current);
+  };
 
   const toggleAck = (value: boolean) => {
     setAck(value);
@@ -85,14 +117,18 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
       }
     : quality;
 
+  const issues = renderPlanIssues ? <PlanIssuesSlot render={renderPlanIssues} onRepaired={reevaluate} /> : null;
   if (loading && !serverConfirmMessage) {
     return <p className="text-ink-soft mt-4 text-xs">Comprobando la calidad del plano…</p>;
   }
   if (error && !serverConfirmMessage) {
     return (
-      <p className="text-ink-soft mt-4 text-xs" role="status">
-        {error}
-      </p>
+      <div className="mt-4 space-y-2">
+        <p className="text-ink-soft text-xs" role="status">
+          {error}
+        </p>
+        {issues}
+      </div>
     );
   }
   if (!shown) return null;
@@ -100,6 +136,12 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
   return (
     <div className="mt-4 space-y-2">
       <QualityVerdictCard quality={shown} blockedNote={BLOCKED_NOTE} />
+      {pending ? (
+        <p className="text-ink-soft text-xs" role="status">
+          Plano reparado: volviendo a comprobar la calidad…
+        </p>
+      ) : null}
+      {issues}
       {shown.decision === 'block' ? (
         <div className="bg-canvas rounded-card border border-line p-3 text-xs">
           <p className="text-ink font-medium">Cómo corregir el plano</p>
@@ -118,3 +160,8 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
 }
 
 export default EditorQualityGate;
+
+/** Pinta la lista de incidencias con el callback de reevaluar como prop de evento. */
+function PlanIssuesSlot({ render, onRepaired }: { render: (onRepaired: () => void) => ReactNode; onRepaired: () => void }) {
+  return <>{render(onRepaired)}</>;
+}

@@ -9,6 +9,10 @@ import { conceptRenderPrompt } from '@/server/agent/editor-v2/concept-render-pro
 import { selectedViewPrompt } from '@/server/agent/editor-v2/selected-view-prompt';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderView } from '@/lib/editor-document/render-view';
+import { ceilingDesignContext } from '@/lib/editor-document/ceiling-design-context';
+import { addLuminaire, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
+import { addCoveStrip, addFreeStrip } from '@/lib/editor-document/light-strip-commands';
+import { applyLightingScene, saveLightingScene, updateLightingScene } from '@/lib/editor-document/lighting-scene-commands';
 
 const view: RenderView = { preset: 'isometric', position: [5, 5, 5], quaternion: [0, 0, 0, 1], fov: 45, aspect: 1.5, allLevels: false, cutaway: true };
 function roomWithLighting() {
@@ -86,5 +90,49 @@ describe('techos y luminarias en prompts de diseño', () => {
     doc.levels = [{ id: 'ground', name: 'Baja', heightMm: 3000, document: ground }, { id: 'upper', name: 'Alta', heightMm: 3000 }];
     expect(selectedViewPrompt(doc, view, 'moderno')).not.toContain('ground-light');
     expect(selectedViewPrompt(doc, { ...view, allLevels: true }, 'moderno')).toContain('ground-light');
+  });
+});
+
+describe('focos orientables, tiras y escenas en el contexto de diseño', () => {
+  function litRoom() {
+    let doc = addLuminaire(roomWithLighting(), 'ceiling', 'spot', { x: 1000, y: 2000 });
+    const roomId = doc.ceilings![0]!.roomId;
+    const spotId = doc.luminaires!.find((light) => light.kind === 'spot')!.id;
+    doc = updateLuminaire(doc, spotId, { mount: 'recessed', tiltDeg: 30.4, azimuthDeg: 90.6 });
+    doc = addCoveStrip(doc, 'ceiling');
+    doc = addFreeStrip(doc, [{ x: 800, y: 800 }, { x: 3200, y: 800 }]);
+    doc = saveLightingScene(doc, roomId, 'Cena');
+    return applyLightingScene(doc, doc.lightingScenes![0]!.id);
+  }
+
+  it('describe la orientación del foco, el recorrido propio de las tiras y la escena activa', () => {
+    const doc = litRoom();
+    const context = ceilingDesignContext(doc);
+    const spot = context.luminaires.find((light) => light.kind === 'spot')!;
+    expect(spot).toMatchObject({ mount: 'recessed', tiltDeg: 30, azimuthDeg: 91 });
+    expect(spot.aimM!.y).toBeGreaterThan(spot.positionM.y);
+    // El resto de tipos no gasta presupuesto de prompt en orientación.
+    expect(context.luminaires.find((light) => light.kind === 'pendant')).not.toHaveProperty('aimM');
+
+    const cove = context.lightStrips.find((strip) => strip.kind === 'cove')!;
+    expect(cove).toMatchObject({ elevationM: 2.5, direction: 'up' });
+    // Derivada del contorno de la estancia, que el prompt ya lleva.
+    expect(cove).not.toHaveProperty('pathM');
+    const free = context.lightStrips.find((strip) => strip.kind === 'free')!;
+    expect(free.pathM).toEqual([{ x: 0.8, y: 0.8 }, { x: 3.2, y: 0.8 }]);
+    expect(free.lengthM).toBe(2.4);
+
+    expect(context.lightingScenes).toEqual([{ roomId: doc.ceilings![0]!.roomId, name: 'Cena', temperatureK: 2700, intensityPct: 100 }]);
+    // Las zonas guardadas son herramienta de edición: nunca viajan a la IA.
+    expect(JSON.stringify(context)).not.toContain('lightZones');
+  });
+
+  it('manda los valores efectivos de la escena, no los nominales', () => {
+    let doc = litRoom();
+    doc = updateLightingScene(doc, doc.lightingScenes![0]!.id, { temperatureK: 2200, intensityPct: 50 });
+    const context = ceilingDesignContext(doc);
+    for (const light of context.luminaires) expect(light.temperatureK).toBe(2200);
+    for (const strip of context.lightStrips) expect(strip.temperatureK).toBe(2200);
+    expect(context.luminaires.find((light) => light.kind === 'spot')!.lumens).toBe(275);
   });
 });

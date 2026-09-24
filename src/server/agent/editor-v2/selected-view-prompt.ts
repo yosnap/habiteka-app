@@ -179,6 +179,7 @@ export function selectedViewPrompt(
           finishedFloorElevationM: floor.finishedFloorElevationM, structuralDepthM: floor.structuralDepthM,
           undersideElevationM: floor.undersideElevationM })),
         ceilings: level.ceilings, luminaires: level.luminaires,
+        lightStrips: level.lightStrips, lightingScenes: level.lightingScenes,
         walls: level.walls, openings: level.openings, columns: level.columns, stairs: level.stairs,
         ramps: level.ramps.map(ramp => ({ ...ramp, parts: ramp.parts.map(part => ({
           kind: part.kind, footprintM: part.footprintM, startElevationM: part.startElevationM, endElevationM: part.endElevationM,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
 import { captureCeilingView, captureCutaway, ceilingShape, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
   it('triangula un techo cóncavo en metros sin rellenar el hueco exterior', () => {
@@ -47,6 +48,28 @@ describe('representación de techos e iluminación', () => {
       light.shadow.updateMatrices(light);
       expect(light.shadow.camera.position.x).toBeCloseTo(11);
       expect(light.shadow.camera.getWorldDirection(new Vector3()).distanceTo(direction)).toBeCloseTo(0);
+      light.dispose();
+    }
+  });
+  it('orienta el haz del foco al mismo punto que marca el símbolo 2D', () => {
+    for (const [tiltDeg, azimuthDeg] of [[0, 0], [30, 0], [45, 90], [60, 200], [30, 315]] as const) {
+      const luminaire = { id: 'light', ceilingId: 'ceiling', kind: 'spot' as const, x: 2000, y: 1500,
+        dropMm: 0, color: '#ffffff', temperatureK: 3000, lumens: 550, enabled: true,
+        mount: 'surface' as const, tiltDeg, azimuthDeg };
+      const light = createLuminaireEmitter(luminaire);
+      const fixture = new Group();
+      fixture.position.set(2, 2.5, 1.5);
+      fixture.add(light, light.target);
+      fixture.updateMatrixWorld(true);
+      const origin = light.getWorldPosition(new Vector3());
+      const direction = light.target.getWorldPosition(new Vector3()).sub(origin).normalize();
+      // El haz llega al suelo justo donde `spotAimPoint` lo sitúa en el plano.
+      const ground = origin.clone().addScaledVector(direction, 2.5 / -direction.y);
+      const aim = spotAimPoint({ luminaire, heightMm: 2500, floorElevationMm: 0 });
+      expect(ground.x).toBeCloseTo(aim.x / 1000);
+      expect(ground.z).toBeCloseTo(aim.y / 1000);
+      expect(light.angle).toBeCloseTo(30 * Math.PI / 180);
+      expect(light.penumbra).toBeCloseTo(.35);
       light.dispose();
     }
   });

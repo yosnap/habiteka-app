@@ -13,6 +13,7 @@ import {
   restoreZone,
   purgeZone,
 } from '@/app/(app)/projects/[id]/_actions/zone-actions';
+import { InlineConfirmButton } from '@/components/ui/inline-confirm-button';
 
 interface DeletedZone {
   id: string;
@@ -51,9 +52,6 @@ export function ZoneTrash({
   };
 
   const purge = (zone: DeletedZone) => {
-    if (!window.confirm(`¿Borrar "${zone.name}" definitivamente? Esto no se puede deshacer.`)) {
-      return;
-    }
     startTransition(async () => {
       await purgeZone(projectId, zone.id);
       // Si por alguna razón era la activa, volver a Principal.
@@ -107,14 +105,14 @@ export function ZoneTrash({
                   >
                     Restaurar
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => purge(z)}
+                  <InlineConfirmButton
+                    label="Borrar definitivamente"
+                    question={`¿Borrar «${z.name}» definitivamente? No se puede deshacer.`}
+                    onConfirm={() => purge(z)}
                     disabled={pending}
                     className="border-line text-ink-soft hover:text-[--color-danger] rounded-control border px-2 py-1 text-xs disabled:opacity-50"
-                  >
-                    Borrar definitivamente
-                  </button>
+                    cancelClassName="border-line text-ink-soft rounded-control border px-2 py-1 text-xs"
+                  />
                 </span>
               </li>
             ))}

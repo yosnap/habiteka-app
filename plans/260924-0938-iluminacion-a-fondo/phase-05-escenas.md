@@ -1,6 +1,6 @@
 # Fase 5 · Escenas de iluminación por estancia
 
-Esfuerzo: 5h · Depende de: fase 1 · Estado: pending
+Esfuerzo: 5h · Depende de: fase 1 · Estado: done
 
 ## Contexto
 

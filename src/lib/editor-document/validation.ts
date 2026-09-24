@@ -3,6 +3,9 @@ import { assertKitchenRunFields } from './kitchen-run-validation';
 import { assertWalkthroughFields } from './walkthrough-validation';
 import type { EditorDocument } from './schema';
 import { assertCeilingFields } from './ceiling-validation';
+import { assertLightStripFields } from './light-strip-validation';
+import { assertLightingSceneFields } from './lighting-scene-validation';
+import { assertLightZoneFields } from './light-zone-validation';
 import { surfaceMaterial } from './surface-materials';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
@@ -47,7 +50,7 @@ function color(value: unknown): void {
 
 export function assertEditorDocument(value: unknown): asserts value is EditorDocument {
   record(value);
-  if (![2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(value.schemaVersion as number) || value.units !== 'mm')
+  if (![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(value.schemaVersion as number) || value.units !== 'mm')
     throw new Error('Versión o unidades no compatibles');
   const construction = (value.schemaVersion as number) >= 3,
     spatial = (value.schemaVersion as number) >= 4,
@@ -55,7 +58,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}`,
+    `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
   if (
     designSpace &&
@@ -346,10 +349,16 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       }
     }
   }
-  if ((value.schemaVersion as number) >= 8) assertCeilingFields(value, ids);
+  const version = value.schemaVersion as number;
+  const ceilingScope = version >= 8 ? assertCeilingFields(value, ids, version) : undefined;
   if ((value.schemaVersion as number) >= 9) assertWalkthroughFields(value, ids);
   if ((value.schemaVersion as number) >= 10) assertBoundaryFields(value, ids);
   if ((value.schemaVersion as number) >= 11) assertKitchenRunFields(value, ids);
+  if (version >= 12) {
+    assertLightStripFields(value, ids, ceilingScope?.ceilingIds ?? new Set());
+    assertLightingSceneFields(value, ids, ceilingScope?.lightIds ?? new Set());
+    assertLightZoneFields(value, ids);
+  }
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
   if (

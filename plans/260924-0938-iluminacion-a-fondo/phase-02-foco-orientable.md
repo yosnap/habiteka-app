@@ -1,6 +1,6 @@
 # Fase 2 · Foco orientable: geometría, 2D, 3D y panel
 
-Esfuerzo: 6h · Depende de: fase 1 · Estado: pending
+Esfuerzo: 6h · Depende de: fase 1 · Estado: done
 
 ## Contexto
 

@@ -3,15 +3,17 @@ import { useState } from 'react';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { KITCHEN_SLOT_DEFAULTS, KITCHEN_SLOT_KINDS, type KitchenComposition, type KitchenRun, type KitchenSlot, type KitchenSlotKind, type KitchenUppers } from '@/lib/editor-document/kitchen-run-types';
 import { addKitchenSlot, putKitchenSlot, removeKitchenSlot, splitKitchenRun, updateKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
+import { addUnderCabinetStrip } from '@/lib/editor-document/light-strip-commands';
 import { MeterField } from './property-number-field';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
 import { ModernSelect } from '@/components/ui/modern-select';
 
-interface Props { item: KitchenRun; selectedSlotId?: string; edit: (operation: (doc: EditorDocument) => EditorDocument) => boolean }
+interface Props { doc: EditorDocument; item: KitchenRun; selectedSlotId?: string; edit: (operation: (doc: EditorDocument) => EditorDocument) => boolean }
 /** Composición del mueble de cocina: bajos, encimera, altos y aparatos encajados en el tramo. */
-export function KitchenFields({ item, selectedSlotId, edit }: Props) {
+export function KitchenFields({ doc, item, selectedSlotId, edit }: Props) {
   const k = item.kitchen, [kind, setKind] = useState<KitchenSlotKind>('fregadero');
+  const strip = (doc.lightStrips ?? []).find((item_) => item_.kitchenRunId === item.id);
   const change = (patch: Partial<KitchenComposition>) => edit((doc) => updateKitchenRun(doc, item.id, { kitchen: { ...k, ...patch } }));
   const uppers = (patch: Partial<KitchenUppers>) => k.uppers && change({ uppers: { ...k.uppers, ...patch } });
   const slot = (s: KitchenSlot, patch: Partial<KitchenSlot>) => edit((doc) => putKitchenSlot(doc, item.id, { ...s, ...patch }));
@@ -46,6 +48,16 @@ export function KitchenFields({ item, selectedSlotId, edit }: Props) {
       <label className={styles.field}>Color de los altos<input type="color" value={k.uppers.color} onChange={(e) => uppers({ color: e.target.value })} /></label>
       <SurfaceMaterialPicker label="Material de los altos" value={k.uppers.materialId} onChange={(materialId) => uppers({ materialId })} />
     </>}
+    <div className={styles.actions}>
+      <button type="button" disabled={!k.uppers || !!strip}
+        title={!k.uppers ? 'Este tramo no tiene módulos altos bajo los que colgar la tira'
+          : strip ? 'Este tramo de cocina ya tiene tira bajo los módulos altos' : undefined}
+        onClick={() => edit((d) => addUnderCabinetStrip(d, item.id))}>Tira bajo módulos altos</button>
+    </div>
+    <p className={styles.hint}>
+      {strip ? `La tira ${strip.derived ? 'sigue al mueble' : 'está ajustada a mano'}; se edita en «Techo y luces».`
+        : 'Cada tramo lleva su propia tira: los tramos en L no se fusionan.'}
+    </p>
     <h3>Aparatos</h3>
     <p className={styles.hint}>El aparato se encaja en el tramo y su centro se mide desde el inicio. Arrástralo en el plano para moverlo.</p>
     <div className={styles.actions}>

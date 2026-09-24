@@ -3,7 +3,7 @@ import { isBoundaryJoint } from './boundary-junction';
 import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
 import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
-import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
+import { footprint, localToWorld, objectCenter } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { wallMeshes } from './scene/wall-meshes';
 import { stairMeshes } from './scene/stair-meshes';
@@ -30,10 +30,9 @@ function bounds(solid: Solid) {
     minY: Math.min(...solid.polygon.map((p) => p.y)), maxY: Math.max(...solid.polygon.map((p) => p.y)) }; boundsCache.set(solid, value); }
   return value;
 }
-export function footprint(item: Footprint): Point[] {
-  return [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }]
-    .map((p) => localToWorld(item, p));
-}
+// La huella vive en `spatial-properties` (pura, sin lienzo); aquí solo se reexporta
+// para no tocar a quien ya la importaba desde la colocación.
+export { footprint };
 function isColumn(item: Furniture | Stair | Ramp | Column): item is Column {
   return item.catalogId === 'builtin:column-rectangular' && !('kind' in item);
 }

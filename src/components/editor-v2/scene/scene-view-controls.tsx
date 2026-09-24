@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Frame, Minus, Plus, Rotate3d, Scissors, Layers3 } from 'lucide-react';
+import { Download, DoorOpen, Frame, Minus, Plus, Rotate3d, Scissors, Layers3, PanelTop } from 'lucide-react';
 import { ModernSelect } from '@/components/ui/modern-select';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
 import styles from './scene-view-controls.module.css';
@@ -18,16 +18,47 @@ const VIEW_LABELS: Record<SceneViewPreset, string> = {
   drone: 'Dron',
 };
 
+/** Visualización del techo, tal y como la guarda el editor. */
+export type CeilingViewOption = 'hidden' | 'transparent' | 'solid';
+
+const CEILING_LABELS: Record<CeilingViewOption, string> = {
+  hidden: 'Oculto',
+  transparent: 'Transparente',
+  solid: 'Sólido',
+};
+
+/** Una estancia a la que se puede entrar con la cámara. */
+export interface InteriorRoomOption {
+  roomId: string;
+  name: string;
+  areaM2: number;
+}
+
+/** Etiqueta del desplegable: el nombre del plano o «Estancia N · m²». */
+export function interiorRoomLabel(room: InteriorRoomOption, index: number): string {
+  const area = `${room.areaM2.toFixed(1).replace('.', ',')} m²`;
+  return room.name ? `${room.name} · ${area}` : `Estancia ${index + 1} · ${area}`;
+}
+
 interface SceneViewControlsProps {
   activeView: SceneViewPreset | null;
   hasLevels: boolean;
   cutaway: boolean;
   allLevels: boolean;
   exporting: boolean;
+  ceilingView: CeilingViewOption;
+  /** Estancias disponibles para entrar; vacío si el plano no tiene ninguna cerrada. */
+  interiorRooms: readonly InteriorRoomOption[];
+  /** Estancia en la que está la cámara, o `null` si se ve desde fuera. */
+  interiorRoomId: string | null;
+  /** Entrar exige ver una sola planta: con todas activas el selector se bloquea. */
+  interiorDisabledReason: string | null;
   onCamera: (action: SceneViewAction) => void;
   onViewChange: (preset: SceneViewPreset) => void;
   onCutawayChange: () => void;
   onAllLevelsChange: () => void;
+  onCeilingViewChange: (view: CeilingViewOption) => void;
+  onEnterRoom: (roomId: string | null) => void;
   onExport: () => void;
 }
 
@@ -37,10 +68,16 @@ export function SceneViewControls({
   cutaway,
   allLevels,
   exporting,
+  ceilingView,
+  interiorRooms,
+  interiorRoomId,
+  interiorDisabledReason,
   onCamera,
   onViewChange,
   onCutawayChange,
   onAllLevelsChange,
+  onCeilingViewChange,
+  onEnterRoom,
   onExport,
 }: SceneViewControlsProps) {
   return <div className={styles.controls} role="toolbar" aria-label="Controles de la vista 3D">
@@ -78,9 +115,47 @@ export function SceneViewControls({
       </label>
     </div>
 
+    {interiorRooms.length > 0 && <div className={styles.group}>
+      <label className={styles.selectLabel} title={interiorDisabledReason ?? 'Coloca la cámara dentro de la estancia, a altura de ojos'}>
+        <DoorOpen size={15} aria-hidden="true" />
+        <span className={styles.visuallyHidden}>Entrar en una estancia</span>
+        <ModernSelect
+          aria-label="Entrar en una estancia"
+          className={`${styles.viewSelect} ${styles.wideSelect}`}
+          disabled={Boolean(interiorDisabledReason)}
+          value={interiorRoomId ?? 'menu'}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === 'menu') return;
+            onEnterRoom(value === 'exit' ? null : value);
+          }}
+        >
+          <option value="menu" disabled>Entrar en…</option>
+          {interiorRooms.map((room, index) => (
+            <option key={room.roomId} value={room.roomId}>{interiorRoomLabel(room, index)}</option>
+          ))}
+          {interiorRoomId && <option value="exit">Salir de la estancia</option>}
+        </ModernSelect>
+      </label>
+    </div>}
+
     <div className={styles.group} aria-label="Visibilidad">
+      <label className={styles.selectLabel} title="Cómo se ve el techo desde fuera">
+        <PanelTop size={15} aria-hidden="true" />
+        <span className={styles.visuallyHidden}>Techo</span>
+        <ModernSelect
+          aria-label="Techo"
+          className={`${styles.viewSelect} ${styles.wideSelect}`}
+          value={ceilingView}
+          onChange={(event) => onCeilingViewChange(event.target.value as CeilingViewOption)}
+        >
+          {(Object.keys(CEILING_LABELS) as CeilingViewOption[]).map((option) => (
+            <option key={option} value={option}>{`Techo: ${CEILING_LABELS[option]}`}</option>
+          ))}
+        </ModernSelect>
+      </label>
       <button type="button" className={styles.actionButton} aria-label={cutaway ? 'Mostrar todos los muros' : 'Abrir vista interior'}
-        title={cutaway ? 'Mostrar todos los muros' : 'Abrir vista interior'} aria-pressed={cutaway} onClick={onCutawayChange}>
+        title="Oculta los muros que miran a la cámara" aria-pressed={cutaway} onClick={onCutawayChange}>
         <Scissors size={15} aria-hidden="true" />
         <span>{cutaway ? 'Interior' : 'Muros'}</span>
       </button>

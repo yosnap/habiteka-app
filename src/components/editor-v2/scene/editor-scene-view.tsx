@@ -24,7 +24,9 @@ import { recordWalkthrough } from './offline-recorder';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
-import { captureCeilingView, captureCutaway, MAX_LUMINAIRE_LIGHTS, type CeilingView } from './ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
+import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
+import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 import { withTimeout } from '@/lib/async-wait';
@@ -107,6 +109,8 @@ function SceneView({
   const [rendererReady, setRendererReady] = useState(false);
   // Por defecto se ve el modelo completo; ocultar los muros hacia la cámara es opcional.
   const [cutaway, setCutaway] = useState(false);
+  // Estancia en la que está la cámara. Es estado de la vista 3D, no del documento.
+  const [interiorRoomId, setInteriorRoomId] = useState<string | null>(null);
   const [allLevels, setAllLevels] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
@@ -115,6 +119,10 @@ function SceneView({
   const [lighting, setLighting] = useState<SceneLightingPreset>('daylight');
   const lightingRef = useRef(lighting);
   useEffect(() => { lightingRef.current = lighting; }, [lighting]);
+  const interiorCameras = useMemo(() => roomInteriorCameras(document), [document]);
+  const inside = interiorRoomId !== null && interiorCameras.some((room) => room.roomId === interiorRoomId);
+  // Dentro de una estancia no se recortan muros ni se destapa el techo: se ve lo que vería el usuario.
+  const wallCutaway = cutaway && !inside;
   const captureRender = useRef<CaptureScene | null>(null);
   const root = useRef<RootState | null>(null);
   const captureSequence = useRef(1000000);
@@ -161,7 +169,7 @@ function SceneView({
       const currentDocument = store.getState().document;
       const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
-      const cut = options?.camera ? false : options?.view && options.view !== 'current' ? captureCutaway(options.view, cutaway) : cutaway;
+      const cut = options?.camera ? false : options?.view && options.view !== 'current' ? captureCutaway(options.view, wallCutaway) : wallCutaway;
       if (options?.camera) {
         const pose = cameraPoseSchema.parse(options.camera);
         if (allLevels) throw new Error('Activa Solo planta activa antes de capturar un punto del recorrido.');
@@ -237,19 +245,29 @@ function SceneView({
     captureRender.current = capture;
     onCaptureReady?.(capture);
     return () => { captureRender.current = null; onCaptureReady?.(null); };
-  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, cutaway, scene, lighting]);
+  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting]);
   const otherLevels = useMemo(() => allLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document) })) : [], [document, allLevels]);
+  // La estancia que manda en el reparto de luces reales: donde está la cámara y,
+  // si no, la del elemento seleccionado. Así se encienden primero las que se ven.
+  const activeLuminaires = useMemo(() => resolvedLuminaires(document), [document]);
+  const activeStrips = useMemo(() => resolvedStrips(document), [document]);
+  const priorityRoomId = inside ? interiorRoomId
+    : activeLuminaires.find((light) => selection.includes(light.luminaire.id))?.roomId
+      ?? activeStrips.find((strip) => selection.includes(strip.strip.id))?.roomId
+      ?? ceilingSurfaces(document).find((surface) => selection.includes(surface.ceiling.id))?.room.id
+      ?? null;
   const ceilingIssues = useMemo(() => computeCeilingIssues(document), [document]);
   // Avisos con el elemento al que apuntan: el nombre es un enlace que lo selecciona para revisarlo.
   const notices: CeilingIssue[] = [...scene.warnings.map((message) => ({ label: 'Plano', message })), ...ceilingIssues];
   const noticeKey = notices.map((n) => `${n.id ?? ''}:${n.message}`).join('|');
-  const lightBudgets = useMemo(() => {
-    const used = [document, ...otherLevels.map((level) => level.document)]
-      .map((doc) => resolvedLuminaires(doc).filter(({ luminaire }) => luminaire.enabled).length);
-    return otherLevels.map((_, index) => Math.max(0,
-      MAX_LUMINAIRE_LIGHTS - used.slice(0, index + 1).reduce((sum, count) => sum + count, 0)));
-  }, [document, otherLevels]);
+  // La planta activa usa el presupuesto entero; el resto, lo que queda (luces y tiras).
+  const budgetLevels: BudgetLevel[] = useMemo(() => [
+    { luminaires: activeLuminaires, strips: activeStrips, priorityRoomId },
+    ...otherLevels.map((level) => ({ luminaires: resolvedLuminaires(level.document), strips: resolvedStrips(level.document) })),
+  ], [activeLuminaires, activeStrips, priorityRoomId, otherLevels]);
+  const lightBudgets = useMemo(() => levelLightBudgets(budgetLevels).slice(1), [budgetLevels]);
+  const coverage = useMemo(() => lightingCoverage(budgetLevels), [budgetLevels]);
   const activeElevation = allLevels ? buildingDocuments(document).find((l) => l.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
   const lost = useCallback(() => setContextLost(true), []);
   const manualCameraChange = useCallback(() => setActiveView(null), []);
@@ -262,8 +280,25 @@ function SceneView({
   };
   const camera = (action: SceneViewAction) => {
     if (abortRecording.current || walking) return;
+    // Cualquier vista preset o encuadre saca al usuario de la estancia.
+    if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'] }));
+  };
+  const enterRoom = (roomId: string | null) => {
+    if (abortRecording.current || walking) return;
+    if (!roomId) {
+      setInteriorRoomId(null);
+      setActiveView(null);
+      setRequest((r) => ({ sequence: r.sequence + 1, action: 'fit' }));
+      return;
+    }
+    const target = interiorCameras.find((room) => room.roomId === roomId);
+    if (!target) return;
+    setInteriorRoomId(roomId);
+    setActiveView(null);
+    setRequest((r) => ({ sequence: r.sequence + 1, action: 'interior',
+      pose: { position: target.camera.position, focus: target.camera.focus, fovDeg: target.camera.fovDeg } }));
   };
   const exportNativeRender = async () => {
     const capture = captureRender.current;
@@ -337,16 +372,17 @@ function SceneView({
         <group position={[0, activeElevation / 1000, 0]}>
           <OutdoorLighting document={document} />
           <group visible={showLighting} userData={{ lightingLayer: true }}>
-            <CeilingLightingMeshes document={document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} selection={selection} onSelect={select} />
+            <CeilingLightingMeshes document={document} view={walking || recording || inside ? 'solid' : captureCeilings ?? ceilingView}
+              selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
-          {scene.polygons.map((polygon) => <CutawayWall key={polygon.id} cuttable={polygon.role !== 'floor'} enabled={!walking && !recording && !capturingPose && cutaway && polygon.role !== 'floor'}
+          {scene.polygons.map((polygon) => <CutawayWall key={polygon.id} cuttable={polygon.role !== 'floor'} enabled={!walking && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall>)}
           {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => {
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
-            return <CutawayWall key={box.id} cuttable={cuttable} enabled={!walking && !recording && !capturingPose && cutaway && cuttable}
+            return <CutawayWall key={box.id} cuttable={cuttable} enabled={!walking && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall>;
@@ -357,7 +393,8 @@ function SceneView({
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
           <group visible={showLighting} userData={{ lightingLayer: true }}>
-            <CeilingLightingMeshes document={level.document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView} lightBudget={lightBudgets[index]} />
+            <CeilingLightingMeshes document={level.document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView}
+              lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
           {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
@@ -367,7 +404,7 @@ function SceneView({
             boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
-        <SceneCamera request={request} sceneVersion={sceneVersion} onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
+        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
       {[...new Set(document.comments?.map((c) => c.targetEntityId) ?? [])].map((id) => {
         const comments = document.comments!.filter((c) => c.targetEntityId === id), p = commentAnchor(document, comments[0]!);
@@ -378,12 +415,19 @@ function SceneView({
       })}
     </Canvas>
     {!recording && !walking && <SceneViewControls activeView={activeView} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
-      onCamera={camera} onViewChange={camera} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => setAllLevels((v) => !v)}
+      ceilingView={ceilingView} interiorRooms={interiorCameras} interiorRoomId={inside ? interiorRoomId : null}
+      interiorDisabledReason={allLevels ? 'Activa «Una planta» para entrar en una estancia' : null}
+      onCamera={camera} onViewChange={camera} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
+      onCeilingViewChange={(view) => store.getState().setCeilingView(view)} onEnterRoom={enterRoom}
       onExport={() => void exportNativeRender()} />}
     <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
       {(Object.keys(SCENE_LIGHTING_LABELS) as SceneLightingPreset[]).map((preset) => <button key={preset} type="button"
         disabled={recording} aria-pressed={lighting === preset} onClick={() => setLighting(preset)}>{SCENE_LIGHTING_LABELS[preset]}</button>)}
     </div>
+    {coverage.enabled > coverage.emitting && <div role="status" style={{ position: 'absolute', bottom: 56, right: 16, maxWidth: 300, padding: '6px 9px', borderRadius: 'var(--radius)', background: 'rgba(250, 252, 250, .94)', border: '1px solid var(--line)', color: '#294640', fontSize: 11, lineHeight: 1.35 }}>
+      {coverage.emitting} de {coverage.enabled} luces iluminan en 3D (límite del navegador); el diseño con IA las usa todas.
+      {' '}{inside ? 'Se priorizan las de la estancia en la que estás.' : 'Entra en una estancia para priorizar las suyas.'}
+    </div>}
     {exportMessage && <div role="status" style={{ position: 'absolute', bottom: 56, left: 16 }}>{exportMessage}</div>}
     {notices.length > 0 && dismissedNotice !== noticeKey && <div role="status" style={{ position: 'absolute', top: 12, left: 16, maxWidth: 420, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 10px', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-panel)', fontSize: 12 }}>
       <TriangleAlert size={16} aria-hidden="true" style={{ flex: 'none', color: '#b8860b' }} />

@@ -1,6 +1,6 @@
 # Fase 7 · Integración con el diseño IA y propuesta de luces
 
-Esfuerzo: 5h · Depende de: fases 2, 3, 4 y 5 · Estado: pending
+Esfuerzo: 5h · Depende de: fases 2, 3, 4 y 5 · Estado: done
 
 ## Contexto
 

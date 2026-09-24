@@ -5,7 +5,7 @@
  * logout). Disparan las Server Actions, que revalidan el rol admin y auditan. Las
  * acciones destructivas piden confirmación antes de ejecutarse.
  */
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   adminBanUser,
@@ -22,13 +22,28 @@ interface Props {
 
 export function UserActions({ userId, banned, role }: Props) {
   const [pending, start] = useTransition();
+  // Acción destructiva a la espera de confirmación en línea (sin diálogos del navegador).
+  const [asking, setAsking] = useState<{ question: string; fn: () => Promise<void> } | null>(null);
 
+  const execute = (fn: () => Promise<void>) => start(async () => { await fn(); });
   const run = (fn: () => Promise<void>, confirmMsg?: string) => {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
-    start(async () => {
-      await fn();
-    });
+    if (confirmMsg) setAsking({ question: confirmMsg, fn });
+    else execute(fn);
   };
+
+  if (asking) {
+    return (
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={asking.question}
+        onKeyDown={(event) => { if (event.key === 'Escape') setAsking(null); }}>
+        <span className="text-sm" role="status">{asking.question}</span>
+        <Button size="sm" variant="destructive" autoFocus disabled={pending}
+          onClick={() => { const { fn } = asking; setAsking(null); execute(fn); }}>
+          Sí, continuar
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setAsking(null)}>Cancelar</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap gap-2">

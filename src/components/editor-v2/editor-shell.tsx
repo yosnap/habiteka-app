@@ -17,7 +17,7 @@ import {
   Redo2,
   X,
 } from 'lucide-react';
-import type { EditorStore, EditorTool } from '@/canvas/editor-v2/store';
+import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import type { Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import {
@@ -56,6 +56,7 @@ import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
 import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-placement';
 import { placeLandingAtStairArrival } from '@/lib/editor-document/stair-landing-placement';
 import { EditorGenerateDialog } from './editor-generate-dialog';
+import { usePlanIssueGate } from './plan-issues-panel';
 import {
   roomInteriorCameras,
   selectedInteriorCameras,
@@ -70,6 +71,13 @@ import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
+import { EditorSidePanel } from './editor-side-panel';
+
+/** Título de cada panel dentro de la ranura lateral única. */
+const SIDE_PANEL_TITLES: Record<SidePanelId, string> = {
+  inspector: 'Propiedades', catalog: 'Amueblar', walkthrough: 'Recorrido',
+  context: 'Contexto IA', ceiling: 'Techo y luces',
+};
 
 /** Plazo para que la escena 3D quede lista: aquí tarda decenas de segundos. */
 const SCENE_READY_TIMEOUT_MS = 90_000;
@@ -149,22 +157,21 @@ export function EditorShell({
   const readOnly = useStore(store, (s) => s.readOnly);
   const tool = useStore(store, (s) => s.tool);
   const detailPanel = useStore(store, (s) => s.detailPanel);
-  const [catalog, setCatalog] = useState(false);
-  // El panel de propiedades sigue a la selección: se abre al seleccionar y se cierra al deseleccionar.
-  // `toggled` guarda solo la desviación manual (botón Propiedades) y se reinicia al cambiar la selección.
-  const selectionKey = selection.join('|'), hasSelection = selection.length > 0;
-  const [toggled, setToggled] = useState(false), [toggledFor, setToggledFor] = useState(selectionKey);
-  if (toggledFor !== selectionKey) { setToggledFor(selectionKey); setToggled(false); }
-  const inspector = hasSelection !== (toggled && toggledFor === selectionKey);
-  const setInspector = useCallback((open: boolean) => setToggled(open !== store.getState().selection.length > 0), [store]);
+  // Ranura lateral única: Propiedades, Catálogo, Recorrido, Contexto IA y Techo y
+  // luces comparten sitio y solo uno está abierto. El estado vive en el store.
+  const sidePanel = useStore(store, (s) => s.sidePanel);
   const [construction, setConstruction] = useState(false);
-  const [walkthroughPanel, setWalkthroughPanel] = useState(false);
+  const openPanel = useCallback((panel: SidePanelId) => {
+    setConstruction(false);
+    store.getState().openSidePanel(panel);
+  }, [store]);
+  const togglePanel = useCallback((panel: SidePanelId) => {
+    setConstruction(false);
+    store.getState().toggleSidePanel(panel);
+  }, [store]);
+  const closePanel = useCallback(() => store.getState().closeSidePanel(), [store]);
   const walkthroughId = useStore(store, (s) => s.walkthroughId);
-  const hideWalkthrough = () => {
-    store.getState().hideWalkthrough();
-    setWalkthroughPanel(false);
-  };
-  const [ceilingPanel, setCeilingPanel] = useState(false);
+  const hideWalkthrough = () => store.getState().hideWalkthrough();
   // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
   const [preferences, setPreferences] = useState(loadEditorPreferences);
   const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
@@ -173,6 +180,7 @@ export function EditorShell({
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [generateOpen, setGenerateOpen] = useState(false);
+  const planIssueGate = usePlanIssueGate(store, { close: () => setGenerateOpen(false), show2d: () => setMode('2d') });
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
   // La escena 3D se carga en diferido y tarda segundos: lo que dependa de ella
   // se espera, se informa y vence; nunca se queda colgado sin explicación.
@@ -215,7 +223,7 @@ export function EditorShell({
       const frame = walkthroughKeyframes(state.document, route).find((item) => item.waypointId === waypointId);
       if (!frame) throw new Error('El punto ya no existe.');
       const snapshot = documentGeometry();
-      state.setWalkthroughPlaying(false); setWalkthroughPanel(false);
+      state.setWalkthroughPlaying(false); closePanel();
       const capture = await (await awaitScene())({ camera: frame.camera });
       if (snapshot !== documentGeometry()) throw new Error('El plano cambió. Vuelve a elegir el punto.');
       keyframeCamera.current = frame.camera;
@@ -303,8 +311,7 @@ export function EditorShell({
     if (store.getState().readOnly && next !== 'select') return;
     store.getState().setTool(next);
     setConstruction(false);
-    setCatalog(false);
-    setInspector(false);
+    closePanel();
     if (next !== 'select') setMode('2d');
     canvasHost.current?.querySelector<HTMLElement>('[aria-label="Lienzo del plano"]')?.focus();
   };
@@ -437,6 +444,8 @@ export function EditorShell({
     measure: 'Medir distancia',
     'split-wall': 'Añadir esquina',
     'place-object': 'Colocar copia',
+    'light-strip': 'Dibujar tira LED · clics por tramos · Esc para terminar',
+    'light-zone': 'Dibujar zona de luces sobre el plano · Esc para salir',
   } satisfies Record<EditorTool, string>;
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -452,7 +461,7 @@ export function EditorShell({
       // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
       if (event.key === 'Escape') {
         if (state.selection.length) state.select([]);
-        setCatalog(false); setConstruction(false); setInspector(false);
+        setConstruction(false); state.closeSidePanel();
         return;
       }
       if (!command && !event.altKey) {
@@ -460,9 +469,9 @@ export function EditorShell({
         const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
           select: 'select', wall: 'wall', rectangle: 'rectangle', door: 'door', window: 'window', passage: 'passage', measure: 'measure',
         };
-        const closePanels = () => { setConstruction(false); setCatalog(false); setInspector(false); };
-        if (shortcut === 'furnish') { event.preventDefault(); if (readOnly) return; setCatalog(true); setConstruction(false); setInspector(false); state.setTool('select'); return; }
-        if (shortcut === 'construct') { event.preventDefault(); setConstruction((open) => !open); setCatalog(false); setInspector(false); state.setTool('select'); return; }
+        const closePanels = () => { setConstruction(false); state.closeSidePanel(); };
+        if (shortcut === 'furnish') { event.preventDefault(); if (readOnly) return; setConstruction(false); state.setTool('select'); state.openSidePanel('catalog'); return; }
+        if (shortcut === 'construct') { event.preventDefault(); setConstruction((open) => !open); state.closeSidePanel(); state.setTool('select'); return; }
         if (shortcut === 'snap') { event.preventDefault(); state.setSnap(!state.snap); return; }
         if (shortcut === 'pan') { event.preventDefault(); state.setPan(!state.pan); return; }
         if (shortcut === 'fit') { event.preventDefault(); state.requestView('fit'); return; }
@@ -536,7 +545,7 @@ export function EditorShell({
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [readOnly, shortcutsEnabled, store, setInspector]);
+  }, [readOnly, shortcutsEnabled, store]);
   return (
     <section className={styles.shell} onPointerDownCapture={(event) => {
       if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
@@ -550,9 +559,11 @@ export function EditorShell({
           <BuildingLevelMenu store={store} />
           <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
           <SelectByKindMenu store={store} />
-          <button type="button" aria-pressed={walkthroughPanel || !!walkthroughId} onClick={() => { if (walkthroughPanel || walkthroughId) hideWalkthrough(); else { setWalkthroughPanel(true); setCeilingPanel(false); } }}>{walkthroughPanel || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
-          <FurnitureContextPanel store={store} />
-          <button type="button" aria-pressed={ceilingPanel || selectedLuminaire} onClick={() => { setCeilingPanel(!(ceilingPanel || selectedLuminaire)); if (selectedLuminaire) store.getState().select([]); }}>Techo y luces</button>
+          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough' || !!walkthroughId}
+            onClick={() => { if (sidePanel === 'walkthrough' || walkthroughId) hideWalkthrough(); else openPanel('walkthrough'); }}>{sidePanel === 'walkthrough' || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
+          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}>Contexto IA</button>
+          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'ceiling'}
+            onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}>Techo y luces</button>
           <button
             type="button"
             disabled={readOnly || !past}
@@ -623,7 +634,7 @@ export function EditorShell({
               state.setTool('select');
               state.select(selectedIds);
               setConstruction(false);
-              setCatalog(false);
+              if (state.sidePanel === 'catalog') state.closeSidePanel();
               setMode('3d');
             }}
           >
@@ -655,9 +666,7 @@ export function EditorShell({
                 );
               store.getState().setTool('select');
               store.getState().select([id]);
-              setInspector(true);
-              setCatalog(false);
-              setConstruction(false);
+              openPanel('inspector');
             })
           }
         >
@@ -666,19 +675,16 @@ export function EditorShell({
         </button>
         <button
           type="button"
-          aria-expanded={inspector}
-          onClick={() => {
-            setInspector(!inspector);
-            setCatalog(false);
-            setConstruction(false);
-          }}
+          data-side-panel-toggle
+          aria-pressed={sidePanel === 'inspector'}
+          aria-expanded={sidePanel === 'inspector'}
+          onClick={() => togglePanel('inspector')}
         >
           <SlidersHorizontal size={18} aria-hidden="true" />
           Propiedades{selection.length ? ` (${selection.length})` : ''}
         </button>
       </div>
       {preparingPoint && <p role="status">Preparando la vista del recorrido…</p>}
-      {walkthroughPanel && <WalkthroughPanel store={store} onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} onClose={hideWalkthrough} onDraw={() => { setMode('2d'); store.getState().setTool('walkthrough'); }} onPreview={() => { setMode('3d'); store.getState().setTool('select'); setWalkthroughPanel(false); }} />}
       {error && (
         <div className={styles.error} role="alert">
           <span>{error}</span>
@@ -694,19 +700,16 @@ export function EditorShell({
         <Toolbar
           store={store}
           constructionOpen={construction}
-          catalogOpen={catalog}
+          catalogOpen={sidePanel === 'catalog'}
           constructionButtonRef={constructionButton}
           onConstruction={() => {
             if (!construction) store.getState().setTool('select');
             setConstruction(!construction);
-            setCatalog(false);
-            setInspector(false);
+            closePanel();
           }}
           onCatalog={() => {
-            if (!catalog) store.getState().setTool('select');
-            setCatalog(!catalog);
-            setConstruction(false);
-            setInspector(false);
+            if (sidePanel !== 'catalog') store.getState().setTool('select');
+            togglePanel('catalog');
           }}
           onSelectTool={() => chooseTool('select')}
         />
@@ -758,44 +761,44 @@ export function EditorShell({
             })}
           />
         )}
-        <div
-          className={styles.sidebar}
-          data-open={inspector || catalog}
-          style={catalog ? { width: 336 } : undefined}
-        >
-          {catalog ? (
-            <CatalogPanel
-              readOnly={readOnly}
-              onClose={() => setCatalog(false)}
-              onAdd={(item) =>
-                run(() => {
-                  if (store.getState().readOnly) return;
-                  // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
-                  const source = store.getState().document,
-                    next = upgradeSpatialDocument(addFurniture(source, item, center));
-                  setMode('2d');
-                  store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
-                })
-              }
-            />
-          ) : (
-            <Inspector store={store} onClose={() => setInspector(false)} />
-          )}
-        </div>
+        {sidePanel && (
+          <EditorSidePanel store={store} title={SIDE_PANEL_TITLES[sidePanel]}>
+            {sidePanel === 'inspector' && <Inspector store={store} />}
+            {sidePanel === 'catalog' && (
+              <CatalogPanel
+                readOnly={readOnly}
+                onClose={closePanel}
+                onAdd={(item) =>
+                  run(() => {
+                    if (store.getState().readOnly) return;
+                    // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
+                    const source = store.getState().document,
+                      next = upgradeSpatialDocument(addFurniture(source, item, center));
+                    setMode('2d');
+                    store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
+                  })
+                }
+              />
+            )}
+            {sidePanel === 'walkthrough' && (
+              <WalkthroughPanel store={store}
+                onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined}
+                onDraw={() => { setMode('2d'); store.getState().setTool('walkthrough'); }}
+                onPreview={() => { setMode('3d'); store.getState().setTool('select'); closePanel(); }} />
+            )}
+            {sidePanel === 'context' && <FurnitureContextPanel store={store} />}
+            {sidePanel === 'ceiling' && <CeilingLightingPanel store={store} />}
+          </EditorSidePanel>
+        )}
       </div>
       <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
         onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
       <SelectionPropertiesBar
         store={store}
-        onProperties={() => {
-          setInspector(true);
-          setCatalog(false);
-          setConstruction(false);
-        }}
+        onProperties={() => openPanel('inspector')}
       />
       <ElementDetailsPanel key={`${selection[0]}:${detailPanel}`} store={store} />
-      {!ceilingPanel && !selectedLuminaire && <FloorFinishPanel store={store} />}
-      {(ceilingPanel || selectedLuminaire) && <CeilingLightingPanel store={store} onClose={() => { setCeilingPanel(false); if (selectedLuminaire) store.getState().select([]); }} />}
+      {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
           document={store.getState().document}
@@ -805,6 +808,7 @@ export function EditorShell({
           sceneReady={sceneReady}
           onEstimate={onEstimateRender}
           onEvaluateQuality={onEvaluateQuality}
+          renderPlanIssues={planIssueGate}
           onPrepare={async (rawOptions) => {
             const options = renderDesignOptionsSchema.parse(rawOptions);
             // No se rechaza por «todavía no hay 3D»: se espera a que cargue, con
