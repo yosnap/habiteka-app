@@ -1,5 +1,4 @@
-.panel { --ceiling-ink: var(--ink); --ceiling-muted: var(--muted); --ceiling-line: var(--line); --ceiling-paper: var(--paper); --ceiling-accent: var(--brand); position: absolute; right: 16px; top: 128px; z-index: 35; width: min(360px, calc(100% - 32px)); max-height: calc(100% - 152px); overflow-y: auto; overscroll-behavior: contain; padding: 20px; border: 1px solid var(--ceiling-line); border-radius: 12px; background: var(--ceiling-paper); color: var(--ceiling-ink); display: grid; gap: 16px; font-size: .875rem; line-height: 1.5; }
-.heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.panel { --ceiling-ink: var(--ink); --ceiling-muted: var(--muted); --ceiling-line: var(--line); --ceiling-paper: var(--paper); --ceiling-accent: var(--brand); padding: 16px; background: var(--ceiling-paper); color: var(--ceiling-ink); display: grid; gap: 16px; font-size: .875rem; line-height: 1.5; }
 .panel h2 { font-size: 1.125rem; font-weight: 650; margin: 0; }
 .panel h3 { font-size: .9375rem; font-weight: 650; margin: 8px 0; }
 .panel p { color: var(--ceiling-muted); margin: 0; }
@@ -24,4 +23,4 @@
 .light > button { margin-top: 12px; }
 .proposal { border-top: 1px solid var(--ceiling-line); padding-top: 12px; display: grid; gap: 12px; }
 .proposal > div { display: grid; gap: 12px; }
-@media (max-width: 480px) { .panel { right: 8px; width: calc(100% - 16px); padding: 16px; } }
+@media (max-width: 480px) { .panel { padding: 12px; } }

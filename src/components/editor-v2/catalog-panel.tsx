@@ -83,7 +83,6 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
   return <aside className={styles.catalog} aria-label="Catálogo de muebles" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
-    <header className={styles.heading}><h2>Amueblar</h2><button type="button" onClick={onClose} aria-label="Cerrar catálogo">Cerrar</button></header>
     <div className={styles.filters}>
       <label>Buscar mueble<input type="search" name="furniture-search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sofá, mesa, lavabo…" /></label>
       <div className={styles.filterRow}>

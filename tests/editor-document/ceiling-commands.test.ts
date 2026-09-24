@@ -23,7 +23,7 @@ describe('contrato de techos y luminarias', () => {
     expect(parseEditorDocument(doc)).toEqual(original);
     const covered = setRoomCeiling(doc, deriveRooms(doc)[0]!.id);
     const lit = addLuminaire(covered, covered.ceilings![0]!.id, 'pendant', { x: 2000, y: 2000 });
-    expect(doc).toEqual(original); expect(lit.schemaVersion).toBe(8);
+    expect(doc).toEqual(original); expect(lit.schemaVersion).toBe(12);
     expect(parseEditorDocument(JSON.parse(JSON.stringify(lit)))).toEqual(lit);
     store.getState().apply(lit); store.getState().undo(); expect(store.getState().document).toEqual(doc);
     store.getState().redo(); expect(store.getState().document).toEqual(lit);
@@ -40,7 +40,8 @@ describe('contrato de techos y luminarias', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id, roomId = doc.ceilings![0]!.roomId;
     expect(() => addLuminaire(doc, id, 'recessed')).toThrow('falso techo');
     expect(() => setRoomCeiling(doc, roomId, { kind: 'suspended', dropMm: 79 })).toThrow();
-    expect(() => setRoomCeiling(doc, roomId, { kind: 'suspended', dropMm: 700 })).toThrow('altura');
+    // El campo se escribe en centímetros: 70 cm pasa del tope y se rechaza por eso.
+    expect(() => setRoomCeiling(doc, roomId, { kind: 'suspended', dropMm: 700 })).toThrow('centímetros');
     const lit = addLuminaire(doc, id, 'flush');
     const lowered = setRoomCeiling(lit, roomId, { kind: 'suspended', dropMm: 150 });
     expect(resolvedLuminaires(lowered)[0]!.heightMm).toBe(resolvedLuminaires(lit)[0]!.heightMm - 150);
@@ -87,7 +88,7 @@ describe('contrato de techos y luminarias', () => {
     const split = applyCommand(lit, { type: 'split-wall', wallId: lit.walls[0]!.id, position: .5, vertexId: 'split-v', newWallId: 'split-w' });
     expect(ceilingSurfaces(split)).toHaveLength(1); expect(resolvedLuminaires(split)).toHaveLength(1);
     const changed = setDesignSpaceKind(lit, 'interior');
-    expect(changed.schemaVersion).toBe(8); expect(changed.luminaires).toEqual(lit.luminaires);
+    expect(changed.schemaVersion).toBe(12); expect(changed.luminaires).toEqual(lit.luminaires);
   });
   it('recalibra XY de luminarias sin escalar descenso, caída ni alturas físicas', () => {
     const doc = ceiling(); doc.calibration = { mmPerPixel: 10 };
@@ -122,14 +123,14 @@ describe('contrato de techos y luminarias', () => {
     expect(ceilingWarnings(current).length).toBeGreaterThan(0);
     expect(ceilingSurfaces(current)).toEqual([]);
   });
-  it('conserva schema8 y contenido al crear, copiar y cambiar plantas', () => {
+  it('conserva la versión de esquema y el contenido al crear, copiar y cambiar plantas', () => {
     const doc = ceiling(), lit = addLuminaire(doc, doc.ceilings![0]!.id, 'flush');
     for (const copy of [false, true]) {
       const upper = addBuildingLevel(lit, copy);
-      expect(upper.schemaVersion).toBe(8);
+      expect(upper.schemaVersion).toBe(12);
       expect(upper.ceilings).toHaveLength(copy ? 1 : 0);
       const ground = switchBuildingLevel(upper, upper.levels![0]!.id);
-      expect(ground.schemaVersion).toBe(8); expect(ground.luminaires).toEqual(lit.luminaires);
+      expect(ground.schemaVersion).toBe(12); expect(ground.luminaires).toEqual(lit.luminaires);
       expect(parseEditorDocument(JSON.parse(JSON.stringify(ground)))).toEqual(ground);
     }
   });

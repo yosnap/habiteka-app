@@ -1,6 +1,6 @@
 # Fase 3 · Tiras LED: geometría, foseado y tramo libre
 
-Esfuerzo: 10h · Depende de: fase 1 · Estado: pending
+Esfuerzo: 10h · Depende de: fase 1 · Estado: done
 
 ## Contexto
 

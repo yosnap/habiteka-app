@@ -17,6 +17,9 @@ import {
   pointInPolygon,
   polygonSelfIntersects,
 } from './polygon-tools';
+import { footprint } from './spatial-properties';
+import { isRampLanding } from './ramp-kind';
+import { rampPartFootprint, rampParts } from './ramp-route';
 import type { EditorDocument, Point } from './schema';
 
 /** Máximo de zonas que admite el esquema de opciones de render. */
@@ -31,7 +34,7 @@ export const REGION_MODE_LABELS: Record<RegionMode, string> = {
   rectangle: 'Rectángulo',
 };
 export const REGION_MODE_HINTS: Record<RegionMode, string> = {
-  room: 'Pulsa dentro de una estancia',
+  room: 'Pulsa dentro de una estancia, escalera o rampa',
   polygon: 'Pulsa para añadir vértices; cierra en el primero, con doble clic o con Intro',
   rectangle: 'Arrastra para marcar',
 };
@@ -55,6 +58,54 @@ export function planRegionRooms(doc?: EditorDocument): RegionRoom[] {
     name: cameras.find((camera) => camera.roomId === room.id)?.name ?? `Estancia ${index + 1}`,
     polygon: limitPolygonVertices(room.boundary, MAX_POLYGON_POINTS),
   }));
+}
+
+/**
+ * Escaleras, rampas y descansillos que NO caen dentro de ninguna estancia: sin
+ * esto quedarían fuera de toda zona, porque no hay muros que los encierren. Cada
+ * tramo de una rampa con recorrido es una huella propia, para poder marcar solo
+ * el que interesa.
+ */
+export function planRegionAccesses(
+  doc: EditorDocument | undefined,
+  rooms: readonly RegionRoom[],
+): RegionRoom[] {
+  if (!doc) return [];
+  const outside = (polygon: Point[]) => {
+    const centre = {
+      x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length,
+      y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length,
+    };
+    return !rooms.some((room) => pointInPolygon(centre, room.polygon));
+  };
+  const entries: RegionRoom[] = [];
+  (doc.stairs ?? []).forEach((stair, index) => {
+    const polygon = footprint(stair);
+    if (outside(polygon))
+      entries.push({ roomId: stair.id, name: stair.name?.trim() || `Escalera ${index + 1}`, polygon });
+  });
+  (doc.ramps ?? []).forEach((ramp, index) => {
+    const label = ramp.name?.trim() || `${isRampLanding(ramp) ? 'Descansillo' : 'Rampa'} ${index + 1}`;
+    rampParts(ramp).forEach((part, partIndex) => {
+      const polygon = rampPartFootprint(ramp, part);
+      if (!outside(polygon)) return;
+      entries.push({
+        roomId: partIndex === 0 ? ramp.id : `${ramp.id}#${partIndex}`,
+        name: partIndex === 0 ? label : `${label} · tramo ${partIndex + 1}`,
+        polygon,
+      });
+    });
+  });
+  return entries;
+}
+
+/**
+ * Todo lo que el modo «Estancia» admite marcar: las estancias del plano y, como
+ * una parte más, los accesos verticales que no pertenecen a ninguna.
+ */
+export function planRegionAreas(doc?: EditorDocument): RegionRoom[] {
+  const rooms = planRegionRooms(doc);
+  return [...rooms, ...planRegionAccesses(doc, rooms)];
 }
 
 /** Estancia bajo el punto, o null fuera de toda estancia. La más pequeña gana en anidamientos. */

@@ -16,6 +16,7 @@ import { resizeRampFromCorner } from '@/lib/editor-document/ramp-landing-placeme
 import { resizeFromCorner } from '@/lib/editor-document/resize-from-corner';
 import { alignmentGuides } from '@/canvas/editor-v2/alignment-guides';
 import { duplicateSpatialItem, insertSpatialItem, type SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
+import { refreshDerivedStripPaths } from '@/lib/editor-document/light-strip-geometry';
 
 type ObjectItem = Furniture | Stair | Ramp | Column;
 export function ObjectTransformControls({ store, source, id, scale, onPreview }: {
@@ -65,7 +66,16 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   const end = () => {
     const active = gesture.current; gesture.current = null; setShown(null); onPreview(null);
     if (!active?.candidate) return;
-    try { if (active.error) throw new Error(active.error); store.getState().apply(active.candidate); if (active.duplicate) store.getState().select([active.duplicate.id]); }
+    try {
+      if (active.error) throw new Error(active.error);
+      // Mover o estirar un tramo de cocina mueve su tira derivada: se refresca su recorrido guardado
+      // sobre copias, para no tocar las tiras del documento anterior (el deshacer las necesita intactas).
+      const next = active.candidate.lightStrips?.length
+        ? refreshDerivedStripPaths({ ...active.candidate, lightStrips: active.candidate.lightStrips.map((strip) => ({ ...strip, pathMm: [...strip.pathMm] })) })
+        : active.candidate;
+      store.getState().apply(next);
+      if (active.duplicate) store.getState().select([active.duplicate.id]);
+    }
     catch (cause) { store.getState().setError(cause instanceof Error ? cause.message : 'Edición inválida'); }
   };
   return <Group ref={group}>

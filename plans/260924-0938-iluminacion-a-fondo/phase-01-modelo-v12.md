@@ -1,6 +1,6 @@
 # Fase 1 · Modelo v12 + migración compartida
 
-Esfuerzo: 7h · Depende de: — · Estado: pending
+Esfuerzo: 7h · Depende de: — · Estado: done
 
 ## Contexto
 

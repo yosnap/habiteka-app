@@ -6,7 +6,7 @@ import { BoundaryFields } from './boundary-fields';
 import { KitchenFields } from './kitchen-fields';
 import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -29,7 +29,7 @@ import { OpeningConstructionFields, RampConstructionFields, StairConstructionFie
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
 import styles from './editor.module.css';
-export function Inspector({ store, onClose }: { store: EditorStore; onClose?: () => void }) {
+export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const readOnly = useStore(store, (s) => s.readOnly);
   const [mergeId, setMergeId] = useState(''), [query, setQuery] = useState(''), id = selection[0];
@@ -78,8 +78,6 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
     setQuery('');
   };
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
-    <header className={styles.inspectorHeading}><h2>Propiedades</h2>
-      {onClose && <button type="button" onClick={onClose} aria-label="Cerrar propiedades"><X size={18} aria-hidden="true" /></button>}</header>
     <label className={`${styles.field} ${styles.search}`}>Buscar en el plano
       <span><Search size={14} aria-hidden="true" /><input type="search" value={query} placeholder="Pared, patio, sofá…" aria-label="Buscar elemento del plano"
         onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && matches[0]) goTo(matches[0].id); if (event.key === 'Escape') setQuery(''); }} /></span>
@@ -148,7 +146,7 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
         change={(percent) => apply((doc) => updateFurniture(doc, furniture.id, { coverage: Math.max(0, Math.min(100, percent)) / 100 }))} />}
     </div>}
     {furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
-    {furniture && isKitchenRun(furniture) && <KitchenFields item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
+    {furniture && isKitchenRun(furniture) && <KitchenFields doc={doc} item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
     {opening && <><div className={styles.fields}>
       {meterField('Ancho', opening.widthMm, (d, n) => {
         const target = d.openings.find((o) => o.id === id)!;

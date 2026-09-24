@@ -6,6 +6,7 @@ import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-cata
 import { reconcileCeilings } from '@/lib/editor-document/ceiling-reconciliation';
 import { luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry';
 import { constrainExteriorVertex } from '@/lib/editor-document/exterior-vertex-constraint';
+import { dropStripsOfKitchenRuns } from '@/lib/editor-document/kitchen-run-commands';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { deriveRooms, deriveRoomsSafe } from '@/lib/editor-document/rooms';
@@ -17,6 +18,7 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
 import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
+import { pruneLightingScenes } from '@/lib/editor-document/lighting-scene';
 
 export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
@@ -210,6 +212,12 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
     if (next.stairs) next.stairs = next.stairs.filter((o) => !ids.includes(o.id));
     if (next.ramps) next.ramps = next.ramps.filter((o) => !ids.includes(o.id));
     if (next.luminaires) next.luminaires = next.luminaires.filter((light) => !ids.includes(light.id));
+    if (next.lightStrips) {
+      next.lightStrips = next.lightStrips.filter((strip) => !ids.includes(strip.id));
+      dropStripsOfKitchenRuns(next, ids);
+    }
+    // Las escenas no pueden seguir apagando luces o tiras que ya no existen.
+    pruneLightingScenes(next);
     if (next.columns) next.columns = next.columns.filter((o) => !ids.includes(o.id));
     if (next.comments) {
       const retained = new Set([...next.walls, ...next.openings, ...planObjects(next), ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? [])].map((e) => e.id));

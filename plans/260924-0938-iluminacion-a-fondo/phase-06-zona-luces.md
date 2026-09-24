@@ -1,6 +1,6 @@
 # Fase 6 · Zonas de luces guardadas en el proyecto
 
-Esfuerzo: 5h · Depende de: fases 2, 3 y 5 · Estado: pending
+Esfuerzo: 5h · Depende de: fases 2, 3 y 5 · Estado: done
 
 ## Contexto
 

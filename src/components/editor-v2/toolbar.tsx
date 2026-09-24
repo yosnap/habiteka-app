@@ -22,7 +22,7 @@ export function Toolbar({ store, constructionOpen, catalogOpen, onConstruction, 
       <MousePointer2 size={22} aria-hidden="true" /><span>Seleccionar</span></button>
     <button type="button" ref={constructionButtonRef} aria-expanded={constructionOpen} aria-pressed={constructionOpen}
       onClick={onConstruction} data-tooltip={shortcutHint('Construir', 'construct')}><BrickWall size={22} aria-hidden="true" /><span>Construir</span></button>
-    <button type="button" disabled={readOnly} aria-expanded={catalogOpen} aria-pressed={catalogOpen} onClick={onCatalog} data-tooltip={shortcutHint('Amueblar', 'furnish')}>
+    <button type="button" disabled={readOnly} data-side-panel-toggle aria-expanded={catalogOpen} aria-pressed={catalogOpen} onClick={onCatalog} data-tooltip={shortcutHint('Amueblar', 'furnish')}>
       <Sofa size={22} aria-hidden="true" /><span>Amueblar</span></button>
     <button type="button" disabled={readOnly} aria-pressed={tool === 'measure'} onClick={() => { onSelectTool(); store.getState().setTool('measure'); }} data-tooltip={shortcutHint('Medir', 'measure')}>
       <Ruler size={22} aria-hidden="true" /><span>Medir</span></button>

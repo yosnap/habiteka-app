@@ -15,6 +15,7 @@ import type { EditorDocument, Furniture, Point } from '@/lib/editor-document/sch
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { WalkthroughLayer } from './walkthrough-layer';
 import { CeilingLightingLayer } from './ceiling-lighting-layer';
+import { LightStripLayer } from './light-strip-layer';
 import { ObjectTransformControls } from './object-transform-controls';
 import { CommentMarkers } from './comment-markers';
 import { OpeningResizeControls } from './opening-resize-controls';
@@ -209,7 +210,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     <WalkthroughLayer store={store} scale={scale} disabled={disabled} />
-    {showLighting && <CeilingLightingLayer store={store} scale={scale} disabled={disabled} />}
+    {showLighting && <><LightStripLayer store={store} scale={scale} disabled={disabled} /><CeilingLightingLayer store={store} scale={scale} disabled={disabled} /></>}
     <CommentMarkers doc={doc} store={store} scale={scale} />
   </Group>;
 }

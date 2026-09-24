@@ -6,6 +6,7 @@ import { localToWorld, projectAlong, transformAroundCenter } from './spatial-pro
 import { floorElevationAt } from './floor-level';
 import { slotSpan, type Span } from './kitchen-run-volumes';
 import { kitchenRunObstacles } from './kitchen-run-obstacles';
+import { refreshDerivedStripPaths } from './light-strip-geometry';
 
 /** Migración explícita y reversible: leer un plano antiguo nunca lo cambia. */
 export function upgradeKitchenDocument(source: EditorDocument): EditorDocument {
@@ -34,7 +35,14 @@ export function updateKitchenRun(source: EditorDocument, id: string, patch: Part
   const doc = upgradeKitchenDocument(source), index = doc.kitchenRuns!.findIndex((r) => r.id === id);
   if (index < 0) throw new Error('Mueble de cocina no encontrado');
   doc.kitchenRuns![index] = transformAroundCenter<KitchenRun>(doc.kitchenRuns![index]!, patch as Partial<KitchenRun>);
+  // Mover, girar o recomponer el mueble arrastra su tira derivada; la ajustada a mano se queda donde está.
+  refreshDerivedStripPaths(doc);
   doc.revision++; return parseEditorDocument(doc);
+}
+/** Las tiras bajo módulos altos viven pegadas a su tramo: sin tramo no hay tira. */
+export function dropStripsOfKitchenRuns(doc: EditorDocument, removedRunIds: readonly string[]): void {
+  if (!doc.lightStrips?.length || !removedRunIds.length) return;
+  doc.lightStrips = doc.lightStrips.filter((strip) => !removedRunIds.includes(strip.kitchenRunId ?? ''));
 }
 const overlaps = (a: Span, b: Span) => a.from < b.to && a.to > b.from;
 export function putKitchenSlot(source: EditorDocument, runId: string, slot: KitchenSlot): EditorDocument {

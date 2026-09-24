@@ -163,12 +163,60 @@ export interface Ceiling {
 export interface Luminaire extends Point {
   id: string;
   ceilingId: string;
-  kind: 'pendant' | 'flush' | 'recessed';
+  kind: 'pendant' | 'flush' | 'recessed' | 'spot';
   dropMm: number;
   color: string;
   temperatureK: number;
   lumens: number;
   enabled: boolean;
+  /** Solo en focos orientables: empotrado en el techo o en superficie. */
+  mount?: 'recessed' | 'surface';
+  /** Solo en focos orientables: inclinación 0–60°, 0 = vertical hacia abajo. */
+  tiltDeg?: number;
+  /** Solo en focos orientables: giro 0–360°, 0 = eje +X del plano, horario en planta. */
+  azimuthDeg?: number;
+}
+/**
+ * Tira LED. `pathMm` se guarda SIEMPRE, también en las derivadas: ahí es la
+ * instantánea del último recorrido calculado a partir del muro o del mueble.
+ * Con `derived: false` el recorrido manda y no se recalcula nada.
+ */
+export interface LightStrip {
+  id: string;
+  kind: 'cove' | 'under-cabinet' | 'free';
+  /** Foseado: techo al que sigue el perímetro. */
+  ceilingId?: string;
+  /** Bajo módulos altos: tramo de cocina al que sigue. */
+  kitchenRunId?: string;
+  pathMm: Point[];
+  derived: boolean;
+  /** Cota desde el suelo acabado de la estancia. */
+  elevationMm: number;
+  color: string;
+  temperatureK: number;
+  lumensPerMeter: number;
+  enabled: boolean;
+}
+/** Escena de iluminación de una estancia: temperatura, intensidad y qué se apaga. */
+export interface LightingScene {
+  id: string;
+  roomId: string;
+  name: string;
+  temperatureK: number;
+  intensityPct: number;
+  offLightIds: string[];
+  offStripIds: string[];
+  active: boolean;
+}
+/**
+ * Zona de luces guardada en el proyecto: acota selección, edición y propuesta.
+ * Se compone de una o varias partes (polígonos), que no tienen por qué tocarse:
+ * así una zona puede cubrir varias estancias sueltas del plano.
+ */
+export interface LightZone {
+  id: string;
+  name: string;
+  polygonsMm: Point[][];
 }
 /** Active level uses root collections; inactive levels retain an isolated document. */
 export interface BuildingLevel {
@@ -178,7 +226,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
@@ -198,6 +246,9 @@ export interface EditorDocument {
   walkthroughs?: WalkthroughPath[];
   ceilings?: Ceiling[];
   luminaires?: Luminaire[];
+  lightStrips?: LightStrip[];
+  lightingScenes?: LightingScene[];
+  lightZones?: LightZone[];
   levels?: BuildingLevel[];
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */

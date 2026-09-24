@@ -1,6 +1,6 @@
 # Fase 4 · Tira LED bajo módulos altos de cocina
 
-Esfuerzo: 5h · Depende de: fase 3 · Estado: pending
+Esfuerzo: 5h · Depende de: fase 3 · Estado: done
 
 ## Contexto
 

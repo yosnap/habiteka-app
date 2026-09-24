@@ -77,13 +77,13 @@ prompt compacto.
 
 | # | Fase | Esfuerzo | Estado | Depende de |
 |---|------|----------|--------|-----------|
-| 1 | [Modelo v12 + migración compartida](phase-01-modelo-v12.md) | 7h | pending | — |
-| 2 | [Foco orientable: 2D, 3D y panel](phase-02-foco-orientable.md) | 6h | pending | 1 |
-| 3 | [Tiras LED: geometría, foseado y tramo libre](phase-03-tiras-led-base.md) | 10h | pending | 1 |
-| 4 | [Tira bajo módulos altos de cocina](phase-04-tira-cocina.md) | 5h | pending | 3 |
-| 5 | [Escenas de iluminación por estancia](phase-05-escenas.md) | 5h | pending | 1 |
-| 6 | [Zonas de luces guardadas](phase-06-zona-luces.md) | 5h | pending | 2, 3, 5 |
-| 7 | [Integración con diseño IA y propuesta de luces](phase-07-ia-y-propuesta.md) | 5h | pending | 2, 3, 4, 5 |
+| 1 | [Modelo v12 + migración compartida](phase-01-modelo-v12.md) | 7h | done | — |
+| 2 | [Foco orientable: 2D, 3D y panel](phase-02-foco-orientable.md) | 6h | done | 1 |
+| 3 | [Tiras LED: geometría, foseado y tramo libre](phase-03-tiras-led-base.md) | 10h | done | 1 |
+| 4 | [Tira bajo módulos altos de cocina](phase-04-tira-cocina.md) | 5h | done | 3 |
+| 5 | [Escenas de iluminación por estancia](phase-05-escenas.md) | 5h | done | 1 |
+| 6 | [Zonas de luces guardadas](phase-06-zona-luces.md) | 5h | done | 2, 3, 5 |
+| 7 | [Integración con diseño IA y propuesta de luces](phase-07-ia-y-propuesta.md) | 5h | done | 2, 3, 4, 5 |
 
 Las fases 2, 3 y 5 son paralelizables entre sí tras la 1 (ficheros disjuntos,
 ver «Propiedad de ficheros» en cada fase). La 4 espera a la 3; la 6 y la 7

@@ -10,8 +10,8 @@ import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import styles from './ceiling-lighting.module.css';
 import { ModernSelect } from '@/components/ui/modern-select';
 
-export function WalkthroughPanel({ store, onClose, onDraw, onPreview, onDesignPoint }: {
-  store: EditorStore; onClose: () => void; onDraw: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
+export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
+  store: EditorStore; onDraw: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
 }) {
   const state = useStore(store), doc = state.document;
   const [zones, setZones] = useState<string[]>([]);
@@ -27,7 +27,6 @@ export function WalkthroughPanel({ store, onClose, onDraw, onPreview, onDesignPo
     if (route) state.apply(putWalkthrough(doc, { ...route, waypoints: route.waypoints.map((p) => p.id === id ? { ...p, ...patch } : p) }));
   });
   return <aside className={styles.panel} aria-label="Recorrido por el plano">
-    <header><h2>Recorrido</h2><button type="button" onClick={onClose} aria-label="Ocultar recorrido">Ocultar</button></header>
     <p>Crea un paseo de cámara por las habitaciones para verlo en 3D o exportarlo como vídeo. 1. Marca las habitaciones y los pasillos que las conectan. 2. Pulsa Preparar recorrido automático. 3. Abre Ver y exportar en 3D y pulsa Reproducir. Las puertas de paso deben estar abiertas.</p>
     <fieldset disabled={state.readOnly}>
       <legend>Estancias a visitar</legend>

@@ -55,6 +55,8 @@ interface EditorGenerateDialogProps {
   onEstimate?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado; sin coste de imagen. */
   onEvaluateQuality?: () => Promise<QualityVerdict | null>;
+  /** Incidencias localizables bajo la tarjeta de calidad; las pinta el editor. */
+  renderPlanIssues?: (onRepaired: () => void) => ReactNode;
   onGenerate: (input: {
     estilo: Estilo;
     objetivo: string;
@@ -90,6 +92,7 @@ export function EditorGenerateDialog({
   onPrepare,
   sceneReady = true,
   onEvaluateQuality,
+  renderPlanIssues,
   onGenerate,
   onRender,
   onApply,
@@ -355,6 +358,7 @@ export function EditorGenerateDialog({
                 evaluate={onEvaluateQuality}
                 onChange={setQuality}
                 serverConfirmMessage={serverConfirm}
+                renderPlanIssues={renderPlanIssues}
               />
             ) : null}
             <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Qué quieres crear">

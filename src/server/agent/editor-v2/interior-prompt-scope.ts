@@ -69,6 +69,19 @@ export interface ScopeRoomBound {
   id: string;
   roomId: string;
 }
+/** Tira LED: `roomId` es null cuando su recorrido no cae en ninguna estancia. */
+export interface ScopeStrip {
+  [key: string]: unknown;
+  id: string;
+  roomId: string | null;
+  kind: string;
+  pathM?: ScopePoint[];
+}
+/** Escena activa de una estancia: descriptiva, sus valores ya van en cada luz. */
+export interface ScopeScene {
+  [key: string]: unknown;
+  roomId: string;
+}
 export interface ScopeLevel {
   id: string;
   elevationM: number;
@@ -76,6 +89,8 @@ export interface ScopeLevel {
   floors: ScopeFloor[];
   ceilings: ScopeRoomBound[];
   luminaires: ScopeRoomBound[];
+  lightStrips: ScopeStrip[];
+  lightingScenes: ScopeScene[];
   walls: ScopeWall[];
   openings: ScopeOpening[];
   columns: ScopePlaced[];
@@ -151,6 +166,11 @@ export function scopeLevelToRooms(level: ScopeLevel, roomIds: readonly string[])
     floors: level.floors.filter((floor) => keep.has(floor.roomId)),
     ceilings: level.ceilings.filter((ceiling) => keep.has(ceiling.roomId)),
     luminaires: level.luminaires.filter((luminaire) => keep.has(luminaire.roomId)),
+    // Una tira sin estancia reconocida (recorrido libre a mano) se juzga por su trazado.
+    lightStrips: level.lightStrips.filter((strip) => strip.roomId
+      ? keep.has(strip.roomId)
+      : (strip.pathM ?? []).some((point) => withinPoint(point, bounds))),
+    lightingScenes: level.lightingScenes.filter((scene) => keep.has(scene.roomId)),
     walls: level.walls.filter((wall) => wallIds.has(wall.id)),
     openings: level.openings.filter((opening) => wallIds.has(opening.wallId)),
     columns: level.columns.filter((item) => withinBounds(item, bounds)),
@@ -217,12 +237,11 @@ function withoutSlabDetail(payload: ScopePayload): ScopePayload {
     ...payload,
     levels: payload.levels.map((level) => ({
       ...level,
+      // Las claves se quitan en vez de ponerse a cero: un cero es un dato falso.
       floors: level.floors.map((floor) => ({
         roomId: floor.roomId,
         finishedFloorElevationM: floor.finishedFloorElevationM,
-        structuralDepthM: 0,
-        undersideElevationM: 0,
-      })),
+      }) as unknown as ScopeFloor),
     })),
   };
 }
@@ -237,13 +256,10 @@ function essentialGeometry(payload: ScopePayload, boundaryTolerance = 0): unknow
     ...payload,
     levels: payload.levels.map((level) => ({
       ...level,
-      rooms: level.rooms.map((room) => ({
-        id: room.id,
-        areaM2: room.areaM2,
-        boundaryM: boundaryTolerance
-          ? simplifyPolygon(room.boundaryM, boundaryTolerance)
-          : room.boundaryM,
-      })),
+      // Con contorno, el área sobra: se deduce de él.
+      rooms: level.rooms.map((room) => room.boundaryM?.length
+        ? { id: room.id, boundaryM: boundaryTolerance ? simplifyPolygon(room.boundaryM, boundaryTolerance) : room.boundaryM }
+        : room) as ScopeRoom[],
       walls: level.walls.map((wall) => ({
         id: wall.id,
         thicknessM: wall.thicknessM,
@@ -259,8 +275,54 @@ function essentialGeometry(payload: ScopePayload, boundaryTolerance = 0): unknow
         heightM: opening.heightM,
         elevationM: opening.elevationM,
       })),
+      // De las luces sobreviven la posición, el ambiente y la orientación del
+      // foco; el soporte, el acabado y la caída se leen del techo de su estancia.
+      // El id del techo solo servía para enlazar las luces, que ya no lo llevan.
+      ceilings: level.ceilings.map((ceiling) => without(ceiling, ['id'])),
+      luminaires: level.luminaires.map((light) => without(light, LIGHT_DERIVABLE)),
+      lightStrips: level.lightStrips.map((strip) => without(strip, ['id'])),
     })),
   };
+}
+
+const LIGHT_DERIVABLE = ['id', 'ceilingId', 'color', 'bodyHeightM', 'ceilingHeightM', 'dropM'];
+
+const without = <T extends Record<string, unknown>>(item: T, keys: readonly string[]): T =>
+  Object.fromEntries(Object.entries(item).filter(([key]) => !keys.includes(key))) as T;
+
+/**
+ * El contorno de un techo es el de su estancia, que ya viaja en `rooms`: se
+ * escribe una sola vez. Sin pérdida mientras la estancia conserve su contorno.
+ */
+export function shareRoomBoundaries<T>(value: T): T {
+  const payload = value as { levels?: Record<string, unknown>[] } | null;
+  if (!payload || !Array.isArray(payload.levels)) return value;
+  return {
+    ...payload,
+    levels: payload.levels.map((level) => {
+      const rooms = Array.isArray(level.rooms) ? level.rooms as Record<string, unknown>[] : [];
+      const withBoundary = new Set(rooms
+        .filter((room) => Array.isArray(room.boundaryM) && room.boundaryM.length)
+        .map((room) => room.id));
+      if (!Array.isArray(level.ceilings)) return level;
+      return { ...level, ceilings: (level.ceilings as Record<string, unknown>[])
+        .map((ceiling) => withBoundary.has(ceiling.roomId) ? without(ceiling, ['boundaryM']) : ceiling) };
+    }),
+  } as T;
+}
+
+/**
+ * Listas vacías de una planta: no dicen nada que no diga su ausencia, y cada
+ * nombre de clave se paga en el esquema del contexto compacto. Sin pérdida.
+ */
+export function dropEmptyLists<T>(value: T): T {
+  const payload = value as { levels?: Record<string, unknown>[] } | null;
+  if (!payload || !Array.isArray(payload.levels)) return value;
+  return {
+    ...payload,
+    levels: payload.levels.map((level) => Object.fromEntries(
+      Object.entries(level).filter(([, item]) => !Array.isArray(item) || item.length))),
+  } as T;
 }
 
 /**
@@ -278,16 +340,15 @@ export function aliasRoomIds<T>(value: T): T {
     return alias.get(id);
   };
   const remap = (list: unknown, key: 'id' | 'roomId') => Array.isArray(list)
-    ? list.map((item: Record<string, unknown>) => ({ ...item, [key]: short(item[key]) })) : list;
+    ? list.map((item: Record<string, unknown>) => ({ ...item, [key]: item[key] === null ? null : short(item[key]) })) : list;
+  // Solo se reescriben las listas presentes: añadir una clave vacía costaría prompt.
+  const ALIASED = [['rooms', 'id'], ['floors', 'roomId'], ['ceilings', 'roomId'],
+    ['luminaires', 'roomId'], ['lightStrips', 'roomId'], ['lightingScenes', 'roomId']] as const;
   return {
     ...payload,
-    levels: payload.levels.map((level) => ({
-      ...level,
-      rooms: remap(level.rooms, 'id'),
-      floors: remap(level.floors, 'roomId'),
-      ceilings: remap(level.ceilings, 'roomId'),
-      luminaires: remap(level.luminaires, 'roomId'),
-    })),
+    levels: payload.levels.map((level) => ALIASED.reduce((current, [list, key]) =>
+      Array.isArray(current[list]) ? { ...current, [list]: remap(current[list], key) } : current,
+      level as Record<string, unknown>)),
   } as T;
 }
 
@@ -368,8 +429,9 @@ function withoutRoomBoundaries(payload: ScopePayload): ScopePayload {
     ...payload,
     levels: payload.levels.map((level) => ({
       ...level,
-      rooms: level.rooms.map((room) => ({ id: room.id, areaM2: room.areaM2, boundaryM: [] })),
-      ceilings: level.ceilings.map((ceiling) => Object.fromEntries(Object.entries(ceiling).filter(([key]) => key !== 'boundaryM')) as ScopeRoomBound),
+      // Sin la clave, no con el array vacío: escribirla costaría prompt sin decir nada.
+      rooms: level.rooms.map((room) => ({ id: room.id, areaM2: room.areaM2 }) as unknown as ScopeRoom),
+      ceilings: level.ceilings.map((ceiling) => without(ceiling, ['boundaryM'])),
     })),
   };
 }
@@ -386,6 +448,63 @@ function summarizedLuminaires(payload: ScopePayload): ScopePayload {
   };
 }
 
+const mapLevels = (payload: ScopePayload, step: (level: ScopeLevel) => ScopeLevel): ScopePayload =>
+  ({ ...payload, levels: payload.levels.map(step) });
+
+/**
+ * Grado entero en la orientación del foco: la inclinación y el giro no se
+ * dibujan con décimas, así que no es una degradación sino ruido que sobra.
+ */
+export function roundSpotAngles(payload: ScopePayload): ScopePayload {
+  const round = (value: unknown) => typeof value === 'number' ? Math.round(value) : value;
+  return mapLevels(payload, (level) => ({
+    ...level,
+    luminaires: level.luminaires.map((light) => light.tiltDeg === undefined && light.azimuthDeg === undefined
+      ? light
+      : { ...light, tiltDeg: round(light.tiltDeg), azimuthDeg: round(light.azimuthDeg) }),
+  }));
+}
+
+/**
+ * Tiras con recorrido propio (libres o retocadas a mano): quedan sus extremos.
+ * La política ya obliga a respetarlas como línea, y una recta entre extremos es
+ * mucho mejor aproximación que perderlas.
+ */
+function stripEndpointsOnly(payload: ScopePayload): ScopePayload {
+  return mapLevels(payload, (level) => ({
+    ...level,
+    lightStrips: level.lightStrips.map((strip) => {
+      const path = strip.pathM;
+      if (!path || path.length <= 2) return strip;
+      const first = path[0]!, last = path[path.length - 1]!;
+      // Un anillo (foseado retocado) tiene los extremos en el mismo punto: quedarse con
+      // ellos lo dejaría en longitud cero. Sigue el perímetro de su estancia, que ya va en rooms.
+      if (Math.hypot(first.x - last.x, first.y - last.y) < 0.01)
+        return Object.fromEntries(Object.entries(strip).filter(([key]) => key !== 'pathM')) as ScopeStrip;
+      return { ...strip, pathM: [first, last] };
+    }),
+  }));
+}
+
+/** Cuántas tiras de cada tipo hay en cada estancia: se ven en la referencia. */
+function summarizedStrips(payload: ScopePayload): ScopePayload {
+  return mapLevels(payload, (level) => {
+    const counts = new Map<string, { roomId: string | null; kind: string; count: number }>();
+    for (const strip of level.lightStrips) {
+      const key = `${strip.roomId ?? ''}|${strip.kind}`;
+      const entry = counts.get(key) ?? { roomId: strip.roomId, kind: strip.kind, count: 0 };
+      entry.count += 1;
+      counts.set(key, entry);
+    }
+    return { ...level, lightStrips: [...counts.values()] as unknown as ScopeStrip[] };
+  });
+}
+
+/** La escena ya está aplicada en la temperatura y el flujo de cada luz: describirla otra vez sobra. */
+function withoutLightingScenes(payload: ScopePayload): ScopePayload {
+  return mapLevels(payload, (level) => ({ ...level, lightingScenes: [] }));
+}
+
 /**
  * Degradación por prioridad: se aplican recortes cada vez más agresivos hasta
  * que el prompt cabe. El orden va de lo prescindible (ruido decimal, nombres) a
@@ -399,8 +518,12 @@ export function fitCompactPrompt(
   limit: number = COMPACT_PROMPT_LIMIT,
 ): string {
   const steps: ((input: ScopePayload) => ScopePayload)[] = [
-    (input) => input,
+    roundSpotAngles,
     (input) => roundPayload(input, 3),
+    // Lo añadido por la iluminación se degrada antes que lo que ya se recortaba.
+    stripEndpointsOnly,
+    summarizedStrips,
+    withoutLightingScenes,
     withoutNames,
     (input) => roundPayload(input, 2),
     withoutSlabDetail,
@@ -411,7 +534,8 @@ export function fitCompactPrompt(
   let current = payload;
   let prompt = '';
   // Transformaciones sin pérdida que solo cambian cómo se escribe el contexto.
-  const emit = (value: unknown) => serialize(aliasRoomIds(roomId ? value : indexWallVertices(hoistSharedDefaults(value))));
+  const emit = (value: unknown) => serialize(dropEmptyLists(aliasRoomIds(shareRoomBoundaries(
+    roomId ? value : indexWallVertices(hoistSharedDefaults(value))))));
   for (const step of steps) {
     current = step(current);
     prompt = [...head, emit(current)].join('\n');
