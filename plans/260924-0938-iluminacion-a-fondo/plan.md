@@ -1,7 +1,7 @@
 ---
 title: "Iluminación a fondo en el editor v2"
 description: "Foco orientable, tiras LED (foseado, bajo módulos altos, tramo libre) y escenas de iluminación por estancia, con 2D, 3D e integración con el diseño IA."
-status: pending
+status: completed
 priority: P2
 effort: 43h
 branch: feat/iluminacion-y-costes-zonas
