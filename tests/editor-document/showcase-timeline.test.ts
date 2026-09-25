@@ -1,0 +1,14 @@
+import { describe, expect, it } from 'vitest';
+import { visualSampleDocument } from '@/app/dev/editor-v2/visual-sample';
+import { showcaseFrame, SHOWCASE_INTRO_MS } from '@/components/editor-v2/scene/showcase-timeline';
+
+describe('guion visual del vídeo', () => {
+  it('revela el mismo inmueble por capas con cámaras deterministas', () => {
+    const doc = visualSampleDocument();
+    expect([0, 1000, 2000, 3000].map((time) => showcaseFrame(doc, time).stage)).toEqual([0, 1, 2, 3]);
+    expect(showcaseFrame(doc, 2500)).toEqual(showcaseFrame(doc, 2500));
+    const first = showcaseFrame(doc, 0), last = showcaseFrame(doc, SHOWCASE_INTRO_MS - 1);
+    expect(first.position).not.toEqual(last.position);
+    expect(first.focus).toEqual(last.focus);
+  });
+});

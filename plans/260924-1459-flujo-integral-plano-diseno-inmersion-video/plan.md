@@ -1,7 +1,7 @@
 ---
 title: "Flujo integral: plano, diseño, visita y vídeo"
 description: "Unificar Estudio, catálogo, diseño aprobado, visita y vídeo para tres sectores, con piloto comercial de mueblería en paralelo."
-status: pending
+status: in_progress
 priority: P1
 effort: "Por estimar por fase tras validar inmueble de referencia y formatos de vídeo"
 tags: [feature, frontend, video, 3d]
@@ -96,8 +96,8 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación local |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso |
 | 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Maqueta exploratoria; aprobación en espera de fidelidad de fase 2 |
-| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | Pendiente |
-| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | Pendiente |
+| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En curso en muestra aislada; faltan varias plantas, exteriores y aprobación |
+| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | Primer montaje MP4 nativo en muestra; faltan editor, formatos y versión aprobada |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | Pendiente |
 | 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Preparación del socio en paralelo; integración tras fase 3 |
 

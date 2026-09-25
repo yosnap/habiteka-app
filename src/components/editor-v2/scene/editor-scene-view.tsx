@@ -20,7 +20,12 @@ import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
 import { FurnitureModel } from './furniture-model';
 import { OutdoorLighting } from './outdoor-lighting';
 import { WalkCamera } from './walk-camera';
-import { recordWalkthrough } from './offline-recorder';
+import { FreeWalkCamera } from './free-walk-camera';
+import { FreeWalkController } from './free-walk-controller';
+import { FreeWalkOverlay } from './free-walk-overlay';
+import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
+import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
+import { recordWalkthrough, type VideoMode } from './offline-recorder';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
@@ -100,6 +105,9 @@ function SceneView({
   const [activeView, setActiveView] = useState<SceneViewPreset | null>(null);
   const routeId = useStore(store, (s) => s.walkthroughId);
   const walking = useStore(store, (s) => s.walkthroughPlaying);
+  const [freeWalk, setFreeWalk] = useState<{ start: { x: number; y: number }; focus: [number, number, number] } | null>(null);
+  const [walkPaused, setWalkPaused] = useState(false);
+  const [freeWalkController] = useState(() => new FreeWalkController());
   const route = document.walkthroughs?.find((path) => path.id === routeId);
   const [capturingPose, setCapturingPose] = useState(false);
   const [recording, setRecording] = useState(false), [recordProgress, setRecordProgress] = useState(0);
@@ -120,11 +128,34 @@ function SceneView({
   const lightingRef = useRef(lighting);
   useEffect(() => { lightingRef.current = lighting; }, [lighting]);
   const interiorCameras = useMemo(() => roomInteriorCameras(document), [document]);
+  useEffect(() => store.subscribe((next, previous) => {
+    if (next.document !== previous.document) setFreeWalk(null);
+  }), [store]);
+  const pauseFreeWalk = useCallback(() => {
+    setWalkPaused(true);
+    freeWalkController.stop();
+    if (window.document.pointerLockElement) window.document.exitPointerLock();
+  }, [freeWalkController]);
+  const enterFreeWalk = () => {
+    const nav = walkthroughNavigation(document);
+    const selected = interiorCameras.find((room) => room.roomId === interiorRoomId) ?? interiorCameras[0];
+    const preferred = selected ? { x: selected.camera.position[0] * 1000, y: selected.camera.position[2] * 1000 }
+      : route?.waypoints[0] ? { x: route.waypoints[0].x, y: route.waypoints[0].y } : undefined;
+    const start = freeWalkStart(nav, preferred);
+    if (!start) { store.getState().setError('No hay espacio transitable para empezar la visita. Revisa muros y muebles.'); return; }
+    const focus: [number, number, number] = selected?.camera.focus ?? [start.x / 1000, 1.6, start.y / 1000 + 1];
+    store.getState().setWalkthroughPlaying(false);
+    setAllLevels(false); setCutaway(false); setInteriorRoomId(null);
+    setWalkPaused(false); setFreeWalk({ start, focus });
+    void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined);
+  };
+  const exitFreeWalk = () => { pauseFreeWalk(); setFreeWalk(null); };
   const inside = interiorRoomId !== null && interiorCameras.some((room) => room.roomId === interiorRoomId);
   // Dentro de una estancia no se recortan muros ni se destapa el techo: se ve lo que vería el usuario.
   const wallCutaway = cutaway && !inside;
   const captureRender = useRef<CaptureScene | null>(null);
   const root = useRef<RootState | null>(null);
+  const onSceneCreated = useCallback((state: RootState) => { root.current = state; setRendererReady(true); }, []);
   const captureSequence = useRef(1000000);
   const captureQueue = useRef<Promise<unknown>>(Promise.resolve());
   const cameraApplied = useRef<((sequence: number) => void) | null>(null);
@@ -132,7 +163,7 @@ function SceneView({
   useEffect(() => {
     if (!rendererReady || contextLost) { captureRender.current = null; onCaptureReady?.(null); return; }
     const capture: CaptureScene = (options, fullResolution = false) => {
-      if (abortRecording.current || store.getState().walkthroughPlaying) return Promise.reject(new Error('Detén el recorrido antes de capturar una imagen.'));
+      if (abortRecording.current || store.getState().walkthroughPlaying || freeWalk) return Promise.reject(new Error('Sal de la visita antes de capturar una imagen.'));
       const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
       const initial = root.current?.get();
       if (!initial) throw new Error('La vista 3D no está disponible.');
@@ -245,7 +276,7 @@ function SceneView({
     captureRender.current = capture;
     onCaptureReady?.(capture);
     return () => { captureRender.current = null; onCaptureReady?.(null); };
-  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting]);
+  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk]);
   const otherLevels = useMemo(() => allLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document) })) : [], [document, allLevels]);
   // La estancia que manda en el reparto de luces reales: donde está la cámara y,
@@ -273,13 +304,13 @@ function SceneView({
   const manualCameraChange = useCallback(() => setActiveView(null), []);
   const sceneVersion = useMemo(() => ({ scene, otherLevels, activeElevation }), [scene, otherLevels, activeElevation]);
   const select = (id: string) => {
-    if (!abortRecording.current) {
+    if (!abortRecording.current && !freeWalk) {
       store.getState().select([id]);
       if (id.startsWith('room:')) store.getState().setDetailPanel('paint');
     }
   };
   const camera = (action: SceneViewAction) => {
-    if (abortRecording.current || walking) return;
+    if (abortRecording.current || walking || freeWalk) return;
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
@@ -294,7 +325,7 @@ function SceneView({
     camera('top');
   };
   const enterRoom = (roomId: string | null) => {
-    if (abortRecording.current || walking) return;
+    if (abortRecording.current || walking || freeWalk) return;
     if (!roomId) {
       setInteriorRoomId(null);
       setActiveView(null);
@@ -310,7 +341,7 @@ function SceneView({
   };
   const exportNativeRender = async () => {
     const capture = captureRender.current;
-    if (!capture || exporting || abortRecording.current || walking) return;
+    if (!capture || exporting || abortRecording.current || walking || freeWalk) return;
     setExporting(true);
     let downloaded = false;
     try {
@@ -331,8 +362,8 @@ function SceneView({
       setExporting(false);
     }
   };
-  const exportWalk = async () => {
-    if (!route || !root.current || recording || exporting) return;
+  const exportWalk = async (mode: VideoMode) => {
+    if (!route || !root.current || recording || exporting || freeWalk) return;
     const frozen = store.getState().document, selectionBefore = [...store.getState().selection];
     const controller = new AbortController(); abortRecording.current = controller;
     store.getState().setWalkthroughPlaying(false); store.getState().select([]);
@@ -342,12 +373,12 @@ function SceneView({
       const job = captureQueue.current.then(async () => {
         controller.signal.throwIfAborted();
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-        return recordWalkthrough(root.current!.get(), frozen, route, activeElevation, controller.signal, setRecordProgress);
+        return recordWalkthrough(root.current!.get(), frozen, route, activeElevation, controller.signal, setRecordProgress, mode);
       });
       captureQueue.current = job.catch(() => undefined);
       const blob = await job;
       const url = URL.createObjectURL(blob), link = window.document.createElement('a');
-      link.href = url; link.download = 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      link.href = url; link.download = mode === 'showcase' ? 'habiteka-obra-y-visita.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
       setExportMessage('MP4 descargado.');
       if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id); setExportMessage('MP4 descargado y guardado en Diseños.'); }
     } catch (error) { setExportMessage(controller.signal.aborted ? 'Exportación cancelada.' : error instanceof Error ? error.message : 'No se pudo exportar'); }
@@ -358,7 +389,7 @@ function SceneView({
     <button type="button" onClick={() => setContextLost(false)}>Reintentar vista 3D</button>
   </div>;
   return <div style={{ height: '100%', minHeight: 320, position: 'relative', background: '#edf2ef' }} aria-label="Vista 3D del plano">
-    {route && <div style={{ position: 'absolute', zIndex: 5, bottom: 75, left: 24, padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', display: 'flex', gap: 12, alignItems: 'center' }} aria-label="Reproducir recorrido">
+    {route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, bottom: 75, left: 24, padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', display: 'flex', gap: 12, alignItems: 'center' }} aria-label="Reproducir recorrido">
       <strong>{route.name}</strong>
       <button type="button" disabled={recording} onClick={() => store.getState().hideWalkthrough()}>Ocultar recorrido</button>
       <button type="button" disabled={recording} onClick={() => {
@@ -368,36 +399,37 @@ function SceneView({
           store.getState().setWalkthroughPlaying(!walking);
         } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Ruta inválida'); }
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
-      <button type="button" disabled={recording || walking || exporting || store.getState().readOnly} onClick={() => void exportWalk()}>Exportar MP4 · 1080p</button>
+      <button type="button" disabled={recording || walking || exporting || store.getState().readOnly} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido · MP4</button>
+      <button type="button" disabled={recording || walking || exporting || store.getState().readOnly} onClick={() => void exportWalk('showcase')}>Vídeo muestra · obra + visita</button>
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
     </div>}
     <Canvas frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
-      onCreated={(state) => { root.current = state; setRendererReady(true); }} camera={{ position: [8, 8, 10], fov: 45, near: .01, far: 500 }}
+      onCreated={onSceneCreated} camera={{ position: [8, 8, 10], fov: 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => store.getState().select([])}>
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]}>
           <OutdoorLighting document={document} />
-          <group visible={showLighting} userData={{ lightingLayer: true }}>
-            <CeilingLightingMeshes document={document} view={walking || recording || inside ? 'solid' : captureCeilings ?? ceilingView}
+          <group visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
+            <CeilingLightingMeshes document={document} view={walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
-          {scene.polygons.map((polygon) => <CutawayWall key={polygon.id} cuttable={polygon.role !== 'floor'} enabled={!walking && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
+          {scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
-          </CutawayWall>)}
+          </CutawayWall></group>)}
           {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => {
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
-            return <CutawayWall key={box.id} cuttable={cuttable} enabled={!walking && !recording && !capturingPose && wallCutaway && cuttable}
+            return <group key={box.id} userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1 }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
-          </CutawayWall>;
+          </CutawayWall></group>;
           })}
-          {scene.ramps.map((ramp) => <RampMesh key={ramp.id} ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} />)}
-          {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <FurnitureModel key={item.id} item={item}
-            boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} />)}
+          {scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1 }}><RampMesh ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} /></group>)}
+          {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <group key={item.id} userData={{ videoStage: 3 }}><FurnitureModel item={item}
+            boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} /></group>)}
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
           <group visible={showLighting} userData={{ lightingLayer: true }}>
@@ -412,7 +444,10 @@ function SceneView({
             boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
-        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
+        {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus} elevationMm={activeElevation}
+          paused={walkPaused} controller={freeWalkController} onPause={pauseFreeWalk} />}
+        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk}
+          onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
       {[...new Set(document.comments?.map((c) => c.targetEntityId) ?? [])].map((id) => {
         const comments = document.comments!.filter((c) => c.targetEntityId === id), p = commentAnchor(document, comments[0]!);
@@ -422,12 +457,15 @@ function SceneView({
         </Html>;
       })}
     </Canvas>
-    {!recording && !walking && <SceneViewControls activeView={activeView} maquetteActive={activeView === 'top' && ceilingView === 'hidden' && !allLevels && !cutaway && !inside} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
+    {!recording && !walking && !freeWalk && <SceneViewControls activeView={activeView} maquetteActive={activeView === 'top' && ceilingView === 'hidden' && !allLevels && !cutaway && !inside} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
       ceilingView={ceilingView} interiorRooms={interiorCameras} interiorRoomId={inside ? interiorRoomId : null}
       interiorDisabledReason={allLevels ? 'Activa «Una planta» para entrar en una estancia' : null}
       onCamera={camera} onViewChange={camera} onMaquette={showMaquette} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
       onCeilingViewChange={(view) => store.getState().setCeilingView(view)} onEnterRoom={enterRoom}
+      canFreeWalk={interiorCameras.length > 0} onFreeWalk={enterFreeWalk}
       onExport={() => void exportNativeRender()} />}
+    {freeWalk && <FreeWalkOverlay paused={walkPaused} controller={freeWalkController} onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
+      onExit={exitFreeWalk} onMouse={() => { setWalkPaused(false); void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined); }} />}
     <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
       {(Object.keys(SCENE_LIGHTING_LABELS) as SceneLightingPreset[]).map((preset) => <button key={preset} type="button"
         disabled={recording} aria-pressed={lighting === preset} onClick={() => setLighting(preset)}>{SCENE_LIGHTING_LABELS[preset]}</button>)}

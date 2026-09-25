@@ -51,7 +51,9 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     return true;
   };
   const segmentFree = (a: Point, b: Point, eyeHeightMm = 1600) => {
-    const count = Math.max(1, Math.ceil(distance(a, b) / 40));
+    // Un mueble puede dejar una franja prohibida muy estrecha en un tramo
+    // oblicuo. Muestrear por debajo de esa franja evita aprobar falsos pasos.
+    const count = Math.max(1, Math.ceil(distance(a, b) / 10));
     if (count > 10000) return false;
     let previousFloor = floorAt(a);
     for (let i = 0; i <= count; i++) {

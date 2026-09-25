@@ -39,7 +39,17 @@ export function autoTour(doc: EditorDocument, zoneIds: string[]): WalkthroughPat
   for (let i = 0; i < order.length; i++) for (const id of links.get(order[i]!)!) if (!seen.has(id)) { seen.add(id); order.push(id); }
   if (order.length !== rooms.length) throw new Error('Las estancias elegidas no están conectadas por puertas transitables. Incluye el pasillo y abre las puertas.');
   const points = [centers.get(first.id)!];
-  for (const id of order.slice(1)) points.push(...findWalkablePath(nav, points.at(-1)!, centers.get(id)!).slice(1));
+  for (const id of order.slice(1)) {
+    let leg: Point[] | undefined;
+    // El punto más céntrico puede estar en una bolsa libre pero aislada por
+    // muebles. Probar otros puntos de la misma estancia antes de descartar la ruta.
+    for (const target of freePoints.get(id)!.slice(0, 60)) {
+      try { leg = findWalkablePath(nav, points.at(-1)!, target); break; }
+      catch { /* el siguiente candidato puede ser alcanzable */ }
+    }
+    if (!leg) throw new Error('No hay un paso transitable entre las estancias elegidas. Revisa puertas y muebles.');
+    points.push(...leg.slice(1));
+  }
   if (points.length === 1) {
     const p = points[0]!;
     const candidates = freePoints.get(first.id)!.sort((a, b) => distance(b, p) - distance(a, p)).slice(0, 12);

@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, DoorOpen, Frame, Minus, Plus, Rotate3d, Scissors, Layers3, PanelTop, LayoutGrid } from 'lucide-react';
+import { Download, DoorOpen, Frame, Minus, Plus, Rotate3d, Scissors, Layers3, PanelTop, LayoutGrid, PersonStanding } from 'lucide-react';
 import { ModernSelect } from '@/components/ui/modern-select';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
 import styles from './scene-view-controls.module.css';
@@ -61,6 +61,8 @@ interface SceneViewControlsProps {
   onAllLevelsChange: () => void;
   onCeilingViewChange: (view: CeilingViewOption) => void;
   onEnterRoom: (roomId: string | null) => void;
+  canFreeWalk: boolean;
+  onFreeWalk: () => void;
   onExport: () => void;
 }
 
@@ -82,6 +84,8 @@ export function SceneViewControls({
   onAllLevelsChange,
   onCeilingViewChange,
   onEnterRoom,
+  canFreeWalk,
+  onFreeWalk,
   onExport,
 }: SceneViewControlsProps) {
   return <div className={styles.controls} role="toolbar" aria-label="Controles de la vista 3D">
@@ -103,6 +107,12 @@ export function SceneViewControls({
         title="Misma escena 3D del editor, vista desde arriba y sin techo" aria-pressed={maquetteActive} onClick={onMaquette}>
         <LayoutGrid size={15} aria-hidden="true" />
         <span>Maqueta</span>
+      </button>
+      <button type="button" className={styles.actionButton} aria-label="Entrar al diseño en primera persona"
+        title={canFreeWalk ? 'Camina por la misma escena del editor' : 'Necesitas una estancia transitable'}
+        disabled={!canFreeWalk} onClick={onFreeWalk}>
+        <PersonStanding size={15} aria-hidden="true" />
+        <span>Visita</span>
       </button>
       <label className={styles.selectLabel}>
         <Rotate3d size={15} aria-hidden="true" />

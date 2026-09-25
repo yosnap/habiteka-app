@@ -32,11 +32,12 @@ const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, num
   drone: [1, 2, 1],
 };
 
-export function SceneCamera({ request, sceneVersion, interior = false, onManualChange, onContextLost, onApplied }: {
+export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, onManualChange, onContextLost, onApplied }: {
   request: CameraRequest;
   sceneVersion: unknown;
   /** Dentro de una estancia: se puede mirar al techo y no se reencuadra sola. */
   interior?: boolean;
+  enabled?: boolean;
   onManualChange: () => void;
   onContextLost: () => void;
   onApplied?: (sequence: number) => void;
@@ -108,6 +109,6 @@ export function SceneCamera({ request, sceneVersion, interior = false, onManualC
     canvas.addEventListener('webglcontextlost', lost);
     return () => canvas.removeEventListener('webglcontextlost', lost);
   }, [gl, onContextLost]);
-  return <OrbitControls ref={controls} makeDefault enableDamping={false} minDistance={.3}
+  return <OrbitControls ref={controls} makeDefault enabled={enabled} enableDamping={false} minDistance={.3}
     onStart={onManualChange} maxPolarAngle={interior ? Math.PI : Math.PI / 2} />;
 }

@@ -1,9 +1,16 @@
 ---
 title: "Fase 4: Visita inmersiva en primera persona"
-status: todo
+status: in_progress
 ---
 
 # Fase 4: Visita inmersiva en primera persona
+
+## Avance en muestra aislada (25-09-2026)
+
+- La vista 3D del Editor v2 ofrece «Visita» sobre la misma escena: cámara a 1,6 m, movimiento WASD/flechas, mirada con ratón o arrastre, pausa, salida y controles táctiles.
+- El paseo usa `walkthroughNavigation` para radio, puertas, muebles y muros; el movimiento continuo desliza junto a obstáculos. Pruebas con puerta abierta/cerrada y estancia amueblada.
+- Entrada, pausa y salida comprobadas en `/dev/editor-v2?muestra=visual`, sin modificar el proyecto real. El recorrido guiado de cuatro estancias de esa muestra ya se genera y se previsualiza.
+- Pendiente para aceptar la fase: medir fluidez y móvil, resolver conexiones entre plantas y zonas exteriores, mini plano/POI, propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
 
 ## Objetivo
 

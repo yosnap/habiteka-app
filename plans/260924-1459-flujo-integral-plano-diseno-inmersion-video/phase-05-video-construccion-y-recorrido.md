@@ -1,9 +1,16 @@
 ---
 title: "Fase 5: Vídeo de construcción visual y recorrido"
-status: todo
+status: in_progress
 ---
 
 # Fase 5: Vídeo de construcción visual y recorrido
+
+## Avance en muestra aislada (25-09-2026)
+
+- La ruta automática busca otro punto libre de la estancia cuando el más céntrico queda aislado por muebles. El barrido de colisión se afinó para que la ruta aprobada coincida con los fotogramas del vídeo.
+- El exportador nativo añade una opción de montaje de 8 s: suelo, estructura, huecos/techo, mobiliario, giro exterior y recorrido por estancias. Usa las entidades de la misma escena R3F y un guion temporal determinista; también conserva la exportación de solo recorrido.
+- La exportación MP4 se completó en Chrome con la vivienda sintética y mostró «MP4 descargado». Una segunda prueba detectó que R3F podía redimensionar el lienzo durante la codificación; se corrigió con un lienzo de vídeo fijo a 1920×1080 y la repetición terminó correctamente.
+- Pendiente para aceptar la fase: editor de tomas, vista previa completa de montaje, 9:16, audio opcional, vínculo a versión aprobada y comparación de fidelidad/coste antes de integrar vídeo IA.
 
 ## Objetivo
 
