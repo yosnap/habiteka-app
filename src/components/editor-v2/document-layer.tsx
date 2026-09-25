@@ -93,7 +93,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     const wall = state.document.walls.find((item) => item.id === id);
     const object = planObjects(state.document).find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
-      : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap)
+      : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap, { preserveRotation: true })
         : target.position();
     target.position(origin);
     // Alt + arrastrar: el original se queda y se coloca una copia donde se suelta.

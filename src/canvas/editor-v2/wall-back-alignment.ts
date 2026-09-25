@@ -5,7 +5,7 @@ import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalo
 import { wallFloorElevation } from '@/lib/editor-document/floor-level';
 import { wallConstruction } from '@/lib/editor-document/construction-properties';
 
-interface WallFaceHit { wall: Wall; gap: number; normal: { x: number; y: number }; tangent: { x: number; y: number }; face: { x: number; y: number } }
+interface WallFaceHit { wall: Wall; gap: number; score: number; normal: { x: number; y: number }; tangent: { x: number; y: number }; face: { x: number; y: number } }
 /** Cara de muro recto más cercana a alguna esquina del mueble, con su normal hacia la estancia. */
 function nearestWallFace(doc: EditorDocument, item: Furniture, toleranceMm: number): WallFaceHit | null {
   const corners = [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }].map((p) => localToWorld(item, p));
@@ -18,8 +18,13 @@ function nearestWallFace(doc: EditorDocument, item: Furniture, toleranceMm: numb
     if (Math.max(...along) < 0 || Math.min(...along) > path.length) continue;
     const side = ((center.x - a.x) * -u.y + (center.y - a.y) * u.x) >= 0 ? 1 : -1, normal = { x: -u.y * side, y: u.x * side };
     const gap = Math.min(...corners.map((p) => (p.x - a.x) * normal.x + (p.y - a.y) * normal.y)) - wall.thicknessMm / 2;
-    if (Math.abs(gap) <= toleranceMm && (!best || Math.abs(gap) < Math.abs(best.gap)))
-      best = { wall, gap, normal, tangent: u, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
+    // En una esquina dos caras compiten. Priorizar la que conserva el eje del mueble
+    // evita que un desplazamiento mínimo lo gire 90° y salte a la otra pared.
+    const angle = item.rotation * Math.PI / 180;
+    const parallel = Math.abs(Math.cos(angle) * u.x + Math.sin(angle) * u.y);
+    const score = Math.abs(gap) + (1 - parallel) * Math.min(150, toleranceMm / 2);
+    if (Math.abs(gap) <= toleranceMm && (!best || score < best.score))
+      best = { wall, gap, score, normal, tangent: u, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
   }
   return best;
 }

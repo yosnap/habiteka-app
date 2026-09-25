@@ -245,7 +245,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled);
+    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
   }, [doc, pendingSpatial, pointer, snapEnabled, view.scale]);
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
@@ -305,7 +305,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
             setPointer(null); return;
           }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled);
+          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
           store.getState().placePendingSpatial(item); setPointer(null); return;
         }
         if (splitting) {

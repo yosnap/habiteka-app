@@ -266,7 +266,8 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
   throw new Error('No hay espacio libre cercano. Libera espacio antes de añadir el elemento.');
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
-export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean) {
+export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean,
+  options: { preserveRotation?: boolean } = {}) {
   if (!enabled) return item;
   // El imán manda: la rejilla de 10 cm solo actúa en el eje sin referencia, y después el objeto puede afinar a una cara.
   const magnet = alignPoints(doc, footprintAnchors(item), scale, enabled, [item.id]);
@@ -308,8 +309,11 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   const aligned = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);
   result = { ...result, x: result.x + aligned.delta.x, y: result.y + aligned.delta.y };
   const furniture = 'kind' in result && !('stepCount' in result) && !isBoundary(result) && !isKitchenRun(result);
-  // Un mueble se gira con la trasera contra el muro y, si cae sobre otro mueble, se apoya en él y toma su orientación.
-  if (furniture) result = restOnHost(doc, dockToWindow(doc, alignBackToWall(doc, result as Furniture, faceTolerance), faceTolerance), { alignRotation: true });
+  // Durante un arrastre la orientación elegida por el usuario tiene prioridad sobre el giro automático al muro.
+  if (furniture) {
+    const positioned = options.preserveRotation ? result as Furniture : alignBackToWall(doc, result as Furniture, faceTolerance);
+    result = restOnHost(doc, dockToWindow(doc, positioned, faceTolerance), { alignRotation: !options.preserveRotation });
+  }
   // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
   return snapToWallFace(doc, result, faceTolerance);
 }
