@@ -47,7 +47,10 @@ export async function studioPlanQuality(
   // Sin veredicto guardado (importaciones anteriores a la puerta): se evalúa
   // ahora con la extracción cruda, sin volver a llamar al modelo de visión.
   const result = buildPlanImport(planImport.raw, {
-    includeFurniture: true,
+    roomOverrides: planImport.roomOverrides,
+    doorOverrides: planImport.doorOverrides,
+    generalWidthMm: planImport.generalWidthMm,
+    includeFurniture: planImport.includeFurniture,
     normalize: importNormalizeOptions(planImport.detected),
   });
   return evaluatePlanQuality(

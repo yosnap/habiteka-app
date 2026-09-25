@@ -18,6 +18,7 @@ import type { DetectedWalls } from './detect-walls-raster';
 import { evaluateCheckpoint } from '@/server/quality/evaluate';
 import type { GateContext } from '@/server/quality/gate-mark';
 import { buildPlanEvidence } from '@/server/quality/evidence/plan-evidence';
+import { blockingPlanImportWarning } from '@/lib/plan-quality';
 
 /** Importación con la imagen de origen y el veredicto de fiabilidad del plano. */
 export type PlanImportStudioResult = PlanImportResult & {
@@ -49,7 +50,9 @@ export async function importPlanFromImage(
     ...nextState,
     plano: result.plano,
     escalaEstimada: result.escalaEstimada,
-    planImport: { raw, detected, image: imageRef },
+    planImport: { raw, detected, image: imageRef, includeFurniture: options.includeFurniture !== false },
+    planImportApplied: false,
+    planImportRevision: crypto.randomUUID(),
     quality,
   });
   return { ...result, imageUrl: imageRef.assetUrl, quality };
@@ -70,6 +73,13 @@ export async function evaluatePlanQuality(
   input: Parameters<typeof buildPlanEvidence>[0],
   gate?: GateContext,
 ): Promise<StudioQuality> {
+  const unsafe = blockingPlanImportWarning(input.result.warnings);
+  if (unsafe) return {
+    score: null,
+    decision: 'block',
+    reasons: [unsafe.message, 'Corrige la distribución en el editor antes de generar diseños o vistas.'],
+    failOpen: false,
+  };
   const evaluation = await evaluateCheckpoint(
     ctx,
     'plan_extraction',

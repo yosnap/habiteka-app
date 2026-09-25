@@ -15,6 +15,9 @@ import {
   type FurnitureRoom,
 } from '@/lib/editor-document/furniture-catalog';
 import type { SketchFurniture } from './sketch-types';
+import { fitFurnitureNearSource } from './furniture-placement-geometry';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
+import { pointOnSegment } from '@/lib/editor-document/geometry';
 
 export interface PlacementScale {
   mmPerUnitX: number;
@@ -61,6 +64,7 @@ export function placeFurniture(
   const boxes = zones
     .filter((z) => z.outline.length >= 3)
     .map((z) => ({ zone: z, ...bounds(z.outline) }));
+  const walls = [...new Map(zones.flatMap((zone) => zone.walls).map((wall) => [wall.id, wall])).values()];
 
   items.forEach((item, index) => {
     const box = {
@@ -72,7 +76,7 @@ export function placeFurniture(
     let center = { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 };
     const drawn = { w: box.maxX - box.minX, h: box.maxY - box.minY };
 
-    const host = boxes.find((b) => contains(b, center));
+    const host = boxes.find((b) => contains(b, center) && pointInZone(b.zone, center));
     if (!host) {
       warnings.push({
         code: 'mueble-fuera-de-estancia',
@@ -104,11 +108,18 @@ export function placeFurniture(
       });
       return;
     }
-    // Pequeño desbordamiento: se recoloca pegado al muro, nunca atravesándolo.
-    center = {
-      x: clamp(center.x, host.minX + footprint.w / 2, host.maxX - footprint.w / 2),
-      y: clamp(center.y, host.minY + footprint.h / 2, host.maxY - footprint.h / 2),
-    };
+    // La caja de la estancia sola no basta: un mueble puede pisar un tabique
+    // o salirse por una esquina cóncava aunque su centro siga dentro.
+    const fitted = fitFurnitureNearSource(center, footprint, host.zone, walls);
+    if (!fitted) {
+      warnings.push({
+        code: 'mueble-fuera-de-estancia',
+        zoneId: host.zone.id,
+        message: `«${entry.label}» pisaría un muro o no cabe junto a su posición dibujada en «${host.zone.name}»; no se coloca.`,
+      });
+      return;
+    }
+    center = fitted;
 
     furniture.push({
       id: `f${index}`,
@@ -178,6 +189,8 @@ function contains(b: Box, p: { x: number; y: number }): boolean {
   return p.x >= b.minX && p.x <= b.maxX && p.y >= b.minY && p.y <= b.maxY;
 }
 
-function clamp(v: number, min: number, max: number): number {
-  return min > max ? (min + max) / 2 : Math.min(Math.max(v, min), max);
+function pointInZone(zone: PlanZone, point: { x: number; y: number }): boolean {
+  // El centro en el borde se admite; la comprobación de huella decidirá si cabe.
+  return zone.outline.some((a, i) => pointOnSegment(point, a, zone.outline[(i + 1) % zone.outline.length]!))
+    || pointInPolygon(point, zone.outline);
 }

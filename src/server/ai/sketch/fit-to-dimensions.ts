@@ -34,6 +34,8 @@ export interface RoomExpectation {
 }
 
 export interface FitOptions {
+  /** Solo para lecturas raster: acepta que una cifra incluya el espesor de pared. */
+  inferRoomReference: boolean;
   /** Desviación relativa por debajo de la cual una cota se da por cumplida. */
   tolerance: number;
   /** Corrección relativa máxima creíble; por encima la cota se ignora con aviso. */
@@ -59,6 +61,7 @@ export interface FitOptions {
 }
 
 export const DEFAULT_FIT_OPTIONS: FitOptions = {
+  inferRoomReference: false,
   tolerance: 0.03,
   maxRelativeCorrection: 0.15,
   maxGeneralCorrection: 0.15,
@@ -137,7 +140,17 @@ export function fitPlanToDimensions(
         });
         continue;
       }
-      const measured = bounds.max - bounds.min;
+      const clearSpan = bounds.max - bounds.min;
+      const axisGap = lines[hi]!.value - lines[lo]!.value;
+      const outerSpan = axisGap + (lines[lo]!.thicknessMm + lines[hi]!.thicknessMm) / 2;
+      // Una cifra junto a una estancia puede indicar luz libre, distancia
+      // entre ejes o longitud exterior con ambos espesores incluidos. Si ya
+      // coincide con un trazo medido, no se desplaza el muro para forzarla a
+      // ser una medida interior.
+      const nearby = (opts.inferRoomReference ? [clearSpan, axisGap, outerSpan] : [clearSpan])
+        .filter((span) => Math.abs(span - expected) / expected <= opts.tolerance)
+        .sort((a, b) => Math.abs(a - expected) - Math.abs(b - expected));
+      const measured = nearby[0] ?? clearSpan;
       const deviation = Math.abs(expected - measured) / expected;
       if (deviation > opts.maxRelativeCorrection) {
         warnings.push({
@@ -147,11 +160,8 @@ export function fitPlanToDimensions(
         });
         continue;
       }
-      // La cota es interior (entre caras); las líneas son ejes: se conserva el
-      // hueco de grosor que ya hay entre eje y cara. Las cotas ya cumplidas
-      // entran también como anclas: sin ellas el reparto deformaría estancias
-      // correctas para complacer a sus vecinas.
-      const axisGap = lines[hi]!.value - lines[lo]!.value;
+      // Se conserva la diferencia entre el tramo de referencia elegido y los
+      // ejes. Las cotas ya cumplidas también anclan las líneas compartidas.
       constraints.push({
         lo, hi, distance: expected + (axisGap - measured), zoneId: zone.id, zoneName: zone.name,
         measured, expected, weight: 1, active: deviation > opts.tolerance,

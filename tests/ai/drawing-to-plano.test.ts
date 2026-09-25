@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { drawingToPlano } from '@/server/plan/drawing-to-plano';
+import { drawingToPlanImport, drawingToPlano } from '@/server/plan/drawing-to-plano';
 
 describe('dibujo sin reinterpretación generativa', () => {
   it('un rectángulo sigue siendo cuatro muros sin vanos ni medidas inventadas', async () => {
@@ -18,5 +18,17 @@ describe('dibujo sin reinterpretación generativa', () => {
       .png()
       .toBuffer();
     await expect(drawingToPlano(blank)).rejects.toThrow('al menos dos muros');
+  });
+
+  it('prepara el boceto para la misma revisión de medidas sin inventar cotas', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="white"/><path d="M140 120H700V450H140Z" fill="none" stroke="black" stroke-width="7"/></svg>';
+    const { raw, detected, result } = await drawingToPlanImport(await sharp(Buffer.from(svg)).png().toBuffer());
+    expect(raw.escalaFiable).toBe(false);
+    expect(detected.walls).toHaveLength(4);
+    expect(result.escalaEstimada).toBe(true);
+    expect(result.writtenDimensions.length).toBeGreaterThan(0);
+    expect(result.writtenDimensions.every((row) => row.widthMm === undefined && row.heightMm === undefined)).toBe(true);
+    expect(result.plano.zones.flatMap((zone) => zone.apertures)).toHaveLength(0);
   });
 });

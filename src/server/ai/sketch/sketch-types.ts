@@ -36,6 +36,14 @@ export interface SketchAperture {
   posicion: number;
   /** Ancho como fracción de la longitud del muro (0–1). */
   anchoSobreMuro?: number;
+  /** Lado al que bate la hoja respecto al muro crudo orientado (x1,y1) → (x2,y2). */
+  swing?: 'left' | 'right';
+  /** Bisagra en el inicio o final del hueco respecto al muro crudo orientado. */
+  hinge?: 'left' | 'right';
+  /** Arco de barrido visible en la imagen; distingue puerta de hueco sin hoja. */
+  arcVisible?: boolean;
+  /** Tres puntos observados del símbolo: bisagra, otro extremo del vano y un punto del arco. */
+  arcGeometry?: { hinge: SketchPoint; openingEnd: SketchPoint; arcPoint: SketchPoint };
 }
 
 /** Habitación etiquetada con su contorno aproximado. */

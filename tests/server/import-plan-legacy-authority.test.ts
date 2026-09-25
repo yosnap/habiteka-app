@@ -66,6 +66,17 @@ describe('importPlanToEditor', () => {
     expect(loaded.authority === 'v2' && loaded.document.revision).toBe(1);
   });
 
+  it('guarda el riesgo de una extracción contradictoria junto a la geometría importada', async () => {
+    const risky = importResult();
+    risky.warnings.push({ code: 'estancias-solapadas', message: 'Salón y comedor se solapan.' });
+    const { document } = await importPlanToEditor(ctx, projectId, risky);
+    expect(document.importReview).toMatchObject({ reasons: ['Salón y comedor se solapan.'] });
+    const loaded = await withEditorDocuments(ctx).load({ projectId });
+    expect(loaded.authority).toBe('v2');
+    if (loaded.authority !== 'v2') return;
+    expect(loaded.document.importReview).toEqual(document.importReview);
+  });
+
   it('rechaza una importación de otra organización', async () => {
     const other: OrgContext = { organizationId: await makeOrg(), userId: (await makeUser()).id, role: 'owner' };
     await expect(importPlanToEditor(other, projectId, importResult())).rejects.toThrow();

@@ -30,6 +30,15 @@ describe('cleanupApertures', () => {
     expect(out.zones[0]!.apertures.map((a) => a.id)).toEqual(['door']);
   });
 
+  it('conserva una puerta y una ventana alta contiguas cuando solo discrepan unos píxeles', () => {
+    const out = cleanupApertures(plano([
+      { id: 'window', kind: 'ventana', wallId: 'w0', position: 2300 / 3000, widthMm: 900 },
+      { id: 'door', kind: 'puerta', wallId: 'w0', position: 0.5, widthMm: 760 },
+    ]));
+    expect(out.zones[0]!.apertures.map((a) => a.id)).toEqual(['door', 'window']);
+    expect(out.zones[0]!.apertures[1]!.position).toBeCloseTo(2380 / 3000);
+  });
+
   it('recentra una abertura que asoma por el extremo y descarta la que no cabe', () => {
     const out = cleanupApertures(plano([
       { id: 'edge', kind: 'puerta', wallId: 'w0', position: 0.02, widthMm: 900 },

@@ -72,6 +72,18 @@ describe('fitPlanToDimensions', () => {
     expect(plano).toEqual(before);
   });
 
+  it('una cota entre ejes o entre extremos exteriores no se interpreta como luz libre', () => {
+    const before = twoRooms();
+    for (const widthMm of [3000, 3100]) {
+      const { plano, corrections, warnings } = fitPlanToDimensions(
+        before, [{ zoneId: 'a', widthMm }], undefined, { inferRoomReference: true },
+      );
+      expect(plano).toEqual(before);
+      expect(corrections).toEqual([]);
+      expect(warnings).toEqual([]);
+    }
+  });
+
   it('una cota absurda se ignora con aviso y no deforma el plano', () => {
     const before = twoRooms();
     const { plano, warnings } = fitPlanToDimensions(before, [{ zoneId: 'a', widthMm: 9000 }]);

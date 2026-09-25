@@ -81,4 +81,40 @@ describe('placeFurniture', () => {
     expect(furniture).toEqual([]);
     expect(warnings[0]!.code).toBe('mueble-sin-catalogo');
   });
+
+  it('ajusta una mesita cerca de la caja leída sin dejarla sobre un tabique', () => {
+    const bedroom = zone('d', 'Dormitorio', 0, 0, 4000, 4000);
+    bedroom.walls = [{ id: 'partition', from: { x: 2000, y: 0 }, to: { x: 2000, y: 4000 }, thicknessMm: 200 }];
+    const { furniture, warnings } = placeFurniture(
+      [{ tipo: 'cabinet', bbox: { minX: 0.15, maxX: 0.198, minY: 0.1, maxY: 0.15 }, rotacionDeg: 0 }],
+      scale, [bedroom],
+    );
+    expect(warnings).toEqual([]);
+    expect(furniture).toHaveLength(1);
+    expect(furniture[0]!.x).toBeLessThan(1740);
+    expect(furniture[0]!.x + furniture[0]!.widthMm / 2).toBeLessThanOrEqual(1890);
+  });
+
+  it('descarta una pieza que no cabe cerca del símbolo original sin pisar la pared', () => {
+    const bedroom = zone('d', 'Dormitorio', 0, 0, 4000, 4000);
+    bedroom.walls = [{ id: 'partition', from: { x: 2000, y: 0 }, to: { x: 2000, y: 4000 }, thicknessMm: 200 }];
+    const { furniture, warnings } = placeFurniture(
+      [{ tipo: 'cabinet', bbox: { minX: 0.166, maxX: 0.214, minY: 0.1, maxY: 0.15 }, rotacionDeg: 0 }],
+      scale, [bedroom],
+    );
+    expect(furniture).toEqual([]);
+    expect(warnings[0]!.code).toBe('mueble-fuera-de-estancia');
+  });
+
+  it('no asigna un mueble al hueco de una estancia cóncava por su caja envolvente', () => {
+    const room = zone('l', 'Salón', 0, 0, 4000, 4000);
+    room.outline = [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 1000 },
+      { x: 1000, y: 1000 }, { x: 1000, y: 4000 }, { x: 0, y: 4000 }];
+    const { furniture, warnings } = placeFurniture(
+      [{ tipo: 'table', bbox: { minX: 0.2, maxX: 0.3, minY: 0.25, maxY: 0.375 }, rotacionDeg: 0 }],
+      scale, [room],
+    );
+    expect(furniture).toEqual([]);
+    expect(warnings[0]!.code).toBe('mueble-fuera-de-estancia');
+  });
 });

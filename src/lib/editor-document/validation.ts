@@ -58,8 +58,20 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
+  if (value.importReview !== undefined) {
+    record(value.importReview);
+    keys(value.importReview, 'geometryFingerprint reasons');
+    text(value.importReview.geometryFingerprint);
+    if (!/^[a-f0-9]{64}$/.test(value.importReview.geometryFingerprint as string) ||
+        !Array.isArray(value.importReview.reasons) || value.importReview.reasons.length > 5)
+      throw new Error('Revisión de importación inválida');
+    for (const reason of value.importReview.reasons) {
+      text(reason);
+      if ((reason as string).length > 500) throw new Error('Motivo de importación demasiado largo');
+    }
+  }
   if (
     designSpace &&
     value.designSpaceKind !== undefined &&

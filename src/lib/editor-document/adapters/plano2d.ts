@@ -29,7 +29,9 @@ export function fromPlano2d(raw: unknown) {
       }
       for (const rawOpening of list(zone.apertures)) {
         const opening = record(rawOpening);
-        unknownFields(opening, ['id', 'wallId', 'kind', 'position', 'widthMm'], issues);
+        // El adaptador de importación pasa giro y bisagra a construcción tras
+        // migrar el documento; aquí solo se acepta su presencia.
+        unknownFields(opening, ['id', 'wallId', 'kind', 'position', 'widthMm', 'swing', 'hinge'], issues);
         const kind = opening.kind;
         if (kind !== 'puerta' && kind !== 'ventana' && kind !== 'hueco') throw new Error('Tipo de hueco desconocido');
         doc.openings.push({ id: string(opening.id), wallId: string(opening.wallId), kind,

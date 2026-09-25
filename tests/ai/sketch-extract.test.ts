@@ -44,6 +44,42 @@ describe('parseRawSketch', () => {
     expect(r.aberturas).toEqual([{ tipo: 'puerta', muro: 0, posicion: 0.5, anchoSobreMuro: 0.2 }]);
   });
 
+  it('conserva giro y bisagra observados solo en puertas y descarta valores desconocidos', () => {
+    const r = parseRawSketch({
+      muros: [{ x1: 0, y1: 0, x2: 1, y2: 0 }], habitaciones: [],
+      aberturas: [
+        { tipo: 'puerta', muro: 0, posicion: 0.3, swing: 'right', hinge: 'right', arcVisible: true },
+        { tipo: 'puerta', muro: 0, posicion: 0.7, swing: 'afuera', hinge: 'left', arcVisible: 'sí' },
+        { tipo: 'ventana', muro: 0, posicion: 0.5, swing: 'left', hinge: 'right', arcVisible: true },
+      ],
+    });
+    expect(r.aberturas).toEqual([
+      { tipo: 'puerta', muro: 0, posicion: 0.3, swing: 'right', hinge: 'right', arcVisible: true },
+      { tipo: 'puerta', muro: 0, posicion: 0.7, hinge: 'left' },
+      { tipo: 'ventana', muro: 0, posicion: 0.5 },
+    ]);
+    expect(sketchPrompt()).toContain('no los deduzcas del nombre');
+    expect(sketchPrompt()).toContain('Una PUERTA exige ver el arco');
+  });
+
+  it('sanea los tres puntos de un arco antes de usarlos para situar la puerta', () => {
+    const valid = {
+      hinge: { x: 0.5, y: 0.3 }, openingEnd: { x: 0.5, y: 0.38 },
+      arcPoint: { x: 0.58, y: 0.3 },
+    };
+    const r = parseRawSketch({
+      muros: [{ x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.2 }], habitaciones: [],
+      aberturas: [
+        { tipo: 'puerta', muro: 0, posicion: 0.5, arcVisible: true, arcGeometry: valid },
+        { tipo: 'puerta', muro: 0, posicion: 0.7, arcVisible: true,
+          arcGeometry: { ...valid, arcPoint: { x: 0.99, y: 0.99 } } },
+      ],
+    });
+    expect(r.aberturas[0]?.arcGeometry).toEqual(valid);
+    expect(r.aberturas[1]?.arcGeometry).toBeUndefined();
+    expect(sketchPrompt()).toContain('arcGeometry');
+  });
+
   it('descarta habitaciones sin nombre o con polígono de menos de 3 puntos', () => {
     const r = parseRawSketch({
       muros: [],

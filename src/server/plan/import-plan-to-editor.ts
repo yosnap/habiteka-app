@@ -9,8 +9,10 @@
 import type { PlanImportResult } from '@/lib/contracts';
 import { fromPlanImport } from '@/lib/editor-document/adapters/plano2d-import';
 import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { StudioQuality } from '@/lib/studio-state';
 import type { OrgContext } from '@/server/auth/org-context';
 import { withEditorDocuments } from '@/server/editor/document-repo';
+import { editorGeometryFingerprint } from '@/server/quality/editor-geometry-fingerprint';
 
 export interface ImportToEditorResult {
   document: EditorDocument;
@@ -22,11 +24,20 @@ export async function importPlanToEditor(
   ctx: OrgContext,
   projectId: string,
   result: PlanImportResult,
+  quality?: StudioQuality,
 ): Promise<ImportToEditorResult> {
   const conversion = fromPlanImport(result);
   if (!conversion.document) {
     throw new Error(`No se pudo convertir el plano importado: ${conversion.issues.join('; ')}`);
   }
+  const severe = result.warnings.filter((warning) =>
+    warning.code === 'estancias-solapadas' || warning.code === 'ajuste-desplaza-muros' ||
+    warning.code === 'estancia-inferida' || warning.code === 'cotas-generales-discordantes');
+  const reasons = quality?.decision === 'block' ? quality.reasons : severe.map((warning) => warning.message);
+  if (reasons.length) conversion.document.importReview = {
+    geometryFingerprint: editorGeometryFingerprint(conversion.document),
+    reasons: reasons.slice(0, 5).map((reason) => reason.slice(0, 500)),
+  };
   const repo = withEditorDocuments(ctx);
   const scope = { projectId };
   const current = await repo.load(scope);

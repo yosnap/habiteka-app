@@ -11,6 +11,7 @@ import {
   type SketchSource,
 } from '@/server/ai/sketch/extract-sketch-geometry';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
+import { extractPlanSymbols, needsSymbolPass } from '@/server/ai/sketch/extract-plan-symbols';
 import { detectWallsFromImage, type DetectedWalls } from './detect-walls-raster';
 
 export interface ExtractedPlanSource {
@@ -29,12 +30,15 @@ export async function extractPlanSource(
   const firstBase64 = imageParts.find(
     (p): p is Extract<MessagePart, { type: 'image_url' }> => p.type === 'image_url',
   )?.base64;
-  const [raw, detected] = await Promise.all([
+  const [base, detected] = await Promise.all([
     extractSketchGeometry(chat, imageParts, source),
     firstBase64
       ? detectWallsFromImage(Buffer.from(firstBase64, 'base64')).catch(() => null)
       : Promise.resolve(null),
   ]);
+  const raw = source === 'plano' && needsSymbolPass(base)
+    ? await extractPlanSymbols(chat, imageParts, base).catch(() => base)
+    : base;
   if (raw.muros.length === 0 && (detected?.walls.length ?? 0) < MIN_DETECTED_WALLS) {
     throw new Error('No se reconocieron muros en la imagen: prueba con un plano más nítido en planta.');
   }

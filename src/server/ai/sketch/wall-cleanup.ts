@@ -148,6 +148,8 @@ export interface WallGap {
   center: SketchPoint;
   /** Anchura del hueco a lo largo del muro (unidades de imagen). */
   width: number;
+  /** Eje del muro que contiene el hueco. */
+  direction?: SketchPoint;
 }
 
 /**
@@ -191,6 +193,7 @@ export function bridgeCollinearGaps(
           gaps.push({
             center: { x: (shared.x + nearB.x) / 2, y: (shared.y + nearB.y) / 2 },
             width,
+            direction: da,
           });
         }
 

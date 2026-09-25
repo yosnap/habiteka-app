@@ -8,6 +8,7 @@ import { prisma } from '@/server/db/prisma';
 import { withOrg } from '@/server/db/scoped-repo';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
+import { saveStudio } from '@/server/plan/studio-repo';
 import { applyBaseImageToCanvas, saveCanvas } from '@/server/actions/canvas';
 import { makeOrg, makeUser, resetDb } from '../helpers/db';
 
@@ -72,7 +73,7 @@ describe('actual legacy consumers respect v2 authority', () => {
       await import('@/app/(app)/projects/[id]/_actions/agent-actions');
     const before = await withEditorDocuments(ctx).load({ projectId });
     if (before.authority !== 'v2') throw new Error('Expected v2');
-    await sendPlanoToEditor(projectId, {
+    const plano = {
       schemaVersion: 1,
       zones: [{
         id: 'z0', name: 'Sala', apertures: [], dimensions: [],
@@ -84,11 +85,19 @@ describe('actual legacy consumers respect v2 authority', () => {
           { id: 'w3', from: { x: 0, y: 3000 }, to: { x: 0, y: 0 }, thicknessMm: 120 },
         ],
       }],
+    };
+    await saveStudio(ctx, projectId, {
+      sourceKind: 'drawing',
+      source: { assetUrl: 'data:image/png;base64,YQ==' },
+      plan: { assetUrl: 'data:image/png;base64,YQ==' },
+      plano,
     });
+    await sendPlanoToEditor(projectId);
     const after = await withEditorDocuments(ctx).load({ projectId });
     if (after.authority !== 'v2') throw new Error('Expected v2');
     expect(after.document.revision).toBeGreaterThan(before.document.revision);
     expect(after.document.walls.length).toBe(4);
+    expect(after.document.walls.every((wall) => wall.dimensionalOrigin === 'raster')).toBe(true);
     // El snapshot legacy queda intacto: la escritura fue con autoridad de editor.
     await expect(withOrg(ctx).canvas.load(projectId)).rejects.toThrow('v2');
     await expect(generateDesignFromCanvas(projectId, {}, 'moderno', 'render3d')).rejects.toThrow(

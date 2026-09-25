@@ -9,7 +9,7 @@
  * Vive en `lib` (sin dependencias de servidor) porque la usan tanto el agente en
  * el servidor como el paso «Revisa tu plano» del asistente, que es cliente.
  */
-import type { Plano2dPayload } from '@/lib/contracts';
+import type { PlanImportWarning, Plano2dPayload } from '@/lib/contracts';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 
 export function applyPlanQuality(
@@ -25,4 +25,13 @@ export function applyPlanQuality(
       motivos: evaluation.reasons,
     },
   };
+}
+
+/** Riesgos espaciales medidos que ningún veredicto semántico puede aprobar. */
+export function blockingPlanImportWarning(warnings: PlanImportWarning[]): PlanImportWarning | undefined {
+  return warnings.find((warning) =>
+    warning.code === 'estancias-solapadas' || warning.code === 'ajuste-desplaza-muros' ||
+    warning.code === 'estancia-inferida' || warning.code === 'cotas-generales-discordantes' ||
+    warning.code === 'muro-solo-modelo' ||
+    warning.code === 'arcos-insuficientes');
 }

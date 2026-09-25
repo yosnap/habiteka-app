@@ -45,7 +45,7 @@ export interface RoomAnchorGuide {
   /** Milímetros por unidad de imagen en cada eje. */
   mmPerUnitX: number;
   mmPerUnitY: number;
-  /** Grosor típico de tabique en unidades de imagen (la cota es entre caras; las líneas, ejes). */
+  /** Grosor típico de tabique en unidades de imagen; las líneas detectadas son ejes. */
   thicknessUnit: number;
 }
 
@@ -113,12 +113,13 @@ export function zonesFromRooms(
   return { rooms, addedWalls: dedupe(addedWalls, snap) };
 }
 
-/** Distancia esperada ENTRE EJES (unidades de imagen) para una medida escrita entre caras. */
-function expectedSpan(meters: number | undefined, guide: RoomAnchorGuide | undefined, axis: 'x' | 'y'): number | undefined {
+/** Posibles distancias entre ejes para cotas entre caras, ejes o extremos exteriores. */
+function expectedSpan(meters: number | undefined, guide: RoomAnchorGuide | undefined, axis: 'x' | 'y'): number[] | undefined {
   if (meters === undefined || !guide) return undefined;
   const mmPerUnit = axis === 'x' ? guide.mmPerUnitX : guide.mmPerUnitY;
   if (!(mmPerUnit > 0)) return undefined;
-  return (meters * 1000) / mmPerUnit + guide.thicknessUnit;
+  const span = (meters * 1000) / mmPerUnit;
+  return [span + guide.thicknessUnit, span, span - guide.thicknessUnit].filter((value) => value > 0);
 }
 
 function lines(walls: SketchWall[], orientation: 'v' | 'h'): Line[] {
@@ -151,7 +152,7 @@ function anchorSpan(
   perpLo: number,
   perpHi: number,
   snap: number,
-  expected: number | undefined,
+  expected: number[] | undefined,
 ): AnchoredSpan {
   const window = snap * WINDOW_SNAPS;
   const noLine = snap * NO_LINE_PENALTY_SNAPS;
@@ -170,7 +171,9 @@ function anchorSpan(
       const hiValue = hi ?? rawHi;
       if (hiValue - loValue < MIN_SIDE) continue;
       let cost = (lo === null ? noLine : Math.abs(lo - rawLo)) + (hi === null ? noLine : Math.abs(hi - rawHi));
-      if (expected !== undefined) cost += DIMENSION_WEIGHT * Math.abs(hiValue - loValue - expected);
+      if (expected !== undefined) cost += DIMENSION_WEIGHT * Math.min(
+        ...expected.map((span) => Math.abs(hiValue - loValue - span)),
+      );
       if (cost < bestCost) {
         bestCost = cost;
         best = { lo: loValue, hi: hiValue, loSnapped: lo !== null, hiSnapped: hi !== null };

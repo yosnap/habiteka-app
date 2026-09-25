@@ -230,6 +230,8 @@ export interface EditorDocument {
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
+  /** Riesgo de la extracción que exige corregir geometría antes de generar. */
+  importReview?: { geometryFingerprint: string; reasons: string[] };
   vertices: Vertex[];
   walls: Wall[];
   openings: Opening[];
