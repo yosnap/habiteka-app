@@ -27,6 +27,7 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
   const position = useRef(start);
   const yaw = useRef(Math.atan2(focus[0] - start.x / 1000, focus[2] - start.y / 1000));
   const pitch = useRef(0);
+  const lastPoseUpdate = useRef(0);
 
   useEffect(() => {
     const { camera, controls } = get();
@@ -34,6 +35,7 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
     const previous = { position: camera.position.clone(), quaternion: camera.quaternion.clone(),
       target: orbit?.target.clone(), fov: camera instanceof PerspectiveCamera ? camera.fov : null };
     position.current = start;
+    controller.setPose({ ...start, yaw: yaw.current });
     camera.position.set(start.x / 1000, (elevationMm + nav.floorAt(start) + EYE_HEIGHT_MM) / 1000, start.y / 1000);
     if (camera instanceof PerspectiveCamera) { camera.fov = 75; camera.updateProjectionMatrix(); }
     camera.lookAt(focus[0], camera.position.y, focus[2]);
@@ -64,12 +66,13 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
       camera.position.copy(previous.position); camera.quaternion.copy(previous.quaternion);
       if (camera instanceof PerspectiveCamera && previous.fov !== null) { camera.fov = previous.fov; camera.updateProjectionMatrix(); }
       if (orbit && previous.target) { orbit.target.copy(previous.target); orbit.update(); }
+      controller.setPose(null);
       invalidate();
     };
   }, [start, focus, elevationMm, nav, get, invalidate, gl, controller, onPause]);
 
   useEffect(() => { if (!paused) invalidate(); else { keys.current.clear(); controller.stop(); } }, [paused, invalidate, controller]);
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, clock }, delta) => {
     if (paused) return;
     const control = controller.take();
     const forward = Number(keys.current.has('KeyW') || keys.current.has('ArrowUp'))
@@ -88,6 +91,10 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
     camera.lookAt(camera.position.x + Math.sin(yaw.current) * Math.cos(pitch.current),
       camera.position.y + Math.sin(pitch.current),
       camera.position.z + Math.cos(yaw.current) * Math.cos(pitch.current));
+    if (clock.elapsedTime - lastPoseUpdate.current >= .1) {
+      controller.setPose({ ...position.current, yaw: yaw.current });
+      lastPoseUpdate.current = clock.elapsedTime;
+    }
     invalidate();
   });
   return null;

@@ -465,7 +465,8 @@ function SceneView({
       onCeilingViewChange={(view) => store.getState().setCeilingView(view)} onEnterRoom={enterRoom}
       canFreeWalk={interiorCameras.length > 0} onFreeWalk={enterFreeWalk}
       onExport={() => void exportNativeRender()} />}
-    {freeWalk && <FreeWalkOverlay paused={walkPaused} controller={freeWalkController} onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
+    {freeWalk && <FreeWalkOverlay paused={walkPaused} controller={freeWalkController} document={document} start={freeWalk.start}
+      onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
       onExit={exitFreeWalk} onMouse={() => { setWalkPaused(false); void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined); }} />}
     <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
       {(Object.keys(SCENE_LIGHTING_LABELS) as SceneLightingPreset[]).map((preset) => <button key={preset} type="button"

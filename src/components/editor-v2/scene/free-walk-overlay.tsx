@@ -2,11 +2,15 @@
 
 import { useRef, type PointerEvent } from 'react';
 import type { FreeWalkController } from './free-walk-controller';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
+import { FreeWalkMap } from './free-walk-map';
 import styles from './free-walk-overlay.module.css';
 
-export function FreeWalkOverlay({ paused, controller, onPause, onExit, onMouse }: {
+export function FreeWalkOverlay({ paused, controller, document, start, onPause, onExit, onMouse }: {
   paused: boolean;
   controller: FreeWalkController;
+  document: EditorDocument;
+  start: Point;
   onPause: () => void;
   onExit: () => void;
   onMouse: () => void;
@@ -30,6 +34,7 @@ export function FreeWalkOverlay({ paused, controller, onPause, onExit, onMouse }
       <button type="button" onClick={onExit}>Salir</button>
     </div>
     {paused && <div className={styles.paused} role="status">Visita en pausa</div>}
+    <FreeWalkMap document={document} start={start} controller={controller} />
     <div className={styles.touchControls}>
       <div className={styles.pad} aria-label="Moverse">
         <button type="button" className={styles.up} aria-label="Avanzar" {...move('forward', 1)}>↑</button>
