@@ -25,7 +25,8 @@ import { FreeWalkController } from './free-walk-controller';
 import { FreeWalkOverlay } from './free-walk-overlay';
 import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
 import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
-import { recordWalkthrough, type VideoMode } from './offline-recorder';
+import { recordWalkthrough } from './offline-recorder';
+import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
@@ -90,7 +91,7 @@ function SceneView({
   showLighting = true,
 }: {
   store: EditorStore;
-  onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
   showLighting?: boolean;
@@ -362,7 +363,7 @@ function SceneView({
       setExporting(false);
     }
   };
-  const exportWalk = async (mode: VideoMode) => {
+  const exportWalk = async (mode: NativeVideoMode) => {
     if (!route || !root.current || recording || exporting || freeWalk) return;
     const frozen = store.getState().document, selectionBefore = [...store.getState().selection];
     const controller = new AbortController(); abortRecording.current = controller;
@@ -380,7 +381,7 @@ function SceneView({
       const url = URL.createObjectURL(blob), link = window.document.createElement('a');
       link.href = url; link.download = mode === 'showcase' ? 'habiteka-obra-y-visita.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
       setExportMessage('MP4 descargado.');
-      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id); setExportMessage('MP4 descargado y guardado en Diseños.'); }
+      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id, mode); setExportMessage('MP4 descargado y guardado en Diseños.'); }
     } catch (error) { setExportMessage(controller.signal.aborted ? 'Exportación cancelada.' : error instanceof Error ? error.message : 'No se pudo exportar'); }
     finally { unsubscribe(); setRecording(false); store.getState().select(selectionBefore); abortRecording.current = null; }
   };
@@ -492,7 +493,7 @@ export function EditorSceneView({
   showLighting,
 }: {
   store: EditorStore;
-  onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
   showLighting?: boolean;

@@ -7,6 +7,7 @@ import { prisma } from '@/server/db/prisma';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
+import { nativeVideoDurationMs, type NativeVideoMode } from '@/lib/editor-document/native-video';
 import { signUploadTicket, readUploadTicket, assertVideoUpload } from './upload-ticket';
 
 function secret() {
@@ -14,7 +15,7 @@ function secret() {
   if (!value) throw new Error('No está configurada la firma de subidas');
   return value;
 }
-export async function prepareWalkthroughUpload(scope: EditorScope, routeId: string, bytes: number) {
+export async function prepareWalkthroughUpload(scope: EditorScope, routeId: string, bytes: number, mode: NativeVideoMode = 'walkthrough') {
   const ctx = await requireOrgContext();
   if (!Number.isInteger(bytes) || bytes < 32 || bytes > 100 * 1024 * 1024) throw new Error('El vídeo supera el límite de 100 MB');
   const source = await withEditorDocuments(ctx).load(scope);
@@ -22,10 +23,12 @@ export async function prepareWalkthroughUpload(scope: EditorScope, routeId: stri
   const route = source.document.walkthroughs?.find((path) => path.id === routeId);
   if (!route) throw new Error('Guarda el recorrido antes de exportarlo');
   const compiled = buildWalkthrough(source.document, route);
-  if (compiled.invalidSegments.length || compiled.durationMs > 60000 || compiled.durationMs < 100) throw new Error('Recorrido no exportable');
+  if (!['walkthrough', 'showcase'].includes(mode) || compiled.invalidSegments.length ||
+    nativeVideoDurationMs(compiled.durationMs, mode) > 60000 || compiled.durationMs < 100) throw new Error('Recorrido no exportable');
   const id = crypto.randomUUID(), key = `walkthrough-uploads/${ctx.organizationId}/${scope.projectId}/${id}.mp4`;
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
-    projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId, bytes, durationMs: compiled.durationMs, expires: Date.now() + 300000 }, secret());
+    projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId, bytes,
+    mode, durationMs: nativeVideoDurationMs(compiled.durationMs, mode), expires: Date.now() + 300000 }, secret());
   return { ticket, url: await getStorageAdapter().getPresignedUploadUrl(key, bytes, 'video/mp4') };
 }
 export async function finishWalkthroughUpload(token: string) {
@@ -52,7 +55,8 @@ export async function finishWalkthroughUpload(token: string) {
     await assertEditorScope(tx, ctx, scope, { lock: true });
     if (await tx.deliverable.findUnique({ where: { id } })) return;
     await tx.deliverable.create({ data: { id, projectId: ticket.projectId, zoneId: ticket.zoneId, type: 'VIDEO',
-      payload: { type: 'video', assetKey, routeId: ticket.routeId, durationMs: ticket.durationMs, width: 1920, height: 1080 },
+      payload: { type: 'video', assetKey, routeId: ticket.routeId, mode: ticket.mode ?? 'walkthrough',
+        durationMs: ticket.durationMs, width: 1920, height: 1080 },
       legalSeal: DELIVERABLE_LEGAL_SEAL } });
     await tx.usageEvent.create({ data: { userId: ctx.userId, orgId: ctx.organizationId, action: 'walkthrough.native-export',
       unit: 'second', amount: Math.ceil(ticket.durationMs / 1000), cost: '0', refId: id } });

@@ -37,6 +37,14 @@ describe('finalización de vídeos con ámbito y reintento', () => {
     expect(mocks.scope).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({organizationId:'org'}),{projectId:'project',zoneId:null},{lock:true});
     expect(mocks.usage).toHaveBeenCalledWith({data:expect.objectContaining({cost:'0',amount:10,refId:'video-upload'})});
   });
+  it('registra la duración y el modo del montaje completo', async () => {
+    const showcase = signUploadTicket({ ...claims, mode: 'showcase', durationMs: 18000 }, 'test-signing-secret');
+    await finishWalkthroughUpload(showcase);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      payload: expect.objectContaining({ mode: 'showcase', durationMs: 18000 }),
+    }) });
+    expect(mocks.usage).toHaveBeenCalledWith({ data: expect.objectContaining({ amount: 18 }) });
+  });
   it('una finalización concurrente no duplica entregable ni consumo', async () => {
     mocks.find.mockResolvedValue({id:'video-upload'});
     await finishWalkthroughUpload(token());

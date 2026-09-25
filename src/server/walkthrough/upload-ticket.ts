@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 export interface WalkthroughUploadTicket {
   id: string; key: string; organizationId: string; userId: string; projectId: string;
-  zoneId: string | null; routeId: string; bytes: number; durationMs: number; expires: number;
+  zoneId: string | null; routeId: string; bytes: number; durationMs: number; mode?: NativeVideoMode; expires: number;
 }
 function signature(value: string, secret: string) { return createHmac('sha256', secret).update(value).digest('base64url'); }
 export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string): string {

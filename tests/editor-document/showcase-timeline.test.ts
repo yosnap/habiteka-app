@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { visualSampleDocument } from '@/app/dev/editor-v2/visual-sample';
 import { showcaseFrame, SHOWCASE_INTRO_MS } from '@/components/editor-v2/scene/showcase-timeline';
+import { nativeVideoDurationMs } from '@/lib/editor-document/native-video';
 
 describe('guion visual del vídeo', () => {
   it('revela el mismo inmueble por capas con cámaras deterministas', () => {
@@ -10,5 +11,9 @@ describe('guion visual del vídeo', () => {
     const first = showcaseFrame(doc, 0), last = showcaseFrame(doc, SHOWCASE_INTRO_MS - 1);
     expect(first.position).not.toEqual(last.position);
     expect(first.focus).toEqual(last.focus);
+  });
+  it('suma la introducción solo al vídeo de montaje', () => {
+    expect(nativeVideoDurationMs(22000, 'walkthrough')).toBe(22000);
+    expect(nativeVideoDurationMs(22000, 'showcase')).toBe(22000 + SHOWCASE_INTRO_MS);
   });
 });

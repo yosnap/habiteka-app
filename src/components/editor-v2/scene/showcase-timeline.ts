@@ -1,8 +1,9 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
+import { SHOWCASE_INTRO_MS } from '@/lib/editor-document/native-video';
 
 export const BUILD_DURATION_MS = 4000;
-export const REVEAL_DURATION_MS = 4000;
-export const SHOWCASE_INTRO_MS = BUILD_DURATION_MS + REVEAL_DURATION_MS;
+export const REVEAL_DURATION_MS = SHOWCASE_INTRO_MS - BUILD_DURATION_MS;
+export { SHOWCASE_INTRO_MS };
 
 /** Guion determinista de la introducción; el paseo usa después WalkthroughPath. */
 export function showcaseFrame(doc: EditorDocument, elapsedMs: number) {

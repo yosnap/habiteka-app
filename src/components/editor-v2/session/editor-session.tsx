@@ -218,11 +218,11 @@ export function EditorSession({
         onSave={() => void queue.flush()}
         saveEnabled={pendingChanges && !status.saving && !status.closed && !status.conflict}
         projectId={scope.projectId}
-        onSaveNativeVideo={async (blob, routeId) => {
+        onSaveNativeVideo={async (blob, routeId, mode) => {
           await queue.flush();
           const current = queue.getSnapshot();
           if (current.conflict || current.closed || hasPendingRemoteChanges(current)) throw new Error('El MP4 se descargó. Sincroniza el plano antes de guardarlo en Diseños.');
-          await saveWalkthroughVideo(scope, blob, routeId);
+          await saveWalkthroughVideo(scope, blob, routeId, mode);
         }}
         onSaveNativeRender={async (capture) => {
           await callAction(

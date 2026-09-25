@@ -2,6 +2,7 @@
 import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import dynamic from 'next/dynamic';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
+import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
@@ -103,7 +104,7 @@ export interface EditorShellProps {
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
   projectId?: string;
-  onSaveNativeVideo?: (blob: Blob, routeId: string) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onGenerateDesign?: (input: {
     estilo: Estilo;
