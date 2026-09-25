@@ -46,7 +46,7 @@ export function EditorPreview() {
     return () => { unsubscribe(); window.removeEventListener('beforeunload', warn); };
   }, [store]);
   return (
-    <main>
+    <main className="flex h-dvh flex-col">
       <aside role="status" className="bg-amber-100 px-4 py-2 text-sm text-amber-950">
         Vista previa en construcción · Lienzo independiente, no es tu plano cargado.
         {' '}La copia de esta pestaña permite recargar, pero no garantiza recuperación al cerrarla. Guardado en proyecto e importación pendientes.

@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, DoorOpen, Frame, Minus, Plus, Rotate3d, Scissors, Layers3, PanelTop } from 'lucide-react';
+import { Download, DoorOpen, Frame, Minus, Plus, Rotate3d, Scissors, Layers3, PanelTop, LayoutGrid } from 'lucide-react';
 import { ModernSelect } from '@/components/ui/modern-select';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
 import styles from './scene-view-controls.module.css';
@@ -42,6 +42,7 @@ export function interiorRoomLabel(room: InteriorRoomOption, index: number): stri
 
 interface SceneViewControlsProps {
   activeView: SceneViewPreset | null;
+  maquetteActive: boolean;
   hasLevels: boolean;
   cutaway: boolean;
   allLevels: boolean;
@@ -55,6 +56,7 @@ interface SceneViewControlsProps {
   interiorDisabledReason: string | null;
   onCamera: (action: SceneViewAction) => void;
   onViewChange: (preset: SceneViewPreset) => void;
+  onMaquette: () => void;
   onCutawayChange: () => void;
   onAllLevelsChange: () => void;
   onCeilingViewChange: (view: CeilingViewOption) => void;
@@ -64,6 +66,7 @@ interface SceneViewControlsProps {
 
 export function SceneViewControls({
   activeView,
+  maquetteActive,
   hasLevels,
   cutaway,
   allLevels,
@@ -74,6 +77,7 @@ export function SceneViewControls({
   interiorDisabledReason,
   onCamera,
   onViewChange,
+  onMaquette,
   onCutawayChange,
   onAllLevelsChange,
   onCeilingViewChange,
@@ -95,6 +99,11 @@ export function SceneViewControls({
     </div>
 
     <div className={styles.group}>
+      <button type="button" className={styles.actionButton} aria-label="Ver maqueta cenital amueblada"
+        title="Misma escena 3D del editor, vista desde arriba y sin techo" aria-pressed={maquetteActive} onClick={onMaquette}>
+        <LayoutGrid size={15} aria-hidden="true" />
+        <span>Maqueta</span>
+      </button>
       <label className={styles.selectLabel}>
         <Rotate3d size={15} aria-hidden="true" />
         <span className={styles.visuallyHidden}>Vistas</span>

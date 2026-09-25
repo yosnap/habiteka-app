@@ -12,7 +12,7 @@ import { addFreeStrip, setLightStripPath } from '@/lib/editor-document/light-str
 import { MAX_STRIP_POINTS } from '@/lib/editor-document/light-strip-types';
 import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Stage, Layer, Line, Circle, Group, Rect, Text } from 'react-konva';
+import { Stage, Layer, Line, Circle, Group, Rect, Text, Image as KonvaImage } from 'react-konva';
 import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
 import { fittedView, zoomedView } from '@/canvas/editor-v2/view-math';
@@ -39,6 +39,7 @@ import type { DimensionVisibility } from './visibility-menu';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import type { SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
 type Marquee = { from: Point; to: Point; baseSelection: string[]; mode: 'replace' | 'add' | 'subtract' };
 
@@ -50,7 +51,7 @@ function placementLabel(item: SpatialClipboardItem): string {
   return elementName(item);
 }
 
-export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean }) {
+export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -66,6 +67,21 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
+  const [loadedReference, setLoadedReference] = useState<{ url: string; image: HTMLImageElement } | null>(null);
+  const [referenceVisible, setReferenceVisible] = useState(Boolean(reference));
+  const [referenceOpacity, setReferenceOpacity] = useState(0.75);
+  useEffect(() => {
+    if (!reference?.imageUrl) return;
+    let active = true;
+    const image = new window.Image();
+    image.onload = () => { if (active) setLoadedReference({ url: reference.imageUrl, image }); };
+    image.onerror = () => { if (active) setLoadedReference(null); };
+    image.src = reference.imageUrl;
+    return () => { active = false; };
+  }, [reference?.imageUrl]);
+  const referenceImage = loadedReference && loadedReference.url === reference?.imageUrl
+    ? loadedReference.image : null;
+  const showReference = Boolean(reference && referenceVisible && referenceImage);
   // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
   const focusPoint = useStore(store, (s) => s.focusPoint);
   const [handledFocus, setHandledFocus] = useState(focusPoint);
@@ -326,8 +342,12 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       }} onPointerUp={() => { if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
       onDblClick={() => { if (!pan && zoneTool.active) zoneTool.close(); }} >
 
-      <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} /></Layer>
+      {showReference && reference && referenceImage && <Layer listening={false}>
+        <KonvaImage image={referenceImage} x={0} y={0} width={reference.widthMm} height={reference.heightMm}
+          opacity={referenceOpacity} listening={false} />
+      </Layer>}
+      {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
       <>{start && pointer && <Line points={(tool === 'rectangle')
@@ -405,6 +425,13 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">
+      {reference && <>
+        <button type="button" aria-pressed={showReference} onClick={() => setReferenceVisible((value) => !value)}>
+          {showReference ? 'Ocultar original' : 'Mostrar original'}
+        </button>
+        {showReference && <input type="range" min={20} max={100} value={Math.round(referenceOpacity * 100)}
+          aria-label="Opacidad del plano original" onChange={(event) => setReferenceOpacity(Number(event.target.value) / 100)} />}
+      </>}
       <button onClick={() => zoom(.8)} aria-label="Alejar" data-tooltip={shortcutHint('Alejar', 'zoomOut')}><ZoomOut size={18} aria-hidden="true" /></button>
       <span>{Math.round(view.scale * 1000)}%</span>
       <button onClick={() => zoom(1.25)} aria-label="Acercar" data-tooltip={shortcutHint('Acercar', 'zoomIn')}><ZoomIn size={18} aria-hidden="true" /></button>

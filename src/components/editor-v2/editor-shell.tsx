@@ -72,6 +72,7 @@ import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/edit
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
 /** Título de cada panel dentro de la ranura lateral única. */
 const SIDE_PANEL_TITLES: Record<SidePanelId, string> = {
@@ -93,6 +94,7 @@ const EditorSceneView = dynamic(
 export interface EditorShellProps {
   store: EditorStore;
   projectName: string;
+  reference?: PlanReference | null;
   loadStoryboardImages?: () => Promise<StoryboardGalleryImage[]>;
   saveStatus?: string;
   onSave?: () => void;
@@ -131,6 +133,7 @@ export interface EditorShellProps {
 export function EditorShell({
   store,
   projectName,
+  reference,
   loadStoryboardImages,
   saveStatus,
   onSave,
@@ -721,7 +724,7 @@ export function EditorShell({
             if (construction) setConstruction(false);
           }}
         >
-          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting} />
+          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting} reference={reference} />
         </div>
         {mode === '3d' && (
           <div
@@ -790,9 +793,11 @@ export function EditorShell({
             {sidePanel === 'ceiling' && <CeilingLightingPanel store={store} />}
           </EditorSidePanel>
         )}
+        <div className={styles.storyboardHost}>
+          <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
+            onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
+        </div>
       </div>
-      <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
-        onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
       <SelectionPropertiesBar
         store={store}
         onProperties={() => openPanel('inspector')}

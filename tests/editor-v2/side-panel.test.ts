@@ -32,21 +32,25 @@ it('el mismo panel se conmuta y se cierra con closeSidePanel', () => {
   expect(store.getState().sidePanel).toBeNull();
 });
 
-it('seleccionar abre Propiedades y deseleccionar la cierra', () => {
+it('seleccionar un muro no abre el lateral; Propiedades se abre a petición', () => {
   const store = createEditorStore(emptyEditorDocument());
   store.getState().select(['muro-1']);
+  expect(store.getState().sidePanel).toBeNull();
+  store.getState().openSidePanel('inspector');
+  expect(store.getState().sidePanel).toBe('inspector');
+  store.getState().select(['muro-2']);
   expect(store.getState().sidePanel).toBe('inspector');
   store.getState().select([]);
   expect(store.getState().sidePanel).toBeNull();
 });
 
-it('elegir un techo abre Techo y luces, y otra selección vuelve a Propiedades', () => {
+it('elegir un techo abre Techo y luces, pero otro elemento no abre Propiedades', () => {
   const store = createEditorStore(roomStore().getState().document);
   const ceilingId = store.getState().document.ceilings![0]!.id;
   store.getState().select([ceilingId]);
   expect(store.getState().sidePanel).toBe('ceiling');
   store.getState().select([store.getState().document.walls[0]!.id]);
-  expect(store.getState().sidePanel).toBe('inspector');
+  expect(store.getState().sidePanel).toBeNull();
 });
 
 it('deseleccionar desde Techo y luces no cierra el panel', () => {

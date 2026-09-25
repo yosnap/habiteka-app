@@ -8,10 +8,12 @@ import { indexedDbDraftStorage, listScopeDrafts, openAuthorizedDrafts } from '@/
 import { checkEditorSession } from '@/server/editor/check-session';
 import { EditorSession } from './editor-session';
 import type { AutoGenerateRequest } from '../auto-generate-request';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
-export function DurableEditor({ scope, projectName, initial, autoGenerate }: {
+export function DurableEditor({ scope, projectName, initial, autoGenerate, reference }: {
   scope: DraftScope; projectName: string; initial: EditorDocument;
   autoGenerate?: AutoGenerateRequest | null;
+  reference?: PlanReference | null;
 }) {
   const [ready, setReady] = useState<{ scope: DraftScope; recovered?: EditorDraft } | null>(null);
   const [choices, setChoices] = useState<{ scope: DraftScope; drafts: EditorDraft[] } | null>(null);
@@ -69,6 +71,6 @@ export function DurableEditor({ scope, projectName, initial, autoGenerate }: {
         Abrir la revisión del servidor sin borrar los borradores
       </button>
     </section>}
-    {ready && <EditorSession scope={ready.scope} initial={initial} recovered={ready.recovered} projectName={projectName} autoGenerate={autoGenerate ?? null} />}
+    {ready && <EditorSession scope={ready.scope} initial={initial} recovered={ready.recovered} projectName={projectName} autoGenerate={autoGenerate ?? null} reference={reference} />}
   </>;
 }

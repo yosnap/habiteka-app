@@ -1,4 +1,4 @@
-import { planObjects } from '@/lib/editor-document/boundary-types';
+import { isLegacyBoundary, planObjects } from '@/lib/editor-document/boundary-types';
 import { isBoundaryJoint } from './boundary-junction';
 import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
 import { alignPoints, footprintAnchors } from './magnetic-alignment';
@@ -97,6 +97,69 @@ function walls(doc: EditorDocument): Solid[] {
     return { id: box.sourceEntityId, polygon: footprint({ x: box.position[0] * 1000 - offset.x, y: box.position[2] * 1000 - offset.y, widthMm, depthMm, rotation }),
       bottom: (box.position[1] - box.size[1] / 2) * 1000, top: (box.position[1] + box.size[1] / 2) * 1000 };
   })];
+}
+
+/** Al engrosar un muro, desplaza cada mueble apoyado en su cara solo lo necesario para conservar el contacto. */
+export function relieveFurnitureForThickerWalls(previous: EditorDocument, candidate: EditorDocument): EditorDocument {
+  const thicker = candidate.walls.filter((wall) => {
+    const old = previous.walls.find((item) => item.id === wall.id);
+    return old && !wall.hidden && wall.thicknessMm > old.thicknessMm + .1;
+  });
+  if (!thicker.length || (!candidate.furniture.length && !candidate.kitchenRuns?.length)) return candidate;
+  const oldSolids = walls(previous), newSolids = walls(candidate);
+  const result = structuredClone(candidate);
+  const movable = [...result.furniture, ...(result.kitchenRuns ?? [])].filter((item) =>
+    !item.hostId && !isBoundary(item) && !isLegacyBoundary(item));
+  const previousObjects = new Map([...previous.furniture, ...(previous.kitchenRuns ?? [])].map((item) => [item.id, item]));
+  const depth = (item: Furniture, solids: Solid[]) => Math.max(0, ...objectSolids(item).flatMap((a) => solids.map((b) => penetration(a, b))));
+
+  // Un tabique compartido puede tocar muebles a ambos lados; la orientación de cada uno decide hacia qué cara sale.
+  for (let pass = 0; pass < Math.min(4, thicker.length + 1); pass++) {
+    let moved = false;
+    for (const wall of thicker) {
+      const target = newSolids.filter((solid) => solid.id === wall.id);
+      const oldTarget = oldSolids.filter((solid) => solid.id === wall.id);
+      const path = wallPath(result, wall);
+      for (const item of movable) {
+        const original = previousObjects.get(item.id);
+        if (!original) continue;
+        const allowed = depth(original, oldTarget) + .1;
+        if (depth(item, target) <= allowed) continue;
+        const center = objectCenter(item), t = path.project(center), onWall = path.at(t), tangent = path.tangent(t);
+        const signed = (center.x - onWall.x) * -tangent.y + (center.y - onWall.y) * tangent.x;
+        const normal = { x: -tangent.y * (signed >= 0 ? 1 : -1), y: tangent.x * (signed >= 0 ? 1 : -1) };
+        const shifted = (mm: number): Furniture => ({ ...item, x: item.x + normal.x * mm, y: item.y + normal.y * mm });
+        const maxShift = Math.min(1500, Math.max(200, wall.thicknessMm - (previous.walls.find((old) => old.id === wall.id)?.thicknessMm ?? 0) + Math.max(item.widthMm, item.depthMm)));
+        if (depth(shifted(maxShift), target) > allowed) continue;
+        let low = 0, high = maxShift;
+        for (let i = 0; i < 18; i++) {
+          const middle = (low + high) / 2;
+          if (depth(shifted(middle), target) > allowed) low = middle; else high = middle;
+        }
+        item.x += normal.x * (high + .1);
+        item.y += normal.y * (high + .1);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  // Los objetos colocados encima conservan su posición relativa con la mesa, armario o módulo que los soporta.
+  const byId = new Map([...result.furniture, ...(result.kitchenRuns ?? [])].map((item) => [item.id, item]));
+  const adjusted = new Set<string>(), visiting = new Set<string>();
+  const followHost = (item: Furniture) => {
+    if (adjusted.has(item.id) || visiting.has(item.id)) return;
+    visiting.add(item.id);
+    const host = item.hostId && byId.get(item.hostId), oldHost = item.hostId && previousObjects.get(item.hostId);
+    if (host && oldHost) {
+      followHost(host);
+      item.x += host.x - oldHost.x;
+      item.y += host.y - oldHost.y;
+    }
+    visiting.delete(item.id);
+    adjusted.add(item.id);
+  };
+  for (const item of result.furniture) if (item.hostId) followHost(item);
+  return result;
 }
 /** Pares de sólidos que se penetran y su profundidad; útil para diagnosticar bloqueos de colocación. */
 export function collisions(doc: EditorDocument): Map<string, number> {

@@ -171,9 +171,12 @@
   min-height: 0;
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   position: relative;
 }
 .canvasHost {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -181,15 +184,12 @@
 .canvasHost > .canvas {
   flex: 1;
 }
-/* Con un panel lateral abierto, el plano se estrecha en vez de quedar tapado:
-   encuadrar y «Ver en el plano» centran en la parte que se ve. */
-.workspace:has(> .sidebar[data-open='true']) .canvasHost {
-  margin-left: min(400px, calc(100vw - 104px));
-}
 .canvasHost[hidden] {
   display: none;
 }
 .sceneHost {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -198,6 +198,16 @@
 .sceneHost > * {
   flex: 1;
   min-width: 0;
+}
+.storyboardHost {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+}
+/* El recorrido ocupa solo la parte visible del plano cuando hay lateral abierto. */
+.workspace:has(> .sidebar[data-open='true']) > .storyboardHost {
+  margin-left: min(400px, calc(100vw - 104px));
 }
 .viewSwitch {
   display: flex;
@@ -208,6 +218,8 @@
   font-weight: 600;
 }
 .tools {
+  grid-column: 1;
+  grid-row: 1 / -1;
   position: relative;
   z-index: 35; /* Por encima del lateral de propiedades: los tooltips salen por la derecha. */
   display: flex;
@@ -433,6 +445,17 @@
   font-size: 0.75rem;
   font-weight: 600;
 }
+.bulkWallAppearance {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.bulkWallAppearance h3 { margin: 0; font-size: .875rem; }
+.bulkWallAppearance > div { display: grid; gap: 8px; }
 .fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -767,9 +790,11 @@
   }
   .workspace {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 76px minmax(180px, 1fr);
+    grid-template-rows: 76px minmax(180px, 1fr) auto;
   }
   .tools {
+    grid-column: 1;
+    grid-row: 1;
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid var(--line);
@@ -782,10 +807,25 @@
     flex: 1;
   }
   .sidebar {
+    position: absolute;
     top: 76px;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: min(400px, 100%);
     border-top: 1px solid var(--line);
+  }
+  .canvasHost,
+  .sceneHost {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .storyboardHost {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .workspace:has(> .sidebar[data-open='true']) > .storyboardHost {
+    margin-left: 0;
   }
   .sidebar[data-open='true'] {
     display: flex;

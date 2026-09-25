@@ -27,6 +27,8 @@ import { isWindowDressing, windowCoverage } from '@/lib/editor-document/furnitur
 import { MeterField, NumberField } from './property-number-field';
 import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields, WallConstructionFields } from './construction-fields';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
+import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
@@ -41,6 +43,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const column = doc.columns?.find((item) => item.id === id);
   // Las estancias no son entidades: su nombre es la etiqueta de texto situada dentro del contorno.
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
+  const facadeIds = useMemo(() => new Set(exteriorWallIds(doc)), [doc]);
   const room = rooms.find((item) => item.id === id), outdoor = room ? editableOutdoorRoom(doc, room) : false;
   const roomLabel = room ? doc.labels.find((item) => insideRoom(item, room.boundary)) : undefined;
   const renameRoom = (value: string) => room && apply((document) => editDocument(document, (next) => {
@@ -50,6 +53,8 @@ export function Inspector({ store }: { store: EditorStore }) {
   }));
   // Con varios elementos del mismo tipo seleccionados, cada cambio del inspector se repite en todos ellos.
   const peers = id ? bulkPeers(doc, id, selection) : [];
+  const selectedWallIds = wall ? [wall.id, ...peers.filter((peerId) => doc.walls.some((item) => item.id === peerId))] : [];
+  const allFacades = selectedWallIds.length > 1 && selectedWallIds.every((wallId) => facadeIds.has(wallId));
   const apply = (operation: (current: EditorDocument) => EditorDocument) => {
     try {
       const current = store.getState().document, next = operation(current);
@@ -130,7 +135,8 @@ export function Inspector({ store }: { store: EditorStore }) {
           v === wall.startVertexId || v === wall.endVertexId)).map((w, i) => <option key={w.id} value={w.id}>Contiguo {i + 1} ({(distance(...wallPoints(doc, w)) / 1000).toFixed(2)} m)</option>)}
       </ModernSelect></label>
       <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
-      <WallConstructionFields wall={wall} document={doc} edit={apply} />
+      <WallConstructionFields wall={wall} document={doc} edit={apply} showSurfaceFields={!peers.length} />
+      {selectedWallIds.length > 1 && <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />}
     </>}
     {furniture && !partOwner && <div className={styles.fields}>
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],

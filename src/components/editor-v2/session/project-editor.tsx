@@ -9,11 +9,13 @@ import { activateEditorDocument } from '@/server/editor/save-document';
 import { EditorShell } from '../editor-shell';
 import { DurableEditor } from './durable-editor';
 import type { AutoGenerateRequest } from '../auto-generate-request';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
-export function ProjectEditor({ scope, projectName, initial, writable, migration, autoGenerate }: {
+export function ProjectEditor({ scope, projectName, initial, writable, migration, autoGenerate, reference }: {
   scope: DraftScope; projectName: string; initial: EditorDocument; writable: boolean;
   migration: { fingerprint: string; complete: boolean; issues: string[] } | null;
   autoGenerate?: AutoGenerateRequest | null;
+  reference?: PlanReference | null;
 }) {
   const router = useRouter();
   const [store] = useState(() => createEditorStore(initial, { readOnly: true }));
@@ -26,6 +28,7 @@ export function ProjectEditor({ scope, projectName, initial, writable, migration
         projectName={projectName}
         initial={initial}
         autoGenerate={autoGenerate ?? null}
+        reference={reference}
       />
     );
   return <div>
@@ -50,6 +53,6 @@ export function ProjectEditor({ scope, projectName, initial, writable, migration
       </>}
       {error && <p role="alert">{error}</p>}
     </section>
-    <EditorShell store={store} projectName={projectName} saveStatus="Solo lectura · sin cambios" />
+    <EditorShell store={store} projectName={projectName} saveStatus="Solo lectura · sin cambios" reference={reference} />
   </div>;
 }

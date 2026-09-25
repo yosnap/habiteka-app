@@ -22,6 +22,7 @@ import { evaluateEditorQuality } from '@/app/(app)/projects/[id]/_actions/editor
 import { callAction } from '@/lib/action-result';
 import { EditorShell } from '../editor-shell';
 import type { AutoGenerateRequest } from '../auto-generate-request';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
 export function EditorSession({
   scope,
@@ -29,12 +30,14 @@ export function EditorSession({
   recovered,
   projectName,
   autoGenerate,
+  reference,
 }: {
   scope: DraftScope;
   initial: EditorDocument;
   recovered?: EditorDraft;
   projectName: string;
   autoGenerate?: AutoGenerateRequest | null;
+  reference?: PlanReference | null;
 }) {
   const [queue] = useState(
     () =>
@@ -208,6 +211,7 @@ export function EditorSession({
       )}
       <EditorShell
         store={store}
+        reference={reference}
         projectName={projectName}
         loadStoryboardImages={loadStoryboardImages}
         saveStatus={saveStatus}

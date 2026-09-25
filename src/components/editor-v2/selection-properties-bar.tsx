@@ -63,7 +63,10 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
             x: a.x + (b.x - a.x) * factor, y: a.y + (b.y - a.y) * factor });
         })} />
         <MeasureField label="Grosor" value={wall.thicknessMm / 1000} onCommit={(n) => run((current) => editDocument(current,
-          (next) => { next.walls.find((item) => item.id === id)!.thicknessMm = n * 1000; }))} />
+          (next) => { for (const selectedId of selection) {
+            const selectedWall = next.walls.find((item) => item.id === selectedId);
+            if (selectedWall) selectedWall.thicknessMm = n * 1000;
+          } }))} />
         <MeasureField label="Altura" value={wallConstruction(wall).heightMm / 1000}
           onCommit={(n) => run((current) => setWallConstruction(current, id, { heightMm: n * 1000 }))} />
         <MeasureField label="Cota base" value={(wall.baseElevationMm ?? 0) / 1000} minimum={0}
@@ -104,7 +107,10 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
         wall.curveHeightMm ? 0 : defaultWallCurve(d, id)))}>{wall.curveHeightMm ? <StraightWallIcon size={20} aria-hidden="true" /> : <CurvedWallIcon size={20} aria-hidden="true" />}
         {wall.curveHeightMm ? 'Pared recta' : 'Curvar pared'}</button>}
       {(wall || opening || furniture || stair || ramp) && <>
-        <button type="button" disabled={readOnly} onClick={() => store.getState().setDetailPanel('paint')}>Pintar</button>
+        <button type="button" disabled={readOnly}
+          onClick={() => { if (wall && selection.length > 1) onProperties(); else store.getState().setDetailPanel('paint'); }}>
+          {wall && selection.length > 1 ? 'Acabados' : 'Pintar'}
+        </button>
         <button type="button" onClick={() => store.getState().setDetailPanel('comments')}>Comentarios ({doc.comments?.filter((c) => c.targetEntityId === id).length ?? 0})</button>
       </>}
       {opening && <button type="button" disabled={readOnly} onClick={() => run((current) => editDocument(current,

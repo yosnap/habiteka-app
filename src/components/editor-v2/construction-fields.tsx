@@ -19,13 +19,15 @@ function MaterialField({ label, value, change }: { label: string; value: string;
   return <SurfaceMaterialPicker label={label} value={value} onChange={(materialId) => change(materialId ?? 'concrete-grey')} />;
 }
 
-export function WallConstructionFields({ wall, document, edit }: { wall: Wall; document: EditorDocument; edit: Edit }) {
+export function WallConstructionFields({ wall, document, edit, showSurfaceFields = true }: {
+  wall: Wall; document: EditorDocument; edit: Edit; showSurfaceFields?: boolean;
+}) {
   const properties = wallConstruction(wall);
   return <>
     <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
     <MeterField label="Cota base" valueMm={wall.baseElevationMm ?? 0}
       change={(baseElevationMm) => edit((doc) => setWallConstruction(doc, wall.id, { baseElevationMm }))} />
-    {wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
+    {showSurfaceFields && wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
       value={properties.materials[side]} onChange={(value) => edit((doc) => setWallSurface(doc, wall.id, side, value))} />)}
     <p className={styles.hint}>La altura se mide desde la cota base. Para un murete sobre un descansillo de 1 m, usa cota base 1 m. Cierra la habitación para identificar interior y exterior.</p>
   </>;

@@ -7,7 +7,7 @@ import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { applyCommand } from '@/lib/editor-document/commands';
 import { addStair } from '@/lib/editor-document/construction-commands';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
-import { assertSpatialPlacement, placeNewObject } from './spatial-placement';
+import { assertSpatialPlacement, placeNewObject, relieveFurnitureForThickerWalls } from './spatial-placement';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
@@ -19,10 +19,9 @@ import type { LightZoneMode } from './light-zone-draw';
 export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling';
 
 /**
- * Panel que corresponde a una selección nueva. Elegir una luz o un techo lleva a
- * «Techo y luces»; cualquier otra selección abre Propiedades si la ranura está
- * libre o venía de la selección anterior. Catálogo, Recorrido y Contexto IA se
- * abren a mano, así que la selección no los desplaza.
+ * Una selección normal solo actualiza la barra de medidas: abrir Propiedades
+ * automáticamente desplaza o tapa el plano al primer clic. El lateral se abre
+ * a petición; una luz o un techo sí lleva a «Techo y luces».
  */
 export function sidePanelForSelection(
   current: EditorSidePanel | null,
@@ -32,7 +31,7 @@ export function sidePanelForSelection(
   // por su cuenta al cambiar de ámbito o de estancia y debe seguir abierto.
   if (!options.hasSelection) return current === 'inspector' ? null : current;
   if (options.lighting) return 'ceiling';
-  if (current === null || current === 'ceiling') return 'inspector';
+  if (current === 'ceiling') return null;
   return current;
 }
 
@@ -201,7 +200,9 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
       const state = get();
       // Los restos invisibles de contornos de patio anteriores se retiran en cada edición: parten estancias y bloquean suelos.
-      const document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
+      let document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
+      if (document.activeLevelId === state.document.activeLevelId)
+        document = relieveFurnitureForThickerWalls(state.document, document);
       for (const light of document.luminaires ?? []) {
         const previous = state.document.luminaires?.find((item) => item.id === light.id);
         if (document.activeLevelId === state.document.activeLevelId && JSON.stringify(previous) !== JSON.stringify(light)) {

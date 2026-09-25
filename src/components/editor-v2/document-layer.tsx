@@ -49,7 +49,7 @@ import { ColumnLayer } from './column-layer';
 import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
-export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean }) {
+export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
@@ -58,6 +58,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls);
+  const wallInk = referenceVisible ? '#df254b' : INK;
   // Muros que el usuario ocultó: se ven como guía discontinua y se pueden seleccionar para volver a mostrarlos.
   // Los bordes lógicos de patios y del perímetro exterior no son muros del usuario y siguen sin dibujarse.
   const ghostWalls = doc.walls.filter((wall) => wall.hidden && showWalls && !wall.id.startsWith('hidden:') && !wall.id.startsWith('outdoor:'));
@@ -112,6 +113,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {rooms.value.map((room) => {
       const points = room.boundary;
       return <FloorSurface key={room.id} points={points} finish={floorFinish(doc, room.id)} scale={scale}
+        referenceVisible={referenceVisible}
         onSnapMove={(delta) => { if (groupOf(room.id)) return delta; const state = store.getState(), result = alignRoom(source, room.id, delta, scale, state.snap); state.setMagneticGuides(result.guides); return result.delta; }}
         onMove={!readOnly && tool === 'select' ? (delta) => run(() => {
           const group = groupOf(room.id); if (group) return dragGroup(group, delta);
@@ -128,11 +130,11 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     {junctions.filter((join) => doc.walls.filter((wall) => wall.startVertexId === join.id || wall.endVertexId === join.id).length !== 2)
       .map((join) => <Line key={`join:${join.id}`} points={join.points.flatMap((p) => [p.x, p.y])}
-      closed fill={INK} listening={false} />)}
+      closed fill={wallInk} opacity={referenceVisible ? 0.78 : 1} listening={false} />)}
     {visibleWalls.map((wall) => {
       const [a, b] = wallPoints(doc, wall), active = selected.includes(wall.id);
       const miter = wallMiterPolygon(doc, wall);
-      return <Group key={wall.id} draggable={!readOnly && tool === 'select'}
+      return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && tool === 'select'}
         onDragStart={() => { if (!groupOf(wall.id)) store.getState().select([wall.id]); }}
         onDragMove={(event) => {
           if (groupOf(wall.id)) return;
@@ -141,10 +143,10 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
         }}
         onDragEnd={(e) => drag(wall.id, { x: 0, y: 0 }, e)}
         onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)}>
-        {wall.curveHeightMm ? <Line points={wallStrip(doc, wall).flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : INK} />
-          : miter ? <Line points={miter.flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : INK}
+        {wall.curveHeightMm ? <Line points={wallStrip(doc, wall).flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : wallInk} />
+          : miter ? <Line points={miter.flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : wallInk}
             hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />
-          : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : INK}
+          : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : wallInk}
             lineCap="butt" strokeWidth={wall.thicknessMm} hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />}
         {(dimensions === 'all' || (dimensions === 'external' && rooms.value.filter((room) => room.wallIds.includes(wall.id)).length === 1)) &&
           <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}

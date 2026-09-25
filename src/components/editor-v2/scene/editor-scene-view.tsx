@@ -285,6 +285,14 @@ function SceneView({
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'] }));
   };
+  const showMaquette = () => {
+    // Cámara y visibilidad de la escena viva; muebles, suelos y muros siguen
+    // siendo los mismos objetos que verá el recorrido y capturará el render.
+    store.getState().setCeilingView('hidden');
+    setAllLevels(false);
+    setCutaway(false);
+    camera('top');
+  };
   const enterRoom = (roomId: string | null) => {
     if (abortRecording.current || walking) return;
     if (!roomId) {
@@ -414,10 +422,10 @@ function SceneView({
         </Html>;
       })}
     </Canvas>
-    {!recording && !walking && <SceneViewControls activeView={activeView} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
+    {!recording && !walking && <SceneViewControls activeView={activeView} maquetteActive={activeView === 'top' && ceilingView === 'hidden' && !allLevels && !cutaway && !inside} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
       ceilingView={ceilingView} interiorRooms={interiorCameras} interiorRoomId={inside ? interiorRoomId : null}
       interiorDisabledReason={allLevels ? 'Activa «Una planta» para entrar en una estancia' : null}
-      onCamera={camera} onViewChange={camera} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
+      onCamera={camera} onViewChange={camera} onMaquette={showMaquette} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
       onCeilingViewChange={(view) => store.getState().setCeilingView(view)} onEnterRoom={enterRoom}
       onExport={() => void exportNativeRender()} />}
     <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
