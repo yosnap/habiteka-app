@@ -19,14 +19,22 @@ export interface RasterizedPdf extends UploadedImage {
 
 export async function pdfFirstPageToPng(file: File): Promise<RasterizedPdf> {
   const pdfjs = await import('pdfjs-dist');
-  // El worker se sirve como módulo del paquete; Next lo empaqueta como asset.
+  // Next empaqueta el worker como asset.
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,
   ).toString();
 
+  return rasterizePdfFirstPage(file, pdfjs.getDocument);
+}
+
+/** Núcleo compartido con la prueba Node, que usa el build legacy de pdf.js. */
+export async function rasterizePdfFirstPage(
+  file: File,
+  getDocument: typeof import('pdfjs-dist').getDocument,
+): Promise<RasterizedPdf> {
   const data = new Uint8Array(await file.arrayBuffer());
-  const task = pdfjs.getDocument({ data });
+  const task = getDocument({ data });
   const pdf = await task.promise;
   try {
     const page = await pdf.getPage(1);

@@ -6,8 +6,8 @@
  *
  * El veredicto que decide qué se ofrece lo da el servidor (Jev sobre la evidencia
  * medible de la extracción); aquí solo se presenta. Aplicar REEMPLAZA el plano del
- * proyecto, así que se confirma en dos pasos salvo cuando la lectura está
- * bloqueada: entonces el editor ES el destino, porque es donde se corrige.
+ * proyecto, así que se confirma en dos pasos incluso cuando la lectura está
+ * bloqueada y el editor es el destino para corregirla.
  */
 import { useState } from 'react';
 import { useMountEffect } from '@/lib/use-mount-effect';
@@ -84,9 +84,7 @@ export function PlanRoute({
 
   const onApply = () => {
     if (!imported) return;
-    // Con fiabilidad baja el destino ES el editor (allí se corrige): no tiene sentido
-    // una confirmación extra; en el resto se confirma el reemplazo del plano.
-    if (imported.quality.decision !== 'block' && !confirmApply) {
+    if (!confirmApply) {
       setConfirmApply(true);
       return;
     }

@@ -15,6 +15,7 @@ import { requireOrgContext } from '@/server/auth/require-org-context';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { loadStudio } from '@/server/plan/studio-repo';
+import { appendStudioResult } from '@/lib/studio-results';
 import { persistStudioSource } from '@/server/plan/studio-image';
 import {
   importPlanFromImage,
@@ -50,6 +51,10 @@ async function importPlanForAssistantImpl(
     // En el asistente se importa la ESTRUCTURA; el mobiliario leído se descarta
     // para que el usuario amueble en el editor.
     { includeFurniture: false },
-    { ...state, source, plan: source, sourceKind: 'upload' },
+    {
+      ...state, source, plan: source, sourceKind: 'upload',
+      redraws: undefined, cenital: undefined, canvasDescription: undefined,
+      results: appendStudioResult(state, source, { kind: 'source' }),
+    },
   );
 }

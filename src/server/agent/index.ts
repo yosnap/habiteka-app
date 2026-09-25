@@ -14,7 +14,7 @@ import { extractPlanSource } from '@/server/plan/extract-plan-source';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { evaluateCheckpoint } from '@/server/quality/evaluate';
 import { buildPlanEvidence } from '@/server/quality/evidence/plan-evidence';
-import { applyPlanQuality } from '@/lib/plan-quality';
+import { applyPlanQuality, blockingPlanImportWarning } from '@/lib/plan-quality';
 
 // Mínimo de muros medidos en la imagen para tratarla como una planta.
 const MIN_PLAN_WALLS = 4;
@@ -89,6 +89,12 @@ export async function getAgent(
             const result = buildPlanImport(raw, {
               includeFurniture: false,
               normalize: { wallsOverride: detected.walls, imageHeightOverWidth: detected.heightOverWidth },
+            });
+            const unsafe = blockingPlanImportWarning(result.warnings);
+            if (unsafe) return applyPlanQuality(result.plano, {
+              score: null,
+              decision: 'block',
+              reasons: [unsafe.message, 'Corrige la distribución en el editor antes de generar diseños o vistas.'],
             });
             // Puerta de fiabilidad: solo una lectura que Jev da por buena se
             // entrega como plano fiel; con dudas o sin evaluación posible, el

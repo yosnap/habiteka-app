@@ -6,6 +6,7 @@
 import type { ComponentProps } from 'react';
 import { prisma } from '@/server/db/prisma';
 import { QualificationChat } from '@/components/chat/qualification-chat';
+import { PlanReviewPanel } from '@/components/chat/plan-review-panel';
 import { advanceAgent } from '../_actions/agent-actions';
 
 interface Props {
@@ -37,6 +38,7 @@ export default async function ChatPage({ params, searchParams }: Props) {
       <p className="text-ink-soft text-sm">
         Sube una foto o un boceto de tu espacio y cuéntame qué quieres conseguir.
       </p>
+      <PlanReviewPanel projectId={id} zoneId={zoneId} />
       <div className="min-h-0 flex-1">
         <QualificationChat
           projectId={id}

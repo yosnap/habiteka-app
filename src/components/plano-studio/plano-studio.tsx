@@ -27,12 +27,15 @@ import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import { SketchPad } from './sketch-pad';
 import { PlanImportPanel, type ImportedPlan, type PlanImportActions } from './plan-import-panel';
 import { PlanImageViewer } from './plan-image-viewer';
+import { StudioStageNav } from './studio-stage-nav';
+import { StudioResultsPanel, type StudioDeliverableView } from './studio-results-panel';
+import { StudioNextStep } from './studio-next-step';
 import {
   CenitalQualityGate,
   cenitalGateBlocks,
   cenitalGateDecision,
 } from './cenital-quality-gate';
-import type { StudioQuality, StudioState } from '@/lib/studio-state';
+import type { StudioQuality, StudioResult, StudioResultView, StudioState } from '@/lib/studio-state';
 import { ESTILOS } from '@/lib/design-options';
 import type { Estilo, Plano2dPayload, SketchPlanResult } from '@/lib/contracts';
 
@@ -42,26 +45,31 @@ interface Props extends PlanImportActions {
   projectId: string;
   /** Importación de plano dibujado ya extraída y guardada (se retoma sin IA). */
   initialImport?: ImportedPlan | null;
+  initialGeneralWidthMm?: number;
+  initialIncludeFurniture?: boolean;
   initialState: StudioState;
+  initialResults: StudioResultView[];
+  deliverables: StudioDeliverableView[];
+  hasEditorPlan: boolean;
   uploadAction: (
     projectId: string,
     base64: string,
-  ) => Promise<{ imageUrl: string } | ActionErrorResult>;
+  ) => Promise<{ imageUrl: string; assetKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
   drawingAction: (
     projectId: string,
     base64: string,
-  ) => Promise<(SketchPlanResult & { imageUrl: string }) | ActionErrorResult>;
-  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string } | ActionErrorResult>;
+  ) => Promise<(SketchPlanResult & { imageUrl: string; assetKey?: string; studioResult?: StudioResult; importResult: ImportedPlan }) | ActionErrorResult>;
+  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string; assetKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
   redrawAction: (
     projectId: string,
     imageParts: ImagePart[],
     mode: RedrawMode,
-  ) => Promise<{ imageUrl: string; assetKey?: string } | ActionErrorResult>;
-  /** Activa el redibujado ya generado de ese modo como plano de trabajo. */
-  selectRedrawAction: (
+  ) => Promise<{ imageUrl: string; assetKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
+  selectResultAction: (
     projectId: string,
-    mode: RedrawMode,
-  ) => Promise<{ imageUrl: string; assetKey?: string } | ActionErrorResult>;
+    assetKey: string,
+  ) => Promise<{ imageUrl: string; sourceUrl: string; assetKey: string } | ActionErrorResult>;
+  startNewAction: (projectId: string) => Promise<{ ok: boolean } | ActionErrorResult>;
   /** Importa la imagen activa del estudio (redibujado u original) por el pipeline de planos. */
   importCurrentAction: (
     projectId: string,
@@ -76,27 +84,28 @@ interface Props extends PlanImportActions {
     vista?: RenderVista,
     /** Confirmación expresa cuando la puerta de calidad del plano pide confirmar. */
     qualityAck?: boolean,
-  ) => Promise<{ imageUrl: string } | ActionErrorResult>;
-  sendToEditorAction: (
-    projectId: string,
-    plano: Plano2dPayload,
-  ) => Promise<void | ActionErrorResult>;
+  ) => Promise<{ imageUrl: string; assetKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
+  sendToEditorAction: (projectId: string) => Promise<void | ActionErrorResult>;
 }
 
 /** Modo de redibujado y tipo de vista: tipos locales para no importar código server en el cliente. */
 type RedrawMode = 'tecnico' | 'decorado';
 type RenderVista = 'cenital' | 'maqueta';
-type Tab = 'plano' | 'editable' | 'cenital';
-type Busy = 'redraw' | 'cenital' | 'send' | 'import' | null;
+type Tab = 'plano' | 'vector' | 'render';
+type Busy = 'redraw' | 'cenital' | 'send' | 'import' | 'select' | null;
 
 export function PlanoStudio({
   projectId,
   initialState,
+  initialResults,
+  deliverables,
+  hasEditorPlan,
   drawingAction,
   uploadAction,
   importCanvasAction,
   redrawAction,
-  selectRedrawAction,
+  selectResultAction,
+  startNewAction,
   importCurrentAction,
   cenitalAction,
   sendToEditorAction,
@@ -104,25 +113,31 @@ export function PlanoStudio({
   refitAction,
   applyAction,
   initialImport,
+  initialGeneralWidthMm,
+  initialIncludeFurniture,
 }: Props) {
   const router = useRouter();
   // Importar un plano dibujado/CAD/PDF es un flujo propio (tabla de cotas, mobiliario).
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(initialImport ?? null);
+  const [importApplied, setImportApplied] = useState(initialState.planImportApplied === true);
   // Enviar al editor reemplaza el plano existente: se pide confirmación en dos pasos.
   const [confirmSend, setConfirmSend] = useState(false);
-  // La imagen original se conserva para las acciones bajo demanda.
-  const [source, setSource] = useState<UploadedImage | null>(null);
+  const [confirmNew, setConfirmNew] = useState(false);
   const [originalUrl, setOriginalUrl] = useState(initialState.source?.assetUrl);
+  const [sourceKey, setSourceKey] = useState(initialState.source?.assetKey);
+  const [resultViews, setResultViews] = useState(initialResults);
+  const [previewResult, setPreviewResult] = useState<StudioResultView | null>(null);
+  const [comparing, setComparing] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [fromCanvas, setFromCanvas] = useState(!!initialState.canvasDescription);
   const [fromDrawing, setFromDrawing] = useState(initialState.sourceKind === 'drawing');
   const [planImageUrl, setPlanImageUrl] = useState<string | null>(
     initialState.plan?.assetUrl ?? null,
   );
-  const [plano, setPlano] = useState<Plano2dPayload | null>(initialState.plano ?? null);
+  const [plano, setPlano] = useState<Plano2dPayload | null>(initialImport?.plano ?? initialState.plano ?? null);
   // Sin medidas escritas en el original, las cotas serían inventadas: no se pintan.
-  const [escalaEstimada, setEscalaEstimada] = useState(initialState.escalaEstimada ?? false);
+  const [escalaEstimada, setEscalaEstimada] = useState(initialImport?.escalaEstimada ?? initialState.escalaEstimada ?? false);
   const [cenitalUrl, setCenitalUrl] = useState<string | null>(
     initialState.cenital?.assetUrl ?? null,
   );
@@ -170,6 +185,7 @@ export function PlanoStudio({
   const [busy, setBusy] = useState<Busy>(null);
   const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [archiveWarning, setArchiveWarning] = useState<string | null>(null);
   // Gate de los Términos: el servidor lo exige en todas las acciones del estudio y
   // en producción su error llega como un 500 opaco; se comprueba y acepta aquí.
   const { tosAccepted, acceptTos, pending: tosPending } = useTosAcceptance();
@@ -203,9 +219,14 @@ export function PlanoStudio({
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }, [plano, escalaEstimada]);
 
-  const parts = (img: UploadedImage): ImagePart[] => [
-    { type: 'image_url', base64: img.base64, mimeType: img.mimeType },
-  ];
+  const rememberResult = (result: StudioResult | undefined, url: string) => {
+    if (!result) {
+      setArchiveWarning('La imagen se generó, pero no se pudo archivar en el proyecto. Descárgala antes de salir.');
+      return;
+    }
+    setArchiveWarning(null);
+    setResultViews((previous) => [...previous.filter((item) => item.assetKey !== result.assetKey), { ...result, url }]);
+  };
 
   const run = async (kind: Exclude<Busy, null>, fn: () => Promise<void>) => {
     if (inFlight.current) return;
@@ -226,80 +247,61 @@ export function PlanoStudio({
     }
   };
 
-  const redrawFrom = (image: UploadedImage) =>
-    run('redraw', async () => {
-      const { imageUrl, assetKey } = await callAction(
-        redrawAction(projectId, parts(image), redrawMode),
-      );
-      setSource(image);
-      setFromCanvas(false);
-      setFromDrawing(false);
-      setPlanImageUrl(imageUrl);
-      setActiveKey(assetKey);
-      setRedraws((prev) => ({ ...prev, [redrawMode]: { url: imageUrl, key: assetKey } }));
-      setPlano(null);
-      setCenitalUrl(null);
-      setConfirmSend(false);
-      setEscalaEstimada(false);
-      setTab('plano');
-    });
-
   const onUpload = (image: UploadedImage) =>
     run('import', async () => {
       const result = await callAction(uploadAction(projectId, image.base64));
-      setSource(image);
+      rememberResult(result.studioResult, result.imageUrl);
       setRedraws({});
-      setActiveKey(undefined);
+      setActiveKey(result.assetKey);
       setOriginalUrl(result.imageUrl);
+      setSourceKey(result.assetKey);
       setFromCanvas(false);
       setFromDrawing(false);
       setPlanImageUrl(result.imageUrl);
       setPlano(null);
+      setImportResult(null);
+      setImportApplied(false);
+      setQuality(null);
       setCenitalUrl(null);
       setConfirmSend(false);
+      setPreviewResult(null);
+      setComparing(false);
       setTab('plano');
     });
 
   const onDrawing = (image: UploadedImage) =>
     run('import', async () => {
       const result = await callAction(drawingAction(projectId, image.base64));
-      setSource(null);
+      rememberResult(result.studioResult, result.imageUrl);
       setRedraws({});
-      setActiveKey(undefined);
+      setActiveKey(result.assetKey);
       setFromCanvas(false);
       setFromDrawing(true);
       setPlanImageUrl(result.imageUrl);
       setOriginalUrl(result.imageUrl);
+      setSourceKey(result.assetKey);
       setPlano(result.plano);
-      setEscalaEstimada(true);
+      setEscalaEstimada(result.escalaEstimada);
       setCenitalUrl(null);
+      setImportResult(result.importResult);
+      setImportApplied(false);
+      setQuality(result.importResult.quality);
       setConfirmSend(false);
+      setPreviewResult(null);
+      setComparing(false);
       setTab('plano');
+      setImporting(true);
     });
 
-  /** Repite la tirada con la MISMA imagen (varianza generativa: a veces la
-   *  siguiente sale sin el defecto), sin obligar a re-subir. */
-  /** Cambiar de modo muestra el redibujado ya generado de ese modo, si lo hay. */
+  /** El selector define la próxima generación, no cambia la imagen visible. */
   const onChangeMode = (mode: RedrawMode) => {
     setRedrawMode(mode);
-    const target = redraws[mode];
-    if (!target || (target.key !== undefined && target.key === activeKey)) return;
-    void run('redraw', async () => {
-      const { imageUrl, assetKey } = await callAction(selectRedrawAction(projectId, mode));
-      setPlanImageUrl(imageUrl);
-      setActiveKey(assetKey);
-      setPlano(null);
-      setCenitalUrl(null);
-      setConfirmSend(false);
-      setTab('plano');
-    });
   };
 
   const onRegenerate = () => {
-    if (source) void redrawFrom(source);
-    else
       void run('redraw', async () => {
         const result = await callAction(redrawAction(projectId, [], redrawMode));
+        rememberResult(result.studioResult, result.imageUrl);
         setPlanImageUrl(result.imageUrl);
         setActiveKey(result.assetKey);
         setRedraws((prev) => ({
@@ -309,7 +311,13 @@ export function PlanoStudio({
         setFromCanvas(false);
         setPlano(null);
         setCenitalUrl(null);
+        setImportResult(null);
+        setImportApplied(false);
+        setQuality(null);
         setConfirmSend(false);
+        setEscalaEstimada(false);
+        setPreviewResult(null);
+        setComparing(false);
         setTab('plano');
       });
   };
@@ -317,24 +325,34 @@ export function PlanoStudio({
   const onImportCanvas = () =>
     run('import', async () => {
       const result = await callAction(importCanvasAction(projectId));
+      rememberResult(result.studioResult, result.imageUrl);
       setFromCanvas(true);
       setFromDrawing(false);
       setOriginalUrl(result.imageUrl);
+      setSourceKey(result.assetKey);
       setPlanImageUrl(result.imageUrl);
-      setSource(null);
+      setActiveKey(result.assetKey);
       setPlano(null);
+      setImportResult(null);
+      setImportApplied(false);
+      setQuality(null);
       setCenitalUrl(null);
       setConfirmSend(false);
+      setPreviewResult(null);
+      setComparing(false);
       setTab('plano');
     });
 
-  /** Importa la imagen que se está viendo (redibujado técnico/decorado u original) al editor. */
+  /** Extrae el plano de trabajo, nunca una previsualización histórica. */
   const onImportCurrent = () => {
     if (!planImageUrl) return;
     return run('import', async () => {
       // Sólo estructura: muros, huecos y estancias. El mobiliario se activa en el panel si se quiere.
       const result = await callAction(importCurrentAction(projectId, { includeFurniture: false }));
       setImportResult(result);
+      setPlano(result.plano);
+      setEscalaEstimada(result.escalaEstimada);
+      setImportApplied(false);
       setQuality(result.quality);
       setCenitalAck(false);
       setImporting(true);
@@ -347,11 +365,14 @@ export function PlanoStudio({
     // El servidor vuelve a decidir con el veredicto guardado; esto evita el viaje.
     if (cenitalGateBlocks(quality, cenitalAck)) return;
     return run('cenital', async () => {
-      const { imageUrl } = await callAction(
+      const { imageUrl, studioResult } = await callAction(
         cenitalAction(projectId, planImageUrl, estilo, detalles, vista, cenitalAck),
       );
+      rememberResult(studioResult, imageUrl);
       setCenitalUrl(imageUrl);
-      setTab('cenital');
+      setPreviewResult(null);
+      setComparing(false);
+      setTab('render');
     });
   };
 
@@ -362,42 +383,108 @@ export function PlanoStudio({
       return;
     }
     return run('send', async () => {
-      await callAction(sendToEditorAction(projectId, plano));
+      await callAction(sendToEditorAction(projectId));
       router.push(`/projects/${projectId}`); // pestaña Editor, con el plano ya cargado
     });
   };
 
-  /** Aplica el ancho real aportado por el usuario: la escala deja de ser conjetura. */
-  const reset = () => {
-    setSource(null);
+  const showTab = (next: Tab) => {
+    setTab(next);
+    setPreviewResult(null);
+    setComparing(false);
+  };
+
+  const openResult = (result: StudioResultView) => {
+    setPreviewResult(result);
+    setComparing(false);
+    setTab(result.kind === 'render' ? 'render' : 'plano');
+  };
+
+  const compareResult = (result: StudioResultView) => {
+    setPreviewResult(result);
+    setComparing(true);
+    setTab(result.kind === 'render' ? 'render' : 'plano');
+  };
+
+  const continueResult = (result: StudioResultView) => run('select', async () => {
+    const selected = await callAction(selectResultAction(projectId, result.assetKey));
+    setPlanImageUrl(selected.imageUrl);
+    setOriginalUrl(selected.sourceUrl);
+    setSourceKey(result.kind === 'source' ? result.assetKey : result.sourceKey);
+    setActiveKey(selected.assetKey);
+    setRedraws(result.kind === 'redraw'
+      ? { [result.mode ?? 'tecnico']: { url: selected.imageUrl, key: selected.assetKey } }
+      : {});
+    setFromCanvas(false);
+    setFromDrawing(false);
+    setPlano(null);
+    setImportResult(null);
+    setImportApplied(false);
+    setQuality(null);
+    setCenitalUrl(null);
+    setPreviewResult(null);
+    setComparing(false);
+    setArchiveWarning(null);
+    setTab('plano');
+    router.refresh();
+  });
+
+  /** Inicia otro plano sin borrar las imágenes históricas del proyecto. */
+  const reset = () => run('select', async () => {
+    await callAction(startNewAction(projectId));
     setRedraws({});
     setActiveKey(undefined);
+    setSourceKey(undefined);
+    setOriginalUrl(undefined);
+    setFromCanvas(false);
+    setFromDrawing(false);
+    setImportResult(null);
+    setImportApplied(false);
+    setQuality(null);
     setConfirmSend(false);
+    setConfirmNew(false);
     setPlanImageUrl(null);
     setPlano(null);
     setEscalaEstimada(false);
     setCenitalUrl(null);
     setError(null);
+    setPreviewResult(null);
+    setComparing(false);
+    setArchiveWarning(null);
     setTab('plano');
-  };
+    router.refresh();
+  });
+
+  const comparisonSource = previewResult?.sourceKey
+    ? resultViews.find((item) => item.kind === 'source' && item.assetKey === previewResult.sourceKey)?.url
+      ?? (previewResult.sourceKey === sourceKey ? originalUrl : null)
+    : null;
+  const visibleUrl = previewResult?.url ?? (tab === 'render' ? cenitalUrl : planImageUrl);
 
   if (importing) {
     return (
       <PlanImportPanel
         projectId={projectId}
+        hasEditorPlan={hasEditorPlan || importApplied}
         importAction={importAction}
         refitAction={refitAction}
         applyAction={applyAction}
         initialResult={importResult}
-        onBack={() => setImporting(false)}
+        initialGeneralWidthMm={importResult === initialImport ? initialGeneralWidthMm : undefined}
+        initialIncludeFurniture={importResult === initialImport ? initialIncludeFurniture : false}
+        onBack={() => { setImporting(false); router.refresh(); }}
       />
     );
   }
 
   // ── Estado 1: sin plano — el boceto es el único protagonista ───────────────
-  if (!planImageUrl) {
+  if (!planImageUrl && !previewResult) {
     return (
-      <div className="grid h-full place-items-center p-6">
+      <div className="flex min-h-full flex-col gap-4 p-6 lg:h-full">
+        <StudioStageNav hasSource={false} hasImport={false} hasEditorPlan={hasEditorPlan}
+          hasDesignImages={deliverables.some((item) => item.type === 'RENDER_3D')}
+          hasVideo={deliverables.some((item) => item.type === 'VIDEO')} />
+        <div className="grid flex-1 place-items-center gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div
           className={`border-line bg-surface w-full ${drawing ? 'max-w-3xl' : 'max-w-lg'} rounded-card border border-dashed p-6 text-center shadow-sm`}
         >
@@ -460,79 +547,81 @@ export function PlanoStudio({
             </p>
           ) : null}
         </div>
+        <StudioResultsPanel
+          projectId={projectId}
+          results={resultViews}
+          deliverables={deliverables}
+          hasImport={false}
+          selectedKey={undefined}
+          onOpen={openResult}
+          onCompare={compareResult}
+          onContinue={continueResult}
+          onReviewImport={openImport}
+        />
+        </div>
       </div>
     );
   }
 
   // ── Estados 2+: plano protagonista + acciones a la derecha ─────────────────
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
+    <div className="flex min-h-full flex-col gap-4 p-6 lg:h-full">
+      <StudioStageNav
+        hasSource={!!originalUrl}
+        hasImport={!!importResult && !importApplied}
+        hasEditorPlan={hasEditorPlan && (importApplied || fromCanvas)}
+        hasDesignImages={deliverables.some((item) => item.type === 'RENDER_3D') || resultViews.some((item) => item.kind === 'render')}
+        hasVideo={deliverables.some((item) => item.type === 'VIDEO')}
+      />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1" role="tablist" aria-label="Vista">
-          <TabButton active={tab === 'plano'} onClick={() => setTab('plano')}>
-            Plano
+          <TabButton active={tab === 'plano'} onClick={() => showTab('plano')}>
+            Plano visible
           </TabButton>
           <TabButton
-            active={tab === 'editable'}
-            onClick={() => setTab('editable')}
-            disabled={!plano || !fromDrawing}
+            active={tab === 'vector'}
+            onClick={() => showTab('vector')}
           >
-            Editable (beta)
+            Vista vectorizada
           </TabButton>
           <TabButton
-            active={tab === 'cenital'}
-            onClick={() => setTab('cenital')}
-            disabled={!cenitalUrl}
+            active={tab === 'render'}
+            onClick={() => showTab('render')}
           >
-            Vista cenital
+            Render
           </TabButton>
         </div>
         <div className="flex items-center gap-1">
-          {!fromCanvas && !fromDrawing && (
-            <ModernSelect
-              aria-label="Modo de redibujado"
-              value={redrawMode}
-              onChange={(e) => onChangeMode(e.target.value as RedrawMode)}
-              className="border-line bg-surface text-ink rounded-control border px-2 py-1 text-xs"
-            >
-              <option value="tecnico">
-                Técnico (solo estructura){redraws.tecnico ? '' : ' · no generado'}
-              </option>
-              <option value="decorado">
-                Decorado (con mobiliario){redraws.decorado ? '' : ' · no generado'}
-              </option>
-            </ModernSelect>
-          )}
-          {!fromCanvas && !fromDrawing && !redraws[redrawMode] && (
-            <span className="text-destructive text-xs" role="status">
-              Sin redibujado {redrawMode === 'decorado' ? 'decorado' : 'técnico'}: pulsa «Redibujar
-              con IA».
-            </span>
-          )}
-          {!fromCanvas && !fromDrawing && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={onRegenerate}
-              disabled={busy !== null}
-              title="Repite el redibujado con la misma imagen (cada tirada puede variar en detalles)"
-            >
-              {busy === 'redraw' ? 'Redibujando…' : 'Redibujar con IA (opcional)'}
-            </Button>
-          )}
-          <Button type="button" size="sm" variant="ghost" onClick={reset} disabled={busy !== null}>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmNew(true)} disabled={busy !== null}>
             ← Nuevo plano
           </Button>
         </div>
       </div>
+      {confirmNew ? (
+        <div className="rounded-control border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" role="alert">
+          <p>Las imágenes guardadas seguirán en el proyecto. La revisión de medidas aún no enviada al editor se sustituirá al empezar otro plano.</p>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" variant="outline" disabled={busy !== null} onClick={reset}>Sí, empezar otro plano</Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirmNew(false)}>Cancelar</Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-        <div className="border-line relative min-h-64 min-w-0 flex-1 overflow-hidden rounded-card border bg-white">
-          {tab === 'plano' ? (
+        <div className="border-line relative h-72 min-w-0 shrink-0 overflow-hidden rounded-card border bg-white lg:h-auto lg:min-h-64 lg:flex-1">
+          {comparing && comparisonSource && visibleUrl ? (
+            <div className="grid h-full grid-cols-1 gap-px bg-slate-200 md:grid-cols-2">
+              <div className="relative min-h-64 bg-white">
+                <PlanImageViewer key={comparisonSource} src={comparisonSource} alt="Plano original para comparar" caption="Original" />
+              </div>
+              <div className="relative min-h-64 bg-white">
+                <PlanImageViewer key={visibleUrl} src={visibleUrl} alt="Resultado comparado" caption="Resultado generado" />
+              </div>
+            </div>
+          ) : tab === 'plano' && visibleUrl ? (
             <PlanImageViewer
-              key={planImageUrl}
-              src={planImageUrl}
+              key={visibleUrl}
+              src={visibleUrl}
               alt={
                 fromCanvas
                   ? 'Plano amueblado del editor'
@@ -541,130 +630,95 @@ export function PlanoStudio({
                     : 'Plano de referencia'
               }
               caption={
-                !fromCanvas && !fromDrawing
-                  ? `${
-                      shownMode
-                        ? `Mostrando el redibujado ${shownMode === 'decorado' ? 'decorado' : 'técnico'}. «Importar este plano» y la vista cenital usan esta imagen.`
-                        : 'Mostrando el original subido. Redibuja con IA o elige un modo ya generado.'
-                    }${
-                      shownMode !== redrawMode && !redraws[redrawMode]
-                        ? ` El redibujado ${redrawMode === 'decorado' ? 'decorado' : 'técnico'} aún no está generado: pulsa «Redibujar con IA».`
-                        : ''
-                    }`
-                  : undefined
+                previewResult
+                  ? 'Previsualización histórica. «Usar este plano» lo convierte en plano de trabajo.'
+                  : shownMode
+                    ? `Plano de trabajo: redibujado ${shownMode}. Compara con el original antes de continuar.`
+                    : 'Plano de trabajo: original guardado.'
               }
             />
           ) : null}
-          {tab === 'editable' && svgUrl ? (
-            <PlanImageViewer key={svgUrl} src={svgUrl} alt="Plano editable extraído" />
+          {tab === 'vector' && svgUrl && !comparing ? (
+            <PlanImageViewer key={svgUrl} src={svgUrl} alt="Vista vectorizada del plano extraído" caption="Vista de lectura: la edición se realiza en el Editor v2." />
           ) : null}
-          {tab === 'cenital' && cenitalUrl ? (
-            <PlanImageViewer key={cenitalUrl} src={cenitalUrl} alt="Vista cenital fotorrealista" />
+          {tab === 'vector' && !svgUrl ? (
+            <div className="grid h-full place-content-center gap-3 p-6 text-center">
+              <h2 className="text-ink font-medium">Aún no hay extracción vectorial</h2>
+              <p className="text-ink-soft max-w-sm text-sm">Primero lee los muros y revisa las medidas. Después podrás abrir el plano editable en el editor.</p>
+              {planImageUrl ? <Button disabled={busy !== null} onClick={importResult ? openImport : onImportCurrent}>{importResult ? 'Revisar medidas' : 'Extraer y revisar medidas'}</Button> : null}
+            </div>
+          ) : null}
+          {tab === 'render' && visibleUrl && !comparing ? (
+            <PlanImageViewer key={visibleUrl} src={visibleUrl} alt="Render de presentación" caption="Imagen de presentación, no modelo 3D navegable." />
+          ) : null}
+          {tab === 'render' && !visibleUrl ? (
+            <div className="grid h-full place-content-center gap-3 p-6 text-center">
+              <h2 className="text-ink font-medium">Aún no hay render</h2>
+              <p className="text-ink-soft max-w-sm text-sm">Elige un estilo y genera una imagen cenital o una maqueta isométrica. Esto no crea una visita 3D.</p>
+              <Button disabled={busy !== null || !planImageUrl || cenitalGateBlocks(quality, cenitalAck)} onClick={onGenerateCenital}>Generar imagen con IA</Button>
+            </div>
           ) : null}
         </div>
 
-        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:w-64">
-          <p className="text-ink-soft text-xs">Resultados guardados en este proyecto.</p>
-          {!fromCanvas && !fromDrawing && (
-            <p className="text-ink-soft text-xs">
-              El redibujado con IA puede modificar detalles. Compara siempre con el original antes
-              de editar o generar vistas.
-            </p>
-          )}
-          {originalUrl && (
-            <a
-              className="text-brand-700 text-sm underline"
-              href={originalUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Ver original guardado
-            </a>
-          )}
-          <Button size="sm" variant="outline" disabled={busy !== null} onClick={onImportCanvas}>
-            Traer el plano del editor
-          </Button>
-          <Button size="sm" variant="outline" disabled={busy !== null} onClick={openImport}>
-            Importar plano dibujado (CAD / PDF)
-          </Button>
-          <a
-            className="text-brand-700 text-sm underline"
-            href={
-              tab === 'cenital'
-                ? (cenitalUrl ?? undefined)
-                : tab === 'editable'
-                  ? (svgUrl ?? undefined)
-                  : planImageUrl
-            }
-            download={tab === 'editable' ? 'plano.svg' : 'habiteka.png'}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Abrir / descargar esta vista
-          </a>
-          {fromCanvas && (
-            <a className="text-brand-700 text-sm underline" href={`/projects/${projectId}`}>
-              Editar el canvas original
-            </a>
-          )}
-          {!fromCanvas && !fromDrawing ? (
-            <div className="border-line bg-surface rounded-card border p-4">
-              <p className="text-ink mb-1 text-sm font-medium">Llevar al editor</p>
-              <p className="text-ink-soft mb-2 text-xs">
-                Lee muros, huecos, estancias y cotas escritas de la imagen que estás viendo y abre
-                la tabla de medidas para revisarla antes de enviar. Mejor desde el redibujado
-                técnico.
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="w-full"
-                onClick={onImportCurrent}
-                disabled={busy !== null}
-              >
-                {busy === 'import' ? 'Leyendo el plano…' : 'Importar este plano'}
-              </Button>
-            </div>
-          ) : null}
-
-          {plano && fromDrawing ? (
-            <div className="border-line bg-surface rounded-card border p-4">
-              <p className="text-ink mb-1 text-sm font-medium">Editar en la app</p>
-              <p className="text-ink-soft mb-2 text-xs">
-                {confirmSend
-                  ? 'Esto REEMPLAZA el plano actual del editor de este proyecto. ¿Continuar?'
-                  : 'Envía los muros y aberturas al editor para ajustarlos a mano.'}
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                variant={confirmSend ? 'default' : 'outline'}
-                className="w-full"
-                onClick={onSendToEditor}
-                disabled={busy !== null}
-              >
-                {busy === 'send'
-                  ? 'Enviando…'
-                  : confirmSend
-                    ? 'Sí, reemplazar y abrir el editor'
-                    : 'Enviar al editor'}
-              </Button>
-              {confirmSend && busy === null ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="mt-1 w-full"
-                  onClick={() => setConfirmSend(false)}
-                >
-                  Cancelar
-                </Button>
+        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:w-80">
+          {previewResult ? <p className="text-ink-soft text-xs" role="status">Viendo un resultado guardado; las acciones de edición usan el plano de trabajo.</p> : null}
+          <StudioNextStep
+            projectId={projectId}
+            hasSource={!!planImageUrl}
+            hasImport={!!importResult && !importApplied}
+            hasEditorPlan={hasEditorPlan && (importApplied || fromCanvas)}
+            fromDrawing={!!plano && fromDrawing}
+            confirmSend={confirmSend}
+            busy={busy !== null}
+            onReview={openImport}
+            onExtract={onImportCurrent}
+            onSendDrawing={onSendToEditor}
+            onCancelSend={() => setConfirmSend(false)}
+          />
+          <StudioResultsPanel
+            projectId={projectId}
+            results={resultViews}
+            deliverables={deliverables}
+            hasImport={!!importResult}
+            activeKey={activeKey}
+            selectedKey={previewResult?.assetKey}
+            onOpen={openResult}
+            onCompare={compareResult}
+            onContinue={continueResult}
+            onReviewImport={openImport}
+          />
+          {archiveWarning ? <p className="text-destructive text-xs" role="alert">{archiveWarning}</p> : null}
+          <div className="border-line bg-surface rounded-card border p-3">
+            <h2 className="text-ink text-sm font-medium">Otras entradas</h2>
+            <div className="mt-2 flex flex-col gap-2">
+              <Button size="sm" variant="outline" disabled={busy !== null} onClick={onImportCanvas}>Traer el plano del editor</Button>
+              <Button size="sm" variant="outline" disabled={busy !== null} onClick={openImport}>Importar CAD / PDF</Button>
+              {(tab === 'vector' ? svgUrl : visibleUrl) ? (
+                <a className="text-brand-700 text-center text-xs underline" href={(tab === 'vector' ? svgUrl : visibleUrl) ?? undefined} download={tab === 'vector' ? 'plano.svg' : 'habiteka.png'} target="_blank" rel="noreferrer">Abrir o descargar esta vista</a>
               ) : null}
+            </div>
+          </div>
+          {!fromCanvas && !fromDrawing && planImageUrl ? (
+            <div className="border-line bg-surface rounded-card border p-3">
+              <label htmlFor="redraw-mode" className="text-ink mb-2 block text-sm font-medium">Redibujar con IA (opcional)</label>
+              <ModernSelect
+                id="redraw-mode"
+                aria-label="Modo de la próxima generación"
+                value={redrawMode}
+                onChange={(e) => onChangeMode(e.target.value as RedrawMode)}
+              >
+                <option value="tecnico">Técnico · solo estructura</option>
+                <option value="decorado">Decorado · con mobiliario</option>
+              </ModernSelect>
+              <p className="text-ink-soft my-2 text-xs">{redraws[redrawMode] ? 'Ya existe una versión de este modo; una nueva generación conservará la anterior.' : 'Este modo aún no se ha generado.'} Puede cambiar detalles: compara siempre con el original.</p>
+              <Button size="sm" variant="outline" className="w-full" disabled={busy !== null} onClick={onRegenerate}>{busy === 'redraw' ? 'Redibujando…' : `Generar redibujado ${redrawMode}`}</Button>
+              <p className="text-ink-soft mt-2 text-xs">0 créditos de la app en este flujo. La llamada IA sí tiene coste de proveedor según el modelo configurado.</p>
             </div>
           ) : null}
 
           <div className="border-line bg-surface rounded-card border p-4">
+            <h2 className="text-ink mb-2 text-sm font-medium">Imagen de presentación</h2>
+            <p className="text-ink-soft mb-3 text-xs">Una imagen cenital o isométrica ayuda a visualizar el diseño, pero no crea un modelo 3D navegable.</p>
             <label htmlFor="estilo" className="text-ink mb-2 block text-sm font-medium">
               Estilo de interiorismo
             </label>
@@ -681,7 +735,7 @@ export function PlanoStudio({
               ))}
             </ModernSelect>
             <label htmlFor="vista" className="text-ink mb-1 mt-3 block text-sm font-medium">
-              Tipo de vista
+              Tipo de imagen
             </label>
             <ModernSelect
               id="vista"
@@ -714,7 +768,7 @@ export function PlanoStudio({
               type="button"
               className="mt-3 w-full"
               onClick={onGenerateCenital}
-              disabled={busy !== null || cenitalGateBlocks(quality, cenitalAck)}
+              disabled={busy !== null || !planImageUrl || cenitalGateBlocks(quality, cenitalAck)}
             >
               {busy === 'cenital'
                 ? 'Generando…'
@@ -722,6 +776,7 @@ export function PlanoStudio({
                   ? 'Generar maqueta 3D'
                   : 'Generar vista cenital'}
             </Button>
+            <p className="text-ink-soft mt-2 text-xs">0 créditos de la app en este flujo. La llamada IA sí tiene coste de proveedor según el modelo configurado.</p>
             {cenitalGateDecision(quality) === 'block' ? (
               <p className="text-ink-soft mt-2 text-xs">
                 No se generará ninguna vista con este plano hasta que lo corrijas en el editor.
@@ -753,12 +808,10 @@ export function PlanoStudio({
 
 function TabButton({
   active,
-  disabled,
   onClick,
   children,
 }: {
   active: boolean;
-  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -767,11 +820,10 @@ function TabButton({
       type="button"
       role="tab"
       aria-selected={active}
-      disabled={disabled}
       onClick={onClick}
       className={`rounded-control px-3 py-1.5 text-sm transition-colors ${
         active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-ink-soft hover:text-ink'
-      } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+      }`}
     >
       {children}
     </button>

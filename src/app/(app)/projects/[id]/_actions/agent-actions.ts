@@ -55,7 +55,7 @@ import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { runAction, fail } from '@/server/errors/run-action';
 import { assertEditorQuality } from '@/server/quality/editor-gate';
 import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
-import { loadStudio } from '@/server/plan/studio-repo';
+import { loadStudio, saveStudio } from '@/server/plan/studio-repo';
 import { assertFreePromptQuality } from '@/server/quality/instruction-gate';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { readRenderReference } from '@/server/agent/editor-v2/render-asset-reader';
@@ -834,27 +834,32 @@ export async function redrawPlanFromImage(
  * editables (mismo camino que el dibujo a mano) más la escala. REEMPLAZA el
  * plano por defecto del proyecto — la UI pide confirmación antes de llamar.
  */
-export async function sendPlanoToEditor(projectId: string, plano: Plano2dPayload) {
-  return runAction(() => sendPlanoToEditorImpl(projectId, plano));
+export async function sendPlanoToEditor(projectId: string) {
+  return runAction(() => sendPlanoToEditorImpl(projectId));
 }
 
-async function sendPlanoToEditorImpl(projectId: string, plano: Plano2dPayload): Promise<void> {
+async function sendPlanoToEditorImpl(projectId: string): Promise<void> {
   const ctx = await requireOrgContext();
   // Escribe con autoridad de EDITOR (activa v2 si el proyecto aún vive en el
   // canvas legacy; revisión nueva si ya está activado). No pasa por la puerta
   // legacy: un proyecto ya migrado también puede recibir un plano extraído.
   await assertProjectInOrg(ctx, projectId);
-  // Mismas cotas de cordura que el resto de consumidores del payload cliente.
-  assertPlanoRasterizable(plano);
+  // El documento enviado procede del estudio guardado, no de un payload cliente.
+  const state = await loadStudio(ctx, projectId);
+  if (state.sourceKind !== 'drawing' || !state.plano) fail('No hay un boceto extraído para enviar al editor.');
+  assertPlanoRasterizable(state.plano);
   await importPlanToEditor(ctx, projectId, {
-    plano,
-    escalaEstimada: false,
+    plano: state.plano,
+    // La vía antigua no guardaba extracción ni cotas confirmadas. Su geometría
+    // no adquiere escala física por el mero hecho de abrirse en Editor v2.
+    escalaEstimada: state.escalaEstimada !== false,
     writtenDimensions: [],
     corrections: [],
     exteriors: [],
     furniture: [],
     warnings: [],
   });
+  await saveStudio(ctx, projectId, { ...state, planImportApplied: true });
 }
 
 /** Resuelve los bytes de la imagen redibujada: data URL o asset de nuestro storage. */

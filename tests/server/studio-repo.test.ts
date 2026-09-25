@@ -31,4 +31,19 @@ describe('persistencia del estudio por organización', () => {
       'Proyecto no encontrado',
     );
   });
+
+  it('persiste el historial sin enlaces firmados que caducan', async () => {
+    const organizationId = await makeOrg();
+    const ctx: OrgContext = { organizationId, userId: 'test', role: 'owner' };
+    const project = await prisma.project.create({ data: { organizationId, title: 'Historial' } });
+    await saveStudio(ctx, project.id, {
+      results: [
+        { id: 'origen', kind: 'source', assetKey: 'origen', createdAt: '2026-09-24T12:00:00.000Z' },
+        { id: 'render', kind: 'render', assetKey: 'render', sourceKey: 'origen', vista: 'cenital', createdAt: '2026-09-24T12:01:00.000Z' },
+      ],
+    });
+    const restored = await loadStudio(ctx, project.id);
+    expect(restored.results?.map((item) => item.assetKey)).toEqual(['origen', 'render']);
+    expect(JSON.stringify(restored.results)).not.toContain('assetUrl');
+  });
 });

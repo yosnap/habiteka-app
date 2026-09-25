@@ -81,6 +81,12 @@ export function StepPlanCheck({
 
       <PlanQualityCard
         quality={quality}
+        summary={{
+          replacesExisting: null,
+          rooms: result.plano.zones.length,
+          exteriors: result.exteriors.length,
+          furniture: result.furniture.length,
+        }}
         confirmApply={confirmApply}
         busy={pending || applying}
         applying={applying}
