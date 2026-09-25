@@ -9,6 +9,7 @@ import { assertEditorDocument } from '@/lib/editor-document/validation';
 import { reconcileCeilings } from '@/lib/editor-document/ceiling-reconciliation';
 import { insideRoom, luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
+import { followFurnitureOnMovedWalls } from './wall-furniture-follow';
 
 /** Traslación única: vértices compartidos y elementos seleccionados nunca se desplazan dos veces. */
 export function nudgeElements(source: EditorDocument, ids: string[], delta: Point): EditorDocument {
@@ -25,6 +26,7 @@ export function nudgeElements(source: EditorDocument, ids: string[], delta: Poin
     Object.assign(v, constrainExteriorVertex(source, v.id, { x: v.x + delta.x, y: v.y + delta.y }));
   for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.luminaires ?? []), ...doc.labels])
     if (selected.has(item.id)) { item.x += delta.x; item.y += delta.y; }
+  doc = followFurnitureOnMovedWalls(source, doc, ids);
   for (const boundary of doc.boundaries ?? []) if (!selected.has(boundary.id)) {
     const angle = boundary.rotation * Math.PI / 180;
     for (const gate of boundary.construction.gates) if (selected.has(gate.id))

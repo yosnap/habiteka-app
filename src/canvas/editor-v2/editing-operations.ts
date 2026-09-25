@@ -19,6 +19,7 @@ import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
 import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
 import { pruneLightingScenes } from '@/lib/editor-document/lighting-scene';
+import { followFurnitureOnMovedWalls } from './wall-furniture-follow';
 
 export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
@@ -238,7 +239,8 @@ export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
     const light = next.luminaires?.find((entry) => entry.id === id);
     if (light) { const issue = luminairePlacementIssue(next, light); if (issue) throw new Error(issue); }
   });
-  return moved.ramps?.some((ramp) => ramp.id === id) ? syncRampArrival(moved, id) : moved;
+  const withFurniture = doc.walls.some((wall) => wall.id === id) ? followFurnitureOnMovedWalls(doc, moved, [id]) : moved;
+  return withFurniture.ramps?.some((ramp) => ramp.id === id) ? syncRampArrival(withFurniture, id) : withFurniture;
 }
 /** One history action for precise keyboard movement of movable construction and furniture. */
 export function nudgeSpatialEntities(doc: EditorDocument, ids: string[], delta: Point): EditorDocument {
