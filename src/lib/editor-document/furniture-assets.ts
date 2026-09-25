@@ -35,6 +35,9 @@ const definitions: AssetDefinition[] = [
   ['nevera_mini', 'Minifrigorífico · modelo 3D', 'cocina', 'appliance', 500, 550, 850],
   ['sofa_grande', 'Sofá grande · modelo 3D', 'salon', 'sofa', 2800, 1000, 850],
   ['butaca', 'Butaca · modelo 3D', 'salon', 'sofa', 900, 900, 850],
+  ['sillon_moderno', 'Sillón de madera y piel', 'salon', 'chair', 820, 990, 1020],
+  ['mesa_centro_moderna', 'Mesa de centro de piedra y madera', 'salon', 'table', 1200, 600, 390],
+  ['silla_comedor_piel', 'Silla de comedor de piel', 'comedor', 'chair', 450, 580, 980],
 ];
 export const ASSET_CATALOG: FurnitureCatalogEntry[] = definitions.map(([key, label, room, profile, widthMm, depthMm, heightMm]) => ({
   id: `habiteka:asset:${key}`, productId: `asset-${key}`, variantLabel: 'Original', kind: `asset-${key}`,
@@ -46,7 +49,8 @@ const assets = new Map(definitions.map(([key]) => {
   if (!provenance) throw new Error(`Falta procedencia del modelo ${key}`);
   return [`habiteka:asset:${key}` as string, { key, url: `/models/cc0/${provenance.file}`, ...provenance,
     // Fixed facing direction: resizing never changes orientation automatically.
-    frontRotation: key === 'cama' ? Math.PI : key === 'armario' ? -Math.PI / 2 : 0,
+    frontRotation: key === 'cama' ? Math.PI : key === 'armario' ? -Math.PI / 2
+      : key === 'mesa_centro_moderna' ? Math.PI / 2 : 0,
   }] as const;
 }));
 export function furnitureAsset(item: Pick<Furniture, 'catalogId'>) {

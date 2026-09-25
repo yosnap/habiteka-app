@@ -24,12 +24,13 @@ function CeilingMesh({ surface, view, selected, onSelect }: {
       ? <extrudeGeometry args={[shape, { depth: .04, bevelEnabled: false, steps: 1 }]} />
       : <shapeGeometry args={[shape]} />}
     <meshStandardMaterial color={selected ? '#43b6a0' : surface.ceiling.color} side={2} roughness={.85}
+      emissive={surface.ceiling.color} emissiveIntensity={.08}
       transparent={transparent} opacity={transparent ? .16 : 1} depthWrite={!transparent} />
   </mesh>;
 }
 
-function LuminaireMesh({ resolved, selected, emitLight, castShadow, onSelect }: {
-  resolved: ResolvedLight; selected: boolean; emitLight: boolean; castShadow: boolean; onSelect?: (id: string) => void;
+function LuminaireMesh({ resolved, view, selected, emitLight, castShadow, onSelect }: {
+  resolved: ResolvedLight; view: CeilingView; selected: boolean; emitLight: boolean; castShadow: boolean; onSelect?: (id: string) => void;
 }) {
   const { luminaire, heightMm, ceilingHeightMm, effectiveTemperatureK, effectiveLumens, effectiveEnabled } = resolved;
   // La escena activa de la estancia manda sobre los valores nominales.
@@ -48,10 +49,10 @@ function LuminaireMesh({ resolved, selected, emitLight, castShadow, onSelect }: 
   return <group position={[luminaire.x / 1000, heightMm / 1000, luminaire.y / 1000]}
     userData={{ sourceEntityId: luminaire.id }}
     onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(luminaire.id); } : undefined}>
-    {pendant && cableHeight > 0 && <mesh position={[0, bodyHeight + cableHeight / 2, 0]}>
+    {view !== 'hidden' && pendant && cableHeight > 0 && <mesh position={[0, bodyHeight + cableHeight / 2, 0]}>
       <cylinderGeometry args={[.004, .004, cableHeight, 6]} /><meshStandardMaterial color="#424242" />
     </mesh>}
-    <group rotation={[0, azimuth, 0]}><group rotation={[0, 0, tilt]} position={[0, bodyHeight, 0]}>
+    {view !== 'hidden' && <group rotation={[0, azimuth, 0]}><group rotation={[0, 0, tilt]} position={[0, bodyHeight, 0]}>
       <mesh position={[0, -bodyHeight / 2, 0]} castShadow>
         <cylinderGeometry args={[pendant ? radius * .45 : radius, radius, bodyHeight, 24, 1, true]} />
         <meshStandardMaterial color={selected ? '#43b6a0' : luminaire.color} side={2} roughness={.45} metalness={.15} />
@@ -61,7 +62,7 @@ function LuminaireMesh({ resolved, selected, emitLight, castShadow, onSelect }: 
         <meshStandardMaterial side={2} color={lightColor} emissive={lightColor}
           emissiveIntensity={effectiveEnabled ? 1 : 0} roughness={.6} />
       </mesh>
-    </group></group>
+    </group></group>}
     {emitLight && effectiveEnabled && <>
       <primitive object={emitter.target} />
       <primitive object={emitter} />
@@ -91,7 +92,7 @@ export function CeilingLightingMeshes({
     {surfaces.map((surface) => <CeilingMesh key={surface.ceiling.id} surface={surface} view={view}
       selected={selection.includes(surface.ceiling.id)} onSelect={onSelect} />)}
     <LightStripMeshes document={document} selection={selection} emittingIds={budget.stripIds} />
-    {lights.map((resolved) => <LuminaireMesh key={resolved.luminaire.id} resolved={resolved}
+    {lights.map((resolved) => <LuminaireMesh key={resolved.luminaire.id} resolved={resolved} view={view}
       selected={selection.includes(resolved.luminaire.id)} emitLight={emitting.has(resolved.luminaire.id)}
       castShadow={shadowing.has(resolved.luminaire.id)} onSelect={onSelect} />)}
   </>;

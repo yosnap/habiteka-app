@@ -101,6 +101,12 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | Pendiente |
 | 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Preparación del socio en paralelo; integración tras fase 3 |
 
+### Secuencia de trabajo tras las pruebas de importación (25-09-2026)
+
+La fase 2 sigue abierta para la **fidelidad métrica y topológica**. Sus avisos impiden aprobar un diseño o generar visita/vídeo sobre geometría dudosa, pero no detienen el desarrollo visual del Editor v2 en un documento de prueba aislado. El siguiente bloque de producto es la maqueta amueblada de la fase 3, construida con la misma escena que se usará para entrar en el inmueble y grabar vídeo. Las imágenes aportadas por el usuario fijan el objetivo de presentación: materiales cálidos, mobiliario creíble y vistas cenital, oblicua e interior del mismo inmueble.
+
+En paralelo, mantener un conjunto pequeño de planos autorizados y variados (CAD limpio, escaneo, plano amueblado y dibujo manual) con muros, huecos, exteriores y cotas revisados como referencia. Medir por caso qué detecta el flujo, qué exige corrección y qué no puede afirmar. La pantalla de carga debe explicar cómo obtener una imagen legible y una cota de referencia, sin exigir al usuario que prepare un único estilo de plano ni ocultar fallos de extracción. Usar este conjunto primero para evaluar cambios de lectura y geometría; plantear ajuste de modelo solo si los errores repetidos, los ejemplos etiquetados y una comparación controlada justifican ese coste.
+
 Las fases 1–6 construyen el núcleo común para los tres sectores: experiencia visual, documento aprobado, visita y vídeos. La fase 3 incorpora el catálogo propio y contrato extensible. La captación/definición del piloto de mueblería de fase 7 empieza en paralelo a fase 1; su importación técnica requiere fase 3 y acuerdo de uso. No esperar a terminar vídeos para preparar el socio, ni bloquear el núcleo común por falta de socio. Validar una tarea completa por sector antes de afirmar encaje comercial.
 
 | Vía de trabajo | Inicio | Dependencia para validar |

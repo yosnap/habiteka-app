@@ -19,6 +19,7 @@ import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { landingHugsWallEnd } from '@/lib/editor-document/landing-wall-corner';
+import { doorSweepSolids } from './door-sweep-solids';
 
 interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -163,7 +164,8 @@ export function relieveFurnitureForThickerWalls(previous: EditorDocument, candid
 }
 /** Pares de sólidos que se penetran y su profundidad; útil para diagnosticar bloqueos de colocación. */
 export function collisions(doc: EditorDocument): Map<string, number> {
-  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
+  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids);
+  const wallSolids = [...walls(doc), ...doorSweepSolids(doc)];
   const result = new Map<string, number>();
   const boundaryItems = new Map(planObjects(doc).map((item) => [item.id, item]));
   objects.forEach((a, index) => {
@@ -195,6 +197,8 @@ function collisionLabel(doc: EditorDocument, id: string): string {
   if (object) return `«${elementName(object)}»`;
   const wall = doc.walls.find((item) => item.id === id);
   if (wall) return wall.name?.trim() ? `la pared «${wall.name.trim()}»` : 'la pared';
+  const opening = doc.openings.find((item) => item.id === id);
+  if (opening) return opening.name?.trim() ? `la puerta «${opening.name.trim()}»` : 'la puerta';
   const column = doc.columns?.find((item) => item.id === id);
   if (column) return column.name?.trim() ? `la columna «${column.name.trim()}»` : 'la columna';
   const stair = doc.stairs?.find((item) => item.id === id);
@@ -232,15 +236,23 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     if ((columnIds.has(first) && (structuralIds.has(second) || boundaryIds.has(second))) || (columnIds.has(second) && (structuralIds.has(first) || boundaryIds.has(first)))) continue;
     // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
-    if (depth > (before.get(key) ?? 0) + .1)
+    if (depth > (before.get(key) ?? 0) + .1) {
+      const doorId = candidate.openings.find((opening) => opening.kind === 'puerta' &&
+        (opening.id === first || opening.id === second))?.id;
+      if (doorId) {
+        const obstacleId = doorId === first ? second : first;
+        throw new Error(`El giro de ${collisionLabel(candidate, doorId)} choca con ${collisionLabel(candidate, obstacleId)}. Cambia el giro o mueve el obstáculo.`);
+      }
       throw new Error(`${collisionLabel(candidate, first)} atraviesa ${collisionLabel(candidate, second)} (${Math.max(1, Math.round(depth / 10))} cm). Ajusta posición, tamaño o elevación.`);
+    }
   }
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
   const item = planObjects(candidate).find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
   if (!item) throw new Error('Elemento no encontrado');
-  const occupied = [...walls(previous), ...planObjects(previous).flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
+  const occupied = [...walls(previous), ...doorSweepSolids(previous), ...planObjects(previous).flatMap(objectSolids),
+    ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
   for (let ring = 0; ring <= 32; ring++) for (let direction = 0; direction < (ring ? 8 : 1); direction++) {
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };

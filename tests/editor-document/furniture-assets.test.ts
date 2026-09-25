@@ -13,8 +13,8 @@ import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 
 describe('audited local furniture assets', () => {
-  it('registers 29 distinct local assets with intact GLB binaries', () => {
-    expect(ASSET_CATALOG).toHaveLength(29);
+  it('registers 32 distinct local assets with intact GLB binaries', () => {
+    expect(ASSET_CATALOG).toHaveLength(32);
     expect(new Set(FURNITURE_CATALOG.map((item) => item.id)).size).toBe(FURNITURE_CATALOG.length);
     for (const entry of ASSET_CATALOG) {
       const asset = furnitureAsset({ catalogId: entry.id })!;

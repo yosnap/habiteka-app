@@ -3,7 +3,7 @@ import { wallConstruction, openingConstruction } from '@/lib/editor-document/con
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
 import { wallJunctions } from '../wall-junctions';
 import { materialColor, meters, type SceneBox, type ScenePolygon } from './types';
-import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
+import { WALL_SECTION_COLOR } from '@/lib/editor-document/wall-appearance';
 import { junctionFinishes } from './junction-finishes';
 
 export function wallMeshes(doc: EditorDocument, wall: Wall): SceneBox[] {
@@ -21,9 +21,9 @@ export function wallMeshes(doc: EditorDocument, wall: Wall): SceneBox[] {
       position: [meters(a.x + Math.cos(angle) * center), meters((bottom + top) / 2), meters(a.y + Math.sin(angle) * center)],
       size: [meters(to - from), meters(top - bottom), meters(wall.thicknessMm)], rotation: -angle,
       // Caps are structural, not either painted face. Left paint must not leak outside.
-      color: '#d8d5ce',
+      color: WALL_SECTION_COLOR,
       sideMaterials: [construction.materials.left, construction.materials.right], textureOffset: [meters(from), meters(bottom)],
-      topColor: top === ceiling ? WALL_PLAN_COLOR : undefined,
+      topColor: top === ceiling ? WALL_SECTION_COLOR : undefined,
       sideColors: [wall.colors?.left ?? materialColor(construction.materials.left), wall.colors?.right ?? materialColor(construction.materials.right)] });
   };
   let cursor = 0;
@@ -62,7 +62,7 @@ export function junctionMeshes(doc: EditorDocument): ScenePolygon[] {
       return join ? [{ id: `junction:${vertex.id}:${index}`, sourceEntityId: walls[0]!.id, role: 'junction' as const,
         edgeFinishes: junctionFinishes(doc, walls, join.points),
         points: join.points.map((p) => ({ x: meters(p.x), y: meters(p.y) })), elevation: meters(bottom), height: meters(top - bottom),
-        color: '#d8d5ce', topColor: top === Math.max(...walls.map(ceiling)) ? WALL_PLAN_COLOR : undefined }] : [];
+        color: WALL_SECTION_COLOR, topColor: top === Math.max(...walls.map(ceiling)) ? WALL_SECTION_COLOR : undefined }] : [];
     });
   });
 }

@@ -4,7 +4,7 @@ import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { paintElement } from '@/lib/editor-document/spatial-commands';
 import { wallMeshes, junctionMeshes } from '@/canvas/editor-v2/scene/wall-meshes';
-import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
+import { WALL_SECTION_COLOR } from '@/lib/editor-document/wall-appearance';
 
 describe('interior and exterior wall finishes', () => {
   const points = [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }];
@@ -34,8 +34,8 @@ describe('interior and exterior wall finishes', () => {
     expect(after.sideColors).toEqual(['#ff0000', '#0000ff']);
     expect(after.color).toBe(before.color);
     expect(after.color).not.toBe('#ff0000');
-    expect(after.topColor).toBe(WALL_PLAN_COLOR);
-    expect(junctionMeshes(both).every((mesh) => mesh.topColor === WALL_PLAN_COLOR)).toBe(true);
+    expect(after.topColor).toBe(WALL_SECTION_COLOR);
+    expect(junctionMeshes(both).every((mesh) => mesh.topColor === WALL_SECTION_COLOR)).toBe(true);
     const leftEdges = junctionMeshes(left).flatMap((j) => j.edgeFinishes ?? []);
     const bothEdges = junctionMeshes(both).flatMap((j) => j.edgeFinishes ?? []);
     expect(bothEdges.filter((edge) => edge.color === '#ff0000')).toEqual(leftEdges.filter((edge) => edge.color === '#ff0000'));
@@ -54,6 +54,6 @@ describe('interior and exterior wall finishes', () => {
     expect(vertical.length).toBeGreaterThan(0);
     expect(horizontal.every((edge) => edge.finish.color === '#0000ff')).toBe(true);
     expect(vertical.every((edge) => edge.finish.color === '#00ff00')).toBe(true);
-    expect(join.topColor).toBe(WALL_PLAN_COLOR);
+    expect(join.topColor).toBe(WALL_SECTION_COLOR);
   });
 });

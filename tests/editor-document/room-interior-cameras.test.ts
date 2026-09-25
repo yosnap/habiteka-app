@@ -177,6 +177,20 @@ describe('cámaras interiores por estancia', () => {
     expect(boundaryClearance(eye, boundary)).toBeGreaterThanOrEqual(450);
   });
 
+  it('descarta las posiciones ocupadas por mobiliario', () => {
+    const doc = rectangle();
+    doc.furniture = [{ id: 'fridge', kind: 'nevera', x: 200, y: 2800,
+      widthMm: 1000, depthMm: 900, rotation: 0,
+      dimensionalOrigin: 'physical' }];
+    const [camera] = roomInteriorCameras(doc);
+    const eye = { x: camera!.camera.position[0] * 1000, y: camera!.camera.position[2] * 1000 };
+    expect(insideRoom(eye, [
+      { x: 200, y: 2800 }, { x: 1200, y: 2800 },
+      { x: 1200, y: 3700 }, { x: 200, y: 3700 },
+    ])).toBe(false);
+    expect(eye.y).toBeLessThan(2000);
+  });
+
   it('abre el ángulo en las estancias pequeñas y lo cierra en las grandes', () => {
     expect(interiorFovDeg(2)).toBe(INTERIOR_FOV_MAX_DEG);
     expect(interiorFovDeg(6)).toBe(INTERIOR_FOV_MAX_DEG);

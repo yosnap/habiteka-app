@@ -18,7 +18,9 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
         width={box.size[0]} height={box.size[2]} />
       : index === 2 && box.topColor
-        ? <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
+        ? box.role === 'wall'
+          ? <meshStandardMaterial key={index} attach={`material-${index}`} color={color} roughness={.85} />
+          : <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
       : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
@@ -90,7 +92,9 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
       <FloorMaterial finish={polygon.floorFinish} attach="material-0" />
       <meshStandardMaterial attach="material-1" color={polygon.sideColor ?? '#756f66'} roughness={.85} />
     </> : <FloorMaterial finish={polygon.floorFinish} /> : polygon.topColor || polygon.edgeFinishes ? <>
-      <meshBasicMaterial attach="material-0" color={polygon.topColor ?? polygon.color} toneMapped={false} />
+      {polygon.role === 'wall' || polygon.role === 'junction'
+        ? <meshStandardMaterial attach="material-0" color={polygon.color} roughness={.85} />
+        : <meshBasicMaterial attach="material-0" color={polygon.topColor ?? polygon.color} toneMapped={false} />}
       <meshStandardMaterial attach="material-1" color={polygon.color} roughness={.85} visible={!polygon.edgeFinishes} />
     </> : <meshStandardMaterial color={selected ? '#43b6a0' : polygon.color} roughness={.85} />}
     {selected && polygon.role === 'floor' && <Edges color="#087f75" />}

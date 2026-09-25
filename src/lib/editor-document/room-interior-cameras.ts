@@ -12,16 +12,18 @@
  * Todo lo de aquí es puro: mismas entradas, misma pose, sin tocar la escena.
  */
 import { cameraPoseSchema, type CameraPose } from '@/lib/contracts/walkthrough-keyframe';
+import { planObjects } from './boundary-types';
 import { boundaryClearance, insideRoom } from './ceiling-geometry';
 import { floorFinish } from './floor-finishes';
 import { distance, interpolate, wallPoints } from './geometry';
 import { deriveRoomsSafe, type DerivedRoom } from './rooms';
 import type { EditorDocument, Point } from './schema';
+import { footprint, furnitureSpatial, objectCenter } from './spatial-properties';
 
 /** Altura del ojo sobre el suelo acabado, en milímetros (fotografía de interiores). */
 export const EYE_HEIGHT_MM = 1600;
-/** El punto de mira baja un poco respecto al ojo: encuadre natural, no de techo. */
-const FOCUS_DROP_MM = 200;
+/** El punto de mira baja hacia el mobiliario sin perder los muros ni el techo. */
+const FOCUS_DROP_MM = 500;
 /** Campo de visión de una estancia amplia: un 24 mm en formato completo. */
 export const INTERIOR_FOV_DEG = 65;
 /** Campo de visión máximo, para estancias pequeñas donde 65° no cabe. */
@@ -34,6 +36,8 @@ const TIGHT_ROOM_M2 = 6;
 const MIN_CLEARANCE_MM = 450;
 /** Distancia mínima a una puerta: ni dentro del vano ni pegado a su marco. */
 const MIN_DOOR_CLEARANCE_MM = 1000;
+/** Evita situar el ojo pegado a un mueble alto o dentro de él. */
+const MIN_OBJECT_CLEARANCE_MM = 450;
 /** Retracciones probadas desde cada candidato hacia el interior de la estancia. */
 const RETRACTIONS_MM = [450, 700, 1000, 1400];
 /**
@@ -164,26 +168,49 @@ function roomLabel(doc: EditorDocument, room: DerivedRoom): string | null {
 function eyePoint(doc: EditorDocument, room: DerivedRoom, centre: Point): Point {
   const boundary = room.boundary;
   const doors = doorPoints(doc, room);
-  const candidates = placementCandidates(boundary, centre).filter((point) =>
+  const floorElevation = floorFinish(doc, room.id).elevationMm ?? 0;
+  const obstacles = planObjects(doc).filter((item) => {
+    const { elevationMm, heightMm } = furnitureSpatial(item);
+    return insideRoom(objectCenter(item), boundary) &&
+      elevationMm < floorElevation + EYE_HEIGHT_MM &&
+      elevationMm + heightMm > floorElevation + 300;
+  }).map(footprint);
+  const candidates = [...placementCandidates(boundary, centre), centre].filter((point) =>
     insideRoom(point, boundary),
   );
-  const ranked = (minClearance: number, minDoor: number) =>
+  const ranked = (minClearance: number, minDoor: number, minObject: number) =>
     candidates
       .filter(
         (point) =>
           boundaryClearance(point, boundary) >= minClearance &&
-          doors.every((door) => distance(point, door) >= minDoor),
+          doors.every((door) => distance(point, door) >= minDoor) &&
+          objectClearance(point, obstacles) >= minObject,
       )
-      .sort((a, b) => visibleDepth(b, centre, boundary) - visibleDepth(a, centre, boundary))[0];
+      .sort((a, b) => {
+        const depthDifference = visibleDepth(b, centre, boundary) - visibleDepth(a, centre, boundary);
+        if (Math.abs(depthDifference) > 1 || !doors.length) return depthDifference;
+        // Una planta rectangular ofrece esquinas con idéntica profundidad. Evita
+        // que el orden de sus vértices escoja la hoja de la puerta como primer plano.
+        const nearestDoor = (point: Point) => Math.min(...doors.map((door) => distance(point, door)));
+        return nearestDoor(b) - nearestDoor(a);
+      })[0];
   // El centro siempre tiene la mayor holgura posible: sirve de listón cuando la
   // estancia es más estrecha que la separación deseada.
   const reachable = Math.min(MIN_CLEARANCE_MM, boundaryClearance(centre, boundary));
   return (
-    ranked(MIN_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM) ??
-    ranked(reachable, MIN_DOOR_CLEARANCE_MM) ??
-    ranked(reachable, 0) ??
+    ranked(MIN_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM, MIN_OBJECT_CLEARANCE_MM) ??
+    ranked(reachable, MIN_DOOR_CLEARANCE_MM, 0) ??
+    ranked(reachable, 0, 0) ??
+    ranked(0, 0, 0) ??
     centre
   );
+}
+
+/** Distancia firmada a las huellas ocupadas: negativa si el ojo cae dentro. */
+function objectClearance(point: Point, obstacles: Point[][]): number {
+  if (!obstacles.length) return Infinity;
+  return Math.min(...obstacles.map((polygon) =>
+    boundaryClearance(point, polygon) * (insideRoom(point, polygon) ? -1 : 1)));
 }
 
 /** Esquinas y puntos medios de muro, retraídos hacia el interior de la estancia. */

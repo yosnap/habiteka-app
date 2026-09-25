@@ -371,7 +371,7 @@ function SceneView({
       <button type="button" disabled={recording || walking || exporting || store.getState().readOnly} onClick={() => void exportWalk()}>Exportar MP4 · 1080p</button>
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
     </div>}
-    <Canvas frameloop="demand" shadows dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
+    <Canvas frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
       onCreated={(state) => { root.current = state; setRendererReady(true); }} camera={{ position: [8, 8, 10], fov: 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => store.getState().select([])}>
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]

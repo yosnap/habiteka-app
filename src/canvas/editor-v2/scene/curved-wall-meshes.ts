@@ -1,7 +1,7 @@
 import type { EditorDocument, Wall } from '@/lib/editor-document/schema';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { wallConstruction, openingConstruction } from '@/lib/editor-document/construction-properties';
-import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
+import { WALL_SECTION_COLOR } from '@/lib/editor-document/wall-appearance';
 import { meters, materialColor, type ScenePolygon } from './types';
 
 /** A continuous annular strip, with opening intervals removed by height band. */
@@ -19,7 +19,7 @@ export function curvedWallMeshes(doc: EditorDocument, wall: Wall): ScenePolygon[
     const points = wallStrip(doc, wall, from, to), count = points.length / 2;
     polygons.push({ id: `${wall.id}:curve:${polygons.length}`, sourceEntityId: wall.id, role: 'wall',
       points: points.map((p) => ({ x: meters(p.x), y: meters(p.y) })), elevation: meters(bottom), height: meters(top - bottom),
-      color: '#d8d5ce', topColor: top === ceiling ? WALL_PLAN_COLOR : '#d8d5ce',
+      color: WALL_SECTION_COLOR, topColor: WALL_SECTION_COLOR,
       edgeFinishes: points.map((_, i) => ({ sourceEntityId: wall.id,
         materialId: i === count - 1 || i === points.length - 1 ? undefined : i < count ? construction.materials.left : construction.materials.right,
         offsetX: meters(length * (from + (to - from) * (i < count ? i : points.length - 1 - i) / (count - 1))),
