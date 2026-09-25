@@ -38,6 +38,8 @@ const definitions: AssetDefinition[] = [
   ['sillon_moderno', 'Sillón de madera y piel', 'salon', 'chair', 820, 990, 1020],
   ['mesa_centro_moderna', 'Mesa de centro de piedra y madera', 'salon', 'table', 1200, 600, 390],
   ['silla_comedor_piel', 'Silla de comedor de piel', 'comedor', 'chair', 450, 580, 980],
+  ['mesa_comedor_mantel', 'Mesa de comedor con mantel', 'comedor', 'table', 2256, 1390, 877],
+  ['cama_hotel', 'Cama king tapizada', 'dormitorio', 'bed', 2020, 2204, 1422],
 ];
 export const ASSET_CATALOG: FurnitureCatalogEntry[] = definitions.map(([key, label, room, profile, widthMm, depthMm, heightMm]) => ({
   id: `habiteka:asset:${key}`, productId: `asset-${key}`, variantLabel: 'Original', kind: `asset-${key}`,

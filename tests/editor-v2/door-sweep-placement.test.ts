@@ -16,8 +16,8 @@ describe('espacio de giro de puertas en el Editor v2', () => {
   it('impide colocar la mesilla y la bañera dentro del giro', () => {
     const document = visualSampleDocument();
     for (const [id, x, y, door] of [
-      ['nightstand', 2550, 5200, 'living-bedroom'],
-      ['bath', 6750, 5000, 'kitchen-bath'],
+      ['nightstand', 2700, 4500, 'living-bedroom'],
+      ['bath', 6100, 4600, 'kitchen-bath'],
     ] as const) {
       const candidate = structuredClone(document);
       Object.assign(candidate.furniture.find((item) => item.id === id)!, { x, y });
@@ -29,10 +29,10 @@ describe('espacio de giro de puertas en el Editor v2', () => {
   it('busca otra posición al añadir un mueble donde gira una puerta', () => {
     const document = visualSampleDocument();
     const item = { ...document.furniture.find((furniture) => furniture.id === 'nightstand')!,
-      id: 'another-nightstand', x: 2550, y: 5200 };
+      id: 'another-nightstand', x: 2700, y: 4500 };
     const candidate = { ...document, furniture: [...document.furniture, item] };
     const placed = placeNewObject(document, candidate, item.id);
-    expect(placed.furniture.find((furniture) => furniture.id === item.id)).not.toMatchObject({ x: 2550, y: 5200 });
+    expect(placed.furniture.find((furniture) => furniture.id === item.id)).not.toMatchObject({ x: 2700, y: 4500 });
     expect(doorPairs(placed).some((pair) => pair.includes(item.id))).toBe(false);
   });
 

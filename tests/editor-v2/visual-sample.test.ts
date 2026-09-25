@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { visualSampleDocument } from '@/app/dev/editor-v2/visual-sample';
+import { collisions } from '@/canvas/editor-v2/spatial-placement';
 import { ceilingIssues, ceilingSurfaces, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 
 describe('vivienda visual de prueba', () => {
+  it('sitúa muebles, paredes y puertas sin invadir sus volúmenes', () => {
+    expect([...collisions(visualSampleDocument()).keys()]).toEqual([]);
+  });
+
   it('mantiene un techo, una luz válida y una cámara interior en cada estancia', () => {
     const document = parseEditorDocument(visualSampleDocument());
     const surfaces = ceilingSurfaces(document);
