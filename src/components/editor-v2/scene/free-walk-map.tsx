@@ -28,6 +28,8 @@ export function FreeWalkMap({ document, start, controller }: {
     const walls: { id: string; points: string }[] = [];
     const windows: { id: string; points: string }[] = [];
     const points = (samples: Point[]) => samples.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
+    const outdoorEdges = document.walls.filter((wall) => wall.hidden && wall.id.startsWith('outdoor:'))
+      .map((wall) => ({ id: wall.id, points: points(wallPath(document, wall).samples()) }));
     document.walls.filter((wall) => !wall.hidden).forEach((wall) => {
       const path = wallPath(document, wall);
       const openings = document.openings.filter((opening) => opening.wallId === wall.id)
@@ -48,7 +50,7 @@ export function FreeWalkMap({ document, start, controller }: {
       const point = wallPath(document, wall).at(opening.position);
       return [{ id: opening.id, x: x(point.x), y: y(point.y) }];
     });
-    return { x, y, walls, windows, doors };
+    return { x, y, walls, windows, doors, outdoorEdges };
   }, [document]);
   if (!map) return null;
   const point = pose ?? { ...start, yaw: 0 };
@@ -63,6 +65,8 @@ export function FreeWalkMap({ document, start, controller }: {
         stroke="#39534d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />)}
       {map.windows.map((window) => <polyline key={window.id} points={window.points} fill="none"
         stroke="#75b6c7" strokeWidth="2" strokeLinecap="round" />)}
+      {map.outdoorEdges.map((edge) => <polyline key={edge.id} points={edge.points} fill="none"
+        stroke="#78a58b" strokeWidth="1.5" strokeDasharray="3 3" />)}
       {map.doors.map((door) => <circle key={door.id} cx={door.x} cy={door.y} r="4" fill="#47a883" stroke="#fff" strokeWidth="1.5" />)}
       <circle cx={px} cy={py} r="6" fill="#ea6a3d" stroke="#fff" strokeWidth="2" />
       <line x1={px} y1={py} x2={px + Math.sin(point.yaw) * 15} y2={py + Math.cos(point.yaw) * 15}

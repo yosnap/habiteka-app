@@ -5,6 +5,8 @@ import { insideRoom, ceilingSurfaces } from './ceiling-geometry';
 import { distance, interpolate } from './geometry';
 import { furnitureVolumes } from './furniture-volumes';
 import { wallPath } from './wall-path';
+import { rampParts } from './ramp-route';
+import { worldToLocal } from './spatial-properties';
 
 export const CAMERA_CLEARANCE_MM = 150;
 /** Construye una vez el entorno de colisión, reutilizado por ruta y auto-tour. */
@@ -12,15 +14,25 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
   const rooms = deriveRooms(doc).filter((room) => !zoneIds?.length || zoneIds.includes(room.id)), ceilings = ceilingSurfaces(doc);
   const walls = doc.walls.filter((w) => !w.hidden).map((wall) => ({ wall, path: wallPath(doc, wall),
     doors: doc.openings.filter((o) => o.wallId === wall.id && o.kind !== 'ventana' &&
-      (o.elevationMm ?? 0) <= 30 && (o.kind !== 'puerta' || (o.openAngleDeg ?? 90) >= 75)) }));
+      (o.kind !== 'puerta' || (o.openAngleDeg ?? 90) >= 75)) }));
+  const rampSurfaces = (doc.ramps ?? []).flatMap((ramp) => rampParts(ramp).map((part) => ({ ramp, part })));
+  const rampAt = (p: Point) => {
+    for (const { ramp, part } of rampSurfaces) {
+      const local = worldToLocal({ x: part.x, y: part.y, rotation: part.rotation }, worldToLocal(ramp, p));
+      if (local.x < CAMERA_CLEARANCE_MM || local.x > ramp.widthMm - CAMERA_CLEARANCE_MM ||
+        local.y < 0 || local.y > part.depthMm) continue;
+      return part.elevationMm + (part.kind === 'flight' ? part.riseMm * (1 - local.y / part.depthMm) : 0);
+    }
+    return null;
+  };
   const outdoor = planObjects(doc).filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item, volumes: furnitureVolumes(item) }));
-  const obstacles = [...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? []), ...(doc.stairs ?? []), ...(doc.ramps ?? [])];
+  const obstacles = [...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? []), ...(doc.stairs ?? [])];
   const roomAt = (p: Point) => rooms.find((room) => insideRoom(p, room.boundary));
-  const floorAt = (p: Point) => doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
+  const floorAt = (p: Point) => rampAt(p) ?? doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
   const free = (p: Point, eyeHeightMm = 1600): boolean => {
     const room = roomAt(p);
     // Los umbrales de puerta pueden coincidir exactamente con el borde de dos estancias.
-    if (!room && !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) return false;
+    if (!room && rampAt(p) === null && !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) return false;
     const floor = floorAt(p);
     const roof = ceilings.find((c) => c.room.id === room?.id)?.heightMm;
     if (roof !== undefined && floor + eyeHeightMm + 100 > roof) return false;
@@ -28,7 +40,7 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
       const t = path.project(p);
       if (distance(p, path.at(t)) >= wall.thicknessMm / 2 + CAMERA_CLEARANCE_MM) continue;
       const opening = doors.find((o) => Math.abs(t - o.position) * path.length <= o.widthMm / 2 - CAMERA_CLEARANCE_MM &&
-        (o.heightMm ?? 2100) >= floor + eyeHeightMm + 100);
+        (o.elevationMm ?? 0) <= floor + 50 && (o.elevationMm ?? 0) + (o.heightMm ?? 2100) >= floor + eyeHeightMm + 100);
       if (!opening) return false;
     }
     for (const { item, volumes } of outdoor) {
