@@ -12,7 +12,8 @@ status: in_progress
 - Entrada, pausa y salida comprobadas en `/dev/editor-v2?muestra=visual`, sin modificar el proyecto real. El recorrido guiado de cuatro estancias de esa muestra ya se genera y se previsualiza.
 - El paseo libre muestra un mini plano del mismo documento con muros curvos, huecos de puertas, ventanas, posición, orientación y estancia actual. Comprobado visualmente en escritorio y en un ancho de 390 px; el giro de cámara actualiza el indicador.
 - La navegación atraviesa puertas hacia patios y sube rampas rectas o con giro siguiendo su superficie 3D. Una ruta guiada entre patio y estancia elevada pasa por el hueco real del muro. El mini plano distingue el contorno exterior con línea discontinua.
-- Pendiente para aceptar la fase: medir fluidez y controles táctiles en un dispositivo móvil, resolver conexiones entre plantas por escaleras y sus huecos de forjado, puntos de interés, propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
+- La cámara también sigue los peldaños y descansillos de escaleras rectas, en L y en U del mismo modelo 3D. Se verificó subida, bajada, bloqueo lateral y paso por un hueco a otra estancia con suelo elevado dentro de una misma planta; un peldaño desproporcionado no se acepta como paso.
+- Pendiente para aceptar la fase: abrir un hueco de forjado y techo coherente en la planta superior y enlazar ambas navegaciones sin salto, medir fluidez y controles táctiles en móvil, puntos de interés, propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
 
 ## Objetivo
 

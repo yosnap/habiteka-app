@@ -7,6 +7,7 @@ import { furnitureVolumes } from './furniture-volumes';
 import { wallPath } from './wall-path';
 import { rampParts } from './ramp-route';
 import { worldToLocal } from './spatial-properties';
+import { stairLayout } from './stair-layout';
 
 export const CAMERA_CLEARANCE_MM = 150;
 /** Construye una vez el entorno de colisión, reutilizado por ruta y auto-tour. */
@@ -16,6 +17,21 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     doors: doc.openings.filter((o) => o.wallId === wall.id && o.kind !== 'ventana' &&
       (o.kind !== 'puerta' || (o.openAngleDeg ?? 90) >= 75)) }));
   const rampSurfaces = (doc.ramps ?? []).flatMap((ramp) => rampParts(ramp).map((part) => ({ ramp, part })));
+  const stairSurfaces = (doc.stairs ?? []).map((stair) => {
+    const layout = stairLayout(stair);
+    return { stair, outline: layout.outline, treads: [...layout.steps, ...layout.landings] };
+  });
+  const stairAt = (p: Point) => {
+    for (const { stair, treads } of stairSurfaces) {
+      const local = worldToLocal(stair, p);
+      const tread = treads.find((part) =>
+        local.x >= part.x + CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm - CAMERA_CLEARANCE_MM &&
+        local.y >= part.y && local.y <= part.y + part.depthMm);
+      if (tread) return { id: stair.id, floorMm: stair.elevationMm + tread.heightMm,
+        riseMm: stair.heightMm / stair.stepCount };
+    }
+    return null;
+  };
   const rampAt = (p: Point) => {
     for (const { ramp, part } of rampSurfaces) {
       const local = worldToLocal({ x: part.x, y: part.y, rotation: part.rotation }, worldToLocal(ramp, p));
@@ -26,13 +42,17 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     return null;
   };
   const outdoor = planObjects(doc).filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item, volumes: furnitureVolumes(item) }));
-  const obstacles = [...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? []), ...(doc.stairs ?? [])];
+  const obstacles = [...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:')), ...(doc.columns ?? [])];
   const roomAt = (p: Point) => rooms.find((room) => insideRoom(p, room.boundary));
-  const floorAt = (p: Point) => rampAt(p) ?? doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
+  const floorAt = (p: Point) => stairAt(p)?.floorMm ?? rampAt(p) ??
+    doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
   const free = (p: Point, eyeHeightMm = 1600): boolean => {
     const room = roomAt(p);
     // Los umbrales de puerta pueden coincidir exactamente con el borde de dos estancias.
-    if (!room && rampAt(p) === null && !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) return false;
+    if (!room && rampAt(p) === null && stairAt(p) === null &&
+      !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) return false;
+    // La franja sin apoyo junto al borde de la escalera coincide con sus barandillas 3D.
+    if (!stairAt(p) && stairSurfaces.some(({ stair, outline }) => insideRoom(worldToLocal(stair, p), outline))) return false;
     const floor = floorAt(p);
     const roof = ceilings.find((c) => c.room.id === room?.id)?.heightMm;
     if (roof !== undefined && floor + eyeHeightMm + 100 > roof) return false;
@@ -68,10 +88,14 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     const count = Math.max(1, Math.ceil(distance(a, b) / 10));
     if (count > 10000) return false;
     let previousFloor = floorAt(a);
+    let previousStair = stairAt(a);
     for (let i = 0; i <= count; i++) {
-      const p = interpolate(a, b, i / count), floor = floorAt(p);
-      if (!free(p, eyeHeightMm) || Math.abs(floor - previousFloor) > 30) return false;
-      previousFloor = floor;
+      const p = interpolate(a, b, i / count), floor = floorAt(p), stair = stairAt(p);
+      const rise = stair?.id === previousStair?.id ? stair?.riseMm
+        : stair?.riseMm ?? previousStair?.riseMm;
+      const allowedStep = rise !== undefined && rise <= 220 && Math.abs(floor - previousFloor) <= rise + 1;
+      if (!free(p, eyeHeightMm) || (Math.abs(floor - previousFloor) > 30 && !allowedStep)) return false;
+      previousFloor = floor; previousStair = stair;
     }
     return true;
   };
