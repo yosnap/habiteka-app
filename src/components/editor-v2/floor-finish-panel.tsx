@@ -13,7 +13,10 @@ import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
 
 export function FloorFinishPanel({ store }: { store: EditorStore }) {
   const state = useStore(store), id = state.selection[0];
-  if (state.detailPanel !== 'paint' || !id?.startsWith('room:') || !deriveRoomsSafe(state.document).some((r) => r.id === id)) return null;
+  if (state.detailPanel !== 'paint' || !id) return null;
+  const roomIds = new Set(deriveRoomsSafe(state.document).map((room) => room.id));
+  if (!roomIds.has(id)) return null;
+  const selectedCount = state.selection.filter((selectedId) => roomIds.has(selectedId)).length;
   const finish = floorFinish(state.document, id);
   const update = (patch: Partial<FloorFinish>) => {
     // Con varias estancias seleccionadas, el acabado y la cota se aplican a todas.
@@ -21,7 +24,7 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo pintar el suelo'); }
   };
   return <AnchoredEditorPanel store={store} label="Acabados del suelo">
-    <strong>Acabados del suelo</strong>
+    <strong>{selectedCount > 1 ? `Acabados de ${selectedCount} suelos` : 'Acabados del suelo'}</strong>
     <button aria-label="Cerrar acabados del suelo" onClick={() => state.setDetailPanel(null)} style={{ float: 'right' }}>×</button>
     <fieldset disabled={state.readOnly} style={{ border: 0, padding: 0, display: 'grid', gap: 12, marginTop: 16 }}>
       <label>Color <input type="color" aria-label="Color del suelo" value={finish.color} onChange={(e) => update({ color: e.target.value })} /></label>

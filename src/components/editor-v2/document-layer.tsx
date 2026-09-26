@@ -123,7 +123,11 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           const centre = interiorPoint(room.boundary), moved = { x: centre.x + delta.x, y: centre.y + delta.y };
           store.getState().select([outdoor ? roomAt(store.getState().document, moved)?.id ?? room.id : room.id]);
         }) : undefined}
-        selected={selected.includes(room.id)} onSelect={tool === 'select' ? () => { if (!groupOf(room.id)) store.getState().select([room.id]); } : undefined} />;
+        selected={selected.includes(room.id)} onSelect={tool === 'select' ? (event) => {
+          // Al comenzar a arrastrar se conserva el grupo; un clic normal vuelve a un solo suelo.
+          if (!event && groupOf(room.id)) return;
+          clickSelect(store, room.id, event);
+        } : undefined} />;
     })}
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
     {/* A landing is a support surface; its fill must stay beneath the protection walls built on its perimeter. */}

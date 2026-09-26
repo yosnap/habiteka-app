@@ -32,6 +32,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const doc = useStore(store, (state) => state.document), selection = useStore(store, (state) => state.selection);
   const readOnly = useStore(store, (state) => state.readOnly), id = selection[0];
   const wall = doc.walls.find((item) => item.id === id), opening = doc.openings.find((item) => item.id === id);
+  const floor = id?.startsWith('room:');
   const furniture = planObjects(doc).find((item) => item.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
@@ -41,7 +42,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
     : [['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const spatial = furniture ?? stair ?? ramp;
   if (!id) return null;
-  const label = wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
+  const label = floor ? 'Suelo' : wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
     : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? elementName(furniture) : 'Selección';
   const run = (operation: (current: EditorDocument) => EditorDocument) => {
     try { const state = store.getState(); state.apply(operation(state.document)); return true; }
@@ -103,6 +104,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
         onCommit={(rotation) => run((current) => furniture ? updateFurniture(current, id, { rotation }) : stair ? updateStair(current, id, { rotation }) : updateRamp(current, id, { rotation }))} />}
     </fieldset>
     <div className={styles.propertyActions}>
+      {floor && <button type="button" disabled={readOnly} onClick={() => store.getState().setDetailPanel('paint')}>Acabados del suelo</button>}
       {wall && <button type="button" disabled={readOnly} onClick={() => run((d) => setWallCurve(d, id,
         wall.curveHeightMm ? 0 : defaultWallCurve(d, id)))}>{wall.curveHeightMm ? <StraightWallIcon size={20} aria-hidden="true" /> : <CurvedWallIcon size={20} aria-hidden="true" />}
         {wall.curveHeightMm ? 'Pared recta' : 'Curvar pared'}</button>}

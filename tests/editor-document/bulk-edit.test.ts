@@ -8,7 +8,9 @@ import { setOpeningConstruction, setWallConstruction } from '@/lib/editor-docume
 import { setFloorFinish, floorFinish } from '@/lib/editor-document/floor-finishes';
 import { updateBoundary, addBoundaryGate } from '@/lib/editor-document/boundary-commands';
 import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
-import { idsByKind } from '@/canvas/editor-v2/select-by-kind';
+import { applyKindSelection, idsByKind } from '@/canvas/editor-v2/select-by-kind';
+import { createEditorStore } from '@/canvas/editor-v2/store';
+import { addBuildingLevel, switchBuildingLevel } from '@/lib/editor-document/building-levels';
 import { wallConstruction } from '@/lib/editor-document/construction-properties';
 
 const house = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 8000, y: 0 }, { x: 8000, y: 4000 }, { x: 0, y: 4000 }], true);
@@ -36,8 +38,35 @@ it('altura y elevación de una ventana se propagan a todas las ventanas seleccio
 it('la cota del suelo se propaga a todas las estancias y patios seleccionados', () => {
   const doc = addOutdoorArea(house(), { x: 8000, y: 0 }, { x: 11000, y: 4000 });
   const rooms = deriveRooms(doc).map((r) => r.id);
+  expect(idsByKind(doc, deriveRooms(doc), 'floors')).toEqual(rooms);
   const next = propagateToPeers(doc, setFloorFinish(doc, rooms[0]!, { elevationMm: 300 }), rooms[0]!, bulkPeers(doc, rooms[0]!, rooms));
   expect(rooms.map((id) => floorFinish(next, id).elevationMm)).toEqual([300, 300]);
+});
+
+it('selecciona todos los suelos de la planta activa y permite editar sus acabados juntos', () => {
+  const doc = emptyEditorDocument();
+  doc.vertices = [
+    { id: 'a', x: 0, y: 0 }, { id: 'b', x: 3000, y: 0 }, { id: 'c', x: 6000, y: 0 },
+    { id: 'd', x: 6000, y: 4000 }, { id: 'e', x: 3000, y: 4000 }, { id: 'f', x: 0, y: 4000 },
+  ];
+  doc.walls = [
+    ['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'e'], ['e', 'f'], ['f', 'a'], ['b', 'e'],
+  ].map(([startVertexId, endVertexId], index) => ({
+    id: `w${index}`, startVertexId: startVertexId!, endVertexId: endVertexId!,
+    thicknessMm: 150, dimensionalOrigin: 'physical' as const,
+  }));
+  const upper = addBuildingLevel(doc), lower = switchBuildingLevel(upper, upper.levels![0]!.id);
+  expect(idsByKind(upper, deriveRooms(upper), 'floors')).toEqual([]);
+  const ids = idsByKind(lower, deriveRooms(lower), 'floors');
+  expect(ids).toHaveLength(2);
+  const store = createEditorStore(lower);
+  applyKindSelection(store, 'floors', ids);
+  expect(store.getState().selection).toEqual(ids);
+  expect(store.getState().detailPanel).toBe('paint');
+  const edited = setFloorFinish(lower, ids[0]!, { color: '#668877', undersideColor: '#334455' });
+  const result = propagateToPeers(lower, edited, ids[0]!, bulkPeers(lower, ids[0]!, ids));
+  expect(ids.map((id) => [floorFinish(result, id).color, floorFinish(result, id).undersideColor]))
+    .toEqual([['#668877', '#334455'], ['#668877', '#334455']]);
 });
 
 it('la composición de un cerramiento se copia a los demás sin arrastrar sus puertas', () => {

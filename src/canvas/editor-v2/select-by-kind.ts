@@ -5,12 +5,13 @@ import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { exteriorWallIds, interiorWallIds } from '@/lib/editor-document/exterior-wall-selection';
 import type { EditorStore } from './store';
 
-export type SelectableKind = 'walls' | 'interior-walls' | 'exterior-walls' | 'doors' | 'windows' | 'passages' | 'rooms' | 'patios' | 'furniture' | 'boundaries' | 'kitchens' | 'columns' | 'stairs' | 'ramps' | 'luminaires' | 'labels';
+export type SelectableKind = 'walls' | 'interior-walls' | 'exterior-walls' | 'doors' | 'windows' | 'passages' | 'floors' | 'rooms' | 'patios' | 'furniture' | 'boundaries' | 'kitchens' | 'columns' | 'stairs' | 'ramps' | 'luminaires' | 'labels';
 
 export const SELECTABLE_KINDS: { id: SelectableKind; label: string }[] = [
   { id: 'walls', label: 'Todas las paredes' }, { id: 'interior-walls', label: 'Paredes internas' }, { id: 'exterior-walls', label: 'Paredes externas' },
   { id: 'doors', label: 'Todas las puertas' }, { id: 'windows', label: 'Todas las ventanas' },
-  { id: 'passages', label: 'Todos los huecos' }, { id: 'rooms', label: 'Todas las estancias' }, { id: 'patios', label: 'Todos los patios' },
+  { id: 'passages', label: 'Todos los huecos' }, { id: 'floors', label: 'Todos los suelos de esta planta' },
+  { id: 'rooms', label: 'Todas las estancias' }, { id: 'patios', label: 'Todos los patios' },
   { id: 'furniture', label: 'Todos los muebles' }, { id: 'boundaries', label: 'Todos los cerramientos' }, { id: 'kitchens', label: 'Todas las cocinas' }, { id: 'columns', label: 'Todas las columnas' },
   { id: 'stairs', label: 'Todas las escaleras' }, { id: 'ramps', label: 'Todas las rampas' }, { id: 'luminaires', label: 'Todas las luces' },
   { id: 'labels', label: 'Todos los textos' },
@@ -26,6 +27,7 @@ export function idsByKind(doc: EditorDocument, rooms: DerivedRoom[], kind: Selec
     case 'doors': return doc.openings.filter((o) => o.kind === 'puerta').map((o) => o.id);
     case 'windows': return doc.openings.filter((o) => o.kind === 'ventana').map((o) => o.id);
     case 'passages': return doc.openings.filter((o) => o.kind !== 'puerta' && o.kind !== 'ventana').map((o) => o.id);
+    case 'floors': return rooms.map((r) => r.id);
     case 'rooms': return rooms.filter((r) => !outdoor(r)).map((r) => r.id);
     case 'patios': return rooms.filter(outdoor).map((r) => r.id);
     case 'furniture': return planObjects(doc).filter((o) => !isBoundary(o) && !isKitchenRun(o)).map((o) => o.id);
@@ -47,5 +49,8 @@ export function applyKindSelection(store: EditorStore, kind: SelectableKind, ids
   if (kind === 'walls' || kind === 'interior-walls' || kind === 'exterior-walls') {
     state.setDetailPanel(null);
     state.openSidePanel('inspector');
+  } else if (kind === 'floors') {
+    state.closeSidePanel();
+    state.setDetailPanel('paint');
   }
 }

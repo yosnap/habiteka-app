@@ -26,7 +26,7 @@ const WALL_KEYS = ['heightMm', 'baseElevationMm', 'materials', 'colors', 'thickn
 const OPENING_KEYS = ['heightMm', 'elevationMm', 'openAngleDeg', 'hinge', 'swing', 'catalogId', 'widthMm'] as const;
 const OBJECT_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'rotation', 'color', 'materialId', 'construction', 'kitchen', 'coverage'] as const;
 const COLUMN_KEYS = ['widthMm', 'depthMm', 'heightMm', 'elevationMm', 'materialId', 'color'] as const;
-const FINISH_KEYS = ['color', 'texture', 'tileSizeMm', 'rotation', 'elevationMm', 'slabThicknessMm'] as const;
+const FINISH_KEYS = ['color', 'texture', 'tileSizeMm', 'rotation', 'elevationMm', 'slabThicknessMm', 'undersideColor', 'undersideTexture'] as const;
 
 function changedKeys<T extends object, K extends keyof T>(before: T | undefined, after: T | undefined, keys: readonly K[]): Partial<Pick<T, K>> {
   const patch: Partial<Pick<T, K>> = {};
