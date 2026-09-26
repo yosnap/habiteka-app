@@ -1,4 +1,6 @@
-import { Color, Shape, SpotLight } from 'three';
+import { Color, Path, Shape, SpotLight } from 'three';
+import type { Pair, Polygon } from 'polygon-clipping';
+import { robustDifference } from '@/canvas/editor-v2/scene/floor-meshes';
 import type { Luminaire, Point } from '@/lib/editor-document/schema';
 import { spotAimVector, SPOT_CONE_DEG } from '@/lib/editor-document/ceiling-geometry';
 
@@ -34,6 +36,21 @@ export function ceilingShape(boundary: Point[]): Shape {
     : shape.moveTo(point.x / 1000, -point.y / 1000));
   shape.closePath();
   return shape;
+}
+
+/** Recorta en el techo la misma huella de escalera que en el forjado de la planta superior. */
+export function ceilingShapes(boundary: Point[], voids: Point[][] = []): Shape[] {
+  if (!voids.length) return [ceilingShape(boundary)];
+  const polygon = (points: Point[]): Polygon => [points.map((point) => [point.x / 1000, point.y / 1000] as Pair)];
+  return robustDifference(polygon(boundary), voids.map(polygon)).map((rings) => {
+    const shape = ceilingShape(rings[0]!.map(([x, y]) => ({ x: x * 1000, y: y * 1000 })));
+    for (const ring of rings.slice(1)) {
+      const hole = new Path();
+      ring.forEach(([x, y], index) => index ? hole.lineTo(x, -y) : hole.moveTo(x, -y));
+      hole.closePath(); shape.holes.push(hole);
+    }
+    return shape;
+  });
 }
 
 /** Aproximación del color de un radiador térmico para iluminación arquitectónica. */

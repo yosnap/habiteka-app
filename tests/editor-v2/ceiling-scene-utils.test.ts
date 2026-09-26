@@ -1,9 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, captureCutaway, ceilingShape, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
+  it('recorta el techo inferior con un hueco transitable para la escalera', () => {
+    const shapes = ceilingShapes([
+      { x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 },
+    ], [[{ x: 1000, y: 1000 }, { x: 2000, y: 1000 }, { x: 2000, y: 3500 }, { x: 1000, y: 3500 }]]);
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0]!.holes).toHaveLength(1);
+    const geometry = new ShapeGeometry(shapes);
+    const positions = geometry.getAttribute('position'), indices = geometry.index!;
+    let area = 0;
+    for (let i = 0; i < indices.count; i += 3) {
+      const a = indices.getX(i), b = indices.getX(i + 1), c = indices.getX(i + 2);
+      area += Math.abs((positions.getX(b) - positions.getX(a)) * (positions.getY(c) - positions.getY(a))
+        - (positions.getY(b) - positions.getY(a)) * (positions.getX(c) - positions.getX(a))) / 2;
+    }
+    expect(area).toBeCloseTo(21.5);
+    geometry.dispose();
+  });
   it('triangula un techo cóncavo en metros sin rellenar el hueco exterior', () => {
     const geometry = new ShapeGeometry(ceilingShape([
       { x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 2000 },

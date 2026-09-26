@@ -1,5 +1,5 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from './types';
 import { wallMeshes, junctionMeshes } from './wall-meshes';
@@ -14,7 +14,7 @@ import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 
 /** A read-only projection: no proximity inference, recentering, revision bumps or migration. */
-export function editorDocumentToScene(doc: EditorDocument): EditorScene {
+export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][] = []): EditorScene {
   const warnings: string[] = [];
   let floors: ScenePolygon[] = [];
   const exteriorWalls: ExteriorWall[] = [];
@@ -38,7 +38,7 @@ export function editorDocumentToScene(doc: EditorDocument): EditorScene {
       exteriorWalls.push({ sourceEntityId: wallId, x: meters((a.x + b.x) / 2), z: meters((a.y + b.y) / 2),
         normalX: (b.y - a.y) / length, normalZ: -(b.x - a.x) / length });
     });
-    floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves]);
+    floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves], floorVoids);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
   const entrances: ScenePolygon[] = landingEntranceSurfaces(doc).map(({ openingId, landing, points }) => {
     const finish = walkableSurfaceFinish(landing.materialId, landing.color);

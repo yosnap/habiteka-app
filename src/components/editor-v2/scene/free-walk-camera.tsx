@@ -1,30 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, Vector3 } from 'three';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
-import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
-import { moveFreeWalk } from '@/lib/editor-document/free-walk-navigation';
+import { buildingWalkNavigation, moveBuildingWalk } from '@/lib/editor-document/building-free-walk';
 import { EYE_HEIGHT_MM } from '@/lib/editor-document/room-interior-cameras';
 import type { FreeWalkController } from './free-walk-controller';
 
 const WALK_SPEED_MM_S = 1600;
 const LOOK_RADIANS_PER_PIXEL = .0025;
 
-export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paused, controller, onPause }: {
+export function FreeWalkCamera({ document: plan, start, focus, paused, controller, onPause }: {
   document: EditorDocument;
   start: Point;
   focus: [number, number, number];
-  elevationMm: number;
   paused: boolean;
   controller: FreeWalkController;
   onPause: () => void;
 }) {
-  const nav = useMemo(() => walkthroughNavigation(plan), [plan]);
+  const building = useMemo(() => buildingWalkNavigation(plan), [plan]);
+  const initialLevelId = plan.activeLevelId ?? 'ground';
+  const elevation = useCallback((levelId: string) => building.levels.find((level) => level.id === levelId)?.elevationMm ?? 0, [building]);
   const { get, invalidate, gl } = useThree();
   const keys = useRef(new Set<string>());
-  const position = useRef(start);
+  const position = useRef({ levelId: initialLevelId, point: start });
   const yaw = useRef(Math.atan2(focus[0] - start.x / 1000, focus[2] - start.y / 1000));
   const pitch = useRef(0);
   const lastPoseUpdate = useRef(0);
@@ -34,9 +34,11 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
     const orbit = controls as unknown as { enabled: boolean; target: Vector3; update: () => void } | null;
     const previous = { position: camera.position.clone(), quaternion: camera.quaternion.clone(),
       target: orbit?.target.clone(), fov: camera instanceof PerspectiveCamera ? camera.fov : null };
-    position.current = start;
-    controller.setPose({ ...start, yaw: yaw.current });
-    camera.position.set(start.x / 1000, (elevationMm + nav.floorAt(start) + EYE_HEIGHT_MM) / 1000, start.y / 1000);
+    position.current = { levelId: initialLevelId, point: start };
+    controller.setPose({ ...start, yaw: yaw.current, levelId: initialLevelId });
+    camera.position.set(start.x / 1000,
+      (elevation(initialLevelId) + (building.navs.get(initialLevelId)?.floorAt(start) ?? 0) + EYE_HEIGHT_MM) / 1000,
+      start.y / 1000);
     if (camera instanceof PerspectiveCamera) { camera.fov = 75; camera.updateProjectionMatrix(); }
     camera.lookAt(focus[0], camera.position.y, focus[2]);
     invalidate();
@@ -69,7 +71,7 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
       controller.setPose(null);
       invalidate();
     };
-  }, [start, focus, elevationMm, nav, get, invalidate, gl, controller, onPause]);
+  }, [start, focus, initialLevelId, building, elevation, get, invalidate, gl, controller, onPause]);
 
   useEffect(() => { if (!paused) invalidate(); else { keys.current.clear(); controller.stop(); } }, [paused, invalidate, controller]);
   useFrame(({ camera, clock }, delta) => {
@@ -82,17 +84,19 @@ export function FreeWalkCamera({ document: plan, start, focus, elevationMm, paus
     yaw.current -= control.lookX * LOOK_RADIANS_PER_PIXEL;
     pitch.current = Math.max(-1.35, Math.min(1.35, pitch.current - control.lookY * LOOK_RADIANS_PER_PIXEL));
     const scale = WALK_SPEED_MM_S * Math.min(delta, .05) / Math.max(1, Math.hypot(forward, strafe));
-    position.current = moveFreeWalk(nav, position.current, {
+    position.current = moveBuildingWalk(building, position.current, {
       x: (Math.sin(yaw.current) * forward + Math.cos(yaw.current) * strafe) * scale,
       y: (Math.cos(yaw.current) * forward - Math.sin(yaw.current) * strafe) * scale,
     });
-    camera.position.set(position.current.x / 1000,
-      (elevationMm + nav.floorAt(position.current) + EYE_HEIGHT_MM) / 1000, position.current.y / 1000);
+    const { levelId, point } = position.current;
+    camera.position.set(point.x / 1000,
+      (elevation(levelId) + (building.navs.get(levelId)?.floorAt(point) ?? 0) + EYE_HEIGHT_MM) / 1000,
+      point.y / 1000);
     camera.lookAt(camera.position.x + Math.sin(yaw.current) * Math.cos(pitch.current),
       camera.position.y + Math.sin(pitch.current),
       camera.position.z + Math.cos(yaw.current) * Math.cos(pitch.current));
     if (clock.elapsedTime - lastPoseUpdate.current >= .1) {
-      controller.setPose({ ...position.current, yaw: yaw.current });
+      controller.setPose({ ...point, yaw: yaw.current, levelId });
       lastPoseUpdate.current = clock.elapsedTime;
     }
     invalidate();

@@ -13,7 +13,8 @@ status: in_progress
 - El paseo libre muestra un mini plano del mismo documento con muros curvos, huecos de puertas, ventanas, posición, orientación y estancia actual. Comprobado visualmente en escritorio y en un ancho de 390 px; el giro de cámara actualiza el indicador.
 - La navegación atraviesa puertas hacia patios y sube rampas rectas o con giro siguiendo su superficie 3D. Una ruta guiada entre patio y estancia elevada pasa por el hueco real del muro. El mini plano distingue el contorno exterior con línea discontinua.
 - La cámara también sigue los peldaños y descansillos de escaleras rectas, en L y en U del mismo modelo 3D. Se verificó subida, bajada, bloqueo lateral y paso por un hueco a otra estancia con suelo elevado dentro de una misma planta; un peldaño desproporcionado no se acepta como paso.
-- Pendiente para aceptar la fase: abrir un hueco de forjado y techo coherente en la planta superior y enlazar ambas navegaciones sin salto, medir fluidez y controles táctiles en móvil, puntos de interés, propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
+- La visita libre enlaza dos plantas contiguas solo cuando una escalera alcanza la cota superior y tiene salida libre. Recorta el techo inferior y el suelo superior con la misma huella; la cámara conserva su altura absoluta al subir y bajar y el mini plano cambia de planta. Pruebas sintéticas de subida, bajada, huecos y enlaces rechazados por altura o salida ocupada. La muestra aislada `/dev/editor-v2?muestra=plantas` permite revisar el hueco y entrar en 3D sin datos reales.
+- Pendiente para aceptar la fase: unir también rutas guiadas entre plantas, medir fluidez y controles táctiles en móvil, añadir puntos de interés y propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
 
 ## Objetivo
 
@@ -23,7 +24,7 @@ Recorrer libremente el diseño aprobado con teclado, flechas, ratón y controles
 
 1. Añadir «Entrar al diseño» sobre la escena Three/R3F existente. Usar la versión aprobada, controles de mirada en primera persona, WASD/flechas, pausa y salida. En móvil, giro táctil y desplazamiento por toque/joystick simple.
 2. Extender la colisión actual de `walkthroughNavigation` para movimiento continuo, radio de cámara, deslizamiento junto a paredes y puertas, alturas de suelo/techo y bloqueo de muebles. El modo editor y la visita no deben competir por la cámara.
-3. Resolver conexiones verticales reales. Hoy rutas y vídeo nativos pertenecen a una planta y las escaleras/rampas figuran como obstáculos: crear superficies caminables y enlaces entre plantas, con pruebas de subida/bajada. Incluir patios y terrazas transitables.
+3. Resolver conexiones verticales reales. La visita libre ya sube escaleras y cambia de planta; rutas guiadas y vídeo nativos siguen asociados a una planta. Conectar esas rutas con la misma geometría y comprobar subida/bajada. Incluir patios y terrazas transitables.
 4. Ofrecer ruta guiada y puntos de interés como ayuda dentro de la misma visita, además del paseo libre. Un mini plano muestra posición y siguiente estancia sin imponer orden.
 5. Cargar modelos/texturas según visibilidad y medir FPS, memoria y tiempo hasta entrar. Ajustar resolución, luces y sombras según dispositivo; conservar fallback claro si WebGL falla.
 6. Si el usuario solicita un cambio desde la visita («este sofá no me convence»), enviar al chat el ID del objeto, estancia y revisión visible. Mostrar una propuesta de edición en un borrador; no alterar la visita publicada ni ejecutar cambios durante el movimiento de cámara.

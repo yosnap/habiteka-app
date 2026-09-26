@@ -16,6 +16,7 @@ import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
 import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
+import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
 import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
 import { FurnitureModel } from './furniture-model';
 import { OutdoorLighting } from './outdoor-lighting';
@@ -24,7 +25,7 @@ import { FreeWalkCamera } from './free-walk-camera';
 import { FreeWalkController } from './free-walk-controller';
 import { FreeWalkOverlay } from './free-walk-overlay';
 import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
-import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
+import { buildingWalkNavigation } from '@/lib/editor-document/building-free-walk';
 import { recordWalkthrough } from './offline-recorder';
 import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
@@ -99,7 +100,9 @@ function SceneView({
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const ceilingView = useStore(store, (s) => s.ceilingView);
   const [captureCeilings, setCaptureCeilings] = useState<CeilingView | null>(null);
-  const scene = useMemo(() => editorDocumentToScene(document), [document]);
+  const stairLinks = useMemo(() => buildingStairLinks(document), [document]);
+  const scene = useMemo(() => editorDocumentToScene(document,
+    stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [document, stairLinks]);
   const openingHosts = useMemo(() => new Map(document.openings.map((opening) => [opening.id, opening.wallId])), [document]);
   const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
   const [request, setRequest] = useState<CameraRequest>({ sequence: 0, action: 'fit' });
@@ -138,15 +141,18 @@ function SceneView({
     if (window.document.pointerLockElement) window.document.exitPointerLock();
   }, [freeWalkController]);
   const enterFreeWalk = () => {
-    const nav = walkthroughNavigation(document);
-    const selected = interiorCameras.find((room) => room.roomId === interiorRoomId) ?? interiorCameras[0];
+    const nav = buildingWalkNavigation(document).navs.get(document.activeLevelId ?? 'ground')!;
+    const selected = interiorCameras.find((room) => room.roomId === interiorRoomId);
+    const largest = [...nav.rooms].sort((a, b) => b.areaMm2 - a.areaMm2)[0];
     const preferred = selected ? { x: selected.camera.position[0] * 1000, y: selected.camera.position[2] * 1000 }
-      : route?.waypoints[0] ? { x: route.waypoints[0].x, y: route.waypoints[0].y } : undefined;
+      : route?.waypoints[0] ? { x: route.waypoints[0].x, y: route.waypoints[0].y }
+        : largest ? { x: (Math.min(...largest.boundary.map((p) => p.x)) + Math.max(...largest.boundary.map((p) => p.x))) / 2,
+          y: (Math.min(...largest.boundary.map((p) => p.y)) + Math.max(...largest.boundary.map((p) => p.y))) / 2 } : undefined;
     const start = freeWalkStart(nav, preferred);
     if (!start) { store.getState().setError('No hay espacio transitable para empezar la visita. Revisa muros y muebles.'); return; }
     const focus: [number, number, number] = selected?.camera.focus ?? [start.x / 1000, 1.6, start.y / 1000 + 1];
     store.getState().setWalkthroughPlaying(false);
-    setAllLevels(false); setCutaway(false); setInteriorRoomId(null);
+    setAllLevels(Boolean(document.levels?.length && stairLinks.length)); setCutaway(false); setInteriorRoomId(null);
     setWalkPaused(false); setFreeWalk({ start, focus });
     void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined);
   };
@@ -279,7 +285,8 @@ function SceneView({
     return () => { captureRender.current = null; onCaptureReady?.(null); };
   }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk]);
   const otherLevels = useMemo(() => allLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
-    .map((l) => ({ ...l, scene: editorDocumentToScene(l.document) })) : [], [document, allLevels]);
+    .map((l) => ({ ...l, scene: editorDocumentToScene(l.document,
+      stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, allLevels, stairLinks]);
   // La estancia que manda en el reparto de luces reales: donde está la cámara y,
   // si no, la del elemento seleccionado. Así se encienden primero las que se ven.
   const activeLuminaires = useMemo(() => resolvedLuminaires(document), [document]);
@@ -414,6 +421,7 @@ function SceneView({
           <OutdoorLighting document={document} />
           <group visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={document} view={walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
+              ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === document.activeLevelId).map((link) => link.outline)}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
           {scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
@@ -434,7 +442,8 @@ function SceneView({
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
           <group visible={showLighting} userData={{ lightingLayer: true }}>
-            <CeilingLightingMeshes document={level.document} view={walking || recording ? 'solid' : captureCeilings ?? ceilingView}
+            <CeilingLightingMeshes document={level.document} view={walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
+              ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
           {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
@@ -445,7 +454,7 @@ function SceneView({
             boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
-        {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus} elevationMm={activeElevation}
+        {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
           paused={walkPaused} controller={freeWalkController} onPause={pauseFreeWalk} />}
         <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk}
           onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />

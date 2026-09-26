@@ -1,21 +1,21 @@
 'use client';
 import { useEffect, useMemo } from 'react';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { ceilingSurfaces, resolvedLuminaires, luminaireDepthMm, luminaireRadiusMm } from '@/lib/editor-document/ceiling-geometry';
-import { ceilingShape, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
+import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
 
-function CeilingMesh({ surface, view, selected, onSelect }: {
-  surface: Surface; view: CeilingView; selected: boolean; onSelect?: (id: string) => void;
+function CeilingMesh({ surface, view, selected, onSelect, voids }: {
+  surface: Surface; view: CeilingView; selected: boolean; onSelect?: (id: string) => void; voids: Point[][];
 }) {
-  const shape = useMemo(() => ceilingShape(surface.room.boundary), [surface.room.boundary]);
+  const shapes = useMemo(() => ceilingShapes(surface.room.boundary, voids), [surface.room.boundary, voids]);
   if (view === 'hidden') return null;
   const transparent = view === 'transparent';
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
+  return shapes.map((shape, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
     castShadow={!transparent} receiveShadow={!transparent}
     raycast={transparent || !onSelect ? () => undefined : undefined}
     userData={{ sourceEntityId: surface.ceiling.id }}
@@ -26,7 +26,7 @@ function CeilingMesh({ surface, view, selected, onSelect }: {
     <meshStandardMaterial color={selected ? '#43b6a0' : surface.ceiling.color} side={2} roughness={.85}
       emissive={surface.ceiling.color} emissiveIntensity={.08}
       transparent={transparent} opacity={transparent ? .16 : 1} depthWrite={!transparent} />
-  </mesh>;
+  </mesh>);
 }
 
 function LuminaireMesh({ resolved, view, selected, emitLight, castShadow, onSelect }: {
@@ -72,9 +72,10 @@ function LuminaireMesh({ resolved, view, selected, emitLight, castShadow, onSele
 
 export function CeilingLightingMeshes({
   document, view, selection = [], onSelect,
-  lightBudget = MAX_LUMINAIRE_LIGHTS, priorityRoomId = null, shadowBudget = MAX_SHADOW_LIGHTS,
+  lightBudget = MAX_LUMINAIRE_LIGHTS, priorityRoomId = null, shadowBudget = MAX_SHADOW_LIGHTS, ceilingVoids = [],
 }: {
   document: EditorDocument; view: CeilingView; selection?: string[]; onSelect?: (id: string) => void;
+  ceilingVoids?: Point[][];
   lightBudget?: number;
   /** Estancia en la que está el usuario: sus luces entran primero en el presupuesto. */
   priorityRoomId?: string | null;
@@ -89,7 +90,7 @@ export function CeilingLightingMeshes({
   const emitting = new Set(budget.luminaireIds);
   const shadowing = new Set(shadowLightIds(budget.luminaireIds, shadowBudget));
   return <>
-    {surfaces.map((surface) => <CeilingMesh key={surface.ceiling.id} surface={surface} view={view}
+    {surfaces.map((surface) => <CeilingMesh key={surface.ceiling.id} surface={surface} view={view} voids={ceilingVoids}
       selected={selection.includes(surface.ceiling.id)} onSelect={onSelect} />)}
     <LightStripMeshes document={document} selection={selection} emittingIds={budget.stripIds} />
     {lights.map((resolved) => <LuminaireMesh key={resolved.luminaire.id} resolved={resolved} view={view}

@@ -1,5 +1,5 @@
 /** Entrada efímera de la visita: no forma parte del documento ni de React. */
-export interface FreeWalkPose { x: number; y: number; yaw: number }
+export interface FreeWalkPose { x: number; y: number; yaw: number; levelId?: string }
 
 export class FreeWalkController {
   private forward = 0;

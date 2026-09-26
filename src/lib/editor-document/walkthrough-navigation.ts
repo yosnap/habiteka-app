@@ -11,7 +11,9 @@ import { stairLayout } from './stair-layout';
 
 export const CAMERA_CLEARANCE_MM = 150;
 /** Construye una vez el entorno de colisión, reutilizado por ruta y auto-tour. */
-export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
+export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], voids?: {
+  floor?: Point[][]; ceiling?: Point[][];
+}) {
   const rooms = deriveRooms(doc).filter((room) => !zoneIds?.length || zoneIds.includes(room.id)), ceilings = ceilingSurfaces(doc);
   const walls = doc.walls.filter((w) => !w.hidden).map((wall) => ({ wall, path: wallPath(doc, wall),
     doors: doc.openings.filter((o) => o.wallId === wall.id && o.kind !== 'ventana' &&
@@ -24,9 +26,16 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
   const stairAt = (p: Point) => {
     for (const { stair, treads } of stairSurfaces) {
       const local = worldToLocal(stair, p);
-      const tread = treads.find((part) =>
-        local.x >= part.x + CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm - CAMERA_CLEARANCE_MM &&
-        local.y >= part.y && local.y <= part.y + part.depthMm);
+      const tread = treads.find((part) => {
+        const turnedFlight = stair.kind === 'L' && part.x > 0;
+        const corner = stair.kind === 'L' && part.x === 0 && part.y === 0;
+        if (turnedFlight) return local.x >= part.x && local.x <= part.x + part.widthMm &&
+          local.y >= part.y + CAMERA_CLEARANCE_MM && local.y <= part.y + part.depthMm - CAMERA_CLEARANCE_MM;
+        if (corner) return local.x >= CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm &&
+          local.y >= CAMERA_CLEARANCE_MM && local.y <= part.y + part.depthMm;
+        return local.x >= part.x + CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm - CAMERA_CLEARANCE_MM &&
+          local.y >= part.y && local.y <= part.y + part.depthMm;
+      });
       if (tread) return { id: stair.id, floorMm: stair.elevationMm + tread.heightMm,
         riseMm: stair.heightMm / stair.stepCount };
     }
@@ -47,6 +56,7 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
   const floorAt = (p: Point) => stairAt(p)?.floorMm ?? rampAt(p) ??
     doc.floorFinishes?.find((f) => f.roomId === roomAt(p)?.id)?.elevationMm ?? 0;
   const free = (p: Point, eyeHeightMm = 1600): boolean => {
+    if (voids?.floor?.some((outline) => insideRoom(p, outline))) return false;
     const room = roomAt(p);
     // Los umbrales de puerta pueden coincidir exactamente con el borde de dos estancias.
     if (!room && rampAt(p) === null && stairAt(p) === null &&
@@ -55,7 +65,8 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[]) {
     if (!stairAt(p) && stairSurfaces.some(({ stair, outline }) => insideRoom(worldToLocal(stair, p), outline))) return false;
     const floor = floorAt(p);
     const roof = ceilings.find((c) => c.room.id === room?.id)?.heightMm;
-    if (roof !== undefined && floor + eyeHeightMm + 100 > roof) return false;
+    if (roof !== undefined && floor + eyeHeightMm + 100 > roof &&
+      !voids?.ceiling?.some((outline) => insideRoom(p, outline))) return false;
     for (const { wall, path, doors } of walls) {
       const t = path.project(p);
       if (distance(p, path.at(t)) >= wall.thicknessMm / 2 + CAMERA_CLEARANCE_MM) continue;

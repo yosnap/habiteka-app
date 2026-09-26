@@ -1,5 +1,5 @@
 import polygonClipping, { type Polygon, type Pair } from 'polygon-clipping';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import type { DerivedRoom } from '@/lib/editor-document/rooms';
 import { meters, type SceneBox, type ScenePolygon } from './types';
 import { floorFinish, floorSlabThicknessMm } from '@/lib/editor-document/floor-finishes';
@@ -40,7 +40,7 @@ export function robustDifference(outline: Polygon, cuts: Polygon[], difference: 
 }
 
 /** An elevated room is a structural volume, not a floating texture plane. */
-export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: SceneBox[], joins: ScenePolygon[]): ScenePolygon[] {
+export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: SceneBox[], joins: ScenePolygon[], voids: Point[][] = []): ScenePolygon[] {
   const obstaclesAt = (elevation: number): Polygon[] => {
     const obstacles = walls.filter((wall) => wall.position[1] - wall.size[1] / 2 <= elevation + 1e-7 &&
       wall.position[1] + wall.size[1] / 2 > elevation + 1e-7).map((wall) => {
@@ -64,7 +64,8 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
       const part = rampParts(ramp).filter((item) => item.kind === 'flight').at(-1)!;
       return [[rampPartFootprint(ramp, part).map((point) => [meters(point.x), meters(point.y)] as Pair)]];
     });
-    const cuts = [...obstacles, ...rampAccesses];
+    const cuts = [...obstacles, ...rampAccesses,
+      ...voids.map((voidOutline): Polygon => [voidOutline.map((point) => [meters(point.x), meters(point.y)] as Pair)])];
     const polygons = robustDifference(outline, cuts);
     const slabHeight = meters(floorSlabThicknessMm(finish));
     return polygons.map((rings, index) => ({
