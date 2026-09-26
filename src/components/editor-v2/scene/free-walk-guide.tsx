@@ -30,5 +30,6 @@ export function FreeWalkGuide({ document, start, controller }: {
         : places.portals.length ? 'Mira hacia una puerta para ver adónde lleva'
           : 'Explora esta estancia con WASD o las flechas'}
     </span>
+    <span className={styles.guideControls}>↑ avanza · ↓ retrocede · ←/→ gira</span>
   </div>;
 }

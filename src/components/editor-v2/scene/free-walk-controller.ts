@@ -4,6 +4,7 @@ export interface FreeWalkPose { x: number; y: number; yaw: number; levelId?: str
 export class FreeWalkController {
   private forward = 0;
   private strafe = 0;
+  private turn = 0;
   private lookX = 0;
   private lookY = 0;
   private pose: FreeWalkPose | null = null;
@@ -28,11 +29,11 @@ export class FreeWalkController {
     this.listeners.forEach((listener) => listener());
   }
 
-  move(axis: 'forward' | 'strafe', value: number) { this[axis] = value; }
+  move(axis: 'forward' | 'strafe' | 'turn', value: number) { this[axis] = value; }
   look(dx: number, dy: number) { this.lookX += dx; this.lookY += dy; }
-  stop() { this.forward = 0; this.strafe = 0; this.lookX = 0; this.lookY = 0; }
+  stop() { this.forward = 0; this.strafe = 0; this.turn = 0; this.lookX = 0; this.lookY = 0; }
   take() {
-    const value = { forward: this.forward, strafe: this.strafe, lookX: this.lookX, lookY: this.lookY };
+    const value = { forward: this.forward, strafe: this.strafe, turn: this.turn, lookX: this.lookX, lookY: this.lookY };
     this.lookX = 0; this.lookY = 0;
     return value;
   }

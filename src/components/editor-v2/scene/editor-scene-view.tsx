@@ -22,6 +22,7 @@ import { FurnitureModel } from './furniture-model';
 import { OutdoorLighting } from './outdoor-lighting';
 import { WalkCamera } from './walk-camera';
 import { FreeWalkCamera } from './free-walk-camera';
+import { walkOpenFocus } from './free-walk-input';
 import { FreeWalkController } from './free-walk-controller';
 import { FreeWalkOverlay } from './free-walk-overlay';
 import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
@@ -111,6 +112,8 @@ function SceneView({
   const walking = useStore(store, (s) => s.walkthroughPlaying);
   const [freeWalk, setFreeWalk] = useState<{ start: { x: number; y: number }; focus: [number, number, number] } | null>(null);
   const [walkPaused, setWalkPaused] = useState(false);
+  const [walkViewMode, setWalkViewMode] = useState<'first' | 'third'>('first');
+  const toggleWalkView = useCallback(() => setWalkViewMode((mode) => mode === 'first' ? 'third' : 'first'), []);
   const [freeWalkController] = useState(() => new FreeWalkController());
   const route = document.walkthroughs?.find((path) => path.id === routeId);
   const [capturingPose, setCapturingPose] = useState(false);
@@ -152,7 +155,15 @@ function SceneView({
           y: (Math.min(...largest.boundary.map((p) => p.y)) + Math.max(...largest.boundary.map((p) => p.y))) / 2 } : undefined;
     const start = freeWalkStart(nav, preferred);
     if (!start) { store.getState().setError('No hay espacio transitable para empezar la visita. Revisa muros y muebles.'); return; }
-    const focus: [number, number, number] = selected?.camera.focus ?? [start.x / 1000, 1.6, start.y / 1000 + 1];
+    const room = nav.roomAt(start);
+    const centre = room && { x: (Math.min(...room.boundary.map((p) => p.x)) + Math.max(...room.boundary.map((p) => p.x))) / 2,
+      y: (Math.min(...room.boundary.map((p) => p.y)) + Math.max(...room.boundary.map((p) => p.y))) / 2 };
+    const nextPoint = route?.waypoints.slice(1).find((point) =>
+      (!point.levelId || point.levelId === (document.activeLevelId ?? 'ground')) && Math.hypot(point.x - start.x, point.y - start.y) > 300);
+    const target = (nextPoint && nav.segmentFree(start, nextPoint) ? nextPoint : null)
+      ?? (centre && Math.hypot(centre.x - start.x, centre.y - start.y) > 300 && nav.segmentFree(start, centre) ? centre : null)
+      ?? walkOpenFocus(start, nav.segmentFree);
+    const focus: [number, number, number] = selected?.camera.focus ?? [target.x / 1000, 1.6, target.y / 1000];
     store.getState().setWalkthroughPlaying(false);
     setAllLevels(Boolean(document.levels?.length && stairLinks.length)); setCutaway(false); setInteriorRoomId(null);
     setWalkPaused(false); setFreeWalk({ start, focus });
@@ -461,7 +472,7 @@ function SceneView({
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
         {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
-          paused={walkPaused} controller={freeWalkController} onPause={pauseFreeWalk} />}
+          paused={walkPaused} viewMode={walkViewMode} controller={freeWalkController} onPause={pauseFreeWalk} onToggleView={toggleWalkView} />}
         <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording}
           onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
@@ -481,6 +492,7 @@ function SceneView({
       canFreeWalk={interiorCameras.length > 0} onFreeWalk={enterFreeWalk}
       onExport={() => void exportNativeRender()} />}
     {freeWalk && <FreeWalkOverlay paused={walkPaused} controller={freeWalkController} document={document} start={freeWalk.start}
+      viewMode={walkViewMode} onToggleView={toggleWalkView}
       onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
       onExit={exitFreeWalk} onMouse={() => { setWalkPaused(false); void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined); }} />}
     <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">

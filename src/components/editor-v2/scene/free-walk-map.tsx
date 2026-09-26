@@ -7,6 +7,7 @@ import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigat
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import type { FreeWalkController } from './free-walk-controller';
+import { walkDelta } from './free-walk-input';
 import styles from './free-walk-overlay.module.css';
 
 const MAP_WIDTH = 216, MAP_HEIGHT = 176, PADDING = 13;
@@ -64,7 +65,7 @@ export function FreeWalkMap({ document, start, controller }: {
   const trail = controller.getTrail().filter((step) => step.levelId === levelId)
     .map((step) => `${map.x(step.x)},${map.y(step.y)}`);
   trail.push(`${px},${py}`);
-  const direction = { x: Math.sin(point.yaw), y: Math.cos(point.y) };
+  const direction = walkDelta(point.yaw, 1, 0, 1);
   const arrow = [
     `${px + direction.x * 15},${py + direction.y * 15}`,
     `${px - direction.x * 6 + direction.y * 6},${py - direction.y * 6 - direction.x * 6}`,
@@ -86,6 +87,6 @@ export function FreeWalkMap({ document, start, controller }: {
       <circle cx={px} cy={py} r="12" fill="#fff" stroke="#9d3e1f" strokeWidth="1.5" />
       <polygon points={arrow} fill="#d9542b" stroke="#762c16" strokeWidth="1" strokeLinejoin="round" />
     </svg>
-    <div className={styles.miniMapHint}>↑ Arriba del plano · Flechas: plano<br />● Tú · punta: mirada · WASD: mirada</div>
+    <div className={styles.miniMapHint}>Plano fijo · la punta indica tu frente<br />↑ avanza hacia la punta · ←/→ gira</div>
   </div>;
 }
