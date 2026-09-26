@@ -7,7 +7,7 @@ import { prisma } from '@/server/db/prisma';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
-import { nativeVideoDurationMs, type NativeVideoMode } from '@/lib/editor-document/native-video';
+import { nativeVideoDurationIssue, nativeVideoDurationMs, type NativeVideoMode } from '@/lib/editor-document/native-video';
 import { signUploadTicket, readUploadTicket, assertVideoUpload } from './upload-ticket';
 
 function secret() {
@@ -22,8 +22,9 @@ export async function prepareWalkthroughUpload(scope: EditorScope, approvalId: s
   const route = approved.document.walkthroughs?.find((path) => path.id === routeId);
   if (!route) throw new Error('El recorrido no pertenece al diseño aprobado. Aprueba una nueva versión.');
   const compiled = buildWalkthrough(approved.document, route);
-  if (!['walkthrough', 'showcase'].includes(mode) || compiled.invalidSegments.length ||
-    nativeVideoDurationMs(compiled.durationMs, mode) > 60000 || compiled.durationMs < 100) throw new Error('Recorrido no exportable');
+  if (!['walkthrough', 'showcase'].includes(mode) || compiled.invalidSegments.length) throw new Error('Recorrido no exportable');
+  const durationIssue = nativeVideoDurationIssue(compiled.durationMs, mode);
+  if (durationIssue) throw new Error(durationIssue);
   const id = crypto.randomUUID(), key = `walkthrough-uploads/${ctx.organizationId}/${scope.projectId}/${id}.mp4`;
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
     projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId,

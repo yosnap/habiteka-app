@@ -6,7 +6,7 @@ import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { applyWalkPose } from './walk-camera';
 import { showcaseFrame, SHOWCASE_INTRO_MS } from './showcase-timeline';
 import { revealHiddenLighting } from './cutaway-wall';
-import { nativeVideoDurationMs, type NativeVideoMode } from '@/lib/editor-document/native-video';
+import { nativeVideoDurationIssue, nativeVideoDurationMs, type NativeVideoMode } from '@/lib/editor-document/native-video';
 
 /** Render frame a frame; la velocidad del equipo no cambia el tiempo del vídeo. */
 export async function recordWalkthrough(root: RootState, doc: EditorDocument, route: WalkthroughPath,
@@ -15,7 +15,8 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
   if (compiled.invalidSegments.length) throw new Error('El recorrido cruza un obstáculo. Corrige los tramos marcados.');
   const introMs = mode === 'showcase' ? SHOWCASE_INTRO_MS : 0;
   const durationMs = nativeVideoDurationMs(compiled.durationMs, mode);
-  if (compiled.durationMs < 100 || durationMs > 60000) throw new Error('El vídeo debe durar entre 0,1 y 60 segundos. Ajusta la velocidad o los puntos.');
+  const durationIssue = nativeVideoDurationIssue(compiled.durationMs, mode);
+  if (durationIssue) throw new Error(durationIssue);
   if (mode === 'showcase' && !doc.vertices.length) throw new Error('Dibuja el inmueble antes de crear el vídeo de construcción.');
   if (typeof VideoEncoder === 'undefined') throw new Error('Este navegador no permite exportar H.264. Usa un navegador con WebCodecs.');
   const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, canEncodeVideo } = await import('mediabunny');

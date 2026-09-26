@@ -13,7 +13,7 @@ Crear vídeos de anuncio desde la misma versión aprobada que se puede visitar.
 
 1. Reutilizar `WalkthroughPath`, `buildWalkthrough` y `recordWalkthrough` como primera salida: ruta automática por estancias y MP4 local. Vincular el resultado a la revisión aprobada para evitar mezclar vídeo y visita de diseños distintos.
 2. Añadir un modo de cámara cinematográfica: ruta editable con puntos, orientación y objetivo de mirada, velocidad, pausas y transiciones suaves. Presets de entrada desde fachada, paseo interior y toma elevada exterior tipo dron; el vuelo podrá pasar por espacios abiertos y puertas válidas, pero no atravesar sólidos.
-3. Permitir previsualizar y escoger formato horizontal/vertical y duración; render determinista por fotograma con WebCodecs/Mediabunny. Conservar los límites actuales de 60 s/1080p hasta medir exportación en equipos reales; para anuncios más largos, componer secuencias de clips sin congelar el editor.
+3. Permitir previsualizar y escoger formato horizontal/vertical y duración; render determinista por fotograma con WebCodecs/Mediabunny. El MP4 nativo admite hasta 110 s a 1080p; medir recorridos largos en equipos reales antes de ampliar más. Para anuncios más largos, componer secuencias de clips sin congelar el editor.
 4. Comparar el vídeo nativo con una muestra corta de vídeo IA sobre el mismo diseño aprobado. Ofrecer la mejora IA solo si pasa revisión de continuidad de muros, puertas, materiales y muebles; comunicar coste antes de generar. Voz, música y montaje pertenecen al entregable audiovisual, no al modelo navegable.
 
 ## Código afectado (orientativo)

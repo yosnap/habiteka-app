@@ -28,7 +28,7 @@ import { FreeWalkOverlay } from './free-walk-overlay';
 import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
 import { buildingWalkNavigation } from '@/lib/editor-document/building-free-walk';
 import { recordWalkthrough } from './offline-recorder';
-import type { NativeVideoMode } from '@/lib/editor-document/native-video';
+import { nativeVideoDurationIssue, type NativeVideoMode } from '@/lib/editor-document/native-video';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { SceneEnvironment } from './scene-environment';
@@ -141,6 +141,23 @@ function SceneView({
   const toggleWalkView = useCallback(() => setWalkViewMode((mode) => mode === 'first' ? 'third' : 'first'), []);
   const [freeWalkController] = useState(() => new FreeWalkController());
   const route = document.walkthroughs?.find((path) => path.id === routeId);
+  const routeExport = useMemo(() => {
+    if (!route || !allowVideoExport || presentation !== 'spatial') return null;
+    try {
+      const compiled = buildWalkthrough(document, route);
+      const blocked = compiled.invalidSegments.length
+        ? `Hay tramos bloqueados (${compiled.invalidSegments.map((index) => `${index + 1}–${index + 2}`).join(', ')}). Corrígelos en el editor y aprueba otra revisión.` : null;
+      return {
+        durationMs: compiled.durationMs,
+        walkthroughIssue: blocked ?? nativeVideoDurationIssue(compiled.durationMs, 'walkthrough'),
+        showcaseIssue: blocked ?? (!document.vertices.length ? 'Dibuja el inmueble antes de crear el vídeo de construcción.'
+          : nativeVideoDurationIssue(compiled.durationMs, 'showcase')),
+      };
+    } catch (error) {
+      const issue = error instanceof Error ? error.message : 'No se pudo comprobar el recorrido.';
+      return { durationMs: 0, walkthroughIssue: issue, showcaseIssue: issue };
+    }
+  }, [allowVideoExport, document, presentation, route]);
   const [capturingPose, setCapturingPose] = useState(false);
   const [recording, setRecording] = useState(false), [recordProgress, setRecordProgress] = useState(0);
   const abortRecording = useRef<AbortController | null>(null);
@@ -477,6 +494,8 @@ function SceneView({
   };
   const exportWalk = async (mode: NativeVideoMode) => {
     if (!allowVideoExport || !route || !root.current || recording || exporting || freeWalk) return;
+    const issue = mode === 'showcase' ? routeExport?.showcaseIssue : routeExport?.walkthroughIssue;
+    if (issue) { setExportMessage(issue); return; }
     const frozen = store.getState().document, selectionBefore = [...store.getState().selection];
     const controller = new AbortController(); abortRecording.current = controller;
     store.getState().setWalkthroughPlaying(false); store.getState().select([]);
@@ -510,8 +529,9 @@ function SceneView({
       onPlanClick(event);
     }}
     onPointerMove={onPlanPointerMove} onPointerUp={onPlanPointerUp} onPointerCancel={onPlanPointerCancel}>
-    {presentation === 'spatial' && route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, bottom: 75, left: 24, padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', display: 'flex', gap: 12, alignItems: 'center' }} aria-label="Reproducir recorrido">
+    {presentation === 'spatial' && route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, bottom: 75, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
       <strong>{route.name}</strong>
+      {routeExport && routeExport.durationMs > 0 && <span>{Math.ceil(routeExport.durationMs / 1000)} s de recorrido</span>}
       <button type="button" disabled={recording} onClick={() => store.getState().hideWalkthrough()}>Ocultar recorrido</button>
       <button type="button" disabled={recording} onClick={() => {
         try {
@@ -520,8 +540,10 @@ function SceneView({
           store.getState().setWalkthroughPlaying(!walking);
         } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Ruta inválida'); }
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
-      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido · MP4</button>
-      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Vídeo muestra · obra + visita</button>
+      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido · MP4</button>
+      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Vídeo muestra · obra + visita</button>
+      {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
+      {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
     </div>}
     <Canvas frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}

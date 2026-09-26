@@ -5,6 +5,13 @@ status: in_progress
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Avance en exportación de recorridos largos (27-09-2026)
+
+- El límite del MP4 nativo es ahora 110 s, compartido por grabador y servidor; el montaje suma 8 s al recorrido. La vista 3D muestra la duración y los tramos bloqueados antes de iniciar la exportación. La revisión guardada 94 de «FInca» contiene «Recorrido Paulo» (44 puntos, unos 93 s, sin tramos bloqueados), que pasa la validación para paseo y montaje (unos 101 s).
+- Una muestra aislada de 26 s completó la exportación en Chrome y mostró «MP4 descargado»; la muestra se restableció después de la prueba.
+- La última aprobación de «FInca» sigue siendo la revisión 84 y no contiene rutas. Para exportar y guardar ese recorrido en Diseños hay que revisar y aprobar una revisión que sí lo incluya.
+- Pendiente: medir tiempo de codificación, tamaño y memoria del MP4 largo en un navegador real. A 6 Mbps, 110 s implican unos 82,5 MB de vídeo antes de sobrecargas; el servidor mantiene 100 MB por archivo. La validación de límites y permisos no sustituye esa prueba de rendimiento.
+
 ## Avance en muestra aislada (25–26-09-2026)
 
 - La exportación MP4 desde el proyecto se habilita en la visita aprobada. El ticket de subida y el entregable registran ID, revisión y huella de esa aprobación; el panel de entregables enlaza de vuelta a la visita exacta. Las pruebas aisladas comprueban que una ruta del borrador no se puede atribuir a otra aprobación. Siguen pendientes 9:16, editor de tomas y validación de un vídeo de inmueble importado.
@@ -31,7 +38,7 @@ Obtener una pieza publicitaria donde el inmueble aparece por etapas, se muestra 
 1. Crear un guion reproducible que referencia la versión aprobada, capas por tipo de entidad, orden, tiempos, cámaras y escenas. Aprovechar `EditorScene` (`boxes`, `polygons`, `ramps`, `sourceEntityId`, roles) para revelar elementos sin crear otro modelo.
 2. Añadir un editor sencillo de escenas: reordenar/activar tomas, elegir vistas de referencia, duración, cámara objetivo, velocidad y formato 16:9/9:16. Vista previa completa antes de generar.
 3. Reusar `WalkthroughPath`, `buildWalkthrough` y `recordWalkthrough` para el tramo de paseo. Extender el grabador determinista por fotograma para cambios de visibilidad y cámara exterior, transiciones y segmentos; adaptar la resolución al formato. Evitar vuelos que crucen muros o muebles.
-4. Exportar y guardar MP4 nativo desde la versión aprobada. El grabador actual limita a 60 s, 1080p y H.264/WebCodecs: medir duración y memoria por segmento antes de ampliar. Mantener aviso de compatibilidad de navegador.
+4. Exportar y guardar MP4 nativo desde la versión aprobada. El grabador limita ahora a 110 s, 1080p y H.264/WebCodecs; medir tiempo, tamaño y memoria de recorridos largos en navegador antes de ampliar más o incorporar montaje por segmentos. Mantener aviso de compatibilidad de navegador.
 5. Incorporar una acción `video` en el enrutamiento de modelos y un adaptador de vídeo Kie distinto del de imágenes; ejecutar como trabajo asíncrono, con estado, fallos, reintentos acotados y coste previsto/real visible. Descargar el resultado al almacenamiento propio al completarse, sin depender de la URL temporal de Kie. Mantener contrato de proveedor intercambiable.
 6. Ensayar tres clips cortos desde fotogramas del mismo modelo: construcción exterior, entrada/paseo interior y plano con un objeto de catálogo identificable. Comparar el MP4 nativo con candidatos de vídeo disponibles en Kie (primero uno que admita referencias inicial/final); medir continuidad, cambios en muebles/puertas, identidad del producto, latencia y coste. Solo integrar vídeo IA cuando supere el umbral acordado; de lo contrario conservar el vídeo nativo fiel.
 7. Permitir que un modelo de texto (Astra o Claude Opus 5.5, si se configura) proponga guion/tomas/prompts sujetos a validación, sin tratarlo como generador de MP4 ni hacer que cambie el `EditorDocument` aprobado. Registrar modelo, parámetros, fotogramas y veredicto de calidad por clip.
