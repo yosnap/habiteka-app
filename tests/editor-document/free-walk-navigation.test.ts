@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
 import { freeWalkStart, moveFreeWalk } from '@/lib/editor-document/free-walk-navigation';
@@ -27,6 +27,20 @@ function twoRooms() {
 }
 
 describe('paseo libre', () => {
+  it('no recalcula colisiones mientras la cámara permanece quieta', () => {
+    const nav = walkthroughNavigation(twoRooms()), point = { x: 1500, y: 2000 };
+    const collision = vi.spyOn(nav, 'segmentFree');
+    expect(moveFreeWalk(nav, point, { x: 0, y: 0 })).toBe(point);
+    expect(collision).not.toHaveBeenCalled();
+  });
+
+  it('comprueba una sola vez un tramo libre largo entre fotogramas', () => {
+    const nav = walkthroughNavigation(twoRooms()), point = { x: 1000, y: 1000 };
+    const collision = vi.spyOn(nav, 'segmentFree');
+    expect(moveFreeWalk(nav, point, { x: 500, y: 0 })).toEqual({ x: 1500, y: 1000 });
+    expect(collision).toHaveBeenCalledTimes(1);
+  });
+
   it('elige un punto transitable si la cámara de interior cae sobre un mueble', () => {
     const doc = twoRooms();
     doc.furniture = [{ id: 'box', kind: 'armario', x: 1300, y: 1600, widthMm: 500, depthMm: 500,

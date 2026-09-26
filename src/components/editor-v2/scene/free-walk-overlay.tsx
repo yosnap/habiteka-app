@@ -4,6 +4,7 @@ import { useRef, type PointerEvent } from 'react';
 import type { FreeWalkController } from './free-walk-controller';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { FreeWalkMap } from './free-walk-map';
+import { FreeWalkGuide } from './free-walk-guide';
 import styles from './free-walk-overlay.module.css';
 
 export function FreeWalkOverlay({ paused, controller, document, start, onPause, onExit, onMouse }: {
@@ -28,7 +29,7 @@ export function FreeWalkOverlay({ paused, controller, document, start, onPause, 
   return <div className={styles.overlay} aria-label="Visita inmersiva">
     <div className={styles.toolbar}>
       <strong>Visita inmersiva</strong>
-      <span className={styles.hint}>WASD según mirada · flechas según mini plano · R/F mirar arriba/abajo · ratón para mirar · Esc pausa</span>
+      <span className={styles.hint}>WASD según mirada · flechas según plano · Mayús correr · R/F mirar arriba/abajo · ratón para mirar · Esc pausa</span>
       <button type="button" onClick={onMouse}>Activar ratón</button>
       <button type="button" disabled={paused} onClick={() => controller.look(0, -180)}>Mirar arriba ↑</button>
       <button type="button" disabled={paused} onClick={() => controller.look(0, 180)}>Mirar abajo ↓</button>
@@ -37,6 +38,7 @@ export function FreeWalkOverlay({ paused, controller, document, start, onPause, 
     </div>
     {paused && <div className={styles.paused} role="status">Visita en pausa</div>}
     <FreeWalkMap document={document} start={start} controller={controller} />
+    <FreeWalkGuide document={document} start={start} controller={controller} />
     <div className={styles.touchControls}>
       <div className={styles.pad} aria-label="Moverse">
         <button type="button" className={styles.up} aria-label="Avanzar" {...move('forward', 1)}>↑</button>

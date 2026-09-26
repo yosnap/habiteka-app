@@ -73,6 +73,16 @@ describe('enlace físico entre plantas', () => {
     expect(nav.navs.get(state.levelId)!.floorAt(state.point)).toBe(2700);
   });
 
+  it('conserva el cambio de planta con un paso largo de cámara', () => {
+    const doc = building(), nav = buildingWalkNavigation(doc);
+    const lower = { levelId: doc.activeLevelId!, point: { x: 1500, y: 1080 } };
+    expect(nav.navs.get(lower.levelId)!.floorAt(lower.point)).toBe(2700);
+    const upper = moveBuildingWalk(nav, lower, { x: 0, y: -500 });
+    expect(upper.levelId).toBe(doc.levels![1]!.id);
+    const back = moveBuildingWalk(nav, upper, { x: 0, y: 500 });
+    expect(back.levelId).toBe(doc.activeLevelId);
+  });
+
   it.each(['L', 'U'] as const)('enlaza el último tramo de escalera %s con la planta superior', (kind) => {
     const room = addWallPath(emptyEditorDocument(), [
       { x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 6000 }, { x: 0, y: 6000 },

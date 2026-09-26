@@ -9,7 +9,9 @@ import { EYE_HEIGHT_MM } from '@/lib/editor-document/room-interior-cameras';
 import type { FreeWalkController } from './free-walk-controller';
 import { LOOK_RADIANS_PER_PIXEL, walkInputDelta, walkPitch } from './free-walk-input';
 
-const WALK_SPEED_MM_S = 1600;
+const WALK_SPEED_MM_S = 2200;
+const RUN_SPEED_MM_S = 3600;
+const MAX_FRAME_SECONDS = .25;
 
 export function FreeWalkCamera({ document: plan, start, focus, paused, controller, onPause }: {
   document: EditorDocument;
@@ -44,7 +46,7 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, controlle
     invalidate();
     const down = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
         event.preventDefault(); keys.current.add(event.code);
       }
       if (event.code === 'Escape') onPause();
@@ -77,11 +79,13 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, controlle
   useEffect(() => { if (!paused) invalidate(); else { keys.current.clear(); controller.stop(); } }, [paused, invalidate, controller]);
   useFrame(({ camera, clock }, delta) => {
     if (paused) return;
+    const seconds = Math.min(delta, MAX_FRAME_SECONDS);
     const control = controller.take();
     yaw.current -= control.lookX * LOOK_RADIANS_PER_PIXEL;
     const lookVertical = Number(keys.current.has('KeyR')) - Number(keys.current.has('KeyF'));
-    pitch.current = walkPitch(pitch.current, control.lookY, lookVertical, Math.min(delta, .05));
-    const step = walkInputDelta(yaw.current, keys.current, control, WALK_SPEED_MM_S * Math.min(delta, .05));
+    pitch.current = walkPitch(pitch.current, control.lookY, lookVertical, seconds);
+    const speed = keys.current.has('ShiftLeft') || keys.current.has('ShiftRight') ? RUN_SPEED_MM_S : WALK_SPEED_MM_S;
+    const step = walkInputDelta(yaw.current, keys.current, control, speed * seconds);
     position.current = moveBuildingWalk(building, position.current, step);
     const { levelId, point } = position.current;
     camera.position.set(point.x / 1000,

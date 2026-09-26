@@ -25,6 +25,9 @@ export function freeWalkStart(nav: Navigation, preferred?: Point): Point | null 
 /** Paso corto con radio de cámara, barrido continuo y deslizamiento por ejes. */
 export function moveFreeWalk(nav: Navigation, from: Point, delta: Point): Point {
   const length = Math.hypot(delta.x, delta.y);
+  if (length < .001) return from;
+  const destination = { x: from.x + delta.x, y: from.y + delta.y };
+  if (length > 40 && nav.segmentFree(from, destination)) return destination;
   const steps = Math.max(1, Math.ceil(length / 40));
   let point = from;
   for (let i = 0; i < steps; i++) {
