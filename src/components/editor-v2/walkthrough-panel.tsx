@@ -11,9 +11,10 @@ import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import styles from './ceiling-lighting.module.css';
 import { ModernSelect } from '@/components/ui/modern-select';
+import { walkthroughBlockReport } from '@/lib/editor-document/walkthrough-block-report';
 
-export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
-  store: EditorStore; onDraw: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
+export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignPoint }: {
+  store: EditorStore; onDraw: () => void; onLocate: () => void; onPreview: () => void; onDesignPoint?: (waypointId: string) => void;
 }) {
   const state = useStore(store), doc = state.document;
   const [zones, setZones] = useState<string[]>([]);
@@ -27,6 +28,7 @@ export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
     try { return { value: buildWalkthrough(doc, route), error: '' }; }
     catch (error) { return { error: error instanceof Error ? error.message : 'Ruta inválida', value: null }; }
   }, [doc, route]);
+  const blockedSegments = compiled.value?.blockedSegments ?? [];
   const run = (work: () => void) => { try { work(); state.setError(null); } catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo preparar el recorrido'); } };
   const update = (id: string, patch: Partial<WalkthroughWaypoint>) => run(() => {
     if (route) state.apply(putWalkthrough(doc, { ...route, waypoints: route.waypoints.map((p) => p.id === id ? { ...p, ...patch } : p) }));
@@ -85,7 +87,26 @@ export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
         <button type="button" className={styles.danger} onClick={() => run(() => { state.apply(removeWalkthrough(doc, route.id)); state.setWalkthrough(null); })}>Eliminar recorrido</button>
       </fieldset>
       {compiled.error && <p role="status">{compiled.error}</p>}
-      {!!compiled.value?.invalidSegments.length && <p role="alert">Tramos bloqueados: {compiled.value.invalidSegments.map((i) => i + 1).join(', ')}. Ajusta los puntos o despeja el paso.</p>}
+      {!!blockedSegments.length && <section className={styles.blockReport} role="alert" aria-label="Informe de tramos bloqueados">
+        <strong>{blockedSegments.length} {blockedSegments.length === 1 ? 'tramo bloqueado' : 'tramos bloqueados'}</strong>
+        <p>Primer obstáculo de cada tramo, comprobado con la misma geometría que usa la visita. Los tramos bloqueados aparecen en rojo en el plano 2D:</p>
+        <ol>{blockedSegments.map(({ index, block }) => {
+          const report = walkthroughBlockReport(doc, block, route.zoneIds.length > 0);
+          return <li key={index} className={state.walkthroughFocusIndex === index ? styles.activeBlock : undefined}>
+            <strong>Tramo {index + 1}: punto {index + 1} → {index + 2 > route.waypoints.length ? 1 : index + 2}</strong>
+            <p>{report.cause}</p><p>{report.action}</p>
+            <small>Primer bloqueo: X {(block.point.x / 1000).toFixed(2)} m · Y {(block.point.y / 1000).toFixed(2)} m</small>
+            <button type="button" onClick={() => {
+              onLocate();
+              state.focusWalkthroughSegment(index);
+              state.focusOn(block.point);
+              if (block.entityId && [...doc.walls, ...doc.openings, ...doc.furniture, ...(doc.columns ?? []), ...(doc.stairs ?? [])]
+                .some((item) => item.id === block.entityId)) state.select([block.entityId]);
+              store.getState().openSidePanel('walkthrough');
+            }}>Localizar en el plano</button>
+          </li>;
+        })}</ol>
+      </section>}
       {compiled.value && <p>Duración: {(compiled.value.durationMs / 1000).toFixed(1)} s · Sin consumo de IA</p>}
       <button type="button" className={styles.primary} disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={onPreview}>Ver y exportar en 3D</button>
     </>}

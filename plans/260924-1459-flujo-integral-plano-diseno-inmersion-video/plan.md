@@ -23,9 +23,9 @@ Un usuario parte de una imagen, PDF, boceto o plano existente; entiende qué se 
 | Parte | Ya existe | Brecha real |
 |---|---|---|
 | Estudio | Original, redibujado opcional, extracción, vista cenital/maqueta | Estados y destinos poco claros; pestaña editable limitada al boceto dibujado; panel «resultados» sin galería. |
-| Editor | Documento por plantas, escena Three/R3F, materiales, muebles, luces | Hay que aprobar una versión global coherente del diseño. |
-| Recorrido | Ruta 2D, auto-tour, cámara animada, MP4 1080p | No hay movimiento libre en primera persona; rutas actuales por planta. |
-| Vídeo IA | Vistas asociadas al storyboard; F4 del plan anterior pendiente | Falta construir la casa en vídeo y ensamblar una presentación fiel al modelo. |
+| Editor | Documento por plantas, plano visual cenital y 3D sobre la misma escena, aprobación e historial recuperable del plano | Faltan mejor calidad de modelos/acabados y validar un inmueble importado con medidas fieles. |
+| Recorrido | Paseo libre y guiado por la misma escena, incluso entre plantas válidas | Faltan rendimiento móvil, puntos de interés y validar un inmueble aprobado fiel. |
+| Vídeo | Montaje MP4 nativo de construcción y paseo, vinculado a la aprobación | Faltan editor de tomas, 9:16 y prueba visual con un inmueble importado fiel; vídeo IA sigue pendiente. |
 | Catálogo | `CatalogItem` admite cargas propias y productos de tienda con modelo GLB opcional; existe una base de marketplace | Editor v2, colocación 3D y propuesta IA siguen usando un catálogo estático separado. El marketplace actual es semilla, no un feed comercial vivo. |
 | Modelos IA | Kie está integrado para imagen y hay enrutamiento de modelos de texto/imagen | No existe aún acción `video` ni adaptador de vídeo de Kie; Astra y Claude Opus 5.5 no están configurados como motores de vídeo de la aplicación. |
 | Asistencia | Orquestador por fases, comandos del editor, historial/deshacer y puertas de Jev con caché | Falta un chat operativo único que dirija propuestas tipadas al Editor v2, acote el contexto de entrada y preserve revisión/aprobación. |
@@ -95,9 +95,9 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 |---|-------|--------|
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación local |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Maqueta exploratoria; aprobación en espera de fidelidad de fase 2 |
-| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En curso en muestra aislada; faltan varias plantas, exteriores y aprobación |
-| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | Primer montaje MP4 nativo en muestra; faltan editor, formatos y versión aprobada |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Plano visual y aprobación implementados; falta calidad y validar importación fiel |
+| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | Paseo de versión aprobada implementado; falta validación real y rendimiento móvil |
+| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | MP4 nativo vinculado a aprobación; faltan tomas, 9:16 y validación real |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | Pendiente |
 | 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Preparación del socio en paralelo; integración tras fase 3 |
 

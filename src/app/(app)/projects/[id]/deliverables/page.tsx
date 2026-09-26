@@ -33,8 +33,17 @@ export default async function DeliverablesPage({ params }: Props) {
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
 
   const videos = await Promise.all(rows.filter((row) => row.type === 'VIDEO').map(async (row) => {
-    const payload = row.payload as { assetKey?: string; durationMs?: number };
-    return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs, legalSeal: row.legalSeal };
+    const payload = row.payload && typeof row.payload === 'object'
+      ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number }
+      : {};
+    const approvalId = typeof payload.approvalId === 'string' && payload.approvalId ? payload.approvalId : null;
+    const visitQuery = new URLSearchParams();
+    if (approvalId) visitQuery.set('aprobado', approvalId);
+    if (row.zoneId) visitQuery.set('zona', row.zoneId);
+    return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
+      approvedRevision: Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
+      visitHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${visitQuery}` : null,
+      legalSeal: row.legalSeal };
   }));
   // Calidad registrada de cada entregable (evaluación posterior a la generación).
   // Si la consulta falla, los diseños se muestran igual: es información, no una puerta.
@@ -55,6 +64,9 @@ export default async function DeliverablesPage({ params }: Props) {
       {videos.map((video) => <section key={video.id} aria-label="Recorrido en vídeo" className="rounded-lg border p-4">
         <h2>Recorrido 3D · {Math.round((video.durationMs ?? 0) / 1000)} s</h2>
         {video.url ? <><video controls preload="metadata" src={video.url} className="w-full" /><a href={video.url} download="habiteka-recorrido.mp4">Descargar MP4</a></> : <p>Vídeo no disponible temporalmente.</p>}
+        {video.visitHref && <p className="mt-2 text-sm"><a href={video.visitHref} className="underline">
+          Abrir la visita de la revisión aprobada {video.approvedRevision ?? ''}
+        </a></p>}
         <p className="text-xs text-muted-foreground">{video.legalSeal}</p>
       </section>)}
       {(deliverables.length > 0 || videos.length === 0) && <DeliverablesPanel deliverables={deliverables} projectId={id} />}

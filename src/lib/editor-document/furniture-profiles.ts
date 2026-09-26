@@ -138,6 +138,9 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(.05, .3, .4, .65, .3, .22); box(.3, .05, .6, .3, .75, .22);
       box(.35, .35, .8, .3, .3, .2); box(.55, .35, .5, .45, .3, .18);
       break;
+    case 'decor':
+      box(.18, .18, 0, .64, .64, .08); box(.1, .1, .08, .8, .8, .72); box(.24, .24, .8, .52, .52, .2);
+      break;
     case 'rug':
       box(0, 0, 0, 1, 1, 1);
       break;

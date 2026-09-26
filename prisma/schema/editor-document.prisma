@@ -11,6 +11,7 @@ model EditorDocumentState {
   legacyFingerprint String
   createdAt      DateTime @default(now())
   revisions      EditorDocumentRevision[]
+  approvals      EditorDesignApproval[]
 
   // Partial unique indexes protect default (zoneId NULL) and named zones.
   @@index([projectId])
@@ -27,8 +28,26 @@ model EditorDocumentRevision {
   requestKey  String?
   fingerprint String
   createdAt   DateTime @default(now())
+  approval    EditorDesignApproval?
 
   @@unique([stateId, revision])
   @@unique([stateId, requestKey])
   @@map("editor_document_revision")
+}
+
+// Aprobación separada: la revisión del editor tiene un trigger que prohíbe actualizarla.
+model EditorDesignApproval {
+  id          String @id @default(cuid())
+  stateId     String
+  state       EditorDocumentState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  revisionId  String @unique
+  revision    EditorDocumentRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  fingerprint String
+  assets      Json
+  approvedById String
+  lightingPreset String @default("daylight")
+  approvedAt  DateTime @default(now())
+
+  @@index([stateId, approvedAt])
+  @@map("editor_design_approval")
 }

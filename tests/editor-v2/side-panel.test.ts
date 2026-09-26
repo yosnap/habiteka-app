@@ -4,6 +4,7 @@ import { createEditorStore, sidePanelForSelection } from '@/canvas/editor-v2/sto
 import { setRoomCeiling } from '@/lib/editor-document/ceiling-commands';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
+import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 
 function roomStore() {
   const square = [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 3000 }, { x: 0, y: 3000 }];
@@ -81,4 +82,21 @@ it('ocultar el recorrido cierra su panel', () => {
   store.getState().openSidePanel('walkthrough');
   store.getState().hideWalkthrough();
   expect(store.getState().sidePanel).toBeNull();
+});
+
+it('editar y localizar un punto conserva el recorrido y su panel abierto', () => {
+  const path = { id: 'route', name: 'Recorrido', zoneIds: [], loop: false,
+    waypoints: [waypoint({ x: 1000, y: 1000 }), waypoint({ x: 2000, y: 1000 })] };
+  const store = createEditorStore(putWalkthrough(emptyEditorDocument(), path));
+  store.getState().setWalkthrough(path.id);
+  store.getState().openSidePanel('walkthrough');
+  store.getState().focusWalkthroughSegment(0);
+  store.getState().apply(putWalkthrough(store.getState().document, { ...path,
+    waypoints: [path.waypoints[0]!, { ...path.waypoints[1]!, y: 1200 }] }));
+  store.getState().select(['mueble']);
+  expect(store.getState()).toMatchObject({ walkthroughId: path.id, walkthroughFocusIndex: 0,
+    sidePanel: 'walkthrough' });
+  store.getState().closeSidePanel();
+  store.getState().openSidePanel('walkthrough');
+  expect(store.getState().walkthroughId).toBe(path.id);
 });

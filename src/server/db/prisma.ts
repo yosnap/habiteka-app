@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma/client';
+import { Prisma, PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { assertTestDatabaseUrl, isTestProcess } from './test-database-guard';
 import { TestDatabaseAdapter } from './test-database-adapter';
@@ -23,12 +23,27 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
+// Next conserva el singleton durante HMR. Si se regeneró Prisma tras añadir un
+// modelo, esa instancia antigua carece del delegado aunque el código generado ya
+// lo tenga; se sustituye por un cliente de la versión actual del esquema.
+function hasGeneratedModels(client: PrismaClient): boolean {
+  return Object.values(Prisma.ModelName).every((name) => {
+    const delegate = name[0]!.toLowerCase() + name.slice(1);
+    return delegate in client;
+  });
+}
+
 // A test must never inherit a development singleton from the same process.
+const previousClient = globalForPrisma.prisma;
 const client = testProcess
   ? createPrismaClient()
-  : (globalForPrisma.prisma ?? createPrismaClient());
+  : (previousClient && hasGeneratedModels(previousClient) ? previousClient : createPrismaClient());
 export const prisma = client;
 
 if (process.env.NODE_ENV !== 'production') {
-  if (!testProcess) globalForPrisma.prisma = client;
+  if (!testProcess) {
+    globalForPrisma.prisma = client;
+    if (previousClient && previousClient !== client)
+      void previousClient.$disconnect().catch(() => undefined);
+  }
 }

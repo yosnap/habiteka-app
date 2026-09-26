@@ -10,15 +10,20 @@ import { loadStudio } from '@/server/plan/studio-repo';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
-export async function ProjectEditorPage({ projectId, zoneId, autoGenerate }: {
-  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null;
+export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId }: {
+  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string;
 }) {
   const ctx = await requireOrgContext();
   const project = await withOrg(ctx).projects.findById(projectId);
   if (!project) notFound();
 
   const scope = { userId: ctx.userId, organizationId: ctx.organizationId, projectId, zoneId: zoneId ?? null };
-  const source = await withEditorDocuments(ctx).load(scope);
+  const documents = withEditorDocuments(ctx);
+  const source = await documents.load(scope);
+  const approvalHistory = source.authority === 'v2' ? await documents.listApprovals(scope) : [];
+  if (approvedId && !approvalHistory.some((entry) => entry.id === approvedId)) notFound();
+  const selectedApprovalId = approvedId ?? approvalHistory[0]?.id;
+  const approvedDesign = selectedApprovalId ? await documents.readApproval(scope, selectedApprovalId) : null;
   const conversion = source.authority === 'legacy' && source.legacySnapshot !== null
     ? fromCanvasV1(source.legacySnapshot)
     : null;
@@ -49,6 +54,8 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate }: {
       projectName={project.title}
       autoGenerate={autoGenerate ?? null}
       initial={source.authority === 'v2' ? source.document : conversion?.document ?? emptyEditorDocument()}
+      approvedDesign={approvedDesign}
+      autoOpenApproved={Boolean(approvedId)}
       reference={reference}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {

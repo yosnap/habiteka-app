@@ -6,6 +6,7 @@ import type { EditorDocument, Furniture, ElementComment } from './schema';
 import { upgradeSpatialDocument, transformAroundCenter } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 import { surfaceMaterial } from './surface-materials';
+import { followHostedChildren } from './object-host-rest';
 
 export function setWallSurface(input: EditorDocument, id: string, side: 'left' | 'right', materialId?: string): EditorDocument {
   if (materialId && !surfaceMaterial(materialId)) throw new Error('Material desconocido');
@@ -22,7 +23,10 @@ export function updateFurniture(input: EditorDocument, id: string, patch: Partia
   if (input.kitchenRuns?.some((r) => r.id === id)) return updateKitchenRun(input, id, patch);
   const doc = upgradeSpatialDocument(input), index = doc.furniture.findIndex((f) => f.id === id);
   if (index < 0) throw new Error('Mueble no encontrado');
-  doc.furniture[index] = transformAroundCenter<Furniture>(doc.furniture[index]!, patch);
+  const previous = doc.furniture[index]!;
+  const next = transformAroundCenter<Furniture>(previous, patch);
+  doc.furniture[index] = next;
+  followHostedChildren(doc, previous, next);
   return parseEditorDocument(doc);
 }
 export function paintElement(input: EditorDocument, id: string, part: string, color: string): EditorDocument {

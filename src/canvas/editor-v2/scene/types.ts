@@ -36,7 +36,7 @@ export interface SceneRamp {
 }
 export interface ExteriorWall { sourceEntityId: string; x: number; z: number; normalX: number; normalZ: number }
 export interface EditorScene { boxes: SceneBox[]; ramps: SceneRamp[]; polygons: ScenePolygon[]; warnings: string[]; exteriorWalls: ExteriorWall[] }
-export const materialColor = (id: string) => ({ 'plaster-white': '#eeeae2', 'oak-natural': '#b58b59',
+export const materialColor = (id: string) => id.startsWith('polyhaven:') || id.startsWith('outdoor:') ? '#ffffff' : ({ 'plaster-white': '#eeeae2', 'oak-natural': '#b58b59',
   'concrete-grey': '#a6a6a0', 'brick-red': '#a86652', 'paint-sage': '#9baa98',
   'wood-oak': '#b58b59', 'steel-dark': '#3f484d' })[id] ?? '#dedbd3';
 export const meters = (mm: number) => mm / 1000;

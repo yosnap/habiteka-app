@@ -18,11 +18,17 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
     case 'pergola': case 'pergola-aluminio': case 'pergola-metal': posts(); box(0, 0, .86, 1, .08, .08); box(0, .92, .86, 1, .08, .08);
       for (let i = 0; i < 9; i++) box(i / 9, 0, .94, .06, 1, .06); break;
     case 'carpa': {
-      // Cuatro postes, cubierta a dos niveles y lona transparente en el fondo y los laterales; el frente queda abierto.
+      // Frente abierto; los laterales recogidos dejan solo un rollo alto, fuera del paso a altura de persona.
       posts(.8);
       box(0, 0, .8, 1, 1, .04); box(.08, .08, .84, .84, .84, .06); box(.2, .2, .9, .6, .6, .06); box(.35, .35, .96, .3, .3, .04);
       const clear = { opacity: .3 };
-      box(0, 0, 0, 1, .015, .8, '#dfe9ec', clear); box(0, 0, 0, .015, 1, .8, '#dfe9ec', clear); box(.985, 0, 0, .015, 1, .8, '#dfe9ec', clear);
+      const leftRolled = item.rolledSides === 'left' || item.rolledSides === 'both';
+      const rightRolled = item.rolledSides === 'right' || item.rolledSides === 'both';
+      box(0, 0, 0, 1, .015, .8, '#dfe9ec', clear);
+      if (leftRolled) box(0, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72 });
+      else box(0, 0, 0, .015, 1, .8, '#dfe9ec', clear);
+      if (rightRolled) box(.982, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72 });
+      else box(.985, 0, 0, .015, 1, .8, '#dfe9ec', clear);
       break;
     }
     case 'toldo':

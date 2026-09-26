@@ -120,6 +120,8 @@ export interface Furniture extends Point {
   hostId?: string;
   /** Fracción de la ventana que cubre una cortina, estor o persiana (0 abierta, 1 tapada del todo). */
   coverage?: number;
+  /** Laterales de la carpa recogidos bajo la cubierta; sin valor equivale a ambos desplegados. */
+  rolledSides?: 'none' | 'left' | 'right' | 'both';
 }
 export interface ElementComment {
   id: string;

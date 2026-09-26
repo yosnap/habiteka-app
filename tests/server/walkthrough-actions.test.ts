@@ -1,21 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signUploadTicket } from '@/server/walkthrough/upload-ticket';
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), load: vi.fn(), scope: vi.fn(), inspect: vi.fn(), promote: vi.fn(),
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), readApproval: vi.fn(), scope: vi.fn(), inspect: vi.fn(), promote: vi.fn(),
   existing: vi.fn(), find: vi.fn(), create: vi.fn(), usage: vi.fn(), transaction: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/server/auth/require-org-context', () => ({ requireOrgContext: mocks.auth }));
-vi.mock('@/server/editor/document-repo', () => ({ withEditorDocuments: () => ({ load: mocks.load }) }));
+vi.mock('@/server/editor/document-repo', () => ({ withEditorDocuments: () => ({ readApproval: mocks.readApproval }) }));
 vi.mock('@/server/editor/authority', () => ({ assertEditorScope: mocks.scope }));
 vi.mock('@/server/storage/s3-storage-adapter', () => ({ getStorageAdapter: () => ({ inspect: mocks.inspect, promote: mocks.promote }) }));
 vi.mock('@/server/db/prisma', () => ({ prisma: { deliverable: { findFirst: mocks.existing }, $transaction: mocks.transaction } }));
 import { finishWalkthroughUpload } from '@/server/walkthrough/actions';
-const claims = { id:'upload',key:'walkthrough-uploads/org/project/upload.mp4',organizationId:'org',userId:'user',projectId:'project',zoneId:null,routeId:'route',bytes:64,durationMs:10000,expires:Date.now()+300000 };
+const claims = { id:'upload',key:'walkthrough-uploads/org/project/upload.mp4',organizationId:'org',userId:'user',projectId:'project',zoneId:null,routeId:'route',approvalId:'approval',approvedRevision:2,approvedFingerprint:'a'.repeat(64),bytes:64,durationMs:10000,expires:Date.now()+300000 };
 const token = () => signUploadTicket(claims,'test-signing-secret');
 const info = { bytes:64,contentType:'video/mp4',header:Buffer.from('0000ftyp00000000000000000000000000') };
 beforeEach(() => {
   vi.resetAllMocks();vi.stubEnv('BETTER_AUTH_SECRET','test-signing-secret');
   mocks.auth.mockResolvedValue({organizationId:'org',userId:'user'});
-  mocks.load.mockResolvedValue({authority:'v2',writable:true,document:{walkthroughs:[{id:'route'}]}});
+  mocks.readApproval.mockResolvedValue({id:'approval',revision:2,fingerprint:'a'.repeat(64),document:{walkthroughs:[{id:'route'}]}});
   mocks.inspect.mockResolvedValue(info);mocks.existing.mockResolvedValue(null);mocks.find.mockResolvedValue(null);
   mocks.transaction.mockImplementation((fn) => fn({deliverable:{findUnique:mocks.find,create:mocks.create},usageEvent:{create:mocks.usage}}));
 });
@@ -23,12 +23,17 @@ describe('finalización de vídeos con ámbito y reintento', () => {
   it('rechaza otra organización antes de acceder al proyecto o storage', async () => {
     mocks.auth.mockResolvedValue({organizationId:'foreign',userId:'user'});
     await expect(finishWalkthroughUpload(token())).rejects.toThrow(/cuenta/);
-    expect(mocks.load).not.toHaveBeenCalled();expect(mocks.inspect).not.toHaveBeenCalled();
+    expect(mocks.readApproval).not.toHaveBeenCalled();expect(mocks.inspect).not.toHaveBeenCalled();
   });
   it('revalida acceso al proyecto y ruta antes de publicar', async () => {
-    mocks.load.mockRejectedValue(new Error('Fuera de ámbito'));
+    mocks.readApproval.mockRejectedValue(new Error('Fuera de ámbito'));
     await expect(finishWalkthroughUpload(token())).rejects.toThrow(/ámbito/);
     expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it('rechaza una versión aprobada distinta antes de publicar', async () => {
+    mocks.readApproval.mockResolvedValue({id:'approval',revision:3,fingerprint:'b'.repeat(64),document:{walkthroughs:[{id:'route'}]}});
+    await expect(finishWalkthroughUpload(token())).rejects.toThrow(/versión aprobada/);
+    expect(mocks.inspect).not.toHaveBeenCalled();
   });
   it('recupera un objeto promovido tras fallo de transacción y registra coste cero', async () => {
     mocks.inspect.mockRejectedValueOnce(new Error('NoSuchKey')).mockResolvedValueOnce(info);
@@ -41,7 +46,7 @@ describe('finalización de vídeos con ámbito y reintento', () => {
     const showcase = signUploadTicket({ ...claims, mode: 'showcase', durationMs: 18000 }, 'test-signing-secret');
     await finishWalkthroughUpload(showcase);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      payload: expect.objectContaining({ mode: 'showcase', durationMs: 18000 }),
+      payload: expect.objectContaining({ mode: 'showcase', durationMs: 18000, approvalId: 'approval', approvedRevision: 2 }),
     }) });
     expect(mocks.usage).toHaveBeenCalledWith({ data: expect.objectContaining({ amount: 18 }) });
   });

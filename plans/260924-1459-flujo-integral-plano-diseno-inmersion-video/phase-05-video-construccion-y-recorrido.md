@@ -7,6 +7,8 @@ status: in_progress
 
 ## Avance en muestra aislada (25–26-09-2026)
 
+- La exportación MP4 desde el proyecto se habilita en la visita aprobada. El ticket de subida y el entregable registran ID, revisión y huella de esa aprobación; el panel de entregables enlaza de vuelta a la visita exacta. Las pruebas aisladas comprueban que una ruta del borrador no se puede atribuir a otra aprobación. Siguen pendientes 9:16, editor de tomas y validación de un vídeo de inmueble importado.
+
 - La ruta automática busca otro punto libre de la estancia cuando el más céntrico queda aislado por muebles. El barrido de colisión se afinó para que la ruta aprobada coincida con los fotogramas del vídeo.
 - El exportador nativo añade una opción de montaje de 8 s: suelo, estructura, huecos/techo, mobiliario, giro exterior y recorrido por estancias. Usa las entidades de la misma escena R3F y un guion temporal determinista; también conserva la exportación de solo recorrido.
 - La exportación MP4 se completó en Chrome con la vivienda sintética y mostró «MP4 descargado». Una segunda prueba detectó que R3F podía redimensionar el lienzo durante la codificación; se corrigió con un lienzo de vídeo fijo a 1920×1080 y la repetición terminó correctamente.

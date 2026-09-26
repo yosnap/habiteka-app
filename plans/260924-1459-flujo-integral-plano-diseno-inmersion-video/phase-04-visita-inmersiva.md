@@ -7,11 +7,15 @@ status: in_progress
 
 ## Avance en muestra aislada (25–26-09-2026)
 
+- La entrada a una visita aprobada carga una copia de solo lectura de la revisión elegida, con sus modelos e iluminación fijados; una URL interna puede reabrir una versión histórica aun cuando exista un borrador posterior. La vista cenital y el paseo usan esa copia. Queda pendiente validar el recorrido en un inmueble importado fiel y medir rendimiento en móvil.
+- Al cambiar entre enlaces de revisiones aprobadas, la vista se remonta por ID de aprobación para que la escena y el vídeo correspondan siempre al número mostrado en la cabecera.
+
 - La vista 3D del Editor v2 ofrece «Visita» sobre la misma escena: cámara a 1,6 m, movimiento WASD/flechas, mirada con ratón o arrastre, pausa, salida y controles táctiles.
 - El paseo usa `walkthroughNavigation` para radio, puertas, muebles y muros; el movimiento continuo desliza junto a obstáculos. Pruebas con puerta abierta/cerrada y estancia amueblada.
 - Entrada, pausa y salida comprobadas en `/dev/editor-v2?muestra=visual`, sin modificar el proyecto real. El recorrido guiado de cuatro estancias de esa muestra ya se genera y se previsualiza.
 - El paseo libre muestra un mini plano del mismo documento con muros curvos, huecos de puertas, ventanas, posición, orientación y estancia actual. Comprobado visualmente en escritorio y en un ancho de 390 px; el giro de cámara actualiza el indicador.
 - La navegación atraviesa puertas hacia patios y sube rampas rectas o con giro siguiendo su superficie 3D. Una ruta guiada entre patio y estancia elevada pasa por el hueco real del muro. El mini plano distingue el contorno exterior con línea discontinua.
+- Las carpas del patio conservan sus paneles transparentes como obstáculos cuando están desplegados; recoger el izquierdo, el derecho o ambos abre exactamente esos pasos en la escena, la visita libre y las rutas grabadas.
 - La cámara también sigue los peldaños y descansillos de escaleras rectas, en L y en U del mismo modelo 3D. Se verificó subida, bajada, bloqueo lateral y paso por un hueco a otra estancia con suelo elevado dentro de una misma planta; un peldaño desproporcionado no se acepta como paso.
 - La visita libre enlaza dos plantas contiguas solo cuando una escalera alcanza la cota superior y tiene salida libre. Recorta el techo inferior y el suelo superior con la misma huella; la cámara conserva su altura absoluta al subir y bajar y el mini plano cambia de planta. Pruebas sintéticas de subida, bajada, huecos y enlaces rechazados por altura o salida ocupada. La muestra aislada `/dev/editor-v2?muestra=plantas` permite revisar el hueco y entrar en 3D sin datos reales.
 - Las rutas guiadas ya usan los mismos enlaces validados: generan puntos sobre peldaños y descansillos, conservan la altura absoluta de la cámara y permiten subir o bajar. La reproducción monta ambas plantas de la misma escena; la ruta guardada conserva los puntos en su planta inicial. Probado en escaleras rectas, L y U, con salida bloqueada y cotas incorrectas, y en la muestra aislada de dos plantas.

@@ -49,7 +49,7 @@ import { ColumnLayer } from './column-layer';
 import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
-export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
+export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', presentation = 'technical', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; presentation?: 'technical' | 'visual'; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
@@ -58,7 +58,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls);
-  const wallInk = referenceVisible ? '#df254b' : INK;
+  const wallInk = referenceVisible ? '#df254b' : presentation === 'visual' ? '#e8e5df' : INK;
   // Muros que el usuario ocultó: se ven como guía discontinua y se pueden seleccionar para volver a mostrarlos.
   // Los bordes lógicos de patios y del perímetro exterior no son muros del usuario y siguen sin dibujarse.
   const ghostWalls = doc.walls.filter((wall) => wall.hidden && showWalls && !wall.id.startsWith('hidden:') && !wall.id.startsWith('outdoor:'));
@@ -113,7 +113,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {rooms.value.map((room) => {
       const points = room.boundary;
       return <FloorSurface key={room.id} points={points} finish={floorFinish(doc, room.id)} scale={scale}
-        referenceVisible={referenceVisible}
+        referenceVisible={referenceVisible} presentation={presentation}
         onSnapMove={(delta) => { if (groupOf(room.id)) return delta; const state = store.getState(), result = alignRoom(source, room.id, delta, scale, state.snap); state.setMagneticGuides(result.guides); return result.delta; }}
         onMove={!readOnly && tool === 'select' ? (delta) => run(() => {
           const group = groupOf(room.id); if (group) return dragGroup(group, delta);
@@ -177,7 +177,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       }}
       onDragMove={(e) => { if (groupOf(f.id)) return; const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale); e.target.position(snapped); e.target.rotation(snapped.rotation); }}
       onDragEnd={(e) => { e.target.rotation(f.rotation); drag(f.id, f, e); }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
-      {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol onPartSnap={(id, delta) => {
+      {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol visual={presentation === 'visual'} onPartSnap={(id, delta) => {
         const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
         const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });
         const snapped = snapPointDrag(store, raw, scale, [owner.item.id]);
@@ -188,8 +188,10 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       }) : undefined} selectedPartId={selected[0]} onPartSelect={tool === 'select' ? (id) => store.getState().select([id]) : undefined} document={doc} item={f} scale={scale} selected={selected.includes(f.id)} /> : <><Rect width={f.widthMm} height={f.depthMm} cornerRadius={Math.min(80, f.widthMm / 10)}
         fill={f.color ?? '#d8e2de'} stroke={selected.includes(f.id) ? ACCENT : '#65776e'} strokeWidth={2 / scale} />
       <Line points={[0, f.depthMm * .25, f.widthMm, f.depthMm * .25]} stroke="#65776e" strokeWidth={1 / scale} listening={false} /></>}
-      <Text text={elementName(f)} x={0} y={f.depthMm / 2}
-        width={f.widthMm} align="center" fontSize={11 / scale} fill={INK} listening={false} />
+      {(selected.includes(f.id) || (presentation === 'technical' && f.widthMm * scale >= 100 && f.depthMm * scale >= 42)) &&
+        <Text text={elementName(f)} x={4 / scale} y={f.depthMm / 2 - 6 / scale}
+          width={Math.max(32 / scale, f.widthMm - 8 / scale)} height={13 / scale} align="center" fontSize={11 / scale}
+          wrap="none" ellipsis fill={INK} listening={false} />}
     </Group>)}
     {dimensions !== 'none' && dimensions !== 'external' && doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
       layout={{ from: d.from, to: d.to, sourceFrom: d.from, sourceTo: d.to }}

@@ -50,9 +50,11 @@ export interface EditorState {
   viewRequest: { kind: 'fit' | 'zoom-in' | 'zoom-out'; nonce: number } | null;
   requestView: (kind: 'fit' | 'zoom-in' | 'zoom-out') => void;
   walkthroughId: string | null;
+  walkthroughFocusIndex: number | null;
   walkthroughPlaying: boolean;
   hideWalkthrough: () => void;
   setWalkthrough: (id: string | null) => void;
+  focusWalkthroughSegment: (index: number | null) => void;
   setWalkthroughPlaying: (playing: boolean) => void;
   ceilingView: 'hidden' | 'transparent' | 'solid';
   setCeilingView: (view: 'hidden' | 'transparent' | 'solid') => void;
@@ -115,10 +117,11 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     focusPoint: null, focusOn: (point) => set({ focusPoint: { point, nonce: (get().focusPoint?.nonce ?? 0) + 1 } }),
     pan: false, setPan: (pan) => set({ pan }),
     viewRequest: null, requestView: (kind) => set({ viewRequest: { kind, nonce: (get().viewRequest?.nonce ?? 0) + 1 } }),
-    walkthroughId: null, walkthroughPlaying: false,
-    hideWalkthrough: () => set({ walkthroughId: null, walkthroughPlaying: false, tool: 'select',
+    walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false,
+    hideWalkthrough: () => set({ walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false, tool: 'select',
       sidePanel: get().sidePanel === 'walkthrough' ? null : get().sidePanel }),
-    setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughPlaying: false }),
+    setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughFocusIndex: null, walkthroughPlaying: false }),
+    focusWalkthroughSegment: (walkthroughFocusIndex) => set({ walkthroughFocusIndex }),
     setWalkthroughPlaying: (walkthroughPlaying) => set({ walkthroughPlaying }),
     ceilingView: 'transparent',
     setCeilingView: (ceilingView) => set({ ceilingView }),

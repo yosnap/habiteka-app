@@ -30,6 +30,7 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
 import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
+import { CarpaSidesField } from './carpa-sides-field';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
@@ -138,6 +139,8 @@ export function Inspector({ store }: { store: EditorStore }) {
       <WallConstructionFields wall={wall} document={doc} edit={apply} showSurfaceFields={!peers.length} />
       {selectedWallIds.length > 1 && <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />}
     </>}
+    {furniture?.kind === 'carpa' && !partOwner && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
+      onChange={(rolledSides) => apply((document) => updateFurniture(document, furniture.id, { rolledSides }))} />}
     {furniture && !partOwner && <div className={styles.fields}>
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
         ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>

@@ -15,19 +15,19 @@ function secret() {
   if (!value) throw new Error('No está configurada la firma de subidas');
   return value;
 }
-export async function prepareWalkthroughUpload(scope: EditorScope, routeId: string, bytes: number, mode: NativeVideoMode = 'walkthrough') {
+export async function prepareWalkthroughUpload(scope: EditorScope, approvalId: string, routeId: string, bytes: number, mode: NativeVideoMode = 'walkthrough') {
   const ctx = await requireOrgContext();
   if (!Number.isInteger(bytes) || bytes < 32 || bytes > 100 * 1024 * 1024) throw new Error('El vídeo supera el límite de 100 MB');
-  const source = await withEditorDocuments(ctx).load(scope);
-  if (source.authority !== 'v2' || !source.writable) throw new Error('El editor no permite exportar este plano');
-  const route = source.document.walkthroughs?.find((path) => path.id === routeId);
-  if (!route) throw new Error('Guarda el recorrido antes de exportarlo');
-  const compiled = buildWalkthrough(source.document, route);
+  const approved = await withEditorDocuments(ctx).readApproval(scope, approvalId);
+  const route = approved.document.walkthroughs?.find((path) => path.id === routeId);
+  if (!route) throw new Error('El recorrido no pertenece al diseño aprobado. Aprueba una nueva versión.');
+  const compiled = buildWalkthrough(approved.document, route);
   if (!['walkthrough', 'showcase'].includes(mode) || compiled.invalidSegments.length ||
     nativeVideoDurationMs(compiled.durationMs, mode) > 60000 || compiled.durationMs < 100) throw new Error('Recorrido no exportable');
   const id = crypto.randomUUID(), key = `walkthrough-uploads/${ctx.organizationId}/${scope.projectId}/${id}.mp4`;
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
-    projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId, bytes,
+    projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId,
+    approvalId: approved.id, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, bytes,
     mode, durationMs: nativeVideoDurationMs(compiled.durationMs, mode), expires: Date.now() + 300000 }, secret());
   return { ticket, url: await getStorageAdapter().getPresignedUploadUrl(key, bytes, 'video/mp4') };
 }
@@ -35,8 +35,9 @@ export async function finishWalkthroughUpload(token: string) {
   const ctx = await requireOrgContext(), ticket = readUploadTicket(token, secret());
   if (ticket.organizationId !== ctx.organizationId || ticket.userId !== ctx.userId) throw new Error('Permiso de subida no válido para esta cuenta');
   const scope = { projectId: ticket.projectId, zoneId: ticket.zoneId };
-  const source = await withEditorDocuments(ctx).load(scope);
-  if (source.authority !== 'v2' || !source.writable || !source.document.walkthroughs?.some((p) => p.id === ticket.routeId)) throw new Error('Recorrido no encontrado');
+  const approved = await withEditorDocuments(ctx).readApproval(scope, ticket.approvalId);
+  if (approved.revision !== ticket.approvedRevision || approved.fingerprint !== ticket.approvedFingerprint ||
+    !approved.document.walkthroughs?.some((p) => p.id === ticket.routeId)) throw new Error('La versión aprobada del vídeo no coincide.');
   const storage = getStorageAdapter(), id = `video-${ticket.id}`;
   if (!storage.inspect || !storage.promote) throw new Error('El almacenamiento no admite verificación de vídeos');
   const existing = await prisma.deliverable.findFirst({ where: { id, projectId: ticket.projectId, project: { organizationId: ctx.organizationId }, deletedAt: null } });
@@ -56,6 +57,7 @@ export async function finishWalkthroughUpload(token: string) {
     if (await tx.deliverable.findUnique({ where: { id } })) return;
     await tx.deliverable.create({ data: { id, projectId: ticket.projectId, zoneId: ticket.zoneId, type: 'VIDEO',
       payload: { type: 'video', assetKey, routeId: ticket.routeId, mode: ticket.mode ?? 'walkthrough',
+        approvalId: ticket.approvalId, approvedRevision: ticket.approvedRevision, approvedFingerprint: ticket.approvedFingerprint,
         durationMs: ticket.durationMs, width: 1920, height: 1080 },
       legalSeal: DELIVERABLE_LEGAL_SEAL } });
     await tx.usageEvent.create({ data: { userId: ctx.userId, orgId: ctx.organizationId, action: 'walkthrough.native-export',

@@ -9,7 +9,7 @@ export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptio
   if (item.profile === 'plant') return 'plants';
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';
-  if (['rug', 'curtain'].includes(item.profile)) return 'decor';
+  if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';
   if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile)) return 'furniture';
   return null; // No instalaciones, electrodomésticos ni construcción implícita.
 }

@@ -9,6 +9,7 @@ import { useStore } from 'zustand';
 import {
   Box,
   Download,
+  LayoutGrid,
   Save,
   SlidersHorizontal,
   Sparkles,
@@ -74,6 +75,7 @@ import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import type { SceneLightingPreset } from './scene/scene-lighting';
 
 /** Título de cada panel dentro de la ranura lateral única. */
 const SIDE_PANEL_TITLES: Record<SidePanelId, string> = {
@@ -100,11 +102,18 @@ export interface EditorShellProps {
   saveStatus?: string;
   onSave?: () => void;
   saveEnabled?: boolean;
+  onApproveDesign?: () => void;
+  approveDisabled?: boolean;
+  approveLabel?: string;
+  onOpenApproved?: () => void;
   onImport?: () => void;
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
   projectId?: string;
   onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
+  allowVideoExport?: boolean;
+  lightingPreset?: SceneLightingPreset;
+  onLightingChange?: (preset: SceneLightingPreset) => void;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onGenerateDesign?: (input: {
     estilo: Estilo;
@@ -139,11 +148,18 @@ export function EditorShell({
   saveStatus,
   onSave,
   saveEnabled = true,
+  onApproveDesign,
+  approveDisabled = false,
+  approveLabel = 'Aprobar diseño',
+  onOpenApproved,
   onImport,
   onExport,
   onAddStair,
   projectId,
   onSaveNativeVideo,
+  allowVideoExport,
+  lightingPreset,
+  onLightingChange,
   onSaveNativeRender,
   onGenerateDesign,
   onGenerateRender,
@@ -174,7 +190,6 @@ export function EditorShell({
     store.getState().toggleSidePanel(panel);
   }, [store]);
   const closePanel = useCallback(() => store.getState().closeSidePanel(), [store]);
-  const walkthroughId = useStore(store, (s) => s.walkthroughId);
   const hideWalkthrough = () => store.getState().hideWalkthrough();
   // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
   const [preferences, setPreferences] = useState(loadEditorPreferences);
@@ -182,7 +197,13 @@ export function EditorShell({
   const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
   const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
-  const [mode, setMode] = useState<'2d' | '3d'>('2d');
+  const [mode, setMode] = useState<'2d' | 'visual' | '3d'>('2d');
+  const [localLighting, setLocalLighting] = useState<SceneLightingPreset>('daylight');
+  const sceneLighting = lightingPreset ?? localLighting;
+  // Las herramientas de trazado conservan el lienzo técnico; muebles y selección se editan en la maqueta cenital.
+  useEffect(() => store.subscribe((next, previous) => {
+    if (mode === 'visual' && next.tool !== previous.tool && next.tool !== 'select' && next.tool !== 'place-object') setMode('2d');
+  }), [mode, store]);
   const [generateOpen, setGenerateOpen] = useState(false);
   const planIssueGate = usePlanIssueGate(store, { close: () => setGenerateOpen(false), show2d: () => setMode('2d') });
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
@@ -316,7 +337,7 @@ export function EditorShell({
     store.getState().setTool(next);
     setConstruction(false);
     closePanel();
-    if (next !== 'select') setMode('2d');
+    if (next !== 'select' && mode === '3d') setMode('visual');
     canvasHost.current?.querySelector<HTMLElement>('[aria-label="Lienzo del plano"]')?.focus();
   };
   const insertStair = (kind: Stair['kind']) =>
@@ -486,7 +507,7 @@ export function EditorShell({
           event.preventDefault();
           if (readOnly && nextTool !== 'select') return;
           state.setTool(nextTool); closePanels();
-          if (nextTool !== 'select') setMode('2d');
+          if (nextTool !== 'select' && mode === '3d') setMode('visual');
           return;
         }
       }
@@ -549,9 +570,9 @@ export function EditorShell({
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [readOnly, shortcutsEnabled, store]);
+  }, [mode, readOnly, shortcutsEnabled, store]);
   return (
-    <section className={styles.shell} onPointerDownCapture={(event) => {
+    <section className={styles.shell} data-mode={mode} onPointerDownCapture={(event) => {
       if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
     }} aria-label={`Editor de ${projectName}`}>
       <header className={styles.header}>
@@ -563,8 +584,10 @@ export function EditorShell({
           <BuildingLevelMenu store={store} />
           <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
           <SelectByKindMenu store={store} />
-          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough' || !!walkthroughId}
-            onClick={() => { if (sidePanel === 'walkthrough' || walkthroughId) hideWalkthrough(); else openPanel('walkthrough'); }}>{sidePanel === 'walkthrough' || walkthroughId ? 'Ocultar recorrido' : 'Recorrido'}</button>
+          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough'}
+            onClick={() => { if (sidePanel === 'walkthrough') closePanel(); else openPanel('walkthrough'); }}>
+            {sidePanel === 'walkthrough' ? 'Cerrar panel de recorrido' : 'Recorrido'}
+          </button>
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}>Contexto IA</button>
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'ceiling'}
             onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}>Techo y luces</button>
@@ -621,13 +644,24 @@ export function EditorShell({
             <Save size={18} aria-hidden="true" />
             <span>Guardar</span>
           </button>
+          {onApproveDesign && <button type="button" disabled={approveDisabled} onClick={onApproveDesign}>
+            {approveLabel}
+          </button>}
+          {onOpenApproved && <button type="button" onClick={onOpenApproved}>Ver aprobado</button>}
         </div>
       </header>
       <div className={styles.secondary}>
         <div className={styles.viewSwitch} role="group" aria-label="Vista del espacio">
           <button type="button" aria-pressed={mode === '2d'} onClick={() => setMode('2d')}>
             <Square size={16} aria-hidden="true" />
-            2D
+            Plano técnico
+          </button>
+          <button type="button" aria-pressed={mode === 'visual'} onClick={() => {
+            setConstruction(false);
+            setMode('visual');
+          }}>
+            <LayoutGrid size={16} aria-hidden="true" />
+            Plano visual
           </button>
           <button
             type="button"
@@ -725,16 +759,21 @@ export function EditorShell({
             if (construction) setConstruction(false);
           }}
         >
-          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} dimensions={visibility.dimensions} showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting} reference={reference} />
+          <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} fitOnMount
+            presentation="technical" dimensions={visibility.dimensions}
+            showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting}
+            reference={reference} />
         </div>
-        {mode === '3d' && (
+        {mode !== '2d' && (
           <div
             className={styles.sceneHost}
             onPointerDownCapture={() => {
               if (construction) setConstruction(false);
             }}
           >
-            <EditorSceneView store={store} onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
+            <EditorSceneView key={mode} store={store} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
+              lightingPreset={sceneLighting} onLightingChange={(preset) => { setLocalLighting(preset); onLightingChange?.(preset); }}
+              onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
           </div>
         )}
         {construction && (
@@ -761,7 +800,8 @@ export function EditorShell({
               if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
               // El elemento nuevo sigue al ratón y se coloca con un clic, igual que al pegar.
               const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
-              setMode('2d'); store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
+              if (mode === '3d') setMode('visual');
+              store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
             })}
           />
         )}
@@ -778,7 +818,7 @@ export function EditorShell({
                     // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
                     const source = store.getState().document,
                       next = upgradeSpatialDocument(addFurniture(source, item, center));
-                    setMode('2d');
+                    if (mode === '3d') setMode('visual');
                     store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
                   })
                 }
@@ -787,7 +827,8 @@ export function EditorShell({
             {sidePanel === 'walkthrough' && (
               <WalkthroughPanel store={store}
                 onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined}
-                onDraw={() => { setMode('2d'); store.getState().setTool('walkthrough'); }}
+                onDraw={() => { if (mode === '3d') setMode('visual'); store.getState().setTool('walkthrough'); }}
+                onLocate={() => setMode('2d')}
                 onPreview={() => { setMode('3d'); store.getState().setTool('select'); closePanel(); }} />
             )}
             {sidePanel === 'context' && <FurnitureContextPanel store={store} />}

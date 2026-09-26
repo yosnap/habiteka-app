@@ -24,6 +24,7 @@
   flex-direction: column;
   border: 1px solid var(--line);
   overflow: hidden;
+  position: relative;
 }
 .shell button,
 .shell :is(select, [role='combobox']),
@@ -242,6 +243,9 @@
   position: relative;
   background: var(--paper);
   touch-action: none;
+}
+.canvas[data-presentation='visual'] {
+  background: #e9eeeb;
 }
 .canvas:focus-visible {
   outline: 2px solid var(--brand);
@@ -678,6 +682,15 @@
   border-top: 1px solid var(--line);
   z-index: 10;
 }
+.shell[data-mode='visual'] .propertiesBar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 88px;
+  max-height: 34%;
+  overflow: auto;
+  box-shadow: 0 -6px 24px rgb(25 45 36 / 10%);
+}
 .propertiesBar > strong {
   min-width: 72px;
 }
@@ -707,6 +720,15 @@
   font-variant-numeric: tabular-nums;
   font-size: 1rem;
   padding: 8px;
+}
+.measureField select {
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.875rem;
 }
 .propertyActions {
   display: flex;
@@ -791,6 +813,9 @@
   .workspace {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 76px minmax(180px, 1fr) auto;
+  }
+  .shell[data-mode='visual'] .propertiesBar {
+    left: 0;
   }
   .tools {
     grid-column: 1;
