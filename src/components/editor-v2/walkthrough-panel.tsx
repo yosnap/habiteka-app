@@ -66,7 +66,10 @@ export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
       <fieldset disabled={state.readOnly}>
         <label>Nombre<input value={route.name} maxLength={80} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, name: e.target.value })))} /></label>
         {!multiLevel && <label className={styles.check}><input type="checkbox" checked={route.loop} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, loop: e.target.checked })))} />Cerrar ruta en bucle</label>}
-        {!multiLevel && <button type="button" onClick={onDraw}>Añadir puntos en el plano</button>}
+        {!multiLevel && (state.tool === 'walkthrough' ? <>
+          <p>Haz clic en cada punto del plano. Pulsa «Terminar trazado» o Intro cuando acabes; Esc sale del modo de dibujo.</p>
+          <button type="button" onClick={() => state.setTool('select')}>Terminar trazado · {route.waypoints.length} {route.waypoints.length === 1 ? 'punto' : 'puntos'}</button>
+        </> : <button type="button" onClick={onDraw}>Añadir puntos en el plano</button>)}
         {multiLevel && <p>En 2D se ven los puntos de la planta inicial. Ajusta las coordenadas de la otra planta en esta lista; la ruta cruza por la escalera validada.</p>}
         <p>Arrastra los puntos numerados en 2D para ajustar el paso.</p>
         {route.waypoints.map((point, index) => <details key={point.id} className={styles.light}>

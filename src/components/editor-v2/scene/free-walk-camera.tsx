@@ -7,9 +7,9 @@ import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { buildingWalkNavigation, moveBuildingWalk } from '@/lib/editor-document/building-free-walk';
 import { EYE_HEIGHT_MM } from '@/lib/editor-document/room-interior-cameras';
 import type { FreeWalkController } from './free-walk-controller';
+import { LOOK_RADIANS_PER_PIXEL, walkDelta, walkPitch } from './free-walk-input';
 
 const WALK_SPEED_MM_S = 1600;
-const LOOK_RADIANS_PER_PIXEL = .0025;
 
 export function FreeWalkCamera({ document: plan, start, focus, paused, controller, onPause }: {
   document: EditorDocument;
@@ -43,7 +43,8 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, controlle
     camera.lookAt(focus[0], camera.position.y, focus[2]);
     invalidate();
     const down = (event: KeyboardEvent) => {
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
         event.preventDefault(); keys.current.add(event.code);
       }
       if (event.code === 'Escape') onPause();
@@ -82,12 +83,10 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, controlle
     const strafe = Number(keys.current.has('KeyD') || keys.current.has('ArrowRight'))
       - Number(keys.current.has('KeyA') || keys.current.has('ArrowLeft')) + control.strafe;
     yaw.current -= control.lookX * LOOK_RADIANS_PER_PIXEL;
-    pitch.current = Math.max(-1.35, Math.min(1.35, pitch.current - control.lookY * LOOK_RADIANS_PER_PIXEL));
+    const lookVertical = Number(keys.current.has('KeyR')) - Number(keys.current.has('KeyF'));
+    pitch.current = walkPitch(pitch.current, control.lookY, lookVertical, Math.min(delta, .05));
     const scale = WALK_SPEED_MM_S * Math.min(delta, .05) / Math.max(1, Math.hypot(forward, strafe));
-    position.current = moveBuildingWalk(building, position.current, {
-      x: (Math.sin(yaw.current) * forward + Math.cos(yaw.current) * strafe) * scale,
-      y: (Math.cos(yaw.current) * forward - Math.sin(yaw.current) * strafe) * scale,
-    });
+    position.current = moveBuildingWalk(building, position.current, walkDelta(yaw.current, forward, strafe, scale));
     const { levelId, point } = position.current;
     camera.position.set(point.x / 1000,
       (elevation(levelId) + (building.navs.get(levelId)?.floorAt(point) ?? 0) + EYE_HEIGHT_MM) / 1000,

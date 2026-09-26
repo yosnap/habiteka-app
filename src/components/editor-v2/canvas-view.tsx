@@ -253,6 +253,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   return <div className={styles.canvas} ref={container} aria-label="Lienzo del plano" tabIndex={0}
     onKeyDown={(e) => {
       if (e.key === 'Escape') { cancel(); return; }
+      if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
       if (!zoneTool.active) return;
       if (e.key === 'Enter') { e.preventDefault(); zoneTool.close(); }
       else if (e.key === 'Backspace') { e.preventDefault(); zoneTool.undoVertex(); }
@@ -265,10 +266,11 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
         stage.current?.container().parentElement?.focus();
         if (pan) return;
         if (tool === 'walkthrough' && !readOnly) {
+          if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const p = point(), state = store.getState();
           const route = state.document.walkthroughs?.find((path) => path.id === state.walkthroughId);
           if (p && route && e.target.getClassName() !== 'Circle') {
-            try { state.apply(putWalkthrough(state.document, { ...route, waypoints: [...route.waypoints, waypoint(p)] })); state.setTool('select'); }
+            try { state.apply(putWalkthrough(state.document, { ...route, waypoints: [...route.waypoints, waypoint(p)] })); }
             catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo añadir el punto'); }
           }
           return;
