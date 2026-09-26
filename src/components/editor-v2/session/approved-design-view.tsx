@@ -9,13 +9,15 @@ import { EditorSceneView } from '../scene/editor-scene-view';
 import { saveWalkthroughVideo } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
 
-export function ApprovedDesignView({ approval, scope, onBack }: {
-  approval: ApprovedDesign; scope: DraftScope; onBack: () => void;
+export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: {
+  approval: ApprovedDesign; scope: DraftScope; initialRouteId?: string | null; onBack: () => void;
 }) {
   const [store] = useState(() => {
     const value = createEditorStore(approval.document, { readOnly: true });
     // La visita usa la revisión aprobada exacta, sin normalizaciones del borrador.
     value.setState({ document: structuredClone(approval.document) });
+    if (initialRouteId && approval.document.walkthroughs?.some((route) => route.id === initialRouteId))
+      value.getState().setWalkthrough(initialRouteId);
     return value;
   });
   const [presentation, setPresentation] = useState<'plan' | 'spatial'>('spatial');
@@ -45,7 +47,8 @@ export function ApprovedDesignView({ approval, scope, onBack }: {
       {!routes.length && 'Para crear un MP4, dibuja un recorrido en el borrador y aprueba una nueva revisión.'}
     </p>}
     {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido del vídeo
-      <ModernSelect className="rounded border px-2 py-1" value={routeId ?? routes[0]!.id} onChange={(event) => store.getState().setWalkthrough(event.target.value)}>
+      <ModernSelect className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
+        {!routeId && <option value="">Selecciona un recorrido</option>}
         {routes.map((route) => <option key={route.id} value={route.id}>{route.name}</option>)}
       </ModernSelect>
     </label>}

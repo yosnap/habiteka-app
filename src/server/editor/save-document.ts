@@ -32,6 +32,10 @@ export async function loadApprovedEditorDesign(scope: EditorScope, approvalId: s
   return withEditorDocuments(await requireOrgContext()).readApproval(scope, approvalId);
 }
 
+export async function loadLatestApprovedEditorDesign(scope: EditorScope) {
+  return withEditorDocuments(await requireOrgContext()).latestApproval(scope);
+}
+
 /** La recuperación crea una revisión nueva; la actual y las aprobaciones permanecen intactas. */
 export async function restoreEditorRevision(scope: EditorScope, sourceRevision: number,
   expectedRevision: number, confirmed: true): Promise<{ status: 'restored' | 'conflict'; revision: number }> {

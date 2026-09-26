@@ -8,7 +8,7 @@ import { EditorSaveQueue, hasPendingRemoteChanges } from '@/canvas/editor-v2/sav
 import { indexedDbDraftStorage } from '@/canvas/editor-v2/draft-storage';
 import type { DraftScope, EditorDraft } from '@/canvas/editor-v2/draft-contract';
 import type { EditorDocument } from '@/lib/editor-document/schema';
-import { approveEditorDesign, loadCurrentEditorDocument, saveEditorDocument } from '@/server/editor/save-document';
+import { approveEditorDesign, loadCurrentEditorDocument, loadLatestApprovedEditorDesign, saveEditorDocument } from '@/server/editor/save-document';
 import { EditorConflictBanner } from './editor-conflict-banner';
 import { checkEditorSession } from '@/server/editor/check-session';
 import { registerEditorSession } from '@/canvas/editor-v2/session-registry';
@@ -73,6 +73,7 @@ export function EditorSession({
     });
   }, [scope.userId, scope.projectId, scope.zoneId, store]);
   const [approval, setApproval] = useState(approvedDesign);
+  const [approvedRouteId, setApprovedRouteId] = useState<string | null>(null);
   const [lightingPreset, setLightingPreset] = useState<ApprovedLightingPreset>('daylight');
   const [reviewApproval, setReviewApproval] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -225,10 +226,29 @@ export function EditorSession({
       if (!sameDesignContent(saved, proposed) || !sameDesignContent(store.getState().document, proposed))
         throw new Error('El diseño cambió mientras se preparaba la aprobación. Revisa y vuelve a confirmar.');
       const next = await approveEditorDesign(scope, saved.revision, lightingPreset);
-      setApproval(next); setReviewApproval(false); setViewApproved(true);
+      setApproval(next); setApprovedRouteId(store.getState().walkthroughId);
+      setReviewApproval(false); setViewApproved(true);
     } catch (error) {
       setApprovalError(error instanceof Error ? error.message : 'No se pudo aprobar el diseño.');
     } finally { setApproving(false); }
+  };
+  const openApproved = async (routeId: string | null) => {
+    setApprovalError(null);
+    try {
+      // Otra pestaña puede haber aprobado una revisión mientras este editor seguía abierto.
+      const latest = await loadLatestApprovedEditorDesign(scope);
+      if (!latest) throw new Error('Aprueba el diseño antes de exportar su recorrido.');
+      if (routeId) {
+        const approvedRoute = latest.document.walkthroughs?.find((route) => route.id === routeId);
+        if (!approvedRoute) throw new Error('Este recorrido aún no está aprobado. Guarda y aprueba los cambios para exportarlo.');
+        const draftRoute = store.getState().document.walkthroughs?.find((route) => route.id === routeId);
+        if (draftRoute && JSON.stringify(draftRoute) !== JSON.stringify(approvedRoute))
+          throw new Error('Este recorrido cambió desde la aprobación. Guarda y aprueba los cambios antes de exportarlo.');
+      }
+      setApproval(latest); setApprovedRouteId(routeId); setViewApproved(true);
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'No se pudo abrir la visita aprobada.');
+    }
   };
   return (
     <>
@@ -273,7 +293,8 @@ export function EditorSession({
         </button>
       </div>}
       {approvalError && <p role="alert" className="bg-amber-100 px-4 py-2 text-sm text-amber-950">{approvalError}</p>}
-      {viewApproved && approval ? <ApprovedDesignView key={approval.id} approval={approval} scope={scope} onBack={() => setViewApproved(false)} /> : <EditorShell
+      {viewApproved && approval ? <ApprovedDesignView key={`${approval.id}:${approvedRouteId ?? ''}`} approval={approval} scope={scope}
+        initialRouteId={approvedRouteId} onBack={() => setViewApproved(false)} /> : <EditorShell
         store={store}
         reference={reference}
         projectName={projectName}
@@ -284,7 +305,8 @@ export function EditorSession({
         onApproveDesign={needsApproval ? () => { setApprovalError(null); setReviewApproval(true); } : undefined}
         approveDisabled={status.closed || Boolean(status.conflict) || approving}
         approveLabel={approval ? 'Aprobar cambios' : 'Aprobar diseño'}
-        onOpenApproved={approval ? () => setViewApproved(true) : undefined}
+        onOpenApproved={approval ? () => void openApproved(null) : undefined}
+        onOpenApprovedRoute={(routeId) => openApproved(routeId)}
         projectId={scope.projectId}
         allowVideoExport={false}
         lightingPreset={lightingPreset}

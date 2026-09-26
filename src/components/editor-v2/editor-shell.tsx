@@ -106,6 +106,7 @@ export interface EditorShellProps {
   approveDisabled?: boolean;
   approveLabel?: string;
   onOpenApproved?: () => void;
+  onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   onImport?: () => void;
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
@@ -152,6 +153,7 @@ export function EditorShell({
   approveDisabled = false,
   approveLabel = 'Aprobar diseño',
   onOpenApproved,
+  onOpenApprovedRoute,
   onImport,
   onExport,
   onAddStair,
@@ -625,15 +627,13 @@ export function EditorShell({
             <Sparkles size={18} aria-hidden="true" />
             <span>Diseñar con IA</span>
           </button>
-          <button
+          {onExport && <button
             type="button"
             onClick={onExport}
-            disabled={!onExport}
-            title={!onExport ? 'Exportación no disponible' : undefined}
           >
             <Download size={18} aria-hidden="true" />
-            <span>Exportar</span>
-          </button>
+            <span>Exportar plano</span>
+          </button>}
           <button
             type="button"
             className={styles.primary}
@@ -772,6 +772,7 @@ export function EditorShell({
             }}
           >
             <EditorSceneView key={mode} store={store} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
+              onOpenApprovedRoute={onOpenApprovedRoute}
               lightingPreset={sceneLighting} onLightingChange={(preset) => { setLocalLighting(preset); onLightingChange?.(preset); }}
               onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
           </div>
@@ -826,10 +827,11 @@ export function EditorShell({
             )}
             {sidePanel === 'walkthrough' && (
               <WalkthroughPanel store={store}
+                onOpenApprovedRoute={onOpenApprovedRoute}
                 onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined}
                 onDraw={() => { if (mode === '3d') setMode('visual'); store.getState().setTool('walkthrough'); }}
                 onLocate={() => setMode('2d')}
-                onPreview={() => { setMode('3d'); store.getState().setTool('select'); closePanel(); }} />
+                onPreview={() => { setMode('3d'); store.getState().setTool('select'); }} />
             )}
             {sidePanel === 'context' && <FurnitureContextPanel store={store} />}
             {sidePanel === 'ceiling' && <CeilingLightingPanel store={store} />}

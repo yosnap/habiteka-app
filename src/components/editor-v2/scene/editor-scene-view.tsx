@@ -99,6 +99,7 @@ function SceneView({
   store,
   presentation = 'spatial',
   allowVideoExport = true,
+  onOpenApprovedRoute,
   lightingPreset = 'daylight',
   onLightingChange,
   lightingLocked = false,
@@ -112,6 +113,7 @@ function SceneView({
   store: EditorStore;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
+  onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   lightingPreset?: SceneLightingPreset;
   onLightingChange?: (preset: SceneLightingPreset) => void;
   lightingLocked?: boolean;
@@ -142,7 +144,7 @@ function SceneView({
   const [freeWalkController] = useState(() => new FreeWalkController());
   const route = document.walkthroughs?.find((path) => path.id === routeId);
   const routeExport = useMemo(() => {
-    if (!route || !allowVideoExport || presentation !== 'spatial') return null;
+    if (!route || presentation !== 'spatial') return null;
     try {
       const compiled = buildWalkthrough(document, route);
       const blocked = compiled.invalidSegments.length
@@ -157,7 +159,7 @@ function SceneView({
       const issue = error instanceof Error ? error.message : 'No se pudo comprobar el recorrido.';
       return { durationMs: 0, walkthroughIssue: issue, showcaseIssue: issue };
     }
-  }, [allowVideoExport, document, presentation, route]);
+  }, [document, presentation, route]);
   const [capturingPose, setCapturingPose] = useState(false);
   const [recording, setRecording] = useState(false), [recordProgress, setRecordProgress] = useState(0);
   const abortRecording = useRef<AbortController | null>(null);
@@ -529,7 +531,7 @@ function SceneView({
       onPlanClick(event);
     }}
     onPointerMove={onPlanPointerMove} onPointerUp={onPlanPointerUp} onPointerCancel={onPlanPointerCancel}>
-    {presentation === 'spatial' && route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, bottom: 75, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
+    {presentation === 'spatial' && route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, top: 16, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', boxShadow: '0 8px 24px #17352724', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
       <strong>{route.name}</strong>
       {routeExport && routeExport.durationMs > 0 && <span>{Math.ceil(routeExport.durationMs / 1000)} s de recorrido</span>}
       <button type="button" disabled={recording} onClick={() => store.getState().hideWalkthrough()}>Ocultar recorrido</button>
@@ -540,8 +542,11 @@ function SceneView({
           store.getState().setWalkthroughPlaying(!walking);
         } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Ruta inválida'); }
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
-      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido · MP4</button>
-      <button type="button" disabled={recording || walking || exporting || !allowVideoExport || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Vídeo muestra · obra + visita</button>
+      {allowVideoExport ? <>
+        <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar y guardar recorrido · MP4</button>
+        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo muestra · obra + visita</button>
+      </> : onOpenApprovedRoute && <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue)}
+        onClick={() => void onOpenApprovedRoute(route.id)}>Abrir visita aprobada para exportar vídeo</button>}
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
       {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
@@ -694,6 +699,7 @@ export function EditorSceneView({
   store,
   presentation,
   allowVideoExport,
+  onOpenApprovedRoute,
   lightingPreset,
   onLightingChange,
   lightingLocked,
@@ -707,6 +713,7 @@ export function EditorSceneView({
   store: EditorStore;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
+  onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   lightingPreset?: SceneLightingPreset;
   onLightingChange?: (preset: SceneLightingPreset) => void;
   lightingLocked?: boolean;
@@ -718,6 +725,7 @@ export function EditorSceneView({
   readOnlyLabel?: string;
 }) {
   return <SceneErrorBoundary><SceneView store={store} presentation={presentation} allowVideoExport={allowVideoExport}
+    onOpenApprovedRoute={onOpenApprovedRoute}
     lightingPreset={lightingPreset} onLightingChange={onLightingChange} lightingLocked={lightingLocked}
     onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady}
     showLighting={showLighting} showNotices={showNotices} readOnlyLabel={readOnlyLabel} /></SceneErrorBoundary>;

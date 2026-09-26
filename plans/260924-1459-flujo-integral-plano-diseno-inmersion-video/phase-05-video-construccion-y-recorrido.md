@@ -9,8 +9,8 @@ status: in_progress
 
 - El límite del MP4 nativo es ahora 110 s, compartido por grabador y servidor; el montaje suma 8 s al recorrido. La vista 3D muestra la duración y los tramos bloqueados antes de iniciar la exportación. La revisión guardada 94 de «FInca» contiene «Recorrido Paulo» (44 puntos, unos 93 s, sin tramos bloqueados), que pasa la validación para paseo y montaje (unos 101 s).
 - Una muestra aislada de 26 s completó la exportación en Chrome y mostró «MP4 descargado»; la muestra se restableció después de la prueba.
-- La última aprobación de «FInca» sigue siendo la revisión 84 y no contiene rutas. Para exportar y guardar ese recorrido en Diseños hay que revisar y aprobar una revisión que sí lo incluya.
-- Pendiente: medir tiempo de codificación, tamaño y memoria del MP4 largo en un navegador real. A 6 Mbps, 110 s implican unos 82,5 MB de vídeo antes de sobrecargas; el servidor mantiene 100 MB por archivo. La validación de límites y permisos no sustituye esa prueba de rendimiento.
+- «FInca» tiene aprobada la revisión 94, que incluye «Recorrido Paulo». Se exportó el recorrido real en Chrome: MP4 de 93,4 s, 1920 × 1080 y 72.468.926 bytes; se descargó y quedó guardado como entregable `video-93e44309-3391-4353-a559-32f577b7e7f8` en Diseños. Se comprobó su cabecera MP4 y que el navegador podía cargarlo sin error.
+- La exportación se encuentra ahora al abrir la visita aprobada. El panel de recorrido del borrador enlaza con la visita conservando la ruta elegida, y los dos botones de vídeo aparecen destacados sobre la escena 3D. Pendiente: medir de forma repetible tiempo de codificación y pico de memoria del MP4 largo; el servidor mantiene 100 MB por archivo.
 
 ## Avance en muestra aislada (25–26-09-2026)
 
