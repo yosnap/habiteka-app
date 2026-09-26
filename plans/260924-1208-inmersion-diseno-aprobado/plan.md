@@ -1,7 +1,7 @@
 ---
 title: "Inmersión del diseño aprobado y vídeos del inmueble"
 description: "Unificar el diseño editable en una escena 3D aprobada, recorrerla libremente y exportar vídeos coherentes con ella."
-status: pending
+status: superseded
 priority: P1
 effort: "Por estimar tras prueba de rendimiento y cobertura"
 tags: [feature, frontend, video, 3d]
@@ -10,9 +10,11 @@ created: 2026-09-24
 
 # Inmersión del diseño aprobado y vídeos del inmueble
 
+**Plan histórico:** sus fases y casillas se incorporaron a las fases 3–5 del [plan integral vigente](../260924-1459-flujo-integral-plano-diseno-inmersion-video/plan.md). El estado y los siguientes hitos se revisan en el [roadmap del 27-09-2026](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md); las casillas de este documento no son una segunda lista de trabajo.
+
 ## Resumen
 
-La base técnica ya existe en el Editor v2: documento por plantas, escena Three/R3F, cámara interior, navegación de rutas, auto-tour y MP4 local. Falta el producto solicitado: aprobar una versión completa del diseño, caminar libremente por ella y grabar vídeos publicitarios desde esa misma versión. Este plan complementa el [plan de recorridos visuales](../260916-0135-plano-importado-y-recorridos-visuales/plan.md), cuyas F2 y parte de F3 ya están implementadas.
+Cuando se redactó este plan, el Editor v2 ya tenía documento por plantas, escena Three/R3F, rutas y MP4 local, pero aún no unía aprobación, visita libre y vídeo. Esa unión básica ya se implementó; la calidad y la validación restantes se siguen en el plan integral. Este documento conserva el contexto del [plan de recorridos visuales](../260916-0135-plano-importado-y-recorridos-visuales/plan.md).
 
 ## Decisión de arquitectura
 

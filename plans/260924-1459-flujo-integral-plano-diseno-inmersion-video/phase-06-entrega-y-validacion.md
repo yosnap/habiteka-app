@@ -1,9 +1,13 @@
 ---
 title: "Fase 6: Entrega y validación integral"
-status: todo
+status: in_progress
 ---
 
 # Fase 6: Entrega y validación integral
+
+## Avance comprobado (27-09-2026)
+
+«Diseños» muestra el MP4 real de «Recorrido Paulo», permite descargarlo y enlaza con la revisión 94 aprobada. «Historial» permite previsualizar y recuperar revisiones del plano sin borrar la actual. Esto inicia la entrega, pero no completa la prueba integral con un plano importado fiel, varias plantas y móvil; tampoco existe aún una versión recuperable de todo el proyecto ni un enlace público de visita para clientes. Véase el [roadmap reconciliado](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md).
 
 ## Objetivo
 

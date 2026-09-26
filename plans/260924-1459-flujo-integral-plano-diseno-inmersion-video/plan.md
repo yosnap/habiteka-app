@@ -98,8 +98,10 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 | 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Plano visual y aprobación implementados; falta calidad y validar importación fiel |
 | 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | Paseo de versión aprobada implementado; falta validación real y rendimiento móvil |
 | 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | MP4 nativo vinculado a aprobación; faltan tomas, 9:16 y validación real |
-| 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | Pendiente |
+| 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En curso: MP4 y visita versionados en Diseños; falta prueba integral |
 | 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Preparación del socio en paralelo; integración tras fase 3 |
+
+La [auditoría de casillas y roadmap del 27-09-2026](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md) distingue capacidades implementadas, criterios parciales y pasos de aceptación todavía abiertos. Evita contar las casillas de planes históricos absorbidos como backlog duplicado.
 
 ### Secuencia de trabajo tras las pruebas de importación (25-09-2026)
 
@@ -135,7 +137,7 @@ Antes de pulir iluminación, fijar un inmueble patrón con plano y fotos de refe
 
 ## Criterios globales
 
-- [ ] Desde cualquiera de las entradas del Estudio se llega al documento editable y se entiende el estado de cada resultado.
+- [x] Desde cualquiera de las entradas del Estudio se llega al documento editable y se entiende el estado de cada resultado. Verificación local de etapas, galería e importación de imagen/PDF/boceto en fases 1–2; la fidelidad del plano real sigue abierta.
 - [ ] Diseño, visita y vídeos identifican la misma versión aprobada; los cambios posteriores se señalan.
 - [ ] Se puede caminar por todas las zonas conectadas previstas sin atravesar elementos físicos.
 - [ ] Se obtiene un vídeo de montaje visual y paseo breve en formatos publicitarios, reproducible y descargable.
