@@ -1,6 +1,7 @@
 import type { EditorDocument, Wall } from './schema';
-import { eligibleCeilingRooms } from './ceiling-geometry';
+import { eligibleCeilingRooms, insideRoom } from './ceiling-geometry';
 import type { DerivedRoom } from './rooms';
+import { wallPoints } from './geometry';
 import { upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 import { surfaceMaterial } from './surface-materials';
@@ -8,12 +9,18 @@ import { surfaceMaterial } from './surface-materials';
 export type WallFaceTarget = 'interior' | 'exterior' | 'both';
 type Side = 'left' | 'right';
 
-function sides(wall: Wall, rooms: DerivedRoom[], target: WallFaceTarget): Side[] {
+function sides(doc: EditorDocument, wall: Wall, rooms: DerivedRoom[], target: WallFaceTarget): Side[] {
   if (target === 'both') return ['left', 'right'];
   const adjacent = rooms.flatMap((room) => {
     const index = room.wallIds.indexOf(wall.id);
     return index < 0 ? [] : [room.vertexIds[index] === wall.startVertexId ? 'left' as const : 'right' as const];
   });
+  if (target === 'interior' && adjacent.length === 2) return ['left', 'right'];
+  if (target === 'interior' && adjacent.length === 0) {
+    const [a, b] = wallPoints(doc, wall);
+    if (rooms.some((room) => insideRoom({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, room.boundary)))
+      return ['left', 'right'];
+  }
   if (adjacent.length !== 1) return [];
   return [target === 'interior' ? adjacent[0]! : adjacent[0] === 'left' ? 'right' : 'left'];
 }
@@ -22,7 +29,7 @@ function sides(wall: Wall, rooms: DerivedRoom[], target: WallFaceTarget): Side[]
 export function selectedWallSides(doc: EditorDocument, wallId: string, target: WallFaceTarget): Side[] {
   const wall = doc.walls.find((item) => item.id === wallId);
   if (!wall) return [];
-  try { return sides(wall, eligibleCeilingRooms(doc), target); } catch { return []; }
+  try { return sides(doc, wall, eligibleCeilingRooms(doc), target); } catch { return []; }
 }
 
 /** Edita una selección en una única revisión del documento y respeta la orientación de cada muro. */
@@ -38,7 +45,7 @@ export function updateSelectedWallFaces(
   const changes = ids.map((id) => {
     const wall = input.walls.find((item) => item.id === id);
     if (!wall || wall.hidden) throw new Error('Muro no disponible');
-    const faces = sides(wall, rooms, target);
+    const faces = sides(input, wall, rooms, target);
     if (!faces.length) throw new Error('No se pudo identificar la cara del muro');
     return { id, faces };
   });

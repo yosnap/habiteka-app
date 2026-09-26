@@ -52,4 +52,17 @@ describe('acabados en bloque por cara de fachada', () => {
       left: 'plaster-white', right: 'plaster-white',
     });
   });
+
+  it('pinta el interior de fachadas y tabiques en una selección mixta sin cambiar fachadas exteriores', () => {
+    const source = houseWithPatio(), ids = [...exteriorWallIds(source).slice(0, 2), 'w6'];
+    const result = updateSelectedWallFaces(source, ids, 'interior', { color: '#547a69' });
+    for (const id of ids.slice(0, 2)) {
+      const inside = selectedWallSides(result, id, 'interior')[0]!;
+      const outside = selectedWallSides(result, id, 'exterior')[0]!;
+      const wall = result.walls.find((item) => item.id === id)!;
+      expect(wall.colors?.[inside]).toBe('#547a69');
+      expect(wall.colors?.[outside]).toBe('#eeeae2');
+    }
+    expect(result.walls.find((item) => item.id === 'w6')!.colors).toEqual({ left: '#547a69', right: '#547a69' });
+  });
 });

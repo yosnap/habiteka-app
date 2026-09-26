@@ -14,7 +14,7 @@ export function BulkWallAppearanceFields({ store, wallIds, facades }: {
   if (!first || wallIds.length < 2) return null;
   const targets: { key: WallFaceTarget; label: string }[] = facades
     ? [{ key: 'exterior', label: 'Cara exterior' }, { key: 'interior', label: 'Cara interior' }]
-    : [{ key: 'both', label: 'Ambas caras' }];
+    : [{ key: 'interior', label: 'Caras interiores' }, { key: 'both', label: 'Ambas caras' }];
   const apply = (target: WallFaceTarget, patch: { color: string } | { materialId: string | undefined }) => {
     try {
       const state = store.getState();

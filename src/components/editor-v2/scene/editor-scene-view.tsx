@@ -321,6 +321,10 @@ function SceneView({
   const lightBudgets = useMemo(() => levelLightBudgets(budgetLevels).slice(1), [budgetLevels]);
   const coverage = useMemo(() => lightingCoverage(budgetLevels), [budgetLevels]);
   const activeElevation = renderAllLevels ? buildingDocuments(document).find((l) => l.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
+  const highestRenderedElevation = Math.max(activeElevation, ...otherLevels.map((level) => level.elevationMm));
+  // En plantas apiladas, la cara inferior del forjado y el pavimento superior
+  // pueden coincidir exactamente: un pequeño espesor visual evita parpadeos.
+  const ceilingOffset = (elevationMm: number) => elevationMm < highestRenderedElevation ? -.02 : 0;
   const lost = useCallback(() => setContextLost(true), [setContextLost]);
   const manualCameraChange = useCallback(() => setActiveView(null), [setActiveView]);
   const sceneVersion = useMemo(() => ({ scene, otherLevels, activeElevation }), [scene, otherLevels, activeElevation]);
@@ -433,7 +437,7 @@ function SceneView({
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]}>
           <OutdoorLighting document={document} />
-          <group visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
+          <group position={[0, ceilingOffset(activeElevation), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={document} view={walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === document.activeLevelId).map((link) => link.outline)}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
@@ -455,7 +459,7 @@ function SceneView({
             boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} /></group>)}
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
-          <group visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
+          <group position={[0, ceilingOffset(level.elevationMm), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={level.document} view={walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />

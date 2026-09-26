@@ -55,10 +55,13 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, viewMode,
     const down = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
-        event.preventDefault(); keys.current.add(event.code);
+        event.preventDefault(); event.stopImmediatePropagation(); keys.current.add(event.code);
       }
-      if (event.code === 'KeyV' && !event.repeat) { event.preventDefault(); onToggleView(); }
-      if (event.code === 'Escape') onPause();
+      if (event.code === 'KeyV') {
+        event.preventDefault(); event.stopImmediatePropagation();
+        if (!event.repeat) onToggleView();
+      }
+      if (event.code === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); onPause(); }
     };
     const up = (event: KeyboardEvent) => keys.current.delete(event.code);
     const mouse = (event: MouseEvent) => {
@@ -67,12 +70,14 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, viewMode,
       }
     };
     const lockChange = () => { if (window.document.pointerLockElement !== gl.domElement) onPause(); };
-    window.addEventListener('keydown', down);
+    // Captura antes de los atajos globales del editor: una flecha no debe mover
+    // la selección ni reiniciar la visita al cambiar el documento.
+    window.addEventListener('keydown', down, true);
     window.addEventListener('keyup', up);
     window.document.addEventListener('mousemove', mouse);
     window.document.addEventListener('pointerlockchange', lockChange);
     return () => {
-      window.removeEventListener('keydown', down);
+      window.removeEventListener('keydown', down, true);
       window.removeEventListener('keyup', up);
       window.document.removeEventListener('mousemove', mouse);
       window.document.removeEventListener('pointerlockchange', lockChange);
