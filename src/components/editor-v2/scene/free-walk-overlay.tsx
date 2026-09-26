@@ -28,7 +28,7 @@ export function FreeWalkOverlay({ paused, controller, document, start, onPause, 
   return <div className={styles.overlay} aria-label="Visita inmersiva">
     <div className={styles.toolbar}>
       <strong>Visita inmersiva</strong>
-      <span className={styles.hint}>WASD o flechas para caminar · R/F mirar arriba/abajo · activa el ratón y muévelo para mirar · Esc pausa</span>
+      <span className={styles.hint}>WASD según mirada · flechas según mini plano · R/F mirar arriba/abajo · ratón para mirar · Esc pausa</span>
       <button type="button" onClick={onMouse}>Activar ratón</button>
       <button type="button" disabled={paused} onClick={() => controller.look(0, -180)}>Mirar arriba ↑</button>
       <button type="button" disabled={paused} onClick={() => controller.look(0, 180)}>Mirar abajo ↓</button>

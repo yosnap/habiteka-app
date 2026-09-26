@@ -7,7 +7,7 @@ import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { buildingWalkNavigation, moveBuildingWalk } from '@/lib/editor-document/building-free-walk';
 import { EYE_HEIGHT_MM } from '@/lib/editor-document/room-interior-cameras';
 import type { FreeWalkController } from './free-walk-controller';
-import { LOOK_RADIANS_PER_PIXEL, walkDelta, walkPitch } from './free-walk-input';
+import { LOOK_RADIANS_PER_PIXEL, walkInputDelta, walkPitch } from './free-walk-input';
 
 const WALK_SPEED_MM_S = 1600;
 
@@ -78,15 +78,11 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, controlle
   useFrame(({ camera, clock }, delta) => {
     if (paused) return;
     const control = controller.take();
-    const forward = Number(keys.current.has('KeyW') || keys.current.has('ArrowUp'))
-      - Number(keys.current.has('KeyS') || keys.current.has('ArrowDown')) + control.forward;
-    const strafe = Number(keys.current.has('KeyD') || keys.current.has('ArrowRight'))
-      - Number(keys.current.has('KeyA') || keys.current.has('ArrowLeft')) + control.strafe;
     yaw.current -= control.lookX * LOOK_RADIANS_PER_PIXEL;
     const lookVertical = Number(keys.current.has('KeyR')) - Number(keys.current.has('KeyF'));
     pitch.current = walkPitch(pitch.current, control.lookY, lookVertical, Math.min(delta, .05));
-    const scale = WALK_SPEED_MM_S * Math.min(delta, .05) / Math.max(1, Math.hypot(forward, strafe));
-    position.current = moveBuildingWalk(building, position.current, walkDelta(yaw.current, forward, strafe, scale));
+    const step = walkInputDelta(yaw.current, keys.current, control, WALK_SPEED_MM_S * Math.min(delta, .05));
+    position.current = moveBuildingWalk(building, position.current, step);
     const { levelId, point } = position.current;
     camera.position.set(point.x / 1000,
       (elevation(levelId) + (building.navs.get(levelId)?.floorAt(point) ?? 0) + EYE_HEIGHT_MM) / 1000,

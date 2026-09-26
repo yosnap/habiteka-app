@@ -61,6 +61,15 @@ export function FreeWalkMap({ document, start, controller }: {
   const roomName = room && plan.labels.find((label) => insideRoom(label, room.boundary))?.text;
   const levelName = document.levels?.find((level) => level.id === levelId)?.name;
   const px = map.x(point.x), py = map.y(point.y);
+  const trail = controller.getTrail().filter((step) => step.levelId === levelId)
+    .map((step) => `${map.x(step.x)},${map.y(step.y)}`);
+  trail.push(`${px},${py}`);
+  const direction = { x: Math.sin(point.yaw), y: Math.cos(point.y) };
+  const arrow = [
+    `${px + direction.x * 15},${py + direction.y * 15}`,
+    `${px - direction.x * 6 + direction.y * 6},${py - direction.y * 6 - direction.x * 6}`,
+    `${px - direction.x * 6 - direction.y * 6},${py - direction.y * 6 + direction.x * 6}`,
+  ].join(' ');
   return <div className={styles.miniMap} aria-label="Mini plano de la visita">
     <div className={styles.miniMapTitle}>Mini plano{levelName ? ` · ${levelName}` : ''} <span>{roomName ?? (room ? 'Estancia' : 'Paso')}</span></div>
     <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} role="img" aria-label="Posición y dirección en el plano">
@@ -72,9 +81,11 @@ export function FreeWalkMap({ document, start, controller }: {
       {map.outdoorEdges.map((edge) => <polyline key={edge.id} points={edge.points} fill="none"
         stroke="#78a58b" strokeWidth="1.5" strokeDasharray="3 3" />)}
       {map.doors.map((door) => <circle key={door.id} cx={door.x} cy={door.y} r="4" fill="#47a883" stroke="#fff" strokeWidth="1.5" />)}
-      <circle cx={px} cy={py} r="6" fill="#ea6a3d" stroke="#fff" strokeWidth="2" />
-      <line x1={px} y1={py} x2={px + Math.sin(point.yaw) * 15} y2={py + Math.cos(point.yaw) * 15}
-        stroke="#ea6a3d" strokeWidth="3" strokeLinecap="round" />
+      <polyline points={trail.join(' ')} fill="none" stroke="#f19a62" strokeWidth="2.5"
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={px} cy={py} r="12" fill="#fff" stroke="#9d3e1f" strokeWidth="1.5" />
+      <polygon points={arrow} fill="#d9542b" stroke="#762c16" strokeWidth="1" strokeLinejoin="round" />
     </svg>
+    <div className={styles.miniMapHint}>↑ Arriba del plano · Flechas: plano<br />● Tú · punta: mirada · WASD: mirada</div>
   </div>;
 }
