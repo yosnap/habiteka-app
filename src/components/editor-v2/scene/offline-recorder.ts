@@ -62,7 +62,7 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
           staged.forEach(({ object }) => { object.visible = true; });
           camera.fov = 75; camera.updateProjectionMatrix();
         }
-        applyWalkPose(camera, compiled.samplePose(elapsedMs - introMs), elevationMm);
+        applyWalkPose(camera, compiled.samplePose(elapsedMs - introMs), compiled.absoluteElevation ? 0 : elevationMm);
       }
       scene.updateMatrixWorld(true); gl.render(scene, camera);
       videoContext.drawImage(gl.domElement, 0, 0, width, height);

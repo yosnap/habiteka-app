@@ -4,6 +4,8 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { autoTour } from '@/lib/editor-document/auto-tour';
+import { autoBuildingTour } from '@/lib/editor-document/building-auto-tour';
+import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
 import { putWalkthrough, removeWalkthrough, type WalkthroughWaypoint } from '@/lib/editor-document/walkthrough';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
@@ -17,6 +19,9 @@ export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
   const [zones, setZones] = useState<string[]>([]);
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
   const route = doc.walkthroughs?.find((p) => p.id === state.walkthroughId);
+  const stairLinks = useMemo(() => buildingStairLinks(doc).filter((link) =>
+    link.lowerLevelId === doc.activeLevelId || link.upperLevelId === doc.activeLevelId), [doc]);
+  const multiLevel = Boolean(route?.waypoints.some((point) => point.levelId));
   const compiled = useMemo(() => {
     if (!route) return { error: '', value: null };
     try { return { value: buildWalkthrough(doc, route), error: '' }; }
@@ -43,18 +48,30 @@ export function WalkthroughPanel({ store, onDraw, onPreview, onDesignPoint }: {
         state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id); onDraw();
       })}>Dibujar recorrido</button>
     </fieldset>
+    {!!stairLinks.length && <fieldset disabled={state.readOnly}>
+      <legend>Entre plantas</legend>
+      <p>Prepara una ruta por los peldaños y la salida superior. Podrás reproducirla y exportarla en la misma escena 3D.</p>
+      {stairLinks.map((link) => <button type="button" key={`${link.lowerLevelId}:${link.upperLevelId}:${link.stairId}`} onClick={() => run(() => {
+        const destination = link.lowerLevelId === doc.activeLevelId ? link.upperLevelId : link.lowerLevelId;
+        const path = autoBuildingTour(doc, link.stairId, destination), checked = buildWalkthrough(doc, path);
+        if (checked.invalidSegments.length) throw new Error('La escalera tiene un tramo bloqueado. Despeja el paso antes de preparar la ruta.');
+        state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id);
+      })}>{link.lowerLevelId === doc.activeLevelId ? 'Subir' : 'Bajar'} por escalera a {doc.levels?.find((level) =>
+        level.id === (link.lowerLevelId === doc.activeLevelId ? link.upperLevelId : link.lowerLevelId))?.name ?? 'otra planta'}</button>)}
+    </fieldset>}
     {!!doc.walkthroughs?.length && <label>Recorrido guardado (elige uno para recuperarlo)<ModernSelect value={route?.id ?? ''} onChange={(e) => state.setWalkthrough(e.target.value || null)}>
       <option value="">Elige un recorrido</option>{doc.walkthroughs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
     </ModernSelect></label>}
     {route && <>
       <fieldset disabled={state.readOnly}>
         <label>Nombre<input value={route.name} maxLength={80} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, name: e.target.value })))} /></label>
-        <label className={styles.check}><input type="checkbox" checked={route.loop} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, loop: e.target.checked })))} />Cerrar ruta en bucle</label>
-        <button type="button" onClick={onDraw}>Añadir puntos en el plano</button>
+        {!multiLevel && <label className={styles.check}><input type="checkbox" checked={route.loop} onChange={(e) => run(() => state.apply(putWalkthrough(doc, { ...route, loop: e.target.checked })))} />Cerrar ruta en bucle</label>}
+        {!multiLevel && <button type="button" onClick={onDraw}>Añadir puntos en el plano</button>}
+        {multiLevel && <p>En 2D se ven los puntos de la planta inicial. Ajusta las coordenadas de la otra planta en esta lista; la ruta cruza por la escalera validada.</p>}
         <p>Arrastra los puntos numerados en 2D para ajustar el paso.</p>
         {route.waypoints.map((point, index) => <details key={point.id} className={styles.light}>
-          <summary>Punto {index + 1}</summary>
-          {onDesignPoint && <button type="button" disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={() => onDesignPoint(point.id)}>Diseñar desde este punto</button>}<div className={styles.fields}>
+          <summary>Punto {index + 1}{point.levelId ? ` · ${doc.levels?.find((level) => level.id === point.levelId)?.name ?? 'Otra planta'}` : ''}</summary>
+          {onDesignPoint && !multiLevel && <button type="button" disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={() => onDesignPoint(point.id)}>Diseñar desde este punto</button>}<div className={styles.fields}>
             {(['x', 'y', 'eyeHeightMm', 'speedMmPerS', 'dwellMs'] as const).map((key) => <label key={key}>
               {{ x: 'X (m)', y: 'Y (m)', eyeHeightMm: 'Altura cámara (m)', speedMmPerS: 'Velocidad (m/s)', dwellMs: 'Pausa (s)' }[key]}
               <input type="number" step="0.1" value={point[key] / 1000} onChange={(e) => update(point.id, { [key]: Number(e.target.value) * 1000 })} />

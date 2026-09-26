@@ -24,17 +24,19 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
     return { stair, outline: layout.outline, treads: [...layout.steps, ...layout.landings] };
   });
   const stairAt = (p: Point) => {
+    // Los centros interpolados pueden caer a 1e-10 mm del borde común de dos peldaños.
+    const epsilon = .01;
     for (const { stair, treads } of stairSurfaces) {
       const local = worldToLocal(stair, p);
       const tread = treads.find((part) => {
         const turnedFlight = stair.kind === 'L' && part.x > 0;
         const corner = stair.kind === 'L' && part.x === 0 && part.y === 0;
-        if (turnedFlight) return local.x >= part.x && local.x <= part.x + part.widthMm &&
-          local.y >= part.y + CAMERA_CLEARANCE_MM && local.y <= part.y + part.depthMm - CAMERA_CLEARANCE_MM;
-        if (corner) return local.x >= CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm &&
-          local.y >= CAMERA_CLEARANCE_MM && local.y <= part.y + part.depthMm;
-        return local.x >= part.x + CAMERA_CLEARANCE_MM && local.x <= part.x + part.widthMm - CAMERA_CLEARANCE_MM &&
-          local.y >= part.y && local.y <= part.y + part.depthMm;
+        if (turnedFlight) return local.x >= part.x - epsilon && local.x <= part.x + part.widthMm + epsilon &&
+          local.y >= part.y + CAMERA_CLEARANCE_MM - epsilon && local.y <= part.y + part.depthMm - CAMERA_CLEARANCE_MM + epsilon;
+        if (corner) return local.x >= CAMERA_CLEARANCE_MM - epsilon && local.x <= part.x + part.widthMm + epsilon &&
+          local.y >= CAMERA_CLEARANCE_MM - epsilon && local.y <= part.y + part.depthMm + epsilon;
+        return local.x >= part.x + CAMERA_CLEARANCE_MM - epsilon && local.x <= part.x + part.widthMm - CAMERA_CLEARANCE_MM + epsilon &&
+          local.y >= part.y - epsilon && local.y <= part.y + part.depthMm + epsilon;
       });
       if (tread) return { id: stair.id, floorMm: stair.elevationMm + tread.heightMm,
         riseMm: stair.heightMm / stair.stepCount };

@@ -5,7 +5,7 @@ status: in_progress
 
 # Fase 4: Visita inmersiva en primera persona
 
-## Avance en muestra aislada (25-09-2026)
+## Avance en muestra aislada (25–26-09-2026)
 
 - La vista 3D del Editor v2 ofrece «Visita» sobre la misma escena: cámara a 1,6 m, movimiento WASD/flechas, mirada con ratón o arrastre, pausa, salida y controles táctiles.
 - El paseo usa `walkthroughNavigation` para radio, puertas, muebles y muros; el movimiento continuo desliza junto a obstáculos. Pruebas con puerta abierta/cerrada y estancia amueblada.
@@ -14,7 +14,8 @@ status: in_progress
 - La navegación atraviesa puertas hacia patios y sube rampas rectas o con giro siguiendo su superficie 3D. Una ruta guiada entre patio y estancia elevada pasa por el hueco real del muro. El mini plano distingue el contorno exterior con línea discontinua.
 - La cámara también sigue los peldaños y descansillos de escaleras rectas, en L y en U del mismo modelo 3D. Se verificó subida, bajada, bloqueo lateral y paso por un hueco a otra estancia con suelo elevado dentro de una misma planta; un peldaño desproporcionado no se acepta como paso.
 - La visita libre enlaza dos plantas contiguas solo cuando una escalera alcanza la cota superior y tiene salida libre. Recorta el techo inferior y el suelo superior con la misma huella; la cámara conserva su altura absoluta al subir y bajar y el mini plano cambia de planta. Pruebas sintéticas de subida, bajada, huecos y enlaces rechazados por altura o salida ocupada. La muestra aislada `/dev/editor-v2?muestra=plantas` permite revisar el hueco y entrar en 3D sin datos reales.
-- Pendiente para aceptar la fase: unir también rutas guiadas entre plantas, medir fluidez y controles táctiles en móvil, añadir puntos de interés y propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
+- Las rutas guiadas ya usan los mismos enlaces validados: generan puntos sobre peldaños y descansillos, conservan la altura absoluta de la cámara y permiten subir o bajar. La reproducción monta ambas plantas de la misma escena; la ruta guardada conserva los puntos en su planta inicial. Probado en escaleras rectas, L y U, con salida bloqueada y cotas incorrectas, y en la muestra aislada de dos plantas.
+- Pendiente para aceptar la fase: medir fluidez y controles táctiles en móvil, añadir puntos de interés y propuestas desde la visita y validar contra un diseño aprobado de plano fiel.
 
 ## Objetivo
 
@@ -24,7 +25,7 @@ Recorrer libremente el diseño aprobado con teclado, flechas, ratón y controles
 
 1. Añadir «Entrar al diseño» sobre la escena Three/R3F existente. Usar la versión aprobada, controles de mirada en primera persona, WASD/flechas, pausa y salida. En móvil, giro táctil y desplazamiento por toque/joystick simple.
 2. Extender la colisión actual de `walkthroughNavigation` para movimiento continuo, radio de cámara, deslizamiento junto a paredes y puertas, alturas de suelo/techo y bloqueo de muebles. El modo editor y la visita no deben competir por la cámara.
-3. Resolver conexiones verticales reales. La visita libre ya sube escaleras y cambia de planta; rutas guiadas y vídeo nativos siguen asociados a una planta. Conectar esas rutas con la misma geometría y comprobar subida/bajada. Incluir patios y terrazas transitables.
+3. Resolver conexiones verticales reales. La visita libre, la ruta guiada y el vídeo nativo ya cruzan escaleras validadas entre plantas contiguas con la misma geometría. Completar recorridos de patios y terrazas transitables entre plantas.
 4. Ofrecer ruta guiada y puntos de interés como ayuda dentro de la misma visita, además del paseo libre. Un mini plano muestra posición y siguiente estancia sin imponer orden.
 5. Cargar modelos/texturas según visibilidad y medir FPS, memoria y tiempo hasta entrar. Ajustar resolución, luces y sombras según dispositivo; conservar fallback claro si WebGL falla.
 6. Si el usuario solicita un cambio desde la visita («este sofá no me convence»), enviar al chat el ID del objeto, estancia y revisión visible. Mostrar una propuesta de edición en un borrador; no alterar la visita publicada ni ejecutar cambios durante el movimiento de cámara.

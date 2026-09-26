@@ -5,6 +5,8 @@ import { parseEditorDocument } from './validation';
 
 export interface WalkthroughWaypoint extends Point {
   id: string;
+  /** Solo las rutas que cruzan plantas lo usan; las históricas pertenecen a la planta activa. */
+  levelId?: string;
   eyeHeightMm: number;
   yawDeg?: number;
   pitchDeg?: number;
@@ -12,7 +14,7 @@ export interface WalkthroughWaypoint extends Point {
   dwellMs: number;
   speedMmPerS: number;
 }
-/** Las rutas pertenecen al documento de su planta, igual que muros y muebles. */
+/** La ruta se guarda en su planta inicial; sus puntos pueden atravesar plantas enlazadas. */
 export interface WalkthroughPath {
   id: string;
   name: string;

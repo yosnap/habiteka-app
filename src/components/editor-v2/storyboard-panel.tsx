@@ -43,6 +43,10 @@ export function StoryboardPanel({ store, onDesignPoint, onHide, busy, loadImages
     try { return route ? walkthroughKeyframes(doc, route) : []; } catch { return []; }
   }, [doc, route]);
   if (!route) return null;
+  if (route.waypoints.some((point) => point.levelId)) return <section className={styles.panel} aria-label="Vistas del recorrido">
+    <header className={styles.header}><strong>Vistas · {route.name}</strong><button type="button" onClick={onHide}>Ocultar recorrido</button></header>
+    <p>La ruta entre plantas ya se puede visitar y exportar como vídeo. Las imágenes por punto se preparan por planta.</p>
+  </section>;
   const ids = route.storyboardWaypointIds ?? [];
   const available = route.waypoints.filter((point) => !ids.includes(point.id));
   const save = (next: string[]) => {

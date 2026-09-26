@@ -124,6 +124,8 @@ function SceneView({
   // Estancia en la que está la cámara. Es estado de la vista 3D, no del documento.
   const [interiorRoomId, setInteriorRoomId] = useState<string | null>(null);
   const [allLevels, setAllLevels] = useState(false);
+  const multiLevelRoute = Boolean(route?.waypoints.some((point) => point.levelId));
+  const renderAllLevels = allLevels || (multiLevelRoute && (walking || recording));
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   // Avisos de construcción (suelo sin cerrar, techos, luces) como notificación con cierre; reaparece si cambian.
@@ -162,7 +164,7 @@ function SceneView({
   const wallCutaway = cutaway && !inside;
   const captureRender = useRef<CaptureScene | null>(null);
   const root = useRef<RootState | null>(null);
-  const onSceneCreated = useCallback((state: RootState) => { root.current = state; setRendererReady(true); }, []);
+  const onSceneCreated = useCallback((state: RootState) => { root.current = state; setRendererReady(true); }, [setRendererReady]);
   const captureSequence = useRef(1000000);
   const captureQueue = useRef<Promise<unknown>>(Promise.resolve());
   const cameraApplied = useRef<((sequence: number) => void) | null>(null);
@@ -284,9 +286,9 @@ function SceneView({
     onCaptureReady?.(capture);
     return () => { captureRender.current = null; onCaptureReady?.(null); };
   }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk]);
-  const otherLevels = useMemo(() => allLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
+  const otherLevels = useMemo(() => renderAllLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document,
-      stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, allLevels, stairLinks]);
+      stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, renderAllLevels, stairLinks]);
   // La estancia que manda en el reparto de luces reales: donde está la cámara y,
   // si no, la del elemento seleccionado. Así se encienden primero las que se ven.
   const activeLuminaires = useMemo(() => resolvedLuminaires(document), [document]);
@@ -307,9 +309,9 @@ function SceneView({
   ], [activeLuminaires, activeStrips, priorityRoomId, otherLevels]);
   const lightBudgets = useMemo(() => levelLightBudgets(budgetLevels).slice(1), [budgetLevels]);
   const coverage = useMemo(() => lightingCoverage(budgetLevels), [budgetLevels]);
-  const activeElevation = allLevels ? buildingDocuments(document).find((l) => l.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
-  const lost = useCallback(() => setContextLost(true), []);
-  const manualCameraChange = useCallback(() => setActiveView(null), []);
+  const activeElevation = renderAllLevels ? buildingDocuments(document).find((l) => l.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
+  const lost = useCallback(() => setContextLost(true), [setContextLost]);
+  const manualCameraChange = useCallback(() => setActiveView(null), [setActiveView]);
   const sceneVersion = useMemo(() => ({ scene, otherLevels, activeElevation }), [scene, otherLevels, activeElevation]);
   const select = (id: string) => {
     if (!abortRecording.current && !freeWalk) {
@@ -381,7 +383,8 @@ function SceneView({
       const job = captureQueue.current.then(async () => {
         controller.signal.throwIfAborted();
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-        return recordWalkthrough(root.current!.get(), frozen, route, activeElevation, controller.signal, setRecordProgress, mode);
+        const elevationMm = multiLevelRoute ? buildingDocuments(frozen).find((level) => level.id === frozen.activeLevelId)?.elevationMm ?? 0 : activeElevation;
+        return recordWalkthrough(root.current!.get(), frozen, route, elevationMm, controller.signal, setRecordProgress, mode);
       });
       captureQueue.current = job.catch(() => undefined);
       const blob = await job;
@@ -441,22 +444,25 @@ function SceneView({
             boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} /></group>)}
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
-          <group visible={showLighting} userData={{ lightingLayer: true }}>
+          <group visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={level.document} view={walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
-          {level.scene.polygons.map((polygon) => <PolygonMesh key={polygon.id} polygon={polygon} selected={false} onSelect={() => {}} />)}
+          {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}>
+            <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></group>)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
-            .map((box) => <BoxMesh key={box.id} box={box} selected={false} onSelect={() => {}} />)}
-          {level.scene.ramps.map((ramp) => <RampMesh key={ramp.id} ramp={ramp} selected={false} onSelect={() => {}} />)}
-          {level.document.furniture.filter((item) => furnitureAsset(item)).map((item) => <FurnitureModel key={item.id} item={item}
-            boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} />)}
+            .map((box) => <group key={box.id} userData={{ videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2 }}>
+              <BoxMesh box={box} selected={false} onSelect={() => {}} /></group>)}
+          {level.scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1 }}>
+            <RampMesh ramp={ramp} selected={false} onSelect={() => {}} /></group>)}
+          {level.document.furniture.filter((item) => furnitureAsset(item)).map((item) => <group key={item.id} userData={{ videoStage: 3 }}>
+            <FurnitureModel item={item} boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} /></group>)}
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
         {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
           paused={walkPaused} controller={freeWalkController} onPause={pauseFreeWalk} />}
-        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk}
+        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording}
           onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
       {[...new Set(document.comments?.map((c) => c.targetEntityId) ?? [])].map((id) => {
