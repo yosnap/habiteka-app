@@ -6,6 +6,7 @@ import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
 import { SurfaceMaterial } from './surface-material';
+import { surfaceMaterialAppearance } from '@/lib/editor-document/surface-materials';
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
@@ -43,7 +44,7 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
       receiveShadow raycast={() => undefined}>
       <shapeGeometry args={[shape]} />
       <SurfaceMaterial id={surface.ceiling.topMaterialId} color={selected ? '#43b6a0' : '#ffffff'}
-        width={1} height={1} tileSizeMm={8000} />
+        width={1} height={1} tileSizeMm={surfaceMaterialAppearance(surface.ceiling.topMaterialId) ? 1000 : 8000} />
     </mesh>}
   </group>);
 }
