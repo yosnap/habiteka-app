@@ -441,6 +441,7 @@ function SceneView({
     if (abortRecording.current || walking || freeWalk) return;
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
+    if (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'],
       focus: !renderAllLevels && (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone')
