@@ -54,7 +54,10 @@ function ceilingDropIssue(doc: EditorDocument, ceiling: Ceiling): string {
   return `Con ${Math.round(ceiling.dropMm / 10)} cm de descenso quedan ${metres(Math.max(0, free))} libres; el mínimo es ${metres(MIN_FREE_HEIGHT_MM)}.`;
 }
 
-type CeilingPatch = Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color' | 'roofThicknessMm'>> & { topMaterialId?: string | null };
+type CeilingPatch = Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color' | 'roofThicknessMm'>> & {
+  topMaterialId?: string | null;
+  edgeMaterialId?: string | null;
+};
 
 export function roofThicknessMm(valueCm: number): number {
   return Math.round(Math.min(400, Math.max(80, valueCm * 10)));
@@ -66,10 +69,12 @@ export function setRoomCeiling(source: EditorDocument, roomId: string, patch: Ce
   const existing = doc.ceilings!.find((ceiling) => ceiling.roomId === roomId);
   const kind = patch.kind ?? existing?.kind ?? 'plain';
   const topMaterialId = patch.topMaterialId === undefined ? existing?.topMaterialId : patch.topMaterialId ?? undefined;
+  const edgeMaterialId = patch.edgeMaterialId === undefined ? existing?.edgeMaterialId : patch.edgeMaterialId ?? undefined;
   const thickness = patch.roofThicknessMm ?? existing?.roofThicknessMm;
   const ceiling: Ceiling = { id: existing?.id ?? crypto.randomUUID(), roomId, kind,
     color: patch.color ?? existing?.color ?? '#f4f1e9',
     ...(topMaterialId ? { topMaterialId } : {}),
+    ...(edgeMaterialId ? { edgeMaterialId } : {}),
     ...(thickness !== undefined ? { roofThicknessMm: thickness } : {}),
     dropMm: kind === 'plain' ? 0 : patch.dropMm ?? (existing?.kind === 'suspended' ? existing.dropMm : 150) };
   if (ceiling.dropMm > MAX_CEILING_DROP_MM)
@@ -194,6 +199,18 @@ export function setCeilingTopMaterialForAllRooms(source: EditorDocument, topMate
     const updated = { ...ceiling };
     if (topMaterialId) updated.topMaterialId = topMaterialId;
     else delete updated.topMaterialId;
+    return updated;
+  });
+  return parseEditorDocument(doc);
+}
+/** Cambia solo el canto exterior de las losas existentes. */
+export function setCeilingEdgeMaterialForAllRooms(source: EditorDocument, edgeMaterialId: string | null): EditorDocument {
+  const doc = parseEditorDocument(source);
+  if (!doc.ceilings?.length) throw new Error('No hay techos a los que aplicar el material');
+  doc.ceilings = doc.ceilings.map((ceiling) => {
+    const updated = { ...ceiling };
+    if (edgeMaterialId) updated.edgeMaterialId = edgeMaterialId;
+    else delete updated.edgeMaterialId;
     return updated;
   });
   return parseEditorDocument(doc);

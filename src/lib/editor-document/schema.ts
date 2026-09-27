@@ -175,6 +175,8 @@ export interface Ceiling {
   color: string;
   /** Material visible desde fuera en la cara superior; el color sigue siendo el acabado interior. */
   topMaterialId?: string;
+  /** Acabado exterior del canto de la losa, independiente de la cara superior. */
+  edgeMaterialId?: string;
   /** Espesor de la losa exterior, independiente del descenso del falso techo. */
   roofThicknessMm?: number;
 }

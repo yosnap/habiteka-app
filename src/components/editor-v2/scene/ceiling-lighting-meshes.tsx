@@ -35,7 +35,8 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
       onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(surface.ceiling.id); } : undefined}>
       <extrudeGeometry args={[shape, { depth: roof.thicknessM, bevelEnabled: false, steps: 1 }]} />
       <meshStandardMaterial attach="material-0" color={selected ? '#43b6a0' : '#e5e1d9'} roughness={.88} />
-      <meshStandardMaterial attach="material-1" color={selected ? '#43b6a0' : '#d1cbc1'} roughness={.9} />
+      <SurfaceMaterial attach="material-1" id={surface.ceiling.edgeMaterialId}
+        color={selected ? '#43b6a0' : surface.ceiling.edgeMaterialId ? '#ffffff' : '#d1cbc1'} width={1} height={1} />
     </mesh>}
     {surface.ceiling.topMaterialId && !transparent && <mesh rotation={[-Math.PI / 2, 0, 0]}
       position={[0, roof.topM + .003, 0]}

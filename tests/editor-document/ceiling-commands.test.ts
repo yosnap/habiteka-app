@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { addLuminaire, removeCeiling, setCeilingTopMaterialForAllRooms, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
+import { addLuminaire, removeCeiling, setCeilingEdgeMaterialForAllRooms, setCeilingTopMaterialForAllRooms, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
 import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, hasCompleteInteriorRoof, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
@@ -79,6 +79,24 @@ describe('contrato de techos y luminarias', () => {
     expect(textured.luminaires).toEqual(original.luminaires);
     expect(setCeilingTopMaterialForAllRooms(textured, null).ceilings).toEqual(original.ceilings);
     expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
+  });
+  it('mantiene independiente el material PBR del canto exterior', () => {
+    const original = ceiling(), roomId = original.ceilings![0]!.roomId;
+    const top = setRoomCeiling(original, roomId, { topMaterialId: 'polyhaven:brushed_concrete_03' });
+    const edge = setRoomCeiling(top, roomId, { edgeMaterialId: 'polyhaven:white_plaster_02' });
+    expect(edge.ceilings![0]).toMatchObject({
+      topMaterialId: 'polyhaven:brushed_concrete_03', edgeMaterialId: 'polyhaven:white_plaster_02',
+    });
+    expect(ceilingDesignContext(edge).ceilings[0]?.edgeMaterialId).toBe('polyhaven:white_plaster_02');
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(edge)))).toEqual(edge);
+    const lit = addLuminaire(edge, edge.ceilings![0]!.id, 'flush');
+    const cleared = setCeilingEdgeMaterialForAllRooms(lit, null);
+    expect(cleared.ceilings![0]!.topMaterialId).toBe('polyhaven:brushed_concrete_03');
+    expect(cleared.ceilings![0]!.edgeMaterialId).toBeUndefined();
+    expect(cleared.luminaires).toEqual(lit.luminaires);
+    expect(lit.ceilings![0]!.edgeMaterialId).toBe('polyhaven:white_plaster_02');
+    expect(() => setRoomCeiling(top, roomId, { edgeMaterialId: 'material-inexistente' }))
+      .toThrow('Material del canto');
   });
   it('adapta la altura de lámpara al techo y rechaza descensos incompatibles o focos sin cámara', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id, roomId = doc.ceilings![0]!.roomId;

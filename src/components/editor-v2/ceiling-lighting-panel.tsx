@@ -121,6 +121,8 @@ export function CeilingLightingPanel({ store }: { store: EditorStore }) {
           </div>
           <SurfaceMaterialPicker label="Cara superior de la cubierta" value={ceiling.topMaterialId}
             onChange={(id) => run((d) => setRoomCeiling(d, ceiling.roomId, { topMaterialId: id ?? null }))} />
+          <SurfaceMaterialPicker label="Canto exterior de la cubierta" value={ceiling.edgeMaterialId}
+            onChange={(id) => run((d) => setRoomCeiling(d, ceiling.roomId, { edgeMaterialId: id ?? null }))} />
           <NumberField label="Espesor de cubierta (cm)" value={(ceiling.roofThicknessMm ?? DEFAULT_ROOF_THICKNESS_MM) / 10}
             change={(value) => run((d) => setRoomCeiling(d, ceiling.roomId, { roofThicknessMm: roofThicknessMm(value) }))} />
           {ceiling.kind === 'suspended' && <p>El descenso va en centímetros, entre {MIN_CEILING_DROP_MM / 10} y {MAX_CEILING_DROP_MM / 10} cm.</p>}
