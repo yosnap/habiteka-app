@@ -19,6 +19,8 @@ Los archivos GLB y las texturas aún se sirven desde el catálogo desplegado: se
 
 Crear una versión única del diseño de todo el inmueble, revisada desde varias cámaras y apta para visita y vídeo, basada en un catálogo ampliable de material propio y productos autorizados de la mueblería piloto.
 
+El objetivo visual confirmado el 27/09 incluye una vivienda terminada y reconocible desde fuera y por dentro: fachadas, cubierta, huecos/acristalamiento, materiales, luz y entorno; jardín, terraza o piscina solo cuando pertenezcan al proyecto. Las tres imágenes nuevas son referencias estéticas, no planos medidos ni activos 3D. La aprobación ha de corresponder a la escena editable que se podrá recorrer y grabar; un render IA por sí solo no satisface esta fase. La muestra actual aún queda por debajo de ese nivel.
+
 ## Trabajo
 
 1. Mantener dos acciones explícitas: propuesta **editable** de acabados/muebles que se aplica al `EditorDocument`, y **render de imagen** que guarda una vista comercial sin modificar geometría. Explicar la diferencia en Estudio y Editor.
@@ -49,6 +51,7 @@ Crear una versión única del diseño de todo el inmueble, revisada desde varias
 ## Criterios de aceptación
 
 - Un diseño aprobado de al menos tres estancias se ve consistente desde diez cámaras sin que cambien muebles, puertas o acabados.
+- El mismo diseño aprobado se reconoce en cámaras exteriores, cenitales y a altura de persona; materiales, acristalamiento, mobiliario, terreno y elementos exteriores presentes en el proyecto conservan posición y acabado. La comparación con las referencias distingue claramente el objetivo visual de lo ya conseguido.
 - Un cambio de muro, acabado o mueble aparece en el plano editable y en la maqueta sin reinterpretación IA. Al cambiar de cámara cenital a interior, persisten identidad, posición y escala de los objetos; la vista exterior se presenta por separado.
 - Una vista IA sin equivalente 3D se marca como diferencia pendiente; no habilita por sí sola una visita fiel.
 - Modificar el documento después no cambia una visita o vídeo ya aprobados; para actualizar se crea una nueva versión.

@@ -25,6 +25,8 @@ status: in_progress
 
 Recorrer libremente el diseño aprobado con teclado, flechas, ratón y controles táctiles, como en un videojuego.
 
+La visita se valida **después de aprobar el acabado 3D final**: la persona entra en esa casa, elige su camino y orienta la cámara, viendo los mismos muebles, materiales, luz y exteriores que en el diseño. Una ruta guiada ayuda a orientarse, pero no sustituye esta visita libre ni el vídeo automático de la fase 5.
+
 ## Trabajo
 
 1. Añadir «Entrar al diseño» sobre la escena Three/R3F existente. Usar la versión aprobada, controles de mirada en primera persona, WASD/flechas, pausa y salida. En móvil, giro táctil y desplazamiento por toque/joystick simple.
@@ -49,6 +51,7 @@ Recorrer libremente el diseño aprobado con teclado, flechas, ratón y controles
 - Se publican mediciones de carga/FPS/memoria con el inmueble de referencia en escritorio y móvil; los umbrales se fijan a partir de esa medición.
 - Una orden desde la visita identifica el objeto correcto y crea una propuesta para nueva revisión; la visita aprobada permanece idéntica hasta republicación.
 - La transición maqueta→primera persona no cambia distribución ni mobiliario y la luz sigue siendo coherente; se documentan capturas comparables de ambas cámaras del mismo inmueble.
+- Las cámaras de la visita libre muestran el acabado final aprobado de interior y exterior; se comparan con las vistas de aprobación y con fotogramas del vídeo sin que aparezcan objetos o materiales exclusivos de una salida.
 
 ## Riesgos
 

@@ -26,12 +26,14 @@ status: in_progress
 
 Obtener una pieza publicitaria donde el inmueble aparece por etapas, se muestra desde varios ángulos y la cámara entra para recorrerlo.
 
+La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una construcción visual editorial, revela la vivienda terminada con cámaras aéreas exteriores tipo dron y entra suavemente para un paseo dirigido por sus estancias. Debe usar el mismo diseño 3D realista aprobado en el que se hace la visita libre de la fase 4. El paseo MP4 de «FInca» y el montaje actual de 8 s prueban grabación y vínculo a revisión; no se consideran la película terminada.
+
 ## Secuencia propuesta
 
 1. Apertura: parcela/base y huella del inmueble desde una cámara exterior.
 2. Montaje visual: suelos y estructura, muros/huecos, escaleras y techos, acabados, muebles e iluminación. Es una animación editorial de la escena aprobada, no una simulación técnica de construcción.
-3. Revelación: vistas exteriores e interiores clave con movimientos de cámara controlados.
-4. Paseo rápido: transición por la entrada y ruta cinematográfica por estancias, terminando en una vista final del inmueble.
+3. Revelación: vuelo exterior tipo dron alrededor de la casa ya terminada, con vistas de fachada, volumen, jardín, terraza o piscina solo si figuran en la escena aprobada.
+4. Paseo rápido: transición continua por una entrada real y ruta cinematográfica por estancias, terminando en una vista final del inmueble. El espectador reproduce el montaje; en la visita libre decide su propio camino.
 
 ## Trabajo
 
@@ -56,6 +58,7 @@ Obtener una pieza publicitaria donde el inmueble aparece por etapas, se muestra 
 ## Criterios de aceptación
 
 - Un MP4 muestra montaje visual, revelación por varios ángulos y entrada/paseo rápido sin alterar la distribución aprobada.
+- El storyboard permite revisar por separado construcción visual, vuelo exterior, casa terminada y entrada/paseo interior. Las transiciones son comprensibles, las tomas no atraviesan sólidos y el exterior e interior mantienen el acabado aprobado.
 - Exterior, cenital, maqueta e interior pertenecen al mismo inmueble y versión; una comparación por fotogramas verifica posiciones de muros, huecos, muebles y productos destacados.
 - El mismo guion produce versión horizontal y vertical con encuadres revisables.
 - Cada fotograma procede de la misma versión 3D; una edición posterior obliga a crear una nueva versión de vídeo.

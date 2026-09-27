@@ -18,14 +18,20 @@ El [PRD de inmueble verificable](../../docs/prd-inmueble-verificable-inmersion-v
 
 Un usuario parte de una imagen, PDF, boceto o plano existente; entiende qué se ha guardado; corrige el plano editable; diseña con elementos del catálogo propio y, bajo acuerdo de piloto, con productos reales de una tienda; aprueba un diseño coherente; entra en él y camina en primera persona; crea un vídeo en el que el inmueble se construye visualmente y termina con un recorrido cinematográfico. Inmobiliaria, interiorista y tienda obtienen salidas distintas del mismo inmueble aprobado. La visita interactiva y el vídeo son entregables separados que comparten la misma versión del modelo y de sus productos.
 
+### Precisión del resultado final (27-09-2026)
+
+Paulo aportó tres imágenes adicionales de viviendas contemporáneas terminadas, con fachadas, grandes paños de vidrio, iluminación, jardines, terrazas y piscinas. Fijan una aspiración de **calidad arquitectónica exterior e interior**; no representan necesariamente el mismo edificio ni autorizan a inventar piscinas, plantas o muebles en un proyecto que no los tenga. La imagen que combina fachada y dos plantas esquemáticas tampoco proporciona por sí sola una reconstrucción métrica del edificio fotografiado.
+
+El diseño que se aprueba debe existir como **escena 3D editable y navegable** con ese nivel de acabado, no solo como imagen bonita. Desde la misma revisión aprobada salen dos experiencias distintas: una **visita libre** en la que la persona camina y decide dónde mirar, y un **vídeo automático** con montaje visual de la construcción, tomas aéreas exteriores tipo dron del inmueble terminado y transición a una entrada y paseo interior dirigidos por cámara. El MP4 de recorrido ya exportado y el montaje breve actual son bases técnicas; no cumplen aún esta presentación cinematográfica ni certifican el realismo buscado.
+
 ## Diagnóstico del producto actual
 
 | Parte | Ya existe | Brecha real |
 |---|---|---|
 | Estudio | Original, redibujado opcional, extracción, vista cenital/maqueta | Estados y destinos poco claros; pestaña editable limitada al boceto dibujado; panel «resultados» sin galería. |
 | Editor | Documento por plantas, plano visual cenital y 3D sobre la misma escena, aprobación e historial recuperable del plano | Faltan mejor calidad de modelos/acabados y validar un inmueble importado con medidas fieles. |
-| Recorrido | Paseo libre y guiado por la misma escena, incluso entre plantas válidas | Faltan rendimiento móvil, puntos de interés y validar un inmueble aprobado fiel. |
-| Vídeo | Montaje MP4 nativo de construcción y paseo, vinculado a la aprobación | Faltan editor de tomas, 9:16 y prueba visual con un inmueble importado fiel; vídeo IA sigue pendiente. |
+| Recorrido | Paseo libre y guiado por la misma escena, incluso entre plantas válidas | Falta probar la visita libre **dentro del diseño final visualmente aprobado**, con rendimiento móvil, puntos de interés y un inmueble importado fiel. |
+| Vídeo | Montaje MP4 nativo de construcción y paseo, vinculado a la aprobación | Falta la película objetivo: construcción visual por etapas, vuelo exterior tipo dron, casa terminada y entrada/paseo cinematográfico; además, editor de tomas, 9:16 y prueba con inmueble fiel. Vídeo IA sigue pendiente. |
 | Catálogo | `CatalogItem` admite cargas propias y productos de tienda con modelo GLB opcional; existe una base de marketplace | Editor v2, colocación 3D y propuesta IA siguen usando un catálogo estático separado. El marketplace actual es semilla, no un feed comercial vivo. |
 | Modelos IA | Kie está integrado para imagen y hay enrutamiento de modelos de texto/imagen | No existe aún acción `video` ni adaptador de vídeo de Kie; Astra y Claude Opus 5.5 no están configurados como motores de vídeo de la aplicación. |
 | Asistencia | Orquestador por fases, comandos del editor, historial/deshacer y puertas de Jev con caché | Falta un chat operativo único que dirija propuestas tipadas al Editor v2, acote el contexto de entrada y preserve revisión/aprobación. |
@@ -70,8 +76,8 @@ La ruta de chat actual limita tokens de **salida**, pero el nuevo flujo necesita
 
 1. **Preparar plano:** escoger fuente, comparar original/redibujados, extraer y revisar medidas; el paso siguiente siempre está visible.
 2. **Editar y diseñar:** corregir el plano en Editor v2, también mediante propuestas revisables del chat; generar propuestas editables e imágenes desde vistas, elegir acabados/muebles del catálogo común y aprobar una versión 3D con sus referencias de producto.
-3. **Explorar:** entrar con teclado/flechas y ratón; ofrecer navegación táctil y ruta guiada, atravesando solo puertas y conexiones válidas entre plantas.
-4. **Presentar:** configurar un vídeo de construcción visual por etapas y un recorrido rápido de cámara; previsualizar, exportar y guardar versiones. La inmobiliaria usa visita/vídeo para comercializar; el interiorista, propuesta para revisión; la tienda piloto, productos y consulta/presupuesto, con fichas/enlaces solo para catálogo autorizado.
+3. **Explorar:** entrar en el diseño terminado aprobado con teclado/flechas y ratón; ofrecer navegación táctil y ruta guiada, atravesando solo puertas y conexiones válidas entre plantas. La persona puede elegir libremente dirección y mirada.
+4. **Presentar:** configurar el vídeo automático de construcción visual por etapas, vuelo exterior del inmueble terminado y entrada/paseo interior dirigidos; previsualizar, exportar y guardar versiones. La inmobiliaria usa visita/vídeo para comercializar; el interiorista, propuesta para revisión; la tienda piloto, productos y consulta/presupuesto, con fichas/enlaces solo para catálogo autorizado.
 
 ## Pantalla del Estudio propuesta
 
@@ -140,8 +146,8 @@ Antes de pulir iluminación, fijar un inmueble patrón con plano y fotos de refe
 - [x] Desde cualquiera de las entradas del Estudio se llega al documento editable y se entiende el estado de cada resultado. Verificación local de etapas, galería e importación de imagen/PDF/boceto en fases 1–2; la fidelidad del plano real sigue abierta.
 - [ ] Diseño, visita y vídeos identifican la misma versión aprobada; los cambios posteriores se señalan.
 - [ ] Se puede caminar por todas las zonas conectadas previstas sin atravesar elementos físicos.
-- [ ] Se obtiene un vídeo de montaje visual y paseo breve en formatos publicitarios, reproducible y descargable.
-- [ ] Una prueba con inmueble representativo valida fidelidad visual, carga y fluidez en escritorio y móvil.
+- [ ] Se obtiene un vídeo automático del diseño aprobado con construcción visual, vuelo exterior tipo dron, revelación de la casa terminada y entrada/paseo interior cinematográfico, en formatos publicitarios reproducibles y descargables.
+- [ ] Una prueba con inmueble representativo valida fidelidad visual compartida entre plano visual, 3D, visita libre y vídeo, además de carga y fluidez en escritorio y móvil.
 - [ ] Catálogo propio y Editor v2 comparten identidad de objeto; la propuesta IA solo coloca productos seleccionables y físicamente compatibles.
 - [ ] Un producto de comercio puede actualizar precio/disponibilidad sin alterar el diseño aprobado; se conservan SKU, variante y activo visual de la versión aprobada.
 - [ ] El mismo inmueble aprobado permite: anuncio/visita inmobiliaria, propuesta revisable de interiorismo y lista de productos para consulta o presupuesto de mueblería; cada camino tiene una métrica propia.
