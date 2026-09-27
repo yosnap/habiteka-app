@@ -97,15 +97,17 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 
 ## Fases
 
-| # | Phase | Status |
-|---|-------|--------|
-| 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación local |
-| 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Plano visual y aprobación implementados; falta calidad y validar importación fiel |
-| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | Paseo de versión aprobada implementado; falta validación real y rendimiento móvil |
-| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | MP4 nativo vinculado a aprobación; faltan tomas, 9:16 y validación real |
-| 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En curso: MP4 y visita versionados en Diseños; falta prueba integral |
-| 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Preparación del socio en paralelo; integración tras fase 3 |
+| # | Fase | Estado de ejecución | Base existente y condición de cierre |
+|---|---|---|---|
+| 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación | Flujo y galería implementados; faltan cotización por modelo y generación real controlada. |
+| 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso | Importación y revisión disponibles; faltan fidelidad métrica y arcos de la Original v11. |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Plano visual y aprobación disponibles; falta calidad arquitectónica compartida y comparación de cámaras. |
+| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En espera del diseño final | Paseo libre/guiado de una aprobación disponible; falta validarlo en la escena terminada y en móvil. |
+| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En espera del diseño final | MP4 nativo disponible; faltan construcción, vuelo, entrada cinematográfica y formatos. |
+| 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En espera de fases 2–5 | Diseños e Historial muestran resultados versionados; falta prueba integral y recuperación del proyecto completo. |
+| 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Pendiente | Existe una base de catálogo; integración y piloto requieren socio autorizado. |
+
+El estado indica **qué se está ejecutando ahora**, no si existe código previo. «En espera» conserva los avances técnicos de visita, vídeo y entrega, pero evita presentarlos como fases activas mientras dependen del diseño final y de la importación fiel. Ninguna fase se marca completada hasta cumplir sus criterios de aceptación.
 
 La [auditoría de casillas y roadmap del 27-09-2026](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md) distingue capacidades implementadas, criterios parciales y pasos de aceptación todavía abiertos. Evita contar las casillas de planes históricos absorbidos como backlog duplicado.
 

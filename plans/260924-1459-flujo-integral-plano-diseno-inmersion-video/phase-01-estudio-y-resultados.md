@@ -1,6 +1,6 @@
 ---
 title: "Fase 1: Estudio de planos y resultados comprensibles"
-status: in_progress
+status: in-review
 ---
 
 # Fase 1: Estudio de planos y resultados comprensibles

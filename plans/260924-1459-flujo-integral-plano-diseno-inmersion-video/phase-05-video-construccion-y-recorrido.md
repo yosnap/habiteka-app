@@ -1,6 +1,6 @@
 ---
 title: "Fase 5: Vídeo de construcción visual y recorrido"
-status: in_progress
+status: pending
 ---
 
 # Fase 5: Vídeo de construcción visual y recorrido

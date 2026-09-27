@@ -1,6 +1,6 @@
 ---
 title: "Fase 6: Entrega y validación integral"
-status: in_progress
+status: pending
 ---
 
 # Fase 6: Entrega y validación integral

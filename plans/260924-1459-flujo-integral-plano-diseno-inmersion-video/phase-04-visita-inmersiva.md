@@ -1,6 +1,6 @@
 ---
 title: "Fase 4: Visita inmersiva en primera persona"
-status: in_progress
+status: pending
 ---
 
 # Fase 4: Visita inmersiva en primera persona
