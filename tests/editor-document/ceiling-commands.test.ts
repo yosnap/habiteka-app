@@ -3,7 +3,7 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { addLuminaire, removeCeiling, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
-import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
+import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, hasCompleteInteriorRoof, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { addBuildingLevel, buildingDocuments, switchBuildingLevel } from '@/lib/editor-document/building-levels';
@@ -35,6 +35,13 @@ describe('contrato de techos y luminarias', () => {
     const outdoor = room(); outdoor.walls[0]!.id = 'hidden:outdoor'; outdoor.walls[0]!.hidden = true;
     expect(eligibleCeilingRooms(outdoor)).toEqual([]);
     expect(eligibleCeilingRooms(setDesignSpaceKind(room(), 'patio'))).toEqual([]);
+  });
+  it('solo considera terminada una cubierta con todas las estancias interiores válidas', () => {
+    expect(hasCompleteInteriorRoof(room())).toBe(false);
+    const covered = ceiling();
+    expect(hasCompleteInteriorRoof(covered)).toBe(true);
+    expect(hasCompleteInteriorRoof(setDesignSpaceKind(room(), 'patio'))).toBe(false);
+    expect(hasCompleteInteriorRoof(removeCeiling(covered, covered.ceilings![0]!.id))).toBe(false);
   });
   it('adapta la altura de lámpara al techo y rechaza descensos incompatibles o focos sin cámara', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id, roomId = doc.ceilings![0]!.roomId;

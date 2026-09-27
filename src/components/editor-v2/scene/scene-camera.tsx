@@ -11,6 +11,8 @@ export interface CameraRequest {
   action: 'fit' | 'in' | 'out' | 'interior' | SceneCameraPreset;
   /** Caja a encuadrar en lugar de toda la escena (p. ej. la zona permitida). */
   focus?: { center: [number, number, number]; size: [number, number, number] };
+  /** Dirección específica de una captura exterior con cubierta terminada. */
+  direction?: [number, number, number];
   /** Pose exacta para `interior`: ojo dentro de la estancia y punto de mira. */
   pose?: { position: [number, number, number]; focus: [number, number, number]; fovDeg: number };
 }
@@ -87,7 +89,9 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
       const { center, size: extent } = focus
         ? { center: new Vector3(...focus.center), size: new Vector3(...focus.size) }
         : bounds.refresh().getSize();
-      const direction = action in PRESET_DIRECTIONS
+      const direction = request.direction && isNewRequest
+        ? new Vector3(...request.direction).normalize()
+        : action in PRESET_DIRECTIONS
         ? new Vector3(...PRESET_DIRECTIONS[action as SceneCameraPreset]).normalize()
         : camera.position.clone().sub(orbit.target).normalize();
       if (!direction.lengthSq()) direction.set(1, 1, 1).normalize();

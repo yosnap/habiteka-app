@@ -11,7 +11,9 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
   cutaway: boolean; cameraHeightM: number; highestCeilingM: number | null;
   /** Captura para diseñar con IA: desde encima del techo la IA vería una losa, no el interior. */
   forDesign?: boolean;
+  finishedExterior?: boolean;
 }): CeilingView {
+  if (custom?.finishedExterior) return 'solid';
   if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
   if ((!view || view === 'current' || view === 'custom') && (custom?.cutaway || custom?.forDesign) &&
     custom.highestCeilingM !== null && custom.cameraHeightM > custom.highestCeilingM) return 'hidden';
@@ -23,7 +25,8 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
  * la fachada. En esas capturas se ocultan los muros exteriores hacia la cámara
  * aunque el 3D de trabajo los muestre; el resto respeta la elección del usuario.
  */
-export function captureCutaway(view: string | null | undefined, cutaway: boolean): boolean {
+export function captureCutaway(view: string | null | undefined, cutaway: boolean, finishedExterior = false): boolean {
+  if (finishedExterior) return false;
   if (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'isometric') return true;
   return cutaway;
 }

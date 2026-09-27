@@ -100,6 +100,12 @@ describe('representación de techos e iluminación', () => {
     for (const view of ['top', 'isometric', 'drone']) expect(captureCeilingView(view)).toBe('hidden');
     for (const view of ['front', 'back', 'left', 'right', null]) expect(captureCeilingView(view)).toBe('solid');
   });
+  it('mantiene cubierta y fachada en vistas exteriores de una vivienda terminada', () => {
+    const context = { cutaway: false, cameraHeightM: 9, highestCeilingM: 3, finishedExterior: true };
+    expect(captureCeilingView('drone', context)).toBe('solid');
+    expect(captureCutaway('front', true, true)).toBe(false);
+    expect(captureCutaway('right', true, true)).toBe(false);
+  });
   it('oculta techo en órbita libre por encima del edificio solo con corte activo', () => {
     const context = { cutaway: true, cameraHeightM: 8, highestCeilingM: 5.4 };
     for (const view of [null, 'current', 'custom']) expect(captureCeilingView(view, context)).toBe('hidden');

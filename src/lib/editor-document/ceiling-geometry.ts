@@ -50,6 +50,14 @@ export function ceilingSurfaces(doc: EditorDocument): CeilingSurface[] {
     return heightMm - (floorFinish(doc, room.id).elevationMm ?? 0) < MIN_FREE_HEIGHT_MM ? [] : [{ ceiling, room, heightMm }];
   });
 }
+/** La vista exterior terminada solo puede ocultar el interior si todas sus estancias tienen cubierta válida. */
+export function hasCompleteInteriorRoof(doc: EditorDocument): boolean {
+  try {
+    const rooms = eligibleCeilingRooms(doc);
+    const covered = new Set(ceilingSurfaces(doc).map((surface) => surface.room.id));
+    return rooms.length > 0 && rooms.every((room) => covered.has(room.id));
+  } catch { return false; }
+}
 export const luminaireRadiusMm = (kind: Luminaire['kind'], mount?: Luminaire['mount']) =>
   kind === 'pendant' ? 180 : kind === 'flush' ? 160 : kind === 'spot' ? (mount === 'recessed' ? 60 : 90) : 50;
 export const luminaireDepthMm = (kind: Luminaire['kind'], mount?: Luminaire['mount']) =>

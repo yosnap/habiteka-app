@@ -48,6 +48,17 @@ export const SECTION_VIEW_RULE_COMPACT =
   'Vista desde FUERA (maqueta seccionada): nada de suelo, paredes o techo más allá del corte; fondo neutro; ' +
   'mismo encuadre; nunca foto de interior.';
 
+export const FINISHED_EXTERIOR_VIEW_RULE =
+  'VISTA EXTERIOR DEL INMUEBLE TERMINADO: la cámara está fuera. La cubierta y la fachada visibles en la ' +
+  'captura son partes construidas del proyecto; conserva exactamente su contorno, altura y posición. ' +
+  'Convierte sus acabados e iluminación en una visualización arquitectónica realista desde la MISMA cámara. ' +
+  'No retires el techo para enseñar muebles ni transformes esta vista en una maqueta abierta. ' +
+  'No inventes plantas, terreno, edificios, accesos ni volumen adicional fuera de la geometría capturada.';
+
+export const FINISHED_EXTERIOR_VIEW_RULE_COMPACT =
+  'Vista EXTERIOR terminada: conserva cubierta, fachada, silueta y cámara de la captura; ' +
+  'acabados realistas sin abrir la maqueta ni añadir terreno o construcción.';
+
 /** ¿La cámara mira el edificio desde fuera (o a través de un corte) en vez de estar dentro de una estancia? */
 function viewedFromOutside(view: RenderView, options: RenderDesignOptions): boolean {
   if (isInteriorRenderMode(options)) return false;
@@ -166,9 +177,14 @@ export function selectedViewPrompt(
   };
   const interiorCamera = interiorCameraForView(doc, view);
   const furnishing = interiorFurnishingRule(interiorCamera?.name ?? null, style, options);
+  const finishedExterior = !view.cutaway && view.ceilingView === 'solid' &&
+    ['front', 'back', 'left', 'right', 'drone'].includes(view.preset);
+  const exteriorRule = finishedExterior
+    ? compact ? FINISHED_EXTERIOR_VIEW_RULE_COMPACT : FINISHED_EXTERIOR_VIEW_RULE
+    : compact ? SECTION_VIEW_RULE_COMPACT : SECTION_VIEW_RULE;
   const interiorRule = isInteriorRenderMode(options)
     ? [INTERIOR_EYE_LEVEL_RULE, ...(furnishing ? [furnishing] : [])]
-    : viewedFromOutside(view, options) ? [compact ? SECTION_VIEW_RULE_COMPACT : SECTION_VIEW_RULE] : [];
+    : viewedFromOutside(view, options) ? [exteriorRule] : [];
   if (compact) {
     const payload: ScopePayload = {
       camera: data.camera, designOptions: data.designOptions,

@@ -32,11 +32,12 @@ import { nativeVideoDurationIssue, type NativeVideoMode } from '@/lib/editor-doc
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { SceneEnvironment } from './scene-environment';
+import { SceneGround } from './scene-ground';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
 import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
-import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
+import { resolvedLuminaires, ceilingSurfaces, hasCompleteInteriorRoof, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 import { withTimeout } from '@/lib/async-wait';
 import { renderZoneMask } from './zone-mask';
@@ -228,6 +229,9 @@ function SceneView({
     const capture: CaptureScene = (options, fullResolution = false) => {
       if (abortRecording.current || store.getState().walkthroughPlaying || freeWalk) return Promise.reject(new Error('Sal de la visita antes de capturar una imagen.'));
       const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
+      const finishedExterior = !fullResolution && !allLevels && !options?.camera &&
+        (options?.view === 'front' || options?.view === 'back' || options?.view === 'left' ||
+          options?.view === 'right' || options?.view === 'drone') && hasCompleteInteriorRoof(store.getState().document);
       const initial = root.current?.get();
       if (!initial) throw new Error('La vista 3D no está disponible.');
       const originalPosition = initial.camera.position.clone();
@@ -254,14 +258,19 @@ function SceneView({
             if (applied === sequence) { clearTimeout(timeout); cameraApplied.current = null; resolve(); }
           };
           const view = options?.view && options.view !== 'current' ? options.view : null;
+          const finishedDirection: Record<string, [number, number, number]> = {
+            front: [0, .25, 1], back: [0, .25, -1], left: [-1, .25, 0], right: [1, .25, 0],
+          };
           setRequest({ sequence, action: view ?? 'fit',
-            focus: view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined });
+            focus: view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined,
+            direction: finishedExterior && view ? finishedDirection[view] : undefined });
         });
       }
       const currentDocument = store.getState().document;
       const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
-      const cut = options?.camera ? false : options?.view && options.view !== 'current' ? captureCutaway(options.view, wallCutaway) : wallCutaway;
+      const cut = options?.camera ? false : options?.view && options.view !== 'current'
+        ? captureCutaway(options.view, wallCutaway, finishedExterior) : wallCutaway;
       if (options?.camera) {
         const pose = cameraPoseSchema.parse(options.camera);
         if (allLevels) throw new Error('Activa Solo planta activa antes de capturar un punto del recorrido.');
@@ -275,11 +284,15 @@ function SceneView({
       const visibleLevels = allLevels ? buildingDocuments(currentDocument) : [{ document: currentDocument, elevationMm: 0 }];
       const ceilingHeights = visibleLevels.flatMap((level) => ceilingSurfaces(level.document)
         .map((surface) => (surface.heightMm + level.elevationMm) / 1000));
-      flushSync(() => setCaptureCeilings(options?.camera ? 'solid' : captureCeilingView(
+      const capturedCeilingView = options?.camera ? 'solid'
+        : fullResolution && (!options?.view || options.view === 'current')
+          ? presentation === 'plan' ? 'hidden' : inside ? 'solid' : ceilingView
+          : captureCeilingView(
         capturedView,
         { cutaway: cut, forDesign: !fullResolution, cameraHeightM: initial.camera.position.y,
-          highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null },
-      )));
+          highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null, finishedExterior },
+      );
+      flushSync(() => setCaptureCeilings(capturedCeilingView));
       // El bucle es bajo demanda: sin esto una captura que solo mueve la cámara
       // no dibujaría ningún fotograma y el recorte de muros quedaría el de antes.
       initial.invalidate();
@@ -302,6 +315,7 @@ function SceneView({
         ...(downloadDataUrl ? { downloadDataUrl } : {}), view: {
         preset: options?.camera ? 'custom' : options?.view && options.view !== 'current' ? options.view : activeView ?? 'custom', focus: camera.position.clone().add(camera.getWorldDirection(new Vector3())).toArray(), levelId: currentDocument.activeLevelId ?? null, levelElevationM: allLevels ? (buildingDocuments(currentDocument).find((level) => level.id === currentDocument.activeLevelId)?.elevationMm ?? 0) / 1000 : 0, position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
         fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: cut,
+        ceilingView: capturedCeilingView,
         lighting: options?.lighting ?? originalLighting,
         cutawayWallIds: cut ? scene.exteriorWalls.filter((wall) =>
           (camera.position.x - wall.x) * wall.normalX + (camera.position.z - wall.z) * wall.normalZ > .01,
@@ -336,7 +350,7 @@ function SceneView({
     captureRender.current = capture;
     onCaptureReady?.(capture);
     return () => { captureRender.current = null; onCaptureReady?.(null); };
-  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk, activeElevation]);
+  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk, activeElevation, ceilingView, inside, presentation]);
   const otherLevels = useMemo(() => renderAllLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document,
       stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, renderAllLevels, stairLinks]);
@@ -545,6 +559,7 @@ function SceneView({
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <SceneEnvironment preset={lighting} />
+      {presentation === 'spatial' && <SceneGround scene={scene} elevationMm={activeElevation} />}
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]} onContextMenu={presentation === 'plan' ? (event) => {
           const id = sceneEntityId(event.object), item = document.furniture.find((entry) => entry.id === id);

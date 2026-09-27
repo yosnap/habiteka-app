@@ -13,6 +13,7 @@ export const renderViewSchema = z.object({
   aspect: z.number().positive().max(20),
   allLevels: z.boolean(),
   cutaway: z.boolean(),
+  ceilingView: z.enum(['hidden', 'transparent', 'solid']).optional(),
   lighting: z.enum(['daylight', 'warm', 'evening']).optional(),
   cutawayWallIds: z.array(z.string().max(200)).max(10000).optional(),
 });

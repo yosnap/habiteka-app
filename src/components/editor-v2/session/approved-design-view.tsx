@@ -8,6 +8,8 @@ import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { EditorSceneView } from '../scene/editor-scene-view';
 import { saveWalkthroughVideo } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
+import { ceilingSurfaces, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
+import { buildingDocuments } from '@/lib/editor-document/building-levels';
 
 export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: {
   approval: ApprovedDesign; scope: DraftScope; initialRouteId?: string | null; onBack: () => void;
@@ -27,6 +29,19 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: 
     if (routes.length && !store.getState().walkthroughId) store.getState().setWalkthrough(routes[0]!.id);
   }, [routes, store]);
   const approximate = approval.assets.filter((asset) => !asset.sha256).length;
+  const uncoveredRooms = useMemo(() => {
+    try {
+      return buildingDocuments(approval.document).flatMap((level) => {
+        const covered = new Set(ceilingSurfaces(level.document).map((surface) => surface.room.id));
+        const levelName = approval.document.levels?.find((item) => item.id === level.id)?.name;
+        return eligibleCeilingRooms(level.document).filter((room) => !covered.has(room.id))
+          .map((room) => {
+            const roomName = level.document.labels.find((label) => insideRoom(label, room.boundary))?.text ?? 'estancia sin nombre';
+            return levelName && approval.document.levels!.length > 1 ? `${levelName}: ${roomName}` : roomName;
+          });
+      });
+    } catch { return []; }
+  }, [approval.document]);
   const visitQuery = new URLSearchParams({ aprobado: approval.id });
   if (scope.zoneId) visitQuery.set('zona', scope.zoneId);
   const visitHref = `/projects/${encodeURIComponent(scope.projectId)}/editor?${visitQuery}`;
@@ -42,8 +57,9 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: 
       <a className="rounded border px-3 py-2" href={visitHref}>Enlace de esta versión</a>
       <button type="button" className="rounded border px-3 py-2" onClick={onBack}>Editar diseño</button>
     </header>
-    {(approximate > 0 || !routes.length) && <p className="border-b bg-amber-50 px-4 py-2 text-xs text-amber-950">
+    {(approximate > 0 || uncoveredRooms.length > 0 || !routes.length) && <p className="border-b bg-amber-50 px-4 py-2 text-xs text-amber-950">
       {approximate > 0 && `${approximate} objetos usan una representación aproximada; no se presentan como producto exacto. `}
+      {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); la visita y el vídeo las muestran abiertas. `}
       {!routes.length && 'Para crear un MP4, dibuja un recorrido en el borrador y aprueba una nueva revisión.'}
     </p>}
     {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido del vídeo
