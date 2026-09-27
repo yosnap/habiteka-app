@@ -18,6 +18,7 @@ import { LightStripBulkFields } from './light-strip-fields';
 import { removeLightStrips, updateLightStrips } from '@/lib/editor-document/light-strip-commands';
 import { stripRoomId } from '@/lib/editor-document/light-strip-geometry';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 type LightDraft = Omit<Luminaire, 'id'>;
 
 function LightFields({ light, update }: { light: LightDraft; update: (patch: Partial<LightDraft>) => boolean | void }) {
@@ -118,6 +119,8 @@ export function CeilingLightingPanel({ store }: { store: EditorStore }) {
             {ceiling.kind === 'suspended' && <NumberField label="Descenso del techo (cm)" value={ceiling.dropMm / 10}
               change={(value) => run((d) => setRoomCeiling(d, ceiling.roomId, { dropMm: ceilingDropMm(value) }))} />}
           </div>
+          <SurfaceMaterialPicker label="Cara superior de la cubierta" value={ceiling.topMaterialId}
+            onChange={(id) => run((d) => setRoomCeiling(d, ceiling.roomId, { topMaterialId: id ?? null }))} />
           {ceiling.kind === 'suspended' && <p>El descenso va en centímetros, entre {MIN_CEILING_DROP_MM / 10} y {MAX_CEILING_DROP_MM / 10} cm.</p>}
           {surface && <p>Altura del techo: {(surface.heightMm / 1000).toFixed(2)} m</p>}
           <h3>Añadir luminaria</h3><div className={styles.buttons}>

@@ -160,6 +160,8 @@ export interface Ceiling {
   kind: 'plain' | 'suspended';
   dropMm: number;
   color: string;
+  /** Material visible desde fuera en la cara superior; el color sigue siendo el acabado interior. */
+  topMaterialId?: string;
 }
 /** Posición XY del centro; caída medida desde la cara inferior del techo. */
 export interface Luminaire extends Point {

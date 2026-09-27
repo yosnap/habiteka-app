@@ -1,3 +1,5 @@
+import { surfaceMaterial } from './surface-materials';
+
 /**
  * Validación estructural sin derivar estancias: evita ciclos con deriveRooms.
  * Devuelve los ids de techos y luminarias para que las tiras y las escenas
@@ -16,7 +18,7 @@ export function assertCeilingFields(
   const ceilingIds = new Set<string>(), lightIds = new Set<string>(), rooms = new Set<string>();
   const oriented = version >= 12;
   for (const item of ceilings) {
-    entity(item, 'id roomId kind dropMm color', ids);
+    entity(item, 'id roomId kind dropMm color topMaterialId', ids);
     if (typeof item.roomId !== 'string' || !item.roomId.startsWith('room:')) fail('Estancia del techo inválida');
     let boundary: unknown;
     try { boundary = JSON.parse(item.roomId.slice(5)); } catch { fail('Estancia del techo inválida'); }
@@ -28,6 +30,9 @@ export function assertCeilingFields(
     if (item.kind === 'plain' && item.dropMm !== 0) fail('Un techo plano no tiene descenso');
     if (item.kind === 'suspended' && (item.dropMm as number) < 80) fail('El falso techo necesita al menos 8 cm de descenso');
     color(item.color);
+    if (item.topMaterialId !== undefined &&
+      (typeof item.topMaterialId !== 'string' || !surfaceMaterial(item.topMaterialId)))
+      fail('Material de la cara superior del techo inválido');
     ceilingIds.add(item.id as string);
   }
   for (const item of lights) {

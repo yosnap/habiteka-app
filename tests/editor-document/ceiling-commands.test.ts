@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { addLuminaire, removeCeiling, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
+import { addLuminaire, removeCeiling, setCeilingTopMaterialForAllRooms, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
 import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, hasCompleteInteriorRoof, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
@@ -42,6 +42,29 @@ describe('contrato de techos y luminarias', () => {
     expect(hasCompleteInteriorRoof(covered)).toBe(true);
     expect(hasCompleteInteriorRoof(setDesignSpaceKind(room(), 'patio'))).toBe(false);
     expect(hasCompleteInteriorRoof(removeCeiling(covered, covered.ceilings![0]!.id))).toBe(false);
+  });
+  it('guarda un material exterior del techo separado del acabado interior', () => {
+    const original = ceiling(), roomId = original.ceilings![0]!.roomId;
+    const textured = setRoomCeiling(original, roomId, { topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(textured.ceilings![0]).toMatchObject({ color: '#f4f1e9', topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(ceilingDesignContext(textured).ceilings[0]?.topMaterialId).toBe('polyhaven:brushed_concrete_03');
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(textured)))).toEqual(textured);
+    expect(setRoomCeiling(textured, roomId, { color: '#eeeeee' }).ceilings![0]!.topMaterialId)
+      .toBe('polyhaven:brushed_concrete_03');
+    expect(setRoomCeiling(textured, roomId, { topMaterialId: null }).ceilings![0]!.topMaterialId).toBeUndefined();
+    expect(() => setRoomCeiling(original, roomId, { topMaterialId: 'material-inexistente' }))
+      .toThrow('Material de la cara superior');
+    expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
+  });
+  it('aplica material superior en bloque sin cambiar el falso techo ni las luces', () => {
+    const base = ceiling(), first = base.ceilings![0]!;
+    const suspended = setRoomCeiling(base, first.roomId, { kind: 'suspended', dropMm: 180, color: '#ccddee' });
+    const original = addLuminaire(suspended, first.id, 'flush');
+    const textured = setCeilingTopMaterialForAllRooms(original, 'polyhaven:brushed_concrete_03');
+    expect(textured.ceilings![0]).toEqual({ ...original.ceilings![0], topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(textured.luminaires).toEqual(original.luminaires);
+    expect(setCeilingTopMaterialForAllRooms(textured, null).ceilings).toEqual(original.ceilings);
+    expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
   });
   it('adapta la altura de lámpara al techo y rechaza descensos incompatibles o focos sin cámara', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id, roomId = doc.ceilings![0]!.roomId;

@@ -5,6 +5,7 @@ import { ceilingSurfaces, resolvedLuminaires, luminaireDepthMm, luminaireRadiusM
 import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
+import { SurfaceMaterial } from './surface-material';
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
@@ -15,7 +16,8 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
   const shapes = useMemo(() => ceilingShapes(surface.room.boundary, voids), [surface.room.boundary, voids]);
   if (view === 'hidden') return null;
   const transparent = view === 'transparent';
-  return shapes.map((shape, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
+  return shapes.map((shape, index) => <group key={index}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
     castShadow={!transparent} receiveShadow={!transparent}
     raycast={transparent || !onSelect ? () => undefined : undefined}
     userData={{ sourceEntityId: surface.ceiling.id }}
@@ -26,7 +28,15 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
     <meshStandardMaterial color={selected ? '#43b6a0' : surface.ceiling.color} side={2} roughness={.85}
       emissive={surface.ceiling.color} emissiveIntensity={.08}
       transparent={transparent} opacity={transparent ? .16 : 1} depthWrite={!transparent} />
-  </mesh>);
+    </mesh>
+    {surface.ceiling.topMaterialId && !transparent && <mesh rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, surface.heightMm / 1000 + (surface.ceiling.kind === 'suspended' ? .06 : .02), 0]}
+      receiveShadow raycast={() => undefined}>
+      <shapeGeometry args={[shape]} />
+      <SurfaceMaterial id={surface.ceiling.topMaterialId} color={selected ? '#43b6a0' : '#ffffff'}
+        width={1} height={1} tileSizeMm={8000} />
+    </mesh>}
+  </group>);
 }
 
 function LuminaireMesh({ resolved, view, selected, emitLight, castShadow, onSelect }: {
