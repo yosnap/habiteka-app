@@ -15,7 +15,7 @@ import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { sanitizeImageBuffer } from '@/server/ai/image/input-sanitizer';
 import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
 import { renderViewSchema, type RenderCapture, type RenderView } from '@/lib/editor-document/render-view';
-import { selectedViewImagePrompt, SELECTED_VIEW_IMAGE_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-image-prompt';
+import { selectedViewImagePrompt, projectVehicleCount, SELECTED_VIEW_IMAGE_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-image-prompt';
 import { persistDeliverables } from '@/server/agent/persistence/deliverable-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
@@ -543,8 +543,11 @@ async function generateConceptRenderFromEditorImpl(
   };
   const result = await image.generate(request);
   const candidate = await readRenderReference(result);
-  const vision = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision');
-  await assertRenderFidelity(vision, reference, candidate, view, zoneMask);
+  const vision = await getChatVisionAdapter(
+    { organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision',
+    { preferredProvider: 'openrouter' },
+  );
+  await assertRenderFidelity(vision, reference, candidate, view, zoneMask, projectVehicleCount(document));
   await persistDeliverables(projectId, [{
     id,
     type: 'render3d',
