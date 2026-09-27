@@ -23,14 +23,15 @@ export interface CameraRequest {
  * de orbitar la casa desde fuera.
  */
 const INTERIOR_ORBIT_M = .6;
+export const EXTERIOR_ELEVATION = .25;
 
 const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, number]> = {
   top: [0, 1, .0001],
   isometric: [1, 1, 1],
-  front: [0, .65, 1],
-  back: [0, .65, -1],
-  left: [-1, .65, 0],
-  right: [1, .65, 0],
+  front: [0, EXTERIOR_ELEVATION, 1],
+  back: [0, EXTERIOR_ELEVATION, -1],
+  left: [-1, EXTERIOR_ELEVATION, 0],
+  right: [1, EXTERIOR_ELEVATION, 0],
   drone: [.35, 1.35, 1],
 };
 

@@ -12,7 +12,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
-import { SceneCamera, type CameraRequest } from './scene-camera';
+import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
 import { scenePresetFocus } from './scene-preset-focus';
 import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -259,7 +259,8 @@ function SceneView({
           };
           const view = options?.view && options.view !== 'current' ? options.view : null;
           const finishedDirection: Record<string, [number, number, number]> = {
-            front: [0, .25, 1], back: [0, .25, -1], left: [-1, .25, 0], right: [1, .25, 0],
+            front: [0, EXTERIOR_ELEVATION, 1], back: [0, EXTERIOR_ELEVATION, -1],
+            left: [-1, EXTERIOR_ELEVATION, 0], right: [1, EXTERIOR_ELEVATION, 0],
           };
           setRequest({ sequence, action: view ?? 'fit',
             focus: view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined,
