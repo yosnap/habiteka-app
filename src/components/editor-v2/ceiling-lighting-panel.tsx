@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Luminaire } from '@/lib/editor-document/schema';
-import { addLuminaire, applyLightingProposal, ceilingDropMm, luminaireKindPatch, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, removeCeiling, removeLuminaire, removeLuminaires, setRoomCeiling, updateLuminaire, updateLuminaires } from '@/lib/editor-document/ceiling-commands';
-import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
+import { addLuminaire, applyLightingProposal, ceilingDropMm, luminaireKindPatch, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, removeCeiling, removeLuminaire, removeLuminaires, roofThicknessMm, setRoomCeiling, updateLuminaire, updateLuminaires } from '@/lib/editor-document/ceiling-commands';
+import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, insideRoom, DEFAULT_ROOF_THICKNESS_MM } from '@/lib/editor-document/ceiling-geometry';
 import { proposeLighting } from '@/lib/editor-document/lighting-proposal';
 import { MeterField, NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
@@ -121,6 +121,8 @@ export function CeilingLightingPanel({ store }: { store: EditorStore }) {
           </div>
           <SurfaceMaterialPicker label="Cara superior de la cubierta" value={ceiling.topMaterialId}
             onChange={(id) => run((d) => setRoomCeiling(d, ceiling.roomId, { topMaterialId: id ?? null }))} />
+          <NumberField label="Espesor de cubierta (cm)" value={(ceiling.roofThicknessMm ?? DEFAULT_ROOF_THICKNESS_MM) / 10}
+            change={(value) => run((d) => setRoomCeiling(d, ceiling.roomId, { roofThicknessMm: roofThicknessMm(value) }))} />
           {ceiling.kind === 'suspended' && <p>El descenso va en centímetros, entre {MIN_CEILING_DROP_MM / 10} y {MAX_CEILING_DROP_MM / 10} cm.</p>}
           {surface && <p>Altura del techo: {(surface.heightMm / 1000).toFixed(2)} m</p>}
           <h3>Añadir luminaria</h3><div className={styles.buttons}>

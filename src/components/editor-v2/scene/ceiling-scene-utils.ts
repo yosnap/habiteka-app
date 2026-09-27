@@ -2,10 +2,16 @@ import { Color, Path, Shape, SpotLight } from 'three';
 import type { Pair, Polygon } from 'polygon-clipping';
 import { robustDifference } from '@/canvas/editor-v2/scene/floor-meshes';
 import type { Luminaire, Point } from '@/lib/editor-document/schema';
-import { spotAimVector, SPOT_CONE_DEG } from '@/lib/editor-document/ceiling-geometry';
+import { spotAimVector, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM, type CeilingSurface } from '@/lib/editor-document/ceiling-geometry';
 
 export type CeilingView = 'hidden' | 'transparent' | 'solid';
 export const MAX_LUMINAIRE_LIGHTS = 12;
+/** El falso techo baja hacia el interior; la losa exterior arranca a la altura de los muros. */
+export function roofSlabPlacement(surface: Pick<CeilingSurface, 'heightMm' | 'ceiling'>) {
+  const bottomM = (surface.heightMm + surface.ceiling.dropMm) / 1000;
+  const thicknessM = (surface.ceiling.roofThicknessMm ?? DEFAULT_ROOF_THICKNESS_MM) / 1000;
+  return { bottomM, thicknessM, topM: bottomM + thicknessM };
+}
 
 export function captureCeilingView(view: string | null | undefined, custom?: {
   cutaway: boolean; cameraHeightM: number; highestCeilingM: number | null;

@@ -18,7 +18,7 @@ export function assertCeilingFields(
   const ceilingIds = new Set<string>(), lightIds = new Set<string>(), rooms = new Set<string>();
   const oriented = version >= 12;
   for (const item of ceilings) {
-    entity(item, 'id roomId kind dropMm color topMaterialId', ids);
+    entity(item, 'id roomId kind dropMm color topMaterialId roofThicknessMm', ids);
     if (typeof item.roomId !== 'string' || !item.roomId.startsWith('room:')) fail('Estancia del techo inválida');
     let boundary: unknown;
     try { boundary = JSON.parse(item.roomId.slice(5)); } catch { fail('Estancia del techo inválida'); }
@@ -33,6 +33,7 @@ export function assertCeilingFields(
     if (item.topMaterialId !== undefined &&
       (typeof item.topMaterialId !== 'string' || !surfaceMaterial(item.topMaterialId)))
       fail('Material de la cara superior del techo inválido');
+    if (item.roofThicknessMm !== undefined) number(item.roofThicknessMm, 80, 400, 'Espesor de cubierta');
     ceilingIds.add(item.id as string);
   }
   for (const item of lights) {

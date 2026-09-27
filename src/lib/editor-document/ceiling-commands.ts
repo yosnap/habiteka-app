@@ -54,7 +54,11 @@ function ceilingDropIssue(doc: EditorDocument, ceiling: Ceiling): string {
   return `Con ${Math.round(ceiling.dropMm / 10)} cm de descenso quedan ${metres(Math.max(0, free))} libres; el mínimo es ${metres(MIN_FREE_HEIGHT_MM)}.`;
 }
 
-type CeilingPatch = Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color'>> & { topMaterialId?: string | null };
+type CeilingPatch = Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color' | 'roofThicknessMm'>> & { topMaterialId?: string | null };
+
+export function roofThicknessMm(valueCm: number): number {
+  return Math.round(Math.min(400, Math.max(80, valueCm * 10)));
+}
 
 export function setRoomCeiling(source: EditorDocument, roomId: string, patch: CeilingPatch = {}): EditorDocument {
   if (!eligibleCeilingRooms(source).some((room) => room.id === roomId)) throw new Error('Elige una habitación interior cerrada');
@@ -62,9 +66,11 @@ export function setRoomCeiling(source: EditorDocument, roomId: string, patch: Ce
   const existing = doc.ceilings!.find((ceiling) => ceiling.roomId === roomId);
   const kind = patch.kind ?? existing?.kind ?? 'plain';
   const topMaterialId = patch.topMaterialId === undefined ? existing?.topMaterialId : patch.topMaterialId ?? undefined;
+  const thickness = patch.roofThicknessMm ?? existing?.roofThicknessMm;
   const ceiling: Ceiling = { id: existing?.id ?? crypto.randomUUID(), roomId, kind,
     color: patch.color ?? existing?.color ?? '#f4f1e9',
     ...(topMaterialId ? { topMaterialId } : {}),
+    ...(thickness !== undefined ? { roofThicknessMm: thickness } : {}),
     dropMm: kind === 'plain' ? 0 : patch.dropMm ?? (existing?.kind === 'suspended' ? existing.dropMm : 150) };
   if (ceiling.dropMm > MAX_CEILING_DROP_MM)
     throw new Error(`El descenso del falso techo se indica en centímetros: como mucho ${MAX_CEILING_DROP_MM / 10} cm.`);

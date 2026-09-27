@@ -175,6 +175,8 @@ export interface Ceiling {
   color: string;
   /** Material visible desde fuera en la cara superior; el color sigue siendo el acabado interior. */
   topMaterialId?: string;
+  /** Espesor de la losa exterior, independiente del descenso del falso techo. */
+  roofThicknessMm?: number;
 }
 /** Posición XY del centro; caída medida desde la cara inferior del techo. */
 export interface Luminaire extends Point {

@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { ceilingSurfaces, resolvedLuminaires, luminaireDepthMm, luminaireRadiusMm } from '@/lib/editor-document/ceiling-geometry';
-import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
+import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, roofSlabPlacement, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
 import { SurfaceMaterial } from './surface-material';
@@ -16,9 +16,10 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
   const shapes = useMemo(() => ceilingShapes(surface.room.boundary, voids), [surface.room.boundary, voids]);
   if (view === 'hidden') return null;
   const transparent = view === 'transparent';
+  const roof = roofSlabPlacement(surface);
   return shapes.map((shape, index) => <group key={index}>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
-    castShadow={!transparent} receiveShadow={!transparent}
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000 - (surface.ceiling.kind === 'plain' && !transparent ? .004 : 0), 0]}
+    receiveShadow={!transparent}
     raycast={transparent || !onSelect ? () => undefined : undefined}
     userData={{ sourceEntityId: surface.ceiling.id }}
     onClick={onSelect && !transparent ? (event) => { event.stopPropagation(); onSelect(surface.ceiling.id); } : undefined}>
@@ -29,8 +30,15 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
       emissive={surface.ceiling.color} emissiveIntensity={.08}
       transparent={transparent} opacity={transparent ? .16 : 1} depthWrite={!transparent} />
     </mesh>
+    {!transparent && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, roof.bottomM, 0]}
+      castShadow receiveShadow userData={{ sourceEntityId: surface.ceiling.id }}
+      onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(surface.ceiling.id); } : undefined}>
+      <extrudeGeometry args={[shape, { depth: roof.thicknessM, bevelEnabled: false, steps: 1 }]} />
+      <meshStandardMaterial attach="material-0" color={selected ? '#43b6a0' : '#e5e1d9'} roughness={.88} />
+      <meshStandardMaterial attach="material-1" color={selected ? '#43b6a0' : '#d1cbc1'} roughness={.9} />
+    </mesh>}
     {surface.ceiling.topMaterialId && !transparent && <mesh rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, surface.heightMm / 1000 + (surface.ceiling.kind === 'suspended' ? .06 : .02), 0]}
+      position={[0, roof.topM + .003, 0]}
       receiveShadow raycast={() => undefined}>
       <shapeGeometry args={[shape]} />
       <SurfaceMaterial id={surface.ceiling.topMaterialId} color={selected ? '#43b6a0' : '#ffffff'}

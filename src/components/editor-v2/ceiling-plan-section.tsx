@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import type { Ceiling, EditorDocument, LightZone } from '@/lib/editor-document/schema';
-import { applyLightingProposals, ceilingDropMm, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, setCeilingTopMaterialForAllRooms, setCeilingsForAllRooms } from '@/lib/editor-document/ceiling-commands';
+import { applyLightingProposals, ceilingDropMm, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, roofThicknessMm, setCeilingTopMaterialForAllRooms, setCeilingsForAllRooms } from '@/lib/editor-document/ceiling-commands';
 import { proposeLightingForPlan, type LightingProposal } from '@/lib/editor-document/lighting-proposal';
 import { NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
@@ -31,6 +31,7 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
     return materials.size === 1 ? [...materials][0] ?? null : null;
   });
   const [dropMm, setDropMm] = useState(150);
+  const [thicknessMm, setThicknessMm] = useState(160);
   const [style, setStyle] = useState('moderno');
   const [proposals, setProposals] = useState<LightingProposal[] | null>(null);
   // Estancias con luces que la última propuesta se saltó, y si el usuario pidió incluirlas.
@@ -45,7 +46,7 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
   const applyCeilings = () => {
     let summary = '';
     const ok = run((document) => {
-      const result = setCeilingsForAllRooms(document, { kind, color, topMaterialId,
+      const result = setCeilingsForAllRooms(document, { kind, color, topMaterialId, roofThicknessMm: thicknessMm,
         ...(kind === 'suspended' ? { dropMm } : {}) });
       summary = `Techo aplicado en ${result.applied} estancias.${result.skipped ? ` ${result.skipped} se saltaron. ${result.skippedReason ?? ''}` : ''}`.trim();
       return result.document;
@@ -65,6 +66,8 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
     </div>
     <SurfaceMaterialPicker label="Cara superior de todas las cubiertas" value={topMaterialId ?? undefined}
       onChange={(id) => setTopMaterialId(id ?? null)} />
+    <NumberField label="Espesor de las cubiertas (cm)" value={thicknessMm / 10}
+      change={(value) => setThicknessMm(roofThicknessMm(value))} />
     <button type="button" disabled={!ceilings} onClick={() => {
       if (run((document) => setCeilingTopMaterialForAllRooms(document, topMaterialId)))
         onNotice(`Material superior ${topMaterialId ? 'aplicado' : 'quitado'} en ${ceilings} techos. Se han conservado el tipo, el acabado interior y las luces.`);

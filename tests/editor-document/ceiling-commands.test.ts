@@ -12,6 +12,7 @@ import { ceilingDesignContext } from '@/lib/editor-document/ceiling-design-conte
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { setWallConstruction } from '@/lib/editor-document/construction-commands';
 import { applyCommand } from '@/lib/editor-document/commands';
+import { roofSlabPlacement } from '@/components/editor-v2/scene/ceiling-scene-utils';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }], true);
 const ceiling = () => { const doc = room(); return setRoomCeiling(doc, deriveRooms(doc)[0]!.id); };
@@ -55,6 +56,19 @@ describe('contrato de techos y luminarias', () => {
     expect(() => setRoomCeiling(original, roomId, { topMaterialId: 'material-inexistente' }))
       .toThrow('Material de la cara superior');
     expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
+  });
+  it('mantiene la cubierta sobre los muros cuando baja un falso techo y conserva su espesor', () => {
+    const base = ceiling(), roomId = base.ceilings![0]!.roomId;
+    const originalRoof = roofSlabPlacement(ceilingSurfaces(base)[0]!);
+    const lowered = setRoomCeiling(base, roomId, { kind: 'suspended', dropMm: 180, roofThicknessMm: 220 });
+    const changedRoof = roofSlabPlacement(ceilingSurfaces(lowered)[0]!);
+    expect(changedRoof.bottomM).toBe(originalRoof.bottomM);
+    expect(changedRoof.topM).toBeCloseTo(originalRoof.bottomM + .22);
+    expect(ceilingSurfaces(lowered)[0]!.heightMm).toBe(ceilingSurfaces(base)[0]!.heightMm - 180);
+    expect(ceilingDesignContext(lowered).ceilings[0]?.roofTopM).toBeCloseTo(changedRoof.topM);
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(lowered)))).toEqual(lowered);
+    expect(() => setRoomCeiling(base, roomId, { roofThicknessMm: 79 })).toThrow('Espesor de cubierta');
+    expect(() => setRoomCeiling(base, roomId, { roofThicknessMm: 401 })).toThrow('Espesor de cubierta');
   });
   it('aplica material superior en bloque sin cambiar el falso techo ni las luces', () => {
     const base = ceiling(), first = base.ceilings![0]!;

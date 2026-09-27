@@ -10,6 +10,7 @@ import { activeSceneForRoom, effectiveLuminaire } from './lighting-scene';
 
 /** Altura libre mínima bajo techo y luminarias; un solo sitio para geometría, comandos y mensajes. */
 export const MIN_FREE_HEIGHT_MM = 2100;
+export const DEFAULT_ROOF_THICKNESS_MM = 160;
 
 export interface CeilingSurface { ceiling: Ceiling; room: DerivedRoom; heightMm: number; }
 export interface ResolvedLuminaire {
