@@ -6,6 +6,7 @@ import { floorFinish, floorSlabThicknessMm } from '@/lib/editor-document/floor-f
 import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
 import { rampArrival, rampArrivalTarget } from '@/lib/editor-document/ramp-arrival';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 
 // Trigonometry introduces sub-nanometer slivers at shared edges (e.g. cos(π/2)).
 // Give the boolean operation one common 0.00001 mm grid, far below editor precision.
@@ -73,7 +74,7 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
       points: rings[0]!.map(([x, y]) => ({ x, y })),
       holes: rings.slice(1).map((ring) => ring.map(([x, y]) => ({ x, y }))),
       elevation: surfaceElevation - slabHeight, height: slabHeight, color: finish.color, floorFinish: finish,
-      sideColor: finish.undersideColor ?? '#756f66',
+      sideColor: finish.undersideColor ?? (surfaceMaterial(finish.undersideTexture) ? '#ffffff' : '#756f66'),
     }));
   });
 }

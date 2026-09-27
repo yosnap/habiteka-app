@@ -5,6 +5,7 @@ import { Edges } from '@react-three/drei';
 import type { SceneBox, ScenePolygon, SceneRamp } from '@/canvas/editor-v2/scene/types';
 import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
+import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
@@ -93,7 +94,10 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
       : <extrudeGeometry args={[shape, { depth: polygon.height, bevelEnabled: false, steps: 1 }]} />}
     {polygon.floorFinish ? polygon.height > 0 ? <>
       <FloorMaterial finish={polygon.floorFinish} attach="material-0" />
-      <meshStandardMaterial attach="material-1" color={polygon.sideColor ?? '#756f66'} roughness={.85} />
+      {surfaceMaterial(polygon.floorFinish.undersideTexture)
+        ? <SurfaceMaterial attach="material-1" color={selected ? '#43b6a0' : polygon.sideColor ?? '#ffffff'}
+          id={polygon.floorFinish.undersideTexture} width={1} height={1} />
+        : <meshStandardMaterial attach="material-1" color={selected ? '#43b6a0' : polygon.sideColor ?? '#756f66'} roughness={.85} />}
     </> : <FloorMaterial finish={polygon.floorFinish} /> : polygon.topColor || polygon.edgeFinishes ? <>
       {polygon.role === 'wall' || polygon.role === 'junction'
         ? <meshStandardMaterial attach="material-0" color={polygon.color} roughness={.85} />
@@ -105,7 +109,7 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
     {polygon.floorFinish && polygon.height > 0 && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, polygon.elevation - .001, 0]} receiveShadow>
       <shapeGeometry args={[shape]} />
       <FloorMaterial finish={polygon.floorFinish} textureId={polygon.floorFinish.undersideTexture ?? 'none'}
-        color={polygon.floorFinish.undersideColor ?? polygon.sideColor ?? '#756f66'} doubleSide />
+        color={polygon.sideColor ?? '#756f66'} doubleSide />
     </mesh>}
     {polygon.edgeFinishes?.map((finish, index) => {
       const a = polygon.points[index]!, b = polygon.points[(index + 1) % polygon.points.length]!;
