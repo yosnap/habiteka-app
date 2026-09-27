@@ -37,23 +37,16 @@ export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting
 export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
   options.interiorRoomIds.length > 0;
 
-/**
- * Las zonas permitidas solo se pueden garantizar componiendo dos pasadas por
- * vista (base estricta + diseño) con una máscara exacta; en modo estricto no se
- * añade nada y basta una.
- */
+/** Las zonas seleccionadas requieren una máscara tomada desde la misma cámara. */
 export const zoneCompositeActive = (options: RenderDesignOptions): boolean =>
   options.freedom !== 'strict' && options.placement === 'selected' && options.regions.length > 0;
 
-/** Tope de generaciones de un lote: 12 estancias con zonas (dos pasadas cada una). */
+/** Tope de generaciones de un lote. */
 export const MAX_RENDER_PASSES = 24;
 
-/**
- * Generaciones de pago que puede costar el lote: con zonas, dos por imagen. Es
- * un máximo: si la zona no se ve en una vista, esa vista solo paga una pasada.
- */
+/** Una imagen independiente por vista; la máscara se adjunta a esa generación. */
 export const renderPassCount = (options: RenderDesignOptions): number =>
-  renderItemCount(options) * (zoneCompositeActive(options) ? 2 : 1);
+  renderItemCount(options);
 
 /** Cuántas imágenes produce el lote: una por estancia elegida, o una por ángulo. */
 export const renderItemCount = (options: RenderDesignOptions): number =>

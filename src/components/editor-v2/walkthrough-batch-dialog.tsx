@@ -83,11 +83,11 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
     const options = { ...defaultRenderDesignOptions(), lighting };
     try {
       const outcome = await runRenderBatch({ items: frames, initialResults: results, shouldStop: () => stop.current,
-        render: async (frame, index, referenceDesignId) => {
+        render: async (frame, index) => {
           if (store.getState().readOnly || snapshot.current !== fingerprint()) throw new Error('El plano cambió. Conservamos las imágenes terminadas en Diseños; prepara de nuevo las pendientes.');
           setStatus(`Generando ${index + 1} de ${frames.length}…`);
           const result = await render({ estilo, objetivo: '', promptLibre: instructions, options,
-            capture: frame.capture, batchId: batchId.current, qualityAck, ...(referenceDesignId ? { referenceDesignId } : {}) });
+            capture: frame.capture, batchId: batchId.current, qualityAck });
           // Una asociación fallida nunca debe hacer repetir una generación que ya terminó.
           if (result.id && !store.getState().readOnly && snapshot.current === fingerprint()) {
             try {

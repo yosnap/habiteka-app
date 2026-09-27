@@ -71,7 +71,6 @@ interface EditorGenerateDialogProps {
     capture?: RenderCapture;
     options?: RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck: boolean;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
@@ -254,7 +253,7 @@ export function EditorGenerateDialog({
     const state = await runRenderBatch({
       items: renderableCaptures,
       initialResults: results,
-      render: (capture, _index, referenceDesignId) =>
+      render: (capture) =>
         onRender({
           estilo,
           objetivo: objetivo.trim(),
@@ -263,7 +262,6 @@ export function EditorGenerateDialog({
           options,
           batchId: stableBatchId,
           qualityAck: quality.ack,
-          ...(referenceDesignId ? { referenceDesignId } : {}),
         }),
       shouldStop: () => stopRequested.current,
       onResult: (_result, _index, nextResults) =>
@@ -488,13 +486,13 @@ export function EditorGenerateDialog({
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
                     {options.placement === 'selected'
-                      ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', 2 pasadas por vista para no tocar nada fuera' : ''}`
+                      ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
                       : 'toda la planta'}{' '}
                     {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
                   {intent === 'image' && cachedEstimate && itemCount > 0 && (
                     <RenderCostEstimate key={renderPassCount(options)} passes={renderPassCount(options)}
-                      zoneComposite={zoneCompositeActive(options)} estimate={cachedEstimate} />
+                      estimate={cachedEstimate} />
                   )}
                   <p className="text-ink-soft mt-2">{intent === 'image' ? 'Revisa las vistas de referencia antes de generar las imágenes.' : 'Los cambios no se aplican hasta que pulses Aplicar al plano. No se modifica la geometría.'}</p>
                 </div>

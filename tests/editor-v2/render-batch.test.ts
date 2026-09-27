@@ -34,18 +34,18 @@ describe('runRenderBatch', () => {
     expect(state.results.map((result) => result?.value)).toEqual(['ok', 'ok', 'ok']);
   });
 
-  it('conserva siempre la referencia del primer éxito', async () => {
-    const refs: Array<string | undefined> = [];
+  it('genera cada vista sin usar otra imagen del lote como referencia', async () => {
+    const indices: number[] = [];
     const state = await runRenderBatch({
       items: [0, 1, 2],
-      render: async (item, _index, reference) => {
-        refs.push(reference);
+      render: async (item, index) => {
+        indices.push(index);
         return { id: `r${item}`, value: 'ok' };
       },
       shouldStop: () => false,
     });
-    expect(refs).toEqual([undefined, 'r0', 'r0']);
-    expect(state.referenceDesignId).toBe('r0');
+    expect(indices).toEqual([0, 1, 2]);
+    expect(state.results.map((result) => result?.id)).toEqual(['r0', 'r1', 'r2']);
   });
 
   it('devuelve el error conservando los éxitos anteriores', async () => {

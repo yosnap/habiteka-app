@@ -12,7 +12,7 @@ describe('máscara de zonas permitidas', () => {
       width: 6000 + 2 * ZONE_MASK_MARGIN_MM, height: 3000 + 2 * ZONE_MASK_MARGIN_MM });
   });
   it('sin zonas no hay máscara', () => expect(zoneMapLayout([])).toBeNull());
-  it('solo compone dos pasadas cuando se diseña dentro de zonas marcadas', () => {
+  it('requiere máscara cuando se diseña dentro de zonas marcadas', () => {
     const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
     const base = { ...defaultRenderDesignOptions(), placement: 'selected' as const, regions: [region] };
     expect(zoneCompositeActive({ ...base, freedom: 'free' })).toBe(true);
@@ -22,11 +22,11 @@ describe('máscara de zonas permitidas', () => {
 });
 
 describe('generaciones que cuesta un lote', () => {
-  it('con zonas cuenta dos pasadas por vista; sin zonas, una', async () => {
+  it('cuenta una imagen independiente por vista también con zonas', async () => {
     const { renderPassCount } = await import('../../src/lib/editor-document/render-design-options');
     const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
     const views = ['front', 'right', 'drone'] as ('front' | 'right' | 'drone')[];
     expect(renderPassCount({ ...defaultRenderDesignOptions(), views })).toBe(3);
-    expect(renderPassCount({ ...defaultRenderDesignOptions(), views, freedom: 'free', placement: 'selected', regions: [region] })).toBe(6);
+    expect(renderPassCount({ ...defaultRenderDesignOptions(), views, freedom: 'free', placement: 'selected', regions: [region] })).toBe(3);
   });
 });

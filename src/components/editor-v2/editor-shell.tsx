@@ -130,7 +130,6 @@ export interface EditorShellProps {
     capture?: RenderCapture;
     options?: RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck: boolean;
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
@@ -865,8 +864,7 @@ export function EditorShell({
             const capture = await awaitScene();
             const snapshot = documentGeometry();
             const captures: RenderCapture[] = [];
-            // Con zonas, cada captura lleva su máscara: el servidor compone dos
-            // pasadas con ella y así nada cambia fuera de la zona.
+            // La máscara corresponde exactamente a esta cámara y permite auditar las zonas.
             const zoneMask = zoneCompositeActive(options)
               ? { maskRegions: options.regions.map((region) => region.polygon) } : {};
             // Vistas interiores: una captura por estancia con su cámara a altura

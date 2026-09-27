@@ -134,7 +134,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           {options.placement === 'selected' && (
             <div className="mt-2">
               <p className="text-muted-foreground mb-2 text-xs">
-                Fuera de las zonas marcadas no se añadirán objetos; los accesos se mantienen libres.
+                La generación usa las zonas marcadas como límite. Cada imagen se verifica contra el 3D antes de guardarse.
               </p>
               <RenderRegionPicker
                 document={document}

@@ -183,7 +183,6 @@ export function EditorSession({
     capture?: import('@/lib/editor-document/render-view').RenderCapture;
     options?: import('@/lib/editor-document/render-design-options').RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck: boolean;
   }) => {
     const geometry = JSON.stringify({ ...store.getState().document, revision: 0 });
@@ -206,7 +205,6 @@ export function EditorSession({
         {
           options: input.options,
           batchId: input.batchId,
-          referenceDesignId: input.referenceDesignId,
           qualityAck: input.qualityAck,
         },
       ),

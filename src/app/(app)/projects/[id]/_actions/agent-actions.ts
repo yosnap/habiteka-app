@@ -15,7 +15,7 @@ import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { sanitizeImageBuffer } from '@/server/ai/image/input-sanitizer';
 import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
 import { renderViewSchema, type RenderCapture, type RenderView } from '@/lib/editor-document/render-view';
-import { selectedViewPrompt, SELECTED_VIEW_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-prompt';
+import { selectedViewImagePrompt, SELECTED_VIEW_IMAGE_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-image-prompt';
 import { persistDeliverables } from '@/server/agent/persistence/deliverable-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
 import { persistSourceImage } from '@/server/agent/persistence/source-image-repo';
@@ -42,14 +42,14 @@ import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { rasterizeEditorDesignReferences } from '@/server/agent/editor-v2/rasterize-editor-references';
 import { proposeNativeDesign } from '@/server/agent/editor-v2/native-design-proposal';
-import { conceptRenderPrompt } from '@/server/agent/editor-v2/concept-render-prompt';
 import { isValidEstilo, isValidEntregable } from '@/lib/design-options';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { buildEditorRenderContract } from '@/lib/editor-document/render-contract';
 import { isDesignSpaceKind, type DesignSpaceKind } from '@/lib/design-space-kind';
 import type { NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
-import { MAX_RENDER_PASSES, renderItemCount, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
-import { generateZoneCompositeRender } from '@/server/agent/editor-v2/zone-composite-render';
+import { MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
+import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { runAction, fail } from '@/server/errors/run-action';
@@ -73,7 +73,6 @@ const NATIVE_RENDER_DATA_URL = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/;
 const conceptRenderSettingsSchema = z.object({
   options: renderDesignOptionsSchema.optional(),
   batchId: z.string().uuid().optional(),
-  referenceDesignId: z.string().min(1).max(200).optional(),
   /** Confirmación expresa del usuario cuando la puerta de calidad pide confirmar. */
   qualityAck: z.boolean().optional(),
 }).strict();
@@ -451,7 +450,6 @@ export async function generateConceptRenderFromEditor(
   settings?: {
     options?: RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck?: boolean;
   },
 ) {
@@ -480,7 +478,6 @@ async function generateConceptRenderFromEditorImpl(
   settings?: {
     options?: RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck?: boolean;
   },
 ): Promise<{ id: string; assetUrl: string; generation?: import('@/lib/contracts').ImageResult['generation'] }> {
@@ -515,80 +512,44 @@ async function generateConceptRenderFromEditorImpl(
     'render_concepto',
   );
   const options = renderDesignOptionsSchema.parse(parsedSettings.options ?? {});
-  if (renderItemCount(options) > 1 && !capture)
-    fail('Las vistas múltiples requieren una captura por vista.');
-  if (view?.lighting && view.lighting !== options.lighting)
+  if (!capture || !view)
+    fail('Para generar un diseño fiel prepara primero la captura de cada vista del 3D.');
+  if (view.lighting && view.lighting !== options.lighting)
     fail('La iluminación de las opciones no coincide con la captura de la vista.');
-  let reference: Awaited<ReturnType<typeof sanitizeImageBuffer>> | undefined;
-  if (capture) {
-    if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) fail('La captura excede el tamaño permitido.');
-    const match = NATIVE_RENDER_DATA_URL.exec(capture.dataUrl);
-    if (!match?.[1]) fail('La captura de referencia no tiene formato PNG válido.');
-    reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
-  }
-  // Zonas permitidas: sin la máscara de la misma cámara no se pueden garantizar.
-  let zoneMask: Buffer | undefined;
-  // Sin captura no hay máscara: las zonas no se podrían garantizar y se pagaría otra cosa.
-  if (zoneCompositeActive(options) && !capture) fail('Las zonas permitidas necesitan las vistas de referencia. Prepáralas antes de generar.');
-  if (zoneCompositeActive(options) && capture) {
+  if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) fail('La captura excede el tamaño permitido.');
+  const match = NATIVE_RENDER_DATA_URL.exec(capture.dataUrl);
+  if (!match?.[1]) fail('La captura de referencia no tiene formato PNG válido.');
+  const reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
+  let zoneMask: Awaited<ReturnType<typeof sanitizeImageBuffer>> | undefined;
+  if (zoneCompositeActive(options)) {
     const maskMatch = typeof capture.maskDataUrl === 'string' && capture.maskDataUrl.length <= 14_000_000
       ? NATIVE_RENDER_DATA_URL.exec(capture.maskDataUrl) : null;
     if (!maskMatch?.[1]) fail('Falta la máscara de las zonas permitidas. Vuelve a preparar las vistas.');
-    zoneMask = Buffer.from((await sanitizeImageBuffer(Buffer.from(maskMatch[1], 'base64'))).base64, 'base64');
-  }
-  let referenceDesign: { base64: string; mimeType: string } | undefined;
-  if (parsedSettings.referenceDesignId) {
-    const deliverable = (await withOrg(ctx).deliverables.list(projectId)).find(
-      (item) => item.id === parsedSettings.referenceDesignId && item.zoneId === zid && item.type === 'RENDER_3D',
-    );
-    const payload = deliverable?.payload as { type?: string; assetKey?: unknown; assetUrl?: unknown } | undefined;
-    if (!deliverable || payload?.type !== 'render3d') {
-      fail('El diseño de referencia no pertenece al proyecto, organización o zona.');
-    }
-    const sourceImage = await readRenderReference(payload);
-    referenceDesign = { base64: sourceImage.base64, mimeType: sourceImage.mimeType };
+    zoneMask = await sanitizeImageBuffer(Buffer.from(maskMatch[1], 'base64'));
+    if (await zoneMaskCoverage(Buffer.from(zoneMask.base64, 'base64')) < ZONE_EMPTY_COVERAGE)
+      fail('La zona permitida no se ve en esta cámara. Cambia de ángulo o marca otra zona antes de generar.');
   }
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
-  const prompt = view
-    ? selectedViewPrompt(document, view, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), options)
-    : conceptRenderPrompt(document, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500));
-  const references = [
-    ...(reference ? [{ base64: reference.base64, mimeType: reference.mimeType }] : []),
-    ...(referenceDesign ? [{ base64: referenceDesign.base64, mimeType: referenceDesign.mimeType }] : []),
-  ];
-  const referenceStyleNote = referenceDesign
-    ? '\n\nLa segunda imagen adjunta es solo una referencia de estilo y acabado. No la uses para inferir, sustituir ni modificar geometría, cámara, proporciones o distribución del proyecto.'
-    : '';
+  const imagePrompt = selectedViewImagePrompt(
+    document, view, estilo, options, String(objetivo), String(promptLibre), Boolean(zoneMask),
+  );
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: parsedSettings.batchId }, 'render3d');
   const request = {
-    prompt: prompt + referenceStyleNote,
-    ...(view ? { compactPrompt: selectedViewPrompt(document, view, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), options, true) + referenceStyleNote } : {}),
+    prompt: imagePrompt,
+    compactPrompt: imagePrompt,
     // Sin ratio forzado: KIE usa auto y toma la referencia, no estira a 16:9.
-    ...(references.length ? { referenceImages: references } : {}),
+    referenceImages: [{ base64: reference.base64, mimeType: reference.mimeType },
+      ...(zoneMask ? [{ base64: zoneMask.base64, mimeType: zoneMask.mimeType }] : [])],
   };
-  let zoneComposite: { mode: string; coverage: number } | undefined;
-  let result: { assetUrl: string; assetKey?: string; generation?: import('@/lib/contracts').ImageResult['generation'] };
-  if (zoneMask && view) {
-    // Misma semilla en las dos pasadas para acercar los acabados a ambos lados del
-    // borde; solo la usan los proveedores que la admiten, el borde difuminado hace el resto.
-    const seed = Math.floor(Math.random() * 2_147_483_647);
-    const baseOptions: RenderDesignOptions = { ...options, freedom: 'strict', additions: [], placement: 'all', regions: [] };
-    const basePrompt = (compact: boolean) => selectedViewPrompt(document, view, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), baseOptions, compact) + referenceStyleNote;
-    const composed = await generateZoneCompositeRender({
-      image, mask: zoneMask,
-      base: { ...request, prompt: basePrompt(false), compactPrompt: basePrompt(true), seed },
-      design: { ...request, seed },
-    });
-    zoneComposite = composed.zoneComposite;
-    result = composed;
-  } else {
-    result = await image.generate(request);
-  }
+  const result = await image.generate(request);
+  const candidate = await readRenderReference(result);
+  const vision = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision');
+  await assertRenderFidelity(vision, reference, candidate, view, zoneMask);
   await persistDeliverables(projectId, [{
     id,
     type: 'render3d',
     payload: { type: 'render3d', assetUrl: result.assetUrl, ...(camera ? { camera } : {}), ...(result.assetKey ? { assetKey: result.assetKey } : {}),
-      generation: { ...result.generation, promptVersion: view ? SELECTED_VIEW_PROMPT_VERSION : 'kie-baseline-v1', documentRevision: document.revision, ...(view ? { view } : {}), options, ...(zoneComposite ? { zoneComposite } : {}), ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}), ...(parsedSettings.referenceDesignId ? { referenceDesignId: parsedSettings.referenceDesignId } : {}) } },
+      generation: { ...result.generation, promptVersion: SELECTED_VIEW_IMAGE_PROMPT_VERSION, documentRevision: document.revision, view, options, ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
     legalSeal: DELIVERABLE_LEGAL_SEAL,
     version: 1,
   }], undefined, zid, { allowEditorV2: true });

@@ -5,12 +5,11 @@ import { Canvas, type RootState } from '@react-three/fiber';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import { Bounds, Edges, Html } from '@react-three/drei';
-import { Vector3, PerspectiveCamera, Plane } from 'three';
+import { Vector3, PerspectiveCamera } from 'three';
 import { cameraPoseSchema } from '@/lib/contracts/walkthrough-keyframe';
 import { commentAnchor } from '@/lib/editor-document/comment-anchor';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import type { EditorDocument } from '@/lib/editor-document/schema';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
@@ -40,8 +39,6 @@ import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIss
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 import { withTimeout } from '@/lib/async-wait';
 import { renderZoneMask } from './zone-mask';
-import { zoneFraming } from './zone-framing';
-import { wallConstruction } from '@/lib/editor-document/construction-properties';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { placeOnHost } from '@/lib/editor-document/object-host-rest';
@@ -65,17 +62,6 @@ type SceneCapture = RenderCapture & { downloadDataUrl?: string };
 type CaptureScene = (options?: Parameters<CaptureRenderView>[0], fullResolution?: boolean) => Promise<SceneCapture>;
 
 /** Ajusta la copia destinada al servidor al mismo techo que valida el saneador. */
-/** Altura de la planta activa para encuadrar una zona: el muro más alto (m). */
-function levelHeightM(document: EditorDocument): number {
-  const heights = document.walls.map((wall) => (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm);
-  return (heights.length ? Math.max(...heights) : 2700) / 1000;
-}
-
-/** Base de la planta activa en la escena (la vista de todas las plantas la desplaza). */
-function levelElevationM(document: EditorDocument): number {
-  return (buildingDocuments(document).find((level) => level.id === document.activeLevelId)?.elevationMm ?? 0) / 1000;
-}
-
 function captureForPersistence(canvas: HTMLCanvasElement): string {
   const largestSide = Math.max(canvas.width, canvas.height);
   if (largestSide <= MAX_PERSISTED_RENDER_SIDE) return canvas.toDataURL('image/png');
@@ -257,10 +243,7 @@ function SceneView({
       try {
       store.getState().select([]);
       if (options?.lighting) flushSync(() => setCaptureLighting(options.lighting!));
-      // Con zonas, un ángulo pedido enseña solo la zona: encuadre y cortes a su medida.
-      const framing = !options?.camera && options?.maskRegions?.length && options.view && options.view !== 'current'
-        ? zoneFraming(options.maskRegions, options.view, levelHeightM(store.getState().document), allLevels ? levelElevationM(store.getState().document) : 0)
-        : null;
+      // Las zonas limitan dónde se puede diseñar; nunca alteran la cámara elegida.
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
         const sequence = ++captureSequence.current;
         await new Promise<void>((resolve, reject) => {
@@ -268,8 +251,7 @@ function SceneView({
           cameraApplied.current = (applied) => {
             if (applied === sequence) { clearTimeout(timeout); cameraApplied.current = null; resolve(); }
           };
-          setRequest({ sequence, action: options?.view && options.view !== 'current' ? options.view : 'fit',
-            ...(framing ? { focus: framing.focus } : {}) });
+          setRequest({ sequence, action: options?.view && options.view !== 'current' ? options.view : 'fit' });
         });
       }
       const currentDocument = store.getState().document;
@@ -304,7 +286,6 @@ function SceneView({
       if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
       // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
       if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
-      if (framing) state.gl.clippingPlanes = framing.planes.map((plane) => new Plane(new Vector3(...plane.normal), plane.constant));
       state.gl.render(state.scene, state.camera);
       const camera = state.camera;
       if (!('fov' in camera) || typeof camera.fov !== 'number') throw new Error('Cámara no compatible.');
