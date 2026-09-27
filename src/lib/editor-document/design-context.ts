@@ -6,6 +6,7 @@ import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
 import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
+import { wallConstruction } from './construction-properties';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -19,6 +20,7 @@ export function editorDesignContext(doc: EditorDocument) {
     format: 'habiteka-editor-design-context-v1',
     units: 'm',
     spaceKind: doc.designSpaceKind ?? null,
+    designStyle: doc.designStyle ?? null,
     instruction: [
       'Geometría de referencia del plano editado por el usuario.',
       'Las cotas, alturas, elevaciones y dimensiones son restricciones físicas no negociables.',
@@ -58,6 +60,7 @@ export function editorDesignContext(doc: EditorDocument) {
       });
       return {
         id: level.id,
+        designStyle: source.designStyle ?? null,
         elevationM: meters(level.elevationMm),
         rooms: rooms.map((room) => ({
           id: room.id,
@@ -69,6 +72,7 @@ export function editorDesignContext(doc: EditorDocument) {
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);
+          const materials = wallConstruction(wall).materials;
           return {
             id: wall.id,
             name: wall.name ?? null,
@@ -77,6 +81,10 @@ export function editorDesignContext(doc: EditorDocument) {
             thicknessM: meters(wall.thicknessMm),
             heightM: meters(wall.heightMm ?? 2700),
             baseElevationM: meters(wall.baseElevationMm ?? 0),
+            finishes: {
+              left: { materialId: materials.left, color: wall.colors?.left ?? null },
+              right: { materialId: materials.right, color: wall.colors?.right ?? null },
+            },
             pathM: path.samples().map((point) => ({ x: meters(point.x), y: meters(point.y) })),
           };
         }),
