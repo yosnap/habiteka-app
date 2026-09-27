@@ -1,1 +1,2 @@
-Texturas procedurales originales de Habiteka, generadas por scripts/generate-outdoor-materials.ts. Sin assets de terceros.
+Las texturas outdoor originales de Habiteka se generan con scripts/generate-outdoor-materials.ts.
+Excepción: grass-lawn-color.jpg, grass-lawn-normal.jpg y grass-lawn-roughness.jpg proceden de Grass 004 de ambientCG (https://ambientcg.com/view?id=Grass004), licencia CC0 1.0.

@@ -31,6 +31,7 @@ import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
 import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
 import { CarpaSidesField } from './carpa-sides-field';
+import { TerrainFields } from './terrain-fields';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
@@ -42,6 +43,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
   const column = doc.columns?.find((item) => item.id === id);
+  const terrain = doc.terrainSurfaces?.find((item) => item.id === id);
   // Las estancias no son entidades: su nombre es la etiqueta de texto situada dentro del contorno.
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
   const facadeIds = useMemo(() => new Set(exteriorWallIds(doc)), [doc]);
@@ -110,6 +112,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       <MeterField label="Cota del suelo" valueMm={floorFinish(doc, room.id).elevationMm ?? 0} change={(elevationMm) => apply((d) => setFloorFinish(d, room.id, { elevationMm }))} />
       <button type="button" onClick={() => store.getState().setDetailPanel('paint')}>Textura del suelo</button>
     </>}
+    {terrain && <TerrainFields surface={terrain} edit={apply} />}
     {wall && points && <>
       <div className={styles.fields}>
         {meterField('Grosor', wall.thicknessMm, (d, n) => { d.walls.find((w) => w.id === id)!.thicknessMm = n; })}

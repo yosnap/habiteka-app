@@ -153,6 +153,19 @@ export interface FloorFinish {
   undersideColor?: string;
   undersideTexture?: 'none' | 'wood' | 'tile' | `polyhaven:${string}` | `outdoor:${string}`;
 }
+/** Suelo exterior visible, independiente de las superficies transitables del recorrido. */
+export interface TerrainSurface {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  widthMm: number;
+  depthMm: number;
+  texture: FloorFinish['texture'];
+  color: string;
+  tileSizeMm: number;
+  rotation: number;
+}
 /** Superficie anclada al recinto; altura derivada de los muros y descenso explícito. */
 export interface Ceiling {
   id: string;
@@ -249,6 +262,7 @@ export interface EditorDocument {
   columns?: Column[];
   comments?: ElementComment[];
   floorFinishes?: FloorFinish[];
+  terrainSurfaces?: TerrainSurface[];
   walkthroughs?: WalkthroughPath[];
   ceilings?: Ceiling[];
   luminaires?: Luminaire[];

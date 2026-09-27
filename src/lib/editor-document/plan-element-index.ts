@@ -18,6 +18,8 @@ export function planElementIndex(doc: EditorDocument, rooms: DerivedRoom[]): Pla
   const roomName = (room: DerivedRoom, index: number) => doc.labels.find((label) => insideRoom(label, room.boundary))?.text
     ?? (room.wallIds.some((id) => id.startsWith('outdoor:')) ? `Patio ${index + 1}` : `Estancia ${index + 1}`);
   return [
+    ...(doc.terrainSurfaces ?? []).map((surface) => ({ id: surface.id, label: surface.name, group: 'Terreno',
+      point: { x: surface.x + surface.widthMm / 2, y: surface.y + surface.depthMm / 2 } })),
     ...rooms.map((room, i) => ({ id: room.id, label: roomName(room, i), group: 'Estancias', point: centroid(room.boundary) })),
     ...doc.walls.filter((w) => !w.hidden).map((w, i) => ({ id: w.id, label: named(w.name, `Pared ${i + 1}`), group: 'Paredes', point: wallPath(doc, w).at(.5) })),
     ...doc.openings.map((o, i) => { const wall = doc.walls.find((w) => w.id === o.wallId);

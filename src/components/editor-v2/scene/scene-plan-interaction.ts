@@ -2,17 +2,19 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import type { ThreeEvent, RootState } from '@react-three/fiber';
 import { Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import type { Furniture, Point } from '@/lib/editor-document/schema';
+import type { Furniture, Point, TerrainSurface } from '@/lib/editor-document/schema';
 import type { SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
+import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 
 export interface PlanDrag {
   id: string;
   start: Point;
-  item: Furniture;
+  item: Furniture | TerrainSurface;
+  terrain?: boolean;
   pointerId: number;
 }
 export interface PlanMovePreview { id: string; dxMm: number; dyMm: number; dzMm: number }
@@ -55,17 +57,20 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
   const state = store.getState();
   if (event.button !== 0 || state.readOnly || state.tool !== 'select') return null;
   const id = sceneEntityId(event.object);
-  const item = planObjects(state.document).find((entry) => entry.id === id);
+  const furniture = planObjects(state.document).find((entry) => entry.id === id);
+  const terrain = state.document.terrainSurfaces?.find((entry) => entry.id === id);
+  const item = furniture ?? terrain;
   const start = scenePlanPoint(root, event.clientX, event.clientY, elevationM);
   if (!item || !start) return null;
   event.stopPropagation();
   // La barra de medidas se superpone al lienzo; el arrastre conserva su punto inicial.
   root.current?.get().gl.domElement.setPointerCapture(event.pointerId);
-  return { id: item.id, item, start, pointerId: event.pointerId };
+  return { id: item.id, item, terrain: Boolean(terrain), start, pointerId: event.pointerId };
 }
 
-export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStore): Furniture {
-  return settlePlanItem({ ...drag.item, x: drag.item.x + point.x - drag.start.x, y: drag.item.y + point.y - drag.start.y }, store);
+export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStore): Furniture | TerrainSurface {
+  const moved = { ...drag.item, x: drag.item.x + point.x - drag.start.x, y: drag.item.y + point.y - drag.start.y };
+  return drag.terrain ? moved as TerrainSurface : settlePlanItem(moved as Furniture, store);
 }
 
 export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: PlanDrag,
@@ -81,9 +86,11 @@ export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: P
   const next = planDragPosition(drag, point, store);
   try {
     const state = store.getState();
-    state.apply(updateFurniture(state.document, drag.id, {
-      x: next.x, y: next.y, rotation: next.rotation, elevationMm: next.elevationMm, hostId: next.hostId,
-    }));
+    state.apply(drag.terrain ? updateTerrainSurface(state.document, drag.id, { x: next.x, y: next.y })
+      : updateFurniture(state.document, drag.id, {
+        x: next.x, y: next.y, rotation: (next as Furniture).rotation,
+        elevationMm: (next as Furniture).elevationMm, hostId: (next as Furniture).hostId,
+      }));
     store.getState().select([drag.id]);
   } catch (error) {
     store.getState().setError(error instanceof Error ? error.message : 'No se pudo mover el elemento.');

@@ -197,6 +197,7 @@ export function interiorPoint(polygon: Point[]): Point {
 }
 export function deleteEntities(doc: EditorDocument, ids: string[]) {
   return editDocument(doc, (next) => {
+    if (next.terrainSurfaces) next.terrainSurfaces = next.terrainSurfaces.filter((surface) => !ids.includes(surface.id));
     next.walls = next.walls.filter((w) => !ids.includes(w.id));
     next.openings = next.openings.filter((o) => !ids.includes(o.id) && !ids.includes(o.sourceRampId ?? '') && next.walls.some((w) => w.id === o.wallId));
     next.furniture = next.furniture.filter((o) => !ids.includes(o.id));

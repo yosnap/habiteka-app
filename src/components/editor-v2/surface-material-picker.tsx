@@ -19,7 +19,7 @@ export function SurfaceMaterialPicker({ value, label, onChange }: {
       <option value="">Todas las categorías</option>{SURFACE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
     </ModernSelect>
     <button type="button" onClick={() => onChange(undefined)} style={{ marginBlock: 8 }}>Quitar textura</button>
-    <p style={{ fontSize: 12 }}>{entries.length} materiales · Poly Haven CC0 y texturas propias</p>
+    <p style={{ fontSize: 12 }}>{entries.length} materiales · CC0 y texturas propias</p>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, maxHeight: 300, overflowY: 'auto', overscrollBehavior: 'contain' }}>
       {entries.map((m) => <button key={m.id} type="button" aria-label={`Aplicar ${m.label} en ${label}`}
         aria-pressed={m.id === value} onClick={() => onChange(m.id)} style={{ padding: 4, border: m.id === value ? '2px solid #087f75' : '1px solid #ddd', fontSize: 11 }}>

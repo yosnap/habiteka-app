@@ -14,7 +14,9 @@ export function zoomedView(view: CanvasViewState, factor: number, size: CanvasSi
 
 /** Encuadre de todo el plano (muros, objetos, textos y cotas) con margen. */
 export function fittedView(doc: EditorDocument, size: CanvasSize): CanvasViewState {
-  const points = [...doc.vertices, ...[...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap((f) => {
+  const points = [...doc.vertices, ...(doc.terrainSurfaces ?? []).flatMap((surface) => [
+    { x: surface.x, y: surface.y }, { x: surface.x + surface.widthMm, y: surface.y + surface.depthMm },
+  ]), ...[...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap((f) => {
     const angle = f.rotation * Math.PI / 180;
     return [[0, 0], [f.widthMm, 0], [f.widthMm, f.depthMm], [0, f.depthMm]].map(([x, y]) => ({
       x: f.x + x! * Math.cos(angle) - y! * Math.sin(angle),

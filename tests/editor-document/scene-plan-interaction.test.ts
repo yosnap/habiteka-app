@@ -3,6 +3,7 @@ import { emptyEditorDocument, type Furniture } from '@/lib/editor-document/schem
 import { insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { planDragPosition, positionedPending } from '@/components/editor-v2/scene/scene-plan-interaction';
+import { suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 
 const table: Furniture = { id: 'mesa', kind: 'mesa-comedor', catalogId: 'habiteka:furniture:mesa-comedor',
   x: 1000, y: 1000, widthMm: 1600, depthMm: 900, heightMm: 750, elevationMm: 0, rotation: 0,
@@ -18,4 +19,13 @@ it('el plano visual usa la misma posición fina en vista previa y al soltar, sin
   expect(pending.x).toBe(preview.x); expect(pending.y).toBe(preview.y);
   store.getState().setSnap(false);
   expect(planDragPosition(drag, point, store)).toMatchObject({ x: 1137, y: 1053 });
+});
+
+it('mueve el terreno en la maqueta cenital sin saltos de imán ni apoyo en muebles', () => {
+  const store = createEditorStore(emptyEditorDocument());
+  const surface = suggestedTerrainSurface(store.getState().document, 'terreno');
+  const drag = { id: surface.id, item: surface, terrain: true, start: { x: 1000, y: 1000 }, pointerId: 1 };
+  expect(planDragPosition(drag, { x: 1237, y: 1153 }, store)).toMatchObject({
+    x: surface.x + 237, y: surface.y + 153,
+  });
 });

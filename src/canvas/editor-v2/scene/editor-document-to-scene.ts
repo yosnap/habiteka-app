@@ -47,7 +47,17 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
       elevation: 0, height: meters(landing.elevationMm) + .0005,
       color: finish.color, sideColor: '#756f66', floorFinish: finish };
   });
-  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...floors, ...joins, ...curves, ...entrances], boxes: [
+  const terrain: ScenePolygon[] = (doc.terrainSurfaces ?? []).map((surface, index) => ({
+    id: surface.id, sourceEntityId: surface.id, role: 'floor',
+    points: [{ x: meters(surface.x), y: meters(surface.y) },
+      { x: meters(surface.x + surface.widthMm), y: meters(surface.y) },
+      { x: meters(surface.x + surface.widthMm), y: meters(surface.y + surface.depthMm) },
+      { x: meters(surface.x), y: meters(surface.y + surface.depthMm) }],
+    elevation: -.04 + Math.min(index, 30) * .001, height: 0, color: surface.color,
+    floorFinish: { roomId: surface.id, color: surface.color, texture: surface.texture,
+      tileSizeMm: surface.tileSizeMm, rotation: surface.rotation },
+  }));
+  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...terrain, ...floors, ...joins, ...curves, ...entrances], boxes: [
     ...walls, ...doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).flatMap((o) => openingMeshes(doc, o)),
     ...(doc.stairs ?? []).flatMap(stairMeshes),
     ...(doc.columns ?? []).map((column) => ({ id: column.id, sourceEntityId: column.id, role: 'column' as const,

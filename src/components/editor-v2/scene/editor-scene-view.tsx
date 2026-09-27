@@ -386,8 +386,10 @@ function SceneView({
     const drag = planDrag.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const item = planDragPosition(drag, point, store);
+    const previousHeight = 'elevationMm' in drag.item ? drag.item.elevationMm ?? 0 : 0;
+    const nextHeight = 'elevationMm' in item ? item.elevationMm ?? 0 : 0;
     setPlanPreview({ id: drag.id, dxMm: item.x - drag.item.x, dyMm: item.y - drag.item.y,
-      dzMm: (item.elevationMm ?? 0) - (drag.item.elevationMm ?? 0) });
+      dzMm: nextHeight - previousHeight });
   };
   const onPlanPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = planDrag.current;
@@ -581,7 +583,8 @@ function SceneView({
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === document.activeLevelId).map((link) => link.outline)}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
-          {scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
+          {scene.polygons.map((polygon) => <group key={polygon.id} position={planPreview?.id === polygon.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
+            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>)}
