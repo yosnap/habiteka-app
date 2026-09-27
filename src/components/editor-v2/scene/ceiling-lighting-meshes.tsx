@@ -10,6 +10,8 @@ import { surfaceMaterialAppearance } from '@/lib/editor-document/surface-materia
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
+// La piel PBR necesita separación de la losa para evitar z-fighting desde dron.
+const ROOF_FINISH_OFFSET_M = .02;
 
 function CeilingMesh({ surface, view, selected, onSelect, voids }: {
   surface: Surface; view: CeilingView; selected: boolean; onSelect?: (id: string) => void; voids: Point[][];
@@ -40,7 +42,7 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
         color={selected ? '#43b6a0' : surface.ceiling.edgeMaterialId ? '#ffffff' : '#d1cbc1'} width={1} height={1} />
     </mesh>}
     {surface.ceiling.topMaterialId && !transparent && <mesh rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, roof.topM + .003, 0]}
+      position={[0, roof.topM + ROOF_FINISH_OFFSET_M, 0]}
       receiveShadow raycast={() => undefined}>
       <shapeGeometry args={[shape]} />
       <SurfaceMaterial id={surface.ceiling.topMaterialId} color={selected ? '#43b6a0' : '#ffffff'}
