@@ -13,6 +13,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
+import { scenePresetFocus } from './scene-preset-focus';
 import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
@@ -159,6 +160,7 @@ function SceneView({
   const [allLevels, setAllLevels] = useState(false);
   const multiLevelRoute = Boolean(route?.waypoints.some((point) => point.levelId));
   const renderAllLevels = allLevels || (multiLevelRoute && (walking || recording));
+  const activeElevation = renderAllLevels ? buildingDocuments(document).find((level) => level.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   // Avisos de construcción (suelo sin cerrar, techos, luces) como notificación con cierre; reaparece si cambian.
@@ -251,7 +253,9 @@ function SceneView({
           cameraApplied.current = (applied) => {
             if (applied === sequence) { clearTimeout(timeout); cameraApplied.current = null; resolve(); }
           };
-          setRequest({ sequence, action: options?.view && options.view !== 'current' ? options.view : 'fit' });
+          const view = options?.view && options.view !== 'current' ? options.view : null;
+          setRequest({ sequence, action: view ?? 'fit',
+            focus: view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined });
         });
       }
       const currentDocument = store.getState().document;
@@ -332,7 +336,7 @@ function SceneView({
     captureRender.current = capture;
     onCaptureReady?.(capture);
     return () => { captureRender.current = null; onCaptureReady?.(null); };
-  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk]);
+  }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk, activeElevation]);
   const otherLevels = useMemo(() => renderAllLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
     .map((l) => ({ ...l, scene: editorDocumentToScene(l.document,
       stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, renderAllLevels, stairLinks]);
@@ -356,7 +360,6 @@ function SceneView({
   ], [activeLuminaires, activeStrips, priorityRoomId, otherLevels]);
   const lightBudgets = useMemo(() => levelLightBudgets(budgetLevels).slice(1), [budgetLevels]);
   const coverage = useMemo(() => lightingCoverage(budgetLevels), [budgetLevels]);
-  const activeElevation = renderAllLevels ? buildingDocuments(document).find((l) => l.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
   const planElevationM = activeElevation / 1000;
   const pendingPlanItem = presentation === 'plan' && pendingSpatial && planHover
     ? positionedPending(pendingSpatial, planHover, store) : null;
@@ -422,7 +425,9 @@ function SceneView({
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
-    setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'] }));
+    setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'],
+      focus: !renderAllLevels && (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone')
+        ? scenePresetFocus(document, action, activeElevation) : undefined }));
   };
   useEffect(() => store.subscribe((next, previous) => {
     if (presentation !== 'plan' || next.viewRequest === previous.viewRequest || !next.viewRequest) return;

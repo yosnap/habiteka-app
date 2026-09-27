@@ -1,7 +1,6 @@
 import 'server-only';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
-import { MAX_IMAGE_BYTES } from '@/server/ai/call-limits';
-import { sanitizeOwnRenderBuffer } from '@/server/ai/image/input-sanitizer';
+import { MAX_OWN_RENDER_BYTES, sanitizeOwnRenderBuffer } from '@/server/ai/image/input-sanitizer';
 import { assertSafeImportUrl } from '@/server/admin/media/url-safety';
 import { fail } from '@/server/errors/run-action';
 
@@ -18,7 +17,7 @@ export async function readRenderReference(payload: { assetKey?: unknown; assetUr
   const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
   if (!response.ok) fail('No se pudo recuperar el diseño de referencia.');
   const declaredLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BYTES)
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_OWN_RENDER_BYTES)
     fail('El diseño de referencia excede el tamaño permitido.');
   if (!response.body) fail('No se pudo leer el diseño de referencia.');
   const reader = response.body.getReader();
@@ -29,7 +28,7 @@ export async function readRenderReference(payload: { assetKey?: unknown; assetUr
       const part = await reader.read();
       if (part.done) break;
       total += part.value.byteLength;
-      if (total > MAX_IMAGE_BYTES) fail('El diseño de referencia excede el tamaño permitido.');
+      if (total > MAX_OWN_RENDER_BYTES) fail('El diseño de referencia excede el tamaño permitido.');
       chunks.push(Buffer.from(part.value));
     }
   } finally {

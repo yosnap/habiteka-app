@@ -25,11 +25,11 @@ const INTERIOR_ORBIT_M = .6;
 const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, number]> = {
   top: [0, 1, .0001],
   isometric: [1, 1, 1],
-  front: [0, 0, 1],
-  back: [0, 0, -1],
-  left: [-1, 0, 0],
-  right: [1, 0, 0],
-  drone: [1, 2, 1],
+  front: [0, .65, 1],
+  back: [0, .65, -1],
+  left: [-1, .65, 0],
+  right: [1, .65, 0],
+  drone: [.35, 1.35, 1],
 };
 
 export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, onManualChange, onContextLost, onApplied }: {
