@@ -32,6 +32,7 @@ import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
 import { CarpaSidesField } from './carpa-sides-field';
 import { TerrainFields } from './terrain-fields';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
@@ -171,9 +172,11 @@ export function Inspector({ store }: { store: EditorStore }) {
     </div><OpeningConstructionFields opening={opening} edit={apply} /></>}
     {stair && <StairConstructionFields stair={stair} edit={apply} />}
     {ramp && <RampConstructionFields ramp={ramp} edit={apply} />}
-    {column && <div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
+    {column && <><div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
       <MeterField key={key} label={label} valueMm={column[key]} change={(value) => apply((document) => updateColumn(document, column.id, { [key]: value }))} />)}
-      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>}
+      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>
+      <SurfaceMaterialPicker label="Material de columna" value={column.materialId} onChange={(materialId) =>
+        apply((document) => updateColumn(document, column.id, { materialId: materialId ?? 'concrete-grey' }))} /></>}
     {label && <label className={styles.field}>Texto<input key={label.text} defaultValue={label.text}
       onBlur={(e) => { const text = e.currentTarget.value; apply((d) => editDocument(d, (next) => { next.labels.find((l) => l.id === id)!.text = text; })); }} /></label>}
     {id && <button className={styles.danger} onClick={() => {

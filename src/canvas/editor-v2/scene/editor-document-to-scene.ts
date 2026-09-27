@@ -64,7 +64,7 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
     ...(doc.columns ?? []).map((column) => ({ id: column.id, sourceEntityId: column.id, role: 'column' as const,
       position: [meters(column.x + column.widthMm / 2), meters(column.elevationMm + column.heightMm / 2), meters(column.y + column.depthMm / 2)] as [number, number, number],
       size: [meters(column.widthMm), meters(column.heightMm), meters(column.depthMm)] as [number, number, number],
-      rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0' })),
+      rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0', materialId: column.materialId })),
     ...planObjects(doc).flatMap((f) => furnitureVolumes(f, doc).map((volume, index) => {
       const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
       const p = localToWorld(f, center);

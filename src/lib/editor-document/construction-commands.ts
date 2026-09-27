@@ -9,6 +9,7 @@ import { rampArrival, rampArrivalTarget } from './ramp-arrival';
 import { isRampLanding } from './ramp-kind';
 import { landingEntranceTarget } from './landing-entrance';
 import { placeLandingAtHosts } from './landing-hosts';
+import { surfaceMaterial } from './surface-materials';
 
 function update(input: EditorDocument, operation: (doc: EditorDocument) => void): EditorDocument {
   const doc = upgradeConstructionDocument(input);
@@ -56,7 +57,8 @@ export function addColumn(input: EditorDocument, column: Column): EditorDocument
 export function updateColumn(input: EditorDocument, id: string, patch: Partial<Omit<Column, 'id'>>): EditorDocument {
   return update(upgradeRampDocument(input), (doc) => {
     const column = doc.columns?.find((item) => item.id === id); if (!column) throw new Error('Columna no encontrada');
-    Object.assign(column, transformAroundCenter(column, patch)); if (patch.materialId) column.color = finishColor(patch.materialId);
+    Object.assign(column, transformAroundCenter(column, patch));
+    if (patch.materialId) column.color = surfaceMaterial(patch.materialId) ? '#ffffff' : finishColor(patch.materialId);
   });
 }
 export function updateStair(input: EditorDocument, id: string, patch: Partial<Omit<Stair, 'id'>>): EditorDocument {
