@@ -19,7 +19,8 @@ function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: 
   const spatial = furnitureSpatial(item), center = objectCenter(item);
   const anisotropy = useThree((state) => Math.min(8, state.gl.capabilities.getMaxAnisotropy()));
   const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation,
-    spatial.color === ORIGINAL_ASSET_COLOR ? undefined : spatial.color, anisotropy), [scene, asset.frontRotation, spatial.color, anisotropy]);
+    spatial.color === ORIGINAL_ASSET_COLOR ? undefined : spatial.color, anisotropy, asset.tintMaterialNames),
+    [scene, asset.frontRotation, spatial.color, anisotropy, asset.tintMaterialNames]);
   useEffect(() => () => prepared.dispose(), [prepared]);
   return <group position={[center.x / 1000, spatial.elevationMm / 1000, center.y / 1000]}
     rotation={[0, -item.rotation * Math.PI / 180, 0]} onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}

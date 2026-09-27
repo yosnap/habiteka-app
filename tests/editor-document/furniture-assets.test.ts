@@ -35,6 +35,17 @@ describe('audited local furniture assets', () => {
     expect(next.schemaVersion).toBe(2); expect(next.furniture[0]!.catalogId).toBe('builtin:sofa');
     expect(before.furniture).toHaveLength(0);
   });
+  it('resuelve el turismo local auditado sin cambiar su volumen de colisión', () => {
+    expect(furnitureAsset({ catalogId: 'habiteka:outdoor:coche' })).toBeUndefined();
+    const entry = getFurnitureCatalogEntry('habiteka:outdoor:coche:turismo-3d')!;
+    const item = addFurniture(emptyEditorDocument(), entry, { x: 0, y: 0 }).furniture[0]!;
+    const asset = furnitureAsset(item)!;
+    const buffer = readFileSync(`public${asset.url}`);
+    expect(createHash('sha256').update(buffer).digest('hex')).toBe(asset.sha256);
+    expect(asset).toMatchObject({ key: 'coche', license: 'CC0-1.0', frontRotation: Math.PI,
+      tintMaterialNames: ['paintB'] });
+    expect(furnitureVolumes(item)).toHaveLength(9);
+  });
   it('names previously approximate files by their real content', () => {
     expect(getFurnitureCatalogEntry('habiteka:asset:bidet')!.label).toBe('Contenedor de baño');
     expect(getFurnitureCatalogEntry('habiteka:asset:isla')!.label).toContain('Mesa');

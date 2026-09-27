@@ -34,8 +34,13 @@ const rows: Row[] = [
   ['riego-goteo', 'Línea de riego por goteo', 3000, 30, 30, 'Tubo de polietileno', '#343d35', 'Distribución de riego lineal'],
   ['tira-led', 'Tira LED interior y exterior', 2000, 25, 15, 'Perfil aluminio y difusor', '#fff0c5', 'Iluminación lineal interior exterior'],
 ];
-export const OUTDOOR_CATALOG: FurnitureCatalogEntry[] = rows.map(([kind, label, widthMm, depthMm, heightMm, material, color, purpose]) => ({
+const standardCatalog: FurnitureCatalogEntry[] = rows.map(([kind, label, widthMm, depthMm, heightMm, material, color, purpose]) => ({
   id: `habiteka:outdoor:${kind}`, productId: `outdoor-${kind}`, variantLabel: 'Original', kind, label,
   room: kind === 'tira-led' ? 'iluminacion' : 'exterior', profile: 'outdoor', category: 'outdoor',
   function: purpose, style: 'Contemporáneo', material, color, widthMm, depthMm, heightMm, elevationMm: 0,
 }));
+const basicCar = standardCatalog.find((entry) => entry.kind === 'coche')!;
+export const OUTDOOR_CATALOG: FurnitureCatalogEntry[] = [...standardCatalog, {
+  ...basicCar, id: 'habiteka:outdoor:coche:turismo-3d', productId: 'outdoor-coche-turismo-3d',
+  variantLabel: 'Turismo 3D', label: 'Turismo moderno · modelo 3D',
+}];

@@ -35,4 +35,16 @@ describe('independent normalized GLB instances', () => {
     const copy = model.object.children[0]!.children[0] as Mesh;
     expect((copy.material as MeshStandardMaterial).color).toEqual(new Color('#abcdef')); model.dispose();
   });
+  it('recolorea solo la pintura del coche y conserva cristales, ruedas y luces', () => {
+    const source = new Group();
+    for (const name of ['paintB', 'trim', 'glass']) {
+      const material = new MeshStandardMaterial({ name, color: '#abcdef' });
+      source.add(new Mesh(new BoxGeometry(), material));
+    }
+    const prepared = prepareFurnitureModel(source, Math.PI, '#ff0000', 1, ['paintB']);
+    const materials: MeshStandardMaterial[] = [];
+    prepared.object.traverse((object) => { if (object instanceof Mesh) materials.push(object.material as MeshStandardMaterial); });
+    expect(materials.map((material) => material.color.getHexString())).toEqual(['ff0000', 'abcdef', 'abcdef']);
+    prepared.dispose();
+  });
 });

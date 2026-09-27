@@ -48,7 +48,21 @@ export const ASSET_CATALOG: FurnitureCatalogEntry[] = definitions.map(([key, lab
   label, room, category: profile, profile, function: label, style: 'Modelo original', material: 'Materiales del modelo',
   color: ORIGINAL_ASSET_COLOR, widthMm, depthMm, heightMm, elevationMm: 0,
 }));
-const assets = new Map(definitions.map(([key]) => {
+interface ModelAsset {
+  key: string;
+  url: string;
+  frontRotation: number;
+  tintMaterialNames?: string[];
+  file: string;
+  kind: string;
+  source: string;
+  author: string;
+  license: string;
+  attributionRequired: boolean;
+  sha256: string;
+  thumbnailUrl?: string;
+}
+const assets = new Map<string, ModelAsset>(definitions.map(([key]) => {
   const provenance = manifest.assets.find((item) => item.kind === key)!;
   if (!provenance) throw new Error(`Falta procedencia del modelo ${key}`);
   return [`habiteka:asset:${key}` as string, { key, url: `/models/cc0/${provenance.file}`, ...provenance,
@@ -57,6 +71,12 @@ const assets = new Map(definitions.map(([key]) => {
       : key === 'mesa_centro_moderna' ? Math.PI / 2 : 0,
   }] as const;
 }));
+const carProvenance = manifest.assets.find((entry) => entry.kind === 'coche');
+if (!carProvenance) throw new Error('Falta procedencia del modelo de coche');
+assets.set('habiteka:outdoor:coche:turismo-3d', {
+  ...carProvenance, key: 'coche', url: `/models/cc0/${carProvenance.file}`,
+  frontRotation: Math.PI, tintMaterialNames: ['paintB'],
+});
 export function furnitureAsset(item: Pick<Furniture, 'catalogId'>) {
   return item.catalogId ? assets.get(item.catalogId) : undefined;
 }
