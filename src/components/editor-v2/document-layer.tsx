@@ -43,7 +43,7 @@ import { duplicateSpatialItem, insertSpatialItem } from '@/canvas/editor-v2/spat
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { FloorSurface } from './floor-surface';
-import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
+import { layeredTerrainSurfaces, updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { CurveHandle } from './curve-handle';
 import { ColumnLayer } from './column-layer';
@@ -111,7 +111,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     if (object) state.select([id]);
   };
   return <Group listening={!disabled}>
-    {(doc.terrainSurfaces ?? []).map((surface) => <FloorSurface key={surface.id}
+    {layeredTerrainSurfaces(doc).map((surface) => <FloorSurface key={surface.id}
       points={[{ x: surface.x, y: surface.y }, { x: surface.x + surface.widthMm, y: surface.y },
         { x: surface.x + surface.widthMm, y: surface.y + surface.depthMm }, { x: surface.x, y: surface.y + surface.depthMm }]}
       finish={{ roomId: surface.id, color: surface.color, texture: surface.texture, tileSizeMm: surface.tileSizeMm, rotation: surface.rotation }}

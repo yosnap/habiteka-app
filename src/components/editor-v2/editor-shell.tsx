@@ -34,7 +34,7 @@ import {
 } from '@/canvas/editor-v2/editing-operations';
 import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
 import { Toolbar } from './toolbar';
-import { addTerrainSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
+import { addTerrainSurface, suggestedPavingSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { Inspector } from './inspector';
 import { CatalogPanel } from './catalog-panel';
 import { ConstructionMenu } from './construction-menu';
@@ -741,6 +741,14 @@ export function EditorShell({
             const state = store.getState();
             if (state.readOnly) return;
             const surface = suggestedTerrainSurface(state.document, newId());
+            state.apply(addTerrainSurface(state.document, surface));
+            state.setTool('select'); state.select([surface.id]);
+            setMode('visual'); openPanel('inspector');
+          })}
+          onPaving={() => run(() => {
+            const state = store.getState();
+            if (state.readOnly) return;
+            const surface = suggestedPavingSurface(state.document, newId());
             state.apply(addTerrainSurface(state.document, surface));
             state.setTool('select'); state.select([surface.id]);
             setMode('visual'); openPanel('inspector');

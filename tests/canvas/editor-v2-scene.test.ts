@@ -4,6 +4,7 @@ import { addOpening, addWallPath, shapePoints } from '@/canvas/editor-v2/editing
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { wallMeshes, junctionMeshes } from '@/canvas/editor-v2/scene/wall-meshes';
 import { openingMeshes } from '@/canvas/editor-v2/scene/opening-meshes';
+import { setWallCurve } from '@/lib/editor-document/curve-commands';
 import { stairMeshes } from '@/canvas/editor-v2/scene/stair-meshes';
 import { Shape, ShapeGeometry } from 'three';
 
@@ -33,7 +34,27 @@ describe('canonical scene projection', () => {
     expect(meshes).toHaveLength(4);
     const central = meshes.filter((m) => m.position[0] === 3);
     expect(central.map((m) => m.size[1])).toEqual([.9, .6]);
-    expect(openingMeshes(doc, doc.openings[0]!).filter((m) => m.role === 'glass')).toHaveLength(1);
+    const opening = openingMeshes(doc, doc.openings[0]!);
+    expect(opening.filter((m) => m.role === 'glass')).toHaveLength(1);
+    const seals = opening.filter((m) => m.role === 'seal');
+    expect(seals).toHaveLength(8);
+    expect(new Set(seals.map((m) => Math.sign(m.position[2])))).toEqual(new Set([-1, 1]));
+    expect(seals.every((m) => m.sourceEntityId === doc.openings[0]!.id)).toBe(true);
+    const glass = opening.find((m) => m.role === 'glass')!;
+    expect(glass.size[0]).toBeCloseTo(1.11);
+    expect(glass.position[2]).toBe(0);
+  });
+  it('curved window follows the arc with glazing and seals on both faces', () => {
+    const straight = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }]);
+    let doc = setWallCurve(straight, straight.walls[0]!.id, 500);
+    doc = addOpening(doc, doc.walls[0]!.id, { x: 3000, y: 500 }, 'ventana');
+    const opening = openingMeshes(doc, doc.openings[0]!);
+    const glass = opening.filter((m) => m.role === 'glass');
+    const seals = opening.filter((m) => m.role === 'seal');
+    expect(glass.length).toBeGreaterThan(1);
+    expect(seals.length).toBeGreaterThan(8);
+    expect(seals.some((m) => m.position[2] > glass[0]!.position[2])).toBe(true);
+    expect(seals.some((m) => m.position[2] < glass[0]!.position[2])).toBe(true);
   });
   it('door swing changes side and hinge without changing source wall geometry', () => {
     let doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }]);

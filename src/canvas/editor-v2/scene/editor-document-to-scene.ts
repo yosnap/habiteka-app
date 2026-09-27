@@ -12,6 +12,7 @@ import { floorMeshes } from './floor-meshes';
 import { curvedWallMeshes } from './curved-wall-meshes';
 import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
+import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
 
 /** A read-only projection: no proximity inference, recentering, revision bumps or migration. */
 export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][] = []): EditorScene {
@@ -47,13 +48,13 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
       elevation: 0, height: meters(landing.elevationMm) + .0005,
       color: finish.color, sideColor: '#756f66', floorFinish: finish };
   });
-  const terrain: ScenePolygon[] = (doc.terrainSurfaces ?? []).map((surface, index) => ({
+  const terrain: ScenePolygon[] = layeredTerrainSurfaces(doc).map((surface, index) => ({
     id: surface.id, sourceEntityId: surface.id, role: 'floor',
     points: [{ x: meters(surface.x), y: meters(surface.y) },
       { x: meters(surface.x + surface.widthMm), y: meters(surface.y) },
       { x: meters(surface.x + surface.widthMm), y: meters(surface.y + surface.depthMm) },
       { x: meters(surface.x), y: meters(surface.y + surface.depthMm) }],
-    elevation: -.04 + Math.min(index, 30) * .001, height: 0, color: surface.color,
+    elevation: -.05 + Math.min(index, 5) * .008, height: 0, color: surface.color,
     floorFinish: { roomId: surface.id, color: surface.color, texture: surface.texture,
       tileSizeMm: surface.tileSizeMm, rotation: surface.rotation },
   }));

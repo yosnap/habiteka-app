@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
-import { addTerrainSurface, suggestedTerrainSurface, updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
+import { addTerrainSurface, suggestedPavingSurface, suggestedTerrainSurface, updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
 import { deleteEntities } from '@/canvas/editor-v2/editing-operations';
@@ -11,7 +11,7 @@ describe('terreno exterior', () => {
     const saved = addTerrainSurface(base, surface);
     expect(base.terrainSurfaces).toBeUndefined();
     const polygon = editorDocumentToScene(saved).polygons.find((item) => item.sourceEntityId === surface.id);
-    expect(polygon).toMatchObject({ role: 'floor', elevation: -.04,
+    expect(polygon).toMatchObject({ role: 'floor', elevation: -.05,
       floorFinish: { texture: 'outdoor:grass-lawn-pbr' } });
     expect(polygon?.points[0]).toEqual({ x: surface.x / 1000, y: surface.y / 1000 });
     expect(walkthroughNavigation(saved).blockAt({ x: 1000, y: 1000 })?.kind).toBe('outside');
@@ -24,5 +24,24 @@ describe('terreno exterior', () => {
     const doc = addTerrainSurface(emptyEditorDocument(), suggestedTerrainSurface(emptyEditorDocument(), 'terrain-1'));
     expect(() => updateTerrainSurface(doc, 'terrain-1', { widthMm: 0 })).toThrow();
     expect(() => updateTerrainSurface(doc, 'terrain-1', { texture: 'outdoor:desconocido' })).toThrow();
+  });
+
+  it('sitúa un pavimento editable sobre el terreno sin volverlo transitable', () => {
+    const source = addTerrainSurface(emptyEditorDocument(), suggestedTerrainSurface(emptyEditorDocument(), 'grass'));
+    const paving = suggestedPavingSurface(source, 'paving');
+    const saved = addTerrainSurface(source, paving);
+    expect(paving).toMatchObject({ name: 'Pavimento exterior', widthMm: 4000, depthMm: 3000,
+      texture: 'polyhaven:floor_tiles_02' });
+    expect(paving.x).toBeGreaterThanOrEqual(source.terrainSurfaces![0]!.x);
+    expect(paving.y).toBeGreaterThanOrEqual(source.terrainSurfaces![0]!.y);
+    const second = suggestedPavingSurface(saved, 'paving-2');
+    expect(second.x).toBeGreaterThan(paving.x);
+    expect(editorDocumentToScene(saved).polygons.find((item) => item.sourceEntityId === paving.id)?.floorFinish?.texture)
+      .toBe('polyhaven:floor_tiles_02');
+    expect(walkthroughNavigation(saved).blockAt({ x: paving.x + 1000, y: paving.y + 1000 })?.kind).toBe('outside');
+    const reversed = addTerrainSurface(addTerrainSurface(emptyEditorDocument(), paving), source.terrainSurfaces![0]!);
+    const layers = editorDocumentToScene(reversed).polygons.filter((item) => ['grass', 'paving'].includes(item.sourceEntityId));
+    expect(layers.map((item) => item.sourceEntityId)).toEqual(['grass', 'paving']);
+    expect(layers[1]!.elevation).toBeGreaterThan(layers[0]!.elevation);
   });
 });

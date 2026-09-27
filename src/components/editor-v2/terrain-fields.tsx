@@ -21,7 +21,7 @@ export function TerrainFields({ surface, edit }: {
     </div>
     <label className={styles.field}>Color<input type="color" aria-label="Color del terreno" value={surface.color}
       onChange={(event) => update({ color: event.target.value })} /></label>
-    <SurfaceMaterialPicker label="Terreno exterior" value={surface.texture} onChange={(id) => update({
+    <SurfaceMaterialPicker label="Material exterior" value={surface.texture} onChange={(id) => update({
       texture: (id ?? 'none') as TerrainSurface['texture'], color: '#ffffff', tileSizeMm: surfaceMaterial(id)?.sizeMm[0] ?? 1000,
     })} />
     <MeterField label="Tamaño de repetición" valueMm={surface.tileSizeMm} change={(tileSizeMm) => update({ tileSizeMm })} />
