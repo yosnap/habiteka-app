@@ -30,7 +30,7 @@ La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una 
 
 ## Secuencia propuesta
 
-1. Apertura: parcela/base y huella del inmueble desde una cámara exterior.
+1. Apertura: terreno vacío de la escena aprobada, sin edificio ni mobiliario, y después la huella del inmueble desde una cámara exterior.
 2. Montaje visual: suelos y estructura, muros/huecos, escaleras y techos, acabados, muebles e iluminación. Es una animación editorial de la escena aprobada, no una simulación técnica de construcción.
 3. Revelación: vuelo exterior tipo dron alrededor de la casa ya terminada, con vistas de fachada, volumen, jardín, terraza o piscina solo si figuran en la escena aprobada.
 4. Paseo rápido: transición continua por una entrada real y ruta cinematográfica por estancias, terminando en una vista final del inmueble. El espectador reproduce el montaje; en la visita libre decide su propio camino.

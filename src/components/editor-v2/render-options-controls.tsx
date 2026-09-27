@@ -114,14 +114,14 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
       </section>
       {options.freedom !== 'strict' && (
         <section>
-          <h3 className="text-ink text-sm font-medium">Dónde puede decorar</h3>
+          <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Dónde puede decorar'}</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <OptionButton
               active={options.placement === 'all'}
               disabled={disabled}
               onClick={() => update({ placement: 'all' })}
             >
-              Toda la planta
+              {editable ? 'Todo el ámbito' : 'Toda la planta'}
             </OptionButton>
             <OptionButton
               active={options.placement === 'selected'}

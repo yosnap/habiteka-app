@@ -39,6 +39,7 @@ import { RenderInstructionField } from './render-instruction-field';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { ZoneOverlayImage } from './zone-overlay-image';
 import { RenderCostEstimate } from './render-cost-estimate';
+import { DesignScopePicker } from './design-scope-picker';
 
 interface EditorGenerateDialogProps {
   document?: EditorDocument;
@@ -101,7 +102,7 @@ export function EditorGenerateDialog({
   initialSetup,
   onClose,
 }: EditorGenerateDialogProps) {
-  const [estilo, setEstilo] = useState<Estilo>(initialSetup?.estilo ?? 'moderno');
+  const [estilo, setEstilo] = useState<Estilo>(document?.designStyle ?? initialSetup?.estilo ?? 'moderno');
   const [objetivo, setObjetivo] = useState('');
   const [promptLibre, setPromptLibre] = useState('');
   const [options, setOptions] = useState<RenderDesignOptions>(() => {
@@ -182,6 +183,8 @@ export function EditorGenerateDialog({
       : null;
   const proposalBlockedReason = !spaceKind
     ? 'Elige antes el tipo de espacio.'
+    : options.designScope === 'rooms' && !options.designRoomIds.length
+      ? 'Marca al menos una estancia para diseñar.'
     : qualityBlocked
       ? 'Confirma antes el aviso de calidad del plano.'
       : null;
@@ -212,6 +215,8 @@ export function EditorGenerateDialog({
   };
   const changeOptions = (next: RenderDesignOptions) => {
     setOptions(next);
+    if (intent === 'editable' && next.designScope !== 'all' && document?.designStyle)
+      setEstilo(document.designStyle);
     // Activar las vistas interiores ya dice qué clase de espacio es.
     if (isInteriorRenderMode(next) && !spaceKind) onSpaceKindChange('interior');
     invalidatePrepared();
@@ -363,7 +368,12 @@ export function EditorGenerateDialog({
               {([['image', 'Crear imágenes', 'Render del diseño, sin modificar el plano.'], ['editable', 'Cambiar acabados y muebles', 'Revisa una propuesta y aplícala al plano.']] as const).map(([value, label, hint]) => (
                 <button key={value} type="button" disabled={busy} aria-pressed={intent === value}
                   className={`rounded-lg border p-3 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
-                  onClick={() => { setIntent(value); invalidatePrepared(); setMode('choose'); }}>
+                  onClick={() => {
+                    setIntent(value);
+                    if (value === 'editable' && options.designScope !== 'all' && document?.designStyle)
+                      setEstilo(document.designStyle);
+                    invalidatePrepared(); setMode('choose');
+                  }}>
                   <strong className="block text-sm">{label}</strong><span className="block text-xs">{hint}</span>
                 </button>
               ))}
@@ -418,6 +428,7 @@ export function EditorGenerateDialog({
                   <RenderLivePreview capture={capture} lighting={options.lighting} view={options.views[0] ?? 'current'} onPreview={onPreview}
                     onExpand={(src, label) => setLargePreview({ src, label })} />
                 )}
+                {intent === 'editable' && <DesignScopePicker document={document} options={options} onChange={changeOptions} disabled={busy} />}
                 <RenderOptionsControls
                   editable={intent === 'editable'}
                   document={document}
@@ -427,7 +438,7 @@ export function EditorGenerateDialog({
                 />
               </div>
               <div className="space-y-3">
-                <label className="text-ink-soft flex flex-col gap-1 text-sm">
+                {(intent === 'image' || !spaceKind) && <label className="text-ink-soft flex flex-col gap-1 text-sm">
                   Tipo de espacio
                   <ModernSelect
                     value={spaceKind ?? ''}
@@ -446,7 +457,7 @@ export function EditorGenerateDialog({
                       </option>
                     ))}
                   </ModernSelect>
-                </label>
+                </label>}
                 <label className="text-ink-soft flex flex-col gap-1 text-sm">
                   Objetivo (opcional)
                   <input
@@ -467,8 +478,11 @@ export function EditorGenerateDialog({
                       setEstilo(value);
                       invalidatePrepared();
                     }}
-                    disabled={busy}
+                    disabled={busy || (intent === 'editable' && options.designScope !== 'all' && Boolean(document?.designStyle))}
                   />
+                  {intent === 'editable' && options.designScope !== 'all' && document?.designStyle && (
+                    <p className="mt-1 text-xs">Las zonas mantienen el estilo de esta planta. Para cambiarlo, diseña la planta completa.</p>
+                  )}
                 </div>
                 <div className="bg-canvas rounded-card border border-line p-3 text-xs">
                   <p className="text-ink font-medium">Permisos efectivos</p>
@@ -485,6 +499,7 @@ export function EditorGenerateDialog({
                         ? `controlada (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
+                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : `${options.designRoomIds.length} estancia(s)`} · </>}
                     {options.placement === 'selected'
                       ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
                       : 'toda la planta'}{' '}
@@ -551,7 +566,7 @@ export function EditorGenerateDialog({
           </p>
         )}
         {mode !== 'proposal' && <p className="text-ink-soft mt-4 text-xs">
-          {intent === 'image' ? 'Ver vistas de referencia toma capturas del modelo 3D con los ángulos elegidos. Todavía no genera imágenes con IA ni modifica el plano.' : 'Estricto cambia solo acabados. Controlado permite únicamente las categorías marcadas. Libre permite decoración del catálogo, nunca cambios de construcción. Las zonas limitan los objetos nuevos, no los acabados.'}
+          {intent === 'image' ? 'Las imágenes son referencias visuales y no forman una escena navegable. La visita y los vídeos usarán la versión editable aprobada.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
         </p>}
         </div>
         <div className="mt-4 flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
@@ -702,6 +717,10 @@ function ProposalPreview({
   return (
     <div className="text-ink mt-5 space-y-3 text-sm">
       <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
+      <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'interior' ? 'las estancias interiores'
+        : proposal.scope?.kind === 'exterior' ? 'las zonas exteriores'
+        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) elegida(s)` : 'toda esta planta'}.
+        Los demás acabados se conservarán.</p>
       <div className="grid grid-cols-2 gap-2 rounded-control border border-line p-3 text-xs">
         {(['walls', 'floors', 'stairs', 'ramps', 'columns'] as const).map((key) => (
           <Choice key={key} checked={selection[key]} onChange={() => toggle(key)}>

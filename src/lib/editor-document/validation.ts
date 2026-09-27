@@ -1,4 +1,5 @@
 import { assertBoundaryFields } from './boundary-validation';
+import { isValidEstilo } from '@/lib/design-options';
 import { assertKitchenRunFields } from './kitchen-run-validation';
 import { assertWalkthroughFields } from './walkthrough-validation';
 import type { EditorDocument } from './schema';
@@ -58,7 +59,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
   if (value.terrainSurfaces !== undefined) {
     if (!Array.isArray(value.terrainSurfaces) || value.terrainSurfaces.length > 40)
@@ -101,6 +102,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     )
   )
     throw new Error('Tipo de espacio desconocido');
+  if (value.designStyle !== undefined && !isValidEstilo(value.designStyle))
+    throw new Error('Estilo de diseño desconocido');
   if (value.levels !== undefined || value.activeLevelId !== undefined) {
     text(value.activeLevelId);
     if (!Array.isArray(value.levels) || !value.levels.length || value.levels.length > 20)

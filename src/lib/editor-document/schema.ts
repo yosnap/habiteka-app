@@ -1,6 +1,7 @@
 import type { Boundary } from './boundary-types';
 import type { KitchenRun } from './kitchen-run-types';
 import type { WalkthroughPath } from './walkthrough';
+import type { Estilo } from '@/lib/contracts';
 export type DimensionalOrigin = 'raster' | 'physical';
 export interface Point {
   x: number;
@@ -277,6 +278,8 @@ export interface EditorDocument {
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */
   designSpaceKind?: 'interior' | 'patio' | 'terraza' | 'jardin' | 'entrada' | 'fachada';
+  /** Estilo común de las propuestas editables aplicadas a esta planta. */
+  designStyle?: Estilo;
 }
 export function emptyEditorDocument(): EditorDocument {
   return {

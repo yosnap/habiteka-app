@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { selectedViewPrompt, SELECTED_VIEW_SYSTEM_PROMPT } from '@/server/agent/editor-v2/selected-view-prompt';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { renderViewSchema, type RenderView } from '@/lib/editor-document/render-view';
+import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 
 const view: RenderView = { preset: 'back', position: [0, 2, -10], quaternion: [0, 1, 0, 0], fov: 45, aspect: 1.5, allLevels: false, cutaway: false };
 const project = () => ({ ...emptyEditorDocument(), designSpaceKind: 'patio' as const, revision: 196 });
@@ -60,6 +61,7 @@ describe('selected view render prompt', () => {
   });
   it('aplica opciones estrictas por defecto y convierte regiones de mm a m', () => {
     const data = payload(selectedViewPrompt(project(), { ...view, lighting: 'daylight' }, 'moderno', '', '', {
+      ...defaultRenderDesignOptions(),
       lighting: 'daylight', freedom: 'controlled', additions: ['plants'], placement: 'selected',
       regions: [{ id: 'r1', name: 'Terraza', polygon: [{ x: 1000, y: 2500 }, { x: 3000, y: 2500 }, { x: 3000, y: 4500 }] }],
       views: ['current'], interiorRoomIds: [],
@@ -71,17 +73,20 @@ describe('selected view render prompt', () => {
   it('exige coherencia entre iluminación de captura y opciones', () => {
     expect(() => selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno')).toThrow('iluminación');
     expect(selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno', '', '', {
+      ...defaultRenderDesignOptions(),
       lighting: 'warm', freedom: 'free', additions: ['decor'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     })).toContain('MODO LIBRE DECORATIVO');
   });
   it('mantiene strict sin adiciones efectivas y distingue noche de warm', () => {
     const strict = selectedViewPrompt(project(), { ...view, lighting: 'warm' }, 'moderno', '', '', {
+      ...defaultRenderDesignOptions(),
       lighting: 'warm', freedom: 'strict', additions: ['lights', 'plants'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     });
     expect(payload(strict).designOptions.additions).toEqual([]);
     expect(strict).toContain('no añadas luces artificiales nuevas');
 
     const night = selectedViewPrompt(project(), { ...view, lighting: 'evening' }, 'moderno', '', '', {
+      ...defaultRenderDesignOptions(),
       lighting: 'evening', freedom: 'controlled', additions: ['plants'], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [],
     });
     expect(night).toContain('claramente de noche');

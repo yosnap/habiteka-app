@@ -22,16 +22,22 @@ export const renderDesignOptionsSchema = z.object({
    */
   // El id de estancia enumera sus muros, así que es largo por construcción.
   interiorRoomIds: z.array(z.string().min(1).max(4000)).max(12).default([]),
+  designScope: z.enum(['all', 'interior', 'exterior', 'rooms']).default('all'),
+  designRoomIds: z.array(z.string().min(1).max(4000)).max(40).default([]),
 }).superRefine((value, ctx) => {
   if (new Set(value.interiorRoomIds).size !== value.interiorRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['interiorRoomIds'], message: 'No repitas estancias.' });
   if (new Set(value.views).size !== value.views.length) ctx.addIssue({ code: 'custom', path: ['views'], message: 'No repitas vistas.' });
   if (value.freedom !== 'strict' && value.placement === 'selected' && !value.regions.length)
     ctx.addIssue({ code: 'custom', path: ['regions'], message: 'Marca al menos una zona permitida en el plano.' });
+  if (new Set(value.designRoomIds).size !== value.designRoomIds.length)
+    ctx.addIssue({ code: 'custom', path: ['designRoomIds'], message: 'No repitas estancias de diseño.' });
+  if (value.designScope === 'rooms' && !value.designRoomIds.length)
+    ctx.addIssue({ code: 'custom', path: ['designRoomIds'], message: 'Marca al menos una estancia para diseñar.' });
 });
 export type RenderDesignOptions = z.infer<typeof renderDesignOptionsSchema>;
 export type RenderViewChoice = RenderDesignOptions['views'][number];
-export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting: 'daylight', freedom: 'strict', additions: [], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [] });
+export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting: 'daylight', freedom: 'strict', additions: [], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [], designScope: 'all', designRoomIds: [] });
 
 /** ¿Se generan vistas interiores por estancia en vez de los ángulos genéricos? */
 export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
