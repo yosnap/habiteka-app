@@ -43,6 +43,7 @@ export async function assertRenderFidelity(
   view: RenderView,
   mask?: Image,
   vehicleCount = 0,
+  strictExterior = false,
 ): Promise<void> {
   await assertRenderFraming(capture, candidate);
   const [source, output, area] = await Promise.all([
@@ -61,6 +62,7 @@ export async function assertRenderFidelity(
         'Rechaza si desaparecen o se desplazan muebles grandes visibles o si se añaden construcciones.',
         'Compara también la IDENTIDAD de cada objeto exterior visible, no solo su posición. Una fila de vehículos transformada en sofás es un fallo grave aunque conserve el número y la ubicación.',
         ...(vehicleCount ? [`El plano contiene ${vehicleCount} coches. Si son visibles en la imagen 1, en la imagen 2 deben seguir siendo coches reconocibles; nunca sofás u otros muebles.`] : []),
+        ...(strictExterior ? ['El usuario pidió fidelidad estricta. Si el fondo exterior de la captura es liso o neutro, NO es terreno modelado: rechaza si el candidato lo sustituye por suelo, desierto, césped, árboles, arbustos, horizonte, cielo, aparcamiento o caminos nuevos. Mejorar texturas sobre objetos ya visibles sí está permitido.'] : []),
         ...(mask ? ['Fuera del blanco no deben aparecer objetos nuevos ni cambiar la distribución. El acabado de materiales y luz sí puede mejorar.'] : []),
         'No penalices diferencias normales de textura o decoración permitida. Ante duda sobre geometría o cámara, rechaza.',
         'Responde explícitamente cameraAndGeometryPreserved y objectIdentityPreserved. accepted solo puede ser true si ambos son true y no hay violaciones.',

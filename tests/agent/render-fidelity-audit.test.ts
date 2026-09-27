@@ -40,6 +40,15 @@ describe('auditoría de fidelidad del diseño', () => {
       .rejects.toThrow('objetos reconocibles sustituidos');
   });
 
+  it('exige auditar el paisaje inventado cuando el exterior es estricto', async () => {
+    const vision = adapter({ accepted: false, cameraAndGeometryPreserved: false,
+      objectIdentityPreserved: true, violations: ['terreno y árboles inexistentes'] });
+    await expect(assertRenderFidelity(vision, image, image, view, undefined, 0, true))
+      .rejects.toThrow('terreno y árboles inexistentes');
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('El usuario pidió fidelidad estricta') });
+  });
+
   it('falla cerrado si la respuesta no se puede validar', async () => {
     const vision = adapter({ accepted: true });
     await expect(assertRenderFidelity(vision, image, image, view)).rejects.toThrow('no respeta la vista 3D');

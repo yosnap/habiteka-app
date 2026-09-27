@@ -47,7 +47,7 @@ import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { buildEditorRenderContract } from '@/lib/editor-document/render-contract';
 import { isDesignSpaceKind, type DesignSpaceKind } from '@/lib/design-space-kind';
 import type { NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
-import { MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { isInteriorRenderMode, MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
 import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
 import { resolveRoutes } from '@/server/ai/model-routing';
@@ -547,7 +547,9 @@ async function generateConceptRenderFromEditorImpl(
     { organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision',
     { preferredProvider: 'openrouter' },
   );
-  await assertRenderFidelity(vision, reference, candidate, view, zoneMask, projectVehicleCount(document));
+  await assertRenderFidelity(vision, reference, candidate, view, zoneMask, projectVehicleCount(document),
+    options.freedom === 'strict' && !isInteriorRenderMode(options) &&
+    (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)));
   await persistDeliverables(projectId, [{
     id,
     type: 'render3d',

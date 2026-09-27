@@ -35,4 +35,20 @@ describe('instrucción de imagen basada en la captura', () => {
     expect(selectedViewImagePrompt(withCars, view, 'moderno', defaultRenderDesignOptions(), '', '', false))
       .toContain('3 coches');
   });
+
+  it('distingue vivienda terminada de maqueta y preserva el fondo neutro en modo estricto', () => {
+    const finished = { ...view, preset: 'drone' as const, cutaway: false, ceilingView: 'solid' as const };
+    const text = selectedViewImagePrompt(document, finished, 'moderno', defaultRenderDesignOptions(), '', '', false);
+    expect(text).toContain('VISTA EXTERIOR TERMINADA');
+    expect(text).toContain('El fondo liso de la captura NO representa un terreno diseñado');
+    expect(text).not.toContain('Respeta los cortes de la maqueta');
+  });
+
+  it('no describe una cámara interior como maqueta cortada', () => {
+    const options = { ...defaultRenderDesignOptions(), interiorRoomIds: ['salon'] };
+    const text = selectedViewImagePrompt(document, { ...view, preset: 'custom' }, 'moderno', options, '', '', false);
+    expect(text).toContain('VISTA INTERIOR A ALTURA DE OJOS');
+    expect(text).not.toContain('Respeta los cortes de la maqueta');
+    expect(text).not.toContain('El fondo liso de la captura');
+  });
 });
