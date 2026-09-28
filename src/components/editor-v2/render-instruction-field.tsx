@@ -15,7 +15,7 @@ export function RenderInstructionField({ value, onChange, disabled }: { value: s
   const [custom, setCustom] = useState(false);
   return <div className="space-y-2">
     <label className="text-ink-soft flex flex-col gap-1 text-sm">Instrucciones de diseño
-      <ModernSelect value={custom ? 'custom' : preset} disabled={disabled} onChange={(event) => {
+      <ModernSelect compact value={custom ? 'custom' : preset} disabled={disabled} onChange={(event) => {
         const id = event.target.value;
         setCustom(id === 'custom');
         if (id !== 'custom') { setPreset(id); onChange(suggestions.find((item) => item.id === id)?.text ?? ''); }

@@ -5,6 +5,8 @@ import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
+import { ModernSelect } from '@/components/ui/modern-select';
+import { CheckToggle } from '@/components/ui/check-toggle';
 
 interface Props {
   document?: EditorDocument;
@@ -40,21 +42,20 @@ export function DesignScopePicker({ document, options, onChange, disabled }: Pro
       ? options.designRoomIds.filter((value) => value !== id)
       : [...options.designRoomIds, id],
   });
-  return <fieldset className="mt-4 rounded-control border border-line p-3 text-sm" disabled={disabled}>
-    <legend className="text-ink px-1 font-medium">Qué parte del inmueble diseñar</legend>
-    <div className="grid gap-2 sm:grid-cols-2">
-      {scopes.map(([kind, label]) => <label key={kind} className="flex items-center gap-2">
-        <input type="radio" name="design-scope" checked={options.designScope === kind}
-          disabled={kind === 'interior' ? !interiorCount : kind === 'exterior' ? !exteriorCount : kind === 'rooms' ? !rooms.length : false}
-          onChange={() => onChange({ ...options, designScope: kind })} />{label}
-      </label>)}
-    </div>
-    {options.designScope === 'rooms' && <div className="mt-3 grid max-h-40 gap-1 overflow-y-auto border-t border-line pt-3 sm:grid-cols-2">
-      {rooms.map((room) => <label key={room.id} className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={options.designRoomIds.includes(room.id)} onChange={() => toggleRoom(room.id)} />
-        {room.label} <span className="text-muted-foreground">· {room.outdoor ? 'exterior' : 'interior'}</span>
-      </label>)}
+  return <div className="mt-4 rounded-control border border-line p-3 text-sm">
+    <label htmlFor="editor-design-scope" className="text-ink mb-1 block font-medium">Qué parte del inmueble diseñar</label>
+    <ModernSelect compact id="editor-design-scope" value={options.designScope} disabled={disabled}
+      onChange={(event) => onChange({ ...options, designScope: event.target.value as RenderDesignOptions['designScope'] })}>
+      {scopes.map(([kind, label]) => <option key={kind} value={kind}
+        disabled={kind === 'interior' ? !interiorCount : kind === 'exterior' ? !exteriorCount : kind === 'rooms' ? !rooms.length : false}>
+        {label}
+      </option>)}
+    </ModernSelect>
+    {options.designScope === 'rooms' && <div className="mt-3 grid max-h-40 gap-2 overflow-y-auto border-t border-line pt-3 sm:grid-cols-2">
+      {rooms.map((room) => <CheckToggle key={room.id} checked={options.designRoomIds.includes(room.id)}
+        disabled={disabled} onChange={() => toggleRoom(room.id)}
+        label={<>{room.label} <span className="text-muted-foreground">· {room.outdoor ? 'exterior' : 'interior'}</span></>} />)}
     </div>}
-    <p className="text-muted-foreground mt-2 text-xs">Cada aplicación conserva el resto de esta planta. Las propuestas siguientes se suman en la misma escena 3D; guarda y aprueba la versión conjunta cuando esté terminada.</p>
-  </fieldset>;
+    <p className="text-muted-foreground mt-2 text-xs">Las propuestas se suman en la misma escena 3D. Guarda y aprueba el diseño conjunto al terminar.</p>
+  </div>;
 }

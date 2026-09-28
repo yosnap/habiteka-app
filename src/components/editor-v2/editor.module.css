@@ -28,7 +28,7 @@
 }
 .shell button,
 .shell :is(select, [role='combobox']),
-.shell input {
+.shell input:not([type='checkbox']):not([type='radio']) {
   font: inherit;
   color: inherit;
   background: var(--paper);

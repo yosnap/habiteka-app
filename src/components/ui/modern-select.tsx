@@ -3,12 +3,13 @@
 import { Children, Fragment, isValidElement, useState, type ChangeEvent, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Select } from 'radix-ui';
+import styles from './modern-select.module.css';
 
-type Props = ComponentPropsWithoutRef<'select'>;
+type Props = ComponentPropsWithoutRef<'select'> & { compact?: boolean };
 interface OptionItem { value: string; label: ReactNode; disabled: boolean; group?: string; }
 
 /** Select con popover propio; acepta option/optgroup para preservar la API actual. */
-export function ModernSelect({ children, className = '', value, defaultValue, onChange, disabled, name, ...props }: Props) {
+export function ModernSelect({ children, className = '', compact = false, value, defaultValue, onChange, disabled, name, ...props }: Props) {
   const options = readOptions(children);
   const [uncontrolledValue, setUncontrolledValue] = useState(() => String(defaultValue ?? options[0]?.value ?? ''));
   const current = value !== undefined ? String(value) : uncontrolledValue;
@@ -25,7 +26,7 @@ export function ModernSelect({ children, className = '', value, defaultValue, on
 
   return <>{name && <input type="hidden" name={name} value={current} disabled={disabled} />}
     <Select.Root value={current || emptyValue} onValueChange={emitChange} disabled={disabled}>
-    <Select.Trigger className={`border-line bg-surface flex w-full items-center justify-between gap-2 rounded-control border py-1.5 pr-2 pl-2 text-left text-sm shadow-sm outline-none transition hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...triggerProps}>
+    <Select.Trigger className={`border-line bg-surface flex w-full items-center justify-between gap-2 rounded-control border py-1.5 pr-2 pl-2 text-left text-sm shadow-sm outline-none transition hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${compact ? styles.compact : ''} ${className}`} {...triggerProps}>
       <Select.Value>{options.find(item => item.value === current)?.label}</Select.Value>
       <Select.Icon><ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /></Select.Icon>
     </Select.Trigger>

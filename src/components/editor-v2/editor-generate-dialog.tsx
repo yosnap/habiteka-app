@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { DESIGN_SPACE_KINDS, type DesignSpaceKind } from '@/lib/design-space-kind';
-import { StyleGallery } from '@/components/canvas/style-gallery';
+import { ESTILOS } from '@/lib/design-options';
 import type { Estilo } from '@/lib/contracts';
 import type {
   NativeDesignProposal,
@@ -441,6 +441,7 @@ export function EditorGenerateDialog({
                 {(intent === 'image' || !spaceKind) && <label className="text-ink-soft flex flex-col gap-1 text-sm">
                   Tipo de espacio
                   <ModernSelect
+                    compact
                     value={spaceKind ?? ''}
                     disabled={busy}
                     onChange={(event) => {
@@ -471,15 +472,12 @@ export function EditorGenerateDialog({
                 </label>
                 <RenderInstructionField value={promptLibre} disabled={busy} onChange={(value) => changeContext(setPromptLibre, value)} />
                 <div className="text-ink-soft text-sm">
-                  Estilo
-                  <StyleGallery
-                    value={estilo}
-                    onChange={(value) => {
-                      setEstilo(value);
-                      invalidatePrepared();
-                    }}
-                    disabled={busy || (intent === 'editable' && options.designScope !== 'all' && Boolean(document?.designStyle))}
-                  />
+                  <label htmlFor="editor-design-style" className="mb-1 block">Estilo</label>
+                  <ModernSelect compact id="editor-design-style" value={estilo}
+                    onChange={(event) => { setEstilo(event.target.value as Estilo); invalidatePrepared(); }}
+                    disabled={busy || (intent === 'editable' && options.designScope !== 'all' && Boolean(document?.designStyle))}>
+                    {ESTILOS.map((style) => <option key={style.value} value={style.value}>{style.label}</option>)}
+                  </ModernSelect>
                   {intent === 'editable' && options.designScope !== 'all' && document?.designStyle && (
                     <p className="mt-1 text-xs">Las zonas mantienen el estilo de esta planta. Para cambiarlo, diseña la planta completa.</p>
                   )}
