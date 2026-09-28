@@ -1,7 +1,7 @@
 'use client';
 import { useMemo } from 'react';
 import { Path, Shape } from 'three';
-import { Edges } from '@react-three/drei';
+import { Edges, RoundedBoxGeometry } from '@react-three/drei';
 import type { SceneBox, ScenePolygon, SceneRamp } from '@/canvas/editor-v2/scene/types';
 import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
@@ -12,9 +12,12 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
   const faceColors = colors ?? Array.from({ length: 6 }, () => box.color);
   const clear = box.role === 'glass' || box.opacity !== undefined;
-  return <mesh position={box.position} rotation={[0, box.rotation, 0]} castShadow={!clear} receiveShadow
+  return <mesh position={box.position} rotation={[0, box.rotation, 0]}
+    scale={box.shape === 'ellipsoid' ? box.size : undefined} castShadow={!clear} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
-    {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} /> : <boxGeometry args={box.size} />}
+    {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} />
+      : box.shape === 'rounded-box' ? <RoundedBoxGeometry args={box.size} radius={Math.min(...box.size) * .2} smoothness={3} bevelSegments={2} />
+        : box.shape === 'ellipsoid' ? <sphereGeometry args={[.5, 20, 12]} /> : <boxGeometry args={box.size} />}
     {box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
         width={box.size[0]} height={box.size[2]} />

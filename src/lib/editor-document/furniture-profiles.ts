@@ -7,7 +7,7 @@ import { isKitchenRun } from './kitchen-run-types';
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
-  rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
   opacity?: number;
 }
@@ -43,10 +43,12 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
   const { heightMm: h, elevationMm: elevation, color } = furnitureSpatial(item);
   const painted = isPainted(item);
   const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [], coverage = windowCoverage(item);
-  const box = (x: number, y: number, z: number, width: number, depth: number, height: number, tint = color) => {
+  const box = (x: number, y: number, z: number, width: number, depth: number, height: number,
+    tint = color, shape?: FurnitureVolume['shape']) => {
     const applied = painted && tint !== color && !HARDWARE.has(tint) ? color : tint;
     result.push({ x: x * w, y: y * d, widthMm: width * w, depthMm: depth * d,
-      bottom: elevation + z * h, top: elevation + (z + height) * h, color: applied });
+      bottom: elevation + z * h, top: elevation + (z + height) * h, color: applied,
+      ...(shape ? { shape } : {}) });
   };
   const legs = (top: number, inset = .06) => {
     for (const x of [inset, .94 - inset]) for (const y of [inset, .94 - inset])
@@ -86,10 +88,18 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(.1, .2, .48, .8, .76, .12); box(.1, .94, .3, .8, .04, .1, '#f3eee3');
       break;
     case 'bed':
-      legs(.25); box(.02, .02, .25, .96, .96, .23, '#866b4c');
-      box(.03, .1, .48, .94, .88, .2); box(0, 0, .25, 1, .06, .75);
-      box(.08, .12, .68, .38, .16, .1, '#f3eee3');
-      box(.54, .12, .68, .38, .16, .1, '#f3eee3');
+      legs(.22); box(.02, .02, .22, .96, .96, .22, '#866b4c');
+      box(0, 0, .22, 1, .07, .78);
+      box(.04, .1, .44, .92, .87, .2, '#f3eee3', 'rounded-box');
+      box(.05, .11, .64, .9, .85, .04, '#f8f5ee', 'rounded-box');
+      box(.05, .36, .68, .9, .6, .1, '#c8c0b2', 'rounded-box');
+      box(.05, .36, .77, .9, .06, .02, '#eee8dc', 'rounded-box');
+      if (w < 1200) {
+        box(.16, .14, .68, .68, .18, .14, '#f8f5ee', 'ellipsoid');
+      } else {
+        box(.09, .14, .68, .38, .18, .14, '#f8f5ee', 'ellipsoid');
+        box(.53, .14, .68, .38, .18, .14, '#f8f5ee', 'ellipsoid');
+      }
       break;
     case 'chair':
       legs(.46); box(0, .06, .46, 1, .94, .1); box(0, 0, .46, 1, .08, .54);

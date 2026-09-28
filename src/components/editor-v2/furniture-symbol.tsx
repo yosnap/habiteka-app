@@ -38,8 +38,9 @@ export function FurnitureSymbol({ item, scale, selected, document, visual = fals
       <Ellipse x={item.widthMm / 2} y={item.depthMm / 2} radiusX={item.widthMm * .4} radiusY={item.depthMm * .4}
         stroke="#59635c" strokeWidth={.6 / scale} listening={false} /></> : parts.map((part, index) => {
       const id = partId(part), interactive = !!id && !!onPartSelect;
-      if (part.shape === 'cylinder') return <Ellipse key={index} x={part.x + part.widthMm / 2} y={part.y + part.depthMm / 2} radiusX={part.widthMm / 2} radiusY={part.depthMm / 2} fill={finish(part)} stroke="#59635c" strokeWidth={.7 / scale} listening={false} {...shadow} />;
+      if (part.shape === 'cylinder' || part.shape === 'ellipsoid') return <Ellipse key={index} x={part.x + part.widthMm / 2} y={part.y + part.depthMm / 2} radiusX={part.widthMm / 2} radiusY={part.depthMm / 2} fill={finish(part)} stroke="#59635c" strokeWidth={.7 / scale} listening={false} {...shadow} />;
       return <Rect key={index} x={part.x} y={part.y} width={part.widthMm} height={part.depthMm} rotation={part.rotation ?? 0}
+        cornerRadius={part.shape === 'rounded-box' ? Math.min(part.widthMm, part.depthMm, part.top - part.bottom) * .2 : 0}
         fill={id && id === selectedPartId ? '#43b6a0' : finish(part)} stroke="#59635c" strokeWidth={visual ? .55 / scale : .7 / scale} opacity={part.opacity ?? 1}
         {...(visual && part.top / highest > .4 ? shadow : {})}
         draggable={!!id && !!onPartMove} onDragStart={(e) => { e.cancelBubble = true; if (id) onPartSelect?.(id); }}
