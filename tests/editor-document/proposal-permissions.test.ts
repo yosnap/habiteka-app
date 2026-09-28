@@ -38,6 +38,7 @@ it('estricto impide objetos aunque el modelo los devuelva', () => {
   const strict = parseNativeDesignProposal(raw, 'moderno', doc, options);
   expect(strict.furniture).toEqual([]);
   expect(strict.summary).toContain('Se descartaron 1 objeto(s)');
+  expect(strict.summary).not.toContain('Plantas');
   expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'controlled', additions: ['plants'] }).furniture).toEqual([item]);
 });
 it('descarta muebles propuestos fuera del ámbito editable aunque el modelo los devuelva', () => {

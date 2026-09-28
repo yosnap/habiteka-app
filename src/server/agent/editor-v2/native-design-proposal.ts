@@ -91,9 +91,12 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
     addSuggestedFurniture(candidateDoc, item, rooms, allowedRooms);
   }
   const discarded = rawFurniture.length - furniture.length;
-  const summary = discarded > 0
-    ? `Propuesta de acabados. Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación; solo se aplicarán los ${furniture.length} objetos listados.`
-    : typeof input.summary === 'string' ? input.summary.slice(0, 500) : 'Propuesta de acabados y mobiliario.';
+  // El texto libre del modelo puede atribuir montajes o muebles que el plano no
+  // representa. El resumen se construye a partir de la propuesta validada.
+  const objectLabels = furniture.map((item) => getFurnitureCatalogEntry(item.catalogId)?.label ?? item.catalogId);
+  const summary = [`Propuesta ${estiloLabel(style)}: revisa los acabados antes de aplicar.`,
+    objectLabels.length ? `Objetos aplicables: ${objectLabels.join(', ')}.` : 'Sin objetos aplicables.',
+    discarded ? `Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación.` : ''].filter(Boolean).join(' ');
   return { style, summary,
     scope, sourceRevision: document.revision,
     materials: { walls: material('walls', 'plaster-white'), floors: floor, stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
