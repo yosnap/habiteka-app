@@ -2,6 +2,7 @@ import { boundaryDesignContext, BOUNDARY_RENDER_POLICY } from './boundary-contex
 import type { EditorDocument, Point } from './schema';
 import { buildingDocuments } from './building-levels';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
+import { surfaceMaterial } from './surface-materials';
 import { isRampLanding } from './ramp-kind';
 import { rampParts } from './ramp-route';
 import { deriveRooms } from './rooms';
@@ -76,6 +77,14 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
           perimeter: meters(room.boundary.reduce((sum, point, index) => sum + distance(point, room.boundary[(index + 1) % room.boundary.length]!), 0)),
           finishedElevation: meters(elevationMm), undersideElevation: meters(Math.max(0, elevationMm - slabDepthMm)),
           slabDepth: meters(slabDepthMm),
+        },
+        attributes: {
+          'acabado superior': surfaceMaterial(finish.texture)?.label ?? finish.texture,
+          'color superior': finish.color,
+          ...(elevationMm > 0 ? {
+            'acabado del canto y cara inferior': surfaceMaterial(finish.undersideTexture)?.label ?? 'sin textura',
+            'color del canto y cara inferior': finish.undersideColor ?? '#756f66',
+          } : {}),
         },
         relationships: elevationMm > 0
           ? ['Plataforma elevada: las circulaciones que llegan a este suelo terminan en su cota de acabado.']

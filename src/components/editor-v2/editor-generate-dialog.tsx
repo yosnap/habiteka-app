@@ -742,6 +742,11 @@ function ProposalPreview({
               ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
           </Choice>
         ))}
+        {proposal.materials.slabUndersides && <p className="text-ink-soft col-span-2 text-xs">
+          Con suelos: canto y cara inferior de los forjados elevados · {materialLabel(proposal.materials.slabUndersides)}
+          {palette && !palette.slabUndersides.includes(proposal.materials.slabUndersides)
+            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
+        </p>}
       </div>
       <div>
         <p className="font-medium">Mobiliario e iluminación</p>

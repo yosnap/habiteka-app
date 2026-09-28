@@ -7,7 +7,7 @@ import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { floorFinish } from '@/lib/editor-document/floor-finishes';
+import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
@@ -66,6 +66,20 @@ it('aplica una propuesta solo a la estancia elegida', () => {
   const next = applyNativeDesignProposal(source, { ...proposal, scope: { kind: 'rooms', roomIds: [roomId] } });
   expect(floorFinish(next, roomId).texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, patioId)).toEqual(floorFinish(source, patioId));
+});
+
+it('aplica el canto propuesto solo a forjados elevados del ámbito exterior', () => {
+  const house = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const joined = addOutdoorArea(house, { x: 4000, y: 0 }, { x: 7000, y: 4000 });
+  const interior = eligibleCeilingRooms(joined)[0]!.id;
+  const terrace = deriveRooms(joined).find((room) => room.id !== interior)!.id;
+  const source = setFloorFinish(setFloorFinish(joined, interior, { elevationMm: 900,
+    undersideTexture: 'polyhaven:wood_floor' }), terrace, { elevationMm: 1000 });
+  const next = applyNativeDesignProposal(source, { ...proposal, scope: { kind: 'exterior', roomIds: [] },
+    materials: { ...proposal.materials, slabUndersides: 'polyhaven:brushed_concrete' } });
+  expect(floorFinish(next, terrace)).toMatchObject({ undersideTexture: 'polyhaven:brushed_concrete', undersideColor: '#ffffff' });
+  expect(floorFinish(next, interior).undersideTexture).toBe('polyhaven:wood_floor');
+  expect(floorFinish(source, terrace).undersideTexture).toBeUndefined();
 });
 
 it('limita los acabados a la terraza y piezas exteriores elegidas, incluidos los descansillos', () => {

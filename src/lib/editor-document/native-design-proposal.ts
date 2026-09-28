@@ -29,6 +29,7 @@ export interface NativeDesignProposal {
   materials: {
     walls: string;
     floors: FloorFinish['texture'];
+    slabUndersides?: FloorFinish['undersideTexture'];
     stairs: string;
     ramps: string;
     columns: string;
@@ -65,6 +66,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   const ramps = material(proposal.materials.ramps);
   const columns = material(proposal.materials.columns);
   const floorTexture = isFloorTexture(proposal.materials.floors) ? proposal.materials.floors : 'none';
+  const slabUnderside = proposal.materials.slabUndersides;
 
   if (selection.walls) doc.walls.forEach((wall) => {
     const sides = scope.kind === 'all' ? ['left', 'right'] as const
@@ -96,7 +98,9 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   if (selection.floors) for (const room of selectedRooms) {
     const current = floorFinish(doc, room.id);
     doc.floorFinishes = doc.floorFinishes.filter((finish) => finish.roomId !== room.id);
-    doc.floorFinishes.push({ ...current, roomId: room.id, texture: floorTexture, color: '#ffffff' });
+    doc.floorFinishes.push({ ...current, roomId: room.id, texture: floorTexture, color: '#ffffff',
+      ...((current.elevationMm ?? 0) > 0 && slabUnderside && surfaceMaterial(slabUnderside)
+        ? { undersideTexture: slabUnderside, undersideColor: '#ffffff' } : {}) });
   }
   for (const index of selection.furniture) {
     const item = proposal.furniture[index];

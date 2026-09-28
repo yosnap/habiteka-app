@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { allowedProposalFurniture, polygonContainsFootprint } from '@/lib/editor-document/proposal-permissions';
-import { parseNativeDesignProposal, proposeNativeDesign } from '@/server/agent/editor-v2/native-design-proposal';
+import { NATIVE_DESIGN_SCHEMA, parseNativeDesignProposal, proposeNativeDesign } from '@/server/agent/editor-v2/native-design-proposal';
 import type { ChatVisionAdapter } from '@/lib/contracts';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
@@ -9,6 +9,13 @@ import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 
 const item = { catalogId: 'habiteka:furniture:planta', xMm: 1000, yMm: 1000, rotation: 0, reason: 'Vegetación' };
 const options = defaultRenderDesignOptions();
+it('valida el acabado opcional del canto y exige una salida estructurada completa', () => {
+  const doc = emptyEditorDocument();
+  expect(NATIVE_DESIGN_SCHEMA.properties?.materials?.required).toContain('slabUndersides');
+  const base = { summary: 'Terraza', furniture: [], materials: { slabUndersides: 'polyhaven:brushed_concrete' } };
+  expect(parseNativeDesignProposal(base, 'moderno', doc, options).materials.slabUndersides).toBe('polyhaven:brushed_concrete');
+  expect(parseNativeDesignProposal({ ...base, materials: { slabUndersides: 'none' } }, 'moderno', doc, options).materials.slabUndersides).toBeUndefined();
+});
 it('valida permisos antes de consultar al proveedor', async () => {
   let called = false;
   const chat: ChatVisionAdapter = {

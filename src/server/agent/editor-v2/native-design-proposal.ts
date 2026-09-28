@@ -19,8 +19,9 @@ export const NATIVE_DESIGN_SCHEMA: JsonSchema = {
   type: 'object', additionalProperties: false, required: ['summary', 'materials', 'furniture'],
   properties: {
     summary: { type: 'string' },
-    materials: { type: 'object', additionalProperties: false, required: ['walls', 'floors', 'stairs', 'ramps', 'columns'], properties: {
-      walls: { type: 'string' }, floors: { type: 'string' }, stairs: { type: 'string' }, ramps: { type: 'string' }, columns: { type: 'string' },
+    materials: { type: 'object', additionalProperties: false, required: ['walls', 'floors', 'slabUndersides', 'stairs', 'ramps', 'columns'], properties: {
+      walls: { type: 'string' }, floors: { type: 'string' }, slabUndersides: { type: 'string' },
+      stairs: { type: 'string' }, ramps: { type: 'string' }, columns: { type: 'string' },
     } },
     furniture: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['catalogId', 'xMm', 'yMm', 'rotation', 'reason'], properties: {
       catalogId: { type: 'string' }, xMm: { type: 'number' }, yMm: { type: 'number' }, rotation: { type: 'number' }, reason: { type: 'string' },
@@ -66,6 +67,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     'El ambiente de captura y los ángulos son ajustes para imágenes. Conserva los techos y luminarias existentes. Si se permite iluminación y se pide una luz exterior real, puedes añadir habiteka:outdoor:tira-led dentro de furniture: su luz es visible en la escena 3D. No inventes luminarias fuera del catálogo. Resume solo cambios que realmente propones.',
     `Materiales permitidos: ${materials}.`,
     'Suelo permitido: none, wood, tile, o cualquiera de los materiales permitidos.',
+    'Para el canto y la cara inferior de terrazas o plataformas elevadas, usa materials.slabUndersides con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. Solo afecta a forjados elevados dentro del ámbito editable.',
     `Catálogo permitido: ${furniture}.`,
     'Contexto físico autoritativo:', JSON.stringify(editorDesignContext(document)),
   ].filter(Boolean).join('\n');
@@ -78,6 +80,8 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   if (!materials) throw new Error('La IA no devolvió acabados válidos.');
   const material = (key: string, fallback: string) => typeof materials[key] === 'string' && MATERIAL_IDS.has(materials[key] as string) ? materials[key] as string : fallback;
   const floor = typeof materials.floors === 'string' && FLOOR_TEXTURES.has(materials.floors) ? materials.floors as FloorFinish['texture'] : 'none';
+  const slabUndersides = typeof materials.slabUndersides === 'string' && MATERIAL_IDS.has(materials.slabUndersides)
+    ? materials.slabUndersides as FloorFinish['undersideTexture'] : undefined;
   const scope = scopeFromOptions(options);
   const allowedRooms = new Set(designScopeRooms(document, scope).map((room) => room.id));
   const candidateDoc = upgradeSpatialDocument(document);
@@ -99,7 +103,8 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
     discarded ? `Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación.` : ''].filter(Boolean).join(' ');
   return { style, summary,
     scope, sourceRevision: document.revision,
-    materials: { walls: material('walls', 'plaster-white'), floors: floor, stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
+    materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides,
+      stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
 }
 
 function scopeFromOptions(options: RenderDesignOptions): DesignScope {

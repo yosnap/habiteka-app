@@ -5,6 +5,7 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
 
 it('entrega a la propuesta los acabados existentes de ambas caras y el estilo de la planta', () => {
   const doc = addWallPath(emptyEditorDocument(), [
@@ -38,4 +39,18 @@ it('resume la paleta guardada de otras plantas al diseñar una planta nueva', ()
   expect(context.existingMaterialPalette.floors).toContain('polyhaven:stone_tiles');
   expect(context.levels[0]!.designStyle).toBe('moderno');
   expect(upper.walls).toEqual([]);
+});
+
+it('entrega el material del canto elevado y lo reutiliza en la paleta del inmueble', () => {
+  const shell = addWallPath(emptyEditorDocument(), [
+    { x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 },
+  ], true);
+  const roomId = deriveRooms(shell)[0]!.id;
+  const doc = setFloorFinish(shell, roomId, { elevationMm: 1000,
+    undersideTexture: 'polyhaven:brushed_concrete', undersideColor: '#ffffff' });
+  const context = editorDesignContext(doc);
+  expect(context.levels[0]!.floors[0]!.slabUnderside).toMatchObject({
+    texture: 'polyhaven:brushed_concrete', color: '#ffffff',
+  });
+  expect(context.existingMaterialPalette.slabUndersides).toContain('polyhaven:brushed_concrete');
 });
