@@ -237,8 +237,9 @@ export function EditorShell({
   }, []);
   const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
     const capture = await awaitScene();
-    return capture({ view: options.views[0] ?? 'current', lighting: options.lighting, fit: true,
-      ...(keyframeCamera.current && options.views[0] === 'current' ? { camera: keyframeCamera.current } : {}) });
+    const view = options.views[0] ?? 'current';
+    return capture({ view, lighting: options.lighting, fit: view !== 'current',
+      ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) });
   }, [awaitScene]);
   const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });
   const designWalkthroughPoint = async (waypointId: string) => {
@@ -901,7 +902,7 @@ export function EditorShell({
               return captures;
             }
             for (const view of options.views) {
-              captures.push(await capture({ view, lighting: options.lighting, fit: true, ...zoneMask,
+              captures.push(await capture({ view, lighting: options.lighting, fit: view !== 'current', ...zoneMask,
                 ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) }));
               if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
             }
