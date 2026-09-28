@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
@@ -105,6 +105,15 @@ describe('representación de techos e iluminación', () => {
     expect(captureCeilingView('drone', context)).toBe('solid');
     expect(captureCutaway('front', true, true)).toBe(false);
     expect(captureCutaway('right', true, true)).toBe(false);
+  });
+  it('adapta el techo al cambiar entre maqueta y vistas exteriores terminadas', () => {
+    for (const view of ['front', 'back', 'left', 'right', 'drone']) {
+      expect(presetCeilingView(view, 'transparent', true)).toBe('solid');
+      expect(presetCeilingView(view, 'hidden', false)).toBe('hidden');
+    }
+    expect(presetCeilingView('isometric', 'solid', true)).toBe('transparent');
+    expect(presetCeilingView('top', 'solid', true)).toBe('hidden');
+    expect(presetCeilingView('fit', 'solid', true)).toBe('solid');
   });
   it('oculta techo en órbita libre por encima del edificio solo con corte activo', () => {
     const context = { cutaway: true, cameraHeightM: 8, highestCeilingM: 5.4 };

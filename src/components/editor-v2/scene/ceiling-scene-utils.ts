@@ -6,6 +6,13 @@ import { spotAimVector, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM, type CeilingSu
 
 export type CeilingView = 'hidden' | 'transparent' | 'solid';
 export const MAX_LUMINAIRE_LIGHTS = 12;
+/** Las cámaras de presentación muestran la cubierta terminada si existe; la maqueta deja ver el interior. */
+export function presetCeilingView(view: string, current: CeilingView, completeRoof: boolean): CeilingView {
+  if (view === 'top') return 'hidden';
+  if (view === 'isometric') return current === 'solid' ? 'transparent' : current;
+  if (completeRoof && (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'drone')) return 'solid';
+  return current;
+}
 /** El falso techo baja hacia el interior; la losa exterior arranca a la altura de los muros. */
 export function roofSlabPlacement(surface: Pick<CeilingSurface, 'heightMm' | 'ceiling'>) {
   const bottomM = (surface.heightMm + surface.ceiling.dropMm) / 1000;

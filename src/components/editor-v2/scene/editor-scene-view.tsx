@@ -32,9 +32,8 @@ import { nativeVideoDurationIssue, type NativeVideoMode } from '@/lib/editor-doc
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { SceneEnvironment } from './scene-environment';
-import { SceneGround } from './scene-ground';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
-import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, presetCeilingView, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { resolvedLuminaires, ceilingSurfaces, hasCompleteInteriorRoof, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
@@ -444,7 +443,11 @@ function SceneView({
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
     if (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
-    if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
+    if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') {
+      setActiveView(action);
+      const roof = presetCeilingView(action, ceilingView, !renderAllLevels && hasCompleteInteriorRoof(document));
+      if (roof !== ceilingView) store.getState().setCeilingView(roof);
+    }
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'],
       focus: !renderAllLevels && (action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone')
         ? scenePresetFocus(document, action, activeElevation) : undefined }));
@@ -565,7 +568,6 @@ function SceneView({
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <SceneEnvironment preset={lighting} />
-      {presentation === 'spatial' && <SceneGround scene={scene} elevationMm={activeElevation} />}
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]} onContextMenu={presentation === 'plan' ? (event) => {
           const id = sceneEntityId(event.object), item = document.furniture.find((entry) => entry.id === id);
