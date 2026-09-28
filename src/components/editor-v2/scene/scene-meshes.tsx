@@ -49,6 +49,9 @@ export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; select
     <boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} />
     {[0, 1, 2, 3, 4, 5].map((face) => face === 2 && ramp.floorFinish
       ? <FloorMaterial key={face} finish={ramp.floorFinish} attach={`material-${face}`} width={ramp.width} height={ramp.depth} />
+      : ramp.bodyMaterialId ? <SurfaceMaterial key={face} attach={`material-${face}`} id={ramp.bodyMaterialId}
+        color={selected ? '#43b6a0' : '#ffffff'} width={face === 0 || face === 1 ? ramp.depth : ramp.width}
+        height={face === 3 ? ramp.depth : Math.max(ramp.baseHeight, .02)} />
       : <meshStandardMaterial key={face} attach={`material-${face}`} color={selected ? '#43b6a0' : structuralColor} roughness={.75} />)}
   </mesh>;
   const { vertices, indices } = rampPrismGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);

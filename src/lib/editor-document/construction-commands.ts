@@ -85,6 +85,7 @@ export function updateRamp(input: EditorDocument, id: string, patch: Partial<Omi
   const doc = upgradeRampDocument(input), ramp = doc.ramps!.find((entity) => entity.id === id);
   if (!ramp) throw new Error('Rampa no encontrada');
   Object.assign(ramp, transformAroundCenter(ramp, patch));
+  if ('bodyMaterialId' in patch && patch.bodyMaterialId === undefined) delete ramp.bodyMaterialId;
   if (patch.materialId) ramp.color = finishColor(patch.materialId);
   if (isRampLanding(ramp)) {
     if (patch.widthMm !== undefined || patch.depthMm !== undefined || patch.elevationMm !== undefined) keepLandingAttached(doc, ramp);

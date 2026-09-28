@@ -98,6 +98,8 @@ export interface Ramp extends Point {
   elevationMm: number;
   rotation: number;
   materialId: string;
+  /** PBR finish of the vertical sides and underside of a standalone landing. */
+  bodyMaterialId?: string;
   color?: string;
   /** Pasamanos por lado de circulación; se aplican a cada tramo inclinado. */
   railingLeft?: boolean;

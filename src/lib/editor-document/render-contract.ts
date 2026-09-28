@@ -171,6 +171,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
           position: { x: meters(ramp.x), y: meters(ramp.y), elevation: meters(ramp.elevationMm) }, rotationDeg: degrees(ramp.rotation),
           dimensions: { width: meters(ramp.widthMm), depth: meters(ramp.depthMm), elevation: meters(ramp.elevationMm) },
           areaM2: area(ramp.widthMm * ramp.depthMm),
+          attributes: {
+            'acabado transitable': surfaceMaterial(ramp.materialId)?.label ?? ramp.materialId,
+            ...(ramp.bodyMaterialId ? { 'acabado del canto y cara inferior': surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
+          },
           relationships: ['Plataforma horizontal maciza desde la cota base hasta su cota de acabado.'],
         });
         continue;

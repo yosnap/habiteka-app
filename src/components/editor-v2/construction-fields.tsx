@@ -103,6 +103,8 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
     <MaterialField label="Acabado transitable" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
+    {landing && <SurfaceMaterialPicker label="Canto y cara inferior del descansillo" value={ramp.bodyMaterialId}
+      onChange={(bodyMaterialId) => edit((doc) => updateRamp(doc, ramp.id, { bodyMaterialId }))} />}
     {!landing && <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingLeft: !(ramp.railingLeft ?? true) }))}>
         {ramp.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}

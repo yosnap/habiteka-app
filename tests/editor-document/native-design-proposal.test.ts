@@ -98,7 +98,8 @@ it('limita los acabados a la terraza y piezas exteriores elegidas, incluidos los
     { id: 'landing-target', catalogId: 'builtin:ramp-landing', x: 7200, y: 5700, widthMm: 1000,
       depthMm: 1000, riseMm: 0, elevationMm: 500, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' },
     { id: 'landing-other', catalogId: 'builtin:ramp-landing', x: -4200, y: 5700, widthMm: 1000,
-      depthMm: 1000, riseMm: 0, elevationMm: 500, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' },
+      depthMm: 1000, riseMm: 0, elevationMm: 500, rotation: 0, materialId: 'concrete-grey',
+      bodyMaterialId: 'polyhaven:wood_floor', color: '#a6a6a0' },
   ];
   const rooms = deriveRooms(doc);
   const terrace = rooms.find((room) => insideRoom({ x: 5500, y: 2000 }, room.boundary))!;
@@ -106,11 +107,13 @@ it('limita los acabados a la terraza y piezas exteriores elegidas, incluidos los
   const next = applyNativeDesignProposal(doc, {
     ...proposal, scope: { kind: 'rooms', roomIds: [terrace.id],
       structureIds: ['stair-target', 'ramp-target', 'landing-target'] },
+    materials: { ...proposal.materials, landingBodies: 'polyhaven:white_plaster_02' },
   }, { walls: false, floors: true, stairs: true, ramps: true, columns: false, furniture: [] });
   expect(floorFinish(next, terrace.id).texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, other.id)).toEqual(floorFinish(doc, other.id));
   expect(next.stairs?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'wood-oak']);
   expect(next.ramps?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'polyhaven:wood_floor', 'concrete-grey']);
+  expect(next.ramps?.map((item) => item.bodyMaterialId)).toEqual([undefined, 'polyhaven:white_plaster_02', 'polyhaven:wood_floor']);
   expect(next.walls).toEqual(doc.walls);
   expect(() => applyNativeDesignProposal(doc, { ...proposal, scope: { kind: 'rooms', roomIds: [terrace.id], structureIds: ['missing'] } }))
     .toThrow('ya no coincide');

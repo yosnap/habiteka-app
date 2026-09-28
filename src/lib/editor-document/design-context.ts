@@ -153,6 +153,7 @@ export function editorDesignContext(doc: EditorDocument) {
             rise: meters(ramp.riseMm),
           },
           rotationDeg: ramp.rotation,
+          ...(ramp.bodyMaterialId ? { bodyFinish: surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
           elevationProfileM: {
             start: meters(ramp.elevationMm),
             firstArrival: meters(ramp.elevationMm + ramp.riseMm),

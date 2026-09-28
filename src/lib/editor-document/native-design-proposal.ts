@@ -12,6 +12,7 @@ import { outdoorVolumes } from './outdoor-volumes';
 import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 import { wallConstruction } from './construction-properties';
+import { isRampLanding } from './ramp-kind';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -30,6 +31,7 @@ export interface NativeDesignProposal {
     walls: string;
     floors: FloorFinish['texture'];
     slabUndersides?: FloorFinish['undersideTexture'];
+    landingBodies?: FloorFinish['undersideTexture'];
     stairs: string;
     ramps: string;
     columns: string;
@@ -67,6 +69,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   const columns = material(proposal.materials.columns);
   const floorTexture = isFloorTexture(proposal.materials.floors) ? proposal.materials.floors : 'none';
   const slabUnderside = proposal.materials.slabUndersides;
+  const landingBody = proposal.materials.landingBodies;
 
   if (selection.walls) doc.walls.forEach((wall) => {
     const sides = scope.kind === 'all' ? ['left', 'right'] as const
@@ -92,7 +95,11 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
       (scope.kind === 'exterior' && !scopeContainsPoint(indoorRooms, point));
   };
   if (selection.stairs) doc.stairs?.filter(inScope).forEach((stair) => { stair.materialId = stairs; stair.color = '#ffffff'; });
-  if (selection.ramps) doc.ramps?.filter(inScope).forEach((ramp) => { ramp.materialId = ramps; ramp.color = '#ffffff'; });
+  if (selection.ramps) doc.ramps?.filter(inScope).forEach((ramp) => {
+    ramp.materialId = ramps;
+    ramp.color = '#ffffff';
+    if (isRampLanding(ramp) && landingBody && surfaceMaterial(landingBody)) ramp.bodyMaterialId = landingBody;
+  });
   if (selection.columns) doc.columns?.filter(inScope).forEach((column) => { column.materialId = columns; column.color = '#ffffff'; });
 
   if (selection.floors) for (const room of selectedRooms) {

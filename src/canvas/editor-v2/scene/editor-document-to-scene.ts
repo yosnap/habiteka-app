@@ -1,5 +1,5 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
-import type { EditorDocument, Point } from '@/lib/editor-document/schema';
+import type { EditorDocument, FloorFinish, Point } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from './types';
 import { wallMeshes, junctionMeshes } from './wall-meshes';
@@ -42,11 +42,12 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
     floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves], floorVoids);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
   const entrances: ScenePolygon[] = landingEntranceSurfaces(doc).map(({ openingId, landing, points }) => {
-    const finish = walkableSurfaceFinish(landing.materialId, landing.color);
+    const finish = { ...walkableSurfaceFinish(landing.materialId, landing.color),
+      undersideTexture: landing.bodyMaterialId as FloorFinish['undersideTexture'] };
     return { id: `${openingId}:landing-surface`, sourceEntityId: landing.id, role: 'floor',
       points: points.map((p) => ({ x: meters(p.x), y: meters(p.y) })),
       elevation: 0, height: meters(landing.elevationMm) + .0005,
-      color: finish.color, sideColor: '#756f66', floorFinish: finish };
+      color: finish.color, sideColor: landing.bodyMaterialId ? '#ffffff' : '#756f66', floorFinish: finish };
   });
   const terrain: ScenePolygon[] = layeredTerrainSurfaces(doc).map((surface, index) => ({
     id: surface.id, sourceEntityId: surface.id, role: 'floor',

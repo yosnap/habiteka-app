@@ -225,7 +225,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         stairs:
           'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
         ramps:
-          'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route railingLeft railingRight',
+          'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId bodyMaterialId route railingLeft railingRight',
         columns:
           'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
         comments: 'id targetEntityId anchor text',
@@ -349,6 +349,9 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
+        if (e.bodyMaterialId !== undefined &&
+          (e.catalogId !== 'builtin:ramp-landing' || e.riseMm !== 0 || !surfaceMaterial(e.bodyMaterialId as string)))
+          throw new Error('Acabado del cuerpo del descansillo inválido');
         positive(e.widthMm);
         positive(e.depthMm);
         nonnegative(e.riseMm);
