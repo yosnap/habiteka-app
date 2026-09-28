@@ -15,7 +15,7 @@ export function RenderLivePreview({ capture, lighting, view, options, onPreview,
   onExpand: (src: string, label: string, maskSrc?: string) => void;
 }) {
   const [result, setResult] = useState<{ key: string; capture?: RenderCapture; error?: string }>();
-  const key = `${lighting}:${view}:${options.placement}:${options.freedom}:${JSON.stringify(options.regions)}`;
+  const key = `${lighting}:${view}:${options.placement}:${options.freedom}:${options.designScope}:${options.designZoneId}:${JSON.stringify(options.regions)}`;
   useEffect(() => {
     if (!onPreview) return;
     let cancelled = false;

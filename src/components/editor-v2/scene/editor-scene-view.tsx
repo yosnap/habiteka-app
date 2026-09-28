@@ -14,7 +14,8 @@ import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
 import { scenePresetFocus, sceneZoneFocus } from './scene-preset-focus';
-import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
+import { CutawayWall, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
+import { zoneOccludingWallIds } from './zone-occluding-walls';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
 import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
@@ -245,6 +246,7 @@ function SceneView({
       const originalTarget = controls?.target.clone();
       const originalSelection = [...store.getState().selection];
       let restoreWalls: (() => void) | null = null;
+      let restoreZoneWalls: (() => void) | null = null;
       let restoreLighting: (() => void) | null = null;
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
@@ -275,6 +277,10 @@ function SceneView({
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
       const cut = options?.camera ? false : options?.view && options.view !== 'current'
         ? captureCutaway(options.view, wallCutaway, finishedExterior) : wallCutaway;
+      const zoneWallIds = options?.maskRegions?.length && !options.camera && capturedView !== 'top'
+        ? zoneOccludingWallIds(currentDocument, initial.camera.position, options.maskRegions,
+          (activeElevation + 1500) / 1000) : [];
+      const capturedCutaway = cut || zoneWallIds.length > 0;
       if (options?.camera) {
         const pose = cameraPoseSchema.parse(options.camera);
         if (allLevels) throw new Error('Activa Solo planta activa antes de capturar un punto del recorrido.');
@@ -293,7 +299,7 @@ function SceneView({
           ? presentation === 'plan' ? 'hidden' : inside ? 'solid' : ceilingView
           : captureCeilingView(
         capturedView,
-        { cutaway: cut, forDesign: !fullResolution, cameraHeightM: initial.camera.position.y,
+        { cutaway: capturedCutaway, forDesign: !fullResolution, cameraHeightM: initial.camera.position.y,
           highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null, finishedExterior },
       );
       flushSync(() => setCaptureCeilings(capturedCeilingView));
@@ -305,6 +311,7 @@ function SceneView({
       if (!state || state.gl.getContext().isContextLost()) throw new Error('La vista 3D no está disponible.');
       // Recorte aplicado aquí mismo y no vía estado: debe estar en ESTA foto.
       if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
+      if (zoneWallIds.length) restoreZoneWalls = hideWallsByIds(state.scene, new Set(zoneWallIds));
       // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
       if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
       state.gl.render(state.scene, state.camera);
@@ -318,14 +325,15 @@ function SceneView({
       return { dataUrl, ...(maskDataUrl ? { maskDataUrl } : {}),
         ...(downloadDataUrl ? { downloadDataUrl } : {}), view: {
         preset: options?.camera ? 'custom' : options?.view && options.view !== 'current' ? options.view : activeView ?? 'custom', focus: camera.position.clone().add(camera.getWorldDirection(new Vector3())).toArray(), levelId: currentDocument.activeLevelId ?? null, levelElevationM: allLevels ? (buildingDocuments(currentDocument).find((level) => level.id === currentDocument.activeLevelId)?.elevationMm ?? 0) / 1000 : 0, position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
-        fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: cut,
+        fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: capturedCutaway,
         ceilingView: capturedCeilingView,
         lighting: options?.lighting ?? originalLighting,
-        cutawayWallIds: cut ? scene.exteriorWalls.filter((wall) =>
+        cutawayWallIds: [...new Set([...(cut ? scene.exteriorWalls.filter((wall) =>
           (camera.position.x - wall.x) * wall.normalX + (camera.position.z - wall.z) * wall.normalZ > .01,
-        ).map((wall) => wall.sourceEntityId) : [],
+        ).map((wall) => wall.sourceEntityId) : []), ...zoneWallIds])],
       } };
       } finally {
+        restoreZoneWalls?.();
         restoreWalls?.();
         restoreLighting?.();
         const renderer = root.current?.get().gl;
@@ -591,7 +599,7 @@ function SceneView({
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
           {scene.polygons.map((polygon) => <group key={polygon.id} position={planPreview?.id === polygon.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
+            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>)}
@@ -599,7 +607,8 @@ function SceneView({
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
             return <group key={box.id} position={planPreview?.id === box.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-              userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1 }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
+              userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1,
+                cutawayWallId: cuttable ? hostWallId ?? box.sourceEntityId : undefined }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>;

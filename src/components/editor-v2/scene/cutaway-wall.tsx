@@ -22,6 +22,18 @@ export function hideWallsFacingCamera(root: Object3D, camera: Camera): () => voi
   return () => hidden.forEach((object) => { object.visible = true; });
 }
 
+/** Oculta durante una captura también tabiques y huecos vinculados a un muro. */
+export function hideWallsByIds(root: Object3D, wallIds: ReadonlySet<string>): () => void {
+  const hidden: Object3D[] = [];
+  root.traverse((object) => {
+    if (object.visible && wallIds.has(object.userData.cutawayWallId as string)) {
+      object.visible = false;
+      hidden.push(object);
+    }
+  });
+  return () => hidden.forEach((object) => { object.visible = true; });
+}
+
 /**
  * Enciende para una captura la iluminación que el usuario ocultó en «Vista»:
  * ocultarla es para trabajar cómodo, pero techos y luces forman parte del diseño.
