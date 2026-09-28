@@ -10,6 +10,8 @@ export interface FurnitureVolume {
   rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
   opacity?: number;
+  /** Aspecto exclusivo del render; no altera el volumen usado para colisiones. */
+  appearance?: 'water';
 }
 
 /** El mueble lleva un color distinto al de catálogo: el usuario lo ha pintado. */

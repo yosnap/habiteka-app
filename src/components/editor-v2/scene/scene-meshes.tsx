@@ -7,18 +7,19 @@ import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
+import { WaterSurfaceMaterial } from './water-surface-material';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
   const faceColors = colors ?? Array.from({ length: 6 }, () => box.color);
-  const clear = box.role === 'glass' || box.opacity !== undefined;
+  const clear = box.role === 'glass' || box.opacity !== undefined || box.appearance === 'water';
   return <mesh position={box.position} rotation={[0, box.rotation, 0]}
     scale={box.shape === 'ellipsoid' ? box.size : undefined} castShadow={!clear} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
     {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} />
       : box.shape === 'rounded-box' ? <RoundedBoxGeometry args={box.size} radius={Math.min(...box.size) * .2} smoothness={3} bevelSegments={2} />
         : box.shape === 'ellipsoid' ? <sphereGeometry args={[.5, 20, 12]} /> : <boxGeometry args={box.size} />}
-    {box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
+    {box.appearance === 'water' ? <WaterSurfaceMaterial color={selected ? '#43b6a0' : box.color} width={box.size[0]} depth={box.size[2]} /> : box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
         width={box.size[0]} height={box.size[2]} />
       : index === 2 && box.topColor

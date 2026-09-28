@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument, type Stair } from '@/lib/editor-document/schema';
-import { addOpening, addWallPath, shapePoints } from '@/canvas/editor-v2/editing-operations';
+import { addFurniture, addOpening, addWallPath, shapePoints } from '@/canvas/editor-v2/editing-operations';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
+import { OUTDOOR_CATALOG } from '@/lib/editor-document/outdoor-catalog';
 import { wallMeshes, junctionMeshes } from '@/canvas/editor-v2/scene/wall-meshes';
 import { openingMeshes } from '@/canvas/editor-v2/scene/opening-meshes';
 import { setWallCurve } from '@/lib/editor-document/curve-commands';
@@ -9,6 +10,15 @@ import { stairMeshes } from '@/canvas/editor-v2/scene/stair-meshes';
 import { Shape, ShapeGeometry } from 'three';
 
 describe('canonical scene projection', () => {
+  it.each(['piscina', 'estanque'])('proyecta el agua de %s sin cambiar su volumen', (kind) => {
+    const entry = OUTDOOR_CATALOG.find((item) => item.kind === kind)!;
+    const doc = addFurniture(emptyEditorDocument(), entry, { x: 0, y: 0 });
+    const water = editorDocumentToScene(doc).boxes.find((box) => box.appearance === 'water');
+    expect(water?.sourceEntityId).toBe(doc.furniture[0]!.id);
+    expect(water?.size).toEqual([
+      entry.widthMm * .88 / 1000, entry.heightMm * .02 / 1000, entry.depthMm * .88 / 1000,
+    ]);
+  });
   it('converts mm to meters with stable origin without mutating legacy v2', () => {
     const doc = addWallPath(emptyEditorDocument(), [{ x: 1000, y: 2000 }, { x: 6000, y: 2000 }]);
     const snapshot = structuredClone(doc), scene = editorDocumentToScene(doc);

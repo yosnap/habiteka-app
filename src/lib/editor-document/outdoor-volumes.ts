@@ -67,7 +67,7 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
       box(.06, .04, .22, .88, .92, .3); box(.15, .3, .52, .7, .42, .43, '#53646b'); box(.18, .32, .95, .64, .38, .05);
       for (const x of [0, .86]) for (const y of [.16, .7]) box(x, y, 0, .14, .16, .32, '#303331');
       for (const x of [.12, .72]) box(x, .02, .35, .16, .03, .1, '#f6e9bf'); break;
-    case 'piscina': case 'estanque': basin(); box(.06, .06, .75, .88, .88, .02, '#64afbe'); break;
+    case 'piscina': case 'estanque': basin(); box(.06, .06, .75, .88, .88, .02, '#398da4', { appearance: 'water' }); break;
     case 'fuente':
       box(0, 0, 0, 1, 1, .15); box(.08, .08, .15, .84, .84, .025, '#6bb3be');
       box(.44, .44, .15, .12, .12, .65); box(.2, .2, .7, .6, .6, .1); box(.48, .48, .8, .04, .04, .2, '#a8d4dc'); break;
