@@ -5,7 +5,7 @@ import type { EditorDocument } from './schema';
 export function designMaterialPalette(doc: EditorDocument) {
   const counts = {
     walls: new Map<string, number>(), floors: new Map<string, number>(), slabUndersides: new Map<string, number>(),
-    stairs: new Map<string, number>(), ramps: new Map<string, number>(), rampBodies: new Map<string, number>(),
+    stairs: new Map<string, number>(), stairBodies: new Map<string, number>(), ramps: new Map<string, number>(), rampBodies: new Map<string, number>(),
     landingBodies: new Map<string, number>(),
     columns: new Map<string, number>(),
   };
@@ -23,7 +23,10 @@ export function designMaterialPalette(doc: EditorDocument) {
       if ((floor.elevationMm ?? 0) > 0 && floor.undersideTexture && floor.undersideTexture !== 'none')
         add('slabUndersides', floor.undersideTexture);
     }
-    for (const stair of document.stairs ?? []) add('stairs', stair.materialId);
+    for (const stair of document.stairs ?? []) {
+      add('stairs', stair.materialId);
+      if (stair.bodyMaterialId) add('stairBodies', stair.bodyMaterialId);
+    }
     for (const ramp of document.ramps ?? []) {
       add('ramps', ramp.materialId);
       if (ramp.bodyMaterialId) add(ramp.catalogId === 'builtin:ramp-landing' ? 'landingBodies' : 'rampBodies', ramp.bodyMaterialId);
@@ -35,6 +38,7 @@ export function designMaterialPalette(doc: EditorDocument) {
     .slice(0, 8).map(([id]) => id);
   return {
     walls: ranked('walls'), floors: ranked('floors'), slabUndersides: ranked('slabUndersides'), stairs: ranked('stairs'),
+    stairBodies: ranked('stairBodies'),
     ramps: ranked('ramps'), rampBodies: ranked('rampBodies'), landingBodies: ranked('landingBodies'), columns: ranked('columns'),
   };
 }

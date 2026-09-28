@@ -16,6 +16,8 @@ export interface SceneBox {
   topColor?: string;
   /** Material exclusivo de la cara superior, usada por superficies transitables. */
   topMaterialId?: string;
+  /** Material de las caras del volumen salvo la cara superior transitable. */
+  bodyMaterialId?: string;
 }
 export interface ScenePolygon {
   id: string; sourceEntityId: string; role: 'floor' | 'junction' | 'wall';

@@ -66,6 +66,7 @@ export function updateStair(input: EditorDocument, id: string, patch: Partial<Om
     const stair = doc.stairs!.find((entity) => entity.id === id);
     if (!stair) throw new Error('Escalera no encontrada');
     Object.assign(stair, transformAroundCenter(stair, patch));
+    if ('bodyMaterialId' in patch && patch.bodyMaterialId === undefined) delete stair.bodyMaterialId;
     if (doc.schemaVersion >= 4 && patch.materialId) stair.color = finishColor(patch.materialId);
   });
 }

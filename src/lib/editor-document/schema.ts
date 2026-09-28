@@ -60,6 +60,8 @@ export interface Stair extends Point {
   rotation: number;
   stepCount: number;
   materialId: string;
+  /** Acabado de contrahuellas, laterales y cara inferior; independiente de las huellas. */
+  bodyMaterialId?: string;
   color?: string;
   /** Los laterales son opcionales: una escalera puede mostrarse sin pasamanos. */
   railingLeft?: boolean;

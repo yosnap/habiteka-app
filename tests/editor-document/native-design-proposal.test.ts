@@ -107,11 +107,13 @@ it('limita los acabados a la terraza y piezas exteriores elegidas, incluidos los
   const next = applyNativeDesignProposal(doc, {
     ...proposal, scope: { kind: 'rooms', roomIds: [terrace.id],
       structureIds: ['stair-target', 'ramp-target', 'landing-target'] },
-    materials: { ...proposal.materials, rampBodies: 'polyhaven:brushed_concrete', landingBodies: 'polyhaven:white_plaster_02' },
+    materials: { ...proposal.materials, stairBodies: 'polyhaven:white_plaster_02',
+      rampBodies: 'polyhaven:brushed_concrete', landingBodies: 'polyhaven:white_plaster_02' },
   }, { walls: false, floors: true, stairs: true, ramps: true, columns: false, furniture: [] });
   expect(floorFinish(next, terrace.id).texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, other.id)).toEqual(floorFinish(doc, other.id));
   expect(next.stairs?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'wood-oak']);
+  expect(next.stairs?.map((item) => item.bodyMaterialId)).toEqual(['polyhaven:white_plaster_02', undefined]);
   expect(next.ramps?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'polyhaven:wood_floor', 'concrete-grey']);
   expect(next.ramps?.map((item) => item.bodyMaterialId)).toEqual(['polyhaven:brushed_concrete', 'polyhaven:white_plaster_02', 'polyhaven:wood_floor']);
   expect(next.walls).toEqual(doc.walls);

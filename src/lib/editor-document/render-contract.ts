@@ -160,6 +160,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         position: { x: meters(stair.x), y: meters(stair.y), elevation: meters(stair.elevationMm) }, rotationDeg: degrees(stair.rotation),
         dimensions: { width: meters(stair.widthMm), development: meters(stair.depthMm), rise: meters(stair.heightMm), startElevation: meters(stair.elevationMm), arrivalElevation: meters(stair.elevationMm + stair.heightMm) },
         areaM2: area(stair.widthMm * stair.depthMm),
+        attributes: {
+          'acabado de huellas': surfaceMaterial(stair.materialId)?.label ?? stair.materialId,
+          ...(stair.bodyMaterialId ? { 'acabado de contrahuellas, laterales y cara inferior': surfaceMaterial(stair.bodyMaterialId)?.label ?? stair.bodyMaterialId } : {}),
+        },
         relationships: [`Recorrido único de ${stair.stepCount} peldaños; conserva su posición y dirección.`],
       });
     }

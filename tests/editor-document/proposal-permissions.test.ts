@@ -12,10 +12,12 @@ const options = defaultRenderDesignOptions();
 it('valida el acabado opcional del canto y exige una salida estructurada completa', () => {
   const doc = emptyEditorDocument();
   expect(NATIVE_DESIGN_SCHEMA.properties?.materials?.required).toContain('slabUndersides');
+  expect(NATIVE_DESIGN_SCHEMA.properties?.materials?.required).toContain('stairBodies');
   expect(NATIVE_DESIGN_SCHEMA.properties?.materials?.required).toContain('landingBodies');
   expect(NATIVE_DESIGN_SCHEMA.properties?.materials?.required).toContain('rampBodies');
-  const base = { summary: 'Terraza', furniture: [], materials: { slabUndersides: 'polyhaven:brushed_concrete', rampBodies: 'polyhaven:white_plaster_02', landingBodies: 'polyhaven:white_plaster_02' } };
+  const base = { summary: 'Terraza', furniture: [], materials: { slabUndersides: 'polyhaven:brushed_concrete', stairBodies: 'polyhaven:white_plaster_02', rampBodies: 'polyhaven:white_plaster_02', landingBodies: 'polyhaven:white_plaster_02' } };
   expect(parseNativeDesignProposal(base, 'moderno', doc, options).materials.slabUndersides).toBe('polyhaven:brushed_concrete');
+  expect(parseNativeDesignProposal(base, 'moderno', doc, options).materials.stairBodies).toBe('polyhaven:white_plaster_02');
   expect(parseNativeDesignProposal(base, 'moderno', doc, options).materials.rampBodies).toBe('polyhaven:white_plaster_02');
   expect(parseNativeDesignProposal(base, 'moderno', doc, options).materials.landingBodies).toBe('polyhaven:white_plaster_02');
   expect(parseNativeDesignProposal({ ...base, materials: { slabUndersides: 'none' } }, 'moderno', doc, options).materials.slabUndersides).toBeUndefined();

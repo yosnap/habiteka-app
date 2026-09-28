@@ -223,7 +223,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         dimensions: 'id from to label',
         labels: 'id x y text',
         stairs:
-          'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
+          'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId bodyMaterialId railingLeft railingRight',
         ramps:
           'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId bodyMaterialId route railingLeft railingRight',
         columns:
@@ -329,6 +329,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
+        if (e.bodyMaterialId !== undefined && !surfaceMaterial(e.bodyMaterialId as string))
+          throw new Error('Acabado del cuerpo de la escalera inválido');
         if (!['straight', 'L', 'U'].includes(e.kind as string))
           throw new Error('Escalera desconocida');
         positive(e.widthMm);

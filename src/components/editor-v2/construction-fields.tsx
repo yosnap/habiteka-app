@@ -73,6 +73,8 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
       <NumberField label="Rotación (°)" value={stair.rotation} change={(rotation) => edit((doc) => updateStair(doc, stair.id, { rotation }))} />
       <NumberField label="Subidas" value={stair.stepCount} change={(stepCount) => edit((doc) => updateStair(doc, stair.id, { stepCount }))} /></div>
     <MaterialField label="Acabado transitable" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
+    <SurfaceMaterialPicker label="Contrahuellas, laterales y cara inferior" value={stair.bodyMaterialId}
+      onChange={(bodyMaterialId) => edit((doc) => updateStair(doc, stair.id, { bodyMaterialId }))} />
     <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingLeft: !(stair.railingLeft ?? true) }))}>
         {stair.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}

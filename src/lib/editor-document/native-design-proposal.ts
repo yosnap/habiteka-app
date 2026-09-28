@@ -31,6 +31,7 @@ export interface NativeDesignProposal {
     walls: string;
     floors: FloorFinish['texture'];
     slabUndersides?: FloorFinish['undersideTexture'];
+    stairBodies?: FloorFinish['undersideTexture'];
     rampBodies?: FloorFinish['undersideTexture'];
     landingBodies?: FloorFinish['undersideTexture'];
     stairs: string;
@@ -70,6 +71,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   const columns = material(proposal.materials.columns);
   const floorTexture = isFloorTexture(proposal.materials.floors) ? proposal.materials.floors : 'none';
   const slabUnderside = proposal.materials.slabUndersides;
+  const stairBody = proposal.materials.stairBodies;
   const rampBody = proposal.materials.rampBodies;
   const landingBody = proposal.materials.landingBodies;
 
@@ -96,7 +98,11 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
     return scopeContainsPoint(selectedRooms, point) ||
       (scope.kind === 'exterior' && !scopeContainsPoint(indoorRooms, point));
   };
-  if (selection.stairs) doc.stairs?.filter(inScope).forEach((stair) => { stair.materialId = stairs; stair.color = '#ffffff'; });
+  if (selection.stairs) doc.stairs?.filter(inScope).forEach((stair) => {
+    stair.materialId = stairs;
+    stair.color = '#ffffff';
+    if (stairBody && surfaceMaterial(stairBody)) stair.bodyMaterialId = stairBody;
+  });
   if (selection.ramps) doc.ramps?.filter(inScope).forEach((ramp) => {
     ramp.materialId = ramps;
     ramp.color = '#ffffff';
