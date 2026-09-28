@@ -13,7 +13,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
-import { scenePresetFocus } from './scene-preset-focus';
+import { scenePresetFocus, sceneZoneFocus } from './scene-preset-focus';
 import { CutawayWall, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
@@ -230,7 +230,7 @@ function SceneView({
     const capture: CaptureScene = (options, fullResolution = false) => {
       if (abortRecording.current || store.getState().walkthroughPlaying || freeWalk) return Promise.reject(new Error('Sal de la visita antes de capturar una imagen.'));
       const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
-      const finishedExterior = !fullResolution && !allLevels && !options?.camera &&
+      const finishedExterior = !fullResolution && !allLevels && !options?.camera && !options?.maskRegions?.length &&
         (options?.view === 'front' || options?.view === 'back' || options?.view === 'left' ||
           options?.view === 'right' || options?.view === 'drone') && hasCompleteInteriorRoof(store.getState().document);
       const initial = root.current?.get();
@@ -250,7 +250,7 @@ function SceneView({
       try {
       store.getState().select([]);
       if (options?.lighting) flushSync(() => setCaptureLighting(options.lighting!));
-      // Las zonas limitan dónde se puede diseñar; nunca alteran la cámara elegida.
+      // El ángulo se conserva, pero se encuadra la zona elegida en lugar de toda la finca.
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
         const sequence = ++captureSequence.current;
         await new Promise<void>((resolve, reject) => {
@@ -264,7 +264,9 @@ function SceneView({
             left: [-1, EXTERIOR_ELEVATION, 0], right: [1, EXTERIOR_ELEVATION, 0],
           };
           setRequest({ sequence, action: view ?? 'fit',
-            focus: view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined,
+            focus: options?.maskRegions?.length
+              ? sceneZoneFocus(options.maskRegions, activeElevation)
+              : view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined,
             direction: finishedExterior && view ? finishedDirection[view] : undefined });
         });
       }

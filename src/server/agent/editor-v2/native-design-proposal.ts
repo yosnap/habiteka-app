@@ -11,6 +11,7 @@ import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds,
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
 
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
@@ -57,12 +58,13 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
   return [
     `Eres interiorista y paisajista. Diseña el espacio con estilo ${estiloLabel(style)}.`,
     objective ? `Objetivo: ${objective}.` : '', instruction ? `Preferencia del cliente: ${instruction}.` : '',
-    'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
+    zone ? 'La única imagen adjunta muestra exclusivamente la zona elegida. El resto del inmueble se ha ocultado: no lo uses para esta propuesta.'
+      : 'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
     'No puedes añadir, quitar, mover, redimensionar, ocultar o cambiar la altura de muros, huecos, pisos, columnas, rampas, descansillos o escaleras.',
     'Tu JSON solo puede escoger acabados existentes y hasta 4 objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes y otros muebles.',
     `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)], zone: zone ? { id: zone.id, name: zone.name, polygonMm: zone.polygon } : null })}. Los acabados y objetos fuera de este ámbito permanecen intactos. La existingMaterialPalette del contexto enumera materiales ya guardados en todas las plantas: reutilízalos cuando encajen con la superficie y el uso. Puedes añadir un material permitido si la zona lo requiere, sin reemplazar la paleta de las demás zonas.`,
     `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
-      boundaryMm: room.boundary.map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
+      boundaryMm: (zone ? zoneRoomOutline(zone, room) : room.boundary).map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
     zone ? `Diseña únicamente «${zone.name}». Toda la huella de cada objeto nuevo debe quedar dentro de su polígono. El acabado de suelo se aplicará solo a esa parte, sin alterar el suelo de las zonas vecinas. Un muro que cruce el límite no cambiará completo; conserva su material.` : '',
@@ -74,7 +76,8 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     'Para los laterales y la cara inferior de rampas inclinadas, usa materials.rampBodies con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. No cambia su superficie transitable ni su pendiente y respeta el ámbito editable.',
     'Para los laterales y la cara inferior de descansillos independientes, usa materials.landingBodies con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. No cambia su pavimento ni su geometría y respeta el ámbito editable.',
     `Catálogo permitido: ${furniture}.`,
-    'Contexto físico autoritativo:', JSON.stringify(editorDesignContext(document)),
+    'Contexto físico autoritativo:', JSON.stringify(zone
+      ? zoneDesignContext(document, zone, targetRooms) : editorDesignContext(document)),
   ].filter(Boolean).join('\n');
 }
 

@@ -49,6 +49,7 @@ import { isDesignSpaceKind, type DesignSpaceKind } from '@/lib/design-space-kind
 import type { NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { isInteriorRenderMode, MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
+import { isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
 import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
@@ -424,7 +425,10 @@ async function proposeNativeDesignFromEditorImpl(
   );
 
   const options = renderDesignOptionsSchema.parse(rawOptions ?? {});
-  const references = await rasterizeEditorDesignReferences(document);
+  const designZone = options.designScope === 'zone'
+    ? document.designZones?.find((zone) => zone.id === options.designZoneId) : undefined;
+  if (options.designScope === 'zone' && !designZone) fail('La zona de diseño ya no existe. Vuelve a elegirla.');
+  const references = await rasterizeEditorDesignReferences(document, designZone?.polygon);
   const referenceParts: MessagePart[] = references.all.slice(0, 4).map((image) => ({
     type: 'image_url', base64: image.base64, mimeType: image.mimeType,
   }));
@@ -519,7 +523,7 @@ async function generateConceptRenderFromEditorImpl(
   if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) fail('La captura excede el tamaño permitido.');
   const match = NATIVE_RENDER_DATA_URL.exec(capture.dataUrl);
   if (!match?.[1]) fail('La captura de referencia no tiene formato PNG válido.');
-  const reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
+  let reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
   let zoneMask: Awaited<ReturnType<typeof sanitizeImageBuffer>> | undefined;
   if (zoneCompositeActive(options)) {
     const maskMatch = typeof capture.maskDataUrl === 'string' && capture.maskDataUrl.length <= 14_000_000
@@ -528,6 +532,9 @@ async function generateConceptRenderFromEditorImpl(
     zoneMask = await sanitizeImageBuffer(Buffer.from(maskMatch[1], 'base64'));
     if (await zoneMaskCoverage(Buffer.from(zoneMask.base64, 'base64')) < ZONE_EMPTY_COVERAGE)
       fail('La zona permitida no se ve en esta cámara. Cambia de ángulo o marca otra zona antes de generar.');
+    const isolated = await isolateZoneReference(reference, zoneMask);
+    reference = isolated.image;
+    zoneMask = isolated.mask;
   }
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
   const imagePrompt = selectedViewImagePrompt(
@@ -543,24 +550,32 @@ async function generateConceptRenderFromEditorImpl(
   };
   const result = await image.generate(request);
   const candidate = await readRenderReference(result);
+  const visibleCandidate = zoneMask
+    ? await sanitizeImageBuffer(await isolateZoneResult(candidate, zoneMask)) : candidate;
   const vision = await getChatVisionAdapter(
     { organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision',
     { preferredProvider: 'openrouter' },
   );
-  await assertRenderFidelity(vision, reference, candidate, view, zoneMask, projectVehicleCount(document),
+  await assertRenderFidelity(vision, reference, visibleCandidate, view, zoneMask, projectVehicleCount(document),
     options.freedom === 'strict' && !isInteriorRenderMode(options) &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)));
+  let finalAsset = { assetUrl: result.assetUrl, assetKey: result.assetKey };
+  if (zoneMask) {
+    const key = `renders/zones/${globalThis.crypto.randomUUID()}.png`;
+    await getStorageAdapter().put({ key, body: Buffer.from(visibleCandidate.base64, 'base64'), contentType: 'image/png' });
+    finalAsset = { assetUrl: await getStorageAdapter().getPresignedDownloadUrl(key), assetKey: key };
+  }
   await persistDeliverables(projectId, [{
     id,
     type: 'render3d',
-    payload: { type: 'render3d', assetUrl: result.assetUrl, ...(camera ? { camera } : {}), ...(result.assetKey ? { assetKey: result.assetKey } : {}),
+    payload: { type: 'render3d', assetUrl: finalAsset.assetUrl, ...(camera ? { camera } : {}), ...(finalAsset.assetKey ? { assetKey: finalAsset.assetKey } : {}),
       generation: { ...result.generation, promptVersion: SELECTED_VIEW_IMAGE_PROMPT_VERSION, documentRevision: document.revision, view, options, ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
     legalSeal: DELIVERABLE_LEGAL_SEAL,
     version: 1,
   }], undefined, zid, { allowEditorV2: true });
   revalidatePath(`/projects/${projectId}/deliverables`);
   revalidatePath(`/projects/${projectId}/historial`);
-  return { id, assetUrl: result.assetUrl, generation: result.generation };
+  return { id, assetUrl: finalAsset.assetUrl, generation: result.generation };
 }
 
 /** Estimación local: resuelve la ruta y consulta solo precios explícitos de la allowlist. */

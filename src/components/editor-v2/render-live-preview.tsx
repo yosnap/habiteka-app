@@ -3,36 +3,38 @@ import { useEffect, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
 import { RENDER_VIEW_LABELS, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { ZoneOverlayImage } from './zone-overlay-image';
 
-export type PreviewRender = (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => Promise<RenderCapture>;
+export type PreviewRender = (options: RenderDesignOptions) => Promise<RenderCapture>;
 
-export function RenderLivePreview({ capture, lighting, view, onPreview, onExpand }: {
+export function RenderLivePreview({ capture, lighting, view, options, onPreview, onExpand }: {
   capture?: RenderCapture;
-  lighting: RenderDesignOptions['lighting'];
-  view: RenderDesignOptions['views'][number];
+  lighting: RenderDesignOptions['lighting']; view: RenderDesignOptions['views'][number];
+  options: RenderDesignOptions;
   onPreview?: PreviewRender;
-  onExpand: (src: string, label: string) => void;
+  onExpand: (src: string, label: string, maskSrc?: string) => void;
 }) {
   const [result, setResult] = useState<{ key: string; capture?: RenderCapture; error?: string }>();
-  const key = `${lighting}:${view}`;
+  const key = `${lighting}:${view}:${options.placement}:${options.freedom}:${JSON.stringify(options.regions)}`;
   useEffect(() => {
     if (!onPreview) return;
     let cancelled = false;
     const timer = setTimeout(() => {
-      void onPreview({ lighting, views: [view] }).then(
-        (capture) => { if (!cancelled) setResult({ key: `${lighting}:${view}`, capture }); },
-        (cause) => { if (!cancelled) setResult({ key: `${lighting}:${view}`, error: cause instanceof Error ? cause.message : 'No se pudo actualizar la vista.' }); },
+      void onPreview({ ...options, views: [view] }).then(
+        (capture) => { if (!cancelled) setResult({ key, capture }); },
+        (cause) => { if (!cancelled) setResult({ key, error: cause instanceof Error ? cause.message : 'No se pudo actualizar la vista.' }); },
       );
     }, 120);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [lighting, view, onPreview]);
+  }, [key, onPreview, options, view]);
   const current = result?.capture ?? capture;
   const pending = Boolean(onPreview && result?.key !== key);
   const label = `${RENDER_VIEW_LABELS[view]} · ${lighting === 'daylight' ? 'Día' : lighting === 'warm' ? 'Atardecer' : 'Noche'}`;
   return <figure className="mt-3 overflow-hidden rounded-card border border-line" aria-busy={pending}>
     <button type="button" className="relative block w-full cursor-zoom-in" disabled={!current || pending || Boolean(result?.error)}
-      aria-label="Ampliar previsualización" onClick={() => current && onExpand(current.dataUrl, label)}>
-      {current && <img src={current.dataUrl} alt="Previsualización de iluminación y encuadre" className="w-full object-contain" />}
+      aria-label="Ampliar previsualización" onClick={() => current && onExpand(current.dataUrl, label, current.maskDataUrl)}>
+      {current && <ZoneOverlayImage src={current.dataUrl} maskSrc={current.maskDataUrl}
+        alt="Previsualización de iluminación y encuadre" className="w-full object-contain" />}
       {pending && <span className="absolute inset-0 flex items-center justify-center gap-2 bg-white/50 text-sm"><LoaderCircle size={18} className="animate-spin" aria-hidden="true" />Actualizando iluminación…</span>}
     </button>
     <figcaption className="text-ink-soft px-3 py-2 text-xs" role="status">

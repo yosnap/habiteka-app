@@ -114,6 +114,7 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
       </div>}
       {reshapeId && <p className="text-emerald-900 text-xs">Marca el nuevo contorno de «{document?.designZones?.find((zone) => zone.id === reshapeId)?.name}» en el mapa. El acabado aplicado se conservará.</p>}
       {onCreateZone && <ZoneDrawCanvas document={document} zones={document?.designZones ?? []}
+        snapToWalls={false}
         name={zoneName} onNameChange={setZoneName}
         onPolygon={(polygon, name) => {
           try {

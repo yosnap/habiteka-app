@@ -1,5 +1,16 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { ZoneMaskRegions } from '@/lib/editor-document/render-view';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
+
+/** El área seleccionada llena la cámara sin incluir el resto de la finca. */
+export function sceneZoneFocus(regions: ZoneMaskRegions, elevationMm = 0): CameraRequest['focus'] | undefined {
+  const points = regions.flat();
+  if (!points.length) return undefined;
+  const xs = points.map((point) => point.x), ys = points.map((point) => point.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  return { center: [(minX + maxX) / 2000, (elevationMm + 1500) / 1000, (minY + maxY) / 2000],
+    size: [Math.max(2, (maxX - minX) / 1000) * 1.25, 3.5, Math.max(2, (maxY - minY) / 1000) * 1.25] };
+}
 
 /** Encuadra la construcción; el dron incorpora el agua cercana sin abarcar objetos remotos. */
 export function scenePresetFocus(

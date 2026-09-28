@@ -55,7 +55,7 @@ export async function assertRenderFidelity(
       { type: 'text', text: [
         `Audita la fidelidad de un diseño arquitectónico. Ángulo solicitado: ${view.preset}.`,
         'Imagen 1: captura original del 3D del proyecto. Imagen 2: diseño candidato.',
-        ...(mask ? ['Imagen 3: máscara de zonas permitidas (blanco = se pueden añadir objetos; negro = no).'] : []),
+        ...(mask ? ['Imagen 3: máscara de la única zona diseñada (blanco = zona visible; negro = fondo gris claro vacío).'] : []),
         'Acepta mejoras de materiales, iluminación y realismo. La maqueta original puede tener muros cortados para ver el interior.',
         'Rechaza si cambia el punto de vista, orientación, silueta, número o posición de plantas, muros, huecos, escaleras, rampas, piscina o accesos visibles.',
         'Rechaza si sustituye el inmueble por otra casa, extiende la maqueta fuera de sus bordes, inserta una imagen del 3D dentro de otra escena, o produce un collage, superposición o doble arquitectura.',
@@ -63,7 +63,7 @@ export async function assertRenderFidelity(
         'Compara también la IDENTIDAD de cada objeto exterior visible, no solo su posición. Una fila de vehículos transformada en sofás es un fallo grave aunque conserve el número y la ubicación.',
         ...(vehicleCount ? [`El plano contiene ${vehicleCount} coches. Si son visibles en la imagen 1, en la imagen 2 deben seguir siendo coches reconocibles; nunca sofás u otros muebles.`] : []),
         ...(strictExterior ? ['El usuario pidió fidelidad estricta. Si el fondo exterior de la captura es liso o neutro, NO es terreno modelado: rechaza si el candidato lo sustituye por suelo, desierto, césped, árboles, arbustos, horizonte, cielo, aparcamiento o caminos nuevos. Mejorar texturas sobre objetos ya visibles sí está permitido.'] : []),
-        ...(mask ? ['Fuera del blanco no deben aparecer objetos nuevos ni cambiar la distribución. El acabado de materiales y luz sí puede mejorar.'] : []),
+        ...(mask ? ['Fuera del blanco debe quedar fondo gris claro vacío. Rechaza si aparecen otras zonas del inmueble, mobiliario, terreno o construcciones.'] : []),
         'No penalices diferencias normales de textura o decoración permitida. Ante duda sobre geometría o cámara, rechaza.',
         'Responde explícitamente cameraAndGeometryPreserved y objectIdentityPreserved. accepted solo puede ser true si ambos son true y no hay violaciones.',
       ].join('\n') },

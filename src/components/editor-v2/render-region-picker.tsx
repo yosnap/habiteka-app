@@ -37,6 +37,7 @@ export function RenderRegionPicker({ document, regions, onChange, disabled }: Pr
       <ZoneDrawCanvas
         document={document}
         zones={regions}
+        snapToWalls={false}
         name={name}
         onNameChange={setName}
         onPolygon={addRegion}

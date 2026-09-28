@@ -236,12 +236,18 @@ export function EditorShell({
     });
     return captureView.current!;
   }, []);
-  const previewRender = useCallback(async (options: Pick<RenderDesignOptions, 'lighting' | 'views'>) => {
+  const previewRender = useCallback(async (options: RenderDesignOptions) => {
     const capture = await awaitScene();
     const view = options.views[0] ?? 'current';
-    return capture({ view, lighting: options.lighting, fit: view !== 'current',
-      ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) });
-  }, [awaitScene]);
+    const designZone = options.designScope === 'zone'
+      ? store.getState().document.designZones?.find((zone) => zone.id === options.designZoneId) : undefined;
+    const maskRegions = zoneCompositeActive(options)
+      ? options.regions.map((region) => region.polygon)
+      : designZone ? [designZone.polygon] : undefined;
+    return capture({ view, lighting: options.lighting, fit: view !== 'current' || Boolean(maskRegions),
+      ...(maskRegions ? { maskRegions } : {}),
+      ...(keyframeCamera.current && view === 'current' && !maskRegions ? { camera: keyframeCamera.current } : {}) });
+  }, [awaitScene, store]);
   const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });
   const designWalkthroughPoint = async (waypointId: string) => {
     if (preparingPoint) return;
@@ -903,8 +909,8 @@ export function EditorShell({
               return captures;
             }
             for (const view of options.views) {
-              captures.push(await capture({ view, lighting: options.lighting, fit: view !== 'current', ...zoneMask,
-                ...(keyframeCamera.current && view === 'current' ? { camera: keyframeCamera.current } : {}) }));
+              captures.push(await capture({ view, lighting: options.lighting, fit: view !== 'current' || zoneCompositeActive(options), ...zoneMask,
+                ...(keyframeCamera.current && view === 'current' && !zoneCompositeActive(options) ? { camera: keyframeCamera.current } : {}) }));
               if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
             }
             captureDocument.current = snapshot;

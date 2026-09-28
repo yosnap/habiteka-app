@@ -251,7 +251,7 @@ export function EditorGenerateDialog({
     setResults([]);
     setBatchId(crypto.randomUUID());
     try {
-      const captures = await onPrepare({ ...options, designScope: 'all', designZoneId: '' });
+      const captures = await onPrepare(options);
       if (!captures.length) throw new Error('No se pudo preparar ninguna vista 2D/3D.');
       setPrepared(captures);
       setMode('renders');
@@ -278,7 +278,7 @@ export function EditorGenerateDialog({
           objetivo: objetivo.trim(),
           promptLibre: promptLibre.trim(),
           capture,
-          options: { ...options, designScope: 'all', designZoneId: '' },
+          options,
           batchId: stableBatchId,
           qualityAck: quality.ack,
         }),
@@ -384,6 +384,8 @@ export function EditorGenerateDialog({
                   className={`rounded-lg border p-3 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
                   onClick={() => {
                     setIntent(value);
+                    if (value === 'image' && options.designScope !== 'all')
+                      setOptions({ ...options, designScope: 'all', designZoneId: '' });
                     if (value === 'editable' && options.designScope !== 'all' && establishedStyle)
                       setEstilo(establishedStyle);
                     invalidatePrepared(); setMode('choose');
@@ -429,12 +431,12 @@ export function EditorGenerateDialog({
                             src={item.dataUrl}
                             maskSrc={item.maskDataUrl}
                             alt={`Preview ${labelAt(index)}`}
-                            className="aspect-video w-full object-contain"
+                            className="w-full object-contain"
                           />
                         </button>
                         <figcaption className="text-ink-soft p-2 text-xs">
                           {labelAt(index)}
-                          {item.maskDataUrl && ' · en verde, la zona permitida'} · pulsa para
+                          {item.maskDataUrl && ' · solo la zona seleccionada'} · pulsa para
                           ampliar
                         </figcaption>
                       </figure>
@@ -442,8 +444,9 @@ export function EditorGenerateDialog({
                   </div>
                 )}
                 {(capture || onPreview) && !prepared.length && (
-                  <RenderLivePreview capture={capture} lighting={options.lighting} view={options.views[0] ?? 'current'} onPreview={onPreview}
-                    onExpand={(src, label) => setLargePreview({ src, label })} />
+                  <RenderLivePreview capture={capture} lighting={options.lighting} view={options.views[0] ?? 'current'}
+                    options={options} onPreview={onPreview}
+                    onExpand={(src, label, maskSrc) => setLargePreview({ src, label, ...(maskSrc ? { maskSrc } : {}) })} />
                 )}
                 <RenderOptionsControls
                   editable={intent === 'editable'}

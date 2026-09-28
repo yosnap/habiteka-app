@@ -24,9 +24,9 @@ describe('instrucción de imagen basada en la captura', () => {
       ] }] };
     expect(() => selectedViewImagePrompt(document, view, 'moderno', options, '', '', false)).toThrow('máscara');
     const prompt = selectedViewImagePrompt(document, view, 'moderno', options, '', '', true);
-    expect(prompt).toContain('Imagen 2 es una máscara de posición');
-    expect(prompt).toContain('El negro está bloqueado');
-    expect(prompt).toContain('piscina, aparcamiento, vallas y exteriores');
+    expect(prompt).toContain('ÚNICAMENTE la zona elegida');
+    expect(prompt).toContain('Fuera del blanco deja fondo gris claro vacío');
+    expect(prompt).toContain('no recrees otras estancias');
   });
 
   it('identifica los vehículos para que el modelo no los convierta en muebles', () => {

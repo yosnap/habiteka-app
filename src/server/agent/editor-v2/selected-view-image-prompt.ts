@@ -9,7 +9,7 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v4';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v5';
 
 export function projectVehicleCount(document: EditorDocument): number {
   return document.furniture.filter((item) => /^(coche|auto|autom[oó]vil|veh[ií]culo)$/i.test(item.kind)).length;
@@ -38,7 +38,7 @@ export function selectedViewImagePrompt(
       ? `Solo puedes añadir: ${options.additions.map((item) => RENDER_ADDITION_LABELS[item]).join(', ') || 'ningún objeto'}.`
       : 'Puedes añadir decoración y ambientación, pero nunca construir, ampliar ni cerrar espacios.';
   const placement = hasMask
-    ? 'Imagen 2 es una máscara de posición: SOLO el blanco permite objetos nuevos. El negro está bloqueado: no añadas allí plantas, tumbonas, adornos, vehículos, muebles ni construcciones. Mantén piscina, aparcamiento, vallas y exteriores sin objetos nuevos cuando aparezcan negros. No pintes la máscara en el resultado.'
+    ? 'La imagen 1 ya muestra ÚNICAMENTE la zona elegida, aislada sobre fondo gris claro. La imagen 2 es su máscara: conserva solo la arquitectura y los muebles visibles dentro del blanco. Fuera del blanco deja fondo gris claro vacío; no recrees otras estancias, jardín, coches, fachadas ni objetos. No pintes la máscara en el resultado.'
     : 'Los objetos permitidos pueden colocarse en las zonas visibles sin tapar accesos.';
   const light = options.lighting === 'daylight' ? 'luz natural de día'
     : options.lighting === 'warm' ? 'luz cálida de atardecer' : 'escena nocturna';
@@ -58,7 +58,7 @@ export function selectedViewImagePrompt(
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
     `Produce UNA imagen arquitectónica realista del MISMO proyecto y MISMA cámara (${viewName}). Estilo: ${estiloLabel(style)}; ${light}.`,
     'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina, accesos y mobiliario grande visibles.',
-    `Mejora materiales, texturas, sombras y luz. ${sceneRule} Mantén el fondo y la relación entre edificio y exterior.`,
+    `Mejora materiales, texturas, sombras y luz. ${sceneRule} ${hasMask ? 'Mantén gris claro y vacío el fondo exterior a la zona aislada.' : 'Mantén el fondo y la relación entre edificio y exterior.'}`,
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),
     `${additions} ${placement} Mantén libres puertas, pasos, rampas y escaleras.`,
