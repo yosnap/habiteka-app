@@ -1,4 +1,5 @@
 import { eligibleCeilingRooms, insideRoom } from './ceiling-geometry';
+import { buildingDocuments } from './building-levels';
 import type { Estilo } from '@/lib/contracts';
 import { deriveRooms, type DerivedRoom } from './rooms';
 import type { EditorDocument, Point, Wall } from './schema';
@@ -11,10 +12,15 @@ export interface DesignScope {
 
 export const wholeDesignScope = (): DesignScope => ({ kind: 'all', roomIds: [] });
 
-/** Las propuestas parciales comparten el estilo aplicado a la planta. */
+/** El estilo de una planta ya diseñada también orienta las demás plantas. */
+export function buildingDesignStyle(doc: EditorDocument): Estilo | undefined {
+  return doc.designStyle ?? buildingDocuments(doc).map((level) => level.document.designStyle).find((style) => style !== undefined);
+}
+
+/** Las propuestas parciales mantienen el estilo aplicado en el inmueble. */
 export function assertCompatibleDesignStyle(doc: EditorDocument, style: Estilo, scope: DesignScope): void {
-  if (doc.designStyle && doc.designStyle !== style && scope.kind !== 'all')
-    throw new Error('Esta planta ya tiene otro estilo. Usa el estilo existente o rediseña toda la planta.');
+  if (scope.kind !== 'all' && buildingDocuments(doc).some((level) => level.document.designStyle && level.document.designStyle !== style))
+    throw new Error('El inmueble ya tiene otro estilo. Usa el estilo existente o rediseña toda la planta.');
 }
 
 /** Las zonas de diseño son estancias completas del documento, no píxeles de un render. */

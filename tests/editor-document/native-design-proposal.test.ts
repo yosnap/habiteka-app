@@ -11,6 +11,8 @@ import { floorFinish } from '@/lib/editor-document/floor-finishes';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
+import { addBuildingLevel } from '@/lib/editor-document/building-levels';
+import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -126,4 +128,17 @@ it('mantiene un estilo común entre ámbitos y permite sustituirlo al rediseñar
     .toBe('clasico');
   expect(parseEditorDocument(JSON.parse(JSON.stringify(first))).designStyle).toBe('moderno');
   expect(() => parseEditorDocument({ ...first, designStyle: 'inventado' })).toThrow('Estilo de diseño desconocido');
+});
+
+it('hereda el estilo de otra planta antes de aplicar una propuesta parcial', () => {
+  const ground = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const styled = applyNativeDesignProposal(ground, { ...proposal, scope: { kind: 'interior', roomIds: [] } });
+  const upper = addWallPath(addBuildingLevel(styled),
+    [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true);
+  expect(upper.designStyle).toBeUndefined();
+  expect(buildingDesignStyle(upper)).toBe('moderno');
+  expect(() => applyNativeDesignProposal(upper, { ...proposal, style: 'clasico', scope: { kind: 'interior', roomIds: [] } }))
+    .toThrow('ya tiene otro estilo');
+  expect(applyNativeDesignProposal(upper, { ...proposal, scope: { kind: 'interior', roomIds: [] } }).designStyle)
+    .toBe('moderno');
 });

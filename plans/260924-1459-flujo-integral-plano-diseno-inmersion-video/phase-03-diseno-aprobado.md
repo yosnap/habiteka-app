@@ -5,6 +5,10 @@ status: in_progress
 
 # Fase 3: Diseño coherente y versión aprobada
 
+## Avance del 28/09/2026: continuidad de materiales entre plantas
+
+La propuesta editable resume ahora una paleta a partir de los acabados guardados de muros, suelos, escaleras, rampas y columnas de todas las plantas. El modelo recibe esa paleta y debe reutilizarla cuando encaje; la vista previa marca los materiales nuevos para que el usuario los revise antes de aplicarlos. Las propuestas parciales heredan y respetan el estilo ya aplicado en otra planta. La paleta se deriva de las superficies reales del documento, sin crear un segundo estado que pudiera quedar desincronizado. Se verificó por pruebas la herencia de estilo, la lectura de acabados de otra planta y el rechazo de una propuesta parcial incompatible. Aún falta validar visualmente la concordancia en varias cámaras y aprobar el diseño completo antes de usarlo como visita o vídeo final.
+
 ## Avance del 26/09/2026: calidad compartida y aprobación persistente
 
 El Editor v2 separa la construcción en «Plano técnico» de la composición en «Plano visual». El técnico mantiene el lienzo 2D con retícula, cotas, muros y huecos editables. El visual muestra desde arriba la misma escena R3F que la vista 3D: acabados y modelos de muebles reales, con selección, colocación desde el catálogo, arrastre y propiedades. Las herramientas para construir muros y medir llevan al técnico. La muestra aislada permite comparar las tres vistas sin usar planos de proyectos.

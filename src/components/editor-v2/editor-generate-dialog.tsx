@@ -40,6 +40,8 @@ import { useMountEffect } from '@/lib/use-mount-effect';
 import { ZoneOverlayImage } from './zone-overlay-image';
 import { RenderCostEstimate } from './render-cost-estimate';
 import { DesignScopePicker } from './design-scope-picker';
+import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
+import { designMaterialPalette } from '@/lib/editor-document/design-material-palette';
 
 interface EditorGenerateDialogProps {
   document?: EditorDocument;
@@ -102,7 +104,9 @@ export function EditorGenerateDialog({
   initialSetup,
   onClose,
 }: EditorGenerateDialogProps) {
-  const [estilo, setEstilo] = useState<Estilo>(document?.designStyle ?? initialSetup?.estilo ?? 'moderno');
+  const establishedStyle = document ? buildingDesignStyle(document) : undefined;
+  const materialPalette = document ? designMaterialPalette(document) : undefined;
+  const [estilo, setEstilo] = useState<Estilo>(establishedStyle ?? initialSetup?.estilo ?? 'moderno');
   const [objetivo, setObjetivo] = useState('');
   const [promptLibre, setPromptLibre] = useState('');
   const [options, setOptions] = useState<RenderDesignOptions>(() => {
@@ -215,8 +219,8 @@ export function EditorGenerateDialog({
   };
   const changeOptions = (next: RenderDesignOptions) => {
     setOptions(next);
-    if (intent === 'editable' && next.designScope !== 'all' && document?.designStyle)
-      setEstilo(document.designStyle);
+    if (intent === 'editable' && next.designScope !== 'all' && establishedStyle)
+      setEstilo(establishedStyle);
     // Activar las vistas interiores ya dice qué clase de espacio es.
     if (isInteriorRenderMode(next) && !spaceKind) onSpaceKindChange('interior');
     invalidatePrepared();
@@ -353,7 +357,7 @@ export function EditorGenerateDialog({
           <><p role="status" className="mt-4 rounded-lg border border-line bg-canvas p-3 text-sm">
             {applied ? 'Cambios aplicados al plano. Puedes verlos al cerrar y deshacerlos con ⌘Z / Ctrl+Z. Guarda el plano para sincronizarlos.'
               : 'Propuesta lista. El plano aún no ha cambiado: revisa los acabados y pulsa «Aplicar al plano».'}
-          </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} onChange={setSelection} /></fieldset></>
+          </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} palette={materialPalette} onChange={setSelection} /></fieldset></>
         ) : (
           <>
             {onEvaluateQuality ? (
@@ -370,8 +374,8 @@ export function EditorGenerateDialog({
                   className={`rounded-lg border p-3 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
                   onClick={() => {
                     setIntent(value);
-                    if (value === 'editable' && options.designScope !== 'all' && document?.designStyle)
-                      setEstilo(document.designStyle);
+                    if (value === 'editable' && options.designScope !== 'all' && establishedStyle)
+                      setEstilo(establishedStyle);
                     invalidatePrepared(); setMode('choose');
                   }}>
                   <strong className="block text-sm">{label}</strong><span className="block text-xs">{hint}</span>
@@ -475,11 +479,11 @@ export function EditorGenerateDialog({
                   <label htmlFor="editor-design-style" className="mb-1 block">Estilo</label>
                   <ModernSelect compact id="editor-design-style" value={estilo}
                     onChange={(event) => { setEstilo(event.target.value as Estilo); invalidatePrepared(); }}
-                    disabled={busy || (intent === 'editable' && options.designScope !== 'all' && Boolean(document?.designStyle))}>
+                    disabled={busy || (intent === 'editable' && options.designScope !== 'all' && Boolean(establishedStyle))}>
                     {ESTILOS.map((style) => <option key={style.value} value={style.value}>{style.label}</option>)}
                   </ModernSelect>
-                  {intent === 'editable' && options.designScope !== 'all' && document?.designStyle && (
-                    <p className="mt-1 text-xs">Las zonas mantienen el estilo de esta planta. Para cambiarlo, diseña la planta completa.</p>
+                  {intent === 'editable' && options.designScope !== 'all' && establishedStyle && (
+                    <p className="mt-1 text-xs">Las zonas mantienen el estilo ya aplicado al inmueble. Para cambiarlo, diseña la planta completa.</p>
                   )}
                 </div>
                 <div className="bg-canvas rounded-card border border-line p-3 text-xs">
@@ -696,10 +700,12 @@ export function EditorGenerateDialog({
 function ProposalPreview({
   proposal,
   selection,
+  palette,
   onChange,
 }: {
   proposal: NativeDesignProposal;
   selection: NativeDesignSelection;
+  palette?: ReturnType<typeof designMaterialPalette>;
   onChange: (selection: NativeDesignSelection) => void;
 }) {
   const materialLabel = (id: string) => surfaceMaterial(id)?.label ?? id;
@@ -732,6 +738,8 @@ function ProposalPreview({
                     ? 'Rampas'
                     : 'Columnas'}
             : {materialLabel(proposal.materials[key])}
+            {palette?.[key].length && !palette[key].includes(proposal.materials[key])
+              ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
           </Choice>
         ))}
       </div>

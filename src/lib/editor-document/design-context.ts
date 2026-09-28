@@ -7,6 +7,8 @@ import { wallPath } from './wall-path';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
 import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
 import { wallConstruction } from './construction-properties';
+import { designMaterialPalette } from './design-material-palette';
+import { buildingDesignStyle } from './design-scope';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -20,7 +22,8 @@ export function editorDesignContext(doc: EditorDocument) {
     format: 'habiteka-editor-design-context-v1',
     units: 'm',
     spaceKind: doc.designSpaceKind ?? null,
-    designStyle: doc.designStyle ?? null,
+    designStyle: buildingDesignStyle(doc) ?? null,
+    existingMaterialPalette: designMaterialPalette(doc),
     instruction: [
       'Geometría de referencia del plano editado por el usuario.',
       'Las cotas, alturas, elevaciones y dimensiones son restricciones físicas no negociables.',

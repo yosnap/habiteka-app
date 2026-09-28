@@ -103,7 +103,7 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 |---|---|---|---|
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación | Flujo y galería implementados; faltan cotización por modelo y generación real controlada. |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso | Importación y revisión disponibles; faltan fidelidad métrica y arcos de la Original v11. |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo compartido por planta y aprobación disponibles; faltan paleta coherente entre plantas, calidad arquitectónica compartida y comparación de cámaras. |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo heredado y paleta de materiales existentes entre plantas y aprobación disponibles; faltan validar concordancia visual, calidad arquitectónica compartida y comparación de cámaras. |
 | 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En espera del diseño final | Paseo libre/guiado de una aprobación disponible; falta validarlo en la escena terminada y en móvil. |
 | 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En espera del diseño final | MP4 nativo disponible; faltan construcción, vuelo, entrada cinematográfica y formatos. |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En espera de fases 2–5 | Diseños e Historial muestran resultados versionados; falta prueba integral y recuperación del proyecto completo. |
