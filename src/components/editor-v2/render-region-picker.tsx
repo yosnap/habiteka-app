@@ -17,6 +17,7 @@ interface Props {
 export function RenderRegionPicker({ document, regions, onChange, disabled }: Props) {
   const [name, setName] = useState('Zona permitida');
   const full = regions.length >= MAX_REGIONS;
+  const savedZones = document?.designZones ?? [];
 
   const addRegion = (polygon: Point[], label: string) => {
     onChange([
@@ -34,6 +35,24 @@ export function RenderRegionPicker({ document, regions, onChange, disabled }: Pr
 
   return (
     <div className="space-y-2">
+      {savedZones.length > 0 && (
+        <div className="bg-canvas rounded-control border border-line p-2">
+          <p className="text-ink-soft mb-2 text-xs">Usa una zona guardada para mantener exactamente su contorno.</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Zonas guardadas del plano">
+            {savedZones.map((zone) => {
+              const selected = regions.some((region) => region.id === zone.id);
+              return <button key={zone.id} type="button" aria-pressed={selected}
+                disabled={disabled || (!selected && full)}
+                onClick={() => onChange(selected
+                  ? regions.filter((region) => region.id !== zone.id)
+                  : [...regions, { id: zone.id, name: zone.name, polygon: zone.polygon.map((point) => ({ ...point })) }])}
+                className={`rounded-control border px-2 py-1 text-xs ${selected ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-line bg-surface text-ink'}`}>
+                {zone.name}
+              </button>;
+            })}
+          </div>
+        </div>
+      )}
       <ZoneDrawCanvas
         document={document}
         zones={regions}

@@ -30,7 +30,7 @@ export const renderDesignOptionsSchema = z.object({
   if (new Set(value.interiorRoomIds).size !== value.interiorRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['interiorRoomIds'], message: 'No repitas estancias.' });
   if (new Set(value.views).size !== value.views.length) ctx.addIssue({ code: 'custom', path: ['views'], message: 'No repitas vistas.' });
-  if (value.freedom !== 'strict' && value.placement === 'selected' && !value.regions.length)
+  if (value.placement === 'selected' && !value.regions.length)
     ctx.addIssue({ code: 'custom', path: ['regions'], message: 'Marca al menos una zona permitida en el plano.' });
   if (new Set(value.designRoomIds).size !== value.designRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['designRoomIds'], message: 'No repitas estancias de diseño.' });
@@ -51,7 +51,7 @@ export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
 
 /** Las zonas seleccionadas requieren una máscara tomada desde la misma cámara. */
 export const zoneCompositeActive = (options: RenderDesignOptions): boolean =>
-  options.freedom !== 'strict' && options.placement === 'selected' && options.regions.length > 0;
+  options.placement === 'selected' && options.regions.length > 0;
 
 /** Tope de generaciones de un lote. */
 export const MAX_RENDER_PASSES = 24;

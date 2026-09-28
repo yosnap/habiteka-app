@@ -26,7 +26,7 @@ export function selectedViewImagePrompt(
   hasMask: boolean,
 ): string {
   if (!document.designSpaceKind) throw new Error('Define el tipo de espacio antes de generar esta vista.');
-  if (options.placement === 'selected' && options.freedom !== 'strict' && !hasMask)
+  if (options.placement === 'selected' && !hasMask)
     throw new Error('Falta la máscara de las zonas permitidas.');
 
   const viewName = view.preset in RENDER_VIEW_LABELS

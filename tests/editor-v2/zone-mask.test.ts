@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { zoneMapLayout, ZONE_MASK_MARGIN_MM } from '../../src/components/editor-v2/scene/zone-mask';
-import { defaultRenderDesignOptions, zoneCompositeActive } from '../../src/lib/editor-document/render-design-options';
+import { defaultRenderDesignOptions, renderDesignOptionsSchema, zoneCompositeActive } from '../../src/lib/editor-document/render-design-options';
 import { sceneZoneFocus } from '../../src/components/editor-v2/scene/scene-preset-focus';
 
 describe('máscara de zonas permitidas', () => {
@@ -21,8 +21,9 @@ describe('máscara de zonas permitidas', () => {
     const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
     const base = { ...defaultRenderDesignOptions(), placement: 'selected' as const, regions: [region] };
     expect(zoneCompositeActive({ ...base, freedom: 'free' })).toBe(true);
-    expect(zoneCompositeActive({ ...base, freedom: 'strict' })).toBe(false);
+    expect(zoneCompositeActive({ ...base, freedom: 'strict' })).toBe(true);
     expect(zoneCompositeActive({ ...base, freedom: 'free', placement: 'all' })).toBe(false);
+    expect(renderDesignOptionsSchema.safeParse({ ...base, freedom: 'strict', regions: [] }).success).toBe(false);
   });
 });
 

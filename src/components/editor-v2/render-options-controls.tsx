@@ -112,9 +112,9 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           </p>
         )}
       </section>
-      {options.freedom !== 'strict' && (
+      {(!editable || options.freedom !== 'strict') && (
         <section>
-          <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Dónde puede decorar'}</h3>
+          <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <OptionButton
               active={options.placement === 'all'}
@@ -128,7 +128,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
               disabled={disabled}
               onClick={() => update({ placement: 'selected' })}
             >
-              Zonas permitidas
+              {editable ? 'Zonas permitidas' : 'Zonas concretas'}
             </OptionButton>
           </div>
           {options.placement === 'selected' && (

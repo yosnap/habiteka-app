@@ -26,6 +26,7 @@ describe('instrucción de imagen basada en la captura', () => {
         { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 0, y: 100 },
       ] }] };
     expect(() => selectedViewImagePrompt(document, view, 'moderno', options, '', '', false)).toThrow('máscara');
+    expect(() => selectedViewImagePrompt(document, view, 'moderno', { ...options, freedom: 'strict' }, '', '', false)).toThrow('máscara');
     const prompt = selectedViewImagePrompt(document, view, 'moderno', options, '', '', true);
     expect(prompt).toContain('ÚNICAMENTE la zona elegida');
     expect(prompt).toContain('Fuera del blanco deja fondo gris claro vacío');
