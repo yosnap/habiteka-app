@@ -4,7 +4,7 @@ export interface SceneBox {
   id: string; sourceEntityId: string; role: 'wall' | 'frame' | 'seal' | 'leaf' | 'glass' | 'step' | 'landing' | 'rail' | 'ramp' | 'furniture' | 'column';
   position: Vector3Tuple; size: Vector3Tuple; rotation: number; color: string;
   emissive?: string;
-  shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid';
+  shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof';
   boundaryPart?: 'post' | 'gate' | 'slot';
   /** Transparencia del sólido; por defecto opaco (el vidrio de aberturas usa su propio rol). */
   opacity?: number;

@@ -7,11 +7,13 @@ import { isKitchenRun } from './kitchen-run-types';
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
-  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
   opacity?: number;
   /** Aspecto exclusivo del render; no altera el volumen usado para colisiones. */
   appearance?: 'water';
+  /** Nombre físico para explicar qué pieza de una carpa corta el recorrido. */
+  walkthroughPart?: 'poste' | 'cubierta' | 'lona del fondo' | 'lona izquierda' | 'lona derecha';
 }
 
 /** El mueble lleva un color distinto al de catálogo: el usuario lo ha pintado. */

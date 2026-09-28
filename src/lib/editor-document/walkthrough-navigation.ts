@@ -135,8 +135,7 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
           vy > -CAMERA_CLEARANCE_MM && vy < v.depthMm + CAMERA_CLEARANCE_MM;
       });
       if (partIndex >= 0) return { kind: 'outdoor', point: p, entityId: item.id,
-        part: item.kind === 'carpa' ? partIndex < 4 ? 'poste' : partIndex === 8 ? 'lona del fondo'
-          : partIndex === 9 ? 'lona izquierda' : partIndex === 10 ? 'lona derecha' : 'cubierta' : undefined };
+        part: item.kind === 'carpa' ? volumes[partIndex]!.walkthroughPart ?? 'poste' : undefined };
     }
     for (const { item, kind } of obstacles) {
       const angle = -item.rotation * Math.PI / 180, dx = p.x - item.x, dy = p.y - item.y;

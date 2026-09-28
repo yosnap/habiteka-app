@@ -20,15 +20,15 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
     case 'carpa': {
       // Frente abierto; los laterales recogidos dejan solo un rollo alto, fuera del paso a altura de persona.
       posts(.8);
-      box(0, 0, .8, 1, 1, .04); box(.08, .08, .84, .84, .84, .06); box(.2, .2, .9, .6, .6, .06); box(.35, .35, .96, .3, .3, .04);
+      box(0, 0, .8, 1, 1, .2, color, { shape: 'hip-roof', walkthroughPart: 'cubierta' });
       const clear = { opacity: .3 };
       const leftRolled = item.rolledSides === 'left' || item.rolledSides === 'both';
       const rightRolled = item.rolledSides === 'right' || item.rolledSides === 'both';
-      box(0, 0, 0, 1, .015, .8, '#dfe9ec', clear);
-      if (leftRolled) box(0, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72 });
-      else box(0, 0, 0, .015, 1, .8, '#dfe9ec', clear);
-      if (rightRolled) box(.982, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72 });
-      else box(.985, 0, 0, .015, 1, .8, '#dfe9ec', clear);
+      box(0, 0, 0, 1, .015, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona del fondo' });
+      if (leftRolled) box(0, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72, walkthroughPart: 'lona izquierda' });
+      else box(0, 0, 0, .015, 1, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona izquierda' });
+      if (rightRolled) box(.982, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72, walkthroughPart: 'lona derecha' });
+      else box(.985, 0, 0, .015, 1, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona derecha' });
       break;
     }
     case 'toldo':

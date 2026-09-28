@@ -8,6 +8,7 @@ import { SurfaceMaterial } from './surface-material';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
 import { WaterSurfaceMaterial } from './water-surface-material';
+import { HipRoofGeometry } from './hip-roof-geometry';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
@@ -17,7 +18,8 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
     scale={box.shape === 'ellipsoid' ? box.size : undefined} castShadow={!clear} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
     {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} />
-      : box.shape === 'rounded-box' ? <RoundedBoxGeometry args={box.size} radius={Math.min(...box.size) * .2} smoothness={3} bevelSegments={2} />
+      : box.shape === 'hip-roof' ? <HipRoofGeometry size={box.size} />
+        : box.shape === 'rounded-box' ? <RoundedBoxGeometry args={box.size} radius={Math.min(...box.size) * .2} smoothness={3} bevelSegments={2} />
         : box.shape === 'ellipsoid' ? <sphereGeometry args={[.5, 20, 12]} /> : <boxGeometry args={box.size} />}
     {box.appearance === 'water' ? <WaterSurfaceMaterial color={selected ? '#43b6a0' : box.color} width={box.size[0]} depth={box.size[2]} /> : box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
@@ -29,7 +31,7 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
       : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color}
-        roughness={box.role === 'glass' ? .08 : box.role === 'seal' ? .38 : .7}
+        roughness={box.role === 'glass' ? .08 : box.role === 'seal' ? .38 : box.shape === 'hip-roof' ? .92 : .7}
         metalness={box.role === 'rail' ? .5 : box.role === 'glass' ? .18 : box.role === 'seal' ? .12 : 0}
         envMapIntensity={box.role === 'glass' ? 1.6 : 1}
         transparent={clear} opacity={box.opacity ?? (box.role === 'glass' ? .38 : 1)}
