@@ -36,7 +36,10 @@ export function idsByKind(doc: EditorDocument, rooms: DerivedRoom[], kind: Selec
     case 'columns': return (doc.columns ?? []).map((c) => c.id);
     case 'stairs': return (doc.stairs ?? []).map((s) => s.id);
     case 'ramps': return (doc.ramps ?? []).map((r) => r.id);
-    case 'luminaires': return (doc.luminaires ?? []).map((l) => l.id);
+    case 'luminaires': return [
+      ...(doc.luminaires ?? []).map((l) => l.id),
+      ...doc.furniture.filter((item) => item.catalogId === 'habiteka:outdoor:tira-led').map((item) => item.id),
+    ];
     case 'labels': return doc.labels.map((l) => l.id);
   }
 }
