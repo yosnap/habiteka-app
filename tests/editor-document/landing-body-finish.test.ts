@@ -29,10 +29,8 @@ describe('acabado del cuerpo del descansillo', () => {
     expect(updateRamp(saved, landing.id, { bodyMaterialId: undefined }).ramps![0]!.bodyMaterialId).toBeUndefined();
   });
 
-  it('rechaza un material desconocido y un acabado de cuerpo en una rampa inclinada', () => {
+  it('rechaza un material desconocido', () => {
     const doc = addRamp(emptyEditorDocument(), landing);
     expect(() => parseEditorDocument({ ...doc, ramps: [{ ...doc.ramps![0], bodyMaterialId: 'unknown' }] })).toThrow('Acabado');
-    expect(() => parseEditorDocument({ ...doc, ramps: [{ ...doc.ramps![0], catalogId: 'builtin:ramp-straight', riseMm: 300,
-      bodyMaterialId: 'polyhaven:white_plaster_02' }] })).toThrow('Acabado');
   });
 });

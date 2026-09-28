@@ -25,6 +25,32 @@ export function rampPrismGeometry(width: number, depth: number, rise: number, ba
   };
 }
 
+/** Separate UVs per face keep PBR texture scale physical on the ramp body. */
+export function rampBodySurfaceGeometry(width: number, depth: number, rise: number, baseHeight = 0) {
+  const x = width / 2, z = depth / 2, high = baseHeight + rise;
+  const a = [-x, high, -z], b = [x, high, -z], c = [x, baseHeight, z], d = [-x, baseHeight, z];
+  const e = [-x, 0, -z], f = [x, 0, -z], g = [x, 0, z], h = [-x, 0, z];
+  const faces = [
+    { points: [e, f, g, h], uv: [[0, 0], [width, 0], [width, depth], [0, depth]], normal: [0, -1, 0] },
+    { points: [a, b, f, e], uv: [[0, high], [width, high], [width, 0], [0, 0]], normal: [0, 0, -1] },
+    { points: [b, c, g, f], uv: [[0, high], [depth, baseHeight], [depth, 0], [0, 0]], normal: [1, 0, 0] },
+    { points: [c, d, h, g], uv: [[width, baseHeight], [0, baseHeight], [0, 0], [width, 0]], normal: [0, 0, 1] },
+    { points: [d, a, e, h], uv: [[depth, baseHeight], [0, high], [0, 0], [depth, 0]], normal: [-1, 0, 0] },
+  ];
+  const vertices: number[] = [], uvs: number[] = [], normals: number[] = [], indices: number[] = [];
+  faces.forEach(({ points, uv, normal }, face) => {
+    points.forEach((point, corner) => {
+      vertices.push(...point);
+      uvs.push(...uv[corner]!);
+      normals.push(...normal);
+    });
+    const start = face * 4;
+    indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
+  });
+  return { vertices: new Float32Array(vertices), uvs: new Float32Array(uvs),
+    normals: new Float32Array(normals), indices: new Uint32Array(indices) };
+}
+
 /** La misma cara superior del prisma, elevada imperceptiblemente para evitar z-fighting. */
 export function rampSurfaceGeometry(width: number, depth: number, rise: number, baseHeight = 0, offset = .0005) {
   const halfWidth = width / 2, halfDepth = depth / 2;

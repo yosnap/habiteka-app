@@ -6,7 +6,7 @@ import type { SceneBox, ScenePolygon, SceneRamp } from '@/canvas/editor-v2/scene
 import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
-import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
+import { rampBodySurfaceGeometry, rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
 import { WaterSurfaceMaterial } from './water-surface-material';
 import { HipRoofGeometry } from './hip-roof-geometry';
 
@@ -55,10 +55,17 @@ export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; select
       : <meshStandardMaterial key={face} attach={`material-${face}`} color={selected ? '#43b6a0' : structuralColor} roughness={.75} />)}
   </mesh>;
   const { vertices, indices } = rampPrismGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
+  const body = ramp.bodyMaterialId ? rampBodySurfaceGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight) : undefined;
   const surface = rampSurfaceGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
   return <group position={ramp.position} rotation={[0, ramp.rotation, 0]} onClick={select}>
-    <mesh castShadow receiveShadow><bufferGeometry><bufferAttribute attach="attributes-position" args={[vertices, 3]} /><bufferAttribute attach="index" args={[indices, 1]} /></bufferGeometry>
-      <meshStandardMaterial color={selected ? '#43b6a0' : structuralColor} roughness={.75} side={2} /></mesh>
+    <mesh castShadow receiveShadow><bufferGeometry>
+      <bufferAttribute attach="attributes-position" args={[body?.vertices ?? vertices, 3]} />
+      {body && <><bufferAttribute attach="attributes-uv" args={[body.uvs, 2]} />
+        <bufferAttribute attach="attributes-normal" args={[body.normals, 3]} /></>}
+      <bufferAttribute attach="index" args={[body?.indices ?? indices, 1]} />
+    </bufferGeometry>
+      {ramp.bodyMaterialId ? <SurfaceMaterial id={ramp.bodyMaterialId} color={selected ? '#43b6a0' : '#ffffff'} width={1} height={1} doubleSide />
+        : <meshStandardMaterial color={selected ? '#43b6a0' : structuralColor} roughness={.75} side={2} />}</mesh>
     {ramp.floorFinish && <mesh receiveShadow raycast={() => undefined}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[surface.vertices, 3]} />

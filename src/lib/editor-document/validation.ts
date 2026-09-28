@@ -349,9 +349,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
-        if (e.bodyMaterialId !== undefined &&
-          (e.catalogId !== 'builtin:ramp-landing' || e.riseMm !== 0 || !surfaceMaterial(e.bodyMaterialId as string)))
-          throw new Error('Acabado del cuerpo del descansillo inválido');
+        if (e.bodyMaterialId !== undefined && !surfaceMaterial(e.bodyMaterialId as string))
+          throw new Error('Acabado del cuerpo de la rampa inválido');
         positive(e.widthMm);
         positive(e.depthMm);
         nonnegative(e.riseMm);

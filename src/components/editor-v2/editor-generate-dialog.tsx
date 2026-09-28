@@ -747,6 +747,11 @@ function ProposalPreview({
           {palette && !palette.slabUndersides.includes(proposal.materials.slabUndersides)
             ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
         </p>}
+        {proposal.materials.rampBodies && <p className="text-ink-soft col-span-2 text-xs">
+          Con rampas: laterales y cara inferior · {materialLabel(proposal.materials.rampBodies)}
+          {palette && !palette.rampBodies.includes(proposal.materials.rampBodies)
+            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
+        </p>}
         {proposal.materials.landingBodies && <p className="text-ink-soft col-span-2 text-xs">
           Con rampas: canto y cara inferior de los descansillos · {materialLabel(proposal.materials.landingBodies)}
           {palette && !palette.landingBodies.includes(proposal.materials.landingBodies)

@@ -190,6 +190,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         position: { x: meters(ramp.x), y: meters(ramp.y), elevation: meters(ramp.elevationMm) }, rotationDeg: degrees(ramp.rotation),
         dimensions: { width: meters(ramp.widthMm), development: meters(developmentMm), rise: meters(totalRiseMm), startElevation: meters(ramp.elevationMm), arrivalElevation: meters(ramp.elevationMm + totalRiseMm) },
         areaM2: area(ramp.widthMm * (developmentMm + (landing?.depthMm ?? 0))),
+        attributes: {
+          'acabado transitable': surfaceMaterial(ramp.materialId)?.label ?? ramp.materialId,
+          ...(ramp.bodyMaterialId ? { 'acabado de laterales y cara inferior': surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
+        },
         relationships: [
           `EXISTE UNA SOLA ${id}: ${flights.length} tramo(s), del nivel ${meters(ramp.elevationMm)} m al ${meters(ramp.elevationMm + totalRiseMm)} m.`,
           ...(landing ? [`Descansillo integrado a ${meters(landing.elevationMm)} m; no crear otro descansillo ni otra rampa.`] : []),

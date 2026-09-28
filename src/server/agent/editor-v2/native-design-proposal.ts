@@ -19,8 +19,8 @@ export const NATIVE_DESIGN_SCHEMA: JsonSchema = {
   type: 'object', additionalProperties: false, required: ['summary', 'materials', 'furniture'],
   properties: {
     summary: { type: 'string' },
-    materials: { type: 'object', additionalProperties: false, required: ['walls', 'floors', 'slabUndersides', 'landingBodies', 'stairs', 'ramps', 'columns'], properties: {
-      walls: { type: 'string' }, floors: { type: 'string' }, slabUndersides: { type: 'string' }, landingBodies: { type: 'string' },
+    materials: { type: 'object', additionalProperties: false, required: ['walls', 'floors', 'slabUndersides', 'rampBodies', 'landingBodies', 'stairs', 'ramps', 'columns'], properties: {
+      walls: { type: 'string' }, floors: { type: 'string' }, slabUndersides: { type: 'string' }, rampBodies: { type: 'string' }, landingBodies: { type: 'string' },
       stairs: { type: 'string' }, ramps: { type: 'string' }, columns: { type: 'string' },
     } },
     furniture: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['catalogId', 'xMm', 'yMm', 'rotation', 'reason'], properties: {
@@ -68,6 +68,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     `Materiales permitidos: ${materials}.`,
     'Suelo permitido: none, wood, tile, o cualquiera de los materiales permitidos.',
     'Para el canto y la cara inferior de terrazas o plataformas elevadas, usa materials.slabUndersides con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. Solo afecta a forjados elevados dentro del ámbito editable.',
+    'Para los laterales y la cara inferior de rampas inclinadas, usa materials.rampBodies con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. No cambia su superficie transitable ni su pendiente y respeta el ámbito editable.',
     'Para los laterales y la cara inferior de descansillos independientes, usa materials.landingBodies con un material permitido solo si se pide cambiarlos. Si no se pide, devuelve none para conservar el acabado existente. No cambia su pavimento ni su geometría y respeta el ámbito editable.',
     `Catálogo permitido: ${furniture}.`,
     'Contexto físico autoritativo:', JSON.stringify(editorDesignContext(document)),
@@ -83,6 +84,8 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   const floor = typeof materials.floors === 'string' && FLOOR_TEXTURES.has(materials.floors) ? materials.floors as FloorFinish['texture'] : 'none';
   const slabUndersides = typeof materials.slabUndersides === 'string' && MATERIAL_IDS.has(materials.slabUndersides)
     ? materials.slabUndersides as FloorFinish['undersideTexture'] : undefined;
+  const rampBodies = typeof materials.rampBodies === 'string' && MATERIAL_IDS.has(materials.rampBodies)
+    ? materials.rampBodies as FloorFinish['undersideTexture'] : undefined;
   const landingBodies = typeof materials.landingBodies === 'string' && MATERIAL_IDS.has(materials.landingBodies)
     ? materials.landingBodies as FloorFinish['undersideTexture'] : undefined;
   const scope = scopeFromOptions(options);
@@ -106,7 +109,7 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
     discarded ? `Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación.` : ''].filter(Boolean).join(' ');
   return { style, summary,
     scope, sourceRevision: document.revision,
-    materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides, landingBodies,
+    materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides, rampBodies, landingBodies,
       stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
 }
 
