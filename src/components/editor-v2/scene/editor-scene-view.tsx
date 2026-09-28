@@ -41,6 +41,7 @@ import { resolvedLuminaires, ceilingSurfaces, hasCompleteInteriorRoof, ceilingIs
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 import { withTimeout } from '@/lib/async-wait';
 import { renderZoneMask } from './zone-mask';
+import { isolateSceneToZone } from './zone-scene-isolation';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { placeOnHost } from '@/lib/editor-document/object-host-rest';
@@ -247,10 +248,12 @@ function SceneView({
       const originalSelection = [...store.getState().selection];
       let restoreWalls: (() => void) | null = null;
       let restoreZoneWalls: (() => void) | null = null;
+      let restoreZoneScene: (() => void) | null = null;
       let restoreLighting: (() => void) | null = null;
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
       store.getState().select([]);
+      if (options?.maskRegions?.length) flushSync(() => setCapturingPose(true));
       if (options?.lighting) flushSync(() => setCaptureLighting(options.lighting!));
       // El ángulo se conserva, pero se encuadra la zona elegida en lugar de toda la finca.
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
@@ -275,9 +278,10 @@ function SceneView({
       const currentDocument = store.getState().document;
       const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
-      const cut = options?.camera ? false : options?.view && options.view !== 'current'
+      const cut = options?.maskRegions?.length || options?.camera ? false : options?.view && options.view !== 'current'
         ? captureCutaway(options.view, wallCutaway, finishedExterior) : wallCutaway;
-      const zoneWallIds = options?.maskRegions?.length && !options.camera && capturedView !== 'top'
+      const sideView = ['front', 'back', 'left', 'right'].includes(capturedView ?? '');
+      const zoneWallIds = options?.maskRegions?.length && !options.camera && sideView
         ? zoneOccludingWallIds(currentDocument, initial.camera.position, options.maskRegions,
           (activeElevation + 1500) / 1000) : [];
       const capturedCutaway = cut || zoneWallIds.length > 0;
@@ -312,6 +316,7 @@ function SceneView({
       // Recorte aplicado aquí mismo y no vía estado: debe estar en ESTA foto.
       if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
       if (zoneWallIds.length) restoreZoneWalls = hideWallsByIds(state.scene, new Set(zoneWallIds));
+      if (options?.maskRegions?.length) restoreZoneScene = isolateSceneToZone(state.scene, options.maskRegions);
       // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
       if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
       state.gl.render(state.scene, state.camera);
@@ -333,6 +338,7 @@ function SceneView({
         ).map((wall) => wall.sourceEntityId) : []), ...zoneWallIds])],
       } };
       } finally {
+        restoreZoneScene?.();
         restoreZoneWalls?.();
         restoreWalls?.();
         restoreLighting?.();

@@ -12,12 +12,14 @@ function documentWithCrossWalls() {
     { id: 'front-a', x: 0, y: 0 }, { id: 'front-b', x: 4000, y: 0 },
     { id: 'rear-a', x: 0, y: 4000 }, { id: 'rear-b', x: 4000, y: 4000 },
     { id: 'other-a', x: 6000, y: 0 }, { id: 'other-b', x: 6000, y: 4000 },
+    { id: 'right-a', x: 4000, y: 0 }, { id: 'right-b', x: 4000, y: 4000 },
     { id: 'left-a', x: 0, y: 0 }, { id: 'left-b', x: 0, y: 4000 },
   ];
   document.walls = [
     { id: 'front', startVertexId: 'front-a', endVertexId: 'front-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
     { id: 'rear', startVertexId: 'rear-a', endVertexId: 'rear-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
     { id: 'other', startVertexId: 'other-a', endVertexId: 'other-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
+    { id: 'right', startVertexId: 'right-a', endVertexId: 'right-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
     { id: 'left', startVertexId: 'left-a', endVertexId: 'left-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
   ];
   return document;
@@ -28,18 +30,21 @@ describe('recorte de muros delante de una zona de diseño', () => {
     const document = documentWithCrossWalls();
     expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
     expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: 9 }, region)).toEqual(['rear']);
-    expect(zoneOccludingWallIds(document, { x: 9, y: 2, z: 2 }, region)).toEqual(['other']);
+    expect(zoneOccludingWallIds(document, { x: 9, y: 2, z: 2 }, region)).toEqual(['right']);
     expect(zoneOccludingWallIds(document, { x: -5, y: 2, z: 2 }, region)).toEqual(['left']);
   });
 
-  it('incluye tabiques interiores anteriores a la zona y no altera el documento', () => {
+  it('no quita paredes exteriores ajenas ni tabiques interiores de la zona', () => {
     const document = documentWithCrossWalls();
     document.vertices.push({ id: 'partition-a', x: 0, y: -2000 }, { id: 'partition-b', x: 4000, y: -2000 });
     document.walls.push({ id: 'partition', startVertexId: 'partition-a', endVertexId: 'partition-b', thicknessMm: 120, dimensionalOrigin: 'physical' });
     const before = JSON.stringify(document);
-    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front', 'partition']);
+    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
     expect(JSON.stringify(document)).toBe(before);
     document.walls.find((wall) => wall.id === 'partition')!.hidden = true;
+    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
+    document.vertices.push({ id: 'inner-a', x: 0, y: 2000 }, { id: 'inner-b', x: 4000, y: 2000 });
+    document.walls.push({ id: 'inner', startVertexId: 'inner-a', endVertexId: 'inner-b', thicknessMm: 120, dimensionalOrigin: 'physical' });
     expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
   });
 

@@ -20,7 +20,7 @@ export function zoneMapLayout(regions: ZoneMaskRegions, marginMm = ZONE_MASK_MAR
 }
 
 /** Mapa cenital de las zonas: blanco dentro (con margen), negro fuera. */
-function drawZoneMap(regions: ZoneMaskRegions, layout: ZoneMapLayout): HTMLCanvasElement {
+export function drawZoneMap(regions: ZoneMaskRegions, layout: ZoneMapLayout): HTMLCanvasElement {
   const scale = ZONE_MAP_MAX_SIDE_PX / Math.max(layout.width, layout.height);
   const canvas = window.document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(layout.width * scale));
@@ -47,7 +47,8 @@ function drawZoneMap(regions: ZoneMaskRegions, layout: ZoneMapLayout): HTMLCanva
 
 /**
  * Cada píxel visible es blanco si su posición en planta cae dentro de una zona.
- * La oclusión sale del propio depth buffer: lo que tapa la zona queda negro.
+ * Fuera de la zona se descarta el fragmento antes de escribir en profundidad.
+ * Así la misma geometría que aparece en el render queda blanca en la máscara.
  */
 function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout) {
   return new ShaderMaterial({
@@ -81,7 +82,8 @@ function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout) {
         #include <clipping_planes_fragment>
         vec2 uv = (vWorld.xz - bounds.xy) / bounds.zw;
         float inside = any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))) ? 0.0 : texture2D(zoneMap, uv).r;
-        gl_FragColor = vec4(vec3(inside), 1.0);
+        if (inside < 0.5) discard;
+        gl_FragColor = vec4(1.0);
       }`,
   });
 }
