@@ -37,8 +37,8 @@ export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: 
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
       : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color}
-        roughness={box.role === 'glass' ? .08 : box.role === 'seal' ? .38 : box.shape === 'hip-roof' ? .92 : .7}
-        metalness={box.role === 'rail' ? .5 : box.role === 'glass' ? .18 : box.role === 'seal' ? .12 : 0}
+        roughness={box.appearance === 'powder-coated-metal' ? .42 : box.role === 'glass' ? .08 : box.role === 'seal' ? .38 : box.shape === 'hip-roof' ? .92 : .7}
+        metalness={box.appearance === 'powder-coated-metal' ? .65 : box.role === 'rail' ? .5 : box.role === 'glass' ? .18 : box.role === 'seal' ? .12 : 0}
         envMapIntensity={box.role === 'glass' ? 1.6 : 1}
         transparent={clear} opacity={box.opacity ?? (box.role === 'glass' ? .38 : 1)}
         depthWrite={!clear} />}

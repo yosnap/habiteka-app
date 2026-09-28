@@ -8,7 +8,7 @@ export interface SceneBox {
   boundaryPart?: 'post' | 'gate' | 'slot';
   /** Transparencia del sólido; por defecto opaco (el vidrio de aberturas usa su propio rol). */
   opacity?: number;
-  appearance?: 'water';
+  appearance?: 'water' | 'powder-coated-metal';
   materialId?: string;
   useColorMap?: boolean;
   sideColors?: [string, string];

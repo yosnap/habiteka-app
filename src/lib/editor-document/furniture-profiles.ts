@@ -13,7 +13,7 @@ export interface FurnitureVolume {
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
   opacity?: number;
   /** Aspecto exclusivo del render; no altera el volumen usado para colisiones. */
-  appearance?: 'water';
+  appearance?: 'water' | 'powder-coated-metal';
   /** Nombre físico para explicar qué pieza de una carpa corta el recorrido. */
   walkthroughPart?: 'poste' | 'cubierta' | 'lona del fondo' | 'lona izquierda' | 'lona derecha';
 }
