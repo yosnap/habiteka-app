@@ -35,7 +35,9 @@ it('rechaza un estilo incompatible por zona antes de consultar al proveedor', as
 it('estricto impide objetos aunque el modelo los devuelva', () => {
   const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
   const raw = { summary: 'Plantas', materials: {}, furniture: [item] };
-  expect(parseNativeDesignProposal(raw, 'moderno', doc, options).furniture).toEqual([]);
+  const strict = parseNativeDesignProposal(raw, 'moderno', doc, options);
+  expect(strict.furniture).toEqual([]);
+  expect(strict.summary).toContain('Se descartaron 1 objeto(s)');
   expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'controlled', additions: ['plants'] }).furniture).toEqual([item]);
 });
 it('descarta muebles propuestos fuera del ámbito editable aunque el modelo los devuelva', () => {
@@ -50,6 +52,13 @@ it('controlado permite solo categorías marcadas; libre no permite instalaciones
   expect(allowedProposalFurniture(item, { ...options, freedom: 'controlled', additions: ['plants'] })).toBe(true);
   expect(allowedProposalFurniture(item, { ...options, freedom: 'free' })).toBe(true);
   expect(allowedProposalFurniture({ ...item, catalogId: 'habiteka:furniture:ducha' }, { ...options, freedom: 'free' })).toBe(false);
+});
+it('permite un asiento exterior y una tira LED funcional solo con sus permisos', () => {
+  const seat = { ...item, catalogId: 'habiteka:outdoor:puf-exterior' };
+  const led = { ...item, catalogId: 'habiteka:outdoor:tira-led' };
+  expect(allowedProposalFurniture(seat, { ...options, freedom: 'controlled', additions: ['furniture'] })).toBe(true);
+  expect(allowedProposalFurniture(led, { ...options, freedom: 'controlled', additions: ['furniture'] })).toBe(false);
+  expect(allowedProposalFurniture(led, { ...options, freedom: 'controlled', additions: ['lights'] })).toBe(true);
 });
 it('comprueba toda la huella de objetos, no solo su origen', () => {
   const region = { id: 'a', name: 'Zona', polygon: [{ x: 900, y: 900 }, { x: 1400, y: 900 }, { x: 1400, y: 1400 }, { x: 900, y: 1400 }] };

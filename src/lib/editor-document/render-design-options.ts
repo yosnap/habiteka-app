@@ -24,6 +24,7 @@ export const renderDesignOptionsSchema = z.object({
   interiorRoomIds: z.array(z.string().min(1).max(4000)).max(12).default([]),
   designScope: z.enum(['all', 'interior', 'exterior', 'rooms']).default('all'),
   designRoomIds: z.array(z.string().min(1).max(4000)).max(40).default([]),
+  designStructureIds: z.array(z.string().min(1).max(128)).max(40).default([]),
 }).superRefine((value, ctx) => {
   if (new Set(value.interiorRoomIds).size !== value.interiorRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['interiorRoomIds'], message: 'No repitas estancias.' });
@@ -34,10 +35,12 @@ export const renderDesignOptionsSchema = z.object({
     ctx.addIssue({ code: 'custom', path: ['designRoomIds'], message: 'No repitas estancias de diseño.' });
   if (value.designScope === 'rooms' && !value.designRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['designRoomIds'], message: 'Marca al menos una estancia para diseñar.' });
+  if (new Set(value.designStructureIds).size !== value.designStructureIds.length)
+    ctx.addIssue({ code: 'custom', path: ['designStructureIds'], message: 'No repitas elementos del diseño.' });
 });
 export type RenderDesignOptions = z.infer<typeof renderDesignOptionsSchema>;
 export type RenderViewChoice = RenderDesignOptions['views'][number];
-export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting: 'daylight', freedom: 'strict', additions: [], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [], designScope: 'all', designRoomIds: [] });
+export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting: 'daylight', freedom: 'strict', additions: [], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [], designScope: 'all', designRoomIds: [], designStructureIds: [] });
 
 /** ¿Se generan vistas interiores por estancia en vez de los ángulos genéricos? */
 export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>

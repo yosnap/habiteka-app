@@ -6,6 +6,8 @@ import { localToWorld } from './spatial-properties';
 import type { Point } from './schema';
 
 export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptions['additions'][number] | null {
+  if (item.id === 'habiteka:outdoor:tira-led') return 'lights';
+  if (item.id === 'habiteka:outdoor:puf-exterior') return 'furniture';
   if (item.profile === 'plant') return 'plants';
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';

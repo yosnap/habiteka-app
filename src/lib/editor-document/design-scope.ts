@@ -6,6 +6,7 @@ import type { EditorDocument, Point, Wall } from './schema';
 export interface DesignScope {
   kind: 'all' | 'interior' | 'exterior' | 'rooms';
   roomIds: string[];
+  structureIds?: string[];
 }
 
 export const wholeDesignScope = (): DesignScope => ({ kind: 'all', roomIds: [] });
@@ -28,6 +29,16 @@ export function designScopeRooms(doc: EditorDocument, scope: DesignScope): Deriv
   if (!selected.length || (scope.kind === 'rooms' && selected.length !== new Set(scope.roomIds).size))
     throw new Error('El ámbito del diseño ya no coincide con las estancias del plano. Vuelve a elegirlas.');
   return selected;
+}
+
+/** Verifica las piezas externas a las estancias antes de pedir o aplicar una propuesta. */
+export function designScopeStructureIds(doc: EditorDocument, scope: DesignScope): ReadonlySet<string> {
+  const ids = scope.structureIds ?? [];
+  if (scope.kind !== 'rooms' && ids.length) throw new Error('Las piezas concretas requieren elegir estancias concretas.');
+  const available = new Set([...(doc.stairs ?? []), ...(doc.ramps ?? [])].map((item) => item.id));
+  if (new Set(ids).size !== ids.length || ids.some((id) => !available.has(id)))
+    throw new Error('Una escalera, rampa o descansillo ya no coincide con el plano. Vuelve a elegirlo.');
+  return new Set(ids);
 }
 
 /** Conserva la cara opuesta al aplicar una propuesta a una sola estancia. */

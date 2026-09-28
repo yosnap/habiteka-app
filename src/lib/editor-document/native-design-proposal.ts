@@ -8,7 +8,8 @@ import { finishColor, localToWorld, upgradeSpatialDocument } from './spatial-pro
 import { parseEditorDocument } from './validation';
 import type { EditorDocument, FloorFinish, Point } from './schema';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
-import { assertCompatibleDesignStyle, designScopeRooms, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
+import { outdoorVolumes } from './outdoor-volumes';
+import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 import { wallConstruction } from './construction-properties';
 
@@ -52,6 +53,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   assertCompatibleDesignStyle(source, proposal.style, scope);
   const doc = upgradeSpatialDocument(source);
   const rooms = deriveRooms(doc), selectedRooms = designScopeRooms(doc, scope);
+  const selectedStructures = designScopeStructureIds(doc, scope);
   const allowedRooms = new Set(selectedRooms.map((room) => room.id));
   const indoorRooms = scope.kind === 'exterior' ? eligibleCeilingRooms(doc) : [];
   // Las propuestas añaden acabados de suelo: el formato v4 no admite ese campo.
@@ -80,8 +82,9 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
       wall.colors[side] = '#ffffff';
     }
   });
-  const inScope = (item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }) => {
+  const inScope = (item: { id: string; x: number; y: number; widthMm: number; depthMm: number; rotation: number }) => {
     if (scope.kind === 'all') return true;
+    if (selectedStructures.has(item.id)) return true;
     const point = localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 });
     return scopeContainsPoint(selectedRooms, point) ||
       (scope.kind === 'exterior' && !scopeContainsPoint(indoorRooms, point));
@@ -117,7 +120,7 @@ function exteriorWallSides(wall: EditorDocument['walls'][number], selected: Retu
   return [...sides];
 }
 
-function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>, allowedRooms: ReadonlySet<string>) {
+export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>, allowedRooms: ReadonlySet<string>) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return;
   const room = suggestedFurnitureRoom(item, rooms);
@@ -142,15 +145,27 @@ export function canPlaceNativeDesignFurniture(
   const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
   const room = suggestedFurnitureRoom(item, rooms);
   if (!room || (allowedRooms && !allowedRooms.has(room.id))) return false;
-  const protectedFootprints = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])];
-  return !protectedFootprints.some((target) => intersects(candidate, target, 250));
+  const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
+  const shelterIds = new Set(shelters.map((target) => target.id));
+  const protectedFootprints = [...planObjects(doc).filter((target) => !shelterIds.has(target.id)),
+    ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])];
+  if (protectedFootprints.some((target) => intersects(candidate, target, 250))) return false;
+  const bottom = floorFinish(doc, room.id).elevationMm ?? 0;
+  return !shelters.some((shelter) => outdoorVolumes(shelter).some((part) => {
+    if (part.top <= bottom || part.bottom >= bottom + catalog.heightMm) return false;
+    const origin = localToWorld(shelter, { x: part.x, y: part.y });
+    return intersects(candidate, { x: origin.x, y: origin.y, widthMm: part.widthMm,
+      depthMm: part.depthMm, rotation: shelter.rotation }, 100);
+  }));
 }
 
 function suggestedFurnitureRoom(item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog) return undefined;
   const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
-  return rooms.find((room) => corners(candidate).every((point) => contains(room.boundary, point)));
+  const footprint = corners(candidate);
+  return rooms.filter((room) => footprint.every((point) => contains(room.boundary, point)))
+    .sort((a, b) => a.areaMm2 - b.areaMm2)[0];
 }
 
 function corners(item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }) {

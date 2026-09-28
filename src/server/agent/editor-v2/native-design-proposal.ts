@@ -4,11 +4,13 @@ import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { getFurnitureCatalogEntry, FURNITURE_CATALOG } from '@/lib/editor-document/furniture-catalog';
 import { SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
 import type { EditorDocument, FloorFinish } from '@/lib/editor-document/schema';
-import { canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { addSuggestedFurniture, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { renderDesignOptionsSchema, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
-import { assertCompatibleDesignStyle, designScopeRooms, type DesignScope } from '@/lib/editor-document/design-scope';
+import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, type DesignScope } from '@/lib/editor-document/design-scope';
 import { deriveRooms } from '@/lib/editor-document/rooms';
+import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
@@ -33,6 +35,7 @@ export async function proposeNativeDesign(
   const options = renderDesignOptionsSchema.parse(rawOptions ?? {});
   const scope = scopeFromOptions(options);
   designScopeRooms(document, scope);
+  designScopeStructureIds(document, scope);
   assertCompatibleDesignStyle(document, style, scope);
   const result = await chat.chat({ model: '', responseSchema: NATIVE_DESIGN_SCHEMA, temperature: 0.2, maxTokens: 2400,
     messages: [{ role: 'user', content: [{ type: 'text', text: nativeDesignPrompt(document, style, objective, instruction, options) }, ...references] }],
@@ -42,19 +45,25 @@ export async function proposeNativeDesign(
 
 function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: string, instruction: string, options: RenderDesignOptions) {
   const materials = SURFACE_MATERIALS.map((item) => `${item.id} (${item.label}, ${item.category})`).join(', ');
-  const furniture = FURNITURE_CATALOG.filter(item => allowedProposalCatalog(item, options)).map((item) => `${item.id} (${item.label}; ${item.widthMm}x${item.depthMm}mm)`).join(', ');
   const scope = scopeFromOptions(options);
   const targetRooms = designScopeRooms(document, scope);
+  const indoorIds = new Set(eligibleCeilingRooms(document).map((room) => room.id));
+  const exteriorOnly = targetRooms.every((room) => !indoorIds.has(room.id));
+  const furniture = FURNITURE_CATALOG.filter((item) => allowedProposalCatalog(item, options)
+    && (!exteriorOnly || item.room === 'exterior' || item.id === 'habiteka:outdoor:tira-led'))
+    .map((item) => `${item.id} (${item.label}; ${item.widthMm}x${item.depthMm}mm)`).join(', ');
   return [
     `Eres interiorista y paisajista. Diseña el espacio con estilo ${estiloLabel(style)}.`,
     objective ? `Objetivo: ${objective}.` : '', instruction ? `Preferencia del cliente: ${instruction}.` : '',
     'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
     'No puedes añadir, quitar, mover, redimensionar, ocultar o cambiar la altura de muros, huecos, pisos, columnas, rampas, descansillos o escaleras.',
-    'Tu JSON solo puede escoger acabados existentes y hasta 4 muebles/decoración del catálogo. Las coordenadas xMm/yMm son la esquina superior izquierda y deben caer completamente dentro de una habitación cerrada, nunca sobre rampas, escaleras o circulación.',
-    `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id) })}. Los acabados y objetos fuera de estas estancias permanecen intactos. Conserva una paleta y estilo compatibles con los acabados ya presentes en las demás zonas del contexto físico.`,
+    'Tu JSON solo puede escoger acabados existentes y hasta 4 objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes y otros muebles.',
+    `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)] })}. Los acabados y objetos fuera de estas estancias y piezas permanecen intactos. Conserva una paleta y estilo compatibles con los acabados ya presentes en las demás zonas del contexto físico.`,
+    `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
+      boundaryMm: room.boundary.map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
-    options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes.',
-    'El ambiente de captura y los ángulos son ajustes para imágenes. Conserva los techos y luminarias persistidos del contexto; este JSON no puede crearlos ni modificarlos. La propuesta de iluminación editable se revisa y acepta por separado. Resume solo cambios que realmente propones.',
+    options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
+    'El ambiente de captura y los ángulos son ajustes para imágenes. Conserva los techos y luminarias existentes. Si se permite iluminación y se pide una luz exterior real, puedes añadir habiteka:outdoor:tira-led dentro de furniture: su luz es visible en la escena 3D. No inventes luminarias fuera del catálogo. Resume solo cambios que realmente propones.',
     `Materiales permitidos: ${materials}.`,
     'Suelo permitido: none, wood, tile, o cualquiera de los materiales permitidos.',
     `Catálogo permitido: ${furniture}.`,
@@ -71,17 +80,28 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   const floor = typeof materials.floors === 'string' && FLOOR_TEXTURES.has(materials.floors) ? materials.floors as FloorFinish['texture'] : 'none';
   const scope = scopeFromOptions(options);
   const allowedRooms = new Set(designScopeRooms(document, scope).map((room) => room.id));
-  const rooms = deriveRooms(document);
-  const furniture = Array.isArray(input.furniture)
-    ? input.furniture.flatMap((raw) => parseFurniture(raw)).filter((item) => allowedProposalFurniture(item, options) && canPlaceNativeDesignFurniture(document, item, rooms, allowedRooms)).slice(0, 4)
-    : [];
-  return { style, summary: typeof input.summary === 'string' ? input.summary.slice(0, 500) : 'Propuesta de acabados y mobiliario.',
+  const candidateDoc = upgradeSpatialDocument(document);
+  const rooms = deriveRooms(candidateDoc);
+  const rawFurniture = Array.isArray(input.furniture) ? input.furniture : [];
+  const furniture: NativeDesignProposal['furniture'] = [];
+  for (const item of rawFurniture.flatMap((raw) => parseFurniture(raw))) {
+    if (furniture.length >= 4) break;
+    if (!allowedProposalFurniture(item, options) || !canPlaceNativeDesignFurniture(candidateDoc, item, rooms, allowedRooms)) continue;
+    furniture.push(item);
+    addSuggestedFurniture(candidateDoc, item, rooms, allowedRooms);
+  }
+  const discarded = rawFurniture.length - furniture.length;
+  const summary = discarded > 0
+    ? `Propuesta de acabados. Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación; solo se aplicarán los ${furniture.length} objetos listados.`
+    : typeof input.summary === 'string' ? input.summary.slice(0, 500) : 'Propuesta de acabados y mobiliario.';
+  return { style, summary,
     scope, sourceRevision: document.revision,
     materials: { walls: material('walls', 'plaster-white'), floors: floor, stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
 }
 
 function scopeFromOptions(options: RenderDesignOptions): DesignScope {
-  return { kind: options.designScope, roomIds: options.designScope === 'rooms' ? options.designRoomIds : [] };
+  return { kind: options.designScope, roomIds: options.designScope === 'rooms' ? options.designRoomIds : [],
+    structureIds: options.designScope === 'rooms' ? options.designStructureIds : [] };
 }
 
 function parseFurniture(value: unknown): NativeDesignProposal['furniture'] {

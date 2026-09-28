@@ -2,13 +2,15 @@ import { expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { createEditorStore } from '@/canvas/editor-v2/store';
-import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { applyNativeDesignProposal, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { floorFinish } from '@/lib/editor-document/floor-finishes';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
+import { upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -62,6 +64,57 @@ it('aplica una propuesta solo a la estancia elegida', () => {
   const next = applyNativeDesignProposal(source, { ...proposal, scope: { kind: 'rooms', roomIds: [roomId] } });
   expect(floorFinish(next, roomId).texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, patioId)).toEqual(floorFinish(source, patioId));
+});
+
+it('limita los acabados a la terraza y piezas exteriores elegidas, incluidos los descansillos', () => {
+  const house = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const withTerrace = addOutdoorArea(house, { x: 4000, y: 0 }, { x: 7000, y: 4000 });
+  const doc = upgradeRampDocument(addOutdoorArea(withTerrace, { x: -3000, y: 0 }, { x: 0, y: 4000 }));
+  doc.stairs = [
+    { id: 'stair-target', kind: 'straight', catalogId: 'builtin:stair-straight', x: 7200, y: 1000,
+      widthMm: 1000, depthMm: 2000, heightMm: 1000, elevationMm: 0, rotation: 0, stepCount: 6, materialId: 'wood-oak', color: '#b58b59' },
+    { id: 'stair-other', kind: 'straight', catalogId: 'builtin:stair-straight', x: -4200, y: 1000,
+      widthMm: 1000, depthMm: 2000, heightMm: 1000, elevationMm: 0, rotation: 0, stepCount: 6, materialId: 'wood-oak', color: '#b58b59' },
+  ];
+  doc.ramps = [
+    { id: 'ramp-target', catalogId: 'builtin:ramp-straight', x: 7200, y: 3500, widthMm: 1000,
+      depthMm: 2000, riseMm: 500, elevationMm: 0, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' },
+    { id: 'landing-target', catalogId: 'builtin:ramp-landing', x: 7200, y: 5700, widthMm: 1000,
+      depthMm: 1000, riseMm: 0, elevationMm: 500, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' },
+    { id: 'landing-other', catalogId: 'builtin:ramp-landing', x: -4200, y: 5700, widthMm: 1000,
+      depthMm: 1000, riseMm: 0, elevationMm: 500, rotation: 0, materialId: 'concrete-grey', color: '#a6a6a0' },
+  ];
+  const rooms = deriveRooms(doc);
+  const terrace = rooms.find((room) => insideRoom({ x: 5500, y: 2000 }, room.boundary))!;
+  const other = rooms.find((room) => insideRoom({ x: -1500, y: 2000 }, room.boundary))!;
+  const next = applyNativeDesignProposal(doc, {
+    ...proposal, scope: { kind: 'rooms', roomIds: [terrace.id],
+      structureIds: ['stair-target', 'ramp-target', 'landing-target'] },
+  }, { walls: false, floors: true, stairs: true, ramps: true, columns: false, furniture: [] });
+  expect(floorFinish(next, terrace.id).texture).toBe('polyhaven:wood_floor');
+  expect(floorFinish(next, other.id)).toEqual(floorFinish(doc, other.id));
+  expect(next.stairs?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'wood-oak']);
+  expect(next.ramps?.map((item) => item.materialId)).toEqual(['polyhaven:wood_floor', 'polyhaven:wood_floor', 'concrete-grey']);
+  expect(next.walls).toEqual(doc.walls);
+  expect(() => applyNativeDesignProposal(doc, { ...proposal, scope: { kind: 'rooms', roomIds: [terrace.id], structureIds: ['missing'] } }))
+    .toThrow('ya no coincide');
+});
+
+it('admite muebles y luces bajo una carpa sin atravesar postes ni objetos existentes', () => {
+  const doc = upgradeSpatialDocument(addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true));
+  doc.furniture.push({ id: 'cover', kind: 'carpa', catalogId: 'habiteka:outdoor:carpa',
+    x: 1000, y: 500, widthMm: 4000, depthMm: 3000, heightMm: 2800, elevationMm: 0,
+    rotation: 0, dimensionalOrigin: 'physical', color: '#e9e4d8' });
+  const sofa = { catalogId: 'habiteka:furniture:sofa-exterior', xMm: 1500, yMm: 1100, rotation: 0, reason: 'Asiento' };
+  const led = { catalogId: 'habiteka:outdoor:tira-led', xMm: 1800, yMm: 2600, rotation: 0, reason: 'Luz cálida' };
+  expect(canPlaceNativeDesignFurniture(doc, sofa)).toBe(true);
+  expect(canPlaceNativeDesignFurniture(doc, led)).toBe(true);
+  expect(canPlaceNativeDesignFurniture(doc, { ...sofa, xMm: 1050, yMm: 550 })).toBe(false);
+  const withSofa = applyNativeDesignProposal(doc, { ...proposal, furniture: [sofa, led] },
+    { walls: false, floors: false, stairs: false, ramps: false, columns: false, furniture: [0, 1] });
+  expect(withSofa.furniture.map((item) => item.catalogId)).toContain('habiteka:furniture:sofa-exterior');
+  expect(withSofa.furniture.map((item) => item.catalogId)).toContain('habiteka:outdoor:tira-led');
 });
 
 it('mantiene un estilo común entre ámbitos y permite sustituirlo al rediseñar toda la planta', () => {

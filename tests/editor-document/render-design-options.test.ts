@@ -12,6 +12,7 @@ describe('permisos de diseño IA', () => {
     expect(renderDesignOptionsSchema.safeParse({ views: ['top', 'top'] }).success).toBe(false);
     expect(renderDesignOptionsSchema.safeParse({ lighting: 'arbitrary' }).success).toBe(false);
     expect(renderDesignOptionsSchema.safeParse({ designScope: 'rooms' }).success).toBe(false);
+    expect(renderDesignOptionsSchema.safeParse({ designScope: 'rooms', designRoomIds: ['terraza'], designStructureIds: ['rampa', 'rampa'] }).success).toBe(false);
   });
   it('mantiene los polígonos en coordenadas reales del documento', () => {
     const regions = [{ id: 'center', name: 'Centro del patio', polygon: [{ x: 8000, y: 1000 }, { x: 12000, y: 1000 }, { x: 12000, y: 6000 }, { x: 8000, y: 6000 }] }];

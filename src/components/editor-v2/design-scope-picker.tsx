@@ -7,6 +7,8 @@ import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { CheckToggle } from '@/components/ui/check-toggle';
+import { localToWorld } from '@/lib/editor-document/spatial-properties';
+import { scopeContainsPoint } from '@/lib/editor-document/design-scope';
 
 interface Props {
   document?: EditorDocument;
@@ -35,6 +37,16 @@ export function DesignScopePicker({ document, options, onChange, disabled }: Pro
       outdoor: !indoor.has(room.id),
     }));
   }, [document]);
+  const exteriorStructures = useMemo(() => {
+    if (!document) return [];
+    const indoorRooms = eligibleCeilingRooms(document);
+    return [
+      ...(document.stairs ?? []).map((item, index) => ({ ...item, label: item.name || `Escalera exterior ${index + 1}` })),
+      ...(document.ramps ?? []).map((item, index) => ({ ...item,
+        label: item.name || `${item.riseMm === 0 ? 'Descansillo' : 'Rampa'} exterior ${index + 1}` })),
+    ].filter((item) => !scopeContainsPoint(indoorRooms,
+      localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 })));
+  }, [document]);
   const interiorCount = rooms.filter((room) => !room.outdoor).length;
   const exteriorCount = rooms.length - interiorCount;
   const toggleRoom = (id: string) => onChange({ ...options,
@@ -55,6 +67,17 @@ export function DesignScopePicker({ document, options, onChange, disabled }: Pro
       {rooms.map((room) => <CheckToggle key={room.id} checked={options.designRoomIds.includes(room.id)}
         disabled={disabled} onChange={() => toggleRoom(room.id)}
         label={<>{room.label} <span className="text-muted-foreground">· {room.outdoor ? 'exterior' : 'interior'}</span></>} />)}
+    </div>}
+    {options.designScope === 'rooms' && exteriorStructures.length > 0 && <div className="mt-3 border-t border-line pt-3">
+      <p className="mb-2 text-xs font-medium">Escaleras, rampas y descansillos exteriores</p>
+      <div className="grid max-h-36 gap-2 overflow-y-auto sm:grid-cols-2">
+        {exteriorStructures.map((item) => <CheckToggle key={item.id}
+          checked={options.designStructureIds.includes(item.id)} disabled={disabled}
+          onChange={(checked) => onChange({ ...options, designStructureIds: checked
+            ? [...options.designStructureIds, item.id]
+            : options.designStructureIds.filter((id) => id !== item.id) })}
+          label={item.label} />)}
+      </div>
     </div>}
     <p className="text-muted-foreground mt-2 text-xs">Las propuestas se suman en la misma escena 3D. Guarda y aprueba el diseño conjunto al terminar.</p>
   </div>;

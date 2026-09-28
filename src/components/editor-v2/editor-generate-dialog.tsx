@@ -497,7 +497,7 @@ export function EditorGenerateDialog({
                         ? `controlada (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
-                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : `${options.designRoomIds.length} estancia(s)`} · </>}
+                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
                     {options.placement === 'selected'
                       ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
                       : 'toda la planta'}{' '}
@@ -717,7 +717,7 @@ function ProposalPreview({
       <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
       <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'interior' ? 'las estancias interiores'
         : proposal.scope?.kind === 'exterior' ? 'las zonas exteriores'
-        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) elegida(s)` : 'toda esta planta'}.
+        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) y ${proposal.scope.structureIds?.length ?? 0} pieza(s) elegida(s)` : 'toda esta planta'}.
         Los demás acabados se conservarán.</p>
       <div className="grid grid-cols-2 gap-2 rounded-control border border-line p-3 text-xs">
         {(['walls', 'floors', 'stairs', 'ramps', 'columns'] as const).map((key) => (
@@ -736,7 +736,7 @@ function ProposalPreview({
         ))}
       </div>
       <div>
-        <p className="font-medium">Mobiliario y vegetación</p>
+        <p className="font-medium">Mobiliario e iluminación</p>
         {proposal.furniture.length ? (
           <ul className="text-ink-soft mt-1 space-y-1">
             {proposal.furniture.map((item, index) => (
