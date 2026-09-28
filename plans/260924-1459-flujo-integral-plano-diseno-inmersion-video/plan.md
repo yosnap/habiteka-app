@@ -107,7 +107,7 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 |---|---|---|---|
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación | Flujo y galería implementados; faltan cotización por modelo y generación real controlada. |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso | Importación y revisión disponibles; faltan fidelidad métrica y arcos de la Original v11. |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo heredado y paleta de materiales existentes entre plantas y aprobación disponibles; faltan validar la composición conjunta, calidad arquitectónica compartida y comparación de cámaras antes de aprobarla como resultado final. |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo heredado y paleta de materiales entre plantas disponibles. Faltan zonas independientes dentro de una estancia o exterior compartido (Entrada, Patio, Salón y Cocina en «FInca»), composición conjunta, calidad arquitectónica y comparación de cámaras antes de aprobar el resultado final. |
 | 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En espera del diseño final | Paseo libre/guiado de una aprobación disponible; falta validarlo en la escena terminada y en móvil. |
 | 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En espera del diseño final | MP4 nativo disponible; faltan construcción, vuelo, entrada cinematográfica y formatos. |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En espera de fases 2–5 | Diseños e Historial muestran resultados versionados; falta prueba integral y recuperación del proyecto completo. |
@@ -117,7 +117,7 @@ El estado indica **qué se está ejecutando ahora**, no si existe código previo
 
 ### Puertas de aceptación: diseño → visita y vídeo
 
-1. **Cerrar fase 3:** sobre un inmueble con geometría y medidas revisadas, aplicar y combinar propuestas por exterior, interior y estancias; comprobar en la misma escena que no se pierden cambios de otras zonas. Comparar al menos diez cámaras exteriores, cenitales e interiores, con materiales, muebles, luz, accesos y escalas coherentes. Resolver diferencias entre renders de referencia y 3D; archivar los activos usados y aprobar la **composición completa**. Una aprobación anterior o una imagen IA aislada no pasan esta puerta.
+1. **Cerrar fase 3:** sobre un inmueble con geometría y medidas revisadas, aplicar y combinar propuestas por zonas independientes aunque compartan estancia o exterior: Entrada, Patio, Salón y Cocina en «FInca». Comprobar que acabados, muebles y luz de una zona persisten al diseñar las siguientes, sin modificar las otras. Comparar al menos diez cámaras exteriores, cenitales e interiores, con materiales, muebles, luz, accesos y escalas coherentes. Resolver diferencias entre renders de referencia y 3D; archivar los activos usados y aprobar la **composición completa**. Una aprobación anterior o una imagen IA aislada no pasan esta puerta.
 2. **Validar fase 4:** abrir esa aprobación exacta en la visita libre y verificar que el usuario camina y mira dentro del acabado final, también por conexiones entre plantas y exterior, con colisiones, controles y rendimiento medidos. Cualquier cambio de diseño crea un borrador y exige una nueva aprobación para actualizar la visita.
 3. **Validar fase 5:** generar desde la misma aprobación una pieza automática reproducible: terreno vacío → construcción y acabados por etapas → inmueble terminado → vuelo exterior tipo dron → entrada real y paseo interior dirigidos. Revisar fotogramas y cámaras frente a fase 3, previsualizar las tomas y exportar en los formatos aceptados. El MP4 de ruta de la revisión 94 y la introducción actual de ocho segundos solo prueban la infraestructura.
 
@@ -160,7 +160,7 @@ Antes de pulir iluminación, fijar un inmueble patrón con plano y fotos de refe
 ## Criterios globales
 
 - [x] Desde cualquiera de las entradas del Estudio se llega al documento editable y se entiende el estado de cada resultado. Verificación local de etapas, galería e importación de imagen/PDF/boceto en fases 1–2; la fidelidad del plano real sigue abierta.
-- [ ] Las propuestas de interior, exterior y estancias componen un diseño final coherente; diseño, visita y vídeos identifican esa misma versión aprobada y los cambios posteriores se señalan.
+- [ ] Las propuestas de zonas independientes dentro de una estancia o exterior (Entrada, Patio, Salón y Cocina), además de interior, exterior y estancias completas, componen un diseño final coherente; diseño, visita y vídeos identifican esa misma versión aprobada y los cambios posteriores se señalan.
 - [ ] Se puede caminar por todas las zonas conectadas previstas sin atravesar elementos físicos.
 - [ ] Se obtiene un vídeo automático del diseño aprobado con construcción visual, vuelo exterior tipo dron, revelación de la casa terminada y entrada/paseo interior cinematográfico, en formatos publicitarios reproducibles y descargables.
 - [ ] Una prueba con inmueble representativo valida fidelidad visual compartida entre plano visual, 3D, visita libre y vídeo, además de carga y fluidez en escritorio y móvil.

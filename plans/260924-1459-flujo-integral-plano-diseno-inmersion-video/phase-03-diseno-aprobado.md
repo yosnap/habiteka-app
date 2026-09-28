@@ -5,9 +5,24 @@ status: in_progress
 
 # Fase 3: Diseño coherente y versión aprobada
 
+## Corrección del flujo por zonas (28/09/2026)
+
+El usuario quiere diseñar **Entrada → Patio → Salón → Cocina**, elegir y ajustar el resultado de cada parte, y conservarlas juntas en un único 3D editable y homogéneo. La visita libre y los vídeos de construcción, dron y paseo dirigido deben salir de la aprobación de ese conjunto. Una imagen de toda la planta no valida este flujo ni justifica gastar créditos: las imágenes por zona son referencias para revisar la escena, no piezas rasterizadas que se puedan unir para caminar por ellas.
+
+Auditoría de «FInca»: «Cambiar acabados y muebles → Estancias concretas» permite seleccionar estancias derivadas, acumular propuestas y elegir por separado escaleras, rampas y descansillos exteriores. Hoy la lista ofrece «Exterior 1» y «Salón / Cocina» como unidades indivisibles; no ofrece «Entrada», «Patio», «Salón» y «Cocina» por separado. Los polígonos dibujados en «zonas permitidas» restringen la **colocación de objetos nuevos**, pero no dividen los acabados: `floorFinishes` se asigna por ID de estancia. Por tanto, el selector actual no cumple todavía la secuencia solicitada.
+
+Siguiente implementación de esta fase:
+
+1. Definir zonas de diseño persistentes, con nombre y contorno editable, dentro de una estancia abierta o un exterior, sin levantar muros ni cambiar la geometría transitable. En «FInca» deberán existir al menos Entrada, Patio, Salón y Cocina como ámbitos independientes, además de las piezas exteriores ya seleccionables.
+2. Ampliar el ámbito editable, la vista previa, la propuesta y su aplicación para acabados de suelo y superficies, mobiliario e iluminación **dentro de la zona elegida**; conservar lo aprobado en las otras zonas. Validar los límites compartidos y el material cuando una superficie cruce zonas. Mantener el mismo documento y paleta entre plantas, y mostrar las diferencias antes de aplicar.
+3. Hacer visible antes de cada llamada a IA la zona exacta, lo que puede cambiar y el coste estimado. El flujo guiado por partes no debe iniciar por defecto una generación de imágenes de toda la planta. Probar primero la delimitación y composición sin coste; después generar solo vistas de referencia de la zona seleccionada si aportan una comprobación útil.
+4. Revisar el conjunto en cámaras exteriores e interiores, corregir discrepancias, guardar y aprobar **una revisión conjunta**. Solo entonces validar visita libre, construcción visual y vídeo automático sobre esa revisión exacta.
+
 ## Prueba real de imágenes en «FInca» (28/09/2026)
 
 Se generaron tres imágenes desde la escena 3D de «FInca»: una con cámara dron y dos con cámara frontal, todas como «Vista actual», luz de día, estilo moderno y libertad estricta. El objetivo pedía mejorar materiales e iluminación sin añadir cubiertas ni cambiar la distribución. Están al principio de [Diseños de FInca](http://localhost:3040/projects/cmu7nm84n0001evmsi8nyt1ee/deliverables): frontal corregida, frontal inicial y dron, en ese orden. Coste indicado por el estudio: 0,08 $ por imagen. No se aplicó ninguna propuesta editable ni se aprobó una revisión.
+
+Estas tres generaciones probaron el encuadre y revelaron fallos de fidelidad, pero se hicieron sobre la planta completa: **no son una prueba del diseño por zonas solicitado** y no se repetirán como atajo para dar por terminada esta fase.
 
 La imagen dron conserva la disposición general de la piscina, las dos carpas, la pérgola, las jardineras y los tres coches. Aun así, continúa pareciendo una maqueta estilizada y no una vivienda terminada con la calidad fotorrealista pedida. La frontal también conserva los hitos principales, pero aleja y eleva la cámara respecto a la vista elegida, enseña toda la piscina donde el editor mostraba solo una parte, cambia el aspecto de los coches y añade superficies bajo ellos. **Veredicto: ambas imágenes fallan la puerta de aceptación visual de fase 3**. Un resultado aceptado por el verificador automático de geometría todavía puede fallar la fidelidad de cámara, acabados y calidad arquitectónica que exige el producto.
 
@@ -51,7 +66,7 @@ Los archivos GLB y las texturas aún se sirven desde el catálogo desplegado: se
 
 ## Objetivo
 
-Crear una versión única del diseño de todo el inmueble, revisada desde varias cámaras y apta para visita y vídeo, basada en un catálogo ampliable de material propio y productos autorizados de la mueblería piloto.
+Componer por partes una versión única del diseño de todo el inmueble, revisada desde varias cámaras y apta para visita y vídeo, basada en un catálogo ampliable de material propio y productos autorizados de la mueblería piloto.
 
 El objetivo visual confirmado el 27/09 incluye una vivienda terminada y reconocible desde fuera y por dentro: fachadas, cubierta, huecos/acristalamiento, materiales, luz y entorno; jardín, terraza o piscina solo cuando pertenezcan al proyecto. Las tres imágenes nuevas son referencias estéticas, no planos medidos ni activos 3D. La aprobación ha de corresponder a la escena editable que se podrá recorrer y grabar; un render IA por sí solo no satisface esta fase. La muestra actual aún queda por debajo de ese nivel.
 
@@ -84,7 +99,7 @@ El objetivo visual confirmado el 27/09 incluye una vivienda terminada y reconoci
 
 ## Criterios de aceptación
 
-- Se aplican propuestas editables al exterior, al interior y a estancias concretas de un mismo inmueble; el resultado conjunto conserva los cambios fuera de cada ámbito, mantiene una paleta compatible entre plantas y se aprueba como una sola revisión. Las imágenes de cada zona se comparan con esa escena, sin sustituirla.
+- Se aplican propuestas editables a zonas con nombre dentro de una estancia o exterior compartido (Entrada, Patio, Salón y Cocina en «FInca»), además de estancias completas y estructuras exteriores. Cada aplicación conserva acabados, muebles e iluminación fuera de su contorno, mantiene una paleta compatible entre plantas y se aprueba como una sola revisión. Las imágenes de cada zona se comparan con esa escena, sin sustituirla.
 - Un diseño aprobado de al menos tres estancias se ve consistente desde diez cámaras sin que cambien muebles, puertas o acabados.
 - El mismo diseño aprobado se reconoce en cámaras exteriores, cenitales y a altura de persona; materiales, acristalamiento, mobiliario, terreno y elementos exteriores presentes en el proyecto conservan posición y acabado. La comparación con las referencias distingue claramente el objetivo visual de lo ya conseguido.
 - Un cambio de muro, acabado o mueble aparece en el plano editable y en la maqueta sin reinterpretación IA. Al cambiar de cámara cenital a interior, persisten identidad, posición y escala de los objetos; la vista exterior se presenta por separado.
