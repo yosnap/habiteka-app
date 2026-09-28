@@ -85,9 +85,11 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(0, .18, .43, .06, .82, .32); box(.94, .18, .43, .06, .82, .32);
       break;
     case 'sofa-bed':
-      legs(.2); box(0, 0, .2, 1, 1, .28); box(0, 0, .48, 1, .18, .52);
-      box(0, .18, .48, .1, .82, .3); box(.9, .18, .48, .1, .82, .3);
-      box(.1, .2, .48, .8, .76, .12); box(.1, .94, .3, .8, .04, .1, '#f3eee3');
+      legs(.2); box(0, 0, .2, 1, 1, .28); box(0, 0, .48, 1, .18, .52, color, 'rounded-box');
+      box(0, .18, .48, .1, .82, .3, color, 'rounded-box'); box(.9, .18, .48, .1, .82, .3, color, 'rounded-box');
+      box(.1, .2, .48, .8, .76, .12, color, 'rounded-box');
+      box(.12, .13, .6, .36, .23, .3, color, 'rounded-box'); box(.52, .13, .6, .36, .23, .3, color, 'rounded-box');
+      box(.1, .94, .3, .8, .04, .1, '#f3eee3');
       break;
     case 'bed':
       legs(.22); box(.02, .02, .22, .96, .96, .22, '#866b4c');
