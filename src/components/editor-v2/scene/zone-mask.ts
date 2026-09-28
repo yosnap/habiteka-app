@@ -1,5 +1,6 @@
-import { CanvasTexture, Color, NoColorSpace, ShaderMaterial, type Camera, type Scene, type WebGLRenderer } from 'three';
+import { CanvasTexture, Color, Mesh, NoColorSpace, ShaderMaterial, type Camera, type Material, type Scene, type WebGLRenderer } from 'three';
 import type { ZoneMaskRegions } from '@/lib/editor-document/render-view';
+import { belongsToFurnitureGroup } from './zone-scene-objects';
 
 /**
  * Margen alrededor de la zona: incluye la cara interior de los muros que la
@@ -46,13 +47,17 @@ export function drawZoneMap(regions: ZoneMaskRegions, layout: ZoneMapLayout): HT
 }
 
 /**
- * Cada píxel visible es blanco si su posición en planta cae dentro de una zona.
- * Fuera de la zona se descarta el fragmento antes de escribir en profundidad.
- * Así la misma geometría que aparece en el render queda blanca en la máscara.
+ * La estructura se recorta por la zona; los muebles elegidos conservan su silueta.
+ * La máscara debe reproducir exactamente lo que dibuja la captura de referencia.
  */
-function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout) {
+function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout, clipToZone = true) {
+  const zoneDiscard = clipToZone
+    ? 'vec2 uv = (vWorld.xz - bounds.xy) / bounds.zw;\n' +
+      'float inside = any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))) ? 0.0 : texture2D(zoneMap, uv).r;\n' +
+      'if (inside < 0.5) discard;'
+    : '';
   return new ShaderMaterial({
-    // Respeta los cortes de la captura: lo recortado en la foto no entra en la máscara.
+    // Respeta los planos de recorte de la cámara.
     clipping: true,
     uniforms: {
       zoneMap: { value: texture },
@@ -80,9 +85,7 @@ function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout) {
       varying vec3 vWorld;
       void main() {
         #include <clipping_planes_fragment>
-        vec2 uv = (vWorld.xz - bounds.xy) / bounds.zw;
-        float inside = any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))) ? 0.0 : texture2D(zoneMap, uv).r;
-        if (inside < 0.5) discard;
+        ${zoneDiscard}
         gl_FragColor = vec4(1.0);
       }`,
   });
@@ -100,19 +103,28 @@ export function renderZoneMask(gl: WebGLRenderer, scene: Scene, camera: Camera, 
   texture.flipY = false;
   texture.colorSpace = NoColorSpace;
   const material = zoneMaskMaterial(texture, layout);
+  const furnitureMaterial = zoneMaskMaterial(texture, layout, false);
   const background = scene.background, override = scene.overrideMaterial;
   const clearColor = gl.getClearColor(new Color()), clearAlpha = gl.getClearAlpha();
+  const changed: { mesh: Mesh; material: Material | Material[] }[] = [];
   try {
     scene.background = null;
-    scene.overrideMaterial = material;
+    scene.overrideMaterial = null;
+    scene.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      changed.push({ mesh: object, material: object.material });
+      object.material = belongsToFurnitureGroup(object) ? furnitureMaterial : material;
+    });
     gl.setClearColor(0x000000, 1);
     gl.render(scene, camera);
     return encode(gl.domElement);
   } finally {
+    changed.forEach(({ mesh, material: previous }) => { mesh.material = previous; });
     scene.background = background;
     scene.overrideMaterial = override;
     gl.setClearColor(clearColor, clearAlpha);
     material.dispose();
+    furnitureMaterial.dispose();
     texture.dispose();
   }
 }
