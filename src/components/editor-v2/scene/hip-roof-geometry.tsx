@@ -14,7 +14,7 @@ export function createHipRoofGeometry(width: number, height: number, depth: numb
   const ridgeTop = height / 2, ridgeBottom = height / 2 - thickness;
   // La construcción canónica lleva la cumbrera en Z; se transpone para carpas más anchas que profundas.
   const orient = ([x, y, z]: Point): Point => width <= depth ? [x, y, z] : [z, y, x];
-  const positions: number[] = [];
+  const positions: number[] = [], uvs: number[] = [];
   const face = (points: Point[], outward: Point) => {
     const vertices = points.map(orient), target = orient(outward);
     const [ax, ay, az] = vertices[0]!, [bx, by, bz] = vertices[1]!, [cx, cy, cz] = vertices[2]!;
@@ -22,7 +22,17 @@ export function createHipRoofGeometry(width: number, height: number, depth: numb
     const acx = cx - ax, acy = cy - ay, acz = cz - az;
     const normal: Point = [aby * acz - abz * acy, abz * acx - abx * acz, abx * acy - aby * acx];
     if (normal[0] * target[0] + normal[1] * target[1] + normal[2] * target[2] < 0) vertices.reverse();
-    for (let i = 1; i < vertices.length - 1; i++) positions.push(...vertices[0]!, ...vertices[i]!, ...vertices[i + 1]!);
+    const uv = ([x, y, z]: Point): [number, number] => target[1] !== 0
+      ? [x / width + .5, z / depth + .5]
+      : Math.abs(target[0]) > Math.abs(target[2])
+        ? [z / depth + .5, y / height + .5]
+        : [x / width + .5, y / height + .5];
+    for (let i = 1; i < vertices.length - 1; i++) {
+      for (const vertex of [vertices[0]!, vertices[i]!, vertices[i + 1]!]) {
+        positions.push(...vertex);
+        uvs.push(...uv(vertex));
+      }
+    }
   };
   const shell = (eave: number, ridge: number, upward: boolean) => {
     const lf: Point = [-halfShort, eave, -halfLong], lb: Point = [-halfShort, eave, halfLong];
@@ -42,6 +52,7 @@ export function createHipRoofGeometry(width: number, height: number, depth: numb
   face([[-halfShort, eaveTop, halfLong], [halfShort, eaveTop, halfLong], [halfShort, eaveBottom, halfLong], [-halfShort, eaveBottom, halfLong]], [0, 0, 1]);
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
   return geometry;
 }

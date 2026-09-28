@@ -73,7 +73,8 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
         position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
         size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
         ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
-        shape: volume.shape, materialId: volume.materialId, boundaryPart: volume.part, opacity: volume.opacity,
+        shape: volume.shape, materialId: volume.materialId, useColorMap: volume.useColorMap,
+        boundaryPart: volume.part, opacity: volume.opacity,
         appearance: volume.appearance,
         rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
     })),

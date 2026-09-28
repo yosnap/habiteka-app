@@ -20,7 +20,8 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
     case 'carpa': {
       // Frente abierto; los laterales recogidos dejan solo un rollo alto, fuera del paso a altura de persona.
       posts(.8);
-      box(0, 0, .8, 1, 1, .2, color, { shape: 'hip-roof', walkthroughPart: 'cubierta' });
+      box(0, 0, .8, 1, 1, .2, color, { shape: 'hip-roof', materialId: 'polyhaven:fabric_pattern_05',
+        useColorMap: false, walkthroughPart: 'cubierta' });
       const clear = { opacity: .3 };
       const leftRolled = item.rolledSides === 'left' || item.rolledSides === 'both';
       const rightRolled = item.rolledSides === 'right' || item.rolledSides === 'both';

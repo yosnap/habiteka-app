@@ -10,6 +10,7 @@ export interface SceneBox {
   opacity?: number;
   appearance?: 'water';
   materialId?: string;
+  useColorMap?: boolean;
   sideColors?: [string, string];
   sideMaterials?: [string, string];
   textureOffset?: [number, number];
