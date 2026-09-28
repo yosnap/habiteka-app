@@ -1,7 +1,7 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
 
-/** Encuadra la construcción; los muebles exteriores alejados no reducen la casa a una miniatura. */
+/** Encuadra la construcción; el dron incorpora el agua cercana sin abarcar objetos remotos. */
 export function scenePresetFocus(
   document: EditorDocument,
   preset: SceneCameraPreset,
@@ -14,14 +14,32 @@ export function scenePresetFocus(
     .filter((point): point is NonNullable<typeof point> => Boolean(point));
   if (points.length < 2) return undefined;
 
-  const xMin = Math.min(...points.map((point) => point.x));
-  const xMax = Math.max(...points.map((point) => point.x));
-  const zMin = Math.min(...points.map((point) => point.y));
-  const zMax = Math.max(...points.map((point) => point.y));
+  let xMin = Math.min(...points.map((point) => point.x));
+  let xMax = Math.max(...points.map((point) => point.x));
+  let zMin = Math.min(...points.map((point) => point.y));
+  let zMax = Math.max(...points.map((point) => point.y));
+  let includesWater = false;
+  if (preset === 'drone') {
+    const reach = Math.max(xMax - xMin, zMax - zMin) * .75;
+    const wallBounds = { xMin, xMax, zMin, zMax };
+    for (const item of document.furniture) {
+      if (item.kind !== 'piscina' && item.kind !== 'estanque') continue;
+      const angle = item.rotation * Math.PI / 180;
+      const halfX = (Math.abs(Math.cos(angle)) * item.widthMm + Math.abs(Math.sin(angle)) * item.depthMm) / 2;
+      const halfZ = (Math.abs(Math.sin(angle)) * item.widthMm + Math.abs(Math.cos(angle)) * item.depthMm) / 2;
+      if (item.x - halfX > wallBounds.xMax + reach || item.x + halfX < wallBounds.xMin - reach ||
+        item.y - halfZ > wallBounds.zMax + reach || item.y + halfZ < wallBounds.zMin - reach) continue;
+      xMin = Math.min(xMin, item.x - halfX);
+      xMax = Math.max(xMax, item.x + halfX);
+      zMin = Math.min(zMin, item.y - halfZ);
+      zMax = Math.max(zMax, item.y + halfZ);
+      includesWater = true;
+    }
+  }
   const lowMm = Math.min(0, ...walls.map((wall) => wall.baseElevationMm ?? 0));
   const highMm = Math.max(2800, ...walls.map((wall) => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2800)));
   // El dron conserva algo más de contexto alrededor del edificio.
-  const padding = preset === 'drone' ? 1.7 : 1.55;
+  const padding = preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.55;
   return {
     center: [(xMin + xMax) / 2000, (elevationMm + (lowMm + highMm) / 2) / 1000, (zMin + zMax) / 2000],
     size: [Math.max(1, (xMax - xMin) / 1000) * padding,

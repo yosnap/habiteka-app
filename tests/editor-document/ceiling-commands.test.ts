@@ -57,6 +57,16 @@ describe('contrato de techos y luminarias', () => {
     expect(inside[0]!.id).toBe(mixed.ceilings![0]!.roomId);
     expect(outside[0]!.id).not.toBe(inside[0]!.id);
   });
+  it('permite diseñar el interior sin techos de un inmueble con exterior definido', () => {
+    const roofless = addOutdoorArea(room(), { x: 5000, y: 0 }, { x: 8000, y: 5000 });
+    for (const kind of ['entrada', 'fachada', 'terraza'] as const) {
+      const doc = setDesignSpaceKind(roofless, kind);
+      expect(doc.ceilings?.length ?? 0).toBe(0);
+      expect(designScopeRooms(doc, { kind: 'interior', roomIds: [] })).toHaveLength(1);
+      expect(designScopeRooms(doc, { kind: 'exterior', roomIds: [] })).toHaveLength(1);
+    }
+    expect(eligibleCeilingRooms(setDesignSpaceKind(room(), 'entrada'))).toHaveLength(1);
+  });
   it('solo considera terminada una cubierta con todas las estancias interiores válidas', () => {
     expect(hasCompleteInteriorRoof(room())).toBe(false);
     const covered = ceiling();

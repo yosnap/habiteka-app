@@ -31,12 +31,16 @@ export interface ResolvedLuminaire {
 }
 /** Un recinto lógico exterior no implica una cubierta. Las paredes ocultadas a mano siguen siendo interiores. */
 export function eligibleCeilingRooms(doc: EditorDocument): DerivedRoom[] {
-  // El tipo de captura puede ser «entrada» o «fachada» para un inmueble mixto.
-  // Los techos ya colocados prueban que hay interiores y no deben desaparecer.
-  if (doc.designSpaceKind && doc.designSpaceKind !== 'interior' && !doc.ceilings?.length) return [];
-  return deriveRooms(doc).filter((room) =>
+  const rooms = deriveRooms(doc);
+  const isIndoorRoom = (room: DerivedRoom) =>
     !room.wallIds.some((id) => doc.walls.some((wall) => wall.id === id && wall.hidden && (id.startsWith('hidden:') || id.startsWith('outdoor:')))) &&
-    !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary)));
+    !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary));
+  const indoor = rooms.filter(isIndoorRoom);
+  // «Patio», «terraza» y «jardín» describen un espacio exterior completo solo
+  // cuando el plano no distingue ya sus áreas abiertas de las habitaciones.
+  const wholeOutdoor = ['patio', 'terraza', 'jardin'].includes(doc.designSpaceKind ?? '') &&
+    !doc.ceilings?.length && indoor.length === rooms.length;
+  return wholeOutdoor ? [] : indoor;
 }
 export function ceilingSurfaces(doc: EditorDocument): CeilingSurface[] {
   if (!doc.ceilings?.length) return [];

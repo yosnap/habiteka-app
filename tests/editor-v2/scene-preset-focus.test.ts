@@ -25,4 +25,24 @@ describe('encuadre de vistas arquitectónicas', () => {
   it('conserva el encuadre general si no hay muros físicos', () => {
     expect(scenePresetFocus(emptyEditorDocument(), 'right')).toBeUndefined();
   });
+
+  it('muestra la piscina próxima completa desde el dron sin ampliar las fachadas', () => {
+    const document = emptyEditorDocument();
+    document.vertices = [
+      { id: 'a', x: 0, y: 0 }, { id: 'b', x: 10000, y: 0 },
+      { id: 'c', x: 10000, y: 8000 },
+    ];
+    document.walls = [
+      { id: 'ab', startVertexId: 'a', endVertexId: 'b', thicknessMm: 200, dimensionalOrigin: 'physical' },
+      { id: 'bc', startVertexId: 'b', endVertexId: 'c', thicknessMm: 200, dimensionalOrigin: 'physical' },
+    ];
+    document.furniture = [
+      { id: 'pool', kind: 'piscina', x: 5000, y: 16000, widthMm: 6000, depthMm: 3000, rotation: 0, dimensionalOrigin: 'physical' },
+      { id: 'remote-pool', kind: 'piscina', x: 90000, y: 90000, widthMm: 6000, depthMm: 3000, rotation: 0, dimensionalOrigin: 'physical' },
+    ];
+    const drone = scenePresetFocus(document, 'drone');
+    expect(drone?.center).toEqual([5, 1.4, 8.75]);
+    expect(drone?.size[2]).toBeCloseTo(23.625);
+    expect(scenePresetFocus(document, 'front')?.center).toEqual([5, 1.4, 4]);
+  });
 });
