@@ -13,6 +13,9 @@ describe('instrucción de imagen basada en la captura', () => {
     expect(text).toContain('MISMA cámara (Isométrica)');
     expect(text).toContain('conserva tamaño y posición del inmueble');
     expect(text).toContain('No añadas objetos nuevos');
+    expect(text).toContain('conserva TODOS los muros');
+    expect(text).toContain('Conserva las hojas de puerta con la apertura');
+    expect(text).toContain('materiales y contornos nítidos');
     expect(text).not.toContain('DATOS DEL PROYECTO');
     expect(text.length).toBeLessThan(2500);
   });

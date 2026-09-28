@@ -5,7 +5,7 @@ import { Canvas, type RootState } from '@react-three/fiber';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import { Bounds, Edges, Html } from '@react-three/drei';
-import { Vector3, PerspectiveCamera } from 'three';
+import { Color, Vector3, PerspectiveCamera } from 'three';
 import { cameraPoseSchema } from '@/lib/contracts/walkthrough-keyframe';
 import { commentAnchor } from '@/lib/editor-document/comment-anchor';
 import { useStore } from 'zustand';
@@ -157,8 +157,8 @@ function SceneView({
   useEffect(() => () => { abortRecording.current?.abort(); store.getState().setWalkthroughPlaying(false); }, [store]);
   const [contextLost, setContextLost] = useState(false);
   const [rendererReady, setRendererReady] = useState(false);
-  // La vista oblicua abre el interior; la cenital conserva todo el perímetro.
-  const [cutaway, setCutaway] = useState(presentation === 'spatial');
+  // La maqueta oblicua conserva los muros; «Interior» puede abrirlos a petición.
+  const [cutaway, setCutaway] = useState(false);
   // Estancia en la que está la cámara. Es estado de la vista 3D, no del documento.
   const [interiorRoomId, setInteriorRoomId] = useState<string | null>(null);
   const [allLevels, setAllLevels] = useState(false);
@@ -250,10 +250,13 @@ function SceneView({
       let restoreZoneWalls: (() => void) | null = null;
       let restoreZoneScene: (() => void) | null = null;
       let restoreLighting: (() => void) | null = null;
+      let restoreBackground: (() => void) | null = null;
+      const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
+      const aerialCapture = capturedView === 'top' || capturedView === 'isometric' || capturedView === 'drone';
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
       store.getState().select([]);
-      if (options?.maskRegions?.length) flushSync(() => setCapturingPose(true));
+      if (options?.maskRegions?.length || aerialCapture) flushSync(() => setCapturingPose(true));
       if (options?.lighting) flushSync(() => setCaptureLighting(options.lighting!));
       // El ángulo se conserva, pero se encuadra la zona elegida en lugar de toda la finca.
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
@@ -276,9 +279,8 @@ function SceneView({
         });
       }
       const currentDocument = store.getState().document;
-      const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
-      const cut = options?.maskRegions?.length || options?.camera ? false : options?.view && options.view !== 'current'
+      const cut = aerialCapture || options?.maskRegions?.length || options?.camera ? false : options?.view && options.view !== 'current'
         ? captureCutaway(options.view, wallCutaway, finishedExterior) : wallCutaway;
       const sideView = ['front', 'back', 'left', 'right'].includes(capturedView ?? '');
       const zoneWallIds = options?.maskRegions?.length && !options.camera && sideView
@@ -317,6 +319,11 @@ function SceneView({
       if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
       if (zoneWallIds.length) restoreZoneWalls = hideWallsByIds(state.scene, new Set(zoneWallIds));
       if (options?.maskRegions?.length) restoreZoneScene = isolateSceneToZone(state.scene, options.maskRegions);
+      if (options?.maskRegions?.length) {
+        const previousBackground = state.scene.background;
+        state.scene.background = new Color('#d8d8d8');
+        restoreBackground = () => { state.scene.background = previousBackground; };
+      }
       // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
       if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
       state.gl.render(state.scene, state.camera);
@@ -338,6 +345,7 @@ function SceneView({
         ).map((wall) => wall.sourceEntityId) : []), ...zoneWallIds])],
       } };
       } finally {
+        restoreBackground?.();
         restoreZoneScene?.();
         restoreZoneWalls?.();
         restoreWalls?.();
@@ -458,7 +466,7 @@ function SceneView({
     if (abortRecording.current || walking || freeWalk) return;
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
-    if (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
+    if (action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') {
       setActiveView(action);
       const roof = presetCeilingView(action, ceilingView, !renderAllLevels && hasCompleteInteriorRoof(document));

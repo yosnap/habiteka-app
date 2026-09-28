@@ -132,11 +132,17 @@ describe('representación de techos e iluminación', () => {
 });
 
 describe('recorte de muros en capturas', () => {
-  it('fuerza el recorte en alzados e isométrica aunque el 3D muestre todos los muros', () => {
-    for (const view of ['front', 'back', 'left', 'right', 'isometric']) expect(captureCutaway(view, false)).toBe(true);
+  it('abre solo los alzados aunque el 3D muestre todos los muros', () => {
+    for (const view of ['front', 'back', 'left', 'right']) expect(captureCutaway(view, false)).toBe(true);
   });
-  it('respeta la elección del usuario en cenital, dron y vista libre', () => {
-    for (const view of ['top', 'drone', 'custom', 'current', null]) {
+  it('conserva todos los muros en cenital, isométrica y dron', () => {
+    for (const view of ['top', 'isometric', 'drone']) {
+      expect(captureCutaway(view, false)).toBe(false);
+      expect(captureCutaway(view, true)).toBe(false);
+    }
+  });
+  it('respeta la elección del usuario en vista libre', () => {
+    for (const view of ['custom', 'current', null]) {
       expect(captureCutaway(view, false)).toBe(false);
       expect(captureCutaway(view, true)).toBe(true);
     }

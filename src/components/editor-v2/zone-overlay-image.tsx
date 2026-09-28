@@ -5,7 +5,7 @@ export function ZoneOverlayImage({ src, maskSrc, alt, className }: {
   src: string; maskSrc?: string; alt: string; className?: string;
 }) {
   return (
-    <span className="block bg-[#ececec]">
+    <span className="block bg-[#d8d8d8]">
       <img src={src} alt={alt} className={className} style={maskSrc ? {
         maskImage: `url(${maskSrc})`, WebkitMaskImage: `url(${maskSrc})`,
         maskMode: 'luminance', maskSize: '100% 100%', WebkitMaskSize: '100% 100%',

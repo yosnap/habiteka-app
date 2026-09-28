@@ -34,13 +34,14 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
 }
 
 /**
- * Los alzados e isométrica miran la planta desde fuera: sin recorte solo se ve
- * la fachada. En esas capturas se ocultan los muros exteriores hacia la cámara
- * aunque el 3D de trabajo los muestre; el resto respeta la elección del usuario.
+ * Los alzados miran la planta desde fuera: se puede retirar la fachada para ver
+ * el interior. Cenital, isométrica y dron conservan todos los muros; para ver
+ * el interior desde arriba se gestiona el techo por separado.
  */
 export function captureCutaway(view: string | null | undefined, cutaway: boolean, finishedExterior = false): boolean {
+  if (view === 'top' || view === 'isometric' || view === 'drone') return false;
   if (finishedExterior) return false;
-  if (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'isometric') return true;
+  if (view === 'front' || view === 'back' || view === 'left' || view === 'right') return true;
   return cutaway;
 }
 

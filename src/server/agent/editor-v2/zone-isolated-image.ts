@@ -9,7 +9,7 @@ export async function isolateZoneReference(reference: Image, mask: Image): Promi
   const source = await sharp(Buffer.from(reference.base64, 'base64')).removeAlpha().raw().toBuffer();
   const area = await sharp(Buffer.from(mask.base64, 'base64')).removeAlpha().greyscale().raw().toBuffer();
   const width = reference.width, height = reference.height;
-  const isolated = Buffer.alloc(width * height * 3, 236);
+  const isolated = Buffer.alloc(width * height * 3, 216);
   const threshold = 128;
   let left = width, top = height, right = -1, bottom = -1;
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
@@ -38,7 +38,7 @@ export async function isolateZoneResult(candidate: Image, mask: Image): Promise<
     throw new Error('El diseño cambió la proporción de la zona seleccionada. Prueba con otro ángulo.');
   const source = await sharp(Buffer.from(candidate.base64, 'base64')).removeAlpha().raw().toBuffer();
   const area = await sharp(Buffer.from(mask.base64, 'base64')).resize(width, height, { fit: 'fill' }).removeAlpha().greyscale().raw().toBuffer();
-  const isolated = Buffer.alloc(width * height * 3, 236);
+  const isolated = Buffer.alloc(width * height * 3, 216);
   for (let pixel = 0; pixel < width * height; pixel++) {
     if (area[pixel]! < 128) continue;
     source.copy(isolated, pixel * 3, pixel * 3, pixel * 3 + 3);

@@ -28,13 +28,13 @@ describe('aislamiento de imágenes por zona', () => {
     expect(isolated.mask.width).toBe(isolated.image.width);
     const { data: pixels, info } = await sharp(Buffer.from(isolated.image.base64, 'base64')).raw().toBuffer({ resolveWithObject: true });
     const at = (x: number, y: number) => pixels[(y * info.width + x) * info.channels];
-    expect(at(0, 0)).toBe(236);
+    expect(at(0, 0)).toBe(216);
     expect(at(12, 10)).toBe(40);
     const generated = await isolateZoneResult({ ...isolated.image,
       base64: (await sharp({ create: { width: isolated.image.width, height: isolated.image.height,
         channels: 3, background: '#991122' } }).png().toBuffer()).toString('base64') }, isolated.mask);
     const { data: output, info: outInfo } = await sharp(generated).raw().toBuffer({ resolveWithObject: true });
-    expect(output[0]).toBe(236);
+    expect(output[0]).toBe(216);
     expect(output[(10 * outInfo.width + 12) * outInfo.channels]).toBe(153);
   });
 
