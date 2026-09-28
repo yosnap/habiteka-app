@@ -13,6 +13,7 @@ import { upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-docume
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
+import { addDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -66,6 +67,60 @@ it('aplica una propuesta solo a la estancia elegida', () => {
   const next = applyNativeDesignProposal(source, { ...proposal, scope: { kind: 'rooms', roomIds: [roomId] } });
   expect(floorFinish(next, roomId).texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, patioId)).toEqual(floorFinish(source, patioId));
+});
+
+it('compone dos diseños dentro de una misma estancia sin sustituir el suelo de la otra zona', () => {
+  const room = addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 8000, y: 0 }, { x: 8000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const salon = addDesignZone(room, 'Salón',
+    [{ x: 200, y: 200 }, { x: 3900, y: 200 }, { x: 3900, y: 3800 }, { x: 200, y: 3800 }]);
+  const cocina = addDesignZone(salon, 'Cocina',
+    [{ x: 3900, y: 200 }, { x: 7800, y: 200 }, { x: 7800, y: 3800 }, { x: 3900, y: 3800 }]);
+  const [salonId, cocinaId] = cocina.designZones!.map((zone) => zone.id);
+  const first = applyNativeDesignProposal(cocina, { ...proposal, scope: { kind: 'zone', zoneId: salonId!, roomIds: [] } });
+  const second = applyNativeDesignProposal(first, { ...proposal,
+    scope: { kind: 'zone', zoneId: cocinaId!, roomIds: [] },
+    materials: { ...proposal.materials, floors: 'polyhaven:square_tiles_03' } });
+  const roomId = deriveRooms(second)[0]!.id;
+  expect(floorFinish(second, roomId)).toEqual(floorFinish(cocina, roomId));
+  expect(second.designZones?.map((zone) => zone.floorFinish?.texture))
+    .toEqual(['polyhaven:wood_floor', 'polyhaven:square_tiles_03']);
+  expect(second.vertices).toEqual(cocina.vertices);
+  expect(second.walls).toEqual(cocina.walls);
+  const sofa = { catalogId: 'habiteka:furniture:sofa-exterior', xMm: 1000, yMm: 1000, rotation: 0, reason: 'Asiento' };
+  expect(canPlaceNativeDesignFurniture(second, sofa, deriveRooms(second), new Set([roomId]), second.designZones![0]!.polygon)).toBe(true);
+  expect(canPlaceNativeDesignFurniture(second, { ...sofa, xMm: 3000 }, deriveRooms(second),
+    new Set([roomId]), second.designZones![0]!.polygon)).toBe(false);
+  const patches = editorDocumentToScene(second).polygons.filter((polygon) => polygon.id.startsWith(salonId!) || polygon.id.startsWith(cocinaId!));
+  expect(patches.some((polygon) => polygon.id.startsWith(salonId!) && polygon.floorFinish?.texture === 'polyhaven:wood_floor')).toBe(true);
+  expect(patches.some((polygon) => polygon.id.startsWith(cocinaId!) && polygon.floorFinish?.texture === 'polyhaven:square_tiles_03')).toBe(true);
+  expect(patches.every((polygon) => polygon.height === 0)).toBe(true);
+  expect(parseEditorDocument(JSON.parse(JSON.stringify(second))).designZones).toEqual(second.designZones);
+  const reshaped = reshapeDesignZone(second, salonId!,
+    [{ x: 300, y: 300 }, { x: 3800, y: 300 }, { x: 3800, y: 3700 }, { x: 300, y: 3700 }]);
+  expect(reshaped.designZones?.[0]?.floorFinish).toEqual(second.designZones?.[0]?.floorFinish);
+  expect(reshaped.designZones?.[1]).toEqual(second.designZones?.[1]);
+  expect(() => reshapeDesignZone(second, salonId!,
+    [{ x: 200, y: 200 }, { x: 5000, y: 200 }, { x: 5000, y: 3800 }, { x: 200, y: 3800 }])).toThrow('superpone');
+  expect(() => addDesignZone(second, 'Solapada',
+    [{ x: 3000, y: 300 }, { x: 5000, y: 300 }, { x: 5000, y: 3000 }, { x: 3000, y: 3000 }])).toThrow('superpone');
+  expect(() => applyNativeDesignProposal(second, { ...proposal, scope: { kind: 'zone', zoneId: 'ausente', roomIds: [] } }))
+    .toThrow('ya no existe');
+});
+
+it('permite diseñar una escalera de entrada exterior aunque no esté en una estancia', () => {
+  const room = upgradeSpatialDocument(addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true));
+  room.stairs = [{ id: 'entrada-escalera', kind: 'straight', catalogId: 'builtin:stair-straight',
+    x: 4500, y: 500, widthMm: 1000, depthMm: 2000, heightMm: 1000, elevationMm: 0,
+    rotation: 0, stepCount: 6, materialId: 'wood-oak', color: '#b58b59' }];
+  const marked = addDesignZone(room, 'Entrada',
+    [{ x: 4300, y: 300 }, { x: 5700, y: 300 }, { x: 5700, y: 2700 }, { x: 4300, y: 2700 }]);
+  const next = applyNativeDesignProposal(marked, { ...proposal,
+    scope: { kind: 'zone', zoneId: marked.designZones![0]!.id, roomIds: [] } });
+  expect(next.stairs?.[0]?.materialId).toBe('polyhaven:wood_floor');
+  expect(next.designZones?.[0]?.floorFinish).toBeUndefined();
+  expect(floorFinish(next, deriveRooms(next)[0]!.id)).toEqual(floorFinish(marked, deriveRooms(marked)[0]!.id));
 });
 
 it('aplica el canto propuesto solo a forjados elevados del ámbito exterior', () => {

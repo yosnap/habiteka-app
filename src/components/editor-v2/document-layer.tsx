@@ -37,6 +37,7 @@ import { OpeningLayer } from './opening-layer';
 import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
 import { localToWorld, projectAlong } from '@/lib/editor-document/spatial-properties';
 import { floorFinish } from '@/lib/editor-document/floor-finishes';
+import { designZoneRoomParts } from '@/lib/editor-document/design-zone-geometry';
 import { editableOutdoorRoom, moveOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
 import { roomAt } from '@/lib/editor-document/outdoor-attach';
 import { duplicateSpatialItem, insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
@@ -138,6 +139,11 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           clickSelect(store, room.id, event);
         } : undefined} />;
     })}
+    {(doc.designZones ?? []).flatMap((zone) => zone.floorFinish ? rooms.value.flatMap((room) =>
+      designZoneRoomParts(zone, room).map((piece, index) => <FloorSurface key={`${zone.id}:${room.id}:${index}`}
+        points={piece[0]!.map(([x, y]) => ({ x, y }))}
+        finish={{ ...zone.floorFinish!, roomId: room.id }} scale={scale} selected={false}
+        referenceVisible={referenceVisible} presentation={presentation} />)) : [])}
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
     {/* A landing is a support surface; its fill must stay beneath the protection walls built on its perimeter. */}
     <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />

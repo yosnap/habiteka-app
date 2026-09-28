@@ -244,6 +244,14 @@ export interface LightZone {
   name: string;
   polygonsMm: Point[][];
 }
+/** Ámbito de diseño editable dentro de una estancia o exterior, sin crear muros. */
+export interface DesignZone {
+  id: string;
+  name: string;
+  polygon: Point[];
+  /** Acabado visual de esta parte del suelo; la cota estructural sigue en FloorFinish. */
+  floorFinish?: Pick<FloorFinish, 'texture' | 'color' | 'tileSizeMm' | 'rotation'>;
+}
 /** Active level uses root collections; inactive levels retain an isolated document. */
 export interface BuildingLevel {
   id: string;
@@ -278,6 +286,7 @@ export interface EditorDocument {
   lightStrips?: LightStrip[];
   lightingScenes?: LightingScene[];
   lightZones?: LightZone[];
+  designZones?: DesignZone[];
   levels?: BuildingLevel[];
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */

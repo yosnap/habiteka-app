@@ -7,6 +7,7 @@ import { rampPartFootprint, rampParts } from '@/lib/editor-document/ramp-route';
 import { rampArrival, rampArrivalTarget } from '@/lib/editor-document/ramp-arrival';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
+import { clipDesignZone } from '@/lib/editor-document/design-zone-geometry';
 
 // Trigonometry introduces sub-nanometer slivers at shared edges (e.g. cos(π/2)).
 // Give the boolean operation one common 0.00001 mm grid, far below editor precision.
@@ -69,12 +70,26 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
       ...voids.map((voidOutline): Polygon => [voidOutline.map((point) => [meters(point.x), meters(point.y)] as Pair)])];
     const polygons = robustDifference(outline, cuts);
     const slabHeight = meters(floorSlabThicknessMm(finish));
-    return polygons.map((rings, index) => ({
+    const floors: ScenePolygon[] = polygons.map((rings, index) => ({
       id: index ? `${room.id}:surface:${index}` : room.id, sourceEntityId: room.id, role: 'floor' as const,
       points: rings[0]!.map(([x, y]) => ({ x, y })),
       holes: rings.slice(1).map((ring) => ring.map(([x, y]) => ({ x, y }))),
       elevation: surfaceElevation - slabHeight, height: slabHeight, color: finish.color, floorFinish: finish,
       sideColor: finish.undersideColor ?? (surfaceMaterial(finish.undersideTexture) ? '#ffffff' : '#756f66'),
     }));
+    // Los acabados parciales son una capa visual sobre el suelo estructural; no
+    // modifican cota, espesor ni superficie transitable del recorrido.
+    const patches: ScenePolygon[] = (doc.designZones ?? []).flatMap((zone, zoneIndex) => {
+      if (!zone.floorFinish) return [];
+      const scaled = { polygon: zone.polygon.map((point) => ({ x: meters(point.x), y: meters(point.y) })) };
+      return polygons.flatMap((base, baseIndex) => clipDesignZone(scaled, base).map((piece, pieceIndex) => ({
+        id: `${zone.id}:floor:${room.id}:${baseIndex}:${pieceIndex}`, sourceEntityId: room.id, role: 'floor' as const,
+        points: piece[0]!.map(([x, y]) => ({ x, y })),
+        holes: piece.slice(1).map((ring) => ring.map(([x, y]) => ({ x, y }))),
+        elevation: surfaceElevation + .002 + zoneIndex * .0002, height: 0, color: zone.floorFinish!.color,
+        floorFinish: { ...zone.floorFinish!, roomId: room.id },
+      })));
+    });
+    return [...floors, ...patches];
   });
 }

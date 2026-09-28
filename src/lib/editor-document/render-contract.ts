@@ -8,6 +8,7 @@ import { rampParts } from './ramp-route';
 import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
 import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
+import { polygonArea } from './geometry';
 
 const meters = (value: number) => Number((value / 1000).toFixed(3));
 const area = (value: number) => Number((value / 1_000_000).toFixed(2));
@@ -91,6 +92,14 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
           : ['Suelo a cota de la planta.'],
       });
     }
+    for (const zone of source.designZones ?? []) if (zone.floorFinish) elements.push({
+      id: nextId('Z'), sourceId: zone.id, type: 'acabado parcial de suelo', name: zone.name, level: levelName,
+      boundary: zone.polygon.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
+      areaM2: area(Math.abs(polygonArea(zone.polygon))),
+      attributes: { material: surfaceMaterial(zone.floorFinish.texture)?.label ?? zone.floorFinish.texture,
+        color: zone.floorFinish.color },
+      relationships: ['Aplica solo dentro de este contorno; el resto de la estancia conserva su acabado.'],
+    });
 
     const overhead = ceilingDesignContext(source);
     for (const ceiling of overhead.ceilings) {

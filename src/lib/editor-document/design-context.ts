@@ -77,6 +77,14 @@ export function editorDesignContext(doc: EditorDocument) {
           boundaryM: room.boundary.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
         })),
         floors,
+        designZones: (source.designZones ?? []).map((zone) => ({
+          id: zone.id, name: zone.name,
+          boundaryM: zone.polygon.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
+          floorMaterial: zone.floorFinish ? {
+            texture: zone.floorFinish.texture,
+            material: surfaceMaterial(zone.floorFinish.texture)?.label ?? zone.floorFinish.texture,
+          } : null,
+        })),
         boundaries: boundaryDesignContext(source),
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {

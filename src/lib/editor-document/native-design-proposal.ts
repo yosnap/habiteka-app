@@ -9,7 +9,9 @@ import { parseEditorDocument } from './validation';
 import type { EditorDocument, FloorFinish, Point } from './schema';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
 import { outdoorVolumes } from './outdoor-volumes';
-import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
+import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, designScopeZone, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
+import { polygonContainsFootprint } from './proposal-permissions';
+import { wallPath } from './wall-path';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 import { wallConstruction } from './construction-properties';
 import { isRampLanding } from './ramp-kind';
@@ -58,6 +60,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   assertCompatibleDesignStyle(source, proposal.style, scope);
   const doc = upgradeSpatialDocument(source);
   const rooms = deriveRooms(doc), selectedRooms = designScopeRooms(doc, scope);
+  const zone = scope.kind === 'zone' ? designScopeZone(doc, scope) : null;
   const selectedStructures = designScopeStructureIds(doc, scope);
   const allowedRooms = new Set(selectedRooms.map((room) => room.id));
   const indoorRooms = scope.kind === 'exterior' ? eligibleCeilingRooms(doc) : [];
@@ -76,7 +79,8 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   const landingBody = proposal.materials.landingBodies;
 
   if (selection.walls) doc.walls.forEach((wall) => {
-    const sides = scope.kind === 'all' ? ['left', 'right'] as const
+    const sides = zone ? polygonContainsFootprint(zone.polygon, wallPath(doc, wall).samples()) ? scopedWallSides(wall, selectedRooms) : []
+      : scope.kind === 'all' ? ['left', 'right'] as const
       : scope.kind !== 'exterior' ? scopedWallSides(wall, selectedRooms)
         : exteriorWallSides(wall, selectedRooms, indoorRooms);
     if (!sides.length) return;
@@ -94,6 +98,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   const inScope = (item: { id: string; x: number; y: number; widthMm: number; depthMm: number; rotation: number }) => {
     if (scope.kind === 'all') return true;
     if (selectedStructures.has(item.id)) return true;
+    if (zone) return polygonContainsFootprint(zone.polygon, corners(item));
     const point = localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 });
     return scopeContainsPoint(selectedRooms, point) ||
       (scope.kind === 'exterior' && !scopeContainsPoint(indoorRooms, point));
@@ -111,7 +116,10 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   });
   if (selection.columns) doc.columns?.filter(inScope).forEach((column) => { column.materialId = columns; column.color = '#ffffff'; });
 
-  if (selection.floors) for (const room of selectedRooms) {
+  if (selection.floors && zone && selectedRooms.length) {
+    const current = zone.floorFinish ?? floorFinish(doc, selectedRooms[0]!.id);
+    zone.floorFinish = { texture: floorTexture, color: '#ffffff', tileSizeMm: current.tileSizeMm, rotation: current.rotation };
+  } else if (selection.floors) for (const room of selectedRooms) {
     const current = floorFinish(doc, room.id);
     doc.floorFinishes = doc.floorFinishes.filter((finish) => finish.roomId !== room.id);
     doc.floorFinishes.push({ ...current, roomId: room.id, texture: floorTexture, color: '#ffffff',
@@ -120,7 +128,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   }
   for (const index of selection.furniture) {
     const item = proposal.furniture[index];
-    if (item) addSuggestedFurniture(doc, item, rooms, allowedRooms);
+    if (item) addSuggestedFurniture(doc, item, rooms, allowedRooms, zone?.polygon);
   }
   doc.designStyle = proposal.style;
   doc.revision += 1;
@@ -140,11 +148,11 @@ function exteriorWallSides(wall: EditorDocument['walls'][number], selected: Retu
   return [...sides];
 }
 
-export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>, allowedRooms: ReadonlySet<string>) {
+export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>, allowedRooms: ReadonlySet<string>, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return;
   const room = suggestedFurnitureRoom(item, rooms);
-  if (!room || !canPlaceNativeDesignFurniture(doc, item, rooms, allowedRooms)) return;
+  if (!room || !canPlaceNativeDesignFurniture(doc, item, rooms, allowedRooms, zonePolygon)) return;
   const elevationMm = floorFinish(doc, room.id).elevationMm ?? 0;
   doc.furniture.push({
     id: newId(), kind: catalog.kind, catalogId: catalog.id, x: item.xMm, y: item.yMm,
@@ -159,12 +167,14 @@ export function canPlaceNativeDesignFurniture(
   item: NativeDesignFurniture,
   rooms = deriveRooms(doc),
   allowedRooms?: ReadonlySet<string>,
+  zonePolygon?: Point[],
 ): boolean {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return false;
   const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
   const room = suggestedFurnitureRoom(item, rooms);
   if (!room || (allowedRooms && !allowedRooms.has(room.id))) return false;
+  if (zonePolygon && !polygonContainsFootprint(zonePolygon, corners(candidate))) return false;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
   const protectedFootprints = [...planObjects(doc).filter((target) => !shelterIds.has(target.id)),

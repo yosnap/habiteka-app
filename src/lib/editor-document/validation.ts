@@ -7,6 +7,7 @@ import { assertCeilingFields } from './ceiling-validation';
 import { assertLightStripFields } from './light-strip-validation';
 import { assertLightingSceneFields } from './lighting-scene-validation';
 import { assertLightZoneFields } from './light-zone-validation';
+import { assertDesignZoneFields } from './design-zone-validation';
 import { surfaceMaterial } from './surface-materials';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
@@ -59,7 +60,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
   if (value.terrainSurfaces !== undefined) {
     if (!Array.isArray(value.terrainSurfaces) || value.terrainSurfaces.length > 40)
@@ -402,6 +403,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     assertLightingSceneFields(value, ids, ceilingScope?.lightIds ?? new Set());
     assertLightZoneFields(value, ids);
   }
+  assertDesignZoneFields(value.designZones, ids);
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
   if (

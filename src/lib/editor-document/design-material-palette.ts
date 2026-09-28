@@ -23,6 +23,7 @@ export function designMaterialPalette(doc: EditorDocument) {
       if ((floor.elevationMm ?? 0) > 0 && floor.undersideTexture && floor.undersideTexture !== 'none')
         add('slabUndersides', floor.undersideTexture);
     }
+    for (const zone of document.designZones ?? []) if (zone.floorFinish) add('floors', zone.floorFinish.texture);
     for (const stair of document.stairs ?? []) {
       add('stairs', stair.materialId);
       if (stair.bodyMaterialId) add('stairBodies', stair.bodyMaterialId);

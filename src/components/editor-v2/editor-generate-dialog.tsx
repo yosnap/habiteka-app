@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import {
   defaultRenderDesignOptions,
   isInteriorRenderMode,
@@ -77,6 +77,10 @@ interface EditorGenerateDialogProps {
     qualityAck: boolean;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
+  onCreateDesignZone?: (name: string, polygon: Point[]) => string;
+  onRenameDesignZone?: (id: string, name: string) => void;
+  onReshapeDesignZone?: (id: string, polygon: Point[]) => void;
+  onRemoveDesignZone?: (id: string) => void;
   spaceKind?: DesignSpaceKind;
   onSpaceKindChange: (spaceKind: DesignSpaceKind) => void;
   /**
@@ -98,6 +102,10 @@ export function EditorGenerateDialog({
   onGenerate,
   onRender,
   onApply,
+  onCreateDesignZone,
+  onRenameDesignZone,
+  onReshapeDesignZone,
+  onRemoveDesignZone,
   onEstimate,
   spaceKind,
   onSpaceKindChange,
@@ -189,6 +197,8 @@ export function EditorGenerateDialog({
     ? 'Elige antes el tipo de espacio.'
     : options.designScope === 'rooms' && !options.designRoomIds.length
       ? 'Marca al menos una estancia para diseñar.'
+    : options.designScope === 'zone' && !options.designZoneId
+      ? 'Dibuja o elige una zona de diseño.'
     : qualityBlocked
       ? 'Confirma antes el aviso de calidad del plano.'
       : null;
@@ -241,7 +251,7 @@ export function EditorGenerateDialog({
     setResults([]);
     setBatchId(crypto.randomUUID());
     try {
-      const captures = await onPrepare(options);
+      const captures = await onPrepare({ ...options, designScope: 'all', designZoneId: '' });
       if (!captures.length) throw new Error('No se pudo preparar ninguna vista 2D/3D.');
       setPrepared(captures);
       setMode('renders');
@@ -268,7 +278,7 @@ export function EditorGenerateDialog({
           objetivo: objetivo.trim(),
           promptLibre: promptLibre.trim(),
           capture,
-          options,
+          options: { ...options, designScope: 'all', designZoneId: '' },
           batchId: stableBatchId,
           qualityAck: quality.ack,
         }),
@@ -393,6 +403,9 @@ export function EditorGenerateDialog({
                     vuelve al editor 3D y selecciona una vista antes de preparar.
                   </p>
                 )}
+                {intent === 'editable' && <DesignScopePicker document={document} options={options} onChange={changeOptions}
+                  onCreateZone={onCreateDesignZone} onRenameZone={onRenameDesignZone}
+                  onReshapeZone={onReshapeDesignZone} onRemoveZone={onRemoveDesignZone} disabled={busy} />}
                 {prepared.length > 0 && (
                   <div className={`mt-3 grid gap-2 ${prepared.length > 1 ? 'sm:grid-cols-2' : ''}`}>
                     {prepared.map((item, index) => (
@@ -432,7 +445,6 @@ export function EditorGenerateDialog({
                   <RenderLivePreview capture={capture} lighting={options.lighting} view={options.views[0] ?? 'current'} onPreview={onPreview}
                     onExpand={(src, label) => setLargePreview({ src, label })} />
                 )}
-                {intent === 'editable' && <DesignScopePicker document={document} options={options} onChange={changeOptions} disabled={busy} />}
                 <RenderOptionsControls
                   editable={intent === 'editable'}
                   document={document}
@@ -501,7 +513,7 @@ export function EditorGenerateDialog({
                         ? `controlada (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
-                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
+                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : options.designScope === 'zone' ? document?.designZones?.find((zone) => zone.id === options.designZoneId)?.name ?? 'zona sin elegir' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
                     {options.placement === 'selected'
                       ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
                       : 'toda la planta'}{' '}
@@ -723,8 +735,10 @@ function ProposalPreview({
       <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
       <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'interior' ? 'las estancias interiores'
         : proposal.scope?.kind === 'exterior' ? 'las zonas exteriores'
-        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) y ${proposal.scope.structureIds?.length ?? 0} pieza(s) elegida(s)` : 'toda esta planta'}.
+        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) y ${proposal.scope.structureIds?.length ?? 0} pieza(s) elegida(s)`
+          : proposal.scope?.kind === 'zone' ? 'la zona dibujada' : 'toda esta planta'}.
         Los demás acabados se conservarán.</p>
+      {proposal.scope?.kind === 'zone' && <p className="text-ink-soft text-xs">El pavimento queda recortado al contorno. Solo cambia un muro si cabe completo dentro de la zona; los muros que cruzan a otra zona conservan su material.</p>}
       <div className="grid grid-cols-2 gap-2 rounded-control border border-line p-3 text-xs">
         {(['walls', 'floors', 'stairs', 'ramps', 'columns'] as const).map((key) => (
           <Choice key={key} checked={selection[key]} onChange={() => toggle(key)}>
@@ -742,7 +756,7 @@ function ProposalPreview({
               ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
           </Choice>
         ))}
-        {proposal.materials.slabUndersides && <p className="text-ink-soft col-span-2 text-xs">
+        {proposal.scope?.kind !== 'zone' && proposal.materials.slabUndersides && <p className="text-ink-soft col-span-2 text-xs">
           Con suelos: canto y cara inferior de los forjados elevados · {materialLabel(proposal.materials.slabUndersides)}
           {palette && !palette.slabUndersides.includes(proposal.materials.slabUndersides)
             ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}

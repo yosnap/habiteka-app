@@ -22,13 +22,14 @@ export function allowedProposalCatalog(item: FurnitureCatalogEntry, options: Ren
     && (options.freedom === 'free' || options.additions.includes(category));
 }
 
-export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions) {
+export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !allowedProposalCatalog(catalog, options)) return false;
-  if (options.placement === 'all') return true;
   const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, widthMm: catalog.widthMm, depthMm: catalog.depthMm };
   const footprint = [[0, 0], [catalog.widthMm, 0], [catalog.widthMm, catalog.depthMm], [0, catalog.depthMm]]
     .map(([x, y]) => localToWorld(transform, { x: x!, y: y! }));
+  if (zonePolygon && !polygonContainsFootprint(zonePolygon, footprint)) return false;
+  if (options.placement === 'all') return true;
   return options.regions.some(({ polygon }) => polygonContainsFootprint(polygon, footprint));
 }
 

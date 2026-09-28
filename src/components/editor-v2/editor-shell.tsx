@@ -72,6 +72,7 @@ import type { Estilo } from '@/lib/contracts';
 import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
@@ -939,6 +940,28 @@ export function EditorShell({
             }
             // El diálogo debe recibir el error: no cerrarlo si la validación rechaza la propuesta.
             state.apply(next);
+          }}
+          onCreateDesignZone={(name, polygon) => {
+            const state = store.getState();
+            if (state.readOnly) throw new Error('Abre el borrador para dibujar zonas.');
+            const next = addDesignZone(state.document, name, polygon);
+            state.apply(next);
+            return next.designZones!.at(-1)!.id;
+          }}
+          onRenameDesignZone={(id, name) => {
+            const state = store.getState();
+            if (state.readOnly) throw new Error('Abre el borrador para editar zonas.');
+            state.apply(renameDesignZone(state.document, id, name));
+          }}
+          onReshapeDesignZone={(id, polygon) => {
+            const state = store.getState();
+            if (state.readOnly) throw new Error('Abre el borrador para editar zonas.');
+            state.apply(reshapeDesignZone(state.document, id, polygon));
+          }}
+          onRemoveDesignZone={(id) => {
+            const state = store.getState();
+            if (state.readOnly) throw new Error('Abre el borrador para editar zonas.');
+            state.apply(removeDesignZone(state.document, id));
           }}
           spaceKind={designSpaceKind}
           onSpaceKindChange={setSpaceKind}
