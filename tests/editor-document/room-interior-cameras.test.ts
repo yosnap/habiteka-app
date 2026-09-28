@@ -177,6 +177,17 @@ describe('cámaras interiores por estancia', () => {
     expect(boundaryClearance(eye, boundary)).toBeGreaterThanOrEqual(450);
   });
 
+  it('aleja la cámara de los muros en un salón amplio cuando hay sitio', () => {
+    const doc = named([
+      { x: 0, y: 0 }, { x: 10000, y: 0 },
+      { x: 10000, y: 7000 }, { x: 0, y: 7000 },
+    ], 'Salón');
+    const room = deriveRooms(doc)[0]!;
+    const [camera] = roomInteriorCameras(doc);
+    const eye = { x: camera!.camera.position[0] * 1000, y: camera!.camera.position[2] * 1000 };
+    expect(boundaryClearance(eye, room.boundary)).toBeGreaterThanOrEqual(1200);
+  });
+
   it('descarta las posiciones ocupadas por mobiliario', () => {
     const doc = rectangle();
     doc.furniture = [{ id: 'fridge', kind: 'nevera', x: 200, y: 2800,
