@@ -121,8 +121,10 @@ function SceneView({
     stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [document, stairLinks]);
   const openingHosts = useMemo(() => new Map(document.openings.map((opening) => [opening.id, opening.wallId])), [document]);
   const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
-  const [request, setRequest] = useState<CameraRequest>({ sequence: 0, action: presentation === 'plan' ? 'top' : 'fit' });
-  const [activeView, setActiveView] = useState<SceneViewPreset | null>(presentation === 'plan' ? 'top' : null);
+  const [request, setRequest] = useState<CameraRequest>(() => presentation === 'plan'
+    ? { sequence: 0, action: 'top' }
+    : { sequence: 0, action: 'isometric', focus: scenePresetFocus(document, 'isometric') });
+  const [activeView, setActiveView] = useState<SceneViewPreset | null>(presentation === 'plan' ? 'top' : 'isometric');
   const routeId = useStore(store, (s) => s.walkthroughId);
   const walking = useStore(store, (s) => s.walkthroughPlaying);
   const [freeWalk, setFreeWalk] = useState<{ start: { x: number; y: number }; focus: [number, number, number] } | null>(null);
@@ -444,7 +446,7 @@ function SceneView({
     if (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setActiveView(action);
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'],
-      focus: !renderAllLevels && (action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone')
+      focus: !renderAllLevels && (action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone')
         ? scenePresetFocus(document, action, activeElevation) : undefined }));
   };
   useEffect(() => store.subscribe((next, previous) => {

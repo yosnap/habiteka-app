@@ -7,7 +7,7 @@ export function scenePresetFocus(
   preset: SceneCameraPreset,
   elevationMm = 0,
 ): CameraRequest['focus'] | undefined {
-  if (preset === 'top' || preset === 'isometric') return undefined;
+  if (preset === 'top') return undefined;
   const vertices = new Map(document.vertices.map((vertex) => [vertex.id, vertex]));
   const walls = document.walls.filter((wall) => !wall.hidden);
   const points = walls.flatMap((wall) => [vertices.get(wall.startVertexId), vertices.get(wall.endVertexId)])
@@ -38,8 +38,9 @@ export function scenePresetFocus(
   }
   const lowMm = Math.min(0, ...walls.map((wall) => wall.baseElevationMm ?? 0));
   const highMm = Math.max(2800, ...walls.map((wall) => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2800)));
-  // El dron conserva algo más de contexto alrededor del edificio.
-  const padding = preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.55;
+  // La isométrica prioriza la casa; el dron muestra además el agua próxima.
+  const padding = preset === 'isometric' ? 1.35
+    : preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.55;
   return {
     center: [(xMin + xMax) / 2000, (elevationMm + (lowMm + highMm) / 2) / 1000, (zMin + zMax) / 2000],
     size: [Math.max(1, (xMax - xMin) / 1000) * padding,

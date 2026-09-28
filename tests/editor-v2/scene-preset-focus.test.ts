@@ -19,6 +19,7 @@ describe('encuadre de vistas arquitectónicas', () => {
     expect(frontal?.size[1]).toBeCloseTo(4.96);
     expect(frontal?.size[2]).toBeCloseTo(12.4);
     expect(scenePresetFocus(document, 'drone')?.size[0]).toBeCloseTo(17);
+    expect(scenePresetFocus(document, 'isometric')?.size[0]).toBeCloseTo(13.5);
     expect(scenePresetFocus(document, 'top')).toBeUndefined();
   });
 
@@ -43,6 +44,7 @@ describe('encuadre de vistas arquitectónicas', () => {
     const drone = scenePresetFocus(document, 'drone');
     expect(drone?.center).toEqual([5, 1.4, 8.75]);
     expect(drone?.size[2]).toBeCloseTo(23.625);
+    expect(scenePresetFocus(document, 'isometric')?.center).toEqual([5, 1.4, 4]);
     expect(scenePresetFocus(document, 'front')?.center).toEqual([5, 1.4, 4]);
   });
 });

@@ -86,7 +86,9 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
       if (exteriorFov.current !== null) { camera.fov = exteriorFov.current; exteriorFov.current = null; }
       // Bounds only measures geometry. A single controller owns the camera,
       // avoiding a pending Bounds animation overwriting a preset on the next frame.
-      const focus = isNewRequest ? request.focus : undefined;
+      // Al cambiar la escena, conservar el área del preset. Si se pierde,
+      // Bounds vuelve a medir todo el terreno y empequeñece el inmueble.
+      const focus = request.focus;
       const { center, size: extent } = focus
         ? { center: new Vector3(...focus.center), size: new Vector3(...focus.size) }
         : bounds.refresh().getSize();
