@@ -57,7 +57,7 @@ La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una 
 
 ## Criterios de aceptación
 
-- Un MP4 muestra montaje visual, revelación por varios ángulos y entrada/paseo rápido sin alterar la distribución aprobada.
+- Un MP4 comienza con el terreno vacío de la escena aprobada, revela la construcción y los acabados por etapas, muestra el inmueble terminado mediante un vuelo exterior tipo dron y entra por un acceso real para un paseo interior dirigido sin alterar la distribución aprobada.
 - El storyboard permite revisar por separado construcción visual, vuelo exterior, casa terminada y entrada/paseo interior. Las transiciones son comprensibles, las tomas no atraviesan sólidos y el exterior e interior mantienen el acabado aprobado.
 - Exterior, cenital, maqueta e interior pertenecen al mismo inmueble y versión; una comparación por fotogramas verifica posiciones de muros, huecos, muebles y productos destacados.
 - El mismo guion produce versión horizontal y vertical con encuadres revisables.

@@ -64,6 +64,7 @@ El objetivo visual confirmado el 27/09 incluye una vivienda terminada y reconoci
 
 ## Criterios de aceptación
 
+- Se aplican propuestas editables al exterior, al interior y a estancias concretas de un mismo inmueble; el resultado conjunto conserva los cambios fuera de cada ámbito, mantiene una paleta compatible entre plantas y se aprueba como una sola revisión. Las imágenes de cada zona se comparan con esa escena, sin sustituirla.
 - Un diseño aprobado de al menos tres estancias se ve consistente desde diez cámaras sin que cambien muebles, puertas o acabados.
 - El mismo diseño aprobado se reconoce en cámaras exteriores, cenitales y a altura de persona; materiales, acristalamiento, mobiliario, terreno y elementos exteriores presentes en el proyecto conservan posición y acabado. La comparación con las referencias distingue claramente el objetivo visual de lo ya conseguido.
 - Un cambio de muro, acabado o mueble aparece en el plano editable y en la maqueta sin reinterpretación IA. Al cambiar de cámara cenital a interior, persisten identidad, posición y escala de los objetos; la vista exterior se presenta por separado.

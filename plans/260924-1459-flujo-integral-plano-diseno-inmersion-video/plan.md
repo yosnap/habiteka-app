@@ -26,6 +26,10 @@ El diseño que se aprueba debe existir como **escena 3D editable y navegable** c
 
 El diseño puede trabajarse por ámbitos: interior, exterior o estancias concretas. Cada propuesta editable se aplica sobre el mismo `EditorDocument` y conserva las demás zonas; la versión que se aprueba es la composición completa. Las imágenes generadas desde ángulos o zonas son referencias para revisar esa composición: no forman por sí solas un espacio navegable. La visita libre, el recorrido dirigido y la película deben utilizar el modelo editable terminado y aprobado. La película comienza con el terreno vacío de esa misma escena, revela la construcción y los acabados por etapas, vuela como dron alrededor del inmueble acabado y entra por un acceso real para recorrerlo.
 
+### Estado verificado del 28-09-2026
+
+El código ya permite elegir el ámbito de una propuesta editable y aplicarla sin sustituir las otras zonas (`design-scope-picker.tsx`, `native-design-proposal.ts`). La visita abre una copia de solo lectura de una aprobación concreta y el MP4 nativo registra su ID, revisión y huella (`approved-design-view.tsx`, `walkthrough/actions.ts`). El grabador actual exporta 1080p horizontal y usa una introducción breve por capas seguida de la ruta (`offline-recorder.ts`). **Estas conexiones técnicas no significan que el diseño final esté aprobado ni que la película solicitada exista**: faltan validar la composición y su calidad visual, fijar los activos de la aprobación y producir la secuencia cinematográfica completa. La revisión 94 de «FInca» demuestra la exportación de una ruta; no representa la aprobación de los cambios visuales posteriores ni cierra las fases 3–5.
+
 ## Diagnóstico del producto actual
 
 | Parte | Ya existe | Brecha real |
@@ -103,7 +107,7 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 |---|---|---|---|
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación | Flujo y galería implementados; faltan cotización por modelo y generación real controlada. |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso | Importación y revisión disponibles; faltan fidelidad métrica y arcos de la Original v11. |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo heredado y paleta de materiales existentes entre plantas y aprobación disponibles; faltan validar concordancia visual, calidad arquitectónica compartida y comparación de cámaras. |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Aplicación editable por interior/exterior/estancias, estilo heredado y paleta de materiales existentes entre plantas y aprobación disponibles; faltan validar la composición conjunta, calidad arquitectónica compartida y comparación de cámaras antes de aprobarla como resultado final. |
 | 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En espera del diseño final | Paseo libre/guiado de una aprobación disponible; falta validarlo en la escena terminada y en móvil. |
 | 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En espera del diseño final | MP4 nativo disponible; faltan construcción, vuelo, entrada cinematográfica y formatos. |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En espera de fases 2–5 | Diseños e Historial muestran resultados versionados; falta prueba integral y recuperación del proyecto completo. |
@@ -111,11 +115,19 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 
 El estado indica **qué se está ejecutando ahora**, no si existe código previo. «En espera» conserva los avances técnicos de visita, vídeo y entrega, pero evita presentarlos como fases activas mientras dependen del diseño final y de la importación fiel. Ninguna fase se marca completada hasta cumplir sus criterios de aceptación.
 
+### Puertas de aceptación: diseño → visita y vídeo
+
+1. **Cerrar fase 3:** sobre un inmueble con geometría y medidas revisadas, aplicar y combinar propuestas por exterior, interior y estancias; comprobar en la misma escena que no se pierden cambios de otras zonas. Comparar al menos diez cámaras exteriores, cenitales e interiores, con materiales, muebles, luz, accesos y escalas coherentes. Resolver diferencias entre renders de referencia y 3D; archivar los activos usados y aprobar la **composición completa**. Una aprobación anterior o una imagen IA aislada no pasan esta puerta.
+2. **Validar fase 4:** abrir esa aprobación exacta en la visita libre y verificar que el usuario camina y mira dentro del acabado final, también por conexiones entre plantas y exterior, con colisiones, controles y rendimiento medidos. Cualquier cambio de diseño crea un borrador y exige una nueva aprobación para actualizar la visita.
+3. **Validar fase 5:** generar desde la misma aprobación una pieza automática reproducible: terreno vacío → construcción y acabados por etapas → inmueble terminado → vuelo exterior tipo dron → entrada real y paseo interior dirigidos. Revisar fotogramas y cámaras frente a fase 3, previsualizar las tomas y exportar en los formatos aceptados. El MP4 de ruta de la revisión 94 y la introducción actual de ocho segundos solo prueban la infraestructura.
+
+Las fases 4 y 5 pueden aprovechar el código actual mientras esperan la fase 3, pero no se presentan como entregables finales hasta pasar estas pruebas sobre el diseño terminado.
+
 La [auditoría de casillas y roadmap del 27-09-2026](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md) distingue capacidades implementadas, criterios parciales y pasos de aceptación todavía abiertos. Evita contar las casillas de planes históricos absorbidos como backlog duplicado.
 
-### Secuencia de trabajo tras las pruebas de importación (25-09-2026)
+### Antecedente de importación y prioridad actual (28-09-2026)
 
-La fase 2 sigue abierta para la **fidelidad métrica y topológica**. Sus avisos impiden aprobar un diseño o generar visita/vídeo sobre geometría dudosa, pero no detienen el desarrollo visual del Editor v2 en un documento de prueba aislado. El siguiente bloque de producto es la maqueta amueblada de la fase 3, construida con la misma escena que se usará para entrar en el inmueble y grabar vídeo. Las imágenes aportadas por el usuario fijan el objetivo de presentación: materiales cálidos, mobiliario creíble y vistas cenital, oblicua e interior del mismo inmueble.
+La fase 2 sigue abierta para la **fidelidad métrica y topológica**. Sus avisos impiden aprobar un diseño o generar visita/vídeo final sobre geometría dudosa, pero no detienen el desarrollo visual del Editor v2 en un documento de prueba aislado. La maqueta amueblada ya existe como base. La prioridad actual de la fase 3 es elevar su calidad arquitectónica en la misma escena, comprobar que las propuestas parciales forman un diseño homogéneo y compararlo desde cámaras exteriores, cenitales e interiores. Las imágenes aportadas por el usuario fijan el objetivo de presentación; la visita y la película solo se validarán después de aprobar esa escena conjunta.
 
 En paralelo, mantener un conjunto pequeño de planos autorizados y variados (CAD limpio, escaneo, plano amueblado y dibujo manual) con muros, huecos, exteriores y cotas revisados como referencia. Medir por caso qué detecta el flujo, qué exige corrección y qué no puede afirmar. La pantalla de carga debe explicar cómo obtener una imagen legible y una cota de referencia, sin exigir al usuario que prepare un único estilo de plano ni ocultar fallos de extracción. Usar este conjunto primero para evaluar cambios de lectura y geometría; plantear ajuste de modelo solo si los errores repetidos, los ejemplos etiquetados y una comparación controlada justifican ese coste.
 
@@ -140,7 +152,7 @@ Las imágenes 1 y 2 muestran prácticamente la misma composición: fachada exter
 
 - **Editor:** el plano editable conserva herramientas precisas de muros, huecos, medidas y selección. Un modo visual conectado al mismo documento muestra la vivienda desde arriba, amueblada y con cubierta ocultable; alternar 2D/3D o compararlos no crea dos diseños. La fachada puede aparecer como vista de presentación asociada, pero no sustituye el lienzo editable.
 - **Visita:** desde esa maqueta se puede entrar a la altura de los ojos y moverse en primera persona. El recorrido debe demostrar también interiores, puertas y continuidad de estancias: ninguna de las referencias adjuntas muestra por sí sola esa cámara.
-- **Vídeo:** abrir con exterior y vista cenital, revelar la maqueta por capas y terminar con un vuelo/paseo interior. Todos los planos salen de la misma versión aprobada; un clip IA más vistoso se etiqueta si cambia distribución, acabados o productos.
+- **Vídeo:** abrir con el terreno vacío, revelar construcción y acabados del modelo por capas, mostrar el inmueble terminado con un vuelo exterior tipo dron y entrar por un acceso real para el paseo interior dirigido. Todos los planos salen de la misma versión aprobada; un clip IA más vistoso se etiqueta si cambia distribución, acabados o productos.
 - **Calidad visual:** suelos y paredes con materiales coherentes, modelos de muebles a escala, luz natural y artificial, sombras, huecos correctos y vegetación solo donde exista en el proyecto. Diferenciar previsualización interactiva optimizada de render/exportación de alta calidad; no prometer que WebGL en móvil iguale una imagen generativa fotorrealista.
 
 Antes de pulir iluminación, fijar un inmueble patrón con plano y fotos de referencia, interiores de día/noche y exterior. Comparar las mismas cámaras en Editor, visita y vídeo; registrar discrepancias de geometría/SKU y rendimiento por dispositivo. La dirección artística de estas referencias favorece materiales cálidos y luz habitable, pero el estilo final debe poder cambiarse por proyecto sin cambiar la estructura.
@@ -148,7 +160,7 @@ Antes de pulir iluminación, fijar un inmueble patrón con plano y fotos de refe
 ## Criterios globales
 
 - [x] Desde cualquiera de las entradas del Estudio se llega al documento editable y se entiende el estado de cada resultado. Verificación local de etapas, galería e importación de imagen/PDF/boceto en fases 1–2; la fidelidad del plano real sigue abierta.
-- [ ] Diseño, visita y vídeos identifican la misma versión aprobada; los cambios posteriores se señalan.
+- [ ] Las propuestas de interior, exterior y estancias componen un diseño final coherente; diseño, visita y vídeos identifican esa misma versión aprobada y los cambios posteriores se señalan.
 - [ ] Se puede caminar por todas las zonas conectadas previstas sin atravesar elementos físicos.
 - [ ] Se obtiene un vídeo automático del diseño aprobado con construcción visual, vuelo exterior tipo dron, revelación de la casa terminada y entrada/paseo interior cinematográfico, en formatos publicitarios reproducibles y descargables.
 - [ ] Una prueba con inmueble representativo valida fidelidad visual compartida entre plano visual, 3D, visita libre y vídeo, además de carga y fluidez en escritorio y móvil.

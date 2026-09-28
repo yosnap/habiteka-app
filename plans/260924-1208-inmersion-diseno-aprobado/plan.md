@@ -10,7 +10,7 @@ created: 2026-09-24
 
 # Inmersión del diseño aprobado y vídeos del inmueble
 
-**Plan histórico:** sus fases y casillas se incorporaron a las fases 3–5 del [plan integral vigente](../260924-1459-flujo-integral-plano-diseno-inmersion-video/plan.md). El estado y los siguientes hitos se revisan en el [roadmap del 27-09-2026](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md); las casillas de este documento no son una segunda lista de trabajo.
+**Plan sustituido:** sus fases y criterios se siguen únicamente en las fases 3–5 del [plan integral vigente](../260924-1459-flujo-integral-plano-diseno-inmersion-video/plan.md) y en el [roadmap](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md). La tabla inferior es una correspondencia histórica, no trabajo adicional pendiente.
 
 ## Resumen
 
@@ -28,10 +28,10 @@ No se puede obtener un 3D continuo y fiable pegando renders IA de diferentes cá
 
 ## Flujo de producto
 
-1. Crear plano y diseño editable; generar vistas de referencia cuando ayuden a revisar el estilo.
-2. Revisar y aprobar una versión del documento 3D; comprobar cobertura de estancias, circulación y fidelidad frente a las imágenes elegidas.
-3. Entrar en la visita libre, con posibilidad de usar puntos de interés y ruta automática.
-4. Editar una ruta de cámara y exportar MP4 desde la misma versión; evaluar mejora IA por separado.
+1. Crear el plano y aplicar propuestas editables al interior, al exterior o a estancias concretas; componerlas en una sola escena 3D. Las imágenes generadas ayudan a revisar el estilo.
+2. Comparar la escena conjunta desde exterior, cenital e interiores; corregir diferencias de materiales, muebles y geometría y aprobar una revisión final identificable.
+3. Entrar en la visita libre **de esa revisión aprobada** y recorrer el diseño terminado; una ruta guiada es una ayuda distinta de la exploración libre.
+4. Crear por separado un vídeo automático **de esa misma revisión**: terreno vacío, aparición por etapas del edificio y sus acabados, vuelo exterior tipo dron de la casa terminada y entrada/paseo interior dirigidos. El MP4 de recorrido y el montaje breve existentes son bases técnicas, no este entregable final.
 
 Las vistas adicionales se recomiendan para descubrir rincones o verificar la coherencia visual. No son una condición geométrica para moverse entre estancias. La cobertura mínima depende de un modelo completo y conexiones transitables.
 
@@ -39,16 +39,16 @@ Las vistas adicionales se recomiendan para descubrir rincones o verificar la coh
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Diseño 3D aprobado y cobertura](./phase-01-diseno-3d-aprobado.md) | Pendiente |
-| 2 | [Navegación libre por el inmueble](./phase-02-navegacion-libre.md) | Pendiente |
-| 3 | [Cámara cinematográfica y vídeos](./phase-03-video-publicitario.md) | Pendiente |
+| 1 | [Diseño 3D aprobado y cobertura](./phase-01-diseno-3d-aprobado.md) | Integrada en fase 3 del plan vigente; abierta |
+| 2 | [Navegación libre por el inmueble](./phase-02-navegacion-libre.md) | Integrada en fase 4; pendiente de validar el diseño final |
+| 3 | [Cámara cinematográfica y vídeos](./phase-03-video-publicitario.md) | Integrada en fase 5; pendiente de la película final |
 
-## Criterios globales
+## Criterios trasladados al plan vigente
 
-- [ ] La visita, las imágenes de referencia y los vídeos se vinculan a una versión concreta; los cambios posteriores se señalan.
-- [ ] Se pueden visitar las estancias conectadas, plantas y exteriores transitables sin atravesar sólidos.
-- [ ] Se pueden generar MP4 de paseo y de cámara tipo dron desde el diseño aprobado.
-- [ ] No se promete como 3D fiel un diseño que solo existe como imágenes.
+- Vincular la visita y los vídeos a la misma revisión aprobada, preservando las imágenes como referencias asociadas y señalando cambios posteriores.
+- Recorrer estancias, plantas y exteriores transitables sin atravesar sólidos, dentro del diseño terminado.
+- Generar la película de construcción, vuelo exterior y entrada/paseo desde esa revisión; un MP4 de paseo por sí solo no cierra el criterio.
+- No presentar imágenes generadas como geometría 3D navegable ni como prueba de fidelidad de la escena.
 
 ## Límites y decisiones pendientes
 
