@@ -13,6 +13,8 @@ import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { setWallConstruction } from '@/lib/editor-document/construction-commands';
 import { applyCommand } from '@/lib/editor-document/commands';
 import { roofSlabPlacement } from '@/components/editor-v2/scene/ceiling-scene-utils';
+import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
+import { designScopeRooms } from '@/lib/editor-document/design-scope';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }], true);
 const ceiling = () => { const doc = room(); return setRoomCeiling(doc, deriveRooms(doc)[0]!.id); };
@@ -36,6 +38,24 @@ describe('contrato de techos y luminarias', () => {
     const outdoor = room(); outdoor.walls[0]!.id = 'hidden:outdoor'; outdoor.walls[0]!.hidden = true;
     expect(eligibleCeilingRooms(outdoor)).toEqual([]);
     expect(eligibleCeilingRooms(setDesignSpaceKind(room(), 'patio'))).toEqual([]);
+  });
+  it('conserva los techos existentes si se elige una captura de entrada o fachada', () => {
+    const covered = ceiling();
+    for (const kind of ['entrada', 'fachada'] as const) {
+      const doc = setDesignSpaceKind(covered, kind);
+      expect(eligibleCeilingRooms(doc)).toHaveLength(1);
+      expect(ceilingSurfaces(doc)).toHaveLength(1);
+      expect(ceilingWarnings(doc)).toEqual([]);
+    }
+  });
+  it('mantiene separados interior y exterior al diseñar una entrada con techo existente', () => {
+    const mixed = setDesignSpaceKind(addOutdoorArea(ceiling(), { x: 5000, y: 0 }, { x: 8000, y: 5000 }), 'entrada');
+    const inside = designScopeRooms(mixed, { kind: 'interior', roomIds: [] });
+    const outside = designScopeRooms(mixed, { kind: 'exterior', roomIds: [] });
+    expect(inside).toHaveLength(1);
+    expect(outside).toHaveLength(1);
+    expect(inside[0]!.id).toBe(mixed.ceilings![0]!.roomId);
+    expect(outside[0]!.id).not.toBe(inside[0]!.id);
   });
   it('solo considera terminada una cubierta con todas las estancias interiores válidas', () => {
     expect(hasCompleteInteriorRoof(room())).toBe(false);

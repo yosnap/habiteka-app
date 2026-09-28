@@ -31,7 +31,9 @@ export interface ResolvedLuminaire {
 }
 /** Un recinto lógico exterior no implica una cubierta. Las paredes ocultadas a mano siguen siendo interiores. */
 export function eligibleCeilingRooms(doc: EditorDocument): DerivedRoom[] {
-  if (doc.designSpaceKind && doc.designSpaceKind !== 'interior') return [];
+  // El tipo de captura puede ser «entrada» o «fachada» para un inmueble mixto.
+  // Los techos ya colocados prueban que hay interiores y no deben desaparecer.
+  if (doc.designSpaceKind && doc.designSpaceKind !== 'interior' && !doc.ceilings?.length) return [];
   return deriveRooms(doc).filter((room) =>
     !room.wallIds.some((id) => doc.walls.some((wall) => wall.id === id && wall.hidden && (id.startsWith('hidden:') || id.startsWith('outdoor:')))) &&
     !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary)));
