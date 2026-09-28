@@ -522,9 +522,9 @@ function SceneView({
       captureQueue.current = job.catch(() => undefined);
       const blob = await job;
       const url = URL.createObjectURL(blob), link = window.document.createElement('a');
-      link.href = url; link.download = mode === 'showcase' ? 'habiteka-obra-y-visita.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      link.href = url; link.download = mode === 'showcase' ? 'habiteka-muestra-obra-y-recorrido.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
       setExportMessage('MP4 descargado.');
-      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id, mode); setExportMessage('MP4 descargado y guardado en Diseños.'); }
+      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id, mode); setExportMessage(`MP4 descargado y guardado en ${mode === 'showcase' ? 'Vídeos' : 'Recorridos'}.`); }
     } catch (error) { setExportMessage(controller.signal.aborted ? 'Exportación cancelada.' : error instanceof Error ? error.message : 'No se pudo exportar'); }
     finally { unsubscribe(); setRecording(false); store.getState().select(selectionBefore); abortRecording.current = null; }
   };
@@ -553,7 +553,7 @@ function SceneView({
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
       {allowVideoExport ? <>
         <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar y guardar recorrido · MP4</button>
-        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo muestra · obra + visita</button>
+        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo de muestra · obra + recorrido</button>
       </> : onOpenApprovedRoute && <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue)}
         onClick={() => void onOpenApprovedRoute(route.id)}>Abrir visita aprobada para exportar vídeo</button>}
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}

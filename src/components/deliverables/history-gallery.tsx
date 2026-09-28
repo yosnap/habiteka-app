@@ -11,6 +11,7 @@ import type { DeliverableType } from '@/lib/contracts';
 export interface HistoryDeliverable {
   id: string;
   type: DeliverableType | 'video';
+  videoMode?: 'walkthrough' | 'showcase';
   videoUrl?: string | null;
   /** URL del render, si el entregable es de tipo render3d; null en otro caso. */
   renderUrl: string | null;
@@ -25,12 +26,17 @@ export interface HistoryGroup {
   deliverables: HistoryDeliverable[];
 }
 
-const TYPE_LABEL: Record<DeliverableType | 'video', string> = {
+const TYPE_LABEL: Record<DeliverableType, string> = {
   plano2d: 'Plano 2D',
   render3d: 'Render',
   memoria: 'Memoria',
-  video: 'Recorrido 3D',
 };
+
+function typeLabel(deliverable: HistoryDeliverable): string {
+  return deliverable.type === 'video'
+    ? deliverable.videoMode === 'showcase' ? 'Muestra de obra + recorrido' : 'Recorrido grabado'
+    : TYPE_LABEL[deliverable.type];
+}
 
 export function HistoryGallery({ groups }: { groups: HistoryGroup[] }) {
   const hasContent = groups.some((g) => g.sourceImageUrl || g.deliverables.length > 0);
@@ -88,6 +94,7 @@ function HistoryOrigin({ url }: { url: string | null }) {
 
 // Tarjeta de un diseño: render con miniatura; otros tipos con su rótulo.
 function HistoryDeliverableCard({ deliverable }: { deliverable: HistoryDeliverable }) {
+  const label = typeLabel(deliverable);
   return (
     <div className="rounded-card border-line flex w-28 flex-col items-center gap-1 border p-2">
       {deliverable.videoUrl ? <video controls preload="metadata" src={deliverable.videoUrl} className="h-20 w-full" /> : deliverable.renderUrl ? (
@@ -99,10 +106,10 @@ function HistoryDeliverableCard({ deliverable }: { deliverable: HistoryDeliverab
         />
       ) : (
         <div className="rounded-control bg-surface text-muted-foreground flex h-20 w-full items-center justify-center text-xs">
-          {TYPE_LABEL[deliverable.type]}
+          {label}
         </div>
       )}
-      <span className="text-ink-soft text-xs">{TYPE_LABEL[deliverable.type]}</span>
+      <span className="text-ink-soft text-xs">{label}</span>
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function DeliverablesPanel({
   if (deliverables.length === 0) {
     return (
       <p className="text-muted-foreground p-6 text-center text-sm">
-        Aún no hay diseños. Completa tus preferencias en el chat para generarlos.
+        Aún no hay diseños guardados.
       </p>
     );
   }

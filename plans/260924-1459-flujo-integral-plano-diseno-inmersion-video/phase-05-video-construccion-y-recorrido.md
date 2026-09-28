@@ -5,6 +5,12 @@ status: pending
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Aclaración de producto (28/09/2026)
+
+El entregable final se llamará **vídeo resumen**: empieza en el terreno vacío, muestra cómo se levanta y termina el inmueble aprobado, incluye un vuelo exterior tipo dron y entra para un **vuelo interior breve y dirigido por todas las zonas del inmueble**. El espectador solo reproduce la pieza. No se presenta como «visita»: la visita libre permite decidir rumbo y mirada, y un «recorrido» es una ruta guardada que puede exportarse por separado. La cámara del resumen necesita guion, ritmo y trayectoria propios, con pasos físicamente posibles por puertas y conexiones. No basta con pegar la ruta peatonal existente tras ocho segundos de introducción.
+
+El modo `showcase` actual hace precisamente esa introducción corta más la ruta grabada. Debe figurar como **muestra de obra + recorrido** hasta que cumpla el vídeo resumen; no cuenta para cerrar esta fase. Los archivos se organizan en resultados separados: «Diseños» abre por defecto, «Recorridos» contiene rutas MP4 y «Vídeos» contiene muestras y, cuando exista, el resumen final. Ningún MP4 se muestra por encima de los diseños al abrir la página.
+
 ## Avance en exportación de recorridos largos (27-09-2026)
 
 - El límite del MP4 nativo es ahora 110 s, compartido por grabador y servidor; el montaje suma 8 s al recorrido. La vista 3D muestra la duración y los tramos bloqueados antes de iniciar la exportación. La revisión guardada 94 de «FInca» contiene «Recorrido Paulo» (44 puntos, unos 93 s, sin tramos bloqueados), que pasa la validación para paseo y montaje (unos 101 s).
@@ -33,13 +39,13 @@ La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una 
 1. Apertura: terreno vacío de la escena aprobada, sin edificio ni mobiliario, y después la huella del inmueble desde una cámara exterior.
 2. Montaje visual: suelos y estructura, muros/huecos, escaleras y techos, acabados, muebles e iluminación. Es una animación editorial de la escena aprobada, no una simulación técnica de construcción.
 3. Revelación: vuelo exterior tipo dron alrededor de la casa ya terminada, con vistas de fachada, volumen, jardín, terraza o piscina solo si figuran en la escena aprobada.
-4. Paseo rápido: transición continua por una entrada real y ruta cinematográfica por estancias, terminando en una vista final del inmueble. El espectador reproduce el montaje; en la visita libre decide su propio camino.
+4. Vuelo interior rápido: transición continua por una entrada real y trayectoria cinematográfica que muestre todas las zonas del inmueble, terminando en una vista final. El espectador reproduce el montaje; en la visita libre decide su propio camino.
 
 ## Trabajo
 
 1. Crear un guion reproducible que referencia la versión aprobada, capas por tipo de entidad, orden, tiempos, cámaras y escenas. Aprovechar `EditorScene` (`boxes`, `polygons`, `ramps`, `sourceEntityId`, roles) para revelar elementos sin crear otro modelo.
 2. Añadir un editor sencillo de escenas: reordenar/activar tomas, elegir vistas de referencia, duración, cámara objetivo, velocidad y formato 16:9/9:16. Vista previa completa antes de generar.
-3. Reusar `WalkthroughPath`, `buildWalkthrough` y `recordWalkthrough` para el tramo de paseo. Extender el grabador determinista por fotograma para cambios de visibilidad y cámara exterior, transiciones y segmentos; adaptar la resolución al formato. Evitar vuelos que crucen muros o muebles.
+3. Reusar la validación espacial de `WalkthroughPath` y `buildWalkthrough` donde sirva para comprobar accesos, pero definir una trayectoria de cámara propia para el vídeo resumen: vuelo exterior, entrada y recorrido interior breve por todas las zonas. Extender el grabador determinista por fotograma para cambios de visibilidad, cámaras, transiciones y segmentos; adaptar la resolución al formato. Evitar vuelos que crucen muros o muebles.
 4. Exportar y guardar MP4 nativo desde la versión aprobada. El grabador limita ahora a 110 s, 1080p y H.264/WebCodecs; medir tiempo, tamaño y memoria de recorridos largos en navegador antes de ampliar más o incorporar montaje por segmentos. Mantener aviso de compatibilidad de navegador.
 5. Incorporar una acción `video` en el enrutamiento de modelos y un adaptador de vídeo Kie distinto del de imágenes; ejecutar como trabajo asíncrono, con estado, fallos, reintentos acotados y coste previsto/real visible. Descargar el resultado al almacenamiento propio al completarse, sin depender de la URL temporal de Kie. Mantener contrato de proveedor intercambiable.
 6. Ensayar tres clips cortos desde fotogramas del mismo modelo: construcción exterior, entrada/paseo interior y plano con un objeto de catálogo identificable. Comparar el MP4 nativo con candidatos de vídeo disponibles en Kie (primero uno que admita referencias inicial/final); medir continuidad, cambios en muebles/puertas, identidad del producto, latencia y coste. Solo integrar vídeo IA cuando supere el umbral acordado; de lo contrario conservar el vídeo nativo fiel.
@@ -57,7 +63,7 @@ La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una 
 
 ## Criterios de aceptación
 
-- Un MP4 comienza con el terreno vacío de la escena aprobada, revela la construcción y los acabados por etapas, muestra el inmueble terminado mediante un vuelo exterior tipo dron y entra por un acceso real para un paseo interior dirigido sin alterar la distribución aprobada.
+- Un MP4 resumen comienza con el terreno vacío de la escena aprobada, revela la construcción y los acabados por etapas, muestra el inmueble terminado mediante un vuelo exterior tipo dron y entra por un acceso real para un vuelo interior breve por todas las zonas, sin alterar la distribución aprobada ni reutilizar sin más la visita o el recorrido peatonal.
 - El storyboard permite revisar por separado construcción visual, vuelo exterior, casa terminada y entrada/paseo interior. Las transiciones son comprensibles, las tomas no atraviesan sólidos y el exterior e interior mantienen el acabado aprobado.
 - Exterior, cenital, maqueta e interior pertenecen al mismo inmueble y versión; una comparación por fotogramas verifica posiciones de muros, huecos, muebles y productos destacados.
 - El mismo guion produce versión horizontal y vertical con encuadres revisables.

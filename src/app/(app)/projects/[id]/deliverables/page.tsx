@@ -15,41 +15,84 @@ import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string; zona?: string }>;
 }
 
-export default async function DeliverablesPage({ params }: Props) {
+type ResultsTab = 'disenos' | 'recorridos' | 'videos';
+type VideoView = {
+  id: string;
+  mode: 'walkthrough' | 'showcase';
+  url: string | null;
+  durationMs?: number;
+  approvedRevision: number | null;
+  designHref: string | null;
+  legalSeal: string;
+};
+
+function videoMode(payload: unknown): VideoView['mode'] {
+  return payload && typeof payload === 'object' && 'mode' in payload && payload.mode === 'showcase'
+    ? 'showcase' : 'walkthrough';
+}
+
+export default async function DeliverablesPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const query = await searchParams;
+  const activeTab: ResultsTab = query.vista === 'recorridos' || query.vista === 'videos' ? query.vista : 'disenos';
   // El layout del proyecto ya validó la sesión y la pertenencia.
   const ctx = await requireOrgContext();
   const repo = withOrg(ctx);
-  const [rows, sourceImages] = await Promise.all([
-    repo.deliverables.list(id),
-    repo.sourceImages.list(id),
-  ]);
+  const rows = await repo.deliverables.list(id);
+  const videoRows = rows.filter((row) => row.type === 'VIDEO');
+  const tabs: { id: ResultsTab; label: string; count: number }[] = [
+    { id: 'disenos', label: 'Diseños', count: rows.length - videoRows.length },
+    { id: 'recorridos', label: 'Recorridos', count: videoRows.filter((row) => videoMode(row.payload) === 'walkthrough').length },
+    { id: 'videos', label: 'Vídeos', count: videoRows.filter((row) => videoMode(row.payload) === 'showcase').length },
+  ];
+  const tabHref = (tab: ResultsTab) => {
+    const params = new URLSearchParams();
+    if (tab !== 'disenos') params.set('vista', tab);
+    if (query.zona) params.set('zona', query.zona);
+    const suffix = params.toString();
+    return `/projects/${encodeURIComponent(id)}/deliverables${suffix ? `?${suffix}` : ''}`;
+  };
+
+  if (activeTab !== 'disenos') {
+    const videos = await Promise.all(videoRows.filter((row) =>
+      videoMode(row.payload) === (activeTab === 'recorridos' ? 'walkthrough' : 'showcase')).map(async (row): Promise<VideoView> => {
+      const payload = row.payload && typeof row.payload === 'object'
+        ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number }
+        : {};
+      const approvalId = typeof payload.approvalId === 'string' && payload.approvalId ? payload.approvalId : null;
+      const designQuery = new URLSearchParams();
+      if (approvalId) designQuery.set('aprobado', approvalId);
+      if (row.zoneId) designQuery.set('zona', row.zoneId);
+      return { id: row.id, mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
+        approvedRevision: typeof payload.approvedRevision === 'number' && Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
+        designHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${designQuery}` : null,
+        legalSeal: row.legalSeal };
+    }));
+    return <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
+      <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
+      {activeTab === 'videos' && <p className="text-ink-soft text-sm">El vídeo resumen completo —terreno vacío, construcción, vuelo exterior y paseo interior rápido— aún está pendiente. Las muestras actuales solo combinan una introducción de obra con una ruta grabada.</p>}
+      {videos.length ? videos.map((video) => <VideoCard key={video.id} video={video} />) :
+        <p className="text-muted-foreground p-6 text-center text-sm">{activeTab === 'recorridos'
+          ? 'Aún no hay recorridos exportados de una revisión aprobada.'
+          : 'Aún no hay vídeos guardados.'}</p>}
+    </main>;
+  }
+
+  const sourceImages = await repo.sourceImages.list(id);
   // La URL de la imagen de origen se genera fresca al servir (presignada de vida
   // corta): persistirla en BD la dejaría caducada para visitas posteriores (M1).
   // Si el storage no está disponible (p. ej. credenciales ausentes en dev), se
   // degrada mostrando el diseño SIN la miniatura de origen, no rompiendo la vista.
   const urlBySourceImageId = await resolveSourceImageUrls(sourceImages);
 
-  const videos = await Promise.all(rows.filter((row) => row.type === 'VIDEO').map(async (row) => {
-    const payload = row.payload && typeof row.payload === 'object'
-      ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number }
-      : {};
-    const approvalId = typeof payload.approvalId === 'string' && payload.approvalId ? payload.approvalId : null;
-    const visitQuery = new URLSearchParams();
-    if (approvalId) visitQuery.set('aprobado', approvalId);
-    if (row.zoneId) visitQuery.set('zona', row.zoneId);
-    return { id: row.id, url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
-      approvedRevision: Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
-      visitHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${visitQuery}` : null,
-      legalSeal: row.legalSeal };
-  }));
   // Calidad registrada de cada entregable (evaluación posterior a la generación).
   // Si la consulta falla, los diseños se muestran igual: es información, no una puerta.
   const qualityByRef = await latestQualityByRef(
     ctx.organizationId,
-    rows.map((row) => row.id),
+    rows.filter((row) => row.type !== 'VIDEO').map((row) => row.id),
   ).catch(() => new Map<string, QualityVerdict>());
   const deliverables = (
     await Promise.all(
@@ -60,18 +103,41 @@ export default async function DeliverablesPage({ params }: Props) {
   ).filter((d): d is DeliverableView => d !== null);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
-      {videos.map((video) => <section key={video.id} aria-label="Recorrido en vídeo" className="rounded-lg border p-4">
-        <h2>Recorrido 3D · {Math.round((video.durationMs ?? 0) / 1000)} s</h2>
-        {video.url ? <><video controls preload="metadata" src={video.url} className="w-full" /><a href={video.url} download="habiteka-recorrido.mp4">Descargar MP4</a></> : <p>Vídeo no disponible temporalmente.</p>}
-        {video.visitHref && <p className="mt-2 text-sm"><a href={video.visitHref} className="underline">
-          Abrir la visita de la revisión aprobada {video.approvedRevision ?? ''}
-        </a></p>}
-        <p className="text-xs text-muted-foreground">{video.legalSeal}</p>
-      </section>)}
-      {(deliverables.length > 0 || videos.length === 0) && <DeliverablesPanel deliverables={deliverables} projectId={id} />}
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
+      <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
+      <DeliverablesPanel deliverables={deliverables} projectId={id} />
     </main>
   );
+}
+
+function ResultsTabs({ tabs, active, href }: {
+  tabs: { id: ResultsTab; label: string; count: number }[];
+  active: ResultsTab;
+  href: (tab: ResultsTab) => string;
+}) {
+  return <nav aria-label="Resultados del proyecto" className="border-line flex gap-2 overflow-x-auto border-b pb-3">
+    {tabs.map((tab) => <a key={tab.id} href={href(tab.id)} aria-current={active === tab.id ? 'page' : undefined}
+      className={`rounded-control shrink-0 px-4 py-2 text-sm font-medium ${active === tab.id
+        ? 'bg-emerald-800 text-white' : 'border border-line bg-surface text-ink hover:bg-emerald-50'}`}>
+      {tab.label} <span className="opacity-75">{tab.count}</span>
+    </a>)}
+  </nav>;
+}
+
+function VideoCard({ video }: { video: VideoView }) {
+  const showcase = video.mode === 'showcase';
+  return <section aria-label={showcase ? 'Vídeo de muestra' : 'Recorrido grabado'} className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
+    <h2 className="text-ink text-base font-semibold">{showcase ? 'Muestra · obra + recorrido' : 'Recorrido grabado'}{' '}
+      {video.durationMs ? <span className="text-ink-soft ml-2 text-sm font-normal">{Math.round(video.durationMs / 1000)} s</span> : null}
+    </h2>
+    {video.url ? <><video controls preload="metadata" src={video.url} className="w-full rounded-control" />
+      <a href={video.url} download={showcase ? 'habiteka-muestra.mp4' : 'habiteka-recorrido.mp4'} className="text-emerald-800 underline">Descargar MP4</a></>
+      : <p className="text-muted-foreground text-sm">Vídeo no disponible temporalmente.</p>}
+    {video.designHref && <a href={video.designHref} className="text-ink text-sm underline">
+      Abrir el diseño aprobado{video.approvedRevision !== null ? ` · revisión ${video.approvedRevision}` : ''}
+    </a>}
+    <p className="text-muted-foreground text-xs">{video.legalSeal}</p>
+  </section>;
 }
 
 // Reconstruye el entregable desde la fila, validando el tipo de payload, y le

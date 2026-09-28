@@ -7,7 +7,7 @@ status: pending
 
 ## Avance comprobado (27-09-2026)
 
-«Diseños» muestra el MP4 real de «Recorrido Paulo», permite descargarlo y enlaza con la revisión 94 aprobada. «Historial» permite previsualizar y recuperar revisiones del plano sin borrar la actual. Esto inicia la entrega, pero no completa la prueba integral con un plano importado fiel, varias plantas y móvil; tampoco existe aún una versión recuperable de todo el proyecto ni un enlace público de visita para clientes. Véase el [roadmap reconciliado](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md).
+El MP4 real de «Recorrido Paulo» permite descargarlo y enlaza con la revisión 94 aprobada. Los resultados se separan en «Diseños» (pestaña inicial), «Recorridos» (MP4 de rutas) y «Vídeos» (muestras de montaje; el resumen final sigue pendiente). «Historial» permite previsualizar y recuperar revisiones del plano sin borrar la actual. Esto inicia la entrega, pero no completa la prueba integral con un plano importado fiel, varias plantas y móvil; tampoco existe aún una versión recuperable de todo el proyecto ni un enlace público de visita para clientes. Véase el [roadmap reconciliado](../260927-0135-auditoria-checks-y-roadmap-habiteka/plan.md).
 
 ## Objetivo
 
@@ -31,7 +31,7 @@ Hacer que el proyecto conserve y presente con claridad plano, diseño aprobado, 
 
 ## Criterios de aceptación
 
-- Se puede reabrir el proyecto y localizar cada resultado con su origen, versión y estado, sin confundir imagen con visita.
+- Se puede reabrir el proyecto y localizar cada resultado con su origen, versión y estado, con diseños por defecto y recorridos/vídeos en pestañas propias, sin confundir imagen, recorrido grabado, vídeo resumen y visita libre.
 - La visita y vídeos son coherentes con el diseño aprobado; modificaciones posteriores no los alteran silenciosamente.
 - La prueba completa funciona con un inmueble de varias estancias, dos plantas y exterior; los fallos de calidad muestran una reparación concreta.
 - Se registran carga inicial, fluidez y tiempo de exportación del equipo de referencia antes de considerar terminada la entrega.
