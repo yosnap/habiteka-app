@@ -53,4 +53,12 @@ describe('withGatewayFallback (OpenRouter es SPOF)', () => {
       }),
     ).rejects.toMatchObject({ status: 400 });
   });
+
+  it('normaliza un 429 como límite temporal para activar la ruta de respaldo', async () => {
+    const f = setClientFactory(() => ({}) as never);
+    restore = () => setClientFactory(f);
+    const cause = { status: 429, message: 'concurrency limit' };
+    await expect(withGatewayFallback({ baseURL: null, run: async () => { throw cause; } }))
+      .rejects.toMatchObject({ kind: 'rate_limit', cause });
+  });
 });
