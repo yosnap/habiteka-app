@@ -902,7 +902,7 @@ export function EditorShell({
             const captures: RenderCapture[] = [];
             // La máscara corresponde exactamente a esta cámara y permite auditar las zonas.
             const zoneMask = zoneCompositeActive(options)
-              ? { maskRegions: options.regions.map((region) => region.polygon) } : {};
+              ? { maskRegions: zoneCaptureRegions(store.getState().document, options.regions.map((region) => region.polygon)) } : {};
             // Vistas interiores: una captura por estancia con su cámara a altura
             // de ojos. La geometría va en la imagen; la IA solo pone el aspecto.
             if (isInteriorRenderMode(options)) {

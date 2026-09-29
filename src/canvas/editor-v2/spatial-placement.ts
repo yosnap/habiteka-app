@@ -13,7 +13,7 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
-import { alignBackToWall, dockToWindow } from './wall-back-alignment';
+import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isWindowCovering } from './wall-back-alignment';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
@@ -174,6 +174,8 @@ export function collisions(doc: EditorDocument): Map<string, number> {
       const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
       if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
       if (first && second && (first.hostId === second.id || second.hostId === first.id)) continue;
+      // El grifo o los aparatos de un tramo de cocina pueden asomar delante de un estor colgado de la ventana: no es choque.
+      if (first && second && ((isKitchenRun(first) && isWindowCovering(second)) || (isWindowCovering(first) && isKitchenRun(second)))) continue;
       const depth = penetration(a, b);
       if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
     }
@@ -314,6 +316,9 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
     const positioned = options.preserveRotation ? result as Furniture : alignBackToWall(doc, result as Furniture, faceTolerance);
     result = restOnHost(doc, dockToWindow(doc, positioned, faceTolerance), { alignRotation: !options.preserveRotation });
   }
+  // Un tramo de cocina se endereza contra un muro inclinado para no dejar una cuña de holgura entre trasera y pared.
+  if ('kind' in result && !('stepCount' in result) && isKitchenRun(result) && !options.preserveRotation)
+    result = alignKitchenRunToWall(doc, result, faceTolerance);
   // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
   return snapToWallFace(doc, result, faceTolerance);
 }
