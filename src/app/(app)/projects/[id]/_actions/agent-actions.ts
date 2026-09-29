@@ -49,7 +49,7 @@ import { isDesignSpaceKind, type DesignSpaceKind } from '@/lib/design-space-kind
 import type { NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { isInteriorRenderMode, MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
-import { isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
+import { fitZoneReferenceAspect, isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
 import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
@@ -60,6 +60,7 @@ import { loadStudio, saveStudio } from '@/server/plan/studio-repo';
 import { assertFreePromptQuality } from '@/server/quality/instruction-gate';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { readRenderReference } from '@/server/agent/editor-v2/render-asset-reader';
+import { verifiedEditorDocument } from '@/server/agent/editor-v2/verified-editor-document';
 import { z } from 'zod';
 import type {
   DeliverableType,
@@ -400,7 +401,7 @@ async function proposeNativeDesignFromEditorImpl(
   const proposalZoneId = await assertZoneInProject(ctx, projectId, zoneId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
   if (!isDesignSpaceKind(spaceKind)) fail('Selecciona el tipo de espacio en el canvas.');
-  const document = parseEditorDocument(rawDocument);
+  const document = await verifiedEditorDocument(ctx, { projectId, zoneId: proposalZoneId }, rawDocument);
   if (!document.designSpaceKind || document.designSpaceKind !== spaceKind)
     fail('El tipo de espacio cambió. Guarda el canvas e inténtalo de nuevo.');
   if (!document.walls.length && !document.furniture.length && !document.stairs?.length && !document.ramps?.length)
@@ -492,7 +493,7 @@ async function generateConceptRenderFromEditorImpl(
   await assertTosAccepted(ctx.userId);
   if (!isValidEstilo(estilo)) fail('Estilo no válido');
 
-  const document = parseEditorDocument(rawDocument);
+  const document = await verifiedEditorDocument(ctx, { projectId, zoneId: zid }, rawDocument);
   if (!document.walls.length && !document.stairs?.length && !document.ramps?.length) {
     fail('El plano está vacío: añade estructura antes de crear un render.');
   }
@@ -525,6 +526,7 @@ async function generateConceptRenderFromEditorImpl(
   if (!match?.[1]) fail('La captura de referencia no tiene formato PNG válido.');
   let reference = await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
   let zoneMask: Awaited<ReturnType<typeof sanitizeImageBuffer>> | undefined;
+  let aspectRatio: string | undefined;
   if (zoneCompositeActive(options)) {
     const maskMatch = typeof capture.maskDataUrl === 'string' && capture.maskDataUrl.length <= 14_000_000
       ? NATIVE_RENDER_DATA_URL.exec(capture.maskDataUrl) : null;
@@ -533,8 +535,10 @@ async function generateConceptRenderFromEditorImpl(
     if (await zoneMaskCoverage(Buffer.from(zoneMask.base64, 'base64')) < ZONE_EMPTY_COVERAGE)
       fail('La zona permitida no se ve en esta cámara. Cambia de ángulo o marca otra zona antes de generar.');
     const isolated = await isolateZoneReference(reference, zoneMask);
-    reference = isolated.image;
-    zoneMask = isolated.mask;
+    const framed = await fitZoneReferenceAspect(isolated.image, isolated.mask);
+    reference = framed.image;
+    zoneMask = framed.mask;
+    aspectRatio = framed.aspectRatio;
   }
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
   const imagePrompt = selectedViewImagePrompt(
@@ -544,7 +548,8 @@ async function generateConceptRenderFromEditorImpl(
   const request = {
     prompt: imagePrompt,
     compactPrompt: imagePrompt,
-    // Sin ratio forzado: KIE usa auto y toma la referencia, no estira a 16:9.
+    // La zona aislada se acolcha sin deformarla y pide la misma relación al modelo.
+    ...(aspectRatio ? { aspectRatio } : {}),
     referenceImages: [{ base64: reference.base64, mimeType: reference.mimeType },
       ...(zoneMask ? [{ base64: zoneMask.base64, mimeType: zoneMask.mimeType }] : [])],
   };

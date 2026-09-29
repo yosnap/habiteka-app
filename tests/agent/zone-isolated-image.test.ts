@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import { isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
+import { fitZoneReferenceAspect, isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
 
 const W = 40, H = 20;
 const image = async (data: Buffer, channels: 1 | 3) => ({
@@ -43,5 +43,26 @@ describe('aislamiento de imágenes por zona', () => {
     const mask = await image(Buffer.alloc(W * H, 255), 1);
     await expect(isolateZoneReference(source, { ...mask, width: W - 1 })).rejects.toThrow('no coincide');
     await expect(isolateZoneResult({ ...source, width: W / 2 }, mask)).rejects.toThrow('proporción');
+  });
+
+  it('encaja una referencia panorámica y su máscara en 21:9 sin deformarlas', async () => {
+    const wide = { width: 50, height: 20, mimeType: 'image/png' as const };
+    const source = { ...wide, base64: (await sharp({ create: { ...wide, channels: 3,
+      background: '#505050' } }).png().toBuffer()).toString('base64') };
+    const mask = { ...wide, base64: (await sharp({ create: { ...wide, channels: 3,
+      background: '#ffffff' } }).png().toBuffer()).toString('base64') };
+    const framed = await fitZoneReferenceAspect(source, mask);
+    expect(framed.aspectRatio).toBe('21:9');
+    expect(framed.image.width).toBe(wide.width);
+    expect(framed.image.height).toBeGreaterThan(wide.height);
+    expect(framed.mask.width).toBe(framed.image.width);
+    const { data, info } = await sharp(Buffer.from(framed.image.base64, 'base64'))
+      .removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect(data[0]).toBe(216);
+    expect(data[(Math.floor(H / 2) * info.width + Math.floor(info.width / 2)) * 3]).toBe(80);
+    const paddedMask = await sharp(Buffer.from(framed.mask.base64, 'base64'))
+      .greyscale().raw().toBuffer();
+    expect(paddedMask[0]).toBe(0);
+    expect(paddedMask[Math.floor(H / 2) * framed.mask.width + Math.floor(framed.mask.width / 2)]).toBe(255);
   });
 });
