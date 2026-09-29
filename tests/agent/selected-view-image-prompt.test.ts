@@ -3,6 +3,7 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import { selectedViewImagePrompt, projectVehicleCount } from '@/server/agent/editor-v2/selected-view-image-prompt';
+import { kitchenRunDefaults } from '@/lib/editor-document/kitchen-run-types';
 
 const document = { ...emptyEditorDocument(), designSpaceKind: 'patio' as const };
 const view = { preset: 'isometric' } as RenderView;
@@ -54,5 +55,20 @@ describe('instrucción de imagen basada en la captura', () => {
     expect(text).toContain('VISTA INTERIOR A ALTURA DE OJOS');
     expect(text).not.toContain('Respeta los cortes de la maqueta');
     expect(text).not.toContain('El fondo liso de la captura');
+  });
+
+  it('conserva la unión y el color de una cocina en L', () => {
+    const first = kitchenRunDefaults({ id: 'a', x: 0, y: 0, widthMm: 2000, rotation: 0 });
+    const second = kitchenRunDefaults({ id: 'b', x: 2000, y: 0, widthMm: 2000, rotation: 90 });
+    const options = { ...defaultRenderDesignOptions(), placement: 'selected' as const,
+      regions: [{ id: 'cocina', name: 'Cocina', polygon: [
+        { x: -100, y: -100 }, { x: 3000, y: -100 }, { x: 3000, y: 3000 }, { x: -100, y: 3000 },
+      ] }] };
+    const text = selectedViewImagePrompt({ ...document, kitchenRuns: [first, second] }, view,
+      'moderno', options, '', '', true);
+    expect(text).toContain('unión continua, sin huecos');
+    expect(text).toContain('el mismo color #e0dbcf');
+    expect(selectedViewImagePrompt({ ...document, kitchenRuns: [first, second] }, view,
+      'moderno', defaultRenderDesignOptions(), '', '', false)).not.toContain('La cocina en L');
   });
 });

@@ -74,6 +74,7 @@ import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { applyNativeDesignProposal, bindNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { sameDesignContent } from '@/lib/editor-document/approved-design';
 import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
+import { zoneCaptureRegions } from '@/lib/editor-document/zone-capture-regions';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
@@ -246,8 +247,9 @@ export function EditorShell({
     const maskRegions = zoneCompositeActive(options)
       ? options.regions.map((region) => region.polygon)
       : designZone ? [designZone.polygon] : undefined;
-    return capture({ view, lighting: options.lighting, fit: view !== 'current' || Boolean(maskRegions),
-      ...(maskRegions ? { maskRegions } : {}),
+    const captureRegions = maskRegions ? zoneCaptureRegions(store.getState().document, maskRegions) : undefined;
+    return capture({ view, lighting: options.lighting, fit: view !== 'current' || Boolean(captureRegions),
+      ...(captureRegions ? { maskRegions: captureRegions } : {}),
       ...(keyframeCamera.current && view === 'current' && !maskRegions ? { camera: keyframeCamera.current } : {}) });
   }, [awaitScene, store]);
   const documentGeometry = () => JSON.stringify({ ...store.getState().document, revision: 0, designSpaceKind: undefined });

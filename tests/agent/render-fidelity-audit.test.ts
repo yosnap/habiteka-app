@@ -24,6 +24,7 @@ describe('auditoría de fidelidad del diseño', () => {
     expect(content.filter((part) => part.type === 'image_url')).toHaveLength(3);
     expect(content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('front') });
     expect(content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('3 coches') });
+    expect(content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('rechaza huecos nuevos entre tramos') });
     expect(content[1]).toMatchObject({ type: 'image_url', mimeType: 'image/jpeg' });
   });
 

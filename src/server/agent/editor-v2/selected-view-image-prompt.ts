@@ -2,6 +2,9 @@ import type { Estilo } from '@/lib/contracts';
 import { estiloLabel } from '@/lib/design-options';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
+import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
+import { objectCenter } from '@/lib/editor-document/spatial-properties';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import {
   isInteriorRenderMode,
   RENDER_ADDITION_LABELS,
@@ -9,7 +12,19 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v6';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v7';
+
+function kitchenJointRule(document: EditorDocument, options: RenderDesignOptions): string | undefined {
+  if (options.placement !== 'selected') return undefined;
+  const regions = options.regions.map((region) => region.polygon);
+  const runs = (document.kitchenRuns ?? []).filter((run) =>
+    regions.some((polygon) => pointInPolygon(objectCenter(run), polygon)));
+  const pair = runs.flatMap((run, index) => runs.slice(index + 1).map((other) => [run, other] as const))
+    .find(([a, b]) => isKitchenJoint(a, b));
+  if (!pair) return undefined;
+  const [a, b] = pair;
+  return `La cocina en L tiene una unión continua, sin huecos ni separación entre tramos. Conserva los colores de los frentes. Las dos encimeras tienen ${a.kitchen.worktopColor === b.kitchen.worktopColor ? `el mismo color ${a.kitchen.worktopColor}` : `los colores ${a.kitchen.worktopColor} y ${b.kitchen.worktopColor}`}; mantén cada tono sin reinterpretarlo.`;
+}
 
 export function projectVehicleCount(document: EditorDocument): number {
   return document.furniture.filter((item) => /^(coche|auto|autom[oó]vil|veh[ií]culo)$/i.test(item.kind)).length;
@@ -56,6 +71,7 @@ export function selectedViewImagePrompt(
       : 'Respeta los cortes de la maqueta que dejan ver su interior; no extiendas el suelo o los muros más allá de sus bordes ni cierres el corte.';
   const strictOutside = options.freedom === 'strict' && !interiorMode &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length));
+  const jointRule = kitchenJointRule(document, options);
 
   return [
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
@@ -63,6 +79,7 @@ export function selectedViewImagePrompt(
     'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina, accesos y mobiliario grande visibles.',
     `Mejora materiales, texturas, sombras y luz. ${sceneRule} ${hasMask ? 'Mantén gris claro y vacío el fondo exterior a la zona aislada.' : 'Mantén el fondo y la relación entre edificio y exterior.'}`,
     'Conserva las hojas de puerta con la apertura que muestra la captura. Exposición equilibrada: los vanos no son manchas de luz blanca; materiales y contornos nítidos, sin velo luminoso ni desenfoque artificial.',
+    ...(jointRule ? [jointRule] : []),
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),
     `${additions} ${placement} Mantén libres puertas, pasos, rampas y escaleras.`,

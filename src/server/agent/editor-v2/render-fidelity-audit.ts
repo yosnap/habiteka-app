@@ -60,6 +60,7 @@ export async function assertRenderFidelity(
         'Rechaza si cambia el punto de vista, orientación, silueta, número o posición de plantas, muros, huecos, escaleras, rampas, piscina o accesos visibles.',
         'Rechaza si sustituye el inmueble por otra casa, extiende la maqueta fuera de sus bordes, inserta una imagen del 3D dentro de otra escena, o produce un collage, superposición o doble arquitectura.',
         'Rechaza si desaparecen o se desplazan muebles grandes visibles o si se añaden construcciones.',
+        'Si hay cocina en L, comprueba la continuidad de la esquina y rechaza huecos nuevos entre tramos. Conserva el color dominante de cada encimera y los frentes; un tramo beige convertido en blanco puro o marrón oscuro no es una mejora de textura.',
         'Compara también la IDENTIDAD de cada objeto exterior visible, no solo su posición. Una fila de vehículos transformada en sofás es un fallo grave aunque conserve el número y la ubicación.',
         ...(vehicleCount ? [`El plano contiene ${vehicleCount} coches. Si son visibles en la imagen 1, en la imagen 2 deben seguir siendo coches reconocibles; nunca sofás u otros muebles.`] : []),
         ...(strictExterior ? ['El usuario pidió fidelidad estricta. Si el fondo exterior de la captura es liso o neutro, NO es terreno modelado: rechaza si el candidato lo sustituye por suelo, desierto, césped, árboles, arbustos, horizonte, cielo, aparcamiento o caminos nuevos. Mejorar texturas sobre objetos ya visibles sí está permitido.'] : []),
