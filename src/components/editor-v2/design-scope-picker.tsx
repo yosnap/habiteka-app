@@ -59,6 +59,8 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
   }, [document]);
   const interiorCount = rooms.filter((room) => !room.outdoor).length;
   const exteriorCount = rooms.length - interiorCount;
+  const changeScope = (patch: Partial<RenderDesignOptions>) => onChange({ ...options, ...patch,
+    placement: 'all', regions: [] });
   const toggleRoom = (id: string) => onChange({ ...options,
     designRoomIds: options.designRoomIds.includes(id)
       ? options.designRoomIds.filter((value) => value !== id)
@@ -67,7 +69,7 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
   return <div className="mt-4 rounded-control border border-line p-3 text-sm">
     <label htmlFor="editor-design-scope" className="text-ink mb-1 block font-medium">Qué parte del inmueble diseñar</label>
     <ModernSelect compact id="editor-design-scope" value={options.designScope} disabled={disabled}
-      onChange={(event) => onChange({ ...options, designScope: event.target.value as RenderDesignOptions['designScope'] })}>
+      onChange={(event) => changeScope({ designScope: event.target.value as RenderDesignOptions['designScope'] })}>
       {scopes.map(([kind, label]) => <option key={kind} value={kind}
         disabled={kind === 'interior' ? !interiorCount : kind === 'exterior' ? !exteriorCount : kind === 'rooms' ? !rooms.length : false}>
         {label}
@@ -95,7 +97,7 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
         {(document?.designZones ?? []).map((zone) => <div key={zone.id} className="bg-canvas flex items-center gap-2 rounded-control border border-line px-2 py-1">
           <button type="button" aria-pressed={options.designZoneId === zone.id} disabled={disabled}
             className={`rounded-control px-2 py-1 text-xs ${options.designZoneId === zone.id ? 'bg-emerald-800 text-white' : 'border border-line'}`}
-            onClick={() => onChange({ ...options, designZoneId: zone.id })}>{zone.name}</button>
+            onClick={() => { if (options.designZoneId !== zone.id) changeScope({ designZoneId: zone.id }); }}>{zone.name}</button>
           {onRenameZone && <input aria-label={`Renombrar ${zone.name}`} defaultValue={zone.name} key={`${zone.id}:${zone.name}`}
             disabled={disabled} maxLength={80} className="min-w-0 flex-1 rounded-control border border-line px-1 text-xs"
             onBlur={(event) => { if (event.target.value.trim() !== zone.name) {
@@ -107,7 +109,7 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
             {reshapeId === zone.id ? 'Cancelar contorno' : 'Redibujar'}
           </button>}
           {onRemoveZone && <button type="button" disabled={disabled} className="text-destructive text-xs underline"
-            onClick={() => { try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) onChange({ ...options, designZoneId: '' });
+            onClick={() => { try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) changeScope({ designZoneId: '' });
               if (reshapeId === zone.id) setReshapeId(null); setZoneError(null); }
               catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo quitar la zona.'); } }}>Quitar</button>}
         </div>)}
@@ -118,8 +120,8 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
         name={zoneName} onNameChange={setZoneName}
         onPolygon={(polygon, name) => {
           try {
-            if (reshapeId && onReshapeZone) { onReshapeZone(reshapeId, polygon); onChange({ ...options, designZoneId: reshapeId }); setReshapeId(null); }
-            else { const id = onCreateZone(name, polygon); onChange({ ...options, designZoneId: id }); }
+            if (reshapeId && onReshapeZone) { onReshapeZone(reshapeId, polygon); changeScope({ designZoneId: reshapeId }); setReshapeId(null); }
+            else { const id = onCreateZone(name, polygon); changeScope({ designZoneId: id }); }
             setZoneError(null);
           }
           catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo guardar la zona.'); }

@@ -112,7 +112,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           </p>
         )}
       </section>
-      {(!editable || options.freedom !== 'strict') && (
+      {(!editable || (options.freedom !== 'strict' && options.designScope !== 'zone')) && (
         <section>
           <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -134,7 +134,9 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           {options.placement === 'selected' && (
             <div className="mt-2">
               <p className="text-muted-foreground mb-2 text-xs">
-                La generación usa las zonas marcadas como límite. Cada imagen se verifica contra el 3D antes de guardarse.
+                {editable
+                  ? 'Los objetos nuevos deben caber dentro de estas zonas y del ámbito elegido.'
+                  : 'La generación usa las zonas marcadas como límite. Cada imagen se verifica contra el 3D antes de guardarse.'}
               </p>
               <RenderRegionPicker
                 document={document}
@@ -145,6 +147,11 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             </div>
           )}
         </section>
+      )}
+      {editable && options.freedom !== 'strict' && options.designScope === 'zone' && (
+        <p className="bg-canvas text-muted-foreground rounded-control p-2 text-xs">
+          La zona dibujada define dónde pueden colocarse los objetos nuevos.
+        </p>
       )}
       {!editable && (
         <section>

@@ -133,6 +133,9 @@ export function EditorGenerateDialog({
         .map((room) => room.roomId),
     };
   });
+  const optionsByIntent = useRef<{ image: RenderDesignOptions | null; editable: RenderDesignOptions | null }>({
+    image: null, editable: null,
+  });
   /**
    * Las vistas interiores por estancia son, por definición, habitaciones: pedir
    * además el tipo de espacio solo servía para dejar el botón de preparar
@@ -199,6 +202,9 @@ export function EditorGenerateDialog({
       ? 'Marca al menos una estancia para diseñar.'
     : options.designScope === 'zone' && !options.designZoneId
       ? 'Dibuja o elige una zona de diseño.'
+    : options.freedom !== 'strict' && options.designScope !== 'zone' &&
+      options.placement === 'selected' && !options.regions.length
+      ? 'Marca al menos una zona permitida para colocar objetos.'
     : qualityBlocked
       ? 'Confirma antes el aviso de calidad del plano.'
       : null;
@@ -228,7 +234,8 @@ export function EditorGenerateDialog({
     setError(null);
   };
   const changeOptions = (next: RenderDesignOptions) => {
-    setOptions(next);
+    setOptions(intent === 'editable' && (next.freedom === 'strict' || next.designScope === 'zone')
+      ? { ...next, placement: 'all', regions: [] } : next);
     if (intent === 'editable' && next.designScope !== 'all' && establishedStyle)
       setEstilo(establishedStyle);
     // Activar las vistas interiores ya dice qué clase de espacio es.
@@ -308,7 +315,7 @@ export function EditorGenerateDialog({
         estilo,
         objetivo: objetivo.trim(),
         promptLibre: promptLibre.trim(),
-        options,
+        options: options.designScope === 'zone' ? { ...options, placement: 'all', regions: [] } : options,
         qualityAck: quality.ack,
       });
       setProposal(next);
@@ -383,10 +390,13 @@ export function EditorGenerateDialog({
                 <button key={value} type="button" disabled={busy} aria-pressed={intent === value}
                   className={`rounded-lg border p-3 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
                   onClick={() => {
+                    if (value === intent) return;
+                    optionsByIntent.current[intent] = options;
+                    const next = optionsByIntent.current[value] ?? { ...options,
+                      placement: 'all', regions: [], designScope: 'all', designZoneId: '' };
+                    setOptions(next);
                     setIntent(value);
-                    if (value === 'image' && options.designScope !== 'all')
-                      setOptions({ ...options, designScope: 'all', designZoneId: '' });
-                    if (value === 'editable' && options.designScope !== 'all' && establishedStyle)
+                    if (value === 'editable' && next.designScope !== 'all' && establishedStyle)
                       setEstilo(establishedStyle);
                     invalidatePrepared(); setMode('choose');
                   }}>
@@ -517,9 +527,11 @@ export function EditorGenerateDialog({
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
                     {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : options.designScope === 'zone' ? document?.designZones?.find((zone) => zone.id === options.designZoneId)?.name ?? 'zona sin elegir' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
-                    {options.placement === 'selected'
+                    {options.freedom === 'strict' && intent === 'editable'
+                      ? 'sin colocación de objetos'
+                      : options.placement === 'selected'
                       ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
-                      : 'toda la planta'}{' '}
+                      : intent === 'editable' ? 'todo el ámbito' : 'toda la planta'}{' '}
                     {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
                   {intent === 'image' && cachedEstimate && itemCount > 0 && (
