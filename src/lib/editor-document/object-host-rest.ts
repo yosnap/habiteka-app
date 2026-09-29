@@ -44,7 +44,7 @@ export function placeOnHost(item: Furniture, host: Furniture): Furniture {
   const center = localToWorld(host, { x: host.widthMm / 2, y: host.depthMm / 2 });
   const offset = objectCenter({ ...item, x: 0, y: 0 });
   return { ...item, x: center.x - offset.x, y: center.y - offset.y,
-    hostId: host.id, elevationMm: hostSurfaceTop(host) + (getFurnitureCatalogEntry(item.catalogId)?.elevationMm ?? 0) };
+    hostId: host.id, elevationMm: hostSurfaceTop(host) };
 }
 /** Un objeto apoyado conserva su posición relativa cuando se mueve o gira el mueble que lo sostiene. */
 export function followHostedChildren(doc: EditorDocument, previous: Furniture, next: Furniture): void {
@@ -78,7 +78,7 @@ export function restOnHost(doc: EditorDocument, item: Furniture, options: { alig
   const host = preferred && isSurfaceHost(preferred) && containsCenter(preferred, item) ? preferred : findHost(doc, item);
   const catalogElevation = getFurnitureCatalogEntry(item.catalogId)?.elevationMm ?? 0;
   if (!host) return item.hostId ? { ...item, hostId: undefined, elevationMm: catalogElevation } : item;
-  const minimum = hostSurfaceTop(host) + catalogElevation;
+  const minimum = hostSurfaceTop(host);
   if (item.hostId === host.id) return (item.elevationMm ?? 0) >= minimum ? item : { ...item, elevationMm: minimum };
   const rested = { ...item, hostId: host.id, elevationMm: minimum };
   return options.alignRotation && rested.rotation !== host.rotation ? transformAroundCenter(rested, { rotation: host.rotation }) : rested;

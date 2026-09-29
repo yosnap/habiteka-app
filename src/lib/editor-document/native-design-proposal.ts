@@ -6,7 +6,7 @@ import { floorFinish } from './floor-finishes';
 import { surfaceMaterial } from './surface-materials';
 import { finishColor, localToWorld, upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
-import type { EditorDocument, FloorFinish, Point } from './schema';
+import type { EditorDocument, FloorFinish, Furniture, Point } from './schema';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
 import { outdoorVolumes } from './outdoor-volumes';
 import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, designScopeZone, scopeContainsPoint, scopedWallSides, wholeDesignScope, type DesignScope } from './design-scope';
@@ -15,6 +15,8 @@ import { wallPath } from './wall-path';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 import { wallConstruction } from './construction-properties';
 import { isRampLanding } from './ramp-kind';
+import { canFitOnHost, canRestOnHost, hostSurfaceTop, isSurfaceHost, restOnHost } from './object-host-rest';
+import { sameDesignContent } from './approved-design';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -50,6 +52,14 @@ export interface NativeDesignSelection {
   ramps: boolean;
   columns: boolean;
   furniture: number[];
+}
+
+/** El servidor devuelve su revisión confirmada; el editor puede conservar otro número local para el mismo contenido. */
+export function bindNativeDesignProposal(proposal: NativeDesignProposal, requested: EditorDocument,
+  current: EditorDocument): NativeDesignProposal {
+  if (!sameDesignContent(requested, current))
+    throw new Error('El plano cambió mientras se generaba la propuesta. Vuelve a generarla sobre la versión actual.');
+  return { ...proposal, sourceRevision: current.revision };
 }
 
 /** Applies only decorative data. Geometry, levels, dimensions and circulation stay intact. */
@@ -151,14 +161,16 @@ function exteriorWallSides(wall: EditorDocument['walls'][number], selected: Retu
 export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>, allowedRooms: ReadonlySet<string>, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return;
-  const room = suggestedFurnitureRoom(item, rooms);
-  if (!room || !canPlaceNativeDesignFurniture(doc, item, rooms, allowedRooms, zonePolygon)) return;
-  const elevationMm = floorFinish(doc, room.id).elevationMm ?? 0;
-  doc.furniture.push({
+  const placement = assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon);
+  if (placement.issue || !placement.room) return;
+  const elevationMm = (floorFinish(doc, placement.room.id).elevationMm ?? 0) + catalog.elevationMm;
+  const furniture: Furniture = {
     id: newId(), kind: catalog.kind, catalogId: catalog.id, x: item.xMm, y: item.yMm,
     widthMm: catalog.widthMm, depthMm: catalog.depthMm, heightMm: catalog.heightMm,
     elevationMm, rotation: item.rotation, dimensionalOrigin: 'physical', color: catalog.color,
-  });
+  };
+  doc.furniture.push(placement.host ? restOnHost(doc, { ...furniture, hostId: placement.host.id,
+    elevationMm: hostSurfaceTop(placement.host) }) : furniture);
 }
 
 /** Rejects AI furniture that would block construction or cannot physically fit a room. */
@@ -169,24 +181,52 @@ export function canPlaceNativeDesignFurniture(
   allowedRooms?: ReadonlySet<string>,
   zonePolygon?: Point[],
 ): boolean {
+  return assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon).issue === null;
+}
+
+export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'collision' | 'shelter';
+
+export function nativeFurniturePlacementIssue(
+  doc: EditorDocument, item: NativeDesignFurniture, rooms = deriveRooms(doc),
+  allowedRooms?: ReadonlySet<string>, zonePolygon?: Point[],
+): NativeFurniturePlacementIssue | null {
+  return assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon).issue;
+}
+
+function assessFurniturePlacement(
+  doc: EditorDocument, item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>,
+  allowedRooms?: ReadonlySet<string>, zonePolygon?: Point[],
+): { issue: NativeFurniturePlacementIssue | null; room?: ReturnType<typeof deriveRooms>[number]; host?: Furniture } {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
-  if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return false;
+  if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation))
+    return { issue: 'catalog' };
   const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
   const room = suggestedFurnitureRoom(item, rooms);
-  if (!room || (allowedRooms && !allowedRooms.has(room.id))) return false;
-  if (zonePolygon && !polygonContainsFootprint(zonePolygon, corners(candidate))) return false;
+  if (!room || (allowedRooms && !allowedRooms.has(room.id))) return { issue: 'room' };
+  if (zonePolygon && !polygonContainsFootprint(zonePolygon, corners(candidate))) return { issue: 'zone' };
+  const candidateItem: Furniture = { id: '__design_candidate', kind: catalog.kind, catalogId: catalog.id,
+    ...candidate, heightMm: catalog.heightMm, elevationMm: 0, color: catalog.color,
+    dimensionalOrigin: 'physical' };
+  const host = canRestOnHost(candidateItem) ? planObjects(doc)
+    .filter((target) => isSurfaceHost(target) && canFitOnHost(candidateItem, target)
+      && polygonContainsFootprint(corners(target), corners(candidate)))
+    .sort((a, b) => hostSurfaceTop(b) - hostSurfaceTop(a))[0] : undefined;
+  const bottom = host ? hostSurfaceTop(host) : (floorFinish(doc, room.id).elevationMm ?? 0) + catalog.elevationMm;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
-  const protectedFootprints = [...planObjects(doc).filter((target) => !shelterIds.has(target.id)),
-    ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])];
-  if (protectedFootprints.some((target) => intersects(candidate, target, 250))) return false;
-  const bottom = floorFinish(doc, room.id).elevationMm ?? 0;
-  return !shelters.some((shelter) => outdoorVolumes(shelter).some((part) => {
+  const blockedByObject = planObjects(doc).filter((target) => !shelterIds.has(target.id)).some((target) => {
+    if (host && (target.id === host.id || (target.elevationMm ?? 0) + (target.heightMm ?? 0) <= bottom)) return false;
+    return intersects(candidate, target, 250);
+  });
+  if (blockedByObject || [...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])]
+    .some((target) => intersects(candidate, target, 250))) return { issue: 'collision' };
+  if (shelters.some((shelter) => outdoorVolumes(shelter).some((part) => {
     if (part.top <= bottom || part.bottom >= bottom + catalog.heightMm) return false;
     const origin = localToWorld(shelter, { x: part.x, y: part.y });
     return intersects(candidate, { x: origin.x, y: origin.y, widthMm: part.widthMm,
       depthMm: part.depthMm, rotation: shelter.rotation }, 100);
-  }));
+  }))) return { issue: 'shelter' };
+  return { issue: null, room, host };
 }
 
 function suggestedFurnitureRoom(item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>) {

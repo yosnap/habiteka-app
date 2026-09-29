@@ -6,6 +6,7 @@ import type { ChatVisionAdapter } from '@/lib/contracts';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 
 const item = { catalogId: 'habiteka:furniture:planta', xMm: 1000, yMm: 1000, rotation: 0, reason: 'Vegetación' };
 const options = defaultRenderDesignOptions();
@@ -52,8 +53,23 @@ it('estricto impide objetos aunque el modelo los devuelva', () => {
   const strict = parseNativeDesignProposal(raw, 'moderno', doc, options);
   expect(strict.furniture).toEqual([]);
   expect(strict.summary).toContain('Se descartaron 1 objeto(s)');
+  expect(strict.summary).toContain('categoría no permitida');
   expect(strict.summary).not.toContain('Plantas');
   expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'controlled', additions: ['plants'] }).furniture).toEqual([item]);
+});
+
+it('explica qué objeto choca con otro mueble en una propuesta editable', () => {
+  const doc = upgradeSpatialDocument(addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true));
+  doc.furniture.push({ id: 'mesa', kind: 'mesa-comedor', catalogId: 'habiteka:furniture:mesa-comedor',
+    x: 1000, y: 1000, widthMm: 1600, depthMm: 900, heightMm: 750, elevationMm: 0,
+    rotation: 0, dimensionalOrigin: 'physical', color: '#b89364' });
+  const sofa = { catalogId: 'habiteka:furniture:sofa-2', xMm: 1100, yMm: 1100,
+    rotation: 0, reason: 'Asiento' };
+  const result = parseNativeDesignProposal({ materials: {}, furniture: [sofa] }, 'moderno', doc,
+    { ...options, freedom: 'controlled', additions: ['furniture'] });
+  expect(result.furniture).toEqual([]);
+  expect(result.summary).toContain('Sofá de dos plazas: solapa la zona de seguridad de un mueble o estructura');
 });
 it('descarta muebles propuestos fuera del ámbito editable aunque el modelo los devuelva', () => {
   const house = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);

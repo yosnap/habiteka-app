@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
-import type { Point, Stair } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import {
   addFurniture,
@@ -71,7 +71,8 @@ import { isInteriorRenderMode, renderDesignOptionsSchema, zoneCompositeActive, t
 import type { Estilo } from '@/lib/contracts';
 import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
-import { applyNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { applyNativeDesignProposal, bindNativeDesignProposal, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { sameDesignContent } from '@/lib/editor-document/approved-design';
 import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
@@ -214,6 +215,7 @@ export function EditorShell({
   // se espera, se informa y vence; nunca se queda colgado sin explicación.
   const [sceneReady, setSceneReady] = useState(false);
   const captureView = useRef<CaptureRenderView | null>(null);
+  const proposalSource = useRef<EditorDocument | null>(null);
   const captureDocument = useRef('');
   const keyframeCamera = useRef<ReturnType<typeof cameraPoseFromView> | null>(null);
   const keyframeTarget = useRef<{ routeId: string; waypointId: string } | null>(null);
@@ -875,7 +877,14 @@ export function EditorShell({
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
           document={store.getState().document}
-          onGenerate={onGenerateDesign}
+          onGenerate={async (input) => {
+            const requested = structuredClone(store.getState().document);
+            proposalSource.current = null;
+            const proposal = await onGenerateDesign(input);
+            const bound = bindNativeDesignProposal(proposal, requested, store.getState().document);
+            proposalSource.current = requested;
+            return bound;
+          }}
           capture={renderCapture}
           onPreview={previewRender}
           sceneReady={sceneReady}
@@ -940,6 +949,8 @@ export function EditorShell({
           }}
           onApply={(proposal, selection) => {
             const state = store.getState();
+            if (!proposalSource.current || !sameDesignContent(proposalSource.current, state.document))
+              throw new Error('El plano cambió desde que se generó la propuesta. Vuelve a generarla sobre la versión actual.');
             const next = applyNativeDesignProposal(state.document, proposal, selection);
             if (JSON.stringify({ ...next, revision: 0 }) === JSON.stringify({ ...state.document, revision: 0 })) {
               throw new Error('La selección no contiene cambios nuevos. Elige otros acabados o muebles.');

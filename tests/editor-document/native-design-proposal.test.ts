@@ -2,18 +2,19 @@ import { expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { createEditorStore } from '@/canvas/editor-v2/store';
-import { applyNativeDesignProposal, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { applyNativeDesignProposal, bindNativeDesignProposal, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
-import { upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { localToWorld, upgradeRampDocument, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
 import { addDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
+import { addKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -57,6 +58,18 @@ it('rechaza una zona obsoleta antes de modificar el documento', () => {
     .toThrow('ya no coincide');
   expect(() => applyNativeDesignProposal(source, { ...proposal, sourceRevision: source.revision + 1 }))
     .toThrow('El plano cambió');
+});
+
+it('concilia la revisión del servidor con la local solo si el contenido del plano sigue igual', () => {
+  const source = addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const local = { ...source, revision: 124 };
+  const fromServer = { ...proposal, sourceRevision: 125 };
+  const bound = bindNativeDesignProposal(fromServer, local, local);
+  expect(bound.sourceRevision).toBe(124);
+  expect(() => applyNativeDesignProposal(local, bound)).not.toThrow();
+  expect(() => bindNativeDesignProposal(fromServer, local,
+    { ...local, labels: [{ id: 'nuevo', text: 'Cambio', x: 100, y: 100 }] })).toThrow('El plano cambió');
 });
 
 it('aplica una propuesta solo a la estancia elegida', () => {
@@ -191,6 +204,39 @@ it('admite muebles y luces bajo una carpa sin atravesar postes ni objetos existe
     { walls: false, floors: false, stairs: false, ramps: false, columns: false, furniture: [0, 1] });
   expect(withSofa.furniture.map((item) => item.catalogId)).toContain('habiteka:furniture:sofa-exterior');
   expect(withSofa.furniture.map((item) => item.catalogId)).toContain('habiteka:outdoor:tira-led');
+});
+
+it('coloca una lámpara propuesta sobre la mesa existente sin desplazarla ni hacerla flotar', () => {
+  const doc = upgradeSpatialDocument(addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true));
+  doc.furniture.push({ id: 'mesa', kind: 'mesa-comedor', catalogId: 'habiteka:furniture:mesa-comedor',
+    x: 1500, y: 1200, widthMm: 1600, depthMm: 900, heightMm: 750, elevationMm: 0,
+    rotation: 0, dimensionalOrigin: 'physical', color: '#b89364' });
+  const lamp = { catalogId: 'habiteka:furniture:lampara-mesa', xMm: 2000, yMm: 1450,
+    rotation: 0, reason: 'Luz de apoyo' };
+  expect(canPlaceNativeDesignFurniture(doc, lamp)).toBe(true);
+  expect(canPlaceNativeDesignFurniture(doc, { ...lamp, xMm: 3000 })).toBe(false);
+  const next = applyNativeDesignProposal(doc, { ...proposal, furniture: [lamp] },
+    { walls: false, floors: false, stairs: false, ramps: false, columns: false, furniture: [0] });
+  expect(next.furniture.find((item) => item.id === 'mesa')).toEqual(doc.furniture[0]);
+  expect(next.furniture.find((item) => item.catalogId === lamp.catalogId)).toMatchObject({
+    x: lamp.xMm, y: lamp.yMm, hostId: 'mesa', elevationMm: 750,
+  });
+});
+
+it('admite una lámpara sobre la encimera existente en Cocina', () => {
+  const room = addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const edge = room.walls[0]!.thicknessMm / 2;
+  const doc = addKitchenRun(room, { x: edge, y: edge }, { x: edge + 3000, y: edge });
+  const run = doc.kitchenRuns![0]!;
+  const at = localToWorld(run, { x: 600, y: 150 });
+  const lamp = { catalogId: 'habiteka:furniture:lampara-mesa', xMm: at.x, yMm: at.y,
+    rotation: 0, reason: 'Luz sobre la encimera' };
+  expect(canPlaceNativeDesignFurniture(doc, lamp)).toBe(true);
+  const next = applyNativeDesignProposal(doc, { ...proposal, furniture: [lamp] },
+    { walls: false, floors: false, stairs: false, ramps: false, columns: false, furniture: [0] });
+  expect(next.furniture.at(-1)).toMatchObject({ hostId: run.id, elevationMm: 900 });
 });
 
 it('mantiene un estilo común entre ámbitos y permite sustituirlo al rediseñar toda la planta', () => {

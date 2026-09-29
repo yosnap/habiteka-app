@@ -110,6 +110,13 @@ it('el menú puede apoyar un adorno pequeño sobre una mesa o una cama sin usar 
   expect(onBed.hostId).toBe(bed.id); expect(onBed.elevationMm).toBe(680);
 });
 
+it('una lámpara de mesa usa la superficie como cota al colocarla sobre una mesa baja', () => {
+  const table = piece('mesa', 'mesa-centro', 1000, 1000, [1100, 600, 420]);
+  const lamp = piece('luz', 'lampara-mesa', 1100, 1100, [300, 300, 450], { elevationMm: 550 });
+  expect(placeOnHost(lamp, table)).toMatchObject({ hostId: 'mesa', elevationMm: 420 });
+  expect(restOnHost({ ...house(), furniture: [table] }, lamp)).toMatchObject({ hostId: 'mesa', elevationMm: 420 });
+});
+
 it('un objeto colocado sobre una mesa la acompaña al moverla o girarla', () => {
   const table = piece('mesa', 'mesa-comedor', 1000, 1000, [1600, 900, 750]);
   const decor = placeOnHost(piece('adorno', 'adorno', 0, 0, [250, 250, 300], { catalogId: undefined }), table);

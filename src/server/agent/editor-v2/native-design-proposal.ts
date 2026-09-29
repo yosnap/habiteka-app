@@ -4,7 +4,7 @@ import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { getFurnitureCatalogEntry, FURNITURE_CATALOG } from '@/lib/editor-document/furniture-catalog';
 import { SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
 import type { EditorDocument, FloorFinish } from '@/lib/editor-document/schema';
-import { addSuggestedFurniture, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { addSuggestedFurniture, nativeFurniturePlacementIssue, type NativeDesignProposal, type NativeFurniturePlacementIssue } from '@/lib/editor-document/native-design-proposal';
 import { renderDesignOptionsSchema, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
 import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, designScopeZone, type DesignScope } from '@/lib/editor-document/design-scope';
@@ -61,7 +61,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     zone ? 'La única imagen adjunta muestra exclusivamente la zona elegida. El resto del inmueble se ha ocultado: no lo uses para esta propuesta.'
       : 'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
     'No puedes añadir, quitar, mover, redimensionar, ocultar o cambiar la altura de muros, huecos, pisos, columnas, rampas, descansillos o escaleras.',
-    'Tu JSON solo puede escoger acabados existentes y hasta 4 objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes y otros muebles.',
+    'Tu JSON solo puede escoger acabados existentes y hasta 4 objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Deja 250 mm de separación respecto a los demás muebles y estructuras. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes. Una lámpara pequeña o una planta puede apoyarse sobre una mesa o encimera existente si toda su huella cabe en la superficie; conserva el mueble de apoyo. Si una lámpara de pie no tiene espacio libre, elige una lámpara de mesa que quepa sobre un mueble existente.',
     `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)], zone: zone ? { id: zone.id, name: zone.name, polygonMm: zone.polygon } : null })}. Los acabados y objetos fuera de este ámbito permanecen intactos. La existingMaterialPalette del contexto enumera materiales ya guardados en todas las plantas: reutilízalos cuando encajen con la superficie y el uso. Puedes añadir un material permitido si la zona lo requiere, sin reemplazar la paleta de las demás zonas.`,
     `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
       boundaryMm: (zone ? zoneRoomOutline(zone, room) : room.boundary).map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
@@ -103,23 +103,42 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   const rooms = deriveRooms(candidateDoc);
   const rawFurniture = Array.isArray(input.furniture) ? input.furniture : [];
   const furniture: NativeDesignProposal['furniture'] = [];
-  for (const item of rawFurniture.flatMap((raw) => parseFurniture(raw))) {
-    if (furniture.length >= 4) break;
-    if (!allowedProposalFurniture(item, options, zone?.polygon) || !canPlaceNativeDesignFurniture(candidateDoc, item, rooms, allowedRooms, zone?.polygon)) continue;
+  const rejected: string[] = [];
+  for (const raw of rawFurniture) {
+    const item = parseFurniture(raw)[0];
+    if (!item) { rejected.push('objeto sin ficha o coordenadas válidas'); continue; }
+    const label = getFurnitureCatalogEntry(item.catalogId)!.label;
+    if (furniture.length >= 4) { rejected.push(`${label}: máximo de cuatro objetos`); continue; }
+    const catalog = getFurnitureCatalogEntry(item.catalogId)!;
+    if (!allowedProposalCatalog(catalog, options)) { rejected.push(`${label}: categoría no permitida`); continue; }
+    if (!allowedProposalFurniture(item, options, zone?.polygon)) {
+      rejected.push(`${label}: fuera de la zona de colocación permitida`); continue;
+    }
+    const issue = nativeFurniturePlacementIssue(candidateDoc, item, rooms, allowedRooms, zone?.polygon);
+    if (issue) { rejected.push(`${label}: ${placementIssueLabel(issue)}`); continue; }
     furniture.push(item);
     addSuggestedFurniture(candidateDoc, item, rooms, allowedRooms, zone?.polygon);
   }
-  const discarded = rawFurniture.length - furniture.length;
   // El texto libre del modelo puede atribuir montajes o muebles que el plano no
   // representa. El resumen se construye a partir de la propuesta validada.
   const objectLabels = furniture.map((item) => getFurnitureCatalogEntry(item.catalogId)?.label ?? item.catalogId);
   const summary = [`Propuesta ${estiloLabel(style)}: revisa los acabados antes de aplicar.`,
     objectLabels.length ? `Objetos aplicables: ${objectLabels.join(', ')}.` : 'Sin objetos aplicables.',
-    discarded ? `Se descartaron ${discarded} objeto(s) por catálogo, permisos o ubicación.` : ''].filter(Boolean).join(' ');
+    rejected.length ? `Se descartaron ${rejected.length} objeto(s): ${rejected.slice(0, 4).join('; ')}${rejected.length > 4 ? '; y otros' : ''}.` : ''].filter(Boolean).join(' ');
   return { style, summary,
     scope, sourceRevision: document.revision,
     materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides, stairBodies, rampBodies, landingBodies,
       stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
+}
+
+function placementIssueLabel(issue: NativeFurniturePlacementIssue): string {
+  switch (issue) {
+    case 'catalog': return 'ficha o coordenadas no válidas';
+    case 'room': return 'fuera de la estancia seleccionada';
+    case 'zone': return 'fuera de la zona de diseño';
+    case 'collision': return 'solapa la zona de seguridad de un mueble o estructura';
+    case 'shelter': return 'invade un poste o lateral de una carpa o pérgola';
+  }
 }
 
 function scopeFromOptions(options: RenderDesignOptions): DesignScope {
