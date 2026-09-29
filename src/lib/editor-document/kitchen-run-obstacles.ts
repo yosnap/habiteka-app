@@ -10,7 +10,8 @@ const EPS = 1, FACE_TOLERANCE = 60;
  * encimera continúa por delante si el pilar no ocupa todo el fondo; los altos se omiten donde el muro de apoyo tiene ventana.
  */
 export function kitchenRunObstacles(doc: EditorDocument, run: KitchenRun): KitchenRunExtraCuts {
-  const cuts: KitchenRunExtraCuts = { plinth: [], base: [], worktop: [], uppers: [], worktopNotches: [] };
+  const cuts: KitchenRunExtraCuts = { plinth: [], base: [], worktop: [], uppers: [],
+    plinthNotches: [], baseNotches: [], worktopNotches: [] };
   const w = run.widthMm, d = run.depthMm, u = run.kitchen.uppers, floor = run.elevationMm;
   for (const column of doc.columns ?? []) {
     const top = column.elevationMm + column.heightMm;
@@ -21,7 +22,12 @@ export function kitchenRunObstacles(doc: EditorDocument, run: KitchenRun): Kitch
     const minY = Math.min(...corners.map((c) => c.y)), maxY = Math.max(...corners.map((c) => c.y));
     if (maxX <= EPS || minX >= w - EPS || maxY <= EPS || minY >= d - EPS) continue;
     const span: Span = { from: Math.max(0, minX), to: Math.min(w, maxX) };
-    cuts.plinth.push(span); cuts.base.push(span);
+    if (minY <= EPS && maxY < d - 50 - EPS)
+      cuts.plinthNotches.push({ ...span, depthMm: maxY });
+    else cuts.plinth.push(span);
+    if (minY <= EPS && maxY < d - 44 - EPS)
+      cuts.baseNotches.push({ ...span, depthMm: maxY });
+    else cuts.base.push(span);
     if (u && minY < u.depthMm && top > floor + u.bottomMm) cuts.uppers.push(span);
     if (minY <= EPS && maxY < d - EPS) cuts.worktopNotches.push({ ...span, depthMm: maxY }); else cuts.worktop.push(span);
   }

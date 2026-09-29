@@ -1,9 +1,9 @@
 import { expect, it } from 'vitest';
 import { emptyEditorDocument, type EditorDocument } from '@/lib/editor-document/schema';
-import type { KitchenRun } from '@/lib/editor-document/kitchen-run-types';
+import { kitchenRunDefaults, type KitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { addWallPath, deleteEntities } from '@/canvas/editor-v2/editing-operations';
 import { addKitchenRun, addKitchenSlot, putKitchenSlot, splitKitchenRun, updateKitchenRun, upgradeKitchenDocument } from '@/lib/editor-document/kitchen-run-commands';
-import { kitchenRunVolumes, isKitchenJoint, moduleSpans } from '@/lib/editor-document/kitchen-run-volumes';
+import { kitchenRunDisplayVolumes, kitchenRunVolumes, isKitchenJoint, moduleSpans } from '@/lib/editor-document/kitchen-run-volumes';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
@@ -122,6 +122,39 @@ it('dos tramos en L comparten la esquina: sin colisión y el de id menor conserv
   // En 3D ninguna encimera se pisa con la otra en la esquina.
   const worktops = editorDocumentToScene(doc).boxes.filter((box) => box.role === 'furniture' && Math.abs(box.position[1] - .885) < .001);
   expect(worktops).toHaveLength(2);
+});
+
+it('un pilar que ocupa solo la trasera de la esquina conserva los frentes y el módulo bajo la encimera', () => {
+  const source = northRun(house()), item = run(source), rear = face(source);
+  const doc: EditorDocument = { ...source, columns: [{ id: 'corner-pillar', catalogId: 'builtin:column-rectangular',
+    x: rear + item.widthMm - 125, y: rear - 306, widthMm: 400, depthMm: 400,
+    heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' }] };
+  const volumes = kitchenRunDisplayVolumes(item, doc);
+  const corner = volumes.filter((v) => v.x < item.widthMm - 60 && v.x + v.widthMm > item.widthMm - 60);
+  expect(corner.some((v) => v.top === item.heightMm && v.y > 90 && v.y + v.depthMm === item.depthMm)).toBe(true);
+  expect(corner.some((v) => v.top === item.heightMm - item.kitchen.worktopThicknessMm
+    && v.y > 90 && v.y < 100 && v.depthMm > 400)).toBe(true);
+  expect(corner.some((v) => v.bottom === 0 && v.y > 90)).toBe(true);
+  expect(corner.filter((v) => v.top === item.heightMm - item.kitchen.worktopThicknessMm)
+    .every((v) => v.y >= 94 - .01)).toBe(true);
+});
+
+it('la L con pilar trasero de FInca conserva el mueble bajo la encimera hasta el encuentro', () => {
+  const vertical = kitchenRunDefaults({ id: 'a', x: 13435.885, y: 8805.319,
+    widthMm: 3594.164, depthMm: 600, rotation: 90.035, elevationMm: 1000 });
+  const horizontal = kitchenRunDefaults({ id: 'b', x: 13433.679, y: 12399.483,
+    widthMm: 4800.448, depthMm: 626.298, rotation: -179.999, elevationMm: 1000 });
+  const doc: EditorDocument = { ...emptyEditorDocument(), kitchenRuns: [vertical, horizontal], columns: [{
+    id: 'pilar-esquina', catalogId: 'builtin:column-rectangular', x: 13340, y: 12274.46,
+    widthMm: 400, depthMm: 400, heightMm: 3700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey',
+  }] };
+  expect(isKitchenJoint(vertical, horizontal)).toBe(true);
+  const end = vertical.widthMm - 60;
+  const atEnd = kitchenRunDisplayVolumes(vertical, doc).filter((v) => v.x <= end && v.x + v.widthMm >= end);
+  expect(atEnd.some((v) => v.bottom === 1000 && v.y > 90)).toBe(true);
+  expect(atEnd.some((v) => v.top === 1870 && v.y > 90 && v.depthMm > 400)).toBe(true);
+  expect(kitchenRunDisplayVolumes(horizontal, doc).some((v) => v.top === 1900
+    && v.x >= vertical.depthMm - .01 && v.x < vertical.depthMm + 10)).toBe(true);
 });
 
 it('se apoya en el suelo de su estancia al trazar y el saneamiento lo levanta si quedó enterrado', () => {

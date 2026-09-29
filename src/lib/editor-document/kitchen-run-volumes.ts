@@ -24,15 +24,19 @@ export function moduleSpans(span: Span, widthMm: number): Span[] {
 /** Muesca de encimera: en ese tramo la encimera solo conserva el fondo por delante de un pilar (de `depthMm` al frente). */
 export interface WorktopNotch extends Span { depthMm: number }
 /** Recortes que vienen del entorno del tramo (pilares, ventanas), por capa. */
-export interface KitchenRunExtraCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[]; worktopNotches: WorktopNotch[] }
+export interface KitchenRunExtraCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[];
+  plinthNotches: WorktopNotch[]; baseNotches: WorktopNotch[]; worktopNotches: WorktopNotch[] }
 /** Recortes longitudinales de cada capa del mueble; los huecos de aparatos y los extremos cedidos en esquina nacen aquí. */
 export type KitchenRunCuts = KitchenRunExtraCuts;
 export interface KitchenRunOptions { trimStartMm?: number; trimEndMm?: number; extra?: KitchenRunExtraCuts }
 const cutsBase = (kind: KitchenSlotKind) => kind === 'lavavajillas' || kind === 'lavadora' || kind === 'horno' || kind === 'frigorifico-columna';
 export function kitchenRunCuts(run: KitchenRun, options: KitchenRunOptions = {}): KitchenRunCuts {
   const whole = { from: options.trimStartMm ?? 0, to: run.widthMm - (options.trimEndMm ?? 0) };
-  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole], worktopNotches: options.extra?.worktopNotches ?? [] };
-  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [], worktopNotches: [] };
+  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole],
+    plinthNotches: options.extra?.plinthNotches ?? [], baseNotches: options.extra?.baseNotches ?? [],
+    worktopNotches: options.extra?.worktopNotches ?? [] };
+  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [],
+    plinthNotches: [], baseNotches: [], worktopNotches: [] };
   for (const slot of run.kitchen.slots) {
     const cut = slotSpan(slot);
     if (cutsBase(slot.kind)) cuts.base = subtractSpan(cuts.base, cut);
@@ -54,17 +58,31 @@ export function kitchenRunVolumes(run: KitchenRun, options: KitchenRunOptions = 
     if (widthMm <= .01 || depthMm <= .01 || top - bottom <= .01) return;
     parts.push({ x, y, widthMm, depthMm, bottom: e + bottom, top: e + top, color, ...extra });
   };
+  const notchedBody = (span: Span, depth: number, bottom: number, top: number, color: string,
+    materialId: string | undefined, notches: WorktopNotch[]) => {
+    let x = span.from;
+    for (const notch of notches.filter((n) => n.to > span.from && n.from < span.to).sort((a, b) => a.from - b.from)) {
+      const from = Math.max(x, notch.from), to = Math.min(span.to, notch.to);
+      box(x, 0, from - x, depth, bottom, top, color, { materialId });
+      if (depth - notch.depthMm > .01)
+        box(from, notch.depthMm, to - from, depth - notch.depthMm, bottom, top, color, { materialId });
+      x = Math.max(x, to);
+    }
+    box(x, 0, span.to - x, depth, bottom, top, color, { materialId });
+  };
   // Carcasa corrida, un frente por módulo con junta y un tirador por frente; el mismo despiece sirve a bajos y altos.
-  const cabinets = (span: Span, depth: number, bottom: number, top: number, color: string, materialId: string | undefined, handleZ: number) => {
-    box(span.from, 0, span.to - span.from, depth - FRONT - PROUD, bottom, top, color, { materialId });
+  const cabinets = (span: Span, depth: number, bottom: number, top: number, color: string, materialId: string | undefined,
+    handleZ: number, notches: WorktopNotch[] = []) => {
+    notchedBody(span, depth - FRONT - PROUD, bottom, top, color, materialId, notches);
     for (const m of moduleSpans(span, k.moduleWidthMm)) {
       box(m.from + SEAM / 2, depth - FRONT - PROUD, m.to - m.from - SEAM, FRONT, bottom + SEAM / 2, top - SEAM / 2, color, { materialId });
       const handle = Math.min(180, (m.to - m.from) / 2);
       box((m.from + m.to - handle) / 2, depth - PROUD, handle, PROUD, handleZ, handleZ + 25, HARDWARE);
     }
   };
-  for (const span of cuts.plinth) box(span.from, 0, span.to - span.from, d - PLINTH_RECESS, 0, plinthTop, k.plinthColor);
-  for (const span of cuts.base) cabinets(span, d, plinthTop, worktopBottom, run.color, k.baseMaterialId, worktopBottom - 70);
+  for (const span of cuts.plinth) notchedBody(span, d - PLINTH_RECESS, 0, plinthTop, k.plinthColor, undefined, cuts.plinthNotches);
+  for (const span of cuts.base) cabinets(span, d, plinthTop, worktopBottom, run.color, k.baseMaterialId,
+    worktopBottom - 70, cuts.baseNotches);
   // La encimera continúa por delante de un pilar que no ocupa todo el fondo: en su tramo queda solo la franja delantera.
   for (const span of cuts.worktop) {
     let x = span.from;
