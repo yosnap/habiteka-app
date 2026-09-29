@@ -96,6 +96,15 @@ describe('OpenRouterChatVisionAdapter', () => {
     ).rejects.toMatchObject({ kind: 'schema' });
   });
 
+  it('explica cuando el modelo agota la salida sin devolver JSON', async () => {
+    const f = setClientFactory(() => ({ chat: { completions: { create: () => Promise.resolve({
+      choices: [{ finish_reason: 'length', message: { content: null } }], usage: {},
+    }) } } }) as never);
+    restoreFn = () => setClientFactory(f);
+    await expect(new OpenRouterChatVisionAdapter().chat({ ...baseReq, responseSchema: { type: 'object' } }))
+      .rejects.toMatchObject({ kind: 'schema', message: expect.stringContaining('agotó el límite') });
+  });
+
   it('content_filter del proveedor lanza AiError(refusal)', async () => {
     const f = setClientFactory(
       () =>

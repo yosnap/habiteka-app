@@ -8,6 +8,7 @@ import { rampArrival, rampArrivalTarget } from '@/lib/editor-document/ramp-arriv
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { clipDesignZone } from '@/lib/editor-document/design-zone-geometry';
+import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
 
 // Trigonometry introduces sub-nanometer slivers at shared edges (e.g. cos(π/2)).
 // Give the boolean operation one common 0.00001 mm grid, far below editor precision.
@@ -91,5 +92,37 @@ export function floorMeshes(doc: EditorDocument, rooms: DerivedRoom[], walls: Sc
       })));
     });
     return [...floors, ...patches];
+  });
+}
+
+/** Acabado visual de zonas exteriores: queda bajo los suelos construidos y no habilita el recorrido. */
+export function zoneTerrainPatches(doc: EditorDocument, rooms: DerivedRoom[]): ScenePolygon[] {
+  const zones = (doc.designZones ?? []).filter((zone) => zone.floorFinish && zone.polygon.length >= 3);
+  const terrains = layeredTerrainSurfaces(doc);
+  if (!zones.length || !terrains.length) return [];
+  const rectangles: Polygon[] = terrains.map((surface) => [[
+    [meters(surface.x), meters(surface.y)],
+    [meters(surface.x + surface.widthMm), meters(surface.y)],
+    [meters(surface.x + surface.widthMm), meters(surface.y + surface.depthMm)],
+    [meters(surface.x), meters(surface.y + surface.depthMm)],
+  ]]);
+  let terrainArea: ReturnType<typeof polygonClipping.union>;
+  try { terrainArea = rectangles.length === 1 ? [rectangles[0]!] :
+    polygonClipping.union(rectangles[0]!, rectangles[1]!, ...rectangles.slice(2)); } catch { return []; }
+  const roomAreas: Polygon[] = rooms.map((room) => [room.boundary.map((point) => [meters(point.x), meters(point.y)] as Pair)]);
+  return zones.flatMap((zone) => {
+    const outline: Polygon = [zone.polygon.map((point) => [meters(point.x), meters(point.y)] as Pair)];
+    const outsideRooms = robustDifference(outline, roomAreas);
+    return outsideRooms.flatMap((piece, partIndex) => {
+      let clipped: ReturnType<typeof polygonClipping.intersection>;
+      try { clipped = polygonClipping.intersection(piece, terrainArea); } catch { return []; }
+      return clipped.map((rings, index) => ({
+        id: `${zone.id}:terrain:${partIndex}:${index}`, sourceEntityId: zone.id, role: 'floor' as const,
+        points: rings[0]!.map(([x, y]) => ({ x, y })),
+        holes: rings.slice(1).map((ring) => ring.map(([x, y]) => ({ x, y }))),
+        elevation: -.001, height: 0, color: zone.floorFinish!.color,
+        floorFinish: { ...zone.floorFinish!, roomId: zone.id },
+      }));
+    });
   });
 }

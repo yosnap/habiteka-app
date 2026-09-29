@@ -127,8 +127,8 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   });
   if (selection.columns) doc.columns?.filter(inScope).forEach((column) => { column.materialId = columns; column.color = '#ffffff'; });
 
-  if (selection.floors && zone && selectedRooms.length) {
-    const current = zone.floorFinish ?? floorFinish(doc, selectedRooms[0]!.id);
+  if (selection.floors && zone) {
+    const current = zone.floorFinish ?? floorFinish(doc, selectedRooms[0]?.id ?? zone.id);
     zone.floorFinish = { texture: floorTexture, color: '#ffffff', tileSizeMm: current.tileSizeMm, rotation: current.rotation };
   } else if (selection.floors) for (const room of selectedRooms) {
     const current = floorFinish(doc, room.id);

@@ -433,7 +433,14 @@ async function proposeNativeDesignFromEditorImpl(
   const referenceParts: MessagePart[] = references.all.slice(0, 4).map((image) => ({
     type: 'image_url', base64: image.base64, mimeType: image.mimeType,
   }));
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision');
+  // La propuesta necesita JSON estructurado con materiales y posiciones. El
+  // modelo local de visión agota su límite de salida con este contexto y
+  // devuelve contenido vacío; priorizamos la ruta que ya entrega el esquema.
+  const chat = await getChatVisionAdapter(
+    { organizationId: ctx.organizationId, userId: ctx.userId, projectId },
+    'vision',
+    { preferredProvider: 'openrouter' },
+  );
   return proposeNativeDesign(
     chat, document, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), referenceParts,
     options,

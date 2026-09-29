@@ -12,6 +12,18 @@ export function sceneZoneFocus(regions: ZoneMaskRegions, elevationMm = 0): Camer
     size: [Math.max(2, (maxX - minX) / 1000) * 1.25, 3.5, Math.max(2, (maxY - minY) / 1000) * 1.25] };
 }
 
+/** En zonas alargadas, la cámara oblicua mira desde el lateral largo. */
+export function zoneObliqueDirection(
+  focus: NonNullable<CameraRequest['focus']>,
+  preset: 'isometric' | 'drone',
+): [number, number, number] | undefined {
+  const [width, , depth] = focus.size;
+  const height = preset === 'drone' ? 1.35 : 1;
+  if (depth > width * 1.6) return [1, height, .28];
+  if (width > depth * 1.6) return [.28, height, 1];
+  return undefined;
+}
+
 /** Encuadra la construcción; el dron incorpora el agua cercana sin abarcar objetos remotos. */
 export function scenePresetFocus(
   document: EditorDocument,

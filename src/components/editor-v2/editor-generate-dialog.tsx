@@ -27,7 +27,7 @@ import type {
   NativeDesignProposal,
   NativeDesignSelection,
 } from '@/lib/editor-document/native-design-proposal';
-import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
+import { surfaceMaterial, SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { EditorQualityGate, type EditorQualityState } from './editor-quality-gate';
 import type { QualityVerdict } from '@/lib/quality-verdict';
@@ -374,7 +374,9 @@ export function EditorGenerateDialog({
           <><p role="status" className="mt-4 rounded-lg border border-line bg-canvas p-3 text-sm">
             {applied ? 'Cambios aplicados al plano. Puedes verlos al cerrar y deshacerlos con ⌘Z / Ctrl+Z. Guarda el plano para sincronizarlos.'
               : 'Propuesta lista. El plano aún no ha cambiado: revisa los acabados y pulsa «Aplicar al plano».'}
-          </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} palette={materialPalette} onChange={setSelection} /></fieldset></>
+          </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} palette={materialPalette}
+            onChange={setSelection} onMaterialChange={(key, value) => setProposal((current) => current
+              ? { ...current, materials: { ...current.materials, [key]: value } } : current)} /></fieldset></>
         ) : (
           <>
             {onEvaluateQuality ? (
@@ -729,13 +731,19 @@ function ProposalPreview({
   selection,
   palette,
   onChange,
+  onMaterialChange,
 }: {
   proposal: NativeDesignProposal;
   selection: NativeDesignSelection;
   palette?: ReturnType<typeof designMaterialPalette>;
   onChange: (selection: NativeDesignSelection) => void;
+  onMaterialChange: (key: Exclude<keyof NativeDesignSelection, 'furniture'>, value: string) => void;
 }) {
   const materialLabel = (id: string) => surfaceMaterial(id)?.label ?? id;
+  const materialChoices = (key: Exclude<keyof NativeDesignSelection, 'furniture'>) => {
+    const ids = key === 'floors' ? ['none', 'wood', 'tile'] : [];
+    return [...new Set([...ids, ...(palette?.[key] ?? []), ...SURFACE_MATERIALS.map((material) => material.id)])];
+  };
   const toggle = (key: Exclude<keyof NativeDesignSelection, 'furniture'>) =>
     onChange({ ...selection, [key]: !selection[key] });
   const toggleFurniture = (index: number) =>
@@ -756,20 +764,23 @@ function ProposalPreview({
       {proposal.scope?.kind === 'zone' && <p className="text-ink-soft text-xs">El pavimento queda recortado al contorno. Solo cambia un muro si cabe completo dentro de la zona; los muros que cruzan a otra zona conservan su material.</p>}
       <div className="grid grid-cols-2 gap-2 rounded-control border border-line p-3 text-xs">
         {(['walls', 'floors', 'stairs', 'ramps', 'columns'] as const).map((key) => (
-          <Choice key={key} checked={selection[key]} onChange={() => toggle(key)}>
-            {key === 'walls'
+          <div key={key} className={`space-y-1 ${selection[key] ? '' : 'opacity-50'}`}>
+            <label className="block font-medium"><input type="checkbox" checked={selection[key]} onChange={() => toggle(key)} className="mr-1 align-middle" />
+              {key === 'walls'
               ? 'Muros'
               : key === 'floors'
                 ? 'Suelos'
                 : key === 'stairs'
                   ? 'Escaleras'
                   : key === 'ramps'
-                    ? 'Rampas'
-                    : 'Columnas'}
-            : {materialLabel(proposal.materials[key])}
-            {palette?.[key].length && !palette[key].includes(proposal.materials[key])
-              ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
-          </Choice>
+                  ? 'Rampas'
+                    : 'Columnas'}</label>
+            <ModernSelect compact value={proposal.materials[key]} disabled={!selection[key]}
+              aria-label={`Material de ${key === 'walls' ? 'muros' : key === 'floors' ? 'suelos' : key === 'stairs' ? 'escaleras' : key === 'ramps' ? 'rampas' : 'columnas'}`}
+              onChange={(event) => onMaterialChange(key, event.target.value)}>
+              {materialChoices(key).map((id) => <option key={id} value={id}>{materialLabel(id)}{palette?.[key].includes(id) ? ' · usado' : ''}</option>)}
+            </ModernSelect>
+          </div>
         ))}
         {proposal.scope?.kind !== 'zone' && proposal.materials.slabUndersides && <p className="text-ink-soft col-span-2 text-xs">
           Con suelos: canto y cara inferior de los forjados elevados · {materialLabel(proposal.materials.slabUndersides)}

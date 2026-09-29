@@ -194,7 +194,10 @@ export class KieImageProvider implements ImageProvider {
   }
 
   private async waitForImage(taskId: string): Promise<string> {
-    const expiresAt = Date.now() + (this.options.timeoutMs ?? (KIE_FLUX_2_IMAGE_MODELS.has(this.model) ? FLUX_TIMEOUT_MS : TIMEOUT_MS));
+    // Los modelos GPT 2.5 entregan imágenes 4K y pueden superar dos minutos;
+    // cortar antes deja la tarea cobrada sin imagen ni auditoría de fidelidad.
+    const slowModel = KIE_FLUX_2_IMAGE_MODELS.has(this.model) || KIE_GPT_IMAGE_2_5_MODELS.has(this.model);
+    const expiresAt = Date.now() + (this.options.timeoutMs ?? (slowModel ? FLUX_TIMEOUT_MS : TIMEOUT_MS));
     while (Date.now() < expiresAt) {
       await wait(this.options.pollIntervalMs ?? POLL_INTERVAL_MS);
       const response = await this.request(`${TASK_URL}?taskId=${encodeURIComponent(taskId)}`);

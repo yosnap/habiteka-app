@@ -13,7 +13,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
-import { scenePresetFocus, sceneZoneFocus } from './scene-preset-focus';
+import { scenePresetFocus, sceneZoneFocus, zoneObliqueDirection } from './scene-preset-focus';
 import { CutawayWall, cutawaySupportHeights, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { zoneOccludingWallIds } from './zone-occluding-walls';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -271,11 +271,13 @@ function SceneView({
             front: [0, EXTERIOR_ELEVATION, 1], back: [0, EXTERIOR_ELEVATION, -1],
             left: [-1, EXTERIOR_ELEVATION, 0], right: [1, EXTERIOR_ELEVATION, 0],
           };
+          const zoneFocus = options?.maskRegions?.length
+            ? sceneZoneFocus(options.maskRegions, activeElevation) : undefined;
+          const obliqueDirection = zoneFocus && (view === 'isometric' || view === 'drone')
+            ? zoneObliqueDirection(zoneFocus, view) : undefined;
           setRequest({ sequence, action: view ?? 'fit',
-            focus: options?.maskRegions?.length
-              ? sceneZoneFocus(options.maskRegions, activeElevation)
-              : view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined,
-            direction: finishedExterior && view ? finishedDirection[view] : undefined });
+            focus: zoneFocus ?? (view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined),
+            direction: obliqueDirection ?? (finishedExterior && view ? finishedDirection[view] : undefined) });
         });
       }
       const currentDocument = store.getState().document;

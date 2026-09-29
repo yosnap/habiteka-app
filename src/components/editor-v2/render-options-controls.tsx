@@ -16,6 +16,7 @@ import {
 } from '@/lib/editor-document/room-interior-cameras';
 import InteriorRoomsPicker from './interior-rooms-picker';
 import RenderRegionPicker from './render-region-picker';
+import { ModernSelect } from '@/components/ui/modern-select';
 import styles from './render-options-controls.module.css';
 
 interface Props {
@@ -48,6 +49,14 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
     });
   return (
     <div className={`${styles.controls} mt-4 space-y-4`} aria-label="Opciones del render">
+      {editable && <section>
+        <label htmlFor="editor-design-preview-view" className="text-ink text-sm font-medium">Vista de referencia de la zona</label>
+        <ModernSelect compact id="editor-design-preview-view" className="mt-2" value={options.views[0] ?? 'current'}
+          disabled={disabled} onChange={(event) => update({ views: [event.target.value as RenderDesignOptions['views'][number]] })}>
+          {RENDER_VIEWS.map((view) => <option key={view} value={view}>{RENDER_VIEW_LABELS[view]}</option>)}
+        </ModernSelect>
+        <p className="text-muted-foreground mt-1 text-xs">La vista previa usa el 3D editable y no consume créditos.</p>
+      </section>}
       {!editable && <section>
         <h3 className="text-ink text-sm font-medium">Iluminación</h3>
         <div className="mt-2 grid grid-cols-3 gap-2">

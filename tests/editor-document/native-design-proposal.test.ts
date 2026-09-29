@@ -17,6 +17,7 @@ import { addDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-z
 import { addKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
 import { lightPlacementHints } from '@/server/agent/editor-v2/native-design-placement-hints';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { addTerrainSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -134,8 +135,13 @@ it('permite diseñar una escalera de entrada exterior aunque no esté en una est
   const next = applyNativeDesignProposal(marked, { ...proposal,
     scope: { kind: 'zone', zoneId: marked.designZones![0]!.id, roomIds: [] } });
   expect(next.stairs?.[0]?.materialId).toBe('polyhaven:wood_floor');
-  expect(next.designZones?.[0]?.floorFinish).toBeUndefined();
+  expect(next.designZones?.[0]?.floorFinish?.texture).toBe('polyhaven:wood_floor');
   expect(floorFinish(next, deriveRooms(next)[0]!.id)).toEqual(floorFinish(marked, deriveRooms(marked)[0]!.id));
+  const onTerrain = addTerrainSurface(next, suggestedTerrainSurface(next, 'garden'));
+  const patch = editorDocumentToScene(onTerrain).polygons.find((polygon) =>
+    polygon.id.startsWith(marked.designZones![0]!.id + ':terrain:'));
+  expect(patch?.floorFinish?.texture).toBe('polyhaven:wood_floor');
+  expect(patch?.elevation).toBe(-.001);
 });
 
 it('aplica el canto propuesto solo a forjados elevados del ámbito exterior', () => {

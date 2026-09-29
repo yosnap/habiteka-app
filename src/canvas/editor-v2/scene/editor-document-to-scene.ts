@@ -8,7 +8,7 @@ import { stairMeshes } from './stair-meshes';
 import { rampMesh } from './ramp-meshes';
 import { furnitureSpatial, localToWorld } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
-import { floorMeshes } from './floor-meshes';
+import { floorMeshes, zoneTerrainPatches } from './floor-meshes';
 import { curvedWallMeshes } from './curved-wall-meshes';
 import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
@@ -18,6 +18,7 @@ import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
 export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][] = []): EditorScene {
   const warnings: string[] = [];
   let floors: ScenePolygon[] = [];
+  let rooms: ReturnType<typeof deriveRooms> = [];
   const exteriorWalls: ExteriorWall[] = [];
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden);
   const visibleDocument = { ...doc, walls: visibleWalls };
@@ -29,7 +30,7 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
   const logicalJoins = junctionMeshes(doc);
   const logicalCurves = doc.walls.flatMap((wall) => curvedWallMeshes(doc, wall));
   try {
-    const rooms = deriveRooms(doc);
+    rooms = deriveRooms(doc);
     for (const room of rooms) room.wallIds.forEach((wallId, i) => {
       if (doc.walls.find((wall) => wall.id === wallId)?.hidden) return;
       if (rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
@@ -59,7 +60,7 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
     floorFinish: { roomId: surface.id, color: surface.color, texture: surface.texture,
       tileSizeMm: surface.tileSizeMm, rotation: surface.rotation },
   }));
-  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...terrain, ...floors, ...joins, ...curves, ...entrances], boxes: [
+  return { warnings, exteriorWalls, ramps: (doc.ramps ?? []).flatMap(rampMesh), polygons: [...terrain, ...zoneTerrainPatches(doc, rooms), ...floors, ...joins, ...curves, ...entrances], boxes: [
     ...walls, ...doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).flatMap((o) => openingMeshes(doc, o)),
     ...(doc.stairs ?? []).flatMap(stairMeshes),
     ...(doc.columns ?? []).map((column) => ({ id: column.id, sourceEntityId: column.id, role: 'column' as const,
