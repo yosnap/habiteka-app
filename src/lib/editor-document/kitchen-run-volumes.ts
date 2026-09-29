@@ -159,5 +159,39 @@ export function kitchenRunDisplayVolumes(run: KitchenRun, doc: EditorDocument): 
       if (end === 0) trims.trimStartMm = Math.max(trims.trimStartMm, peer.depthMm); else trims.trimEndMm = Math.max(trims.trimEndMm, peer.depthMm);
     }
   }
-  return kitchenRunVolumes(run, trims);
+  const volumes = kitchenRunVolumes(run, trims);
+  const recess = Math.min(PLINTH_RECESS, run.depthMm);
+  // En el extremo cedido, cerrar el retranqueo del zócalo contra el frente
+  // perpendicular evita un triángulo de suelo visible bajo la esquina.
+  for (const x of [trims.trimStartMm > 0 ? trims.trimStartMm : null,
+    trims.trimEndMm > 0 ? run.widthMm - trims.trimEndMm - recess : null]) {
+    if (x === null || x < 0 || x + recess > run.widthMm) continue;
+    volumes.push({ x, y: run.depthMm - recess, widthMm: recess, depthMm: recess,
+      bottom: run.elevationMm, top: run.elevationMm + run.kitchen.plinthHeightMm,
+      color: run.kitchen.plinthColor });
+  }
+  // El tramo dueño ocupa todo el fondo del vecino en la esquina. Su zócalo
+  // retranqueado dejaría suelo visible bajo ese brazo: cerrarlo hasta el frente.
+  const ownerNormal = bodyNormal(run);
+  for (const end of [0, run.widthMm]) {
+    const corner = localToWorld(run, { x: end, y: 0 });
+    const trimmedPeer = peers.find((peer) => {
+      if (!(run.id < peer.id) || !isKitchenJoint(run, peer)) return false;
+      const peerDir = direction(peer);
+      return [0, peer.widthMm].some((peerEnd) => {
+        const peerCorner = localToWorld(peer, { x: peerEnd, y: 0 });
+        if (Math.hypot(corner.x - peerCorner.x, corner.y - peerCorner.y) > jointTolerance(run, peer)) return false;
+        const sign = peerEnd === 0 ? 1 : -1;
+        return (ownerNormal.x * peerDir.x + ownerNormal.y * peerDir.y) * sign >= .5;
+      });
+    });
+    if (!trimmedPeer) continue;
+    const x = end === 0 ? 0 : run.widthMm - trimmedPeer.depthMm;
+    if (x < 0 || x + trimmedPeer.depthMm > run.widthMm) continue;
+    volumes.push({ x,
+      y: run.depthMm - recess, widthMm: trimmedPeer.depthMm, depthMm: recess,
+      bottom: run.elevationMm, top: run.elevationMm + run.kitchen.plinthHeightMm,
+      color: run.kitchen.plinthColor });
+  }
+  return volumes;
 }

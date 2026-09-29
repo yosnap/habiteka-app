@@ -115,7 +115,12 @@ it('dos tramos en L comparten la esquina: sin colisión y el de id menor conserv
   const doc = store.getState().document, [a, b] = doc.kitchenRuns!;
   expect(isKitchenJoint(a!, b!)).toBe(true);
   const owner = a!.id < b!.id ? a! : b!, other = owner === a ? b! : a!;
-  expect(furnitureVolumes(owner, doc)).toEqual(kitchenRunVolumes(owner));
+  const ownerVolumes = furnitureVolumes(owner, doc);
+  expect(ownerVolumes.length).toBe(kitchenRunVolumes(owner).length + 1);
+  expect(ownerVolumes.some((v) => v.bottom === owner.elevationMm && v.top === owner.elevationMm + owner.kitchen.plinthHeightMm
+    && v.depthMm === 50 && v.y === owner.depthMm - 50
+    && v.widthMm === other.depthMm
+    && (Math.abs(v.x) < .01 || Math.abs(v.x - (owner.widthMm - other.depthMm)) < .01))).toBe(true);
   const trimmed = furnitureVolumes(other, doc), cornerX = other === b ? other.widthMm - 600 : 600;
   expect(trimmed.length).toBeGreaterThan(0);
   for (const v of trimmed) if (other === b) expect(v.x + v.widthMm).toBeLessThanOrEqual(cornerX + .01); else expect(v.x).toBeGreaterThanOrEqual(cornerX - .01);
@@ -150,10 +155,23 @@ it('la L con pilar trasero de FInca conserva el mueble bajo la encimera hasta el
   }] };
   expect(isKitchenJoint(vertical, horizontal)).toBe(true);
   const end = vertical.widthMm - 60;
-  const atEnd = kitchenRunDisplayVolumes(vertical, doc).filter((v) => v.x <= end && v.x + v.widthMm >= end);
+  const verticalVolumes = kitchenRunDisplayVolumes(vertical, doc);
+  const atEnd = verticalVolumes.filter((v) => v.x <= end && v.x + v.widthMm >= end);
   expect(atEnd.some((v) => v.bottom === 1000 && v.y > 90)).toBe(true);
+  const verticalCorner = verticalVolumes.find((v) => v.bottom === 1000 && v.top === 1100 && v.y === 550
+    && v.depthMm === 50 && v.widthMm === horizontal.depthMm
+    && Math.abs(v.x - (vertical.widthMm - horizontal.depthMm)) < .01);
+  expect(verticalCorner).toBeDefined();
   expect(atEnd.some((v) => v.top === 1870 && v.y > 90 && v.depthMm > 400)).toBe(true);
-  expect(kitchenRunDisplayVolumes(horizontal, doc).some((v) => v.top === 1900
+  const horizontalVolumes = kitchenRunDisplayVolumes(horizontal, doc);
+  const horizontalCorner = horizontalVolumes.find((v) => v.bottom === 1000 && v.top === 1100
+    && v.x === vertical.depthMm && v.y === horizontal.depthMm - 50 && v.depthMm === 50);
+  expect(horizontalCorner).toBeDefined();
+  // Los dos cierres deben coincidir en el frente exterior de la L, no en el extremo trasero de los tramos.
+  const a = localToWorld(vertical, { x: verticalCorner!.x, y: verticalCorner!.y + verticalCorner!.depthMm });
+  const b = localToWorld(horizontal, { x: horizontalCorner!.x, y: horizontalCorner!.y + horizontalCorner!.depthMm });
+  expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan(5);
+  expect(horizontalVolumes.some((v) => v.top === 1900
     && v.x >= vertical.depthMm - .01 && v.x < vertical.depthMm + 10)).toBe(true);
 });
 
