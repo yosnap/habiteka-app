@@ -14,7 +14,7 @@ import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
 import { scenePresetFocus, sceneZoneFocus } from './scene-preset-focus';
-import { CutawayWall, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
+import { CutawayWall, cutawaySupportHeights, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { zoneOccludingWallIds } from './zone-occluding-walls';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
@@ -317,7 +317,11 @@ function SceneView({
       if (!state || state.gl.getContext().isContextLost()) throw new Error('La vista 3D no está disponible.');
       // Recorte aplicado aquí mismo y no vía estado: debe estar en ESTA foto.
       if (cut) restoreWalls = hideWallsFacingCamera(state.scene, state.camera);
-      if (zoneWallIds.length) restoreZoneWalls = hideWallsByIds(state.scene, new Set(zoneWallIds));
+      if (zoneWallIds.length) {
+        const ids = new Set(zoneWallIds);
+        restoreZoneWalls = hideWallsByIds(state.scene, ids,
+          cutawaySupportHeights(currentDocument, ids, activeElevation));
+      }
       if (options?.maskRegions?.length) restoreZoneScene = isolateSceneToZone(state.scene, options.maskRegions);
       if (options?.maskRegions?.length) {
         const previousBackground = state.scene.background;
@@ -613,7 +617,8 @@ function SceneView({
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
           {scene.polygons.map((polygon) => <group key={polygon.id} position={planPreview?.id === polygon.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
+            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined,
+              cutawayStructural: polygon.role === 'wall' || polygon.role === 'junction' }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>)}
@@ -622,7 +627,8 @@ function SceneView({
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
             return <group key={box.id} position={planPreview?.id === box.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
               userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1,
-                cutawayWallId: cuttable ? hostWallId ?? box.sourceEntityId : undefined }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
+                cutawayWallId: cuttable ? hostWallId ?? box.sourceEntityId : undefined,
+                cutawayStructural: box.role === 'wall' }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>;

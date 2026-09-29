@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
+import { deriveRooms } from '@/lib/editor-document/rooms';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { zoneOccludingWallIds } from '@/components/editor-v2/scene/zone-occluding-walls';
-import { hideWallsByIds } from '@/components/editor-v2/scene/cutaway-wall';
-import { Group } from 'three';
+import { clipShaderAboveSupport, cutawaySupportHeights, hideWallsByIds } from '@/components/editor-v2/scene/cutaway-wall';
+import { cutawaySupportHeight } from '@/components/editor-v2/scene/zone-scene-objects';
+import { BoxGeometry, Group, Mesh, MeshStandardMaterial, type WebGLProgramParametersWithUniforms } from 'three';
 
 const region = [[{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }]];
 
@@ -70,5 +73,43 @@ describe('visibilidad temporal de la captura', () => {
     expect([wall.visible, opening.visible, furniture.visible, previouslyHidden.visible]).toEqual([false, false, true, false]);
     restore();
     expect([wall.visible, opening.visible, furniture.visible, previouslyHidden.visible]).toEqual([true, true, true, false]);
+  });
+
+  it('conserva bajo la abertura el apoyo de una estancia elevada sin dejar flotante el suelo', () => {
+    let document = emptyEditorDocument();
+    document.vertices = [
+      { id: 'a', x: 0, y: 0 }, { id: 'b', x: 4000, y: 0 },
+      { id: 'c', x: 4000, y: 4000 }, { id: 'd', x: 0, y: 4000 },
+    ];
+    document.walls = ([['front', 'a', 'b'], ['right', 'b', 'c'], ['back', 'c', 'd'], ['left', 'd', 'a']] as const)
+      .map(([id, startVertexId, endVertexId]) => ({ id, startVertexId, endVertexId,
+        thicknessMm: 150, dimensionalOrigin: 'physical' as const }));
+    const room = deriveRooms(document)[0]!;
+    document = upgradeSpatialDocument(document);
+    document.schemaVersion = 5;
+    document.floorFinishes = [{ roomId: room.id, color: '#ffffff', texture: 'none', tileSizeMm: 600,
+      rotation: 0, elevationMm: 1000 }];
+    const heights = cutawaySupportHeights(document, new Set(['front']), 3000);
+    expect(heights.get('front')).toBe(4);
+
+    const root = new Group(), wall = new Group(), opening = new Group();
+    const material = new MeshStandardMaterial();
+    const mesh = new Mesh(new BoxGeometry(4, 3, .15), material);
+    wall.userData = { cutawayWallId: 'front', cutawayStructural: true };
+    opening.userData = { cutawayWallId: 'front' };
+    wall.add(mesh); root.add(wall, opening);
+    const restore = hideWallsByIds(root, new Set(['front']), heights);
+    expect(wall.visible).toBe(true);
+    expect(opening.visible).toBe(false);
+    expect(mesh.material).not.toBe(material);
+    expect(cutawaySupportHeight(mesh)).toBe(4);
+    const shader = { uniforms: {}, vertexShader: 'void main() { vec3 transformed = position; #include <project_vertex> }',
+      fragmentShader: 'void main() { gl_FragColor = vec4(1.0); }' } as WebGLProgramParametersWithUniforms;
+    clipShaderAboveSupport(shader, heights.get('front')!);
+    expect(shader.fragmentShader).toContain('vHabitekaCutawayY > 4.000000');
+    restore();
+    expect(mesh.material).toBe(material);
+    expect(opening.visible).toBe(true);
+    expect(cutawaySupportHeight(mesh)).toBeUndefined();
   });
 });

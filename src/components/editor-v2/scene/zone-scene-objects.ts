@@ -32,3 +32,12 @@ export function belongsToFurnitureGroup(object: Object3D): boolean {
   }
   return false;
 }
+
+/** Apoyo estructural bajo un suelo elevado, conservado al abrir el muro en el alzado. */
+export function cutawaySupportHeight(object: Object3D): number | undefined {
+  for (let parent: Object3D | null = object; parent; parent = parent.parent) {
+    const height = parent.userData.cutawaySupportHeightM;
+    if (typeof height === 'number') return height;
+  }
+  return undefined;
+}
