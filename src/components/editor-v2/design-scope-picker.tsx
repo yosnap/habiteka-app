@@ -11,6 +11,7 @@ import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import { scopeContainsPoint } from '@/lib/editor-document/design-scope';
 import { ZoneDrawCanvas } from './zone-draw-canvas';
 import { MAX_DESIGN_ZONES } from '@/lib/editor-document/design-zone-validation';
+import { Check, Pencil, ScanLine, Trash2 } from 'lucide-react';
 
 interface Props {
   document?: EditorDocument;
@@ -35,6 +36,8 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
   const [zoneName, setZoneName] = useState('Zona nueva');
   const [zoneError, setZoneError] = useState<string | null>(null);
   const [reshapeId, setReshapeId] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const rooms = useMemo(() => {
     if (!document) return [];
     const derived = deriveRoomsSafe(document);
@@ -66,6 +69,12 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
       ? options.designRoomIds.filter((value) => value !== id)
       : [...options.designRoomIds, id],
   });
+  const finishRename = (id: string, previous: string, value: string) => {
+    setRenameId(null);
+    if (value.trim() === previous) return;
+    try { onRenameZone?.(id, value); setZoneError(null); }
+    catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo renombrar la zona.'); }
+  };
   return <div className="mt-4 rounded-control border border-line p-3 text-sm">
     <label htmlFor="editor-design-scope" className="text-ink mb-1 block font-medium">Qué parte del inmueble diseñar</label>
     <ModernSelect compact id="editor-design-scope" value={options.designScope} disabled={disabled}
@@ -93,25 +102,43 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
     </div>}
     {options.designScope === 'zone' && <div className="mt-3 space-y-3 border-t border-line pt-3">
       <p className="text-muted-foreground text-xs">Dibuja Entrada, Patio, Salón o Cocina sobre el plano. Cada zona queda guardada y puedes diseñarla sin cambiar las demás.</p>
-      {(document?.designZones ?? []).length > 0 && <div className="grid gap-2 sm:grid-cols-2">
-        {(document?.designZones ?? []).map((zone) => <div key={zone.id} className="bg-canvas flex items-center gap-2 rounded-control border border-line px-2 py-1">
-          <button type="button" aria-pressed={options.designZoneId === zone.id} disabled={disabled}
-            className={`rounded-control px-2 py-1 text-xs ${options.designZoneId === zone.id ? 'bg-emerald-800 text-white' : 'border border-line'}`}
-            onClick={() => { if (options.designZoneId !== zone.id) changeScope({ designZoneId: zone.id }); }}>{zone.name}</button>
-          {onRenameZone && <input aria-label={`Renombrar ${zone.name}`} defaultValue={zone.name} key={`${zone.id}:${zone.name}`}
-            disabled={disabled} maxLength={80} className="min-w-0 flex-1 rounded-control border border-line px-1 text-xs"
-            onBlur={(event) => { if (event.target.value.trim() !== zone.name) {
-              try { onRenameZone(zone.id, event.target.value); setZoneError(null); }
-              catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo renombrar la zona.'); event.target.value = zone.name; }
-            } }} />}
-          {onReshapeZone && <button type="button" disabled={disabled} aria-pressed={reshapeId === zone.id}
-            className="text-emerald-800 text-xs underline" onClick={() => { setReshapeId(reshapeId === zone.id ? null : zone.id); setZoneError(null); }}>
-            {reshapeId === zone.id ? 'Cancelar contorno' : 'Redibujar'}
-          </button>}
-          {onRemoveZone && <button type="button" disabled={disabled} className="text-destructive text-xs underline"
-            onClick={() => { try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) changeScope({ designZoneId: '' });
-              if (reshapeId === zone.id) setReshapeId(null); setZoneError(null); }
-              catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo quitar la zona.'); } }}>Quitar</button>}
+      {(document?.designZones ?? []).length > 0 && <div className="space-y-2" aria-label="Zonas guardadas">
+        {(document?.designZones ?? []).map((zone) => <div key={zone.id}
+          className={`rounded-control border p-2.5 ${options.designZoneId === zone.id ? 'border-emerald-700 bg-emerald-50' : 'border-line bg-canvas'}`}>
+          <button type="button" aria-pressed={options.designZoneId === zone.id} aria-label={`Elegir zona ${zone.name}`}
+            disabled={disabled} className={`flex w-full items-center justify-between gap-3 rounded-control px-2 py-1.5 text-left font-medium focus-visible:outline-2 focus-visible:outline-emerald-700 ${options.designZoneId === zone.id ? 'text-emerald-900' : 'text-ink hover:bg-emerald-50'}`}
+            onClick={() => { if (options.designZoneId !== zone.id) {
+              setRenameId(null); setReshapeId(null); changeScope({ designZoneId: zone.id });
+            } }}>
+            <span className="min-w-0 break-words">{zone.name}</span>
+            <span className={`shrink-0 text-xs ${options.designZoneId === zone.id ? 'text-emerald-800' : 'text-muted-foreground'}`}>
+              {options.designZoneId === zone.id ? <><Check aria-hidden="true" className="mr-1 inline size-3.5" />Seleccionada</> : 'Elegir zona'}
+            </span>
+          </button>
+          {renameId === zone.id && <input aria-label={`Nuevo nombre de ${zone.name}`} value={renameValue}
+            autoFocus disabled={disabled} maxLength={80} className="mt-2 w-full rounded-control border border-line bg-white px-3 py-2 text-sm"
+            onChange={(event) => setRenameValue(event.target.value)}
+            onBlur={(event) => finishRename(zone.id, zone.name, event.currentTarget.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); }
+              if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation();
+                event.currentTarget.value = zone.name; setRenameValue(zone.name); event.currentTarget.blur(); } }} />}
+          {options.designZoneId === zone.id && <div className="mt-1.5 flex flex-wrap gap-2 border-t border-line pt-2">
+            {onRenameZone && <button type="button" disabled={disabled} aria-label={`Renombrar ${zone.name}`}
+              className="inline-flex items-center gap-1 rounded-control border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-emerald-50"
+              onClick={() => { setRenameId(zone.id); setRenameValue(zone.name); }}><Pencil aria-hidden="true" className="size-3.5" />Renombrar</button>}
+            {onReshapeZone && <button type="button" disabled={disabled} aria-pressed={reshapeId === zone.id}
+              className="inline-flex items-center gap-1 rounded-control border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-emerald-50"
+              onClick={() => { setReshapeId(reshapeId === zone.id ? null : zone.id); setZoneError(null); }}>
+              <ScanLine aria-hidden="true" className="size-3.5" />{reshapeId === zone.id ? 'Cancelar contorno' : 'Redibujar contorno'}
+            </button>}
+            {onRemoveZone && <button type="button" disabled={disabled} aria-label={`Quitar zona ${zone.name}`}
+              className="text-destructive inline-flex items-center gap-1 rounded-control border border-line bg-white px-2.5 py-1.5 text-xs font-medium hover:bg-red-50"
+              onClick={() => { try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) changeScope({ designZoneId: '' });
+                if (reshapeId === zone.id) setReshapeId(null); if (renameId === zone.id) setRenameId(null); setZoneError(null); }
+                catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo quitar la zona.'); } }}>
+              <Trash2 aria-hidden="true" className="size-3.5" />Quitar
+            </button>}
+          </div>}
         </div>)}
       </div>}
       {reshapeId && <p className="text-emerald-900 text-xs">Marca el nuevo contorno de «{document?.designZones?.find((zone) => zone.id === reshapeId)?.name}» en el mapa. El acabado aplicado se conservará.</p>}

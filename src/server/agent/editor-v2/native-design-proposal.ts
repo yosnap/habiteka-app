@@ -12,6 +12,7 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
+import { lightPlacementHints } from './native-design-placement-hints';
 
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
@@ -65,6 +66,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)], zone: zone ? { id: zone.id, name: zone.name, polygonMm: zone.polygon } : null })}. Los acabados y objetos fuera de este ámbito permanecen intactos. La existingMaterialPalette del contexto enumera materiales ya guardados en todas las plantas: reutilízalos cuando encajen con la superficie y el uso. Puedes añadir un material permitido si la zona lo requiere, sin reemplazar la paleta de las demás zonas.`,
     `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
       boundaryMm: (zone ? zoneRoomOutline(zone, room) : room.boundary).map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
+    lightPlacementHints(document, targetRooms, zone?.polygon, options),
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
     zone ? `Diseña únicamente «${zone.name}». Toda la huella de cada objeto nuevo debe quedar dentro de su polígono. El acabado de suelo se aplicará solo a esa parte, sin alterar el suelo de las zonas vecinas. Un muro que cruce el límite no cambiará completo; conserva su material.` : '',
@@ -136,6 +138,8 @@ function placementIssueLabel(issue: NativeFurniturePlacementIssue): string {
     case 'catalog': return 'ficha o coordenadas no válidas';
     case 'room': return 'fuera de la estancia seleccionada';
     case 'zone': return 'fuera de la zona de diseño';
+    case 'support': return 'necesita una mesa o encimera bajo toda su base';
+    case 'wall': return 'invade una pared';
     case 'collision': return 'solapa la zona de seguridad de un mueble o estructura';
     case 'shelter': return 'invade un poste o lateral de una carpa o pérgola';
   }

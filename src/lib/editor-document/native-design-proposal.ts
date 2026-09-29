@@ -17,6 +17,7 @@ import { wallConstruction } from './construction-properties';
 import { isRampLanding } from './ramp-kind';
 import { canFitOnHost, canRestOnHost, hostSurfaceTop, isSurfaceHost, restOnHost } from './object-host-rest';
 import { sameDesignContent } from './approved-design';
+import { assertSpatialPlacement } from '@/canvas/editor-v2/spatial-placement';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -184,7 +185,7 @@ export function canPlaceNativeDesignFurniture(
   return assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon).issue === null;
 }
 
-export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'collision' | 'shelter';
+export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'support' | 'wall' | 'collision' | 'shelter';
 
 export function nativeFurniturePlacementIssue(
   doc: EditorDocument, item: NativeDesignFurniture, rooms = deriveRooms(doc),
@@ -211,6 +212,7 @@ function assessFurniturePlacement(
     .filter((target) => isSurfaceHost(target) && canFitOnHost(candidateItem, target)
       && polygonContainsFootprint(corners(target), corners(candidate)))
     .sort((a, b) => hostSurfaceTop(b) - hostSurfaceTop(a))[0] : undefined;
+  if (catalog.profile === 'lamp' && catalog.elevationMm > 0 && !host) return { issue: 'support' };
   const bottom = host ? hostSurfaceTop(host) : (floorFinish(doc, room.id).elevationMm ?? 0) + catalog.elevationMm;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
@@ -226,6 +228,10 @@ function assessFurniturePlacement(
     return intersects(candidate, { x: origin.x, y: origin.y, widthMm: part.widthMm,
       depthMm: part.depthMm, rotation: shelter.rotation }, 100);
   }))) return { issue: 'shelter' };
+  const placed: Furniture = { ...candidateItem, elevationMm: bottom,
+    ...(host ? { hostId: host.id } : {}) };
+  try { assertSpatialPlacement(doc, { ...doc, furniture: [...doc.furniture, placed] }); }
+  catch (error) { return { issue: error instanceof Error && /la pared/.test(error.message) ? 'wall' : 'collision' }; }
   return { issue: null, room, host };
 }
 

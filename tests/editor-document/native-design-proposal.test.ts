@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { createEditorStore } from '@/canvas/editor-v2/store';
-import { applyNativeDesignProposal, bindNativeDesignProposal, canPlaceNativeDesignFurniture, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
+import { applyNativeDesignProposal, bindNativeDesignProposal, canPlaceNativeDesignFurniture, nativeFurniturePlacementIssue, type NativeDesignProposal } from '@/lib/editor-document/native-design-proposal';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
@@ -15,6 +15,8 @@ import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
 import { addDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
 import { addKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
+import { lightPlacementHints } from '@/server/agent/editor-v2/native-design-placement-hints';
+import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 
 const proposal: NativeDesignProposal = { style: 'moderno', summary: 'Madera', furniture: [],
   materials: { walls: 'polyhaven:wood_floor', floors: 'polyhaven:wood_floor', stairs: 'polyhaven:wood_floor',
@@ -237,6 +239,34 @@ it('admite una lámpara sobre la encimera existente en Cocina', () => {
   const next = applyNativeDesignProposal(doc, { ...proposal, furniture: [lamp] },
     { walls: false, floors: false, stairs: false, ramps: false, columns: false, furniture: [0] });
   expect(next.furniture.at(-1)).toMatchObject({ hostId: run.id, elevationMm: 900 });
+});
+
+it('no acepta lámparas de mesa suspendidas ni lámparas de pie que atraviesen una pared', () => {
+  const doc = addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
+  expect(nativeFurniturePlacementIssue(doc, { catalogId: 'habiteka:furniture:lampara-mesa',
+    xMm: 2000, yMm: 2000, rotation: 0, reason: '' })).toBe('support');
+  expect(nativeFurniturePlacementIssue(doc, { catalogId: 'habiteka:furniture:lampara-pie',
+    xMm: 60, yMm: 1000, rotation: 0, reason: '' })).toBe('wall');
+  expect(canPlaceNativeDesignFurniture(doc, { catalogId: 'habiteka:furniture:lampara-pie',
+    xMm: 700, yMm: 1000, rotation: 0, reason: '' })).toBe(true);
+});
+
+it('ofrece una luz apoyada válida dentro de la zona de diseño sin consumir una generación IA', () => {
+  const room = addWallPath(emptyEditorDocument(),
+    [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
+  const doc = addDesignZone(room, 'Cocina',
+    [{ x: 500, y: 500 }, { x: 5500, y: 500 }, { x: 5500, y: 3500 }, { x: 500, y: 3500 }]);
+  doc.furniture.push({ id: 'isla', kind: 'isla-cocina', catalogId: 'habiteka:furniture:isla-cocina',
+    x: 2000, y: 1600, widthMm: 1800, depthMm: 900, heightMm: 900, elevationMm: 0,
+    rotation: 0, dimensionalOrigin: 'physical', color: '#a6aba5' });
+  const options = { ...defaultRenderDesignOptions(), freedom: 'controlled' as const,
+    additions: ['lights' as const], designScope: 'zone' as const, designZoneId: doc.designZones![0]!.id };
+  const hints = lightPlacementHints(doc, deriveRooms(doc), doc.designZones![0]!.polygon, options);
+  expect(hints).toContain('"catalogId":"habiteka:furniture:lampara-mesa"');
+  expect(hints).toContain('posiciones de objetos editables');
+  expect(lightPlacementHints(doc, deriveRooms(doc), doc.designZones![0]!.polygon,
+    defaultRenderDesignOptions())).toBe('');
 });
 
 it('mantiene un estilo común entre ámbitos y permite sustituirlo al rediseñar toda la planta', () => {
