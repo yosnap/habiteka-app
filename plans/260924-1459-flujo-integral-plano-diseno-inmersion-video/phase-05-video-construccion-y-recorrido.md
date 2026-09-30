@@ -71,6 +71,8 @@ Las cinco imágenes de referencia del resultado final no llegaron adjuntas en el
 
 **Vistas interiores por estancia (30-09-2026, 13:15):** 5 de 8 generadas (terraza, pasillo, baño, dormitorio, salón-cocina), fotorrealistas y fieles a la distribución; hoja en `plans/reports/demo-260930-interiores-rev144.jpg`. Las 3 restantes fallaron con «terminated» (la CDN de KIE cortó la conexión a mitad de descarga); se añade ese caso a los cortes transitorios con reintento y aviso claro. Gasto de la ronda ≈1,6 $ de 2,50 $.
 
+**Cierre 30-09-2026 (14:40):** las 8 vistas interiores están hechas (segunda hoja en `plans/reports/demo-260930-interiores-rev144-b.jpg`). La auditoría rechazó un intento por añadir una ventana inexistente (filtro anti-inventos funcionando) y la tanda se detuvo en ese punto; al reintentar salieron las dos que faltaban en 70 s. **Dron derivado** (`demo-260930-dron-derivado-parcela-real.jpg`): generado por script con ortofoto + isométrica + cenital rev. 144 como referencias; entorno real coherente y sin inventos, pero la casa no es idéntica (faltan las pérgolas y el volumen sale más compacto): para producto, el dron debe generarse con la isométrica como ancla obligatoria y comprobar la identidad del volumen en la auditoría. Gasto total de la ronda ≈2,1 $ de 2,50 $. Problema de proceso a corregir: una imagen rechazada detiene toda la tanda y obliga a reintentar a mano.
+
 ### Puerta de homogeneidad antes del vídeo con IA (30-09-2026)
 
 Decisión de Paulo: el vídeo se hace con los diseños generados y, **antes de lanzarlo, el conjunto de imágenes tiene que ser homogéneo**; la confianza y la decisión las da **Jev**.
