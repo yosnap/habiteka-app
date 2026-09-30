@@ -2,6 +2,7 @@ import { planObjects } from '@/lib/editor-document/boundary-types';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { canPlaceNativeDesignFurniture, distanceToBoundary, EDGE_REACH_MM, type NativeDesignFurniture } from '@/lib/editor-document/native-design-proposal';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { isSurfaceHost } from '@/lib/editor-document/object-host-rest';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
 import { deriveRooms, type DerivedRoom } from '@/lib/editor-document/rooms';
@@ -94,4 +95,36 @@ export function plantPlacementHints(doc: EditorDocument, selectedRooms: DerivedR
   return chosen.length
     ? `Ubicaciones de vegetación ya comprobadas (catalogId, xMm, yMm, rotation): ${JSON.stringify(chosen.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Son sugerencias que sabemos válidas; puedes proponer otras posiciones si el diseño lo pide, siempre junto a un borde y sin tapar accesos. Las que no cumplan las reglas se rechazarán y tendrás que corregirlas.`
     : 'No encontramos una ubicación de plantas ya validada en este ámbito; propón vegetación solo si hallas un sitio junto a un borde que no tape accesos.';
+}
+
+/**
+ * Alfombra centrada bajo la zona de estar (sofás, sillas, mesas) del ámbito. Una alfombra cubre el suelo y va bajo el
+ * mobiliario, algo que el modelo no se atreve a proponer si no se le señala un sitio.
+ */
+export function rugPlacementHints(doc: EditorDocument, selectedRooms: DerivedRoom[], zone: Point[] | undefined,
+  options: RenderDesignOptions): string {
+  const rugs = ['habiteka:furniture:alfombra:grande', 'habiteka:furniture:alfombra']
+    .map((id) => getFurnitureCatalogEntry(id))
+    .filter((entry): entry is NonNullable<typeof entry> => !!entry && allowedProposalCatalog(entry, options));
+  if (!rugs.length) return '';
+  const seating = planObjects(doc).filter((item) => /^(sofa|chair|table)/.test(getFurnitureCatalogEntry(item.catalogId)?.profile ?? ''))
+    .map((item) => localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 }))
+    .filter((centre) => zone ? pointInPolygon(centre, zone) : selectedRooms.some((room) => pointInPolygon(centre, room.boundary)));
+  if (!seating.length) return '';
+  const centre = { x: seating.reduce((sum, p) => sum + p.x, 0) / seating.length, y: seating.reduce((sum, p) => sum + p.y, 0) / seating.length };
+  const rooms = deriveRooms(doc), allowed = new Set(selectedRooms.map((room) => room.id));
+  // El centro del grupo puede quedar pegado a un muro: la alfombra se desplaza lo justo para caber dentro del ámbito.
+  const outline = zone ?? selectedRooms.flatMap((room) => room.boundary);
+  const box = { minX: Math.min(...outline.map((p) => p.x)), maxX: Math.max(...outline.map((p) => p.x)),
+    minY: Math.min(...outline.map((p) => p.y)), maxY: Math.max(...outline.map((p) => p.y)) };
+  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, Math.max(min, max)));
+  for (const rug of rugs) {
+    const item = { catalogId: rug.id,
+      xMm: Math.round(clamp(centre.x - rug.widthMm / 2, box.minX + 150, box.maxX - rug.widthMm - 150)),
+      yMm: Math.round(clamp(centre.y - rug.depthMm / 2, box.minY + 150, box.maxY - rug.depthMm - 150)), rotation: 0,
+      reason: 'Alfombra que agrupa la zona de estar' };
+    if (allowedProposalFurniture(item, options, zone) && canPlaceNativeDesignFurniture(doc, item, rooms, allowed, zone))
+      return `Alfombra ya comprobada bajo la zona de estar (catalogId, xMm, yMm, rotation): ${JSON.stringify([{ catalogId: item.catalogId, xMm: item.xMm, yMm: item.yMm, rotation: item.rotation }])}. Las alfombras pueden ir bajo sofás y mesas: proponla si la categoría de decoración está permitida.`;
+  }
+  return '';
 }

@@ -13,7 +13,7 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
-import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isWindowCovering } from './wall-back-alignment';
+import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isFloorCovering, isWindowCovering } from './wall-back-alignment';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
@@ -168,12 +168,18 @@ export function collisions(doc: EditorDocument): Map<string, number> {
   const wallSolids = [...walls(doc), ...doorSweepSolids(doc)];
   const result = new Map<string, number>();
   const boundaryItems = new Map(planObjects(doc).map((item) => [item.id, item]));
+  const planIds = new Set(planObjects(doc).map((item) => item.id));
+  const rugIds = new Set(planObjects(doc).filter(isFloorCovering).map((item) => item.id));
+  const baseId = (id: string) => id.split(':')[0]!;
   objects.forEach((a, index) => {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
       if (a.id === b.id) continue;
       const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
       if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
       if (first && second && (first.hostId === second.id || second.hostId === first.id)) continue;
+      // Las alfombras cubren el suelo bajo sofás, mesas y sillas: no se cuentan como choque con el mobiliario. Un mueble
+      // compuesto aporta varios sólidos con id derivado («id:n»), por eso se compara por id base.
+      if ((rugIds.has(baseId(a.id)) && planIds.has(baseId(b.id))) || (rugIds.has(baseId(b.id)) && planIds.has(baseId(a.id)))) continue;
       // El grifo o los aparatos de un tramo de cocina pueden asomar delante de un estor colgado de la ventana: no es choque.
       if (first && second && ((isKitchenRun(first) && isWindowCovering(second)) || (isWindowCovering(first) && isKitchenRun(second)))) continue;
       const depth = penetration(a, b);

@@ -12,7 +12,7 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
-import { lightPlacementHints, plantPlacementHints } from './native-design-placement-hints';
+import { lightPlacementHints, plantPlacementHints, rugPlacementHints } from './native-design-placement-hints';
 
 /** Objetos nuevos que una propuesta puede añadir: suficientes para componer un ambiente, no un relleno. */
 const MAX_PROPOSED_OBJECTS = 8;
@@ -93,6 +93,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     'Sentido del diseño: en zonas exteriores usa solo objetos de la categoría Exterior; una lámpara de pie o una planta de interior no van al aire libre. No bloquees el paso a escaleras, rampas ni puertas: deja al menos 1000 mm libres alrededor de ellas. Coloca plantas, jardineras y lámparas junto a muros, barandillas o el borde de la zona, nunca en mitad del espacio libre. Si no hay un sitio con sentido, devuelve menos objetos o ninguno.',
     lightPlacementHints(document, targetRooms, zone?.polygon, options),
     plantPlacementHints(document, targetRooms, zone?.polygon, options),
+    rugPlacementHints(document, targetRooms, zone?.polygon, options),
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
     zone ? `Diseña únicamente «${zone.name}». Toda la huella de cada objeto nuevo debe quedar dentro de su polígono. El acabado de suelo se aplicará solo a esa parte, sin alterar el suelo de las zonas vecinas. Un muro que cruce el límite no cambiará completo; conserva su material.` : '',

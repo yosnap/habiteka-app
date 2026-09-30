@@ -57,6 +57,10 @@ export function alignKitchenRunToWall<T extends Furniture>(doc: EditorDocument, 
 }
 
 const BLINDS = new Set(['roller', 'venetian', 'shutter']), CURTAINS = new Set(['curtain', 'curtain-open']);
+/** Una alfombra es un revestimiento del suelo: los muebles se apoyan encima, no chocan con ella. */
+export function isFloorCovering(item: Furniture): boolean {
+  return getFurnitureCatalogEntry(item.catalogId)?.profile === 'rug';
+}
 /** Estores, persianas y cortinas cuelgan de la ventana: son una piel sobre el muro, no un volumen que estorbe. */
 export function isWindowCovering(item: Furniture): boolean {
   const profile = getFurnitureCatalogEntry(item.catalogId)?.profile;

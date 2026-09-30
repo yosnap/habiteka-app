@@ -260,7 +260,10 @@ function assessFurniturePlacement(
   const bottom = host ? hostSurfaceTop(host) : (floorFinish(doc, room.id).elevationMm ?? 0) + catalog.elevationMm;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
-  const blockedByObject = planObjects(doc).filter((target) => !shelterIds.has(target.id)).some((target) => {
+  // Una alfombra va bajo el mobiliario: solo otra alfombra le estorba, y ella no estorba a nadie.
+  const isRug = (target: { catalogId?: string }) => getFurnitureCatalogEntry(target.catalogId ?? '')?.profile === 'rug';
+  const blockedByObject = planObjects(doc).filter((target) => !shelterIds.has(target.id)
+    && (catalog.profile === 'rug' ? isRug(target) : !isRug(target))).some((target) => {
     if (host && (target.id === host.id || (target.elevationMm ?? 0) + (target.heightMm ?? 0) <= bottom)) return false;
     return intersects(candidate, target, 250);
   });
