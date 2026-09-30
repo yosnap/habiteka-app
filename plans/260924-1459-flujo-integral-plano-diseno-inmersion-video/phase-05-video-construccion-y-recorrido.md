@@ -24,6 +24,49 @@ Paulo aclara el modelo: el plano editable son **solo las guías** del usuario (g
 
 **Vía B — vídeo con IA entre imágenes (pendiente):** generar transiciones entre imágenes de ambientes contiguos (primero un modelo Kie que admita fotograma inicial y final), con coste previsto visible y confirmación previa. Requiere antes completar la cobertura de imágenes (vistas interiores por estancia, Entrada) y medir continuidad de distribución/muebles, latencia y coste frente al montaje A. Solo se integra si supera el umbral acordado; si no, se conserva A.
 
+### Requisitos de realismo de las imágenes (Paulo, 30-09-2026)
+
+Las imágenes generadas hasta ahora solo reproducen el 3D; el 3D es **solo la guía** y el resultado debe parecer una **casa bien terminada**, en el estilo elegido del proyecto (minimalista, moderno, japonés, mediterráneo…), claramente distinta de la maqueta.
+1. **Más realistas y con decoración:** alfombras, muebles, cortinas y objetos de ambientación que distingan el diseño de la maqueta. Esto choca con el modo «Estricto» actual (que no añade objetos): hace falta Controlado o Libre con las categorías de decoración, con la geometría protegida.
+2. **Sin alucinaciones:** nada de puertas con hueco, suelos con manchas, muros o ventanas inventados. Hace falta una puerta de calidad por imagen (auditor de visión contra el contrato estructural + decisión de Jev) con regeneración acotada de las rechazadas, y presupuesto de reintentos.
+3. **Filtros por momento del día** (mañana, tarde, noche) en la galería y en el montaje; las imágenes de un mismo vídeo comparten luz.
+4. **Asistente por etapas de obra:** elegir las imágenes conforme crece la construcción (terreno, suelos, estructura, acabados, amueblado), apoyándose en las etapas que ya genera la escena 3D.
+5. **Mapa real aéreo de la ubicación** (foto de dron o satélite): el inmueble se «construye» sobre la imagen real de la parcela, como en el vídeo de referencia. Pendiente de decidir la fuente por licencia: foto propia de dron (sin problema), ortofoto PNOA del IGN (libre con atribución, solo España) o proveedores de satélite con condiciones de uso que hay que revisar. Hace falta la ubicación, el contorno de la parcela, la orientación y la escala.
+
+**Cambio aplicado (30-09-2026): «Crear imágenes» ya no fuerza el modo Estricto.** Con el proyecto ya amueblado, el diálogo arrancaba bloqueado en Estricto («reproduce el diseño editable tal cual»), de ahí que las imágenes solo copiaran el 3D. Ahora arranca en **Controlado con todas las categorías** (plantas, espejos, lámparas, muebles, otros objetos decorativos como alfombras y cortinas); se puede bajar a Estricto. El aviso de que los objetos que añada la IA no existirán en el 3D editable se mantiene. Archivos: `editor-generate-dialog.tsx`, `render-options-controls.tsx`. Pendiente: el selector de tipo de espacio no tiene «casa completa» (solo habitación, patio, terraza, jardín, entrada y fachada); se usa «Fachada» para las vistas exteriores.
+
+### Referencias de resultado final aportadas por Paulo (30-09-2026)
+
+Cuatro vídeos de Pinterest (todos reels de Instagram, vistos solo por título, descripción y primer fotograma; no se reprodujeron):
+1. `pin.it/7jOsljplL` — «Turn Your Rooftop into a Private Oasis» (Easylife, 10 s): azotea REAL de un edificio (foto aérea) sobre la que aparece un solárium acristalado con jardín y salón. Modelo de «construir sobre la imagen real de la parcela».
+2. `pin.it/2q9Bpgh7R` — «Built My Dream Modern Village Home in Just 8 Months» (15 s): proceso de construcción con grúa y materiales; casa moderna de dos plantas con patio. Modelo del vídeo de obra.
+3. `pin.it/2kv9RZOtW` — «Hermosa casa con 233 m² de construcción» (HOLA ARCHITECT, 22 s): recorrido interior en primera persona por una casa terminada (salón con luz lineal en techo, escalera, vistas). Modelo del paseo interior.
+4. `pin.it/6bt3ZxTeI` — «Casa de 6×15 tipo loft con roof garden y sala doble altura» (Arqydiseño, 1:29): presentación completa de vivienda con rótulo de medidas («CASA 6X15 M»), fachada, coche, interiores. Modelo de pieza larga con medidas rotuladas.
+Las cinco imágenes de referencia del resultado final no llegaron adjuntas en el mensaje; pendientes de recibirlas.
+
+**Primera imagen con decoración (30-09-2026, Frontal · rev. 144, Controlado, día):** salto claro de realismo (cielo y campo reales, vegetación, pérgolas amuebladas). Pendiente de revisar al detalle por Paulo (alucinaciones). Coste: dos generaciones en KIE (≈0,16 $), porque el primer intento se perdió por el fallo siguiente.
+
+**Fallo corregido: imagen generada y cobrada que se perdía por una descarga lenta.** KIE entrega el resultado en una URL de su CDN; `persistResult` (`kie-image.ts`) la descargaba con 30 s de tope y, si vencía, devolvía la URL temporal; después `readRenderReference` (`render-asset-reader.ts`) volvía a descargarla con otros 30 s y ese `TimeoutError` salía sin envolver («The operation was aborted due to timeout»), sin entregable y con la imagen ya cobrada. Ahora la descarga tiene 120 s por intento y se reintenta una vez, y el lector avisa en claro si aun así no llega. Prueba nueva en `tests/ai/kie-image-provider.test.ts` (ejecutar con vitest: `bun test` no implementa `vi.stubGlobal`).
+
+### Puerta de homogeneidad antes del vídeo con IA (30-09-2026)
+
+Decisión de Paulo: el vídeo se hace con los diseños generados y, **antes de lanzarlo, el conjunto de imágenes tiene que ser homogéneo**; la confianza y la decisión las da **Jev**.
+- **Comprobación automática** (`assessTourHomogeneity`, `src/lib/editor-document/image-tour.ts`): todas las imágenes deben proceder del diseño aprobado (su revisión o una con el mismo aspecto: se ignoran rutas, comentarios y nombres de zona, pero no el contorno ni el acabado de suelo de cada zona), con una sola luz, un solo nivel de fidelidad y sin ámbitos vacíos. Señala como discordantes las minoritarias.
+- **Decisión de Jev** (punto de control `video_keyframes`, `src/server/quality/checkpoints-video.ts`): recibe la evidencia medida, nunca las imágenes, y responde `proceed` (animar), `confirm` (revisar) o `block` (regenerar), con puntuación y confianza. Acción `assessKeyframeSet` y botón «Comprobar homogeneidad con Jev» en la pestaña Vídeos. Informativa: el botón de vídeo con IA de la vía B la exigirá.
+- **Resultado con las imágenes actuales de FInca:** Jev decide **regenerar** (puntuación 11 sobre 100, confianza del 99 %). 19 de las imágenes elegidas no son del diseño aprobado (revisiones 0, 70 a 137), se mezclan luz de día y de tarde, y tres niveles de fidelidad; falta la Entrada. **Conclusión: no se puede hacer la prueba de clips con las imágenes existentes.** Hace falta un conjunto nuevo generado desde la revisión aprobada, con luz de día y fidelidad estricta.
+- **Conjunto mínimo a regenerar** (estimación de coste, por confirmar): inmueble completo (aérea, frontal, cenital, isométrica) + una isométrica por zona (Entrada, Patio, Salón, Cocina) = 8 imágenes, unos 0,64 $; con cenital por zona y vistas interiores por estancia, unas 20 imágenes, unos 1,6 $. Usar la referencia de estilo entre vistas del lote para mantener la coherencia.
+
+### Referencia para la vía B: flujo de un tutorial de vídeo inmobiliario con IA (30-09-2026)
+
+Paulo aportó el vídeo «Así vendo proyectos inmobiliarios con IA: mi sistema completo» (Aleksander Des, youtube.com/watch?v=X_dNq6G60bw). Solo se leyó la transcripción automática, no las imágenes. Ideas útiles para B, no requisitos:
+
+- **Imágenes primero, clips después.** Cada clip se genera entre un fotograma inicial y otro final ya validados; los clips se unen en un editor. Coincide con el planteamiento de clips entre keyframes de esta fase.
+- **Clips cortos para movimientos simples.** Usa 4 s para elevar la cámara, paneo, zoom y aparición de texto o medidas, y 8 s para la transformación terreno → casa construida con la cámara descendiendo. Dice que 4 s le dan menos saltos forzados en las transiciones; un clip de 4 s le costó 7 créditos en su plataforma. Es un dato de su herramienta, no de Kie.
+- **Secuencia de clips tipo:** calle → vista picada; aparición del perímetro y las medidas; terreno vacío → edificio construido; paneo a la fachada; zoom a una ventana. El clip de construcción equivale al arranque «terreno vacío → obra» del vídeo resumen.
+- **Prompts derivados del contexto del proyecto**, no copiados: un chat con las medidas, la ubicación y el estilo escribe el prompt de cada clip, y las correcciones se hacen enseñándole una captura del fallo. Equivale al prompt de cámara derivado de la ruta previsto más arriba.
+- **Fidelidad:** conservar elementos reales (cables, postes, vecinos) y descartar imágenes que inventan o deforman. Es la misma puerta de publicación de esta fase.
+- **Diferencia con Habiteka:** el tutorial es un exterior con 7 u 8 clips. Habiteka necesita además vistas interiores por estancia y que la distribución no cambie entre fotogramas, que es lo que debe medir la prueba de B antes de construir cola y adaptador.
+
 ## Avance en exportación de recorridos largos (27-09-2026)
 
 - El límite del MP4 nativo es ahora 110 s, compartido por grabador y servidor; el montaje suma 8 s al recorrido. La vista 3D muestra la duración y los tramos bloqueados antes de iniciar la exportación. La revisión guardada 94 de «FInca» contiene «Recorrido Paulo» (44 puntos, unos 93 s, sin tramos bloqueados), que pasa la validación para paseo y montaje (unos 101 s).
