@@ -45,8 +45,9 @@ export async function readRenderBytes(payload: { assetKey?: unknown; assetUrl?: 
       chunks.push(Buffer.from(part.value));
     }
   } catch (error) {
-    // El tope de tiempo también corta la lectura del cuerpo a mitad de descarga.
+    // El tope de tiempo o un corte de la conexión también interrumpen la lectura del cuerpo a mitad de descarga.
     if (error instanceof Error && error.name === 'TimeoutError') fail('La imagen generada tardó demasiado en descargarse. Vuelve a intentarlo.');
+    if (error instanceof Error && /terminated|ECONNRESET|socket hang up|fetch failed/i.test(error.message)) fail('Se cortó la descarga de la imagen generada. Vuelve a intentarlo.');
     throw error;
   } finally {
     reader.releaseLock();

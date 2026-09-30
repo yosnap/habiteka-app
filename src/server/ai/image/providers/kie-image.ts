@@ -317,7 +317,7 @@ export class KieImageProvider implements ImageProvider {
       } catch (error) {
         lastError = error;
         // Solo merece otro intento un corte de tiempo o de red; un 4xx o un archivo demasiado grande se repetirían igual.
-        const transient = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError' || /fetch failed/i.test(error.message));
+        const transient = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError' || /fetch failed|terminated|ECONNRESET|socket hang up/i.test(error.message));
         if (!transient) break;
       }
     }
