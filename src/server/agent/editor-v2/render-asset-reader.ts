@@ -4,6 +4,9 @@ import { MAX_OWN_RENDER_BYTES, sanitizeOwnRenderBuffer } from '@/server/ai/image
 import { assertSafeImportUrl } from '@/server/admin/media/url-safety';
 import { fail } from '@/server/errors/run-action';
 
+/** Descargar un render de varios MB desde la CDN del proveedor puede superar los 30 s; se avisa en claro si no llega. */
+const DOWNLOAD_TIMEOUT_MS = 120_000;
+
 const STORED_RENDER_DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/;
 
 /** Bytes saneados de un render propio: del storage, de un data URL o de una URL segura. */
@@ -14,7 +17,12 @@ export async function readRenderReference(payload: { assetKey?: unknown; assetUr
   const data = STORED_RENDER_DATA_URL.exec(payload.assetUrl);
   if (data?.[1] && data[2]) return sanitizeOwnRenderBuffer(Buffer.from(data[2], 'base64'));
   const url = assertSafeImportUrl(payload.assetUrl);
-  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
+  let response: Response;
+  try { response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) }); }
+  catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') fail('La imagen generada tardó demasiado en descargarse. Vuelve a intentarlo.');
+    throw error;
+  }
   if (!response.ok) fail('No se pudo recuperar el diseño de referencia.');
   const declaredLength = Number(response.headers.get('content-length'));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_OWN_RENDER_BYTES)

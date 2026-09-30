@@ -274,4 +274,24 @@ describe('KieImageProvider', () => {
     const task = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body));
     expect(task.input.prompt).toBe(prompt);
   });
+  it('reintenta la descarga del resultado y lo guarda en el almacenamiento si el primer intento vence', async () => {
+    const timeout = Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: { taskId: 'slow-cdn' } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: {
+        state: 'success', resultJson: JSON.stringify({ resultUrls: ['https://kie.test/slow.png'] }),
+      } }) })
+      .mockRejectedValueOnce(timeout)
+      .mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer });
+    vi.stubGlobal('fetch', fetcher);
+    const put = vi.fn(async () => {});
+    const storage = { put, getPresignedDownloadUrl: async (key: string) => `https://storage.test/${key}` } as never;
+    const result = await new KieImageProvider('test', storage, 'flux-2/flex-image-to-image', { pollIntervalMs: 0, resultDownloadTimeoutMs: 50 })
+      .generate({ prompt: 'patio', referenceImage: { url: 'https://kie.test/reference.png' } });
+    expect(put).toHaveBeenCalledTimes(1);
+    expect(result.assetKey).toMatch(/^renders\/kie\/.*\.png$/);
+    expect(result.assetUrl).toContain('https://storage.test/renders/kie/');
+    expect(fetcher.mock.calls.filter((call) => call[0] === 'https://kie.test/slow.png')).toHaveLength(2);
+  });
 });

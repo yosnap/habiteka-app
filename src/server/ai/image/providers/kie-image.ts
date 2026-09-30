@@ -12,10 +12,15 @@ const POLL_INTERVAL_MS = 3_000;
 const TIMEOUT_MS = 120_000;
 const FLUX_TIMEOUT_MS = 600_000;
 const MAX_REMOTE_IMAGE_BYTES = 12 * 1024 * 1024;
+/** La CDN de KIE entrega imágenes de varios MB y a veces tarda: un corte a 30 s perdía imágenes ya cobradas. */
+const RESULT_DOWNLOAD_TIMEOUT_MS = 120_000;
+const RESULT_DOWNLOAD_ATTEMPTS = 2;
 
 interface KieProviderOptions {
   pollIntervalMs?: number;
   timeoutMs?: number;
+  /** Tiempo por intento de descarga del resultado; en pruebas se acorta. */
+  resultDownloadTimeoutMs?: number;
 }
 
 interface TaskResponse {
@@ -283,12 +288,7 @@ export class KieImageProvider implements ImageProvider {
   private async persistResult(resultUrl: string): Promise<{ assetUrl: string; assetKey?: string }> {
     if (!this.storage) return { assetUrl: resultUrl };
     try {
-      const result = await fetch(resultUrl, { signal: AbortSignal.timeout(30_000) });
-      if (!result.ok) throw new Error(`KIE image ${result.status}`);
-      const bytes = Buffer.from(await result.arrayBuffer());
-      if (bytes.byteLength > MAX_REMOTE_IMAGE_BYTES)
-        throw new Error('Resultado de KIE demasiado grande');
-      const contentType = result.headers.get('content-type')?.split(';')[0] || 'image/png';
+      const { bytes, contentType } = await this.downloadResult(resultUrl);
       const extension = contentType.includes('png') ? 'png' : 'jpg';
       const key = `renders/kie/${globalThis.crypto.randomUUID()}.${extension}`;
       await this.storage.put({ key, body: bytes, contentType });
@@ -300,6 +300,21 @@ export class KieImageProvider implements ImageProvider {
       );
       return { assetUrl: resultUrl };
     }
+  }
+
+  /** La imagen ya está generada y cobrada: una descarga lenta se reintenta antes de darla por perdida. */
+  private async downloadResult(resultUrl: string): Promise<{ bytes: Buffer; contentType: string }> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < RESULT_DOWNLOAD_ATTEMPTS; attempt++) {
+      try {
+        const result = await fetch(resultUrl, { signal: AbortSignal.timeout(this.options.resultDownloadTimeoutMs ?? RESULT_DOWNLOAD_TIMEOUT_MS) });
+        if (!result.ok) throw new Error(`KIE image ${result.status}`);
+        const bytes = Buffer.from(await result.arrayBuffer());
+        if (bytes.byteLength > MAX_REMOTE_IMAGE_BYTES) throw new Error('Resultado de KIE demasiado grande');
+        return { bytes, contentType: result.headers.get('content-type')?.split(';')[0] || 'image/png' };
+      } catch (error) { lastError = error; }
+    }
+    throw lastError;
   }
 }
 
