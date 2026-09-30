@@ -38,6 +38,8 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
   const [reshapeId, setReshapeId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  // Quitar una zona borra su contorno y sus acabados: se pide confirmación en un segundo paso.
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const rooms = useMemo(() => {
     if (!document) return [];
     const derived = deriveRoomsSafe(document);
@@ -131,13 +133,23 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
               onClick={() => { setReshapeId(reshapeId === zone.id ? null : zone.id); setZoneError(null); }}>
               <ScanLine aria-hidden="true" className="size-3.5" />{reshapeId === zone.id ? 'Cancelar contorno' : 'Redibujar contorno'}
             </button>}
-            {onRemoveZone && <button type="button" disabled={disabled} aria-label={`Quitar zona ${zone.name}`}
+            {onRemoveZone && confirmRemoveId !== zone.id && <button type="button" disabled={disabled} aria-label={`Quitar zona ${zone.name}`}
               className="text-destructive inline-flex items-center gap-1 rounded-control border border-line bg-white px-2.5 py-1.5 text-xs font-medium hover:bg-red-50"
-              onClick={() => { try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) changeScope({ designZoneId: '' });
-                if (reshapeId === zone.id) setReshapeId(null); if (renameId === zone.id) setRenameId(null); setZoneError(null); }
-                catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo quitar la zona.'); } }}>
+              onClick={() => setConfirmRemoveId(zone.id)}>
               <Trash2 aria-hidden="true" className="size-3.5" />Quitar
             </button>}
+            {onRemoveZone && confirmRemoveId === zone.id && <>
+              <button type="button" disabled={disabled} aria-label={`Confirmar quitar zona ${zone.name}`}
+                className="inline-flex items-center gap-1 rounded-control border border-red-300 bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                onClick={() => { setConfirmRemoveId(null); try { onRemoveZone(zone.id); if (options.designZoneId === zone.id) changeScope({ designZoneId: '' });
+                  if (reshapeId === zone.id) setReshapeId(null); if (renameId === zone.id) setRenameId(null); setZoneError(null); }
+                  catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo quitar la zona.'); } }}>
+                <Trash2 aria-hidden="true" className="size-3.5" />¿Quitar «{zone.name}»? Confirmar
+              </button>
+              <button type="button" aria-label="Cancelar quitar zona"
+                className="inline-flex items-center gap-1 rounded-control border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-emerald-50"
+                onClick={() => setConfirmRemoveId(null)}>Cancelar</button>
+            </>}
           </div>}
         </div>)}
       </div>}
