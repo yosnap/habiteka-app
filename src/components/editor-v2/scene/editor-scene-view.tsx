@@ -129,7 +129,8 @@ function SceneView({
     ? { sequence: 0, action: 'top' }
     : { sequence: 0, action: 'isometric', focus: scenePresetFocus(document, 'isometric') });
   const [activeView, setActiveView] = useState<SceneViewPreset | null>(presentation === 'plan' ? 'top' : 'isometric');
-  const hideCovers = captureHideCovers || activeView === 'top';
+  // «Techo: Oculto» (maqueta, cenital) quita también las construcciones tipo techo del exterior, aunque la cámara se haya movido.
+  const hideCovers = captureHideCovers || activeView === 'top' || ceilingView === 'hidden';
   const coverIds = useMemo(() => viewCoverIds(document), [document]);
   const boundaryIds = useMemo(() => new Set((document.boundaries ?? []).map((item) => item.id)), [document]);
   const routeId = useStore(store, (s) => s.walkthroughId);
