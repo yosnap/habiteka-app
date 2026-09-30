@@ -29,4 +29,14 @@ describe('muebles en captura por zona', () => {
   it('descarta una intersección accidental muy estrecha', () => {
     expect(furnitureBelongsToZone(furniture(1.49).group, region)).toBe(false);
   });
+
+  // Una valla va sobre el límite de la zona: su centro cae fuera, pero nunca debe desaparecer de la captura.
+  it('conserva una valla que apenas roza el borde y descarta una lejana', () => {
+    const fence = (x: number, edge: boolean) => {
+      const item = furniture(x); item.group.userData.zoneEdge = edge; return item.group;
+    };
+    expect(furnitureBelongsToZone(fence(1.6, true), region)).toBe(true);
+    expect(furnitureBelongsToZone(fence(1.6, false), region)).toBe(false);
+    expect(furnitureBelongsToZone(fence(3, true), region)).toBe(false);
+  });
 });

@@ -34,6 +34,7 @@ import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { SceneEnvironment } from './scene-environment';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
+import { viewCoverIds } from '@/lib/editor-document/view-covers';
 import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, presetCeilingView, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
@@ -117,6 +118,8 @@ function SceneView({
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
   const ceilingView = useStore(store, (s) => s.ceilingView);
   const [captureCeilings, setCaptureCeilings] = useState<CeilingView | null>(null);
+  // Durante una captura aérea se quitan pérgolas, carpas, toldos y sombrillas: taparían lo que hay debajo.
+  const [captureHideCovers, setCaptureHideCovers] = useState(false);
   const stairLinks = useMemo(() => buildingStairLinks(document), [document]);
   const scene = useMemo(() => editorDocumentToScene(document,
     stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [document, stairLinks]);
@@ -126,6 +129,9 @@ function SceneView({
     ? { sequence: 0, action: 'top' }
     : { sequence: 0, action: 'isometric', focus: scenePresetFocus(document, 'isometric') });
   const [activeView, setActiveView] = useState<SceneViewPreset | null>(presentation === 'plan' ? 'top' : 'isometric');
+  const hideCovers = captureHideCovers || activeView === 'top';
+  const coverIds = useMemo(() => viewCoverIds(document), [document]);
+  const boundaryIds = useMemo(() => new Set((document.boundaries ?? []).map((item) => item.id)), [document]);
   const routeId = useStore(store, (s) => s.walkthroughId);
   const walking = useStore(store, (s) => s.walkthroughPlaying);
   const [freeWalk, setFreeWalk] = useState<{ start: { x: number; y: number }; focus: [number, number, number] } | null>(null);
@@ -311,6 +317,7 @@ function SceneView({
           highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null, finishedExterior },
       );
       flushSync(() => setCaptureCeilings(capturedCeilingView));
+      flushSync(() => setCaptureHideCovers(aerialCapture));
       // El bucle es bajo demanda: sin esto una captura que solo mueve la cámara
       // no dibujaría ningún fotograma y el recorte de muros quedaría el de antes.
       initial.invalidate();
@@ -366,7 +373,7 @@ function SceneView({
         initial.camera.far = originalFar;
         initial.camera.updateProjectionMatrix();
         if (controls && originalTarget) { controls.target.copy(originalTarget); controls.update(); }
-        flushSync(() => { setCaptureLighting(null); setCaptureCeilings(null); setCapturingPose(false); });
+        flushSync(() => { setCaptureLighting(null); setCaptureCeilings(null); setCaptureHideCovers(false); setCapturingPose(false); });
         store.getState().select(originalSelection);
         initial.invalidate();
         await frames();
@@ -624,11 +631,11 @@ function SceneView({
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>)}
-          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId)).map((box) => {
+          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId) && !(hideCovers && coverIds.has(box.sourceEntityId))).map((box) => {
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
             return <group key={box.id} position={planPreview?.id === box.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-              userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1,
+              userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1, zoneEdge: boundaryIds.has(box.sourceEntityId),
                 cutawayWallId: cuttable ? hostWallId ?? box.sourceEntityId : undefined,
                 cutawayStructural: box.role === 'wall' }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
@@ -659,7 +666,7 @@ function SceneView({
           </group>
           {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}>
             <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></group>)}
-          {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && furnitureAsset(item)))
+          {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && (furnitureAsset(item) || (hideCovers && viewCoverIds(level.document).has(item.id)))))
             .map((box) => <group key={box.id} userData={{ videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2 }}>
               <BoxMesh box={box} selected={false} onSelect={() => {}} /></group>)}
           {level.scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1 }}>
