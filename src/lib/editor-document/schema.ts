@@ -1,3 +1,4 @@
+import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import type { Boundary } from './boundary-types';
 import type { KitchenRun } from './kitchen-run-types';
 import type { WalkthroughPath } from './walkthrough';
@@ -290,7 +291,7 @@ export interface EditorDocument {
   levels?: BuildingLevel[];
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */
-  designSpaceKind?: 'interior' | 'patio' | 'terraza' | 'jardin' | 'entrada' | 'fachada';
+  designSpaceKind?: DesignSpaceKind;
   /** Estilo común de las propuestas editables aplicadas a esta planta. */
   designStyle?: Estilo;
 }

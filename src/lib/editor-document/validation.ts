@@ -11,6 +11,7 @@ import { assertDesignZoneFields } from './design-zone-validation';
 import { surfaceMaterial } from './surface-materials';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
+import { isDesignSpaceKind } from '@/lib/design-space-kind';
 import { wallPath } from './wall-path';
 
 function record(value: unknown): asserts value is Record<string, unknown> {
@@ -98,9 +99,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   if (
     designSpace &&
     value.designSpaceKind !== undefined &&
-    !['interior', 'patio', 'terraza', 'jardin', 'entrada', 'fachada'].includes(
-      value.designSpaceKind as string,
-    )
+    !isDesignSpaceKind(value.designSpaceKind)
   )
     throw new Error('Tipo de espacio desconocido');
   if (value.designStyle !== undefined && !isValidEstilo(value.designStyle))
