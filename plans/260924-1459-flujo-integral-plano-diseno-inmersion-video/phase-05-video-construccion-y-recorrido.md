@@ -1,6 +1,6 @@
 ---
 title: "Fase 5: Vídeo de construcción visual y recorrido"
-status: pending
+status: in-progress
 ---
 
 # Fase 5: Vídeo de construcción visual y recorrido
@@ -10,6 +10,19 @@ status: pending
 El entregable final se llamará **vídeo resumen**: empieza en el terreno vacío, muestra cómo se levanta y termina el inmueble aprobado, incluye un vuelo exterior tipo dron y entra para un **vuelo interior breve y dirigido por todas las zonas del inmueble**. El espectador solo reproduce la pieza. No se presenta como «visita»: la visita libre permite decidir rumbo y mirada, y un «recorrido» es una ruta guardada que puede exportarse por separado. La cámara del resumen necesita guion, ritmo y trayectoria propios, con pasos físicamente posibles por puertas y conexiones. No basta con pegar la ruta peatonal existente tras ocho segundos de introducción.
 
 El modo `showcase` actual hace precisamente esa introducción corta más la ruta grabada. Debe figurar como **muestra de obra + recorrido** hasta que cumpla el vídeo resumen; no cuenta para cerrar esta fase. Los archivos se organizan en resultados separados: «Diseños» abre por defecto, «Recorridos» contiene rutas MP4 y «Vídeos» contiene muestras y, cuando exista, el resumen final. Ningún MP4 se muestra por encima de los diseños al abrir la página.
+
+## Decisión de producto (30-09-2026): el recorrido va sobre las imágenes generadas
+
+Paulo aclara el modelo: el plano editable son **solo las guías** del usuario (geometría, suelos, muebles clave) y la IA pone el resto en las imágenes (cortinas y demás decoración incluidas). Por tanto, el vídeo con recorrido se construye **sobre las imágenes generadas**, y esas imágenes deben componer **todos los ambientes, habitaciones y partes del inmueble**. Esto sustituye la idea de que el vídeo final salga solo de la escena 3D nativa; la grabación nativa se conserva como base (introducción de obra, verificación de rutas) y como alternativa fiel.
+
+**Vía A — montaje con las imágenes existentes (hecha, sin consumo de IA):**
+- `src/lib/editor-document/image-tour.ts`: elige una imagen por ámbito y vista (prefiere día, más fiel al plano y más reciente), abre con «Inmueble completo» y sigue por ámbitos; línea de tiempo determinista con zoom/desplazamiento lento y fundidos de 0,8 s. Pruebas en `tests/editor-document/image-tour.test.ts`.
+- `src/components/deliverables/record-image-tour.ts`: codifica en el navegador un MP4 H.264 a 1080p con WebCodecs (misma técnica que el grabador nativo).
+- Pestaña «Vídeos» de Diseños: galería por ámbito con la selección sugerida, aviso de ámbitos sin imagen y botón «Crear vídeo con N imágenes». El MP4 se guarda como entregable `VIDEO` con `mode: 'images'`, ligado a la aprobación vigente y a los IDs de las imágenes usadas (`src/server/walkthrough/image-tour-actions.ts`, ticket firmado).
+- Comprobado con un vídeo real de FInca: 19 imágenes, 46 s, del inmueble completo a cada ambiente. **Limitación:** las imágenes existentes son exteriores, aéreas, isométricas y cenitales; no hay ninguna vista interior a altura de ojos por estancia, y falta la Entrada. El resultado es un recorrido por ambientes visto desde arriba, no un paseo interior.
+- Riesgo de despliegue: el navegador lee las imágenes desde el almacenamiento; el almacenamiento de producción necesita CORS para el dominio de la app.
+
+**Vía B — vídeo con IA entre imágenes (pendiente):** generar transiciones entre imágenes de ambientes contiguos (primero un modelo Kie que admita fotograma inicial y final), con coste previsto visible y confirmación previa. Requiere antes completar la cobertura de imágenes (vistas interiores por estancia, Entrada) y medir continuidad de distribución/muebles, latencia y coste frente al montaje A. Solo se integra si supera el umbral acordado; si no, se conserva A.
 
 ## Avance en exportación de recorridos largos (27-09-2026)
 

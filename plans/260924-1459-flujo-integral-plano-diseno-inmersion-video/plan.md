@@ -107,9 +107,9 @@ Original  →  Plano editable  →  Diseño  →  Visita  →  Vídeo
 |---|---|---|---|
 | 1 | [Estudio y resultados](./phase-01-estudio-y-resultados.md) | En validación | Flujo y galería implementados; faltan cotización por modelo y generación real controlada. |
 | 2 | [Importación y plano editable](./phase-02-importacion-y-edicion.md) | En curso | Importación y revisión disponibles; faltan fidelidad métrica y arcos de la Original v11. |
-| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | En curso | Las cuatro zonas están guardadas en «FInca»; se generaron imágenes IA aisladas de Salón, Patio y Cocina. La esquina de Cocina se cerró en la geometría y se generó una imagen nueva, con una sombra inferior aún por contrastar. También faltan componer las propuestas editables, contrastar Entrada, validar diez cámaras y aprobar el 3D final. |
-| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | En espera del diseño final | Paseo libre/guiado de una aprobación disponible; falta validarlo en la escena terminada y en móvil. |
-| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En espera del diseño final | MP4 de recorrido y muestra con introducción breve disponibles; falta el vídeo resumen autónomo: terreno vacío, construcción, vuelo exterior y recorrido aéreo interior rápido por todas las zonas del diseño aprobado. |
+| 3 | [Diseño 3D aprobado](./phase-03-diseno-aprobado.md) | Aprobado (rev. 141), en validación | Las cuatro zonas están guardadas en «FInca» y la composición conjunta quedó aprobada el 30-09-2026 (revisión 141, luz de día) como guía del diseño; el suelo del Salón vuelve a Herringbone Parquet. El plano editable son solo las guías: cortinas y demás decoración las pone la IA en las imágenes. Falta la validación de las diez cámaras y contrastar Entrada. |
+| 4 | [Visita inmersiva](./phase-04-visita-inmersiva.md) | Desbloqueada (aprobación rev. 141), por validar | Paseo libre/guiado de una aprobación disponible; falta validarlo sobre la revisión 141 (colisiones por todas las zonas) y en móvil. |
+| 5 | [Vídeo de construcción y recorrido](./phase-05-video-construccion-y-recorrido.md) | En curso: vía A hecha, B pendiente | El 30-09-2026 se decide que el recorrido va sobre las imágenes generadas, componiendo todos los ambientes. Hecho: introducción nativa de 16 s (terreno vacío → obra → dron), recorrido automático completo y montaje con imágenes (vía A, MP4 de 46 s con 19 imágenes de FInca, pasó code-review). Pendiente: cobertura de imágenes (vistas interiores por estancia, Entrada) y vídeo con IA entre imágenes (vía B, de pago, con coste y confirmación previa). |
 | 6 | [Entrega y validación integral](./phase-06-entrega-y-validacion.md) | En espera de fases 2–5 | Diseños e Historial muestran resultados versionados; falta prueba integral y recuperación del proyecto completo. |
 | 7 | [Catálogos de comercios y negocio](./phase-07-catalogos-de-comercios-y-negocio.md) | Pendiente | Existe una base de catálogo; integración y piloto requieren socio autorizado. |
 
@@ -142,7 +142,7 @@ Las fases 1–6 construyen el núcleo común para los tres sectores: experiencia
 ## Reglas de fidelidad
 
 - La imagen cenital/maqueta y las vistas por estancia ayudan a decidir el diseño, pero no habilitan por sí solas el paseo libre.
-- La construcción del vídeo es una animación de aparición de partes del mismo modelo aprobado, no la simulación de una obra real ni una reconstrucción improvisada desde imágenes.
+- La construcción del vídeo es una animación de aparición de partes del mismo modelo aprobado, no la simulación de una obra real ni una reconstrucción improvisada desde imágenes. El recorrido del vídeo (decisión 30-09-2026) se monta sobre las imágenes generadas, que deben cubrir todos los ambientes; el plano editable actúa como guía y la IA aporta la decoración.
 - Las mejoras IA de vídeo se aplican a clips concretos solo tras validar continuidad de distribución, materiales y objetos; el vídeo nativo es el resultado fiel de referencia.
 - Un producto exacto solo se anuncia como tal en 3D/vídeo si dispone de activo autorizado y validado; si no, se distingue entre referencia comercial y aproximación visual.
 

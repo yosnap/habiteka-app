@@ -72,3 +72,21 @@ Contrastar la sombra de Cocina desde una cámara baja en el 3D editable y en una
 ## Prompt para la nueva sesión
 
 «Continúa Habiteka desde `plans/handoffs/habiteka-diseno-zonas-20260929.md`. Verifica la rama y el estado del repositorio, revisa la primera imagen de Cocina rev. 130 y la sombra de su esquina en el 3D editable. Después sigue la fase 3 del plan: diseño homogéneo por zonas y aprobación conjunta antes de visita y vídeo. Háblame siempre en español.»
+
+## Cierre 30/09/2026 (mañana)
+
+- Suelo del Salón revertido a Herringbone Parquet (solo suelos; rev. 141). Causa del cambio no pedido: en «Aplicar propuesta» la casilla «Suelos» viene marcada por defecto y aplica lo que elija la IA.
+- **Revisión 141 aprobada** (luz de día): la visita y el vídeo usan esta versión. Sustituye a la 107.
+- Vídeo de muestra «obra + recorrido» guardado desde la 141 (sin revisar todavía).
+- Cortinas: no se implementan en el plano editable. Decisión de Paulo: el plano son las guías del usuario y la IA pone el resto en las imágenes. Todas las ventanas de FInca ya tienen estor. El código de sugerencias se descartó sin commitear.
+- Pendiente de pruebas: abrir el vídeo guardado y revisar fotogramas; visita libre por todas las zonas (colisiones); diez cámaras de comparación; Entrada; 6 estancias sin techo se muestran abiertas.
+- Sin commits nuevos en esta sesión.
+- Revisión del vídeo de muestra (30/09, 11 s, rev. 141): NO cumple la fase 5. Arranca con las losas ya construidas (sin terreno vacío), el vuelo exterior es breve y el paseo interior se limita a una terraza y un pasillo, sin recorrer las zonas. Falta el vídeo resumen autónomo.
+- Vídeo resumen (30/09): introducción de 16 s (terreno vacío → obra por etapas → vuelo dron) implementada en `showcase-timeline.ts`, terreno siempre visible (etapa -1) y botón «Guardar vídeo resumen». MP4 real de la 141 revisado por fotogramas; tests/tsc/eslint sin regresiones y code-review sin hallazgos aplicables. Pendiente: ruta interior por todas las zonas (regenerar «Recorrido Paulo» o crear ruta automática válida; 12 tramos bloqueados en la 141). Sin commitear.
+
+### Decisión 30/09 (mañana): recorrido sobre imágenes generadas
+- Paulo: el plano son las guías; el recorrido del vídeo va sobre las imágenes generadas, componiendo todos los ambientes. Orden acordado: **A** (montaje con imágenes existentes) y luego **B** (vídeo IA entre imágenes), con la documentación al día.
+- **A hecha:** pestaña «Vídeos» → galería por ámbito + «Crear vídeo con N imágenes» (MP4 en navegador, guardado como `VIDEO`/`images`). Vídeo real de FInca: 19 imágenes, 46 s. Archivos: `image-tour.ts`, `record-image-tour.ts`, `image-tour-builder.tsx`, `image-tour-actions.ts`, `tour-images.ts` y sus pruebas.
+- Inventario de imágenes (57 renders): todas exteriores/aéreas/isométricas/cenitales; **0 vistas interiores por estancia**; sin imágenes de la Entrada; revisiones muy dispares (70–196).
+- **B pendiente:** generar vistas interiores por estancia (opción «Vistas interiores por estancia» del diálogo de imágenes, de pago) y probar transiciones IA entre imágenes con coste previo y confirmación.
+- Estado de cierre (30/09, 07:15): **finalizadas y en verde** (tsc, eslint, mismos 22 fallos previos, code-review atendido): guion de introducción de 16 s, recorrido completo automático (`bestEffort`) y montaje con imágenes (vía A). Abiertas: vía B (necesita presupuesto de la prueba y elección de modelo), vistas interiores por estancia, Entrada, visita libre y diez cámaras. Todo sigue sin commitear.
