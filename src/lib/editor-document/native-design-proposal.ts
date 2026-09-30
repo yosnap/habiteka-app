@@ -185,7 +185,35 @@ export function canPlaceNativeDesignFurniture(
   return assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon).issue === null;
 }
 
-export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'support' | 'wall' | 'collision' | 'shelter';
+export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'support' | 'wall' | 'collision' | 'shelter'
+  | 'environment' | 'circulation' | 'edge';
+
+/** Holgura que deja libre el paso a escaleras y rampas, y a ambos lados de una puerta. */
+const CIRCULATION_MM = 1000, DOOR_CLEARANCE_MM = 800;
+/** Plantas, jardineras y lámparas de suelo van junto a un borde: a más de esta distancia de todo límite estorban en mitad del espacio. */
+export const EDGE_REACH_MM = 900;
+const EDGE_PROFILES = new Set(['plant', 'outdoor', 'lamp']);
+/** Iluminación y decoración de interior (lámpara de pie, planta de salón…) no se proponen al aire libre. */
+const INDOOR_ONLY_ROOMS = new Set(['iluminacion', 'decoracion']);
+
+export function distanceToBoundary(boundary: readonly Point[], point: Point): number {
+  let best = Infinity;
+  for (let index = 0; index < boundary.length; index++) {
+    const from = boundary[index]!, to = boundary[(index + 1) % boundary.length]!;
+    const dx = to.x - from.x, dy = to.y - from.y, length = dx * dx + dy * dy;
+    const t = length ? Math.max(0, Math.min(1, ((point.x - from.x) * dx + (point.y - from.y) * dy) / length)) : 0;
+    best = Math.min(best, Math.hypot(point.x - (from.x + t * dx), point.y - (from.y + t * dy)));
+  }
+  return best;
+}
+
+/** Huella cuadrada centrada en una puerta, para reservar el paso delante de ella. */
+function doorKeepOut(doc: EditorDocument, opening: EditorDocument['openings'][number]) {
+  const wall = doc.walls.find((item) => item.id === opening.wallId);
+  if (!wall) return null;
+  const centre = wallPath(doc, wall).at(opening.position), size = opening.widthMm;
+  return { x: centre.x - size / 2, y: centre.y - size / 2, widthMm: size, depthMm: size, rotation: 0 };
+}
 
 export function nativeFurniturePlacementIssue(
   doc: EditorDocument, item: NativeDesignFurniture, rooms = deriveRooms(doc),
@@ -205,6 +233,17 @@ function assessFurniturePlacement(
   const room = suggestedFurnitureRoom(item, rooms);
   if (!room || (allowedRooms && !allowedRooms.has(room.id))) return { issue: 'room' };
   if (zonePolygon && !polygonContainsFootprint(zonePolygon, corners(candidate))) return { issue: 'zone' };
+  // Un objeto de interior (lámpara de pie, planta de salón…) no se coloca al aire libre.
+  const indoor = eligibleCeilingRooms(doc).some((item) => item.id === room.id);
+  if (!indoor && INDOOR_ONLY_ROOMS.has(catalog.room) && !/exterior|outdoor|jardin/.test(catalog.id)) return { issue: 'environment' };
+  // El paso a escaleras, rampas y puertas queda libre, no solo sin solapes.
+  const passages = [...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((target) => intersects(candidate, target, CIRCULATION_MM))
+    || doc.openings.some((opening) => {
+      if (opening.kind !== 'puerta') return false;
+      const zone = doorKeepOut(doc, opening);
+      return !!zone && intersects(candidate, zone, DOOR_CLEARANCE_MM);
+    });
+  if (passages) return { issue: 'circulation' };
   const candidateItem: Furniture = { id: '__design_candidate', kind: catalog.kind, catalogId: catalog.id,
     ...candidate, heightMm: catalog.heightMm, elevationMm: 0, color: catalog.color,
     dimensionalOrigin: 'physical' };
@@ -213,6 +252,11 @@ function assessFurniturePlacement(
       && polygonContainsFootprint(corners(target), corners(candidate)))
     .sort((a, b) => hostSurfaceTop(b) - hostSurfaceTop(a))[0] : undefined;
   if (catalog.profile === 'lamp' && catalog.elevationMm > 0 && !host) return { issue: 'support' };
+  // Plantas y lámparas de suelo, pegadas a un muro o al borde de la zona; en mitad del espacio estorban.
+  if (!host && EDGE_PROFILES.has(catalog.profile) && !catalog.id.includes('tira-led')) {
+    const boundary = zonePolygon ?? room.boundary;
+    if (corners(candidate).every((point) => distanceToBoundary(boundary, point) > EDGE_REACH_MM)) return { issue: 'edge' };
+  }
   const bottom = host ? hostSurfaceTop(host) : (floorFinish(doc, room.id).elevationMm ?? 0) + catalog.elevationMm;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));

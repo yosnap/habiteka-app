@@ -8,7 +8,7 @@ import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 
-const item = { catalogId: 'habiteka:furniture:planta', xMm: 1000, yMm: 1000, rotation: 0, reason: 'Vegetación' };
+const item = { catalogId: 'habiteka:furniture:planta', xMm: 500, yMm: 500, rotation: 0, reason: 'Vegetación' };
 const options = defaultRenderDesignOptions();
 it('valida el acabado opcional del canto y exige una salida estructurada completa', () => {
   const doc = emptyEditorDocument();

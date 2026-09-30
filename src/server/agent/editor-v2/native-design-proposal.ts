@@ -12,7 +12,7 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
-import { lightPlacementHints } from './native-design-placement-hints';
+import { lightPlacementHints, plantPlacementHints } from './native-design-placement-hints';
 
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
@@ -66,7 +66,9 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)], zone: zone ? { id: zone.id, name: zone.name, polygonMm: zone.polygon } : null })}. Los acabados y objetos fuera de este ámbito permanecen intactos. La existingMaterialPalette del contexto enumera materiales ya guardados en todas las plantas: reutilízalos cuando encajen con la superficie y el uso. Puedes añadir un material permitido si la zona lo requiere, sin reemplazar la paleta de las demás zonas.`,
     `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
       boundaryMm: (zone ? zoneRoomOutline(zone, room) : room.boundary).map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
+    'Sentido del diseño: en zonas exteriores usa solo objetos de la categoría Exterior; una lámpara de pie o una planta de interior no van al aire libre. No bloquees el paso a escaleras, rampas ni puertas: deja al menos 1000 mm libres alrededor de ellas. Coloca plantas, jardineras y lámparas junto a muros, barandillas o el borde de la zona, nunca en mitad del espacio libre. Si no hay un sitio con sentido, devuelve menos objetos o ninguno.',
     lightPlacementHints(document, targetRooms, zone?.polygon, options),
+    plantPlacementHints(document, targetRooms, zone?.polygon, options),
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
     zone ? `Diseña únicamente «${zone.name}». Toda la huella de cada objeto nuevo debe quedar dentro de su polígono. El acabado de suelo se aplicará solo a esa parte, sin alterar el suelo de las zonas vecinas. Un muro que cruce el límite no cambiará completo; conserva su material.` : '',
@@ -142,6 +144,9 @@ function placementIssueLabel(issue: NativeFurniturePlacementIssue): string {
     case 'wall': return 'invade una pared';
     case 'collision': return 'solapa la zona de seguridad de un mueble o estructura';
     case 'shelter': return 'invade un poste o lateral de una carpa o pérgola';
+    case 'environment': return 'es un objeto de interior y esta zona es exterior';
+    case 'circulation': return 'taparía el paso a una escalera, rampa o puerta';
+    case 'edge': return 'debe ir junto a un muro o al borde de la zona, no en mitad del espacio';
   }
 }
 

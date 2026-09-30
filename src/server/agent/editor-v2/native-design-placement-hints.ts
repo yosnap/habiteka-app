@@ -1,6 +1,7 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
-import { canPlaceNativeDesignFurniture, type NativeDesignFurniture } from '@/lib/editor-document/native-design-proposal';
+import { canPlaceNativeDesignFurniture, distanceToBoundary, EDGE_REACH_MM, type NativeDesignFurniture } from '@/lib/editor-document/native-design-proposal';
+import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { isSurfaceHost } from '@/lib/editor-document/object-host-rest';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
 import { deriveRooms, type DerivedRoom } from '@/lib/editor-document/rooms';
@@ -52,4 +53,45 @@ export function lightPlacementHints(doc: EditorDocument, selectedRooms: DerivedR
   return suggestions.length
     ? `Ubicaciones de luminarias ya comprobadas en este plano (catalogId, xMm, yMm, rotation): ${JSON.stringify(suggestions.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Si propones iluminación, prioriza una de ellas; son posiciones de objetos editables, no luces inventadas.`
     : 'No hay ubicación de lámpara decorativa validada en este ámbito. No prometas iluminación nueva en el resumen.';
+}
+
+const GRID_MM = 500, MAX_CHECKS = 600, MAX_PLANTS = 4, MIN_SPREAD_MM = 1800;
+/**
+ * Posiciones de vegetación ya validadas: junto a un borde, fuera del paso a escaleras y puertas y del ambiente correcto.
+ * El modelo solo elige entre ellas; así no adivina coordenadas en mitad de un patio.
+ */
+export function plantPlacementHints(doc: EditorDocument, selectedRooms: DerivedRoom[], zone: Point[] | undefined,
+  options: RenderDesignOptions): string {
+  const indoorIds = new Set(eligibleCeilingRooms(doc).map((room) => room.id));
+  const outdoor = selectedRooms.some((room) => !indoorIds.has(room.id));
+  const catalogIds = outdoor
+    ? ['habiteka:furniture:jardinera', 'habiteka:outdoor:jardinera-exterior', 'habiteka:outdoor:planta-exterior']
+    : ['habiteka:furniture:planta'];
+  const entries = catalogIds.map((id) => getFurnitureCatalogEntry(id))
+    .filter((entry): entry is NonNullable<typeof entry> => !!entry && allowedProposalCatalog(entry, options));
+  if (!entries.length) return '';
+  const rooms = deriveRooms(doc), allowed = new Set(selectedRooms.map((room) => room.id));
+  const chosen: NativeDesignFurniture[] = [];
+  for (const entry of entries) {
+    let checks = 0;
+    for (const room of selectedRooms) {
+      const outline = zone ?? room.boundary;
+      const minX = Math.min(...outline.map((p) => p.x)), maxX = Math.max(...outline.map((p) => p.x));
+      const minY = Math.min(...outline.map((p) => p.y)), maxY = Math.max(...outline.map((p) => p.y));
+      for (let x = Math.ceil(minX / GRID_MM) * GRID_MM; x + entry.widthMm <= maxX; x += GRID_MM)
+        for (let y = Math.ceil(minY / GRID_MM) * GRID_MM; y + entry.depthMm <= maxY; y += GRID_MM) {
+          if (chosen.length >= MAX_PLANTS || checks >= MAX_CHECKS) break;
+          const centre = { x: x + entry.widthMm / 2, y: y + entry.depthMm / 2 };
+          // Descarte barato antes de la validación completa: lejos de todo borde nunca es válido.
+          if (distanceToBoundary(outline, centre) > EDGE_REACH_MM + Math.max(entry.widthMm, entry.depthMm)) continue;
+          if (chosen.some((item) => Math.hypot(item.xMm - x, item.yMm - y) < MIN_SPREAD_MM)) continue;
+          checks++;
+          const item = { catalogId: entry.id, xMm: x, yMm: y, rotation: 0, reason: 'Vegetación junto a un borde, sin tapar accesos' };
+          if (allowedProposalFurniture(item, options, zone) && canPlaceNativeDesignFurniture(doc, item, rooms, allowed, zone)) chosen.push(item);
+        }
+    }
+  }
+  return chosen.length
+    ? `Ubicaciones de vegetación ya comprobadas (catalogId, xMm, yMm, rotation): ${JSON.stringify(chosen.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Si propones plantas o jardineras, usa exactamente estas posiciones; cualquier otra se descarta.`
+    : 'No hay ubicación de plantas validada en este ámbito. No propongas plantas ni jardineras.';
 }
