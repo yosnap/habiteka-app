@@ -3,7 +3,9 @@ import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 export interface WalkthroughUploadTicket {
   id: string; key: string; organizationId: string; userId: string; projectId: string;
   zoneId: string | null; routeId: string; approvalId: string; approvedRevision: number;
-  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode; expires: number;
+  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images'; expires: number;
+  /** Montaje con imágenes: renders que lo componen, en orden. */
+  sourceIds?: string[];
 }
 function signature(value: string, secret: string) { return createHmac('sha256', secret).update(value).digest('base64url'); }
 export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string): string {

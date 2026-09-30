@@ -10,6 +10,10 @@ import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import { latestQualityByRef } from '@/server/quality/result-repo';
+import { withEditorDocuments } from '@/server/editor/document-repo';
+import { tourImagesFromRows } from '@/server/walkthrough/tour-images';
+import { ImageTourBuilder } from '@/components/deliverables/image-tour-builder';
+import { WHOLE_PROPERTY } from '@/lib/editor-document/image-tour';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 
@@ -21,7 +25,7 @@ interface Props {
 type ResultsTab = 'disenos' | 'recorridos' | 'videos';
 type VideoView = {
   id: string;
-  mode: 'walkthrough' | 'showcase';
+  mode: 'walkthrough' | 'showcase' | 'images';
   url: string | null;
   durationMs?: number;
   approvedRevision: number | null;
@@ -30,9 +34,11 @@ type VideoView = {
 };
 
 function videoMode(payload: unknown): VideoView['mode'] {
-  return payload && typeof payload === 'object' && 'mode' in payload && payload.mode === 'showcase'
-    ? 'showcase' : 'walkthrough';
+  if (!payload || typeof payload !== 'object' || !('mode' in payload)) return 'walkthrough';
+  return payload.mode === 'showcase' || payload.mode === 'images' ? payload.mode : 'walkthrough';
 }
+/** Los vídeos con obra y los montados con imágenes conviven en la pestaña «Vídeos». */
+const inVideosTab = (mode: VideoView['mode']) => mode !== 'walkthrough';
 
 export default async function DeliverablesPage({ params, searchParams }: Props) {
   const { id } = await params;
@@ -46,7 +52,7 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   const tabs: { id: ResultsTab; label: string; count: number }[] = [
     { id: 'disenos', label: 'Diseños', count: rows.length - videoRows.length },
     { id: 'recorridos', label: 'Recorridos', count: videoRows.filter((row) => videoMode(row.payload) === 'walkthrough').length },
-    { id: 'videos', label: 'Vídeos', count: videoRows.filter((row) => videoMode(row.payload) === 'showcase').length },
+    { id: 'videos', label: 'Vídeos', count: videoRows.filter((row) => inVideosTab(videoMode(row.payload))).length },
   ];
   const tabHref = (tab: ResultsTab) => {
     const params = new URLSearchParams();
@@ -57,8 +63,12 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   };
 
   if (activeTab !== 'disenos') {
+    const scope = { projectId: id, zoneId: query.zona ?? null };
+    const approval = activeTab === 'videos' ? await withEditorDocuments(ctx).latestApproval(scope) : null;
+    const tourImages = activeTab === 'videos' ? await tourImagesFromRows(rows.filter((row) => row.type === 'RENDER_3D')) : [];
+    const ambients = [WHOLE_PROPERTY, ...(approval?.document.designZones ?? []).map((zone) => zone.name)];
     const videos = await Promise.all(videoRows.filter((row) =>
-      videoMode(row.payload) === (activeTab === 'recorridos' ? 'walkthrough' : 'showcase')).map(async (row): Promise<VideoView> => {
+      inVideosTab(videoMode(row.payload)) === (activeTab === 'videos')).map(async (row): Promise<VideoView> => {
       const payload = row.payload && typeof row.payload === 'object'
         ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number }
         : {};
@@ -73,7 +83,8 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
     }));
     return <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
-      {activeTab === 'videos' && <p className="text-ink-soft text-sm">El vídeo resumen completo —terreno vacío, construcción, vuelo exterior y paseo interior rápido— aún está pendiente. Las muestras actuales solo combinan una introducción de obra con una ruta grabada.</p>}
+      {activeTab === 'videos' && <ImageTourBuilder projectId={id} zoneId={query.zona ?? null} approvalId={approval?.id ?? null}
+        approvedRevision={approval?.revision ?? null} images={tourImages} ambients={ambients} />}
       {videos.length ? videos.map((video) => <VideoCard key={video.id} video={video} />) :
         <p className="text-muted-foreground p-6 text-center text-sm">{activeTab === 'recorridos'
           ? 'Aún no hay recorridos exportados de una revisión aprobada.'
@@ -124,10 +135,13 @@ function ResultsTabs({ tabs, active, href }: {
   </nav>;
 }
 
+const VIDEO_LABEL: Record<VideoView['mode'], string> = {
+  walkthrough: 'Recorrido grabado', showcase: 'Vídeo resumen · obra + recorrido', images: 'Vídeo con las imágenes generadas' };
+
 function VideoCard({ video }: { video: VideoView }) {
-  const showcase = video.mode === 'showcase';
-  return <section aria-label={showcase ? 'Vídeo de muestra' : 'Recorrido grabado'} className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
-    <h2 className="text-ink text-base font-semibold">{showcase ? 'Muestra · obra + recorrido' : 'Recorrido grabado'}{' '}
+  const showcase = video.mode !== 'walkthrough';
+  return <section aria-label={VIDEO_LABEL[video.mode]} className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
+    <h2 className="text-ink text-base font-semibold">{VIDEO_LABEL[video.mode]}{' '}
       {video.durationMs ? <span className="text-ink-soft ml-2 text-sm font-normal">{Math.round(video.durationMs / 1000)} s</span> : null}
     </h2>
     {video.url ? <><video controls preload="metadata" src={video.url} className="w-full rounded-control" />
