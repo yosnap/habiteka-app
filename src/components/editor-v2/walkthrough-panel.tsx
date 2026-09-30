@@ -60,6 +60,10 @@ export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignP
       <button type="button" disabled={!zones.length} onClick={() => run(() => {
         const path = autoTour(doc, zones); state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id);
       })}>Preparar recorrido automático</button>
+      <button type="button" disabled={!rooms.length} title="Recorre todas las estancias con paso libre y omite las aisladas" onClick={() => run(() => {
+        const path = autoTour(doc, rooms.map((room) => room.id), { bestEffort: true, name: 'Recorrido completo' });
+        state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id);
+      })}>Recorrido completo (todas las zonas)</button>
       <button type="button" onClick={() => run(() => {
         const path = { id: crypto.randomUUID(), name: 'Recorrido manual', zoneIds: [], waypoints: [], loop: false };
         state.apply(putWalkthrough(doc, path)); state.setWalkthrough(path.id); onDraw();

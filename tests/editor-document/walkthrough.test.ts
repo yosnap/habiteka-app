@@ -121,3 +121,23 @@ describe('recorridos persistidos y navegación', () => {
     expect(()=>putWalkthrough(doc,route)).toThrow();
   });
 });
+
+describe('recorrido completo', () => {
+  const dosSalasAisladas = () => {
+    const first = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }], true);
+    return addWallPath(first, [{ x: 8000, y: 0 }, { x: 10000, y: 0 }, { x: 10000, y: 2500 }, { x: 8000, y: 2500 }], true);
+  };
+
+  it('sin puertas entre estancias, el recorrido normal falla y el completo recorre las alcanzables sin romper', () => {
+    const doc = dosSalasAisladas(), ids = deriveRooms(doc).map((room) => room.id);
+    expect(ids).toHaveLength(2);
+    expect(() => autoTour(doc, ids)).toThrow(/no están conectadas/);
+    const route = autoTour(doc, ids, { bestEffort: true, name: 'Recorrido completo' });
+    expect(route.name).toBe('Recorrido completo');
+    expect(buildWalkthrough(doc, route).invalidSegments).toEqual([]);
+    expect(route.waypoints.length).toBeGreaterThan(1);
+    // Solo consta como visitada la estancia a la que la ruta llega; la aislada se omite.
+    const largest = deriveRooms(doc).sort((a, b) => b.areaMm2 - a.areaMm2)[0]!;
+    expect(route.zoneIds).toEqual([largest.id]);
+  });
+});
