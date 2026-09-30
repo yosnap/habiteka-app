@@ -1,5 +1,6 @@
 export type NativeVideoMode = 'walkthrough' | 'showcase';
-export const SHOWCASE_INTRO_MS = 8000;
+/** Terreno vacío, construcción por etapas y vuelo exterior antes del recorrido interior. */
+export const SHOWCASE_INTRO_MS = 16000;
 export const MAX_NATIVE_VIDEO_DURATION_MS = 110_000;
 
 export function nativeVideoDurationMs(routeDurationMs: number, mode: NativeVideoMode): number {

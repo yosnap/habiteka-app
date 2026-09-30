@@ -560,7 +560,7 @@ function SceneView({
       captureQueue.current = job.catch(() => undefined);
       const blob = await job;
       const url = URL.createObjectURL(blob), link = window.document.createElement('a');
-      link.href = url; link.download = mode === 'showcase' ? 'habiteka-muestra-obra-y-recorrido.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      link.href = url; link.download = mode === 'showcase' ? 'habiteka-video-resumen.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
       setExportMessage('MP4 descargado.');
       if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id, mode); setExportMessage(`MP4 descargado y guardado en ${mode === 'showcase' ? 'Vídeos' : 'Recorridos'}.`); }
     } catch (error) { setExportMessage(controller.signal.aborted ? 'Exportación cancelada.' : error instanceof Error ? error.message : 'No se pudo exportar'); }
@@ -591,7 +591,7 @@ function SceneView({
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
       {allowVideoExport ? <>
         <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar y guardar recorrido · MP4</button>
-        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo de muestra · obra + recorrido</button>
+        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo resumen · terreno, obra, vuelo y recorrido</button>
       </> : onOpenApprovedRoute && <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue)}
         onClick={() => void onOpenApprovedRoute(route.id)}>Abrir visita aprobada para exportar vídeo</button>}
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
@@ -627,7 +627,7 @@ function SceneView({
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
           {scene.polygons.map((polygon) => <group key={polygon.id} position={planPreview?.id === polygon.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-            userData={{ videoStage: polygon.role === 'floor' ? 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined,
+            userData={{ videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined,
               cutawayStructural: polygon.role === 'wall' || polygon.role === 'junction' }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
@@ -665,7 +665,7 @@ function SceneView({
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
-          {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? 0 : 1 }}>
+          {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1 }}>
             <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></group>)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && (furnitureAsset(item) || (hideCovers && viewCoverIds(level.document).has(item.id)))))
             .map((box) => <group key={box.id} userData={{ videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2 }}>
