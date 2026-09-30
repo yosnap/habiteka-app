@@ -9,6 +9,8 @@ export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptio
   if (item.id === 'habiteka:outdoor:tira-led') return 'lights';
   if (item.id === 'habiteka:outdoor:puf-exterior') return 'furniture';
   if (item.profile === 'plant') return 'plants';
+  // Plantas, macetas y jardineras de exterior son vegetación; el resto del perfil «outdoor» (carpas, pérgolas) es construcción.
+  if (item.profile === 'outdoor' && /planta|maceta|jardinera/.test(item.id)) return 'plants';
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';
   if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';

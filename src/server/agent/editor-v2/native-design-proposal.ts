@@ -4,7 +4,7 @@ import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { getFurnitureCatalogEntry, FURNITURE_CATALOG } from '@/lib/editor-document/furniture-catalog';
 import { SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
 import type { EditorDocument, FloorFinish } from '@/lib/editor-document/schema';
-import { addSuggestedFurniture, nativeFurniturePlacementIssue, type NativeDesignProposal, type NativeFurniturePlacementIssue } from '@/lib/editor-document/native-design-proposal';
+import { addSuggestedFurniture, nativeFurniturePlacementIssue, type NativeDesignFurniture, type NativeDesignProposal, type NativeFurniturePlacementIssue } from '@/lib/editor-document/native-design-proposal';
 import { renderDesignOptionsSchema, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
 import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds, designScopeZone, type DesignScope } from '@/lib/editor-document/design-scope';
@@ -14,6 +14,10 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
 import { lightPlacementHints, plantPlacementHints } from './native-design-placement-hints';
 
+/** Objetos nuevos que una propuesta puede añadir: suficientes para componer un ambiente, no un relleno. */
+const MAX_PROPOSED_OBJECTS = 8;
+/** Salida suficiente para 8 objetos con su motivo sin que el JSON se corte a medias. */
+const MAX_PROPOSAL_TOKENS = 4500;
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
 
@@ -40,10 +44,29 @@ export async function proposeNativeDesign(
   designScopeRooms(document, scope);
   designScopeStructureIds(document, scope);
   assertCompatibleDesignStyle(document, style, scope);
-  const result = await chat.chat({ model: '', responseSchema: NATIVE_DESIGN_SCHEMA, temperature: 0.2, maxTokens: 2400,
-    messages: [{ role: 'user', content: [{ type: 'text', text: nativeDesignPrompt(document, style, objective, instruction, options) }, ...references] }],
-  });
-  return parseNativeDesignProposal(result.structured, style, document, options);
+  const request = [{ role: 'user' as const, content: [{ type: 'text' as const, text: nativeDesignPrompt(document, style, objective, instruction, options) }, ...references] }];
+  const first = await chat.chat({ model: '', responseSchema: NATIVE_DESIGN_SCHEMA, temperature: 0.2, maxTokens: MAX_PROPOSAL_TOKENS, messages: request });
+  const draft = parseNativeDesignProposalDetailed(first.structured, style, document, options);
+  if (!draft.rejections.length || options.freedom === 'strict') return draft.proposal;
+  // La IA propone libremente y el código solo protege lo físico: si algo se rechaza, se le dice por qué y corrige una vez.
+  try {
+    const revised = await chat.chat({ model: '', responseSchema: NATIVE_DESIGN_SCHEMA, temperature: 0.2, maxTokens: MAX_PROPOSAL_TOKENS,
+      messages: [...request,
+        { role: 'assistant', content: [{ type: 'text', text: JSON.stringify(first.structured) }] },
+        { role: 'user', content: [{ type: 'text', text: correctionPrompt(draft.rejections) }] }],
+    });
+    const second = parseNativeDesignProposalDetailed(revised.structured, style, document, options);
+    return second.proposal.furniture.length >= draft.proposal.furniture.length ? second.proposal : draft.proposal;
+  } catch {
+    // La corrección es un extra: si falla, la primera propuesta ya validada sigue siendo utilizable.
+    return draft.proposal;
+  }
+}
+
+function correctionPrompt(rejections: NativeDesignRejection[]): string {
+  const list = rejections.map(({ text, item }) => `- ${text} (catalogId ${item.catalogId}, xMm ${Math.round(item.xMm)}, yMm ${Math.round(item.yMm)})`).join('\n');
+  return ['La validación física del plano rechazó estos objetos de tu propuesta:', list,
+    'Devuelve el JSON completo corregido. Conserva los objetos que sí eran válidos, con las mismas coordenadas. Para cada objeto rechazado, colócalo en otro sitio con sentido (respeta el motivo: no tapes accesos, ve junto a un borde, usa objetos del ambiente correcto) o quítalo. No repitas coordenadas rechazadas ni inventes catalogId.'].join('\n');
 }
 
 function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: string, instruction: string, options: RenderDesignOptions) {
@@ -62,7 +85,8 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     zone ? 'La única imagen adjunta muestra exclusivamente la zona elegida. El resto del inmueble se ha ocultado: no lo uses para esta propuesta.'
       : 'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
     'No puedes añadir, quitar, mover, redimensionar, ocultar o cambiar la altura de muros, huecos, pisos, columnas, rampas, descansillos o escaleras.',
-    'Tu JSON solo puede escoger acabados existentes y hasta 4 objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Deja 250 mm de separación respecto a los demás muebles y estructuras. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes. Una lámpara pequeña o una planta puede apoyarse sobre una mesa o encimera existente si toda su huella cabe en la superficie; conserva el mueble de apoyo. Si una lámpara de pie no tiene espacio libre, elige una lámpara de mesa que quepa sobre un mueble existente.',
+    `Tu JSON solo puede escoger acabados existentes y hasta ${MAX_PROPOSED_OBJECTS} objetos del catálogo, incluidos muebles y luminarias autorizadas. Copia exactamente el catalogId del catálogo permitido. xMm/yMm son la esquina superior izquierda en MILÍMETROS, no metros, y toda la huella debe caer dentro de una estancia seleccionada, nunca sobre rampas, escaleras o circulación. Deja 250 mm de separación respecto a los demás muebles y estructuras. Puedes poner muebles bajo una carpa o pérgola existentes si evitas sus postes. Una lámpara pequeña o una planta puede apoyarse sobre una mesa o encimera existente si toda su huella cabe en la superficie; conserva el mueble de apoyo. Si una lámpara de pie no tiene espacio libre, elige una lámpara de mesa que quepa sobre un mueble existente.`,
+    'Eres tú quien diseña: no te limites a repetir el mismo objeto. Propón un ambiente coherente y variado con lo que esté permitido —zona de estar o de comer, vegetación, iluminación, según el espacio— y no repitas un mismo objeto más de dos veces. Que cada pieza tenga una razón de diseño (zonificar, dar luz, enmarcar un borde), escrita en menos de 100 caracteres, y un sitio con sentido; la validación física te dirá si algo no cabe.',
     `Ámbito editable: ${JSON.stringify({ kind: scope.kind, roomIds: targetRooms.map((room) => room.id), structureIds: [...designScopeStructureIds(document, scope)], zone: zone ? { id: zone.id, name: zone.name, polygonMm: zone.polygon } : null })}. Los acabados y objetos fuera de este ámbito permanecen intactos. La existingMaterialPalette del contexto enumera materiales ya guardados en todas las plantas: reutilízalos cuando encajen con la superficie y el uso. Puedes añadir un material permitido si la zona lo requiere, sin reemplazar la paleta de las demás zonas.`,
     `Estancias elegidas para colocar objetos (coordenadas en milímetros): ${JSON.stringify(targetRooms.map((room) => ({ id: room.id,
       boundaryMm: (zone ? zoneRoomOutline(zone, room) : room.boundary).map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })) })))}.`,
@@ -86,6 +110,14 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
 }
 
 export function parseNativeDesignProposal(value: unknown, style: Estilo, document: EditorDocument, options: RenderDesignOptions): NativeDesignProposal {
+  return parseNativeDesignProposalDetailed(value, style, document, options).proposal;
+}
+
+/** Objeto que el modelo propuso y la validación rechazó, con el motivo, para pedirle una corrección. */
+export interface NativeDesignRejection { text: string; item: NativeDesignFurniture }
+
+export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo, document: EditorDocument, options: RenderDesignOptions):
+  { proposal: NativeDesignProposal; rejections: NativeDesignRejection[] } {
   if (!value || typeof value !== 'object') throw new Error('La IA no devolvió una propuesta de diseño válida.');
   const input = value as Record<string, unknown>;
   const materials = input.materials as Record<string, unknown> | undefined;
@@ -107,19 +139,20 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   const rooms = deriveRooms(candidateDoc);
   const rawFurniture = Array.isArray(input.furniture) ? input.furniture : [];
   const furniture: NativeDesignProposal['furniture'] = [];
-  const rejected: string[] = [];
+  const rejected: string[] = [], rejections: NativeDesignRejection[] = [];
+  const reject = (text: string, item?: NativeDesignFurniture) => { rejected.push(text); if (item) rejections.push({ text, item }); };
   for (const raw of rawFurniture) {
     const item = parseFurniture(raw)[0];
-    if (!item) { rejected.push('objeto sin ficha o coordenadas válidas'); continue; }
+    if (!item) { reject('objeto sin ficha o coordenadas válidas'); continue; }
     const label = getFurnitureCatalogEntry(item.catalogId)!.label;
-    if (furniture.length >= 4) { rejected.push(`${label}: máximo de cuatro objetos`); continue; }
+    if (furniture.length >= MAX_PROPOSED_OBJECTS) { reject(`${label}: máximo de ${MAX_PROPOSED_OBJECTS} objetos`, item); continue; }
     const catalog = getFurnitureCatalogEntry(item.catalogId)!;
-    if (!allowedProposalCatalog(catalog, options)) { rejected.push(`${label}: categoría no permitida`); continue; }
+    if (!allowedProposalCatalog(catalog, options)) { reject(`${label}: categoría no permitida`, item); continue; }
     if (!allowedProposalFurniture(item, options, zone?.polygon)) {
-      rejected.push(`${label}: fuera de la zona de colocación permitida`); continue;
+      reject(`${label}: fuera de la zona de colocación permitida`, item); continue;
     }
     const issue = nativeFurniturePlacementIssue(candidateDoc, item, rooms, allowedRooms, zone?.polygon);
-    if (issue) { rejected.push(`${label}: ${placementIssueLabel(issue)}`); continue; }
+    if (issue) { reject(`${label}: ${placementIssueLabel(issue)}`, item); continue; }
     furniture.push(item);
     addSuggestedFurniture(candidateDoc, item, rooms, allowedRooms, zone?.polygon);
   }
@@ -129,10 +162,10 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
   const summary = [`Propuesta ${estiloLabel(style)}: revisa los acabados antes de aplicar.`,
     objectLabels.length ? `Objetos aplicables: ${objectLabels.join(', ')}.` : 'Sin objetos aplicables.',
     rejected.length ? `Se descartaron ${rejected.length} objeto(s): ${rejected.slice(0, 4).join('; ')}${rejected.length > 4 ? '; y otros' : ''}.` : ''].filter(Boolean).join(' ');
-  return { style, summary,
+  return { rejections, proposal: { style, summary,
     scope, sourceRevision: document.revision,
     materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides, stairBodies, rampBodies, landingBodies,
-      stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture };
+      stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture } };
 }
 
 function placementIssueLabel(issue: NativeFurniturePlacementIssue): string {

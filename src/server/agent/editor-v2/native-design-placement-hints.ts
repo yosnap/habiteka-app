@@ -92,6 +92,6 @@ export function plantPlacementHints(doc: EditorDocument, selectedRooms: DerivedR
     }
   }
   return chosen.length
-    ? `Ubicaciones de vegetación ya comprobadas (catalogId, xMm, yMm, rotation): ${JSON.stringify(chosen.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Si propones plantas o jardineras, usa exactamente estas posiciones; cualquier otra se descarta.`
-    : 'No hay ubicación de plantas validada en este ámbito. No propongas plantas ni jardineras.';
+    ? `Ubicaciones de vegetación ya comprobadas (catalogId, xMm, yMm, rotation): ${JSON.stringify(chosen.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Son sugerencias que sabemos válidas; puedes proponer otras posiciones si el diseño lo pide, siempre junto a un borde y sin tapar accesos. Las que no cumplan las reglas se rechazarán y tendrás que corregirlas.`
+    : 'No encontramos una ubicación de plantas ya validada en este ámbito; propón vegetación solo si hallas un sitio junto a un borde que no tape accesos.';
 }
