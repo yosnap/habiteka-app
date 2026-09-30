@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_TOUR_SHOTS, orderTourImages, pickTourImages, tourDurationMs, tourFrameAt, TOUR_FADE_MS, TOUR_SHOT_MS, WHOLE_PROPERTY, type TourImage } from '@/lib/editor-document/image-tour';
+import { MAX_TOUR_SHOTS, assessTourHomogeneity, orderTourImages, pickTourImages, tourDurationMs, tourFrameAt, TOUR_FADE_MS, TOUR_SHOT_MS, WHOLE_PROPERTY, type TourImage } from '@/lib/editor-document/image-tour';
 
 const image = (id: string, ambient: string, view: string, extra: Partial<TourImage> = {}): TourImage =>
   ({ id, ambient, view, lighting: 'daylight', freedom: 'strict', revision: 137, createdAt: '2026-09-30T02:00:00Z', url: `https://x/${id}.png`, ...extra });
@@ -62,5 +62,40 @@ describe('montaje con las imágenes generadas', () => {
     expect(start.zoom).toBeCloseTo(1, 5);
     expect(later.zoom).toBeGreaterThan(start.zoom);
     expect(later.zoom).toBeLessThanOrEqual(1.09);
+  });
+
+  describe('homogeneidad del conjunto', () => {
+    const valid = new Set([143, 141]);
+    it('acepta un conjunto del diseño aprobado con la misma luz y fidelidad', () => {
+      const shots = [image('a', 'Cocina', 'top', { revision: 143 }), image('b', 'Salón', 'top', { revision: 141 })];
+      expect(assessTourHomogeneity(shots, valid)).toEqual({ ok: true, issues: [] });
+    });
+
+    it('detecta imágenes de otra revisión, luces mezcladas, fidelidad distinta y ámbitos sin imagen', () => {
+      const shots = [image('a', 'Cocina', 'top', { revision: 143 }), image('b', 'Salón', 'top', { revision: 120, lighting: 'evening', freedom: 'free' })];
+      const result = assessTourHomogeneity(shots, valid, ['Entrada']);
+      expect(result.ok).toBe(false);
+      expect(result.issues.map((issue) => issue.code)).toEqual(['revision', 'lighting', 'freedom', 'missing']);
+      expect(result.issues[3]!.message).toContain('Entrada');
+      expect(result.issues[0]!.imageIds).toEqual(['b']);
+      expect(result.issues[0]!.message).toContain('120');
+    });
+
+    it('señala como discordantes las imágenes minoritarias, no las mayoritarias', () => {
+      const shots = [image('n1', 'Cocina', 'top', { lighting: 'evening', revision: 143 }), image('n2', 'Salón', 'top', { lighting: 'evening', revision: 143 }),
+        image('d1', 'Patio', 'top', { lighting: 'daylight', revision: 143 })];
+      const lighting = assessTourHomogeneity(shots, new Set([143])).issues.find((issue) => issue.code === 'lighting')!;
+      expect(lighting.imageIds).toEqual(['d1']);
+    });
+
+    it('sin diseño aprobado no reprocha la revisión de las imágenes', () => {
+      const shots = [image('a', 'Cocina', 'top', { revision: 5 }), image('b', 'Salón', 'top', { revision: 9 })];
+      expect(assessTourHomogeneity(shots, null)).toEqual({ ok: true, issues: [] });
+    });
+
+    it('al elegir prefiere las imágenes del diseño aprobado aunque sean más antiguas en luz o fidelidad', () => {
+      const { shots } = pickTourImages([image('vieja', 'Cocina', 'top', { revision: 100 }), image('valida', 'Cocina', 'top', { revision: 143, freedom: 'controlled' })], [], 2, MAX_TOUR_SHOTS, valid);
+      expect(shots.map((s) => s.id)).toEqual(['valida']);
+    });
   });
 });

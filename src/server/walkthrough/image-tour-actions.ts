@@ -8,6 +8,7 @@ import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { MAX_TOUR_SHOTS, tourDurationMs } from '@/lib/editor-document/image-tour';
 import { signUploadTicket, readUploadTicket, assertVideoUpload } from './upload-ticket';
+import { fail, runAction } from '@/server/errors/run-action';
 
 const MAX_BYTES = 100 * 1024 * 1024;
 
@@ -19,15 +20,19 @@ function secret() {
 
 /** Autoriza la subida del MP4 de un montaje con imágenes generadas de este proyecto, ligado a un diseño aprobado. */
 export async function prepareImageTourUpload(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number) {
+  return runAction(() => prepareImageTourUploadImpl(scope, approvalId, deliverableIds, bytes));
+}
+
+async function prepareImageTourUploadImpl(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number) {
   const ctx = await requireOrgContext();
-  if (!Number.isInteger(bytes) || bytes < 32 || bytes > MAX_BYTES) throw new Error('El vídeo supera el límite de 100 MB');
+  if (!Number.isInteger(bytes) || bytes < 32 || bytes > MAX_BYTES) fail('El vídeo supera el límite de 100 MB');
   if (!Array.isArray(deliverableIds) || !deliverableIds.length || deliverableIds.length > MAX_TOUR_SHOTS ||
     new Set(deliverableIds).size !== deliverableIds.length || deliverableIds.some((id) => typeof id !== 'string' || !id))
-    throw new Error(`El montaje admite de 1 a ${MAX_TOUR_SHOTS} imágenes distintas.`);
+    fail(`El montaje admite de 1 a ${MAX_TOUR_SHOTS} imágenes distintas.`);
   const approved = await withEditorDocuments(ctx).readApproval(scope, approvalId);
   const rows = await prisma.deliverable.findMany({ where: { id: { in: deliverableIds }, projectId: scope.projectId,
-    project: { organizationId: ctx.organizationId }, type: 'RENDER_3D', deletedAt: null }, select: { id: true } });
-  if (rows.length !== deliverableIds.length) throw new Error('Alguna imagen no pertenece a este proyecto.');
+    project: { organizationId: ctx.organizationId }, type: 'RENDER_3D', deletedAt: null, zoneId: scope.zoneId ?? null }, select: { id: true } });
+  if (rows.length !== deliverableIds.length) fail('Alguna imagen no pertenece a este proyecto o a este ámbito.');
   const id = crypto.randomUUID(), key = `walkthrough-uploads/${ctx.organizationId}/${scope.projectId}/${id}.mp4`;
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
     projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId: 'images',
@@ -37,15 +42,19 @@ export async function prepareImageTourUpload(scope: EditorScope, approvalId: str
 }
 
 export async function finishImageTourUpload(token: string) {
+  return runAction(() => finishImageTourUploadImpl(token));
+}
+
+async function finishImageTourUploadImpl(token: string) {
   const ctx = await requireOrgContext(), ticket = readUploadTicket(token, secret());
-  if (ticket.mode !== 'images' || !ticket.sourceIds?.length) throw new Error('El permiso no es de un montaje con imágenes.');
-  if (ticket.organizationId !== ctx.organizationId || ticket.userId !== ctx.userId) throw new Error('Permiso de subida no válido para esta cuenta');
+  if (ticket.mode !== 'images' || !ticket.sourceIds?.length) fail('El permiso no es de un montaje con imágenes.');
+  if (ticket.organizationId !== ctx.organizationId || ticket.userId !== ctx.userId) fail('Permiso de subida no válido para esta cuenta');
   const scope = { projectId: ticket.projectId, zoneId: ticket.zoneId };
   const approved = await withEditorDocuments(ctx).readApproval(scope, ticket.approvalId);
   if (approved.revision !== ticket.approvedRevision || approved.fingerprint !== ticket.approvedFingerprint)
-    throw new Error('La versión aprobada del vídeo no coincide.');
+    fail('La versión aprobada del vídeo no coincide.');
   const storage = getStorageAdapter(), id = `video-${ticket.id}`;
-  if (!storage.inspect || !storage.promote) throw new Error('El almacenamiento no admite verificación de vídeos');
+  if (!storage.inspect || !storage.promote) fail('El almacenamiento no admite verificación de vídeos');
   const existing = await prisma.deliverable.findFirst({ where: { id, projectId: ticket.projectId, project: { organizationId: ctx.organizationId }, deletedAt: null } });
   if (existing) return { id };
   const assetKey = `videos/${ctx.organizationId}/${ticket.projectId}/${ticket.id}.mp4`;

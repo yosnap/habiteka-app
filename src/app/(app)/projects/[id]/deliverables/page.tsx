@@ -11,7 +11,7 @@ import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import { latestQualityByRef } from '@/server/quality/result-repo';
 import { withEditorDocuments } from '@/server/editor/document-repo';
-import { tourImagesFromRows } from '@/server/walkthrough/tour-images';
+import { sameContentRevisions, tourImagesFromRows } from '@/server/walkthrough/tour-images';
 import { ImageTourBuilder } from '@/components/deliverables/image-tour-builder';
 import { WHOLE_PROPERTY } from '@/lib/editor-document/image-tour';
 import type { QualityVerdict } from '@/lib/quality-verdict';
@@ -65,7 +65,9 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   if (activeTab !== 'disenos') {
     const scope = { projectId: id, zoneId: query.zona ?? null };
     const approval = activeTab === 'videos' ? await withEditorDocuments(ctx).latestApproval(scope) : null;
-    const tourImages = activeTab === 'videos' ? await tourImagesFromRows(rows.filter((row) => row.type === 'RENDER_3D')) : [];
+    // Las revisiones son por estado del editor (proyecto y zona): el montaje usa solo los renders del mismo ámbito.
+    const tourImages = activeTab === 'videos' ? await tourImagesFromRows(rows.filter((row) => row.type === 'RENDER_3D' && (row.zoneId ?? null) === scope.zoneId)) : [];
+    const validRevisions = approval ? await sameContentRevisions(ctx, scope, approval, tourImages.map((image) => image.revision)) : [];
     const ambients = [WHOLE_PROPERTY, ...(approval?.document.designZones ?? []).map((zone) => zone.name)];
     const videos = await Promise.all(videoRows.filter((row) =>
       inVideosTab(videoMode(row.payload)) === (activeTab === 'videos')).map(async (row): Promise<VideoView> => {
@@ -83,8 +85,8 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
     }));
     return <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
-      {activeTab === 'videos' && <ImageTourBuilder projectId={id} zoneId={query.zona ?? null} approvalId={approval?.id ?? null}
-        approvedRevision={approval?.revision ?? null} images={tourImages} ambients={ambients} />}
+      {activeTab === 'videos' && <ImageTourBuilder key={`${tourImages.map((image) => image.id).join()}|${validRevisions.join()}`} projectId={id} zoneId={query.zona ?? null} approvalId={approval?.id ?? null}
+        approvedRevision={approval?.revision ?? null} images={tourImages} ambients={ambients} validRevisions={validRevisions} />}
       {videos.length ? videos.map((video) => <VideoCard key={video.id} video={video} />) :
         <p className="text-muted-foreground p-6 text-center text-sm">{activeTab === 'recorridos'
           ? 'Aún no hay recorridos exportados de una revisión aprobada.'

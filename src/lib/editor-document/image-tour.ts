@@ -21,8 +21,9 @@ const VIEW_ORDER = ['drone', 'front', 'back', 'left', 'right', 'isometric', 'top
 const viewRank = (view: string) => { const index = VIEW_ORDER.indexOf(view); return index === -1 ? VIEW_ORDER.length : index; };
 // Entre varias imágenes equivalentes gana la de día, después la más fiel al plano y la más reciente.
 const FREEDOM_RANK: Record<string, number> = { strict: 0, controlled: 1, free: 2 };
-const better = (a: TourImage, b: TourImage) =>
-  (a.lighting === 'daylight' ? 0 : 1) - (b.lighting === 'daylight' ? 0 : 1)
+const better = (a: TourImage, b: TourImage, valid?: ReadonlySet<number> | null) =>
+  (valid ? (valid.has(a.revision) ? 0 : 1) - (valid.has(b.revision) ? 0 : 1) : 0)
+  || (a.lighting === 'daylight' ? 0 : 1) - (b.lighting === 'daylight' ? 0 : 1)
   || (FREEDOM_RANK[a.freedom] ?? 3) - (FREEDOM_RANK[b.freedom] ?? 3)
   || b.revision - a.revision
   || b.createdAt.localeCompare(a.createdAt);
@@ -31,20 +32,20 @@ const better = (a: TourImage, b: TourImage) =>
  * Elige una imagen por ámbito y vista, hasta dos vistas por ámbito, y las ordena: el inmueble completo primero
  * (vuelo y fachadas) y el resto de ámbitos por su nombre. Devuelve también los ámbitos sin ninguna imagen usable.
  */
-export function pickTourImages(images: TourImage[], ambients: string[] = [], perAmbient = 2, limit = MAX_TOUR_SHOTS):
+export function pickTourImages(images: TourImage[], ambients: string[] = [], perAmbient = 2, limit = MAX_TOUR_SHOTS, valid?: ReadonlySet<number> | null):
   { shots: TourImage[]; missing: string[] } {
   const byAmbient = new Map<string, Map<string, TourImage>>();
   for (const image of images) {
     const views = byAmbient.get(image.ambient) ?? new Map<string, TourImage>();
     const current = views.get(image.view);
-    if (!current || better(image, current) < 0) views.set(image.view, image);
+    if (!current || better(image, current, valid) < 0) views.set(image.view, image);
     byAmbient.set(image.ambient, views);
   }
   const names = [...byAmbient.keys()].sort((a, b) =>
     (a === WHOLE_PROPERTY ? 0 : 1) - (b === WHOLE_PROPERTY ? 0 : 1) || a.localeCompare(b, 'es'));
   const shots: TourImage[] = [];
   for (const name of names) {
-    const views = [...byAmbient.get(name)!.values()].sort((a, b) => viewRank(a.view) - viewRank(b.view) || better(a, b));
+    const views = [...byAmbient.get(name)!.values()].sort((a, b) => viewRank(a.view) - viewRank(b.view) || better(a, b, valid));
     shots.push(...views.slice(0, name === WHOLE_PROPERTY ? Math.max(perAmbient, 4) : perAmbient));
   }
   return { shots: shots.slice(0, limit), missing: ambients.filter((name) => !byAmbient.has(name)) };
@@ -55,6 +56,40 @@ export function orderTourImages(images: TourImage[]): TourImage[] {
   return [...images].sort((a, b) =>
     (a.ambient === WHOLE_PROPERTY ? 0 : 1) - (b.ambient === WHOLE_PROPERTY ? 0 : 1)
     || a.ambient.localeCompare(b.ambient, 'es') || viewRank(a.view) - viewRank(b.view) || better(a, b));
+}
+
+export interface HomogeneityIssue {
+  code: 'revision' | 'lighting' | 'freedom' | 'missing';
+  message: string;
+  imageIds: string[];
+}
+
+/**
+ * Comprueba que las imágenes elegidas forman un conjunto coherente antes de animarlas: todas del diseño aprobado
+ * (su revisión o una con el mismo contenido), con la misma luz y el mismo nivel de fidelidad, y sin ámbitos vacíos.
+ * Un vídeo con IA entre imágenes distintas mezclaría estancias, acabados o muebles que no son los mismos.
+ */
+/** `valid` en null significa que no hay diseño aprobado: no se comprueba la procedencia. */
+export function assessTourHomogeneity(shots: TourImage[], valid: ReadonlySet<number> | null, missing: string[] = []): { ok: boolean; issues: HomogeneityIssue[] } {
+  const issues: HomogeneityIssue[] = [];
+  const outdated = valid ? shots.filter((shot) => !valid.has(shot.revision)) : [];
+  if (outdated.length) issues.push({ code: 'revision', imageIds: outdated.map((shot) => shot.id),
+    message: `${outdated.length} imagen(es) no corresponden al diseño aprobado (revisiones ${[...new Set(outdated.map((shot) => shot.revision))].sort((a, b) => a - b).join(', ')}).` });
+  // Se señalan como discordantes las imágenes que no comparten el valor mayoritario.
+  const minority = (value: (shot: TourImage) => string) => {
+    const counts = new Map<string, number>();
+    for (const shot of shots) counts.set(value(shot), (counts.get(value(shot)) ?? 0) + 1);
+    const majority = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    return { values: [...counts.keys()], ids: shots.filter((shot) => value(shot) !== majority).map((shot) => shot.id) };
+  };
+  const lighting = minority((shot) => shot.lighting);
+  if (lighting.values.length > 1) issues.push({ code: 'lighting', imageIds: lighting.ids,
+    message: `Hay luces mezcladas (${lighting.values.join(', ')}); usa una sola.` });
+  const freedom = minority((shot) => shot.freedom);
+  if (freedom.values.length > 1) issues.push({ code: 'freedom', imageIds: freedom.ids,
+    message: `Las imágenes se generaron con distinta libertad (${freedom.values.join(', ')}); las que añaden objetos no coinciden con el plano.` });
+  if (missing.length) issues.push({ code: 'missing', imageIds: [], message: `La selección no incluye imágenes de: ${missing.join(', ')}.` });
+  return { ok: !issues.length, issues };
 }
 
 export function tourDurationMs(shotCount: number): number {
