@@ -25,11 +25,9 @@ interface Props {
   onChange: (options: RenderDesignOptions) => void;
   disabled?: boolean;
   editable?: boolean;
-  /** Imágenes de un proyecto ya diseñado: reproducen el diseño editable tal cual, sin añadir objetos. */
-  lockedStrict?: boolean;
 }
 
-export function RenderOptionsControls({ document, options, onChange, disabled, editable, lockedStrict }: Props) {
+export function RenderOptionsControls({ document, options, onChange, disabled, editable }: Props) {
   const update = (patch: Partial<RenderDesignOptions>) => onChange({ ...options, ...patch });
   const interiorCameras: RoomInteriorCamera[] = useMemo(
     () => (document ? roomInteriorCameras(document) : []),
@@ -80,12 +78,6 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           ))}
         </div>
       </section>}
-      {lockedStrict ? (
-        <p role="note" className="text-ink-soft flex items-center gap-2 rounded-control border border-line bg-canvas p-2 text-xs">
-          <ShieldCheck size={16} aria-hidden="true" className="shrink-0" />
-          <span>La imagen reproduce el diseño editable tal cual (Estricto). Para añadir objetos, propónlos en «Cambiar acabados y muebles» y aplícalos.</span>
-        </p>
-      ) : (
       <section>
         <h3 className="text-ink text-sm font-medium">Libertad de decoración</h3>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
@@ -135,7 +127,6 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           </p>
         )}
       </section>
-      )}
       {(!editable || (options.freedom !== 'strict' && options.designScope !== 'zone')) && (
         <section>
           <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>

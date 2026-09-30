@@ -11,6 +11,7 @@ import {
   renderItemCount,
   renderPassCount,
   zoneCompositeActive,
+  RENDER_ADDITIONS,
   RENDER_ADDITION_LABELS,
   RENDER_VIEW_LABELS,
   type RenderDesignOptions,
@@ -94,6 +95,9 @@ interface EditorGenerateDialogProps {
   onClose: () => void;
 }
 
+/** Punto de partida de las imágenes de un proyecto ya diseñado: decoración controlada con todas las categorías. */
+const DRESSED_IMAGE_OPTIONS = { freedom: 'controlled', additions: [...RENDER_ADDITIONS] } as const satisfies Pick<RenderDesignOptions, 'freedom' | 'additions'>;
+
 export function EditorGenerateDialog({
   document,
   capture,
@@ -116,7 +120,8 @@ export function EditorGenerateDialog({
   onClose,
 }: EditorGenerateDialogProps) {
   const establishedStyle = document ? buildingDesignStyle(document) : undefined;
-  // Con el proyecto ya amueblado, las imágenes solo fotografían el diseño editable: no añaden objetos que el vídeo no tendría.
+  // El 3D editable es la guía: las imágenes lo visten como una casa terminada (alfombras, muebles, cortinas) sin tocar
+  // muros ni huecos. Quien quiera una copia fiel del 3D puede bajar la libertad a «Estricto».
   const hasDesign = (document?.furniture.length ?? 0) > 0;
   const materialPalette = document ? designMaterialPalette(document) : undefined;
   const [estilo, setEstilo] = useState<Estilo>(establishedStyle ?? initialSetup?.estilo ?? 'moderno');
@@ -127,11 +132,13 @@ export function EditorGenerateDialog({
     if (!document) return base;
     // Un plano sin muebles con «Estricto» devuelve estancias vacías: no es lo
     // que espera quien viene del asistente a ver su casa amueblada.
-    const freedom = hasDesign ? base.freedom : ('free' as const);
-    if (!initialSetup?.interiorRooms) return { ...base, freedom };
+    const freedom = hasDesign ? DRESSED_IMAGE_OPTIONS.freedom : ('free' as const);
+    const additions = hasDesign ? DRESSED_IMAGE_OPTIONS.additions : base.additions;
+    if (!initialSetup?.interiorRooms) return { ...base, freedom, additions };
     return {
       ...base,
       freedom,
+      additions,
       interiorRoomIds: roomInteriorCameras(document)
         .filter((room) => room.habitable)
         .map((room) => room.roomId),
@@ -410,8 +417,10 @@ export function EditorGenerateDialog({
                     if (value === intent) return;
                     optionsByIntent.current[intent] = options;
                     const next = optionsByIntent.current[value] ?? { ...options,
-                      placement: 'all', regions: [], designScope: 'all', designZoneId: '' };
-                    setOptions(value === 'image' && hasDesign ? { ...next, freedom: 'strict', additions: [] } : next);
+                      placement: 'all', regions: [], designScope: 'all', designZoneId: '',
+                      // La propuesta editable parte sin objetos; la decoración por defecto es solo para las imágenes.
+                      ...(value === 'editable' ? { freedom: 'strict' as const, additions: [] } : {}) };
+                    setOptions(value === 'image' && hasDesign && !optionsByIntent.current.image ? { ...next, ...DRESSED_IMAGE_OPTIONS } : next);
                     setIntent(value);
                     if (value === 'editable' && next.designScope !== 'all' && establishedStyle)
                       setEstilo(establishedStyle);
@@ -497,7 +506,6 @@ export function EditorGenerateDialog({
                 )}
                 <RenderOptionsControls
                   editable={intent === 'editable'}
-                  lockedStrict={intent === 'image' && hasDesign}
                   document={document}
                   options={options}
                   onChange={changeOptions}
