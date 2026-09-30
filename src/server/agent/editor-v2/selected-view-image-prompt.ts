@@ -5,6 +5,8 @@ import type { RenderView } from '@/lib/editor-document/render-view';
 import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
+import { designMaterialPalette } from '@/lib/editor-document/design-material-palette';
+import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import {
   isInteriorRenderMode,
   RENDER_ADDITION_LABELS,
@@ -12,7 +14,21 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v7';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v8';
+
+/**
+ * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
+ * Fija los acabados que ya lleva el diseño editable para que todas las vistas enseñen el mismo.
+ */
+export function designContractRule(document: EditorDocument): string | undefined {
+  const palette = designMaterialPalette(document);
+  const label = (id: string) => (surfaceMaterial(id) as { label?: string } | undefined)?.label ?? id;
+  const part = (name: string, ids: string[]) => ids.length ? `${name}: ${ids.slice(0, 3).map(label).join(' / ')}` : '';
+  const parts = [part('muros', palette.walls), part('suelos', palette.floors), part('escaleras', palette.stairs),
+    part('rampas', palette.ramps), part('columnas', palette.columns)].filter(Boolean);
+  if (!parts.length) return undefined;
+  return `DISEÑO FIJADO, IGUAL EN TODAS LAS VISTAS. Acabados del proyecto — ${parts.join('; ')}. Esta imagen es solo una vista de un mismo diseño: usa exactamente estos materiales y los colores de la captura, sin cambiar el tono ni el material de ninguna superficie ni inventar variantes respecto a otras vistas.`;
+}
 
 function kitchenJointRule(document: EditorDocument, options: RenderDesignOptions): string | undefined {
   if (options.placement !== 'selected') return undefined;
@@ -72,6 +88,7 @@ export function selectedViewImagePrompt(
   const strictOutside = options.freedom === 'strict' && !interiorMode &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length));
   const jointRule = kitchenJointRule(document, options);
+  const contractRule = designContractRule(document);
 
   return [
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
@@ -79,6 +96,7 @@ export function selectedViewImagePrompt(
     'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina, accesos y mobiliario grande visibles.',
     `Mejora materiales, texturas, sombras y luz. ${sceneRule} ${hasMask ? 'Mantén gris claro y vacío el fondo exterior a la zona aislada.' : 'Mantén el fondo y la relación entre edificio y exterior.'}`,
     'Conserva las hojas de puerta con la apertura que muestra la captura. Exposición equilibrada: los vanos no son manchas de luz blanca; materiales y contornos nítidos, sin velo luminoso ni desenfoque artificial.',
+    ...(contractRule ? [contractRule] : []),
     ...(jointRule ? [jointRule] : []),
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),

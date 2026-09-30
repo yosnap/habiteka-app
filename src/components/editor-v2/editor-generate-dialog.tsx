@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Camera, Sofa } from 'lucide-react';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import {
@@ -113,6 +114,8 @@ export function EditorGenerateDialog({
   onClose,
 }: EditorGenerateDialogProps) {
   const establishedStyle = document ? buildingDesignStyle(document) : undefined;
+  // Con el proyecto ya amueblado, las imágenes solo fotografían el diseño editable: no añaden objetos que el vídeo no tendría.
+  const hasDesign = (document?.furniture.length ?? 0) > 0;
   const materialPalette = document ? designMaterialPalette(document) : undefined;
   const [estilo, setEstilo] = useState<Estilo>(establishedStyle ?? initialSetup?.estilo ?? 'moderno');
   const [objetivo, setObjetivo] = useState('');
@@ -122,8 +125,7 @@ export function EditorGenerateDialog({
     if (!document) return base;
     // Un plano sin muebles con «Estricto» devuelve estancias vacías: no es lo
     // que espera quien viene del asistente a ver su casa amueblada.
-    const empty = document.furniture.length === 0;
-    const freedom = initialSetup?.interiorRooms || empty ? ('free' as const) : base.freedom;
+    const freedom = hasDesign ? base.freedom : ('free' as const);
     if (!initialSetup?.interiorRooms) return { ...base, freedom };
     return {
       ...base,
@@ -388,21 +390,22 @@ export function EditorGenerateDialog({
               />
             ) : null}
             <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Qué quieres crear">
-              {([['image', 'Crear imágenes', 'Render del diseño, sin modificar el plano.'], ['editable', 'Cambiar acabados y muebles', 'Revisa una propuesta y aplícala al plano.']] as const).map(([value, label, hint]) => (
+              {([['image', 'Crear imágenes', 'Render del diseño, sin modificar el plano.', Camera], ['editable', 'Cambiar acabados y muebles', 'Revisa una propuesta y aplícala al plano.', Sofa]] as const).map(([value, label, hint, Icon]) => (
                 <button key={value} type="button" disabled={busy} aria-pressed={intent === value}
-                  className={`rounded-lg border p-3 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
+                  className={`rounded-lg border px-3 py-2 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
                   onClick={() => {
                     if (value === intent) return;
                     optionsByIntent.current[intent] = options;
                     const next = optionsByIntent.current[value] ?? { ...options,
                       placement: 'all', regions: [], designScope: 'all', designZoneId: '' };
-                    setOptions(next);
+                    setOptions(value === 'image' && hasDesign ? { ...next, freedom: 'strict', additions: [] } : next);
                     setIntent(value);
                     if (value === 'editable' && next.designScope !== 'all' && establishedStyle)
                       setEstilo(establishedStyle);
                     invalidatePrepared(); setMode('choose');
                   }}>
-                  <strong className="block text-sm">{label}</strong><span className="block text-xs">{hint}</span>
+                  <strong className="flex items-center gap-2 text-sm"><Icon size={16} aria-hidden="true" className="shrink-0" />{label}</strong>
+                  <span className="mt-0.5 block text-xs leading-tight">{hint}</span>
                 </button>
               ))}
             </div>
@@ -462,6 +465,7 @@ export function EditorGenerateDialog({
                 )}
                 <RenderOptionsControls
                   editable={intent === 'editable'}
+                  lockedStrict={intent === 'image' && hasDesign}
                   document={document}
                   options={options}
                   onChange={changeOptions}

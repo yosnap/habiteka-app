@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderView } from '@/lib/editor-document/render-view';
-import { selectedViewImagePrompt, projectVehicleCount } from '@/server/agent/editor-v2/selected-view-image-prompt';
+import { selectedViewImagePrompt, projectVehicleCount, designContractRule } from '@/server/agent/editor-v2/selected-view-image-prompt';
+import { addWallPath } from '@/canvas/editor-v2/editing-operations';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { kitchenRunDefaults } from '@/lib/editor-document/kitchen-run-types';
 
 const document = { ...emptyEditorDocument(), designSpaceKind: 'patio' as const };
@@ -70,5 +72,23 @@ describe('instrucción de imagen basada en la captura', () => {
     expect(text).toContain('el mismo color #e0dbcf');
     expect(selectedViewImagePrompt({ ...document, kitchenRuns: [first, second] }, view,
       'moderno', defaultRenderDesignOptions(), '', '', false)).not.toContain('La cocina en L');
+  });
+
+  // Cada vista es una consulta independiente: los acabados del diseño viajan en todas para que no se reinventen.
+  it('fija los mismos acabados del diseño en todas las vistas', () => {
+    const base = upgradeSpatialDocument(addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 3000 }, { x: 0, y: 3000 }], true));
+    const withWalls = { ...base, designSpaceKind: 'patio' as const,
+      walls: base.walls.map((wall) => ({ ...wall, materials: { left: 'polyhaven:white_plaster_02', right: 'polyhaven:white_plaster_02' } })) };
+    const rule = designContractRule(withWalls);
+    expect(rule).toContain('DISEÑO FIJADO, IGUAL EN TODAS LAS VISTAS');
+    expect(rule).toContain('muros:');
+    const top = selectedViewImagePrompt(withWalls, { preset: 'top' } as RenderView, 'moderno', defaultRenderDesignOptions(), '', '', false);
+    const front = selectedViewImagePrompt(withWalls, { preset: 'front' } as RenderView, 'moderno', defaultRenderDesignOptions(), '', '', false);
+    expect(top).toContain(rule);
+    expect(front).toContain(rule);
+  });
+
+  it('no añade el contrato si el proyecto aún no tiene acabados', () => {
+    expect(designContractRule(document)).toBeUndefined();
   });
 });
