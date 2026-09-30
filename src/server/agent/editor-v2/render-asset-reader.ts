@@ -11,11 +11,16 @@ const STORED_RENDER_DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z
 
 /** Bytes saneados de un render propio: del storage, de un data URL o de una URL segura. */
 export async function readRenderReference(payload: { assetKey?: unknown; assetUrl?: unknown }) {
+  return sanitizeOwnRenderBuffer((await readRenderBytes(payload)).raw);
+}
+
+/** Bytes tal cual llegan (para conservarlos) y su tipo; el saneado es aparte. */
+export async function readRenderBytes(payload: { assetKey?: unknown; assetUrl?: unknown }): Promise<{ raw: Buffer; contentType: string }> {
   if (typeof payload.assetKey === 'string' && payload.assetKey.length > 0)
-    return sanitizeOwnRenderBuffer(await getStorageAdapter().get(payload.assetKey));
+    return { raw: await getStorageAdapter().get(payload.assetKey), contentType: payload.assetKey.endsWith('.jpg') ? 'image/jpeg' : 'image/png' };
   if (typeof payload.assetUrl !== 'string') fail('El diseño de referencia no tiene una imagen recuperable.');
   const data = STORED_RENDER_DATA_URL.exec(payload.assetUrl);
-  if (data?.[1] && data[2]) return sanitizeOwnRenderBuffer(Buffer.from(data[2], 'base64'));
+  if (data?.[1] && data[2]) return { raw: Buffer.from(data[2], 'base64'), contentType: data[1] };
   const url = assertSafeImportUrl(payload.assetUrl);
   let response: Response;
   try { response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) }); }
@@ -39,8 +44,12 @@ export async function readRenderReference(payload: { assetKey?: unknown; assetUr
       if (total > MAX_OWN_RENDER_BYTES) fail('El diseño de referencia excede el tamaño permitido.');
       chunks.push(Buffer.from(part.value));
     }
+  } catch (error) {
+    // El tope de tiempo también corta la lectura del cuerpo a mitad de descarga.
+    if (error instanceof Error && error.name === 'TimeoutError') fail('La imagen generada tardó demasiado en descargarse. Vuelve a intentarlo.');
+    throw error;
   } finally {
     reader.releaseLock();
   }
-  return sanitizeOwnRenderBuffer(Buffer.concat(chunks, total));
+  return { raw: Buffer.concat(chunks, total), contentType: response.headers.get('content-type')?.split(';')[0] || 'image/png' };
 }

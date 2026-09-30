@@ -12,7 +12,7 @@ import type { OrgContext } from '@/server/auth/org-context';
 import { withOrg } from '@/server/db/scoped-repo';
 import { withLegacyAuthority } from '@/server/editor/authority';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
-import { sanitizeImageBuffer } from '@/server/ai/image/input-sanitizer';
+import { sanitizeImageBuffer, sanitizeOwnRenderBuffer } from '@/server/ai/image/input-sanitizer';
 import { cameraPoseFromView } from '@/lib/contracts/walkthrough-keyframe';
 import { renderViewSchema, type RenderCapture, type RenderView } from '@/lib/editor-document/render-view';
 import { selectedViewImagePrompt, projectVehicleCount, SELECTED_VIEW_IMAGE_PROMPT_VERSION } from '@/server/agent/editor-v2/selected-view-image-prompt';
@@ -59,7 +59,7 @@ import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
 import { loadStudio, saveStudio } from '@/server/plan/studio-repo';
 import { assertFreePromptQuality } from '@/server/quality/instruction-gate';
 import { withEditorDocuments } from '@/server/editor/document-repo';
-import { readRenderReference } from '@/server/agent/editor-v2/render-asset-reader';
+import { readRenderBytes } from '@/server/agent/editor-v2/render-asset-reader';
 import { findBatchStyleAnchor } from '@/server/agent/editor-v2/batch-style-anchor';
 import { verifiedEditorDocument } from '@/server/agent/editor-v2/verified-editor-document';
 import { z } from 'zod';
@@ -568,7 +568,8 @@ async function generateConceptRenderFromEditorImpl(
       ...(styleAnchor ? [{ base64: styleAnchor.base64, mimeType: styleAnchor.mimeType }] : [])],
   };
   const result = await image.generate(request);
-  const candidate = await readRenderReference(result);
+  const downloaded = await readRenderBytes(result);
+  const candidate = await sanitizeOwnRenderBuffer(downloaded.raw);
   const visibleCandidate = zoneMask
     ? await sanitizeImageBuffer(await isolateZoneResult(candidate, zoneMask)) : candidate;
   const vision = await getChatVisionAdapter(
@@ -579,6 +580,17 @@ async function generateConceptRenderFromEditorImpl(
     options.freedom === 'strict' && !isInteriorRenderMode(options) &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)));
   let finalAsset = { assetUrl: result.assetUrl, assetKey: result.assetKey };
+  if (!finalAsset.assetKey && !zoneMask) {
+    // El proveedor no pudo copiar el resultado (CDN lenta): se conservan los bytes originales ya descargados para la
+    // auditoría antes de que caduque su URL temporal. Si el almacenamiento falla, el entregable queda con esa URL, como antes.
+    try {
+      const key = `renders/kie/${globalThis.crypto.randomUUID()}.${downloaded.contentType.includes('jpeg') ? 'jpg' : 'png'}`;
+      await getStorageAdapter().put({ key, body: downloaded.raw, contentType: downloaded.contentType });
+      finalAsset = { assetUrl: await getStorageAdapter().getPresignedDownloadUrl(key), assetKey: key };
+    } catch (error) {
+      console.warn('[render] No se pudo conservar el resultado en el almacenamiento; se mantiene la URL temporal.', error);
+    }
+  }
   if (zoneMask) {
     const key = `renders/zones/${globalThis.crypto.randomUUID()}.png`;
     await getStorageAdapter().put({ key, body: Buffer.from(visibleCandidate.base64, 'base64'), contentType: 'image/png' });

@@ -4,6 +4,7 @@ import type { StorageAdapter } from '@/server/storage/storage-adapter';
 import type { ImageProvider } from './image-provider';
 import { imageCost } from '../../cost/usage-to-cost';
 import { AiError, aiError } from '../../errors';
+import { MAX_OWN_RENDER_BYTES } from '../input-sanitizer';
 
 const CREATE_TASK_URL = 'https://api.kie.ai/api/v1/jobs/createTask';
 const TASK_URL = 'https://api.kie.ai/api/v1/jobs/recordInfo';
@@ -11,7 +12,8 @@ const BASE64_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload';
 const POLL_INTERVAL_MS = 3_000;
 const TIMEOUT_MS = 120_000;
 const FLUX_TIMEOUT_MS = 600_000;
-const MAX_REMOTE_IMAGE_BYTES = 12 * 1024 * 1024;
+// Los PNG 4K de gpt-image pasan de 12 MB: el tope es el mismo que admite el lector de renders propios.
+const MAX_REMOTE_IMAGE_BYTES = MAX_OWN_RENDER_BYTES;
 /** La CDN de KIE entrega imágenes de varios MB y a veces tarda: un corte a 30 s perdía imágenes ya cobradas. */
 const RESULT_DOWNLOAD_TIMEOUT_MS = 120_000;
 const RESULT_DOWNLOAD_ATTEMPTS = 2;
@@ -312,7 +314,12 @@ export class KieImageProvider implements ImageProvider {
         const bytes = Buffer.from(await result.arrayBuffer());
         if (bytes.byteLength > MAX_REMOTE_IMAGE_BYTES) throw new Error('Resultado de KIE demasiado grande');
         return { bytes, contentType: result.headers.get('content-type')?.split(';')[0] || 'image/png' };
-      } catch (error) { lastError = error; }
+      } catch (error) {
+        lastError = error;
+        // Solo merece otro intento un corte de tiempo o de red; un 4xx o un archivo demasiado grande se repetirían igual.
+        const transient = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError' || /fetch failed/i.test(error.message));
+        if (!transient) break;
+      }
     }
     throw lastError;
   }
