@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Camera, Sofa } from 'lucide-react';
+import { captureFileName } from '@/lib/editor-document/capture-file-name';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import {
@@ -169,6 +170,14 @@ export function EditorGenerateDialog({
     return pending;
   } : undefined;
   const preparedReady = prepared.length > 0;
+  // Las vistas de referencia son capturas del 3D editable: se descargan tal cual, sin IA ni créditos.
+  const fileNameAt = (index: number) => captureFileName(labelAt(index), index);
+  const downloadCapture = (item: RenderCapture, index: number) => {
+    const link = window.document.createElement('a');
+    link.href = item.dataUrl; link.download = fileNameAt(index);
+    window.document.body.appendChild(link); link.click(); link.remove();
+  };
+  const downloadAll = () => prepared.forEach((item, index) => setTimeout(() => downloadCapture(item, index), index * 250));
   const [applied, setApplied] = useState(false);
   const [intent, setIntent] = useState<'image' | 'editable'>('image');
   const [quality, setQuality] = useState<EditorQualityState>({
@@ -449,13 +458,25 @@ export function EditorGenerateDialog({
                             className="w-full object-contain"
                           />
                         </button>
-                        <figcaption className="text-ink-soft p-2 text-xs">
-                          {labelAt(index)}
-                          {item.maskDataUrl && ' · solo la zona seleccionada'} · pulsa para
-                          ampliar
+                        <figcaption className="text-ink-soft flex items-center justify-between gap-2 p-2 text-xs">
+                          <span>
+                            {labelAt(index)}
+                            {item.maskDataUrl && ' · solo la zona seleccionada'} · pulsa para
+                            ampliar
+                          </span>
+                          <button type="button" className="text-primary shrink-0 underline"
+                            onClick={() => downloadCapture(item, index)}>Descargar</button>
                         </figcaption>
                       </figure>
                     ))}
+                  </div>
+                )}
+                {prepared.length > 0 && (
+                  <div className="text-ink-soft mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span>Estas vistas son capturas del 3D editable: no consumen créditos y coinciden entre sí.</span>
+                    <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={downloadAll}>
+                      Descargar {prepared.length > 1 ? `las ${prepared.length} vistas` : 'la vista'} (sin IA)
+                    </Button>
                   </div>
                 )}
                 {(capture || onPreview) && !prepared.length && (
