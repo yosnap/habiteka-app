@@ -54,6 +54,13 @@ Cierre de la noche 29–30/09 (estado del proyecto FInca):
 - Descargar las vistas de referencia sin IA (`editor-generate-dialog.tsx`, `capture-file-name.ts`) y referencia de estilo opcional entre vistas de un lote (casilla apagada por defecto, `batch-style-anchor.ts`). Prueba con Cocina: la vista con ancla se descartó por geometría alterada; la Cenital sin ancla fue aceptada. Coste de la prueba ≈0,16 $.
 - Dibujar zonas por automatización del navegador: el mapa del diálogo usa `setPointerCapture`, que falla con eventos simulados; hay que anularlo en la pestaña, y el mapa tiene un desfase respecto a las coordenadas del plano.
 
+Estado al cerrar la sesión (30/09, 06:15): FInca en la **revisión 140** (guardada; la última aprobada sigue siendo la 107).
+- Rev. 139: zona «Patio» restaurada. Rev. 140: propuesta del Salón aplicada = alfombra grande, lámpara de pie y planta de interior (+3 muebles, 52 en total) **y un cambio no pedido**: la zona «Salón» recibió el suelo `polyhaven:kitchen_wood` (`floorFinish` de zona, antes ninguno; el resto del Salón usaba Herringbone Parquet). Decidir con Paulo si se conserva o se revierte (para revertir: nueva propuesta editable en «Salón» eligiendo Herringbone Parquet en «Suelos» y sin objetos, o quitar el acabado de zona).
+- Alfombras: ahora son revestimiento del suelo (no chocan con muebles, id base `id:n`) y `rugPlacementHints` sugiere una bajo la zona de estar. Cubiertas exteriores (pérgolas, carpas, toldos, sombrillas) se ocultan con «Techo: Oculto», con la vista Cenital y en capturas aéreas.
+- Commits de la sesión, en orden: `21a5b9d`, `92c142a`, `2f4fa3f`, `e0953fb`… (ver `git log`); último `abdc81e`. No queda código pendiente de commit.
+- Pendiente inmediato: **cortinas** (el objetivo las pide y la IA no las coloca). Idea: `curtainPlacementHints` que, para cada ventana del ámbito, calcule una posición con `alignBackToWall` + `dockToWindow` (`src/canvas/editor-v2/wall-back-alignment.ts`) y la valide con `canPlaceNativeDesignFurniture`; la propuesta usa el ancho del catálogo (1800 mm), no el de la ventana. Después: Entrada (sin cambios por decisión de Paulo), aprobar la revisión conjunta (fase 3) y solo entonces visita y vídeo.
+- Flujo acordado: diseño editable primero (una sola vez), vistas 3D sin IA gratuitas, imágenes IA en modo Estricto solo para fotorrealismo, ancla de estilo opcional y apagada.
+
 Pendiente:
 - Confirmar con una imagen aceptada que el rincón queda bien con el tramo alineado (rev. 134).
 - Propiedad explícita de catálogo «adaptable a esquina» por categoría (cocina modular sí; cama, lavadora, armario no) y recorte también contra muros que invadan la huella. Hoy el comportamiento ya existe solo para columnas y cocina.
