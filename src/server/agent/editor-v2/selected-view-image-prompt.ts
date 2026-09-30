@@ -14,7 +14,10 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v9';
+/** La decoración añadida tiene que ser la de una casa habitada de verdad: sin objetos en sitios imposibles. */
+const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, fregaderos, inodoros, duchas ni escaleras; las plantas van en el suelo, en mesas, estanterías o jardineras, nunca sobre sillas, camas ni electrodomésticos; ningún mueble flota, atraviesa muros ni tapa puertas o ventanas. Si un objeto no tiene un sitio lógico, no lo añadas.';
+
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v10';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -106,6 +109,7 @@ export function selectedViewImagePrompt(
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),
     `${additions} ${placement} Mantén libres puertas, pasos, rampas y escaleras.`,
+    ...(options.freedom !== 'strict' ? [DECOR_SENSE_RULE] : []),
     'Prohibido: añadir otra vivienda, repetir o superponer el modelo, insertar la captura dentro de otra escena, collage, paneles, marcos, etiquetas, texto o cotas.',
     `Preferencias estéticas subordinadas a la fidelidad: ${JSON.stringify({ objective: objective.slice(0, 200), instruction: instruction.slice(0, 500) })}.`,
   ].join('\n');

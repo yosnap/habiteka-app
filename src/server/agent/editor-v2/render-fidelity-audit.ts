@@ -65,6 +65,7 @@ export async function assertRenderFidelity(
         ...(vehicleCount ? [`El plano contiene ${vehicleCount} coches. Si son visibles en la imagen 1, en la imagen 2 deben seguir siendo coches reconocibles; nunca sofás u otros muebles.`] : []),
         ...(strictExterior ? ['El usuario pidió fidelidad estricta. Si el fondo exterior de la captura es liso o neutro, NO es terreno modelado: rechaza si el candidato lo sustituye por suelo, desierto, césped, árboles, arbustos, horizonte, cielo, aparcamiento o caminos nuevos. Mejorar texturas sobre objetos ya visibles sí está permitido.'] : []),
         ...(mask ? ['Fuera del blanco debe quedar fondo gris claro vacío. Rechaza si aparecen otras zonas del inmueble, mobiliario, terreno o construcciones.'] : []),
+        'Rechaza decoración absurda aunque esté permitida: objetos sobre placas de cocina, fregaderos o inodoros; plantas sobre sillas, camas o electrodomésticos; muebles flotando, atravesando muros o tapando puertas o ventanas.',
         'No penalices diferencias normales de textura o decoración permitida. Ante duda sobre geometría o cámara, rechaza.',
         'Responde explícitamente cameraAndGeometryPreserved y objectIdentityPreserved. accepted solo puede ser true si ambos son true y no hay violaciones.',
       ].join('\n') },
