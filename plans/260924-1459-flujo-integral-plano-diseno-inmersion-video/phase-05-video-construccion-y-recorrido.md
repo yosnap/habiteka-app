@@ -69,6 +69,8 @@ Las cinco imágenes de referencia del resultado final no llegaron adjuntas en el
 2. **Instrucciones guardadas por el usuario:** además de las de «Instrucciones de diseño» por defecto, guardar las propias con nombre y reutilizarlas.
 3. **Configuración reutilizable entre inmuebles:** guardar toda la configuración del diálogo (luz, libertad y categorías, ámbito, vistas, tipo de espacio, estilo, objetivo, instrucciones) como plantilla por organización y aplicarla a otro proyecto. Pendiente de implementar tras las vistas interiores y el rediseño de fijos.
 
+**Vistas interiores por estancia (30-09-2026, 13:15):** 5 de 8 generadas (terraza, pasillo, baño, dormitorio, salón-cocina), fotorrealistas y fieles a la distribución; hoja en `plans/reports/demo-260930-interiores-rev144.jpg`. Las 3 restantes fallaron con «terminated» (la CDN de KIE cortó la conexión a mitad de descarga); se añade ese caso a los cortes transitorios con reintento y aviso claro. Gasto de la ronda ≈1,6 $ de 2,50 $.
+
 ### Puerta de homogeneidad antes del vídeo con IA (30-09-2026)
 
 Decisión de Paulo: el vídeo se hace con los diseños generados y, **antes de lanzarlo, el conjunto de imágenes tiene que ser homogéneo**; la confianza y la decisión las da **Jev**.
