@@ -135,6 +135,7 @@ export interface EditorShellProps {
     options?: RenderDesignOptions;
     batchId?: string;
     qualityAck: boolean;
+    styleAnchor?: boolean;
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado que ve el diálogo al abrirse. */

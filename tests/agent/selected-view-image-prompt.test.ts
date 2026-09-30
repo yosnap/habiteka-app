@@ -91,4 +91,15 @@ describe('instrucción de imagen basada en la captura', () => {
   it('no añade el contrato si el proyecto aún no tiene acabados', () => {
     expect(designContractRule(document)).toBeUndefined();
   });
+
+  // La ancla enseña materiales y ambiente de otra vista; nunca el encuadre.
+  it('describe la imagen ancla solo como referencia de estilo, con el número correcto', () => {
+    const conAncla = selectedViewImagePrompt(document, view, 'moderno', defaultRenderDesignOptions(), '', '', false, true);
+    expect(conAncla).toContain('La imagen 2 es otra vista ya aceptada del MISMO diseño');
+    expect(conAncla).toContain('SOLO como referencia de materiales');
+    expect(conAncla).toContain('no copies el encuadre');
+    const conMascara = selectedViewImagePrompt(document, view, 'moderno', { ...defaultRenderDesignOptions(), placement: 'selected', regions: [{ id: 's', name: 'S', polygon: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 10 }] }] }, '', '', true, true);
+    expect(conMascara).toContain('La imagen 3 es otra vista ya aceptada');
+    expect(selectedViewImagePrompt(document, view, 'moderno', defaultRenderDesignOptions(), '', '', false)).not.toContain('otra vista ya aceptada');
+  });
 });

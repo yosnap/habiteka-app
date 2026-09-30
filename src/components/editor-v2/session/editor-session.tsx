@@ -184,6 +184,7 @@ export function EditorSession({
     options?: import('@/lib/editor-document/render-design-options').RenderDesignOptions;
     batchId?: string;
     qualityAck: boolean;
+    styleAnchor?: boolean;
   }) => {
     const geometry = JSON.stringify({ ...store.getState().document, revision: 0 });
     await Promise.resolve();
@@ -206,6 +207,7 @@ export function EditorSession({
           options: input.options,
           batchId: input.batchId,
           qualityAck: input.qualityAck,
+          ...(input.styleAnchor ? { styleAnchor: true } : {}),
         },
       ),
     );

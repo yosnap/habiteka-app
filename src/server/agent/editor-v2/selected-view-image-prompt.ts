@@ -14,7 +14,7 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v8';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v9';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -29,6 +29,9 @@ export function designContractRule(document: EditorDocument): string | undefined
   if (!parts.length) return undefined;
   return `DISEÑO FIJADO, IGUAL EN TODAS LAS VISTAS. Acabados del proyecto — ${parts.join('; ')}. Esta imagen es solo una vista de un mismo diseño: usa exactamente estos materiales y los colores de la captura, sin cambiar el tono ni el material de ninguna superficie ni inventar variantes respecto a otras vistas.`;
 }
+
+/** La ancla es una vista ya aceptada del mismo diseño desde otra cámara: da materiales y ambiente, nunca encuadre. */
+const ANCHOR_RULE = (position: number) => `La imagen ${position} es otra vista ya aceptada del MISMO diseño, tomada desde otra cámara. Úsala SOLO como referencia de materiales, colores, acabados y ambiente. La cámara, la perspectiva y la geometría son las de la imagen 1: no copies el encuadre ni la composición de la imagen ${position}.`;
 
 function kitchenJointRule(document: EditorDocument, options: RenderDesignOptions): string | undefined {
   if (options.placement !== 'selected') return undefined;
@@ -55,6 +58,7 @@ export function selectedViewImagePrompt(
   objective: string,
   instruction: string,
   hasMask: boolean,
+  hasAnchor = false,
 ): string {
   if (!document.designSpaceKind) throw new Error('Define el tipo de espacio antes de generar esta vista.');
   if (options.placement === 'selected' && !hasMask)
@@ -97,6 +101,7 @@ export function selectedViewImagePrompt(
     `Mejora materiales, texturas, sombras y luz. ${sceneRule} ${hasMask ? 'Mantén gris claro y vacío el fondo exterior a la zona aislada.' : 'Mantén el fondo y la relación entre edificio y exterior.'}`,
     'Conserva las hojas de puerta con la apertura que muestra la captura. Exposición equilibrada: los vanos no son manchas de luz blanca; materiales y contornos nítidos, sin velo luminoso ni desenfoque artificial.',
     ...(contractRule ? [contractRule] : []),
+    ...(hasAnchor ? [ANCHOR_RULE(hasMask ? 3 : 2)] : []),
     ...(jointRule ? [jointRule] : []),
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),

@@ -77,6 +77,7 @@ interface EditorGenerateDialogProps {
     options?: RenderDesignOptions;
     batchId?: string;
     qualityAck: boolean;
+    styleAnchor?: boolean;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
   onCreateDesignZone?: (name: string, polygon: Point[]) => string;
@@ -149,6 +150,8 @@ export function EditorGenerateDialog({
   });
   const [prepared, setPrepared] = useState<RenderCapture[]>([]);
   const [batchId, setBatchId] = useState<string | null>(null);
+  // Apagada por defecto: la ancla da coherencia de estilo, pero en pruebas puede arrastrar geometría de otra cámara.
+  const [styleAnchor, setStyleAnchor] = useState(false);
   const [results, setResults] = useState<RenderGeneratedResult[]>([]);
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -299,6 +302,7 @@ export function EditorGenerateDialog({
           options,
           batchId: stableBatchId,
           qualityAck: quality.ack,
+          ...(styleAnchor && renderableCaptures.length > 1 ? { styleAnchor: true } : {}),
         }),
       shouldStop: () => stopRequested.current,
       onResult: (_result, _index, nextResults) =>
@@ -474,6 +478,13 @@ export function EditorGenerateDialog({
                 {prepared.length > 0 && (
                   <div className="text-ink-soft mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span>Estas vistas son capturas del 3D editable: no consumen créditos y coinciden entre sí.</span>
+                    {prepared.length > 1 && (
+                      <label className="flex w-full items-start gap-2">
+                        <input type="checkbox" checked={styleAnchor} disabled={busy}
+                          onChange={(event) => setStyleAnchor(event.target.checked)} />
+                        <span>Usar la primera imagen generada como referencia de estilo en las siguientes. Experimental: puede arrastrar geometría de otra cámara y hacer que se descarte una vista.</span>
+                      </label>
+                    )}
                     <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={downloadAll}>
                       Descargar {prepared.length > 1 ? `las ${prepared.length} vistas` : 'la vista'} (sin IA)
                     </Button>

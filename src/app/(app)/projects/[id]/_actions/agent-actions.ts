@@ -60,6 +60,7 @@ import { loadStudio, saveStudio } from '@/server/plan/studio-repo';
 import { assertFreePromptQuality } from '@/server/quality/instruction-gate';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { readRenderReference } from '@/server/agent/editor-v2/render-asset-reader';
+import { findBatchStyleAnchor } from '@/server/agent/editor-v2/batch-style-anchor';
 import { verifiedEditorDocument } from '@/server/agent/editor-v2/verified-editor-document';
 import { z } from 'zod';
 import type {
@@ -77,6 +78,8 @@ const conceptRenderSettingsSchema = z.object({
   batchId: z.string().uuid().optional(),
   /** Confirmación expresa del usuario cuando la puerta de calidad pide confirmar. */
   qualityAck: z.boolean().optional(),
+  /** Opt-in: las vistas siguientes de un lote reciben la primera ya guardada como referencia de estilo. */
+  styleAnchor: z.boolean().optional(),
 }).strict();
 
 /**
@@ -491,6 +494,7 @@ async function generateConceptRenderFromEditorImpl(
     options?: RenderDesignOptions;
     batchId?: string;
     qualityAck?: boolean;
+    styleAnchor?: boolean;
   },
 ): Promise<{ id: string; assetUrl: string; generation?: import('@/lib/contracts').ImageResult['generation'] }> {
   const ctx = await requireOrgContext();
@@ -548,8 +552,10 @@ async function generateConceptRenderFromEditorImpl(
     aspectRatio = framed.aspectRatio;
   }
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
+  // Solo si el usuario lo pide: la ancla da estilo, pero puede arrastrar geometría de otra cámara a la nueva vista.
+  const styleAnchor = parsedSettings.styleAnchor === true ? await findBatchStyleAnchor(projectId, parsedSettings.batchId) : null;
   const imagePrompt = selectedViewImagePrompt(
-    document, view, estilo, options, String(objetivo), String(promptLibre), Boolean(zoneMask),
+    document, view, estilo, options, String(objetivo), String(promptLibre), Boolean(zoneMask), Boolean(styleAnchor),
   );
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: parsedSettings.batchId }, 'render3d');
   const request = {
@@ -558,7 +564,8 @@ async function generateConceptRenderFromEditorImpl(
     // La zona aislada se acolcha sin deformarla y pide la misma relación al modelo.
     ...(aspectRatio ? { aspectRatio } : {}),
     referenceImages: [{ base64: reference.base64, mimeType: reference.mimeType },
-      ...(zoneMask ? [{ base64: zoneMask.base64, mimeType: zoneMask.mimeType }] : [])],
+      ...(zoneMask ? [{ base64: zoneMask.base64, mimeType: zoneMask.mimeType }] : []),
+      ...(styleAnchor ? [{ base64: styleAnchor.base64, mimeType: styleAnchor.mimeType }] : [])],
   };
   const result = await image.generate(request);
   const candidate = await readRenderReference(result);
