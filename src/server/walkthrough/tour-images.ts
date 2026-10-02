@@ -7,10 +7,10 @@ import type { EditorDocument } from '@/lib/editor-document/schema';
 import { WHOLE_PROPERTY, type TourImage } from '@/lib/editor-document/image-tour';
 import { renderRoomContext } from '@/lib/editor-document/render-room-context';
 import { renderViewSchema, type RenderView } from '@/lib/editor-document/render-view';
-import { renderReviewIssue, type RenderReview } from '@/lib/editor-document/render-review';
+import { acceptedRenderIssue, type RenderReview } from '@/lib/editor-document/render-review';
 
 interface RenderRow { id: string; payload: unknown; createdAt: Date }
-type Generation = { documentRevision?: number; view?: Partial<RenderView>; review?: RenderReview;
+type Generation = { documentRevision?: number; view?: Partial<RenderView>; review?: RenderReview; provider?: string; acceptance?: { acceptedAt: string; userId: string };
   options?: { freedom?: string; redesignFixed?: boolean; redesignInterior?: boolean; regions?: { name?: string }[]; designScope?: string; interiorRoomIds?: string[] } };
 
 /** Convierte los renders guardados en imágenes del montaje; descarta los que no tienen archivo servible. */
@@ -20,7 +20,7 @@ export async function tourImagesFromRows(rows: RenderRow[], readDocument?: (revi
     const payload = row.payload as { assetKey?: string; assetUrl?: string; generation?: Generation } | null;
     if (!payload || typeof payload !== 'object') return null;
     const generation = payload.generation ?? {};
-    if (renderReviewIssue(generation)) return null;
+    if (acceptedRenderIssue(generation)) return null;
     const url = await resolveRenderUrl(payload);
     if (!url) return null;
     const region = generation.options?.regions?.[0]?.name?.trim();

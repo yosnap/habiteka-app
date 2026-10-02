@@ -11,7 +11,7 @@ import type { DesignVideoReference } from '@/lib/editor-document/design-video';
 import { sameContentRevisions, tourImagesFromRows, tourDocumentReader, sameVisualDesignContent } from './tour-images';
 import { assessTourHomogeneity } from '@/lib/editor-document/image-tour';
 import { renderViewIntegrityIssue } from '@/lib/editor-document/render-view-integrity';
-import { renderReviewIssue } from '@/lib/editor-document/render-review';
+import { acceptedRenderIssue } from '@/lib/editor-document/render-review';
 import { renderViewSchema } from '@/lib/editor-document/render-view';
 import { designVisitContext } from '@/lib/editor-document/design-visit';
 
@@ -33,7 +33,7 @@ export async function designVideoSources(ctx: OrgContext, scope: EditorScope, ap
   const compatible = candidates.filter(row => valid.has(row.revision));
   if (ids && compatible.length !== ids.length) throw new Error('Hay imágenes sin ámbito registrado o de otra revisión. Usa los diseños de la aprobación vigente.');
   const ordered = ids ? ids.map(id => compatible.find(row => row.id === id)!) : compatible;
-  const issues = new Map(ordered.map(row => [row.id, renderReviewIssue(row.payload.generation)
+  const issues = new Map(ordered.map(row => [row.id, acceptedRenderIssue(row.payload.generation)
     ?? (approved ? renderViewIntegrityIssue(approved.document, row.payload.generation?.view) : null)]));
   if (ids) {
     const rejected = ordered.filter(row => issues.get(row.id));

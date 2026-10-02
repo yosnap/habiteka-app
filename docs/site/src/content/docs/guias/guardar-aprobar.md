@@ -17,7 +17,7 @@ El editor conserva y sincroniza tus cambios. El estado **Sincronizado** indica q
 4. En la ventana de revisión, comprueba la luz y pulsa **Confirmar aprobación**. La entrada desde Parcela real propone la luz de esa parcela.
 5. Se abre la copia conservada. **Ver aprobado** permite volver a ella desde el borrador, después de la primera aprobación. Si necesitas presentar los renders, utiliza **Vídeos con mis imágenes**.
 
-La visita y los vídeos nativos usan esa aprobación; el montaje compara con ella las revisiones de sus imágenes. Aprobar no genera imágenes ni vídeos. Editar después el borrador no modifica los resultados anteriores. Cambiar encaje, escenario o luz de parcela exige aprobar otra revisión para exportar con esos cambios. Las imágenes anteriores pueden requerir regeneración si dejan de corresponder al diseño aprobado.
+Esta aprobación fija la geometría y las medidas del plano guía; no acepta por sí sola las imágenes IA. Abre cada render en **Diseños** y pulsa **Aceptar este diseño** después de revisarlo. Vídeos y visitas finales deben partir de esas imágenes aceptadas y conservar sus muebles y acabados. Aprobar no genera imágenes ni vídeos. Editar el borrador no modifica los resultados anteriores; cambiar geometría, encaje o luz puede requerir nuevas imágenes coherentes y su aceptación.
 
 ## Si aparecen dos versiones
 

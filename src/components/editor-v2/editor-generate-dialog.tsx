@@ -681,7 +681,7 @@ export function EditorGenerateDialog({
           </p>
         )}
         {mode !== 'proposal' && <p className="text-ink-soft mt-4 text-xs">
-          {intent === 'image' ? 'Las imágenes no forman una escena navegable. La visita libre y los vídeos del plano 3D usan la versión editable aprobada; los clips desde tus diseños usan las imágenes seleccionadas y requieren revisión.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
+          {intent === 'image' ? 'El plano es una guía. Acepta el diseño generado en Diseños antes de usarlo en vídeos o visitas. Las imágenes por sí solas no forman una escena navegable; el paseo virtual continuo desde diseños sigue pendiente.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
         </p>}
         </div>
         <div className="mt-4 flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line pt-4">

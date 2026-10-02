@@ -36,14 +36,14 @@ export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, on
     <div className="mx-auto max-w-4xl space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div><h2 className="text-xl font-semibold">{gallery ? 'Vídeos guardados' : 'Publicidad con tus diseños'}</h2>
-          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí.' : clips ? 'Adapta un vídeo existente y revisa el anuncio antes de guardarlo.' : 'Selecciona imágenes de una misma versión. Se montan con movimiento suave y fundidos.'}</p></div>
+          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí. Las muestras 3D antiguas son archivo histórico del plano guía y no sirven como vídeos finales ni originales de publicidad.' : clips ? 'Adapta un vídeo desde diseños aceptados y revisa el anuncio antes de guardarlo.' : 'Selecciona diseños IA aceptados de una misma versión. Si falta alguno, abre la imagen en Diseños y acepta su diseño tras revisarlo.'}</p></div>
         <button type="button" className="rounded-control border border-line px-3 py-2 text-sm" disabled={loading} onClick={() => void refresh()}>{loading ? 'Cargando…' : 'Actualizar'}</button>
       </header>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!media && loading && <p role="status">Cargando los resultados de este inmueble…</p>}
       {media && !gallery && (clips ? <AdvertisingClipBuilder key={media.approvalId} scope={scope} approvalId={media.approvalId}
-        clips={media.videos.filter(video => video.url && video.mode !== 'advertising' && video.approvalId === media.approvalId
-          && (!video.designJob || video.designJob.status === 'accepted'))} disabled={!media.approvalId || media.approvalOutdated}
+        clips={media.videos.filter(video => video.url && video.approvalId === media.approvalId
+          && (video.mode === 'images' || video.designJob?.status === 'accepted'))} disabled={!media.approvalId || media.approvalOutdated}
         portalContainer={portalContainer} onBusyChange={onBusyChange} onCreated={() => void refresh()} />
         : <ImageTourBuilder key={media.approvalId} projectId={scope.projectId} zoneId={scope.zoneId ?? null} {...media}
           portalContainer={portalContainer} onBusyChange={onBusyChange} onReviewApproval={onReviewApproval} onCreated={refresh} />)}

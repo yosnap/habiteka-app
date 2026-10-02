@@ -1,5 +1,9 @@
 # Estudio de vídeos y galería de renders
 
+## Regla vigente: medios finales desde diseños aceptados
+
+Desde el 02/10/2026 se retira el 3D como alternativa de vídeo o inmersión final. El plano es guía. Aceptación humana independiente en `generation.acceptance`, revalidada en H3, montaje y anuncio. Estudio sin opciones nativas, combinado pendiente y acciones nativas antiguas bloqueadas. Las secciones siguientes conservan antecedentes históricos; no justifican ofrecer esa alternativa. Contrato vigente y límites: [Diseños aceptados como fuente](disenos-aceptados-como-fuente.md).
+
 ## Primera persona desde diseños — 02/10/2026
 
 La entrada a interiores desde este piloto añade `toma=una` y `luz` al enlace del editor: propone salón/estar o la primera estancia habitable, conserva la luz de la aprobación y permite ajustar antes de capturar. Los enlaces habituales sin estos parámetros mantienen todas las estancias habitables. La luz se valida contra los presets; parámetros desconocidos no cambian los ajustes. `design-video-sources` comprueba además la luz de cada interior contra la aprobación y produce `visitIssue` antes de preparar/enviar; no modifica la compatibilidad de construcción. Los textos del generador distinguen imágenes usadas por H3 de la escena navegable del modelo editable.

@@ -5,6 +5,12 @@ status: in-progress
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Decisión vigente — diseños aceptados como única fuente
+
+Corrección explícita del usuario el 02/10/2026: todo vídeo, primera persona, inmersión y visita virtual final debe partir de renders IA aceptados y conservar su mobiliario/apariencia con hiperrealismo de filmación real. El plano/3D son guías y no valen como entrega ni sustituto. Esta decisión sustituye las alternativas nativas descritas como avances históricos debajo. Se retiran del flujo; aceptación humana de imágenes obligatoria e independiente de auditoría automática. Sin interior aceptado o modalidad implementada, indicar pendiente y bloquear, no grabar el modelo.
+
+No cerrar fase por prompts, capturas del plano, compilaciones ni pruebas. Continúan pendientes derivación coherente de interiores, continuidad y visita libre desde diseños, combinado y verificación temporal/visual real. Fuente permanente: `AGENTS.md`; [contrato técnico](../../docs/disenos-aceptados-como-fuente.md).
+
 ## Publicidad vertical y panel de cotas — 02/10/2026
 
 Prioridad elegida por el usuario: publicidad vertical y cotas. Implementación de formato compartido 16:9/9:16, vista previa y guardado separados, y composición local desde vídeos existentes de la misma aprobación. H3 requiere aceptación previa. Se conserva audio y duración del original y se añade otro entregable con procedencia; no se generan clips de pago.

@@ -11,7 +11,7 @@ vi.mock('@/server/walkthrough/tour-images', () => ({ sameContentRevisions: mocks
 import { designVideoSources } from '@/server/walkthrough/design-video-sources';
 const scope = { projectId: 'project', zoneId: 'zone' }, ctx = { organizationId: 'org', userId: 'user', role: 'owner' as const };
 const row = (id = 'design', provider = 'kie') => ({ id, createdAt: new Date(), payload: { type: 'render3d', assetKey: 'renders/design.png',
-  generation: { provider, documentRevision: 7, batchId: 'batch', view: { preset: 'top', ceilingView: 'hidden' },
+  generation: { provider, acceptance: { userId: 'user', acceptedAt: '2026-10-02T16:00:00Z' }, documentRevision: 7, batchId: 'batch', view: { preset: 'top', ceilingView: 'hidden' },
     options: { ...defaultRenderDesignOptions(), placement: 'selected', regions: ['Patio', 'Baño exterior', 'Rampa', 'Escalera'].map((name, i) => ({ id: String(i), name,
       polygon: [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }] })) } } } });
 beforeEach(() => {
@@ -19,6 +19,13 @@ beforeEach(() => {
   mocks.load.mockResolvedValue({ authority: 'v2', document: {} }); mocks.revisions.mockResolvedValue([7]); mocks.tour.mockResolvedValue([]); mocks.list.mockResolvedValue([row()]);
 });
 describe('referencias del diseño para vídeo', () => {
+  it('bloquea diseños no aceptados aunque hayan pasado la generación y conserva su aviso en la lista', async () => {
+    const pending = row(); delete (pending.payload.generation as { acceptance?: unknown }).acceptance;
+    mocks.list.mockResolvedValue([pending]);
+    expect((await designVideoSources(ctx, scope)).references[0]?.issue).toContain('acepta su diseño');
+    await expect(designVideoSources(ctx, scope, 'approval', ['design'])).rejects.toThrow('acepta su diseño');
+    expect(mocks.tour).not.toHaveBeenCalled();
+  });
   it('un interior conserva la cámara verificada pero no sirve para primera persona si cambia la luz aprobada', async () => {
     const document = twoRoomDocument(), camera = roomInteriorCameras(document)[0]!.camera;
     const interior = row();

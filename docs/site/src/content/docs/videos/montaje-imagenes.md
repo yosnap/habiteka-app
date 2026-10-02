@@ -6,7 +6,7 @@ description: Crear una presentación MP4 con renders seleccionados.
 
 ## Requisitos
 
-Necesitas un diseño aprobado e imágenes generadas. Para presentar el conjunto, prepara al menos las vistas exteriores e interiores que quieras mostrar, con luz y estilo coherentes.
+Necesitas un plano guía aprobado e imágenes IA aceptadas explícitamente. Abre cada imagen en **Diseños**, revísala y pulsa **Aceptar este diseño**. Una auditoría automática favorable no equivale a aceptación. Las capturas nativas del plano y los diseños sin aceptación no aparecen como material del montaje.
 
 No mezcles imágenes que conservan el interiorismo con imágenes que lo rediseñan: el conjunto debe mostrar los mismos muebles y acabados desde sus distintas cámaras. El control del conjunto señala esta mezcla antes de crear el montaje.
 
@@ -36,12 +36,12 @@ Se aplican zoom lento y fundidos entre las imágenes. El montaje horizontal sin 
 
 El panel muestra **ancho, fondo y altura globales del diseño aprobado**, en metros; incluye las plantas y la cubierta. No son medidas de la habitación visible ni estimaciones sobre los píxeles del render. Se reserva un espacio separado para no tapar la casa. Las animadas se dibujan una a una; las de inicio desaparecen a los cuatro segundos y mantienen el espacio reservado para evitar saltos de encuadre.
 
-Estas cotas permanecen en pantalla: no siguen la cámara ni se ocultan detrás de paredes. El vídeo 3D nativo conserva sus cotas ancladas a la geometría. Revisa que las dimensiones del diseño aprobado sean correctas antes de publicar.
+Estas cotas permanecen en pantalla: no siguen la cámara ni se ocultan detrás de paredes. Revisa que las dimensiones del plano guía aprobado sean correctas antes de publicar; el mobiliario y el acabado proceden de los diseños aceptados.
 
 ## Publicidad con un vídeo guardado
 
 1. Abre **Crear vídeo → Publicidad → Vídeo guardado**.
-2. Elige un original de la misma aprobación: montaje, vídeo 3D o prueba H3 previamente **aceptada**. Los anuncios derivados no vuelven a utilizarse como originales para evitar duplicar sus cotas.
+2. Elige un original de la misma aprobación: montaje con diseños IA aceptados o prueba H3 previamente **aceptada**. Sus imágenes de origen deben seguir aceptadas. Los vídeos del plano 3D y los anuncios derivados no sirven como originales.
 3. Elige formato y medidas. Pulsa **Preparar vista previa del anuncio**.
 4. Reproduce el anuncio y pulsa **Guardar en Vídeos** o **Descargar MP4**. El original se conserva; el anuncio se guarda como otro archivo con su procedencia y opciones.
 

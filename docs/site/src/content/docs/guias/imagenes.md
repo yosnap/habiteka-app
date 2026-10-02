@@ -42,16 +42,18 @@ Al activar rediseño en un lote de varias vistas, las siguientes utilizan una vi
 - Los ajustes reutilizables ayudan a repetir tus preferencias; comprueba el contexto de cada inmueble.
 
 :::note
-La decoración añadida por IA a una imagen no se incorpora automáticamente al modelo 3D editable. La visita libre y los vídeos nativos muestran el 3D; el montaje y los clips desde tus diseños utilizan las imágenes seleccionadas. Los clips requieren revisar que conserven su mobiliario y distribución.
+El plano y su 3D son guías de geometría y medidas. Los vídeos y visitas finales deben conservar los renders IA aceptados, con sus muebles y acabados, aunque difieran del plano guía. No se ofrecen grabaciones del 3D como alternativa al diseño final.
 :::
 
 ## Preparar cobertura para un vídeo
 
 Genera exteriores y vistas interiores a altura de ojos de cada estancia. Un dron, una isométrica o una cenital no sustituyen un paseo interior. Mantén la misma versión, estilo y luz.
 
-Desde **Vídeos → Primera persona → Mis diseños → Crear vistas interiores**, se prepara una sola estancia y la luz aprobada para el piloto. Puedes cambiar la selección antes de preparar las capturas; el acceso habitual a generación mantiene la selección de todas las estancias habitables. Consulta [el piloto de primera persona](/videos/recorrido/#primera-persona-desde-tus-diseños-piloto-de-una-estancia).
+Desde **Vídeos → Primera persona → Revisar y aceptar diseños interiores**, abre los diseños finales existentes. Solo puede elegirse un interior IA aceptado y compatible. Crear una captura del plano no cumple ese requisito. Derivar nuevos interiores desde otras vistas aceptadas sigue pendiente. Consulta [el piloto de primera persona](/videos/recorrido/#primera-persona-desde-tus-diseños-piloto-de-una-estancia).
 
 ## Revisar antes de aceptar
+
+Abre una imagen en **Diseños** y pulsa **Aceptar este diseño** solo después de comprobar su arquitectura, mobiliario, acabados e hiperrealismo. Se registra tu decisión de forma independiente de la auditoría automática. **Retirar aceptación** impide nuevos vídeos y anuncios desde esa imagen; no elimina archivos ya guardados. Una variante nueva requiere otra aceptación. Las imágenes antiguas sin aceptación registrada deben revisarse: no se aceptan automáticamente ni se cobran por aceptarlas.
 
 Comprueba muros, distribución, puertas, ventanas, suelos, muebles relevantes y pérgolas. Rechaza pérdida o deformación de elementos aunque la imagen resulte atractiva. La vista debe mantener la identidad completa de la casa.
 

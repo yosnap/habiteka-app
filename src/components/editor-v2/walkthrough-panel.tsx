@@ -13,7 +13,7 @@ import styles from './ceiling-lighting.module.css';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { walkthroughBlockReport } from '@/lib/editor-document/walkthrough-block-report';
 
-export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignPoint, onOpenApprovedRoute, videoStudio, portalContainer }: {
+export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignPoint, onOpenApprovedRoute, portalContainer }: {
   store: EditorStore; onDraw: () => void; onLocate: () => void; onPreview: () => void;
   onDesignPoint?: (waypointId: string) => void; onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   videoStudio?: boolean; portalContainer?: HTMLElement | null;
@@ -37,7 +37,7 @@ export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignP
     if (route) state.apply(putWalkthrough(doc, { ...route, waypoints: route.waypoints.map((p) => p.id === id ? { ...p, ...patch } : p) }));
   });
   return <aside className={styles.panel} aria-label="Recorrido por el plano">
-    <p>{videoStudio ? 'Elige las estancias o dibuja puntos en el plano. Comprueba el paso en 3D y aprueba la revisión antes de pulsar «Crear vídeo».' : 'Crea un paseo de cámara por las habitaciones. Previsualízalo en 3D para comprobar el paso; para guardar un MP4, abre la versión aprobada del diseño.'} Las puertas de paso deben estar abiertas.</p>
+    <p>Este recorrido es una guía para comprobar pasos y geometría en el plano. Los vídeos y visitas finales parten de diseños IA aceptados. Las puertas de paso deben estar abiertas.</p>
     {!!doc.walkthroughs?.length && <label>Recorrido guardado (elige uno para recuperarlo)<ModernSelect portalContainer={portalContainer} popoverZIndex={200} value={route?.id ?? ''} onChange={(e) => state.setWalkthrough(e.target.value || null)}>
       <option value="">Elige un recorrido</option>{doc.walkthroughs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
     </ModernSelect></label>}
@@ -48,7 +48,7 @@ export function WalkthroughPanel({ store, onDraw, onLocate, onPreview, onDesignP
       <button type="button" disabled={!compiled.value || !!compiled.value.invalidSegments.length} onClick={onPreview}>Previsualizar en 3D</button>
       {onOpenApprovedRoute && <button type="button" className={styles.primary} disabled={openingApproved || !compiled.value || !!compiled.value.invalidSegments.length}
         onClick={() => { setOpeningApproved(true); void onOpenApprovedRoute(route.id).finally(() => setOpeningApproved(false)); }}>
-        {openingApproved ? 'Abriendo visita aprobada…' : 'Exportar vídeo de este recorrido'}
+        {openingApproved ? 'Abriendo guía aprobada…' : 'Ver guía aprobada'}
       </button>}
     </>}
     <fieldset disabled={state.readOnly}>

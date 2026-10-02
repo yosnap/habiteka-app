@@ -6,7 +6,6 @@ import { createEditorStore } from '@/canvas/editor-v2/store';
 import type { DraftScope } from '@/canvas/editor-v2/draft-contract';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { EditorSceneView } from '../scene/editor-scene-view';
-import { createWalkthroughVideoSaver } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ceilingSurfaces, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -50,11 +49,11 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
   return <section className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-emerald-900/15 bg-white">
     <header className="flex flex-wrap items-center gap-3 border-b border-emerald-900/15 px-4 py-3 text-sm">
       <div className="mr-auto">
-        <strong>Diseño aprobado · revisión {approval.revision}</strong>
-        <p className="text-xs text-slate-600">{new Date(approval.approvedAt).toLocaleString('es-ES')} · La visita y el vídeo usan esta versión.</p>
+        <strong>Plano guía aprobado · revisión {approval.revision}</strong>
+        <p className="text-xs text-slate-600">{new Date(approval.approvedAt).toLocaleString('es-ES')} · Guía de geometría y medidas. Vídeos y visitas usan los diseños IA aceptados.</p>
       </div>
       <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'plan'} onClick={() => setPresentation('plan')}>Plano visual</button>
-      <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'spatial'} onClick={() => setPresentation('spatial')}>3D y visita</button>
+      <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'spatial'} onClick={() => setPresentation('spatial')}>Guía 3D</button>
       <a className="rounded border px-3 py-2" href={visitHref}>Enlace de esta versión</a>
       {onOpenVideoStudio ? <button type="button" className="rounded-control bg-brand-600 px-3 py-2 text-white" onClick={onOpenVideoStudio}>Crear vídeo</button>
         : <Link className="rounded-control bg-brand-600 px-3 py-2 text-white" href={`/projects/${encodeURIComponent(scope.projectId)}/videos${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>Crear vídeo</Link>}
@@ -62,11 +61,11 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
     </header>
     {(approximate > 0 || uncoveredRooms.length > 0 || !routes.length) && <p className="border-b bg-amber-50 px-4 py-2 text-xs text-amber-950">
       {approximate > 0 && `${approximate} objetos usan una representación aproximada; no se presentan como producto exacto. `}
-      {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); la visita y el vídeo las muestran abiertas. `}
-      {!routes.length && 'Para grabar una visita del modelo 3D, dibuja un recorrido en el borrador y aprueba una nueva revisión. Para presentar tus renders, abre «Vídeos con mis imágenes». La promoción de la parcela usa su propio guion.'}
+      {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); revisa esta guía antes de preparar diseños. `}
+      {!routes.length && 'Los recorridos del plano sirven para comprobar geometría. Para crear vídeos, revisa y acepta los diseños IA en Diseños.'}
     </p>}
-    {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido del vídeo
-      <ModernSelect className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
+    {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido de la guía
+      <ModernSelect aria-label="Recorrido de la guía" className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
         {!routeId && <option value="">Selecciona un recorrido</option>}
         {routes.map((route) => <option key={route.id} value={route.id}>{route.name}</option>)}
       </ModernSelect>
@@ -75,7 +74,7 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
       <div className="min-w-0 flex-1">
         <EditorSceneView key={presentation} store={store} projectId={scope.projectId} presentation={presentation}
         lightingPreset={approval.lightingPreset} lightingLocked
-        onSaveNativeVideo={createWalkthroughVideoSaver(scope, approval.id)} />
+        allowVideoExport={false} />
       </div>
     </div>
   </section>;

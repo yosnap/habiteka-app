@@ -27,7 +27,7 @@ Abre **Parcela real**, carga la ortofoto y coloca el diseño. Si vas a sustituir
 
 ## 5. Guarda y aprueba
 
-Espera a **Sincronizado** y pulsa **Aprobar cambios**. Esa versión se conserva para la visita y las exportaciones nativas. Puedes seguir editando el borrador después. [Guardado y aprobación](/guias/guardar-aprobar/).
+Espera a **Sincronizado** y pulsa **Aprobar cambios**. Esa versión conserva geometría y medidas del plano guía. Acepta cada imagen IA por separado en Diseños antes de usarla en vídeos o visitas finales. Puedes seguir editando el borrador después. [Guardado y aprobación](/guias/guardar-aprobar/).
 
 ## 6. Crea imágenes o vídeos
 

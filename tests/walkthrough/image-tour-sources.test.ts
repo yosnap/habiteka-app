@@ -9,7 +9,7 @@ import { validatedImageTourSources } from '@/server/walkthrough/image-tour-sourc
 const ctx = { organizationId: 'org', userId: 'user' } as OrgContext;
 const scope = { projectId: 'project', zoneId: null };
 const row = (id: string, revision = 2, lighting = 'daylight') => ({ id, createdAt: new Date(), payload: {
-  generation: { documentRevision: revision, view: { preset: 'front', lighting }, options: { freedom: 'strict' } },
+  generation: { provider: 'kie', acceptance: { userId: 'user', acceptedAt: '2026-10-02T16:00:00Z' }, documentRevision: revision, view: { preset: 'front', lighting }, options: { freedom: 'strict' } },
 } });
 beforeEach(() => {
   vi.resetAllMocks();

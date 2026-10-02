@@ -72,6 +72,7 @@ export function designConstructionPrompt(lighting: ApprovedLightingPreset, setti
   const layoutIndex = layout ? references.indexOf(layout) + 1 : null;
   const exteriorIndex = references.findIndex(reference => reference.closedRoof);
   return [videoGenerationPrompt('construction', lighting, { ...settings.presentation, contentScope: 'all' }),
+    'Acabado hiperrealista, como una filmación real del diseño IA aceptado. No mostrar la maqueta del editor ni sustituir el diseño por un render conceptual del plano.',
     'El ámbito es exactamente el de las imágenes elegidas y sus selecciones de diseño, no solo las habitaciones cerradas. Construir también patios, baños exteriores, escaleras, descansillos, rampas, accesos y pérgolas que estén en esas referencias. No añadir el resto de la parcela ni ocultar las partes seleccionadas por estar al exterior.',
     `Zonas expresamente incluidas: ${zones.length ? zones.join(', ') : 'el ámbito completo mostrado en las referencias'}.`,
     ...references.map((image, index) => `Referencia ${index + 1}: ${image.name}; vista ${image.view}; función: ${designVideoReferenceRole(image, references)}.`),

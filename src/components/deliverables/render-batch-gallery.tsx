@@ -8,9 +8,11 @@ import { DeliverableActions } from './deliverable-actions';
 import { UseAsBackgroundButton } from './use-as-background-button';
 import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
 import { LegalSeal } from './legal-seal';
+import { RenderAcceptance } from './render-acceptance';
 
 export function RenderBatchGallery({ items, projectId }: { items: DeliverableView[]; projectId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [acceptances, setAcceptances] = useState<Record<string, { accepted: boolean; version: number }>>({});
   const index = items.findIndex(item => item.id === selectedId), selected = items[index];
   const zones = [...new Set(items.map(item => renderImageLabel(item).zone))];
   const title = `Render 3D · ${zones.length > 3 ? `${zones.slice(0, 2).join(' / ')} y ${zones.length - 2} estancias más` : zones.join(' / ')}`;
@@ -57,6 +59,8 @@ export function RenderBatchGallery({ items, projectId }: { items: DeliverableVie
                 <button type="button" aria-label="Imagen siguiente" onClick={() => move(1)} className="absolute right-3 cursor-pointer rounded-full border bg-surface p-2 shadow"><ChevronRight size={20} /></button></>}
             </div>
             <div className="space-y-3 p-4 sm:p-5">
+              <RenderAcceptance key={`acceptance:${selected.id}`} item={selected} projectId={projectId} saved={acceptances[selected.id]}
+                onChanged={value => setAcceptances(current => ({ ...current, [selected.id]: value }))} />
               <DeliverableActions key={selected.id} projectId={projectId} deliverable={selected} highlightChanges={selected.quality?.decision === 'block'}
                 leadingAction={<UseAsBackgroundButton projectId={projectId} assetUrl={selected.payload.assetUrl} zoneId={selected.zoneId} deliverableId={selected.id} />} />
               {selected.quality && <QualityVerdictCard quality={selected.quality} compact />}

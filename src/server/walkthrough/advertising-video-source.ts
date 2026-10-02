@@ -8,6 +8,8 @@ import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { videoMeasurements } from '@/lib/editor-document/video-measurements';
 import { fail } from '@/server/errors/run-action';
 import { isDesignVideoMode } from '@/lib/editor-document/design-video';
+import { designVideoSources } from './design-video-sources';
+import { validatedImageTourSources } from './image-tour-sources';
 
 export async function advertisingVideoSource(ctx: OrgContext, scope: EditorScope, approvalId: string, sourceId: string) {
   const repo = withEditorDocuments(ctx), approved = await repo.readApproval(scope, approvalId), current = await repo.load(scope);
@@ -15,12 +17,15 @@ export async function advertisingVideoSource(ctx: OrgContext, scope: EditorScope
     fail('El diseño ha cambiado. Revisa la aprobación antes de preparar el anuncio.');
   const row = await prisma.deliverable.findFirst({ where: { id: sourceId, projectId: scope.projectId, zoneId: scope.zoneId ?? null,
     type: 'VIDEO', deletedAt: null, project: { organizationId: ctx.organizationId, deletedAt: null } } });
-  const payload = row?.payload as { assetKey?: string; approvalId?: string; approvedFingerprint?: string; durationMs?: number; mode?: string; status?: string } | undefined;
+  const payload = row?.payload as { assetKey?: string; approvalId?: string; approvedFingerprint?: string; durationMs?: number; mode?: string; status?: string; sourceIds?: string[]; sourceDeliverableIds?: string[] } | undefined;
   if (!payload?.assetKey || payload.approvalId !== approved.id || payload.approvedFingerprint !== approved.fingerprint)
     fail('El clip no pertenece a este diseño aprobado o no tiene archivo guardado.');
   if (payload.mode === 'advertising') fail('Elige el vídeo original para evitar duplicar sus medidas.');
+  if (payload.mode !== 'images' && !isDesignVideoMode(payload.mode)) fail('El vídeo del plano 3D no sirve como original: elige un vídeo desde diseños IA aceptados.');
   if (isDesignVideoMode(payload.mode) && payload.status !== 'accepted')
     fail('Revisa y acepta la fidelidad del clip H3 antes de usarlo en publicidad.');
+  if (payload.mode === 'images') await validatedImageTourSources(ctx, scope, approvalId, payload.sourceDeliverableIds ?? []);
+  else await designVideoSources(ctx, scope, approvalId, payload.sourceIds ?? []);
   if (!Number.isFinite(payload.durationMs) || payload.durationMs! <= 0 || payload.durationMs! > 110000)
     fail('El clip debe durar como máximo 110 segundos.');
   const url = await resolveRenderUrl(payload); if (!url) fail('El archivo del clip no está disponible.');

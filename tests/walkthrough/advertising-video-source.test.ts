@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import type { OrgContext } from '@/server/auth/org-context';
-const mocks = vi.hoisted(() => ({ approval: vi.fn(), load: vi.fn(), row: vi.fn(), url: vi.fn() }));
+const mocks = vi.hoisted(() => ({ approval: vi.fn(), load: vi.fn(), row: vi.fn(), url: vi.fn(), designs: vi.fn(), montage: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/server/editor/document-repo', () => ({ withEditorDocuments: () => ({ readApproval: mocks.approval, load: mocks.load }) }));
 vi.mock('@/server/db/prisma', () => ({ prisma: { deliverable: { findFirst: mocks.row } } }));
 vi.mock('@/server/storage/render-urls', () => ({ resolveRenderUrl: mocks.url }));
+vi.mock('@/server/walkthrough/design-video-sources', () => ({ designVideoSources: mocks.designs }));
+vi.mock('@/server/walkthrough/image-tour-sources', () => ({ validatedImageTourSources: mocks.montage }));
 import { advertisingVideoSource } from '@/server/walkthrough/advertising-video-source';
 const ctx = { organizationId: 'org', userId: 'user' } as OrgContext, scope = { projectId: 'project', zoneId: 'zone' };
 const payload = () => ({ assetKey: 'videos/org/project/source.mp4', approvalId: 'approval', approvedFingerprint: 'fingerprint', durationMs: 8000,
-  mode: 'construction-ai', status: 'accepted' });
+  mode: 'construction-ai', status: 'accepted', sourceIds: ['design'] });
 beforeEach(() => {
   vi.resetAllMocks();
   const document = emptyEditorDocument();
@@ -18,6 +20,22 @@ beforeEach(() => {
   mocks.row.mockResolvedValue({ payload: payload() }); mocks.url.mockResolvedValue('https://storage.example/source.mp4');
 });
 describe('procedencia del clip publicitario', () => {
+  it.each(['construction', 'walkthrough', 'showcase', 'promotion', undefined])('no admite el original nativo %s', async mode => {
+    mocks.row.mockResolvedValue({ payload: { ...payload(), mode } });
+    await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).rejects.toThrow(/plano 3D/);
+    expect(mocks.url).not.toHaveBeenCalled();
+  });
+  it('revalida la aceptación de fuentes H3 antes de servir el vídeo', async () => {
+    mocks.designs.mockRejectedValue(new Error('Aceptación retirada'));
+    await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).rejects.toThrow('Aceptación retirada');
+    expect(mocks.designs).toHaveBeenCalledWith(ctx, scope, 'approval', ['design']);
+    expect(mocks.url).not.toHaveBeenCalled();
+  });
+  it('revalida fuentes del montaje antes de publicidad', async () => {
+    mocks.row.mockResolvedValue({ payload: { ...payload(), mode: 'images', sourceDeliverableIds: ['image'] } });
+    await advertisingVideoSource(ctx, scope, 'approval', 'clip');
+    expect(mocks.montage).toHaveBeenCalledWith(ctx, scope, 'approval', ['image']);
+  });
   it('acepta H3 revisado y restringe la lectura al usuario, proyecto y zona', async () => {
     await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).resolves.toMatchObject({ durationMs: 8000 });
     expect(mocks.approval).toHaveBeenCalledWith(scope, 'approval');

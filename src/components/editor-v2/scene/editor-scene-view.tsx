@@ -103,7 +103,7 @@ function SceneView({
   videoStudio,
   projectId,
   presentation = 'spatial',
-  allowVideoExport = true,
+  allowVideoExport = false,
   onOpenApprovedRoute,
   lightingPreset = 'daylight',
   onLightingChange,
@@ -628,7 +628,7 @@ function SceneView({
         <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido 3D · MP4</button>
         <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Exportar muestra 3D · obra, vuelo y recorrido</button>
       </> : onOpenApprovedRoute && <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue)}
-        onClick={() => void onOpenApprovedRoute(route.id)}>Abrir visita aprobada para exportar vídeo</button>}
+        onClick={() => void onOpenApprovedRoute(route.id)}>Ver guía aprobada</button>}
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
       {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
@@ -774,7 +774,7 @@ function SceneView({
       interiorDisabledReason={allLevels ? 'Activa «Una planta» para entrar en una estancia' : null}
       onCamera={camera} onViewChange={camera} onMaquette={showMaquette} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
       onCeilingViewChange={(view) => store.getState().setCeilingView(view)} onEnterRoom={enterRoom}
-      canFreeWalk={interiorCameras.length > 0} onFreeWalk={enterFreeWalk}
+      canFreeWalk={false} onFreeWalk={enterFreeWalk}
       onExport={() => void exportNativeRender()} />}
     {freeWalk && <FreeWalkOverlay paused={walkPaused} controller={freeWalkController} document={document} start={freeWalk.start}
       viewMode={walkViewMode} onToggleView={toggleWalkView}
@@ -788,7 +788,7 @@ function SceneView({
       {coverage.emitting} de {coverage.enabled} luces iluminan en 3D (límite del navegador); el diseño con IA las usa todas.
       {' '}{inside ? 'Se priorizan las de la estancia en la que estás.' : 'Entra en una estancia para priorizar las suyas.'}
     </div>}
-    {presentation === 'spatial' && projectId && document.geographicSite && !freeWalk && !videoStudio && <div className="absolute bottom-28 left-4 z-10 max-w-md rounded border bg-white p-3 text-sm shadow">
+    {allowVideoExport && presentation === 'spatial' && projectId && document.geographicSite && !freeWalk && !videoStudio && <div className="absolute bottom-28 left-4 z-10 max-w-md rounded border bg-white p-3 text-sm shadow">
       <button type="button" className="rounded border px-3 py-2 disabled:opacity-50"
         disabled={!allowVideoExport || !!promotionIssue || !siteReady || recording || walking || exporting || !onSaveNativeVideo}
         onClick={() => void exportWalk('promotion')}>Muestra 3D sobre la parcela · 30 s · MP4</button>

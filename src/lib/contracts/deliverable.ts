@@ -37,6 +37,7 @@ export type DeliverablePayload =
         batchId?: string;
         referenceDesignId?: string;
         review?: import('@/lib/editor-document/render-review').RenderReview;
+        acceptance?: { acceptedAt: string; userId: string };
         /** Metadatos de composiciones anteriores; los nuevos diseños usan una sola imagen auditada. */
         zoneComposite?: { mode: string; coverage: number };
       };

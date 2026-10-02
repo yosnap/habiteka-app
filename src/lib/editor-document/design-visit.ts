@@ -37,7 +37,7 @@ export function defaultDesignVisitReferenceIds(references: readonly DesignVideoR
 export function designVisitPrompt(lighting: ApprovedLightingPreset, settings: DesignVideoSettings, references: readonly DesignVideoReference[]) {
   const seconds = constructionTiming(settings.presentation).durationMs / 1000;
   return [
-    `Vídeo de interiorismo en primera persona, una toma continua de ${seconds} segundos dentro de ${references[0]?.interiorRoomName ?? 'la estancia seleccionada'}. La casa ya está terminada; no mostrar construcción ni fases de obra.`,
+    `Vídeo hiperrealista de interiorismo en primera persona, como una filmación real, una toma continua de ${seconds} segundos dentro de ${references[0]?.interiorRoomName ?? 'la estancia seleccionada'}. La casa ya está terminada; no mostrar construcción ni fases de obra.`,
     'Las imágenes generadas son la fuente de apariencia y mobiliario. La referencia 1 fija la posición, cantidad, orientación, materiales y colores de camas, sofá, TV, cortinas y decoración. Las demás muestran el mismo interior; no fusionar diseños distintos ni recuperar muebles del plano editable.',
     ...references.map((reference, index) => `Referencia ${index + 1}: ${reference.interiorRoomName}; ${reference.view}.`),
     `Mantener la luz de las referencias (${lighting}) durante todo el clip. Cámara a altura de ojos, movimiento lento y corto desde el encuadre de la referencia principal, sin cortes, giros completos, vuelo aéreo, secciones, transparencias ni atravesar muros o muebles. Permanecer en la estancia; no inventar accesos, escaleras ni habitaciones fuera del encuadre.`,

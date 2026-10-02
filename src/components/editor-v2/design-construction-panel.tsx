@@ -9,7 +9,7 @@ import { DesignVideoTask } from './design-video-task';
 import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import Link from 'next/link';
-import { continueRenderBatchHref, interiorsEditorHref } from './auto-generate-request';
+import { continueRenderBatchHref } from './auto-generate-request';
 import { RenderCleanupCardActions, RenderCleanupToolbar, useRenderCleanup } from '@/components/deliverables/render-cleanup';
 import { VideoNameField } from '@/components/deliverables/video-name';
 import { defaultDesignVisitReferenceIds, designVisitSelectionIssue } from '@/lib/editor-document/design-visit';
@@ -73,13 +73,13 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
     {!media && !error && <p role="status">Cargando las tandas del diseño aprobado…</p>}
     {media && !media.references.length && <p role="status">No hay imágenes generadas compatibles con la revisión aprobada. Genera vistas del conjunto y del interiorismo antes de preparar la prueba.</p>}
     {!task && <RenderCleanupToolbar cleanup={cleanup} images={media?.references ?? []} disabled={busy} />}
-    {!task && visit && <div className="flex flex-wrap items-center gap-3">
-      {media ? <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={interiorsEditorHref(scope.projectId, scope.zoneId ?? null, undefined, { lighting: media.lighting, singleInterior: true })}>Crear vistas interiores</Link> : <Button variant="outline" disabled>Crear vistas interiores</Button>}
-      <Button variant="outline" size="sm" disabled={busy || cleanup.busy} aria-pressed={showOtherImages} onClick={() => setShowOtherImages(!showOtherImages)}>{showOtherImages ? 'Mostrar solo interiores' : 'Mostrar también otras vistas'}</Button>
-      <p className="text-xs text-ink-soft">Abrir el editor no genera ni cobra imágenes. Revisa la estancia, el estilo y el presupuesto antes de generar.</p>
+    {!task && <div className="flex flex-wrap items-center gap-3">
+      <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={`/projects/${scope.projectId}/deliverables${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>{visit ? 'Revisar y aceptar diseños interiores' : 'Revisar y aceptar diseños'}</Link>
+      {visit && <Button variant="outline" size="sm" disabled={busy || cleanup.busy} aria-pressed={showOtherImages} onClick={() => setShowOtherImages(!showOtherImages)}>{showOtherImages ? 'Mostrar solo interiores' : 'Mostrar también otras vistas'}</Button>}
+      <p className="text-xs text-ink-soft">Solo se usan diseños IA que hayas aceptado. Una captura del plano no sustituye ese diseño. Abrir Diseños no consume IA.</p>
     </div>}
     {!task && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-5">{visit && media && !groups.length && <p role="status" className="rounded-card border border-dashed border-line p-5 text-sm text-ink-soft">Todavía no hay vistas interiores compatibles. Abre «Crear vistas interiores», elige una estancia y prepara su diseño a altura de ojos con techo completo. Después vuelve aquí para preparar la toma.</p>}
+      <div className="space-y-5">{visit && media && !groups.length && <p role="status" className="rounded-card border border-dashed border-line p-5 text-sm text-ink-soft">Falta una imagen interior IA aceptada y compatible. Revísala en Diseños. No se genera un interior nuevo desde el plano como sustituto; la toma debe conservar el diseño aceptado. La derivación de nuevos interiores desde otras vistas aceptadas sigue pendiente.</p>}
       {groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy || cleanup.busy} className="space-y-3 rounded-card border border-line p-4">
         <legend className="px-1 text-sm font-semibold">Tanda {index + 1} · revisión {group[0]!.revision}</legend>
         <p className="text-sm text-ink-soft">{[...new Set(group.flatMap(reference => reference.zones))].join(', ') || group[0]!.name}</p>
