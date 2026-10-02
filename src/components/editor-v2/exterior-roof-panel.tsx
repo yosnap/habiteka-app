@@ -7,6 +7,7 @@ import { eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-
 import { ROOF_KIND_LABELS, setExteriorRoof, type ExteriorRoof } from '@/lib/editor-document/exterior-roof';
 import { exteriorRoofGeometry } from '@/lib/editor-document/exterior-roof-geometry';
 import { ModernSelect } from '@/components/ui/modern-select';
+import { House } from 'lucide-react';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { SiteAdjustmentControl } from './site-adjustment-control';
 
@@ -29,7 +30,7 @@ export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; on
     catch (error) { setNotice(error instanceof Error ? error.message : 'No se pudo guardar el tejado.'); }
   }
   return <Dialog.Root open={open} onOpenChange={setOpen}>
-    <Dialog.Trigger asChild><button type="button">Tejado</button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" data-project-menu-action><House size={18} />Tejado</button></Dialog.Trigger>
     <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[150] bg-black/50" />
       <Dialog.Content ref={setMenuContainer} onInteractOutside={event => event.preventDefault()}
         className="bg-surface text-ink fixed top-1/2 left-1/2 z-[151] flex max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border shadow-2xl [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50">

@@ -54,6 +54,8 @@ En macOS utiliza ⌘; en otros sistemas, Ctrl para los comandos de edición.
 
 Los sliders y botones −/+ ajustan zoom, escala, giros y dimensiones. Escribe una medida exacta y pulsa Enter o sal del campo para aplicarla. Los controles de zoom de parcela son independientes de los del lienzo del editor.
 
+**0**, **+** y **−** actúan sobre la vista activa: Plano 2D, Amueblado o Modelo 3D. **Espacio** conmuta Mano en Plano 2D y Amueblado sin cancelar el trazo o el objeto pendiente. Al colocar un objeto, **Escape** cancela primero su colocación y deja el catálogo abierto; otro Escape cierra el panel. Escape sigue disponible para salir de una operación aunque hayas desactivado los atajos; dentro de un campo o un diálogo respeta su interacción.
+
 ## Buscar en esta documentación
 
 Utiliza el buscador superior o ⌘/Ctrl + K. Es un atajo del sitio de documentación, no una herramienta de dibujo.

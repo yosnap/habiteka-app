@@ -24,7 +24,7 @@ export function CanvasSelectionMenu({ store, view, size }: {
   store: EditorStore; view: Point & { scale: number }; size: { width: number; height: number };
 }) {
   const state = useStore(store), id = state.selection.length === 1 ? state.selection[0] : undefined;
-  if (!id || state.tool !== 'select') return null;
+  if (!id || state.tool !== 'select' || state.sidePanel === 'inspector') return null;
   const doc = state.document, gateOwner = boundaryGateOwner(state.document, id), wall = doc.walls.find((w) => w.id === id);
   const opening = doc.openings.find((o) => o.id === id), stair = doc.stairs?.find((s) => s.id === id);
   const furniture = planObjects(doc).find((f) => f.id === id), ramp = doc.ramps?.find((r) => r.id === id), column = doc.columns?.find((c) => c.id === id);

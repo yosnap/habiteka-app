@@ -7,21 +7,21 @@ import type { QualityVerdict } from '@/lib/quality-verdict';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import {
-  Box,
+  BrainCircuit,
+  CheckCheck,
   Download,
-  LayoutGrid,
-  Save,
+  Eye,
+  Footprints,
+  Lightbulb,
   SlidersHorizontal,
-  Sparkles,
-  Square,
   Type,
-  Undo2,
-  Redo2,
   X,
 } from 'lucide-react';
 import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import { GeographicSitePanel } from './geographic-site-panel';
 import { ExteriorRoofPanel } from './exterior-roof-panel';
+import { EditorViewSwitch } from './editor-view-switch';
+import { viewForTool } from '@/canvas/editor-v2/view-mode';
 import type { EditorDocument, Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import {
@@ -52,7 +52,7 @@ import { VisibilityMenu, type EditorVisibility } from './visibility-menu';
 import { loadEditorPreferences, saveEditorPreferences } from './editor-preferences';
 import { CeilingLightingPanel } from './ceiling-lighting-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
-import { BuildingLevelMenu } from './building-level-menu';
+import { EditorProjectBar } from './editor-project-bar';
 import { SelectByKindMenu } from './select-by-kind-menu';
 import { FurnitureContextPanel } from './furniture-context-panel';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
@@ -185,8 +185,6 @@ export function EditorShell({
   generateDisabledReason,
   autoGenerate = null,
 }: EditorShellProps) {
-  const past = useStore(store, (s) => s.past.length),
-    future = useStore(store, (s) => s.future.length);
   const error = useStore(store, (s) => s.error),
     selection = useStore(store, (s) => s.selection);
   const designSpaceKind = useStore(store, (s) => s.document.designSpaceKind);
@@ -197,6 +195,7 @@ export function EditorShell({
   // luces comparten sitio y solo uno está abierto. El estado vive en el store.
   const sidePanel = useStore(store, (s) => s.sidePanel);
   const [construction, setConstruction] = useState(false);
+  const [constructionCategory, setConstructionCategory] = useState<'outdoor' | null>(null);
   const openPanel = useCallback((panel: SidePanelId) => {
     setConstruction(false);
     store.getState().openSidePanel(panel);
@@ -218,7 +217,10 @@ export function EditorShell({
   const sceneLighting = lightingPreset ?? localLighting;
   // Las herramientas de trazado conservan el lienzo técnico; muebles y selección se editan en la maqueta cenital.
   useEffect(() => store.subscribe((next, previous) => {
-    if (mode === 'visual' && next.tool !== previous.tool && next.tool !== 'select' && next.tool !== 'place-object') setMode('2d');
+    if (next.tool !== previous.tool) {
+      const nextMode = viewForTool(mode, next.tool);
+      if (nextMode !== mode) setMode(nextMode);
+    }
   }), [mode, store]);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [generateSetup, setGenerateSetup] = useState(autoGenerate);
@@ -352,7 +354,6 @@ export function EditorShell({
     store.getState().setTool(next);
     setConstruction(false);
     closePanel();
-    if (next !== 'select' && mode === '3d') setMode('visual');
     canvasHost.current?.querySelector<HTMLElement>('[aria-label="Lienzo del plano"]')?.focus();
   };
   const insertStair = (kind: Stair['kind']) =>
@@ -483,7 +484,7 @@ export function EditorShell({
     passage: 'Colocar hueco',
     measure: 'Medir distancia',
     'split-wall': 'Añadir esquina',
-    'place-object': 'Colocar copia',
+    'place-object': 'Colocar objeto · clic para colocar · Esc para cancelar',
     'light-strip': 'Dibujar tira LED · clics por tramos · Esc para terminar',
     'light-zone': 'Dibujar zona de luces sobre el plano · Esc para salir',
   } satisfies Record<EditorTool, string>;
@@ -491,7 +492,7 @@ export function EditorShell({
     const onShortcut = (event: KeyboardEvent) => {
       const target = event.target;
       if (
-        !shortcutsEnabled ||
+        event.defaultPrevented || document.querySelector('[aria-modal="true"]') ||
         (target instanceof HTMLElement &&
           (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable))
       )
@@ -500,10 +501,13 @@ export function EditorShell({
         command = event.metaKey || event.ctrlKey;
       // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
       if (event.key === 'Escape') {
+        if (state.pendingSpatial) { event.preventDefault(); state.cancelPendingSpatial(); return; }
+        if (state.tool !== 'select') state.setTool('select');
         if (state.selection.length) state.select([]);
         setConstruction(false); state.closeSidePanel();
         return;
       }
+      if (!shortcutsEnabled) return;
       if (!command && !event.altKey) {
         const shortcut = plainShortcutFor(event.key);
         const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
@@ -511,7 +515,7 @@ export function EditorShell({
         };
         const closePanels = () => { setConstruction(false); state.closeSidePanel(); };
         if (shortcut === 'furnish') { event.preventDefault(); if (readOnly) return; setConstruction(false); state.setTool('select'); state.openSidePanel('catalog'); return; }
-        if (shortcut === 'construct') { event.preventDefault(); setConstruction((open) => !open); state.closeSidePanel(); state.setTool('select'); return; }
+        if (shortcut === 'construct') { event.preventDefault(); setConstruction(!construction || constructionCategory === 'outdoor'); setConstructionCategory(null); state.closeSidePanel(); state.setTool('select'); return; }
         if (shortcut === 'snap') { event.preventDefault(); state.setSnap(!state.snap); return; }
         if (shortcut === 'pan') { event.preventDefault(); state.setPan(!state.pan); return; }
         if (shortcut === 'fit') { event.preventDefault(); state.requestView('fit'); return; }
@@ -522,7 +526,6 @@ export function EditorShell({
           event.preventDefault();
           if (readOnly && nextTool !== 'select') return;
           state.setTool(nextTool); closePanels();
-          if (nextTool !== 'select' && mode === '3d') setMode('visual');
           return;
         }
       }
@@ -585,62 +588,25 @@ export function EditorShell({
     };
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
-  }, [mode, readOnly, shortcutsEnabled, store]);
+  }, [construction, constructionCategory, mode, readOnly, shortcutsEnabled, store]);
   return (
     <section className={styles.shell} data-mode={mode} onPointerDownCapture={(event) => {
       if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
     }} aria-label={`Editor de ${projectName}`}>
-      <header className={styles.header}>
-        <div className={styles.identity}>
-          <strong>{projectName}</strong>
-          <span role="status">{saveStatus ?? 'Guardado no conectado'}</span>
-        </div>
-        <div className={styles.actions}>
-          {onOpenVideoStudio && <button type="button" onClick={onOpenVideoStudio}>Crear vídeo</button>}
-          <BuildingLevelMenu store={store} />
+      <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus}
+        onSave={onSave} saveEnabled={saveEnabled} onGenerate={() => openGenerate()}
+        canGenerate={!readOnly && Boolean(projectId && onGenerateDesign && onGenerateRender && generateEnabled)}
+        generateDisabledReason={generateDisabledReason} onOpenVideoStudio={onOpenVideoStudio}>
           <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
           <SelectByKindMenu store={store} />
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough'}
             onClick={() => { if (sidePanel === 'walkthrough') closePanel(); else openPanel('walkthrough'); }}>
+            <Footprints size={18} aria-hidden="true" />
             {sidePanel === 'walkthrough' ? 'Cerrar panel de recorrido' : 'Recorrido'}
           </button>
-          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}>Contexto IA</button>
+          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}><BrainCircuit size={18} aria-hidden="true" />Contexto IA</button>
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'ceiling'}
-            onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}>Techo y luces</button>
-          <button
-            type="button"
-            disabled={readOnly || !past}
-            onClick={() => store.getState().undo()}
-            aria-label="Deshacer"
-            title="Deshacer (⌘Z)"
-          >
-            <Undo2 size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            disabled={readOnly || !future}
-            onClick={() => store.getState().redo()}
-            aria-label="Rehacer"
-            title="Rehacer (⇧⌘Z)"
-          >
-            <Redo2 size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            disabled={
-              readOnly || !projectId || !onGenerateDesign || !onGenerateRender || !generateEnabled
-            }
-            onClick={() => openGenerate()}
-            title={
-              generateDisabledReason ??
-              (!onGenerateDesign
-                ? 'Generación IA no disponible en este documento'
-                : 'Generar diseño profesional desde este plano')
-            }
-          >
-            <Sparkles size={18} aria-hidden="true" />
-            <span>Diseñar con IA</span>
-          </button>
+            onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}><Lightbulb size={18} aria-hidden="true" />Techo y luces</button>
           <ExteriorRoofPanel store={store} onPreview={() => { store.getState().setCeilingView('solid'); setMode('3d'); }} />
           {projectId && <GeographicSitePanel store={store} projectId={projectId} readOnly={readOnly} approvalDisabled={approveDisabled}
             videoResultsHref={videoResultsHref} onOpenApproved={onOpenApproved} onReviewApproval={onApproveDesign ? () => {
@@ -655,60 +621,21 @@ export function EditorShell({
             <Download size={18} aria-hidden="true" />
             <span>Exportar plano</span>
           </button>}
-          <button
-            type="button"
-            className={styles.primary}
-            onClick={onSave}
-            disabled={readOnly || !onSave || !saveEnabled}
-            title={!saveEnabled ? 'No hay cambios pendientes de guardar' : undefined}
-          >
-            <Save size={18} aria-hidden="true" />
-            <span>Guardar</span>
-          </button>
-          {onApproveDesign && <button type="button" disabled={approveDisabled} onClick={onApproveDesign}>
+          {onApproveDesign && <button type="button" data-project-menu-action disabled={approveDisabled} onClick={onApproveDesign}>
+            <CheckCheck size={18} aria-hidden="true" />
             {approveLabel}
           </button>}
-          {onOpenApproved && <button type="button" onClick={onOpenApproved}>Ver aprobado</button>}
-        </div>
-      </header>
+          {onOpenApproved && <button type="button" data-project-menu-action onClick={onOpenApproved}><Eye size={18} aria-hidden="true" />Ver aprobado</button>}
+      </EditorProjectBar>
       <div className={styles.secondary}>
-        <div className={styles.viewSwitch} role="group" aria-label="Vista del espacio">
-          <button type="button" aria-pressed={mode === '2d'} onClick={() => setMode('2d')}>
-            <Square size={16} aria-hidden="true" />
-            Plano técnico
-          </button>
-          <button type="button" aria-pressed={mode === 'visual'} onClick={() => {
-            setConstruction(false);
-            setMode('visual');
-          }}>
-            <LayoutGrid size={16} aria-hidden="true" />
-            Plano visual
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === '3d'}
-            onClick={() => {
-              const state = store.getState(),
-                selectedIds = state.selection;
-              state.setTool('select');
-              state.select(selectedIds);
-              if (mode !== '3d') state.setCeilingView('hidden');
-              setConstruction(false);
-              if (state.sidePanel === 'catalog') state.closeSidePanel();
-              setMode('3d');
-            }}
-          >
-            <Box size={16} aria-hidden="true" />
-            3D
-          </button>
-        </div>
+        <EditorViewSwitch store={store} mode={mode} onChange={(next) => { setConstruction(false); setMode(next); }} />
         <span className={styles.currentTool} role="status">
           {readOnly ? 'Solo lectura' : toolLabel[tool]}
         </span>
         {tool !== 'select' && (
-          <button type="button" onClick={() => chooseTool('select')}>
+          <button type="button" onClick={() => tool === 'place-object' ? store.getState().cancelPendingSpatial() : chooseTool('select')}>
             <X size={16} aria-hidden="true" />
-            Finalizar
+            {tool === 'place-object' ? 'Cancelar colocación' : 'Finalizar'}
           </button>
         )}
         <button
@@ -759,28 +686,14 @@ export function EditorShell({
       <div className={styles.workspace}>
         <Toolbar
           store={store}
-          onTerrain={() => run(() => {
-            const state = store.getState();
-            if (state.readOnly) return;
-            const surface = suggestedTerrainSurface(state.document, newId());
-            state.apply(addTerrainSurface(state.document, surface));
-            state.setTool('select'); state.select([surface.id]);
-            setMode('visual'); openPanel('inspector');
-          })}
-          onPaving={() => run(() => {
-            const state = store.getState();
-            if (state.readOnly) return;
-            const surface = suggestedPavingSurface(state.document, newId());
-            state.apply(addTerrainSurface(state.document, surface));
-            state.setTool('select'); state.select([surface.id]);
-            setMode('visual'); openPanel('inspector');
-          })}
-          constructionOpen={construction}
+          exteriorOpen={construction && constructionCategory === 'outdoor'}
+          onExterior={() => { store.getState().setTool('select'); setConstructionCategory('outdoor'); setConstruction(!construction || constructionCategory !== 'outdoor'); closePanel(); }}
+          constructionOpen={construction && constructionCategory !== 'outdoor'}
           catalogOpen={sidePanel === 'catalog'}
           constructionButtonRef={constructionButton}
           onConstruction={() => {
             if (!construction) store.getState().setTool('select');
-            setConstruction(!construction);
+            setConstruction(!construction || constructionCategory === 'outdoor'); setConstructionCategory(null);
             closePanel();
           }}
           onCatalog={() => {
@@ -817,6 +730,24 @@ export function EditorShell({
         )}
         {construction && (
           <ConstructionMenu
+            key={constructionCategory ?? 'all'}
+            initialCategory={constructionCategory}
+          onTerrain={() => run(() => {
+            const state = store.getState();
+            if (state.readOnly) return;
+            const surface = suggestedTerrainSurface(state.document, newId());
+            state.apply(addTerrainSurface(state.document, surface));
+            state.setTool('select'); state.select([surface.id]);
+            setMode('visual'); openPanel('inspector');
+          })}
+          onPaving={() => run(() => {
+            const state = store.getState();
+            if (state.readOnly) return;
+            const surface = suggestedPavingSurface(state.document, newId());
+            state.apply(addTerrainSurface(state.document, surface));
+            state.setTool('select'); state.select([surface.id]);
+            setMode('visual'); openPanel('inspector');
+          })}
             readOnly={readOnly}
             onClose={closeConstruction}
             onImport={onImport}
@@ -839,7 +770,6 @@ export function EditorShell({
               if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
               // El elemento nuevo sigue al ratón y se coloca con un clic, igual que al pegar.
               const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
-              if (mode === '3d') setMode('visual');
               store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
             })}
           />
@@ -857,7 +787,6 @@ export function EditorShell({
                     // El mueble sigue al ratón y se coloca donde se hace clic, en lugar de aparecer en un hueco libre cualquiera.
                     const source = store.getState().document,
                       next = upgradeSpatialDocument(addFurniture(source, item, center));
-                    if (mode === '3d') setMode('visual');
                     store.getState().beginPlaceSpatial(next.furniture.at(-1)!);
                   })
                 }
@@ -867,7 +796,7 @@ export function EditorShell({
               <WalkthroughPanel store={store}
                 onOpenApprovedRoute={onOpenApprovedRoute}
                 onDesignPoint={!readOnly && generateEnabled && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined}
-                onDraw={() => { if (mode === '3d') setMode('visual'); store.getState().setTool('walkthrough'); }}
+                onDraw={() => store.getState().setTool('walkthrough')}
                 onLocate={() => setMode('2d')}
                 onPreview={() => { setMode('3d'); store.getState().setTool('select'); }} />
             )}

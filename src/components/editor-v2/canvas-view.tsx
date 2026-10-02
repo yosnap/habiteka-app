@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Line, Circle, Group, Rect, Text, Image as KonvaImage } from 'react-konva';
 import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
-import { fittedView, zoomedView } from '@/canvas/editor-v2/view-math';
+import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
 import type Konva from 'konva';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -95,9 +95,9 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
   const focusPoint = useStore(store, (s) => s.focusPoint);
   const [handledFocus, setHandledFocus] = useState(focusPoint);
-  if (active && size.width > 100 && size.height > 100 && focusPoint !== handledFocus) {
+  if (focusPoint !== handledFocus) {
     setHandledFocus(focusPoint);
-    if (focusPoint) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
+    if (active && focusPoint && size.width > 100 && size.height > 100) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
   }
   const pan = useStore(store, (s) => s.pan), setPan = (next: boolean) => store.getState().setPan(next);
   const [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
@@ -110,9 +110,9 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const [pointer, setPointer] = useState<Point | null>(null), [generation, setGeneration] = useState(0);
   const stage = useRef<Konva.Stage>(null);
   useEffect(() => {
-    if (size.width > 10 && size.height > 10)
+    if (active && size.width > 10 && size.height > 10)
       onCenter({ x: (size.width / 2 - view.x) / view.scale, y: (size.height / 2 - view.y) / view.scale });
-  }, [size, view, onCenter]);
+  }, [active, size, view, onCenter]);
   // External tool/permission transitions and undo invalidate only the uncommitted preview.
   useEffect(() => store.subscribe((next, previous) => {
     if (next.tool === 'split-wall' && previous.tool !== next.tool) stage.current?.container().parentElement?.focus();
@@ -127,10 +127,16 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       : '';
   }, [tool, readOnly]);
   // ResizeObserver is a real external subscription; callback-ref cleanup releases it on unmount.
+  const previousSize = useRef<{ width: number; height: number } | null>(null);
   const container = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) });
+      if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0) return;
+      const next = { width: entry.contentRect.width, height: entry.contentRect.height };
+      const previous = previousSize.current;
+      if (previous) setView((current) => resizedView(current, previous, next));
+      previousSize.current = next;
+      setSize(next);
     });
     observer.observe(node); return () => observer.disconnect();
   }, []);
@@ -263,7 +269,10 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
   return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
     onKeyDown={(e) => {
-      if (e.key === 'Escape') { cancel(); return; }
+      if (e.key === 'Escape') {
+        if (pendingSpatial) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
+        cancel(); return;
+      }
       if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
       if (!zoneTool.active) return;
       if (e.key === 'Enter') { e.preventDefault(); zoneTool.close(); }
@@ -407,28 +416,31 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>
     </Stage>}
-    {wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Cerrar habitación · prolongar pared existente sin añadir un tramo
     </div>}
-    {!wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && !wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {wallMagnet.kind === 'orthogonal' ? 'Imán activo · pared recta' : wallMagnet.kind === 'landing'
         ? 'Imán activo · borde del descansillo' : 'Imán activo · unir al vértice'}
     </div>}
     {!pan && (tool === 'wall' || tool === 'guard-wall') && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {wallPreview.anchor ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
-    {continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {tool === 'light-strip' ? (start ? 'Clic para alargar la tira · Esc para terminar' : 'Clic dentro de una estancia para empezar la tira · Esc para salir')
         : tool === 'kitchen' ? (start ? 'Clic para cerrar el tramo · Esc para salir' : 'Clic junto a un muro para comenzar · el mueble se pega a su cara') : start ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
-    {zoneTool.active && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && zoneTool.active && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {zoneTool.draft.parts.length ? `${zoneTool.draft.parts.length} partes marcadas · ${zoneTool.hint}` : zoneTool.hint}
     </div>}
-    {splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}
     </div>}
     {placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      Mueve la copia y haz clic para colocarla · Esc para cancelar
+      {pan ? 'Mano activa · desactívala para colocar el objeto' : 'Mueve el objeto y haz clic para colocarlo · Esc para cancelar'}
+    </div>}
+    {pan && !placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+      Mano activa · arrastra para desplazar la vista · Espacio para volver
     </div>}
     {!pan && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {readOnly ? 'Diseño aprobado · usa el borrador para hacer cambios' : presentation === 'visual' ? 'Añade desde Amueblar o Construir · arrastra para mover · selecciona para editar' : 'Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina'}
@@ -449,7 +461,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       <span>{Math.round(view.scale * 1000)}%</span>
       <button onClick={() => zoom(1.25)} aria-label="Acercar" data-tooltip={shortcutHint('Acercar', 'zoomIn')}><ZoomIn size={18} aria-hidden="true" /></button>
       <button onClick={fit} aria-label="Encuadrar" data-tooltip={shortcutHint('Encuadrar', 'fit')}><Maximize size={18} aria-hidden="true" /></button>
-      <button aria-pressed={pan} aria-label="Mano" data-tooltip={shortcutHint(pan ? 'Salir de mano' : 'Mano', 'pan')} onClick={() => { cancel(); setPan(!pan); }}><Hand size={18} aria-hidden="true" /></button>
+      <button aria-pressed={pan} aria-label="Mano" data-tooltip={shortcutHint(pan ? 'Salir de mano' : 'Mano', 'pan')} onClick={() => setPan(!pan)}><Hand size={18} aria-hidden="true" /></button>
       {(start || wallPreview.anchor) && <button onClick={cancel}>{wallPreview.anchor ? 'Finalizar paredes' : 'Cancelar trazo'}</button>}
       {splitting && <button onClick={cancel}>Cancelar esquina</button>}
       {zoneTool.active && <>

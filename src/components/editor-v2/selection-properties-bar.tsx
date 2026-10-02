@@ -1,135 +1,30 @@
 'use client';
-import { planObjects } from '@/lib/editor-document/boundary-types';
-
-import { elementName } from '@/lib/editor-document/element-classification';
+import { useMemo } from 'react';
 import { useStore } from 'zustand';
-import { AlignCenterHorizontal, Scissors, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import { deleteEntities, editDocument, newId } from '@/canvas/editor-v2/editing-operations';
-import { distance, wallPoints } from '@/lib/editor-document/geometry';
-import { applyCommand } from '@/lib/editor-document/commands';
-import { assertOpeningClearance, fillWallWithOpening } from '@/lib/editor-document/opening-clearance';
-import { openingConstruction, wallConstruction } from '@/lib/editor-document/construction-properties';
-import { setOpeningConstruction, setWallConstruction, updateRamp, updateStair } from '@/lib/editor-document/construction-commands';
-import type { EditorDocument } from '@/lib/editor-document/schema';
-import { updateFurniture } from '@/lib/editor-document/spatial-commands';
-import { furnitureSpatial } from '@/lib/editor-document/spatial-properties';
-import styles from './editor.module.css';
-import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
-import { CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
-import { isRampLanding } from '@/lib/editor-document/ramp-kind';
-import { DecimalStepper } from './decimal-stepper';
-import { CarpaSidesField } from './carpa-sides-field';
-
-type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
-
-function MeasureField({ label, value, minimum = .001, unit = 'm', onCommit }: { label: string; value: number; minimum?: number; unit?: string; onCommit: (n: number) => boolean }) {
-  return <label className={styles.measureField}><span>{label}</span><div>
-    <DecimalStepper label={`${label} (${unit})`} value={value} minimum={minimum} step={unit === 'm' ? .01 : 1} change={onCommit} />
-    <span>{unit}</span></div></label>;
-}
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { planElementIndex } from '@/lib/editor-document/plan-element-index';
+import { selectionPropertyScope } from '@/canvas/editor-v2/selection-properties';
+import styles from './selection-properties.module.css';
 
 export function SelectionPropertiesBar({ store, onProperties }: { store: EditorStore; onProperties: () => void }) {
   const doc = useStore(store, (state) => state.document), selection = useStore(store, (state) => state.selection);
-  const readOnly = useStore(store, (state) => state.readOnly), id = selection[0];
-  const wall = doc.walls.find((item) => item.id === id), opening = doc.openings.find((item) => item.id === id);
-  const floor = id?.startsWith('room:');
-  const furniture = planObjects(doc).find((item) => item.id === id);
-  const stair = doc.stairs?.find((item) => item.id === id);
-  const ramp = doc.ramps?.find((item) => item.id === id);
-  const landing = ramp && isRampLanding(ramp);
-  const rampDimensions: readonly (readonly [RampDimensionKey, string])[] = !ramp ? [] : landing
-    ? [['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['elevationMm', 'Cota superior desde suelo']]
-    : [['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
-  const spatial = furniture ?? stair ?? ramp;
-  if (!id) return null;
-  const label = floor ? 'Suelo' : wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
-    : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? elementName(furniture) : 'Selección';
-  const run = (operation: (current: EditorDocument) => EditorDocument) => {
-    try { const state = store.getState(); state.apply(operation(state.document)); return true; }
-    catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo editar la selección.'); return false; }
-  };
-  return <section className={styles.propertiesBar} aria-label="Medidas de selección">
-    <strong>{selection.length > 1 ? `${selection.length} elementos` : label}</strong>
-    <fieldset disabled={readOnly} className={styles.propertyMeasures}>
-      {spatial && (['x', 'y'] as const).map((key) => <MeasureField key={key} label={key.toUpperCase()} value={spatial[key] / 1000} minimum={-1000}
-        onCommit={(n) => run((current) => furniture ? updateFurniture(current, id, { [key]: n * 1000 })
-          : stair ? updateStair(current, id, { [key]: n * 1000 }) : updateRamp(current, id, { [key]: n * 1000 }))} />)}
-      {wall && <>
-        <MeasureField label="Curvatura" value={(wall.curveHeightMm ?? 0) / 1000} minimum={-1000}
-          onCommit={(n) => run((current) => setWallCurve(current, id, n * 1000))} />
-        <MeasureField label={wall.curveHeightMm ? 'Entre extremos' : 'Longitud'} value={distance(...wallPoints(doc, wall)) / 1000} onCommit={(n) => run((current) => {
-          const target = current.walls.find((item) => item.id === id)!;
-          const [a, b] = wallPoints(current, target), factor = n * 1000 / distance(a, b);
-          return applyCommand(current, { type: 'move-vertex', vertexId: target.endVertexId,
-            x: a.x + (b.x - a.x) * factor, y: a.y + (b.y - a.y) * factor });
-        })} />
-        <MeasureField label="Grosor" value={wall.thicknessMm / 1000} onCommit={(n) => run((current) => editDocument(current,
-          (next) => { for (const selectedId of selection) {
-            const selectedWall = next.walls.find((item) => item.id === selectedId);
-            if (selectedWall) selectedWall.thicknessMm = n * 1000;
-          } }))} />
-        <MeasureField label="Altura" value={wallConstruction(wall).heightMm / 1000}
-          onCommit={(n) => run((current) => setWallConstruction(current, id, { heightMm: n * 1000 }))} />
-        <MeasureField label="Cota base" value={(wall.baseElevationMm ?? 0) / 1000} minimum={0}
-          onCommit={(n) => run((current) => setWallConstruction(current, id, { baseElevationMm: n * 1000 }))} />
-      </>}
-      {opening && <>
-        <MeasureField label="Ancho" value={opening.widthMm / 1000} onCommit={(n) => run((current) => editDocument(current,
-          (next) => { const target = next.openings.find((item) => item.id === id)!;
-            target.widthMm = n * 1000; assertOpeningClearance(next, target); }))} />
-        <MeasureField label="Altura" value={openingConstruction(opening).heightMm / 1000}
-          onCommit={(n) => run((current) => setOpeningConstruction(current, id, { heightMm: n * 1000 }))} />
-        <MeasureField label="Elevación" value={openingConstruction(opening).elevationMm / 1000} minimum={0}
-          onCommit={(n) => run((current) => setOpeningConstruction(current, id, { elevationMm: n * 1000 }))} />
-        <button type="button" title="Estira la abertura de esquina a esquina del muro"
-          onClick={() => run((current) => fillWallWithOpening(current, id))}>Ocupar todo el muro</button>
-      </>}
-      {stair && ([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, text]) =>
-        <MeasureField key={key} label={text} value={stair[key] / 1000}
-          minimum={key === 'elevationMm' ? 0 : .01}
-          onCommit={(n) => run((current) => updateStair(current, id, { [key]: n * 1000 }))} />)}
-      {ramp && rampDimensions.map(([key, text]) =>
-        <MeasureField key={key} label={text} value={ramp[key] / 1000} minimum={key === 'elevationMm' ? 0 : .001}
-          onCommit={(n) => run((current) => updateRamp(current, id, { [key]: n * 1000 }))} />)}
-      {ramp?.route && <MeasureField label="Cota final tramo 2" value={(ramp.elevationMm + ramp.riseMm + ramp.route.secondRiseMm) / 1000}
-        minimum={(ramp.elevationMm + ramp.riseMm) / 1000 + .001} onCommit={(finalElevation) => run((current) => updateRamp(current, id, {
-          route: { ...ramp.route!, secondRiseMm: finalElevation * 1000 - ramp.elevationMm - ramp.riseMm },
-        }))} />}
-      {furniture && <>
-        {([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, text]) =>
-          <MeasureField key={key} label={text} value={({ ...furniture, ...furnitureSpatial(furniture) })[key] / 1000}
-            minimum={key === 'elevationMm' ? 0 : .001} onCommit={(n) => run((current) => updateFurniture(current, id, { [key]: n * 1000 }))} />)}
-        {furniture.kind === 'carpa' && <CarpaSidesField className={styles.measureField} value={furniture.rolledSides}
-          onChange={(rolledSides) => run((current) => updateFurniture(current, id, { rolledSides }))} />}
-      </>}
-      {(furniture || stair || ramp) && <MeasureField label="Ángulo" unit="°" minimum={-36000} value={(furniture ?? stair ?? ramp)!.rotation}
-        onCommit={(rotation) => run((current) => furniture ? updateFurniture(current, id, { rotation }) : stair ? updateStair(current, id, { rotation }) : updateRamp(current, id, { rotation }))} />}
-    </fieldset>
-    <div className={styles.propertyActions}>
-      {floor && <button type="button" disabled={readOnly} onClick={() => store.getState().setDetailPanel('paint')}>Acabados del suelo</button>}
-      {wall && <button type="button" disabled={readOnly} onClick={() => run((d) => setWallCurve(d, id,
-        wall.curveHeightMm ? 0 : defaultWallCurve(d, id)))}>{wall.curveHeightMm ? <StraightWallIcon size={20} aria-hidden="true" /> : <CurvedWallIcon size={20} aria-hidden="true" />}
-        {wall.curveHeightMm ? 'Pared recta' : 'Curvar pared'}</button>}
-      {(wall || opening || furniture || stair || ramp) && <>
-        <button type="button" disabled={readOnly}
-          onClick={() => { if (wall && selection.length > 1) onProperties(); else store.getState().setDetailPanel('paint'); }}>
-          {wall && selection.length > 1 ? 'Acabados' : 'Pintar'}
-        </button>
-        <button type="button" onClick={() => store.getState().setDetailPanel('comments')}>Comentarios ({doc.comments?.filter((c) => c.targetEntityId === id).length ?? 0})</button>
-      </>}
-      {opening && <button type="button" disabled={readOnly} onClick={() => run((current) => editDocument(current,
-        (next) => { const target = next.openings.find((item) => item.id === id)!;
-          target.position = .5; assertOpeningClearance(next, target); }))} title="Centrar en la pared" aria-label="Centrar en la pared">
-        <AlignCenterHorizontal size={20} aria-hidden="true" /></button>}
-      {wall && <button type="button" disabled={readOnly} title="Dividir pared por la mitad" aria-label="Dividir pared por la mitad"
-        onClick={() => run((current) => applyCommand(current, { type: 'split-wall', wallId: id, position: .5, vertexId: newId(), newWallId: newId() }))}>
-        <Scissors size={20} aria-hidden="true" /></button>}
-      <button type="button" onClick={onProperties} title="Más propiedades" aria-label="Más propiedades"><SlidersHorizontal size={20} aria-hidden="true" /></button>
-      <button type="button" disabled={readOnly} title="Eliminar selección" aria-label="Eliminar selección" onClick={() => {
-        if (run((current) => deleteEntities(current, selection))) store.getState().select([]);
-      }}><Trash2 size={20} aria-hidden="true" /></button>
-      <button type="button" title="Cerrar selección" aria-label="Cerrar selección" onClick={() => store.getState().select([])}><X size={20} aria-hidden="true" /></button>
+  const panel = useStore(store, (state) => state.sidePanel);
+  const index = useMemo(() => planElementIndex(doc, deriveRoomsSafe(doc)), [doc]);
+  const { multiple, mixed } = selectionPropertyScope(doc, selection);
+  if (!selection.length) return null;
+  const label = multiple ? `${selection.length} elementos seleccionados` : index.find((entry) => entry.id === selection[0])?.label ?? 'Elemento seleccionado';
+  return <section className={styles.summaryBar} aria-label="Selección actual">
+    <div className={styles.summary}>
+      <strong>{label}</strong>
+      <span>{mixed ? 'Elige un elemento en Propiedades para editarlo.' : multiple ? 'Revisa las propiedades comunes.' : 'Medidas, acabados y acciones en Propiedades.'}</span>
     </div>
+    <button type="button" className={styles.summaryAction} data-side-panel-toggle aria-pressed={panel === 'inspector'} onClick={onProperties}>
+      <SlidersHorizontal size={18} aria-hidden="true" />Propiedades
+    </button>
+    <button type="button" title="Quitar selección" aria-label="Quitar selección" onClick={() => store.getState().select([])}>
+      <X size={18} aria-hidden="true" />
+    </button>
   </section>;
 }

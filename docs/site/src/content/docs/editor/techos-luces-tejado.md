@@ -5,7 +5,7 @@ description: Distingue el techo interior del tejado exterior.
 
 ## Techo interior y falso techo
 
-Abre **Techo y luces** y elige una estancia interior cerrada. Puedes añadir techo, configurar acabado, descenso de falso techo y luminarias disponibles. Revisa alturas libres y posibles interferencias en 3D.
+Abre **Herramientas → Techo y luces** y elige una estancia interior cerrada. Puedes añadir techo, configurar acabado, descenso de falso techo y luminarias disponibles. Revisa alturas libres y posibles interferencias en **Modelo 3D**.
 
 Los focos empotrados requieren soporte de falso techo; las luces no deben invadir muebles altos ni quedar fuera de su estancia. Utiliza las comprobaciones del panel para corregir posiciones.
 
@@ -15,7 +15,7 @@ El editor permite material de la cara superior, acabado del canto y espesor de l
 
 ## Tejado exterior independiente
 
-1. Abre **Editor → Tejado**. En edificios de varias plantas, activa primero la planta que quieras cubrir.
+1. Abre **Editor → Herramientas → Tejado**. En edificios de varias plantas, activa primero la planta que quieras cubrir.
 2. Pulsa **Añadir tejado a las estancias interiores**. La cubierta inicial es plana.
 3. Elige **Plana**, **Una agua**, **Dos aguas** o **Cuatro aguas**. Ajusta pendiente y orientación si es inclinada.
 4. Ajusta alero, espesor, color y material. Los controles muestran su valor y unidad; puedes usar el slider o −/+.

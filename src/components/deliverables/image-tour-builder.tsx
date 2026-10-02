@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { assessTourHomogeneity, orderTourImages, pickTourImages, tourDurationMs, MAX_TOUR_SHOTS, missingTourAmbients, tourAmbientKey, type TourImage } from '@/lib/editor-document/image-tour';
 import { recordImageTour } from './record-image-tour';
 import { callAction } from '@/lib/action-result';
@@ -112,7 +113,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     } finally { setSaving(false); setProgress(null); abort.current = null; onBusyChange?.(false); }
   }
 
-  if (!images.length) return <div className="space-y-3"><p className="text-muted-foreground text-sm">Aún no hay imágenes generadas para montar el vídeo. Créalas desde «Diseñar con IA» en el editor.</p><RenderCleanupToolbar cleanup={cleanup} images={[]} /></div>;
+  if (!images.length) return <div className="space-y-3 rounded-card border border-dashed border-line bg-surface-muted p-8 text-center"><h3 className="font-semibold">Faltan diseños aceptados para tu anuncio</h3><p className="text-ink-soft text-sm">Abre tus imágenes en Diseños y acepta las que quieras incluir. Después vuelve a Vídeos.</p><Link className="inline-block rounded-control bg-brand-600 px-4 py-2 text-sm text-white" href={`/projects/${projectId}/deliverables${zoneId ? `?zona=${encodeURIComponent(zoneId)}` : ''}`}>Revisar mis diseños</Link></div>;
   return <section aria-label="Vídeo con las imágenes generadas" className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
     <h2 className="text-ink text-base font-semibold">Montaje con tus diseños generados</h2>
     <p className="text-ink-soft text-sm">Recorre las imágenes de cada ambiente con movimiento de cámara y fundidos. Sin consumo de IA.

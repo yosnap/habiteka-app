@@ -3,7 +3,23 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## En desarrollo — Constructor y navegación visual
+
+- **Lienzo y vistas:** paneles junto al lienzo o debajo en pantalla estrecha; controles de cámara accesibles. Cambiar de vista conserva la selección y Propiedades. Amueblado incorpora zoom, encuadre y Mano; editar medidas ya no reinicia la cámara 3D.
+- **Colocación continua:** Mano conserva la tarea activa, los objetos pendientes pueden pasar entre Plano 2D y Amueblado y cuentan con Cancelar colocación. Escape cancela el objeto sin cerrar el catálogo. Las vistas incompatibles con la herramienta actual se deshabilitan hasta finalizarla.
+- **Propiedades y selección:** panel persistente con Medidas, Acabados y Notas según el elemento. Dimensiones antes que posición y giro; acciones de pared, hueco y mueble reunidas. La barra inferior muestra un resumen y el menú del lienzo se oculta al abrir Propiedades. Buscar un elemento ya no cierra el panel.
+- **Selección múltiple más clara:** campos comunes con alcance explícito, aviso de valores del primer elemento y acceso a cada elemento de una selección mixta. Se conservan la validación de medidas y deshacer.
+- Catálogo **Amueblar** con tarjetas ilustradas por habitaciones y categorías, búsqueda, variantes y filtros de estancia/estilo. Permanece abierto al trabajar sobre el lienzo.
+- **Construir** organiza la estructura por tarjetas con iconos; **Exterior** ofrece acceso directo a jardín, terreno y pavimento.
+- Cabecera con planta, historial de edición, guardado, **Vídeos** y **Diseñar con IA**. **Herramientas** reúne preparación, parcela, tejado y aprobación. Vistas: **Plano 2D**, **Amueblado** y **Modelo 3D**.
+- Asistente y entrada del plano con tarjetas visuales y pasos diferenciados. Navegación del proyecto con iconos y sección activa visible.
+- Cursor de mano en botones, enlaces, tarjetas clicables y desplegables, incluidas sus opciones. Los estados deshabilitados conservan su indicación visual.
+
 ## En desarrollo — Publicidad y primera persona desde diseños
+
+- **Vídeos como página independiente**: conserva las pestañas del proyecto y ofrece **Volver al editor** y **Mis diseños**. Entrar o aprobar en el editor ya no cambia automáticamente a la guía aprobada.
+- **Preparación más clara**: construcción y primera persona se ordenan en elegir diseños, ajustar el vídeo y revisar antes de generar. Las imágenes incompatibles, la limpieza y los ajustes de calidad/sonido se despliegan cuando hacen falta. La pieza combinada aparece como pendiente.
+- **Revisión del plano**: muestra **Plano 2D**, **Modelo 3D** y un regreso explícito al editor. Los detalles de objetos aproximados y techos se agrupan en un apartado desplegable; los recorridos se activan por elección del usuario.
 
 - **Crear vídeo**: nombre opcional antes de crear y **Cambiar nombre** para resultados guardados. El selector de originales de publicidad utiliza esos nombres.
 - **Mis diseños**: limpieza individual desde la miniatura o por selección, incluidas imágenes rechazadas; papelera con restauración. Los vídeos guardados permanecen disponibles.
@@ -12,8 +28,7 @@ description: Funciones implementadas y trabajo pendiente.
 - **Primera persona** prepara una toma H3 de 8/12 s desde un interior IA aceptado con cámara verificable, misma luz, paredes y techo completos. **Revisar y aceptar diseños interiores** abre la galería. Derivar nuevos interiores desde otras vistas aceptadas, el paseo virtual continuo y la pieza combinada siguen pendientes; no se sustituyen por el plano.
 
 - **Publicidad**: formato horizontal 16:9 o vertical 9:16, con panel de ancho, fondo y altura del diseño aprobado. Medidas animadas, solo al inicio, fijas o desactivadas. Vista previa antes de guardar o descargar.
-- **Publicidad → Vídeo guardado**: compone otro anuncio desde un montaje, vídeo 3D o H3 aceptado de la misma aprobación, conservando audio, duración y original. Composición local sin nueva generación IA; el panel no sigue la cámara ni verifica la fidelidad del clip.
-- Exportación 3D con formato vertical opcional: conserva la vista completa con márgenes y sus cotas geométricas existentes.
+- **Publicidad → Vídeo guardado**: compone otro anuncio desde un montaje o H3 aceptado de la misma aprobación, conservando audio, duración y original. Composición local sin nueva generación IA; el panel no sigue la cámara ni verifica la fidelidad del clip.
 
 ## Versión 0.4.0 — 2 de octubre de 2026
 

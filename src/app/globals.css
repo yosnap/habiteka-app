@@ -119,6 +119,13 @@
 }
 
 @layer base {
+  /* Señal común de interacción, también para controles renderizados en portales. */
+  :is(button, a[href], summary, select, [role='button'], [role='tab'], [role='option'], [role='menuitem'], [role='checkbox'], [role='switch'], input[type='checkbox'], input[type='radio'], input[type='range'], input[type='submit']) {
+    cursor: pointer;
+  }
+  :is(:disabled, [aria-disabled='true']) {
+    cursor: not-allowed;
+  }
   * {
     @apply border-border outline-ring/50;
   }

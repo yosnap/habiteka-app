@@ -12,7 +12,7 @@ No mezcles imágenes que conservan el interiorismo con imágenes que lo rediseñ
 
 ## Crear el montaje
 
-1. Abre **Vídeos → Publicidad → Mis diseños**. El botón **Crear vídeo** del editor o de la vista aprobada abre el mismo estudio.
+1. Abre **Vídeos → Publicidad → Mis diseños**. El botón **Vídeos** del editor o **Crear vídeo** de la vista aprobada abre el mismo estudio.
 2. En **Montaje con tus diseños generados**, revisa la selección por ambiente.
 3. Marca las imágenes que quieres utilizar y revisa los avisos de ámbitos sin imagen, revisión o iluminación.
 4. Si lo necesitas, pulsa **Comprobar homogeneidad con Jev** y lee sus motivos.

@@ -5,8 +5,9 @@ import { ModernSelect } from '@/components/ui/modern-select';
 import { LIGHTING_LABELS, LIGHTING_PRESETS } from '@/lib/lighting-preset';
 import type { ApprovedLightingPreset } from '@/lib/editor-document/approved-design';
 
-export function ApprovalReviewDialog({ open, pending, error, lighting, onLightingChange, onClose, onConfirm }: {
+export function ApprovalReviewDialog({ open, pending, error, lighting, onLightingChange, onClose, onConfirm, confirmDisabled = false }: {
   open: boolean; pending: boolean; error: string | null; lighting: ApprovedLightingPreset;
+  confirmDisabled?: boolean;
   onLightingChange: (value: ApprovedLightingPreset) => void; onClose: () => void; onConfirm: () => void;
 }) {
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
@@ -27,7 +28,7 @@ export function ApprovalReviewDialog({ open, pending, error, lighting, onLightin
         {error && <p role="alert" className="rounded-lg bg-amber-100 p-3 text-sm text-amber-950">{error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" className="cursor-pointer rounded-lg border px-4 py-2 text-sm disabled:opacity-50" disabled={pending} onClick={onClose}>Cancelar</button>
-          <button type="button" className="cursor-pointer rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50" disabled={pending} onClick={onConfirm}>
+          <button type="button" className="cursor-pointer rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50" disabled={pending || confirmDisabled} onClick={onConfirm}>
             {pending ? 'Aprobando…' : 'Confirmar aprobación'}
           </button>
         </div>

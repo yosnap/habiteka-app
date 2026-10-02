@@ -6,6 +6,11 @@ export interface CanvasSize { width: number; height: number }
 
 export const DEFAULT_VIEW: CanvasViewState = { x: 80, y: 80, scale: .08 };
 
+/** Conserva el punto central y la escala al abrir un panel o redimensionar. */
+export function resizedView(view: CanvasViewState, previous: CanvasSize, next: CanvasSize): CanvasViewState {
+  return { ...view, x: view.x + (next.width - previous.width) / 2, y: view.y + (next.height - previous.height) / 2 };
+}
+
 /** Zoom alrededor de un punto de pantalla (por defecto el centro), acotado a la escala útil. */
 export function zoomedView(view: CanvasViewState, factor: number, size: CanvasSize, point: Point = { x: size.width / 2, y: size.height / 2 }): CanvasViewState {
   const scale = Math.min(.5, Math.max(.015, view.scale * factor));

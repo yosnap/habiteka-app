@@ -42,7 +42,7 @@ it('seleccionar un muro no abre el lateral; Propiedades se abre a petición', ()
   store.getState().select(['muro-2']);
   expect(store.getState().sidePanel).toBe('inspector');
   store.getState().select([]);
-  expect(store.getState().sidePanel).toBeNull();
+  expect(store.getState().sidePanel).toBe('inspector');
 });
 
 it('elegir un techo abre Techo y luces, pero otro elemento no abre Propiedades', () => {

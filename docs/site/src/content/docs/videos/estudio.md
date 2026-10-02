@@ -5,7 +5,19 @@ description: Preparar construcción, publicidad o recorrido desde el estudio de 
 
 ## Abrir el estudio
 
-En cualquier proyecto, abre la pestaña **Vídeos**, o pulsa **Crear vídeo** en el editor o en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
+En cualquier proyecto, abre la pestaña **Vídeos**, el botón **Vídeos** de la cabecera del editor o **Crear vídeo** en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
+
+Vídeos es una página propia: no abre un modal sobre el plano. Las pestañas del proyecto siguen visibles. **Volver al editor** regresa a la edición y **Mis diseños** abre la galería para revisar y aceptar imágenes. Al entrar en el editor se mantiene la edición; la revisión aprobada solo se abre cuando la solicitas.
+
+Elige **Construcción**, **Publicidad** o **Primera persona**. La pieza combinada se indica como pendiente, sin un botón que parezca disponible. **Vídeos guardados** reúne los resultados existentes.
+
+Si falta una versión aprobada o ha cambiado el proyecto, **Revisar versión del proyecto** abre su confirmación de luz y versión dentro de Vídeos. Esto no acepta las imágenes por ti: cada render se revisa y acepta en Diseños.
+
+Para construcción y primera persona, sigue tres pasos en la misma página:
+
+1. **Elige los diseños**: aparecen primero las imágenes utilizables. Si faltan, abre **Revisar y aceptar diseños**. En **Gestionar imágenes y ver las no disponibles** puedes mostrar las demás y limpiar la galería.
+2. **Ajusta el vídeo**: escribe un nombre y elige duración. Despliega **Calidad, sonido e indicaciones** para personalizarlo.
+3. **Revisa antes de generar**: consulta el coste previsto y pulsa **Revisar vídeo antes de generar**. Este paso prepara las referencias sin consumir IA; el envío de pago requiere su confirmación posterior.
 
 | Opción | Qué produce | Qué necesita |
 |---|---|---|
@@ -23,7 +35,7 @@ Todos los vídeos y visitas finales deben conservar los renders IA que hayas ace
 
 El campo **Nombre del vídeo (opcional)** está en los ajustes antes de preparar o crear cualquier modalidad. Admite hasta 100 caracteres. Si lo dejas vacío, se utiliza la etiqueta automática. En **Vídeos guardados → Cambiar nombre** puedes renombrar los resultados existentes; el nombre también aparece al elegir **Publicidad → Vídeo guardado**, en Diseños y en el Historial. Las tareas H3 en curso conservan sus controles de seguimiento: espera a que terminen para renombrarlas.
 
-En **Construcción → Mis diseños**, **Primera persona → Mis diseños** y **Publicidad → Mis diseños** puedes limpiar las imágenes:
+En construcción y primera persona, despliega **Gestionar imágenes y ver las no disponibles**. En publicidad, utiliza **Mis diseños**. Puedes limpiar las imágenes:
 
 - Para quitar una sola, pasa el puntero por su miniatura y pulsa el icono de papelera. También está disponible al enfocar la tarjeta con el teclado; en pantallas táctiles se muestra directamente.
 - Para quitar varias, pulsa **Limpiar imágenes**, marca las casillas de eliminación y pulsa **Mover N a la papelera**. Estas casillas son distintas de las que eligen referencias para generar un vídeo.
@@ -37,7 +49,7 @@ Puedes quitar cualquier imagen mostrada, aunque no sea válida para el vídeo. D
 1. Abre cada referencia en **Diseños** y pulsa **Aceptar este diseño** tras revisarla. Elige **Construcción** en Vídeos. La selección inicial propone una cenital (o isométrica/dron si falta) y un exterior cerrado de la tanda más reciente compatible con la aprobación. Puedes añadir vistas de apoyo de esa tanda. H3 admite de una a nueve imágenes. El piloto exige una misma tanda, al menos una cenital, isométrica o dron del conjunto y una vista del exterior con fachadas completas y cubierta visible.
 2. Comprueba las miniaturas y **Se incluye**. Se utilizan las selecciones guardadas con cada render, incluidas zonas exteriores, escaleras y rampas. No se aplica el recorte de estancias cerradas «Solo la casa». Si faltan zonas, completa las referencias del diseño antes de generar.
 3. Elige **8 s** o **12 s**, calidad **768P** para un piloto económico o **2K**, sonido solicitado e indicaciones. Se pide que los muros crezcan consecutivamente en tres segundos; el modelo debe demostrar que respeta ese ritmo.
-4. Pulsa **Preparar prueba H3**. Este paso guarda imágenes, ámbito, versión, guion y coste previsto; no envía medios a KIE ni consume IA.
+4. Pulsa **Revisar vídeo antes de generar**. Este paso guarda imágenes, ámbito, versión, guion y coste previsto; no envía medios a KIE ni consume IA.
 5. Revisa las imágenes y el guion preparado. **Modificar selección y guion** permite volver a los ajustes antes del envío. Confirma el envío de esas imágenes a **KIE/MiniMax**, incluida la parcela si aparece en ellas, y el presupuesto. Pulsa **Generar prueba H3** para iniciar un único intento de pago.
 6. Tras el envío aparece **Consultar resultado sin regenerar**, también disponible en **Vídeos guardados**. Recupera la tarea existente; no crea otro clip. Cuando termina, el MP4 se archiva en el proyecto y queda **Pendiente de revisar**.
 7. Reproduce todo el clip y acepta o rechaza la prueba. Comprueba todas las zonas, tejado, aleros, pérgolas, huecos y muebles, también antes de colocar la cubierta. Cuenta los muebles repetidos y revisa que no aparezcan jardines o construcciones ajenos a las referencias. Comprueba el crecimiento individual de los muros y el orden de los acabados: el guion no garantiza los tiempos. Rechazar conserva el MP4, no inicia otro intento ni garantiza devolución del coste del proveedor.
@@ -70,7 +82,7 @@ En publicidad, utiliza imágenes IA aceptadas o un montaje/H3 aceptado de esos d
 
 El panel de cotas muestra medidas globales del plano guía aprobado; no decide el mobiliario ni reconstruye el movimiento de cámara del vídeo. Las cotas geométricas con oclusiones sobre clips IA siguen pendientes.
 
-**Construcción + visita** y la visita virtual continua no se pueden crear todavía sobre diseños aceptados. El estudio lo indica y permite preparar por separado construcción y una toma interior. No ofrece grabar el 3D como sustituto.
+**Construcción + visita** y la visita virtual continua no se pueden crear todavía sobre diseños aceptados. El estudio las marca como pendientes; puedes elegir por separado construcción o primera persona.
 
 ## Hiperrealismo y revisión
 

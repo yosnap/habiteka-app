@@ -9,7 +9,7 @@ Ten a mano el plano o las medidas reales y una idea del estilo que buscas. Para 
 
 ## 1. Prepara el proyecto
 
-Abre o crea un proyecto desde **Proyectos**. En **Asistente**, explica el tipo de inmueble, tu objetivo, el estilo y qué debe conservarse.
+Abre o crea un proyecto desde **Proyectos**. En **Asistente**, elige una tarjeta para empezar desde una foto o un plano y sigue los pasos de tipo de inmueble, objetivo, estilo y elementos que deben conservarse. Si ya has dibujado el plano, al final de la página está **Revisar un plano que ya has dibujado**.
 
 ## 2. Prepara el plano
 
@@ -17,17 +17,17 @@ Si tienes una foto o PDF, abre **Plano** y sigue [Importar un plano](/guias/impo
 
 ## 3. Completa el inmueble
 
-En **Editor**, revisa paredes, puertas, ventanas, plantas, suelos, acabados y muebles. **Construir**, **Amueblar** y **Propiedades** reúnen sus herramientas. Usa **Medir** para las distancias y **3D** para comprobar la distribución y el paso entre estancias.
+En **Editor**, revisa paredes, puertas, ventanas, plantas, suelos, acabados y muebles. **Construir** presenta las categorías de estructura; **Amueblar** organiza el catálogo por habitaciones y categorías; **Exterior** reúne jardín, terreno y pavimento. **Propiedades** muestra los ajustes de la selección. Usa **Medir** para las distancias y **Modelo 3D** para comprobar la distribución y el paso entre estancias.
 
-Configura [Techos y luces](/editor/techos-luces-tejado/). Un falso techo no define el tejado exterior.
+Desde **Herramientas**, configura [Techos y luces](/editor/techos-luces-tejado/) y **Tejado**. Un falso techo no define el tejado exterior.
 
 ## 4. Prepara la parcela, si la necesitas
 
-Abre **Parcela real**, carga la ortofoto y coloca el diseño. Si vas a sustituir una construcción, delimita la zona que tapa la casa anterior. Revisa escala, orientación, acceso, escenario y luz. [Guía de parcela](/guias/parcela-real/).
+Abre **Herramientas → Parcela real**, carga la ortofoto y coloca el diseño. Si vas a sustituir una construcción, delimita la zona que tapa la casa anterior. Revisa escala, orientación, acceso, escenario y luz. [Guía de parcela](/guias/parcela-real/).
 
 ## 5. Guarda y aprueba
 
-Espera a **Sincronizado** y pulsa **Aprobar cambios**. Esa versión conserva geometría y medidas del plano guía. Acepta cada imagen IA por separado en Diseños antes de usarla en vídeos o visitas finales. Puedes seguir editando el borrador después. [Guardado y aprobación](/guias/guardar-aprobar/).
+Espera a **Sincronizado** y abre **Herramientas → Aprobar diseño** o **Aprobar cambios**. Esa versión conserva geometría y medidas del plano guía. Acepta cada imagen IA por separado en Diseños antes de usarla en vídeos o visitas finales. Puedes seguir editando el borrador después. [Guardado y aprobación](/guias/guardar-aprobar/).
 
 ## 6. Crea imágenes o vídeos
 

@@ -19,7 +19,7 @@ import type { LightZoneMode } from './light-zone-draw';
 export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling';
 
 /**
- * Una selección normal solo actualiza la barra de medidas: abrir Propiedades
+ * Una selección normal solo actualiza el resumen: abrir Propiedades
  * automáticamente desplaza o tapa el plano al primer clic. El lateral se abre
  * a petición; una luz o un techo sí lleva a «Techo y luces».
  */
@@ -27,9 +27,8 @@ export function sidePanelForSelection(
   current: EditorSidePanel | null,
   options: { hasSelection: boolean; lighting: boolean },
 ): EditorSidePanel | null {
-  // Quedarse sin selección solo cierra Propiedades: «Techo y luces» deselecciona
-  // por su cuenta al cambiar de ámbito o de estancia y debe seguir abierto.
-  if (!options.hasSelection) return current === 'inspector' ? null : current;
+  // El inspector conserva el buscador al pulsar en un espacio vacío del lienzo.
+  if (!options.hasSelection) return current;
   if (options.lighting) return 'ceiling';
   if (current === 'ceiling') return null;
   return current;
@@ -134,11 +133,11 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       set({ lightZoneDraw: { mode, zoneId } });
     },
     detailPanel: null,
-    setDetailPanel: (detailPanel) => set({ detailPanel }),
+    setDetailPanel: (detailPanel) => set({ detailPanel, ...(detailPanel && get().sidePanel !== 'ceiling' ? { sidePanel: 'inspector' as const } : {}) }),
     sidePanel: null,
-    openSidePanel: (sidePanel) => set({ sidePanel }),
-    closeSidePanel: () => set({ sidePanel: null }),
-    toggleSidePanel: (panel) => set({ sidePanel: get().sidePanel === panel ? null : panel }),
+    openSidePanel: (sidePanel) => set({ sidePanel, detailPanel: null }),
+    closeSidePanel: () => set({ sidePanel: null, detailPanel: null }),
+    toggleSidePanel: (panel) => set({ sidePanel: get().sidePanel === panel ? null : panel, detailPanel: null }),
     readOnly: options.readOnly ?? false,
     // Al cargar se sanea sin contar como edición: no se guarda hasta que el usuario cambie algo.
     document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(initial), { onLoad: true })), past: [], future: [], selection: [],
@@ -186,7 +185,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     },
     beginPlaceSpatial: (item) => {
       if (get().readOnly) return;
-      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', error: null });
+      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', pan: false, error: null });
     },
     placePendingSpatial: (item) => {
       const state = get();
@@ -238,7 +237,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       const lighting = selection.length > 0 && selection.some((id) =>
         (document.luminaires?.some((light) => light.id === id) ?? false)
         || (document.ceilings?.some((ceiling) => ceiling.id === id) ?? false));
-      set({ selection, sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: selection.length > 0, lighting }) });
+      set({ selection, detailPanel: null, sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: selection.length > 0, lighting }) });
     },
     // Cambiar de herramienta deja la ranura como estaba salvo Propiedades, que se
     // queda sin selección que mostrar; «Techo y luces» sigue abierto porque es

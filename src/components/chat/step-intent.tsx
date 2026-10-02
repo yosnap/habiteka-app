@@ -8,6 +8,8 @@
  * guarda en el servidor (`set-intent`) para retomarla al recargar.
  */
 import type { AssistantIntent } from '@/lib/contracts';
+import { ArrowRight, ScanLine } from 'lucide-react';
+import { CatalogRoomArt } from '@/components/editor-v2/catalog-room-art';
 
 interface Props {
   /** Ruta ya elegida (al volver a cambiarla), para marcarla como seleccionada. */
@@ -18,14 +20,12 @@ interface Props {
 
 const OPTIONS: ReadonlyArray<{
   intent: AssistantIntent;
-  icon: string;
   title: string;
   summary: string;
   bullets: readonly string[];
 }> = [
   {
     intent: 'design',
-    icon: '📷',
     title: 'Crear un diseño a partir de una foto',
     summary:
       'Súbeme una foto de la estancia tal y como está y te propongo cómo puede quedar con el estilo que elijas.',
@@ -37,7 +37,6 @@ const OPTIONS: ReadonlyArray<{
   },
   {
     intent: 'plan',
-    icon: '📐',
     title: 'Convertir mi plano al editor',
     summary:
       'Súbeme el plano en planta de tu vivienda y lo paso a muros, puertas, ventanas y estancias editables.',
@@ -53,7 +52,7 @@ export function StepIntent({ intent, pending, onPick }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
-        <h2 className="text-ink text-base font-semibold">¿Qué quieres hacer?</h2>
+        <h2 className="text-ink text-2xl font-semibold">Tu próximo espacio empieza aquí</h2>
         <p className="text-ink-soft text-sm">
           Elige por dónde empezamos. Podrás cambiar de idea más adelante sin perder lo que hayas
           hecho.
@@ -70,22 +69,22 @@ export function StepIntent({ intent, pending, onPick }: Props) {
               disabled={pending}
               aria-pressed={selected}
               onClick={() => onPick(option.intent)}
-              className={`rounded-card border p-4 text-left transition-colors ${
+              className={`group overflow-hidden rounded-2xl border p-2 text-left transition-all focus-visible:outline-2 focus-visible:outline-brand-500 ${
                 selected
                   ? 'border-brand-500 bg-brand-50'
-                  : 'border-line bg-surface hover:border-brand-500'
+                  : 'border-line bg-surface hover:border-brand-500 hover:shadow-lg'
               } ${pending ? 'cursor-default opacity-60' : 'cursor-pointer'}`}
             >
-              <p className="mb-1 text-2xl" aria-hidden>
-                {option.icon}
-              </p>
-              <h3 className="text-ink text-sm font-semibold">{option.title}</h3>
-              <p className="text-ink-soft mt-1 text-xs">{option.summary}</p>
-              <ul className="text-ink-soft mt-2 list-disc space-y-0.5 pl-4 text-xs">
+              <div className="mb-4 grid h-40 place-items-center overflow-hidden rounded-xl bg-sky-50" aria-hidden="true">
+                {option.intent === 'design' ? <div className="w-full max-w-64"><CatalogRoomArt room="salon" /></div> : <div className="rotate-[-6deg] rounded-2xl border-2 border-sky-200 bg-white p-5 shadow-sm"><ScanLine size={84} className="text-sky-600" strokeWidth={1} /></div>}
+              </div>
+              <div className="px-3 pb-3"><h3 className="text-ink text-base font-semibold">{option.title}</h3>
+              <p className="text-ink-soft mt-2 text-sm leading-relaxed">{option.summary}</p>
+              <ul className="text-ink-soft mt-3 list-disc space-y-1 pl-4 text-xs">
                 {option.bullets.map((bullet) => (
                   <li key={bullet}>{bullet}</li>
                 ))}
-              </ul>
+              </ul><span className="mt-5 flex items-center justify-between text-sm font-semibold text-brand-700">{pending ? 'Preparando…' : 'Empezar'}<ArrowRight size={18} /></span></div>
             </button>
           );
         })}

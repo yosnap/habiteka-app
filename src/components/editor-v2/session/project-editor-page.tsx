@@ -13,8 +13,8 @@ import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { loadRenderBatchContinuation } from '@/server/agent/editor-v2/render-batch-continuation';
 import { UserFacingError } from '@/server/errors/user-facing-error';
 
-export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId, openVideoStudio, continuationId }: {
-  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string; openVideoStudio?: boolean; continuationId?: string;
+export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId, continuationId }: {
+  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string; continuationId?: string;
 }) {
   const ctx = await requireOrgContext();
   const project = await withOrg(ctx).projects.findById(projectId);
@@ -74,7 +74,6 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
       approvedDesign={approvedDesign}
       autoOpenApproved={Boolean(approvedId)}
       reference={reference}
-      openVideoStudio={openVideoStudio}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {
         fingerprint: source.legacyFingerprint,

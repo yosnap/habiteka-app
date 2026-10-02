@@ -6,38 +6,41 @@ import { BoundaryFields } from './boundary-fields';
 import { KitchenFields } from './kitchen-fields';
 import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { MousePointer2, Search } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import { applyCommand } from '@/lib/editor-document/commands';
-import { distance, wallPoints } from '@/lib/editor-document/geometry';
-import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance';
 import { deleteEntities, editDocument, interiorPoint, newId } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
-import { editableOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
-import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
+import { deleteOutdoorRoom, editableOutdoorRoom } from '@/lib/editor-document/outdoor-editing';
+import { editSelectionProperties, selectionPropertyScope, selectPropertyElement } from '@/canvas/editor-v2/selection-properties';
 import { floorFinish, setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
-import { furnitureSpatial } from '@/lib/editor-document/spatial-properties';
-import { isWindowDressing, windowCoverage } from '@/lib/editor-document/furniture-profiles';
 import { MeterField, NumberField } from './property-number-field';
-import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields, WallConstructionFields } from './construction-fields';
+import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields } from './construction-fields';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
 import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
-import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
+import { updateColumn } from '@/lib/editor-document/construction-commands';
 import { CarpaSidesField } from './carpa-sides-field';
 import { TerrainFields } from './terrain-fields';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
+import properties from './selection-properties.module.css';
+import { PropertySection } from './property-section';
+import { WallProperties } from './wall-properties';
+import { FurnitureProperties } from './furniture-properties';
+import { ElementDetailsPanel } from './element-details-panel';
+import { FloorFinishPanel } from './floor-finish-panel';
+import { SelectionElementActions } from './selection-element-actions';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const readOnly = useStore(store, (s) => s.readOnly);
-  const [mergeId, setMergeId] = useState(''), [query, setQuery] = useState(''), id = selection[0];
+  const [query, setQuery] = useState(''), id = selection[0];
+  const detailPanel = useStore(store, (s) => s.detailPanel);
   const gateOwner = boundaryGateOwner(doc, id), slotOwner = kitchenSlotOwner(doc, id), partOwner = gateOwner ?? slotOwner;
   const wall = doc.walls.find((w) => w.id === id), furniture = planObjects(doc).find((f) => f.id === id) ?? gateOwner?.boundary ?? slotOwner?.run;
   const opening = doc.openings.find((o) => o.id === id), label = doc.labels.find((o) => o.id === id);
@@ -55,21 +58,10 @@ export function Inspector({ store }: { store: EditorStore }) {
     if (existing) { if (text) existing.text = text; else next.labels = next.labels.filter((item) => item.id !== existing.id); }
     else if (text) next.labels.push({ id: newId(), ...interiorPoint(room.boundary), text });
   }));
-  // Con varios elementos del mismo tipo seleccionados, cada cambio del inspector se repite en todos ellos.
-  const peers = id ? bulkPeers(doc, id, selection) : [];
-  const selectedWallIds = wall ? [wall.id, ...peers.filter((peerId) => doc.walls.some((item) => item.id === peerId))] : [];
+  const { multiple, mixed, peers } = selectionPropertyScope(doc, selection);
+  const selectedWallIds = wall && !mixed ? [wall.id, ...peers] : [];
   const allFacades = selectedWallIds.length > 1 && selectedWallIds.every((wallId) => facadeIds.has(wallId));
-  const apply = (operation: (current: EditorDocument) => EditorDocument) => {
-    try {
-      const current = store.getState().document, next = operation(current);
-      store.getState().apply(id && peers.length ? propagateToPeers(current, next, id, peers) : next);
-      return true;
-    }
-    catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Valor inválido'); return false; }
-  };
-  const meterField = (text: string, valueMm: number, edit: (next: EditorDocument, n: number) => void) =>
-    <MeterField label={text} valueMm={valueMm} change={(n) => apply((d) => editDocument(d, (next) => edit(next, n)))} />;
-  const points = wall ? wallPoints(doc, wall) : null;
+  const apply = (operation: (current: EditorDocument) => EditorDocument) => editSelectionProperties(store, operation);
   const selectedEntity = wall ?? opening ?? stair ?? ramp ?? column ?? furniture;
   const updateName = (value: string) => apply((document) => editDocument(document, (next) => {
     const entity = [...next.walls, ...next.openings, ...(next.stairs ?? []), ...(next.ramps ?? []), ...(next.columns ?? []), ...planObjects(next)]
@@ -82,11 +74,19 @@ export function Inspector({ store }: { store: EditorStore }) {
   // Ir a un elemento: lo selecciona y centra el lienzo en él.
   const goTo = (entryId: string) => {
     const entry = index.find((item) => item.id === entryId);
-    store.getState().setTool('select'); store.getState().select(entry ? [entry.id] : []);
+    selectPropertyElement(store, entry?.id ?? '');
     if (entry) store.getState().focusOn(entry.point);
     setQuery('');
   };
+  const title = gateOwner ? 'Puerta del cerramiento' : slotOwner ? 'Aparato de cocina' : wall ? 'Pared' : column ? 'Columna' : furniture ? elementName(furniture) : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : room ? outdoor ? 'Patio / terraza' : 'Habitación' : label ? 'Texto' : 'Elemento';
+  const appearance = !mixed && (room || wall || (!multiple && (opening || (furniture && !partOwner) || stair)));
+  const comments = !multiple && (wall || opening || (furniture && !partOwner) || stair);
+  const mode = detailPanel === 'paint' && appearance ? 'paint' : detailPanel === 'comments' && comments ? 'comments' : null;
+  const selectedRooms = rooms.filter((item) => selection.includes(item.id));
+  const canDelete = selectedRooms.length === 0 || (selection.length === 1 && outdoor);
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
+    <details key={id ? 'selected' : 'empty'} open={!id || undefined} className={properties.searchToggle}>
+      <summary>{id ? 'Buscar o cambiar de elemento' : 'Buscar en el plano'}</summary>
     <label className={`${styles.field} ${styles.search}`}>Buscar en el plano
       <span><Search size={14} aria-hidden="true" /><input type="search" value={query} placeholder="Pared, patio, sofá…" aria-label="Buscar elemento del plano"
         onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && matches[0]) goTo(matches[0].id); if (event.key === 'Escape') setQuery(''); }} /></span>
@@ -100,89 +100,86 @@ export function Inspector({ store }: { store: EditorStore }) {
       <option value="">Selecciona un elemento</option>
       {index.map((entry) => <option key={entry.id} value={entry.id}>{entry.label} · {entry.group}</option>)}
     </ModernSelect></label>
-    <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
-    <h2>{gateOwner ? 'Puerta del cerramiento' : slotOwner ? 'Aparato de cocina' : wall ? 'Muro' : column ? 'Columna' : furniture ? elementName(furniture) : opening ? 'Abertura' : stair ? 'Escalera' : ramp ? isRampLanding(ramp) ? 'Descansillo' : 'Rampa' : room ? outdoor ? 'Patio / terraza' : 'Estancia' : label ? 'Texto' : 'Propiedades'}</h2>
-    {!id && <p>Selecciona un elemento para editar sus medidas. Todas las distancias se expresan en metros.</p>}
-    {peers.length > 0 && <p className={styles.bulkNotice} role="status">{peers.length + 1} elementos seleccionados: cada cambio se aplica a todos.</p>}
+    </details>
+    {!id ? <div className={properties.empty}>
+      <MousePointer2 size={28} aria-hidden="true" />
+      <h2>Selecciona lo que quieres editar</h2>
+      <p>Pulsa una pared, el suelo de una habitación, una puerta o un mueble. También puedes buscarlo por su nombre.</p>
+      <p>Mayús, Ctrl o Cmd añaden elementos a la selección. Las medidas del panel se expresan en metros.</p>
+    </div> : <>
+      <div className={properties.identity}>
+        <h2>{multiple ? `${selection.length} elementos seleccionados` : title}</h2>
+        {(multiple || index.find((entry) => entry.id === id)?.label !== title) && <span>{multiple ? 'Selección múltiple' : index.find((entry) => entry.id === id)?.label ?? selectedEntity?.name ?? title}</span>}
+      </div>
+      {multiple && <>
+        <p className={styles.bulkNotice} role="status">{mixed
+          ? 'Esta selección combina tipos distintos o elementos sin edición conjunta. Elige uno para ver sus propiedades.'
+          : 'Los campos comunes se aplican a toda la selección. Se muestran los valores del primer elemento; pueden diferir entre elementos.'}</p>
+        <details className={properties.searchToggle} open={mixed || undefined}>
+          <summary>Editar un elemento de la selección</summary>
+          <div className={properties.selectionList}>{selection.map((selectedId, i) => {
+            const entry = index.find((item) => item.id === selectedId);
+            return <button key={selectedId} type="button" onClick={() => selectPropertyElement(store, selectedId)}>
+              {entry?.label ?? `Elemento ${i + 1}`}<small>{entry?.group ?? 'Seleccionado'}</small>
+            </button>;
+          })}</div>
+        </details>
+      </>}
+      {!mixed && <>
+      {(appearance || comments) && <div className={properties.tabs} role="group" aria-label="Secciones de propiedades">
+        <button type="button" aria-pressed={!mode} onClick={() => store.getState().setDetailPanel(null)}>Medidas</button>
+        {appearance && <button type="button" aria-pressed={mode === 'paint'} onClick={() => store.getState().setDetailPanel('paint')}>Acabados</button>}
+        {comments && <button type="button" aria-pressed={mode === 'comments'} onClick={() => store.getState().setDetailPanel('comments')}>Notas ({doc.comments?.filter((item) => item.targetEntityId === id).length ?? 0})</button>}
+      </div>}
+      {mode === 'paint' && <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
+        {room ? <FloorFinishPanel store={store} embedded /> : selectedWallIds.length > 1
+          ? <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />
+          : <ElementDetailsPanel key={`${id}:paint`} store={store} embedded />}
+      </fieldset>}
+      {mode === 'comments' && <ElementDetailsPanel key={`${id}:comments`} store={store} embedded />}
+      {!mode && <fieldset key={id} disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
     {selectedEntity && !partOwner && !peers.length && <label className={styles.field}>Nombre<input key={selectedEntity.name} defaultValue={selectedEntity.name ?? ''}
       placeholder={furniture ? elementName(furniture) : "Nombre del elemento"} maxLength={100} onBlur={(event) => updateName(event.currentTarget.value)} /></label>}
-    {room && <>
-      {!peers.length && <label className={styles.field}>Nombre<input key={roomLabel?.id ?? 'sin-nombre'} defaultValue={roomLabel?.text ?? ''}
+    {room && <PropertySection title="Habitación y suelo">
+      {!peers.length && <label className={styles.field}>Nombre<input key={`${room.id}:${roomLabel?.text ?? ''}`} defaultValue={roomLabel?.text ?? ''}
         placeholder={outdoor ? 'Patio / terraza' : 'Nombre de la estancia'} maxLength={100} onBlur={(event) => renameRoom(event.currentTarget.value)} /></label>}
-      <p className={styles.field}>Superficie: {(room.areaMm2 / 1e6).toFixed(2)} m²</p>
+      <p className={styles.field}>{multiple ? 'Superficie total' : 'Superficie'}: {((multiple ? selectedRooms.reduce((sum, item) => sum + item.areaMm2, 0) : room.areaMm2) / 1e6).toFixed(2)} m²</p>
       <MeterField label="Cota del suelo" valueMm={floorFinish(doc, room.id).elevationMm ?? 0} change={(elevationMm) => apply((d) => setFloorFinish(d, room.id, { elevationMm }))} />
-      <button type="button" onClick={() => store.getState().setDetailPanel('paint')}>Textura del suelo</button>
-    </>}
+      <p>La superficie depende de las paredes que delimitan la habitación. Selecciona una pared para cambiar su tamaño.</p>
+    </PropertySection>}
     {terrain && <TerrainFields surface={terrain} edit={apply} />}
-    {wall && points && <>
-      <div className={styles.fields}>
-        {meterField('Grosor', wall.thicknessMm, (d, n) => { d.walls.find((w) => w.id === id)!.thicknessMm = n; })}
-        <MeterField label="Longitud" valueMm={distance(...points)} change={(n) => apply((d) => {
-          if (n <= 0) throw new Error('La longitud debe ser positiva.');
-          const w = d.walls.find((w) => w.id === id)!, [a, b] = wallPoints(d, w), factor = n / distance(a, b);
-          return applyCommand(d, { type: 'move-vertex', vertexId: w.endVertexId,
-            x: a.x + (b.x - a.x) * factor, y: a.y + (b.y - a.y) * factor });
-        })} />
-        <NumberField label="Ángulo (°)" value={Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x) * 180 / Math.PI}
-          change={(n) => apply((d) => { const w = d.walls.find((w) => w.id === id)!, [a, b] = wallPoints(d, w);
-            return applyCommand(d, { type: 'move-vertex', vertexId: w.endVertexId,
-              x: a.x + Math.cos(n * Math.PI / 180) * distance(a, b), y: a.y + Math.sin(n * Math.PI / 180) * distance(a, b) }); })} />
-      </div>
-      <div className={styles.actions}>
-        <button onClick={() => apply((d) => applyCommand(d, { type: 'invert-wall', wallId: wall.id }))}>Invertir sentido</button>
-        <button onClick={() => apply((d) => setWallVisibility(d, wall.id, !wall.hidden))}>{wall.hidden ? 'Mostrar pared' : 'Ocultar pared'}</button>
-        <button onClick={() => apply((d) => applyCommand(d, { type: 'split-wall', wallId: wall.id,
-          position: .5, vertexId: newId(), newWallId: newId() }))}>Dividir al 50%</button>
-      </div>
-      <label className={styles.field}>Muro para unir<ModernSelect value={mergeId} onChange={(e) => setMergeId(e.target.value)}>
-        <option value="">Elige un muro contiguo</option>
-        {doc.walls.filter((w) => w.id !== id && [w.startVertexId, w.endVertexId].some((v) =>
-          v === wall.startVertexId || v === wall.endVertexId)).map((w, i) => <option key={w.id} value={w.id}>Contiguo {i + 1} ({(distance(...wallPoints(doc, w)) / 1000).toFixed(2)} m)</option>)}
-      </ModernSelect></label>
-      <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
-      <WallConstructionFields wall={wall} document={doc} edit={apply} showSurfaceFields={!peers.length} />
-      {selectedWallIds.length > 1 && <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />}
-    </>}
-    {furniture?.kind === 'carpa' && !partOwner && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
+    {wall && <WallProperties key={wall.id} wall={wall} document={doc} store={store} multiple={multiple} edit={apply} />}
+    {furniture?.kind === 'carpa' && !partOwner && !multiple && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
       onChange={(rolledSides) => apply((document) => updateFurniture(document, furniture.id, { rolledSides }))} />}
-    {furniture && !partOwner && <div className={styles.fields}>
-      {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
-        ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
-        <MeterField key={key} label={(isBoundary(furniture) || isKitchenRun(furniture)) && key === 'widthMm' ? 'Longitud' : isBoundary(furniture) && key === 'depthMm' ? 'Espesor' : isKitchenRun(furniture) && key === 'heightMm' ? 'Altura de encimera' : label} valueMm={({ ...furniture, ...furnitureSpatial(furniture) })[key]}
-          change={(value) => apply((doc) => updateFurniture(doc, furniture.id, key === 'heightMm' && isWindowDressing(furniture)
-            // Cortinas, estores y persianas cuelgan de arriba: la altura crece hacia abajo con el tubo o la barra fijos.
-            ? { heightMm: value, elevationMm: Math.max(0, furnitureSpatial(furniture).elevationMm + furnitureSpatial(furniture).heightMm - value) }
-            : { [key]: value }))} />)}
-      <NumberField label="Rotación (°)" value={furniture.rotation}
-        change={(rotation) => apply((doc) => updateFurniture(doc, furniture.id, { rotation }))} />
-      {isWindowDressing(furniture) && <NumberField label="Cobertura de la ventana (%)" value={Math.round(windowCoverage(furniture) * 100)}
-        change={(percent) => apply((doc) => updateFurniture(doc, furniture.id, { coverage: Math.max(0, Math.min(100, percent)) / 100 }))} />}
-    </div>}
-    {furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
-    {furniture && isKitchenRun(furniture) && <KitchenFields doc={doc} item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
-    {opening && <><div className={styles.fields}>
-      {meterField('Ancho', opening.widthMm, (d, n) => {
-        const target = d.openings.find((o) => o.id === id)!;
-        target.widthMm = n; assertOpeningClearance(d, target);
-      })}
-      <NumberField label="Centro en muro (%)" value={opening.position * 100} change={(n) => apply((d) => editDocument(d, (next) => {
-        const target = next.openings.find((o) => o.id === id)!;
-        target.position = n / 100; assertOpeningClearance(d, target);
-      }))} />
-    </div><OpeningConstructionFields opening={opening} edit={apply} /></>}
+    {furniture && !partOwner && <FurnitureProperties furniture={furniture} multiple={multiple} edit={apply} />}
+    {!multiple && furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
+    {!multiple && furniture && isKitchenRun(furniture) && <KitchenFields doc={doc} item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
+    {opening && <OpeningConstructionFields opening={opening} edit={apply} multiple={multiple} />}
     {stair && <StairConstructionFields stair={stair} edit={apply} />}
     {ramp && <RampConstructionFields ramp={ramp} edit={apply} />}
-    {column && <><div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
+    {column && <><div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).filter(([key]) => !multiple || (key !== 'x' && key !== 'y')).map(([key, label]) =>
       <MeterField key={key} label={label} valueMm={column[key]} change={(value) => apply((document) => updateColumn(document, column.id, { [key]: value }))} />)}
-      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>
+      {!multiple && <NumberField label="Giro (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} />}</div>
       <SurfaceMaterialPicker label="Material de columna" value={column.materialId} onChange={(materialId) =>
         apply((document) => updateColumn(document, column.id, { materialId: materialId ?? 'concrete-grey' }))} /></>}
     {label && <label className={styles.field}>Texto<input key={label.text} defaultValue={label.text}
       onBlur={(e) => { const text = e.currentTarget.value; apply((d) => editDocument(d, (next) => { next.labels.find((l) => l.id === id)!.text = text; })); }} /></label>}
-    {id && <button className={styles.danger} onClick={() => {
-      apply((d) => deleteEntities(d, selection)); store.getState().select([]);
-    }}>Eliminar selección</button>}
-    </fieldset>
-    <p className={styles.hint}>{readOnly ? 'Modo solo lectura.' : 'Ctrl/Cmd + Z deshace. Escape cancela el trazo. Arrastra los extremos para ajustar un muro.'}</p>
+    <SelectionElementActions store={store} edit={apply} />
+    {stair && <button type="button" onClick={() => { try { store.getState().copyStair(stair.id); } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo copiar la escalera.'); } }}>Copiar escalera</button>}
+    </fieldset>}
+    </>}
+    <div className={properties.footer}>
+      <button type="button" onClick={() => store.getState().select([])}>Quitar selección</button>
+      <button type="button" className={properties.delete} disabled={readOnly || !canDelete}
+        title={!canDelete ? 'La habitación está delimitada por sus paredes. Edita las paredes para cambiarla.' : undefined} onClick={() => {
+          try {
+            const current = store.getState();
+            current.apply(room && outdoor ? deleteOutdoorRoom(current.document, room.id) : deleteEntities(current.document, selection));
+            current.select([]);
+          } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo eliminar la selección.'); }
+        }}>Eliminar{multiple ? ` (${selection.length})` : ''}</button>
+    </div>
+    </>}
+    <p className={styles.hint}>{readOnly ? 'Modo solo lectura.' : 'Ctrl/Cmd + Z deshace. Escape cierra el panel. Puedes cambiar de selección sin cerrarlo.'}</p>
   </aside>;
 }

@@ -14,6 +14,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
 import { SceneCamera, type CameraRequest } from './scene-camera';
+import { ScenePlanNavigation } from './scene-plan-navigation';
 import { scenePresetFocus, sceneZoneFocus, zoneObliqueDirection } from './scene-preset-focus';
 import { CutawayWall, cutawaySupportHeights, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { zoneOccludingWallIds } from './zone-occluding-walls';
@@ -137,6 +138,7 @@ function SceneView({
     try { return videoScopeRegions(document, videoStudio.contentScope ?? 'all'); } catch { return []; }
   }, [document, videoStudio]);
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
+  const pan = useStore(store, (s) => s.pan);
   const ceilingView = useStore(store, (s) => s.ceilingView);
   const [captureCeilings, setCaptureCeilings] = useState<CeilingView | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -445,7 +447,7 @@ function SceneView({
   const pendingPlanItem = presentation === 'plan' && pendingSpatial && planHover
     ? positionedPending(pendingSpatial, planHover, store) : null;
   const onPlanPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (presentation !== 'plan') return;
+    if (presentation !== 'plan' || pan) return;
     const point = scenePlanPoint(root, event.clientX, event.clientY, planElevationM);
     if (!point) return;
     if (pendingSpatial) setPlanHover(point);
@@ -477,7 +479,7 @@ function SceneView({
   const onPlanClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (presentation !== 'plan' || !(event.target instanceof HTMLCanvasElement)) return;
     const state = store.getState();
-    if (state.readOnly || state.tool !== 'place-object' || !state.pendingSpatial) return;
+    if (state.pan || state.readOnly || state.tool !== 'place-object' || !state.pendingSpatial) return;
     const point = scenePlanPoint(root, event.clientX, event.clientY, planElevationM);
     if (!point) return;
     event.preventDefault();
@@ -496,9 +498,9 @@ function SceneView({
   const ceilingOffset = (elevationMm: number) => elevationMm < highestRenderedElevation ? -.02 : 0;
   const lost = useCallback(() => setContextLost(true), [setContextLost]);
   const manualCameraChange = useCallback(() => setActiveView(null), [setActiveView]);
-  const sceneVersion = useMemo(() => ({ scene, otherLevels, activeElevation }), [scene, otherLevels, activeElevation]);
+  const sceneVersion = `${document.activeLevelId ?? 'base'}:${activeElevation}:${renderAllLevels}`;
   const select = (id: string) => {
-    if (!abortRecording.current && !freeWalk && !(presentation === 'plan' && store.getState().pendingSpatial)) {
+    if (!abortRecording.current && !freeWalk && !(presentation === 'plan' && (store.getState().pan || store.getState().pendingSpatial))) {
       store.getState().select([id]);
       if (id.startsWith('room:')) store.getState().setDetailPanel('paint');
     }
@@ -509,7 +511,6 @@ function SceneView({
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') {
       setActiveView(action);
-      store.getState().select([]);
       setCutaway(captureCutaway(action, false));
       const roof = presetCeilingView(action, ceilingView);
       if (roof !== ceilingView) store.getState().setCeilingView(roof);
@@ -519,10 +520,16 @@ function SceneView({
         ? scenePresetFocus(document, action, activeElevation) : undefined }));
   };
   useEffect(() => store.subscribe((next, previous) => {
-    if (presentation !== 'plan' || next.viewRequest === previous.viewRequest || !next.viewRequest) return;
-    const action = next.viewRequest.kind === 'fit' ? 'top' : next.viewRequest.kind === 'zoom-in' ? 'in' : 'out';
+    if (walking || freeWalk || recording) return;
+    if (next.focusPoint !== previous.focusPoint && next.focusPoint) {
+      setRequest((current) => ({ sequence: current.sequence + 1, action: 'locate', point: next.focusPoint!.point }));
+      setActiveView(null);
+    }
+    if (next.viewRequest === previous.viewRequest || !next.viewRequest) return;
+    const action = next.viewRequest.kind === 'fit' ? (presentation === 'plan' ? 'top' : 'fit') : next.viewRequest.kind === 'zoom-in' ? 'in' : 'out';
+    if (action === 'fit' || action === 'top') setInteriorRoomId(null);
     setRequest((current) => ({ sequence: current.sequence + 1, action }));
-  }), [presentation, store]);
+  }), [presentation, store, walking, freeWalk, recording]);
   const showMaquette = () => {
     // Cámara y visibilidad de la escena viva; muebles, suelos y muros siguen
     // siendo los mismos objetos que verá el recorrido y capturará el render.
@@ -636,7 +643,7 @@ function SceneView({
     <Canvas events={scenePointerEvents} frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
       onCreated={onSceneCreated} camera={{ position: [8, 9, -10], fov: presentation === 'plan' ? 25 : 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => {
-        if (presentation !== 'plan' || store.getState().tool !== 'place-object') store.getState().select([]);
+        if (!store.getState().pan && (presentation !== 'plan' || store.getState().tool !== 'place-object')) store.getState().select([]);
       }}>
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
@@ -656,7 +663,7 @@ function SceneView({
             x: Math.max(8, Math.min(event.clientX - rect.left, rect.width - 254)),
             y: Math.max(8, Math.min(event.clientY - rect.top, rect.height - 358)) });
         } : undefined} onPointerDown={presentation === 'plan' ? (event) => {
-          planDrag.current = beginPlanDrag(event, store, root, planElevationM);
+          if (!store.getState().pan) planDrag.current = beginPlanDrag(event, store, root, planElevationM);
         } : undefined}>
           <OutdoorLighting document={document} />
           <ExteriorRoofMeshes document={document} exteriorWalls={scene.exteriorWalls} cutaway={!walking && !freeWalk && !recording && !capturingPose && wallCutaway}
@@ -729,7 +736,7 @@ function SceneView({
         <WalkCamera store={store} elevationMm={activeElevation} />
         {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
           paused={walkPaused} viewMode={walkViewMode} controller={freeWalkController} onPause={pauseFreeWalk} onToggleView={toggleWalkView} />}
-        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording} plan={presentation === 'plan'}
+        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording} plan={presentation === 'plan'} pan={pan}
           onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
       {presentation === 'plan' && document.labels.map((label) => <Html key={label.id}
@@ -764,8 +771,9 @@ function SceneView({
         })}
         onClose={() => setPlanMenu(null)} />;
     })()}
-    {presentation === 'plan' && <div style={{ position: 'absolute', left: 20, bottom: 20, zIndex: 2, padding: '9px 13px', borderRadius: 8, background: 'rgba(255,255,255,.94)', color: '#294640', boxShadow: '0 4px 16px rgba(31,57,52,.12)', fontSize: 13, pointerEvents: 'none' }}>
-      {pendingSpatial ? 'Haz clic para colocar · Esc para cancelar' : store.getState().readOnly
+    {presentation === 'plan' && <ScenePlanNavigation store={store} />}
+    {presentation === 'plan' && <div role="status" style={{ position: 'absolute', left: 20, bottom: 66, maxWidth: 'calc(100% - 40px)', zIndex: 2, padding: '9px 13px', borderRadius: 8, background: 'rgba(255,255,255,.94)', color: '#294640', boxShadow: '0 4px 16px rgba(31,57,52,.12)', fontSize: 13, pointerEvents: 'none' }}>
+      {pan ? 'Mano activa · arrastra para desplazar la vista · Espacio para volver' : pendingSpatial ? 'Haz clic para colocar · Esc para cancelar' : store.getState().readOnly
         ? readOnlyLabel
         : 'Arrastra muebles para moverlos · clic derecho para girar o colocar encima · Amueblar para añadir'}
     </div>}

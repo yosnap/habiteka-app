@@ -30,6 +30,8 @@ import { PlanImageViewer } from './plan-image-viewer';
 import { StudioStageNav } from './studio-stage-nav';
 import { StudioResultsPanel, type StudioDeliverableView } from './studio-results-panel';
 import { StudioNextStep } from './studio-next-step';
+import { StudioEntryChoices } from './studio-entry-choices';
+import { FileImage, LayoutTemplate, Sparkles } from 'lucide-react';
 import {
   CenitalQualityGate,
   cenitalGateBlocks,
@@ -480,51 +482,23 @@ export function PlanoStudio({
   // ── Estado 1: sin plano — el boceto es el único protagonista ───────────────
   if (!planImageUrl && !previewResult) {
     return (
-      <div className="flex min-h-full flex-col gap-4 p-6 lg:h-full">
+      <div className="flex min-h-full flex-col gap-5 bg-surface-muted/40 p-5 lg:h-full lg:p-6">
         <StudioStageNav hasSource={false} hasImport={false} hasEditorPlan={hasEditorPlan}
           hasDesignImages={deliverables.some((item) => item.type === 'RENDER_3D')}
           hasVideo={deliverables.some((item) => item.type === 'VIDEO')} />
         <div className="grid flex-1 place-items-center gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div
-          className={`border-line bg-surface w-full ${drawing ? 'max-w-3xl' : 'max-w-lg'} rounded-card border border-dashed p-6 text-center shadow-sm`}
+          className="w-full max-w-4xl rounded-2xl bg-surface p-5 text-center sm:p-7"
         >
-          <p className="mb-1 text-3xl" aria-hidden>
-            ✏️
-          </p>
-          <h1 className="text-ink mb-2 text-lg font-semibold">De boceto a plano profesional</h1>
+          <span className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-sky-100 text-sky-700"><LayoutTemplate size={26} /></span>
+          <h1 className="text-ink mb-2 text-2xl font-semibold">¿Cómo empezamos tu plano?</h1>
           <p className="text-ink-soft mb-6 text-sm">
             Sube un plano, dibuja tus muros o importa el canvas. Conservamos el original; puedes
             obtener una versión editable y generar una vista cenital.
           </p>
-          <div className="mx-auto max-w-xs">
-            <ImageUpload onUpload={onUpload} disabled={busy !== null} />
-            <Button
-              className="mt-3 w-full"
-              variant="outline"
-              disabled={busy !== null}
-              onClick={() => setDrawing(!drawing)}
-            >
-              {drawing ? 'Ocultar dibujo' : 'Dibujar un boceto'}
-            </Button>
-            <Button
-              className="mt-3 w-full"
-              variant="outline"
-              disabled={busy !== null}
-              onClick={onImportCanvas}
-            >
-              {busy === 'import' ? 'Importando…' : 'Usar canvas del editor'}
-            </Button>
-            <Button
-              className="mt-3 w-full"
-              variant="outline"
-              disabled={busy !== null}
-              onClick={openImport}
-            >
-              {importResult
-                ? '📐 Continuar importación de plano'
-                : '📐 Importar plano dibujado (CAD / PDF)'}
-            </Button>
-          </div>
+          <StudioEntryChoices drawing={drawing} pending={busy !== null} hasImport={Boolean(importResult)}
+            onSketch={() => setDrawing(!drawing)} onEditor={onImportCanvas} onImport={openImport}
+            upload={<ImageUpload onUpload={onUpload} disabled={busy !== null} />} />
           <TosAcceptanceNotice
             accepted={tosAccepted}
             onAccept={onAcceptTos}
@@ -565,7 +539,7 @@ export function PlanoStudio({
 
   // ── Estados 2+: plano protagonista + acciones a la derecha ─────────────────
   return (
-    <div className="flex min-h-full flex-col gap-4 p-6 lg:h-full">
+    <div className="flex min-h-full flex-col gap-4 bg-surface-muted/40 p-5 lg:h-full lg:p-6">
       <StudioStageNav
         hasSource={!!originalUrl}
         hasImport={!!importResult && !importApplied}
@@ -576,19 +550,19 @@ export function PlanoStudio({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1" role="tablist" aria-label="Vista">
           <TabButton active={tab === 'plano'} onClick={() => showTab('plano')}>
-            Plano visible
+            <FileImage size={16} />Imagen del plano
           </TabButton>
           <TabButton
             active={tab === 'vector'}
             onClick={() => showTab('vector')}
           >
-            Vista vectorizada
+            <LayoutTemplate size={16} />Muros y medidas
           </TabButton>
           <TabButton
             active={tab === 'render'}
             onClick={() => showTab('render')}
           >
-            Render
+            <Sparkles size={16} />Vista generada
           </TabButton>
         </div>
         <div className="flex items-center gap-1">

@@ -21,7 +21,7 @@ export function GeographicSitePanel({ store, projectId, readOnly, ...nextSteps }
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
   const continueWith = (action?: () => void) => action ? () => { setOpen(false); action(); } : undefined;
   return <Dialog.Root open={open} onOpenChange={setOpen}>
-    <Dialog.Trigger asChild><button type="button"><MapPin size={18} /><span>Parcela real</span></button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" data-project-menu-action><MapPin size={18} /><span>Parcela real</span></button></Dialog.Trigger>
     <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[150] bg-black/50" />
       <Dialog.Content ref={setMenuContainer} onInteractOutside={event => event.preventDefault()}
         className="fixed inset-2 z-[151] flex flex-col overflow-y-auto rounded-2xl bg-white text-ink shadow-2xl lg:inset-5 lg:overflow-hidden [&_button]:cursor-pointer [&_button]:transition-colors [&_button]:active:bg-emerald-100 [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50">

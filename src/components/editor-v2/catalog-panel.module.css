@@ -13,8 +13,8 @@
 .filters input, .filters :is(select, [role='combobox']), .variant :is(select, [role='combobox']) { width: 100%; min-width: 0; font-size: 1rem; }
 .filterRow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .catalog .count { margin: 0; font-size: .75rem; font-variant-numeric: tabular-nums; }
-.items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.card { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid var(--line); content-visibility: auto; contain-intrinsic-size: auto 304px; }
+.items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.card { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); content-visibility: auto; contain-intrinsic-size: auto 304px; }
 .thumbnail { width: 100%; height: 96px; background: var(--surface); border-radius: var(--radius); color: var(--ink); }
 .card h3 { font-size: .875rem; font-weight: 650; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
 .catalog .dimensions, .catalog .material { margin: 0; font-size: .75rem; }
@@ -24,5 +24,23 @@
 .variant :is(select, [role='combobox']) { font-size: .875rem; }
 .empty { padding-block: 16px; }
 .catalog .note { font-size: .75rem; margin: 16px 0 0; }
+.search span, .filterSummary { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.filterSummary { cursor: pointer; font-size: .75rem; margin-bottom: 10px; }
+.selectionTitle { margin: 0; font-size: 1.05rem; font-weight: 650; }
+.catalog .back { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; font-size: .75rem; color: var(--brand); justify-content: flex-start; }
+.browseTabs { display: flex; gap: 6px; padding: 4px; background: var(--surface); border-radius: 12px; margin-bottom: 16px; }
+.catalog .browseTabs button { flex: 1; font-size: .8125rem; border-color: transparent; }
+.roomGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.catalog .roomCard { padding: 5px 5px 12px; min-width: 0; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border-radius: 14px; text-align: left; }
+.roomCard svg { width: 100%; height: auto; }
+.roomCard span { padding-inline: 6px; font-size: .8125rem; font-weight: 600; }
+.catalog .all { margin-top: 16px; width: 100%; font-size: .8125rem; }
+.card[data-room='salon'] .thumbnail { background: #e9eee6; }
+.card[data-room='dormitorio'] .thumbnail { background: #eee8f2; }
+.card[data-room='cocina'] .thumbnail, .card[data-room='bano'] .thumbnail { background: #e3edf0; }
+.card[data-room='comedor'] .thumbnail { background: #f5eadc; }
+.card[data-room='oficina'] .thumbnail { background: #e7eaf4; }
+.card[data-room='iluminacion'] .thumbnail { background: #f7edda; }
+.card[data-room='decoracion'] .thumbnail { background: #f3e4df; }
 @media (min-width: 480px) { .items { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .catalog button { transition: none; } }

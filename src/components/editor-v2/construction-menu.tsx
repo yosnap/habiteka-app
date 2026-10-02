@@ -1,12 +1,16 @@
 'use client';
 import { useState } from 'react';
-import { ChevronRight, Columns2, CookingPot, DoorOpen, Import, MoveUpRight, RectangleHorizontal, ScanLine, Shapes, Slash, X } from 'lucide-react';
+import { ArrowLeft, Columns2, CookingPot, DoorOpen, Grid3X3, Import, MoveUpRight, RectangleHorizontal, ScanLine, Shapes, Slash, Sprout, X } from 'lucide-react';
 import { ConstructionCatalog, type ConstructionCategory, type ConstructionCatalogProps } from './construction-catalog';
 import styles from './editor.module.css';
+import ui from './construction-menu.module.css';
 
 interface ConstructionMenuProps extends Omit<ConstructionCatalogProps, 'category'> {
   onClose: () => void;
   onImport?: () => void;
+  initialCategory?: ConstructionCategory | null;
+  onTerrain?: () => void;
+  onPaving?: () => void;
 }
 const baseCategories = [
   { id: 'walls', label: 'Dibujar paredes', icon: Slash },
@@ -24,29 +28,32 @@ const structureCategories = [
   { id: 'ramps', label: 'Rampas', icon: MoveUpRight },
 ] as const;
 
-export function ConstructionMenu({ onClose, onImport, ...catalogProps }: ConstructionMenuProps) {
-  const [category, setCategory] = useState<ConstructionCategory>('walls');
+export function ConstructionMenu({ onClose, onImport, initialCategory = null, onTerrain, onPaving, ...catalogProps }: ConstructionMenuProps) {
+  const [category, setCategory] = useState<ConstructionCategory | null>(initialCategory);
   const categories = [...baseCategories, ...structureCategories,
     ...(catalogProps.onAddStair ? [{ id: 'stairs' as const, label: 'Escaleras', icon: MoveUpRight }] : [])];
-  return <aside className={styles.constructionMenu} aria-label="Construir" onKeyDown={(event) => {
+  return <aside className={`${styles.constructionMenu} ${ui.panel}`} aria-label="Construir" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
-    <div className={styles.constructionHeading}><h2>Construir</h2>
+    <div className={styles.constructionHeading}><h2>{category === 'outdoor' ? 'Exterior y jardín' : 'Construir'}</h2>
       <button type="button" onClick={onClose} aria-label="Cerrar construcción"><X size={20} aria-hidden="true" /></button>
     </div>
-    <div className={styles.constructionBody}>
-      <nav className={styles.constructionCategories} aria-label="Categorías de construcción">
+    <div className={ui.content}>
+      {category ? <>
+        <button type="button" className={ui.back} onClick={() => setCategory(null)}><ArrowLeft size={16} />Todas las categorías</button>
+        {category === 'outdoor' && <div className={ui.surfaceActions}>
+          {onTerrain && <button type="button" disabled={catalogProps.readOnly} onClick={onTerrain}><Sprout size={22} />Añadir terreno</button>}
+          {onPaving && <button type="button" disabled={catalogProps.readOnly} onClick={onPaving}><Grid3X3 size={22} />Añadir pavimento</button>}
+        </div>}
+        <ConstructionCatalog {...catalogProps} category={category} />
+      </> : <><p className={ui.intro}>Da forma a tu espacio. Elige qué quieres añadir.</p><nav className={ui.categories} aria-label="Categorías de construcción">
         {onImport && <button type="button" disabled={catalogProps.readOnly} onClick={onImport}>
           <Import size={18} aria-hidden="true" /><span>Importar plano</span>
         </button>}
-        {categories.map(({ id, label, icon: Icon }) => <div key={id}>
-          {id === 'doors' && <h3>Construcciones</h3>}
-          <button type="button" aria-current={category === id ? 'true' : undefined} onClick={() => setCategory(id)}>
-            <Icon size={20} aria-hidden="true" /><span>{label}</span><ChevronRight size={16} aria-hidden="true" />
-          </button>
-        </div>)}
-      </nav>
-      <ConstructionCatalog {...catalogProps} category={category} />
+        {categories.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setCategory(id)}>
+            <span className={ui.art}><Icon size={44} strokeWidth={1.5} aria-hidden="true" /></span><span>{label}</span>
+        </button>)}
+      </nav></>}
     </div>
   </aside>;
 }

@@ -5,7 +5,7 @@ description: Coloca el diseño sobre una ortofoto y prepara la intervención.
 
 ## Cargar la fotografía
 
-Abre **Parcela real** desde el editor. En **Coordenadas y fotografía**, introduce latitud y longitud y carga la ortofoto. Su ancho determina cuánta superficie se obtiene; es distinto del zoom de pantalla.
+Abre **Herramientas → Parcela real** desde el editor. En **Coordenadas y fotografía**, introduce latitud y longitud y carga la ortofoto. Su ancho determina cuánta superficie se obtiene; es distinto del zoom de pantalla.
 
 La referencia IGN/PNOA cubre el ámbito admitido por la aplicación en España. Se guarda una copia con el proyecto. La fecha de copia no indica la fecha del vuelo ni garantiza que la fotografía muestre el estado actual.
 
@@ -65,7 +65,7 @@ En el pie del panel encontrarás **Continuar hacia el vídeo**:
 
 1. Pulsa **Revisar y aprobar diseño**. Se cierra la parcela y aparece la ventana de aprobación, con la luz elegida en la parcela.
 2. Revisa y pulsa **Confirmar aprobación**. Se sincroniza el borrador y se conserva esa revisión. Si hay un error, la ventana lo muestra y la aprobación no se completa.
-3. Para presentar tus renders, abre **Vídeos con mis imágenes** en la vista aprobada. También puedes usar **Abrir vídeos con mis imágenes** desde Parcela real.
+3. Para presentar tus renders, abre **Crear vídeo** en la vista aprobada. También puedes usar **Abrir vídeos con mis imágenes** desde Parcela real.
 4. Revisa las imágenes y la revisión en **Montaje con tus diseños generados** antes de montar el MP4.
 
 Si esa revisión ya está aprobada, el primer botón será **Ver aprobado**. Antes de la primera aprobación no existe esa copia; aparece **Revisar y aprobar diseño**. Modificar el encaje, escenario o luz exige confirmarlo y aprobar otra revisión. [Guardar y aprobar](/guias/guardar-aprobar/).

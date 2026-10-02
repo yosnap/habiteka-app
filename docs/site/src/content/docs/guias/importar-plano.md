@@ -5,7 +5,9 @@ description: De una foto o PDF al plano editable con medidas revisadas.
 
 ## Preparar la fuente
 
-En **Plano**, sube una imagen o PDF. Si la imagen necesita limpieza, utiliza el redibujado técnico para estructura o el decorado para mobiliario. Selecciona la imagen que quieras importar.
+En **Plano**, las tarjetas iniciales permiten **Subir una foto del plano**, **Dibujar un boceto**, **Importar CAD o PDF** o **Usar mi plano del editor**. Si ya existe una importación, puedes continuarla desde esa tarjeta.
+
+Si la imagen necesita limpieza, utiliza el redibujado técnico para estructura o el decorado para mobiliario. Selecciona la imagen que quieras importar. Las pestañas **Imagen del plano**, **Muros y medidas** y **Vista generada** separan el material de referencia de su interpretación. La franja de etapas muestra el estado de Original, Plano editable, Diseños y Vídeos.
 
 ## Revisar antes de editar
 
@@ -22,6 +24,6 @@ Una imagen bien presentada no garantiza medidas correctas. Comprueba al menos un
 
 ## Comprobación en el editor
 
-Alterna **Plano técnico**, **Plano visual** y **3D**. Revisa alturas, huecos y acceso entre estancias. Conserva la fuente original para contrastarla con el resultado.
+Alterna **Plano 2D**, **Amueblado** y **Modelo 3D**. Revisa alturas, huecos y acceso entre estancias. Conserva la fuente original para contrastarla con el resultado.
 
 Continúa en [Herramientas del editor](/editor/herramientas/).

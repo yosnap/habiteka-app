@@ -8,7 +8,8 @@ import { cameraFitDistance } from './camera-fit';
 export type SceneCameraPreset = 'top' | 'isometric' | 'front' | 'back' | 'left' | 'right' | 'drone';
 export interface CameraRequest {
   sequence: number;
-  action: 'fit' | 'in' | 'out' | 'interior' | SceneCameraPreset;
+  action: 'fit' | 'in' | 'out' | 'locate' | 'interior' | SceneCameraPreset;
+  point?: { x: number; y: number };
   /** Caja a encuadrar en lugar de toda la escena (p. ej. la zona permitida). */
   focus?: { center: [number, number, number]; size: [number, number, number] };
   /** Dirección específica de una captura exterior con cubierta terminada. */
@@ -35,19 +36,21 @@ const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, num
   drone: [.35, 1.35, 1],
 };
 
-export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, onManualChange, onContextLost, onApplied }: {
+export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, pan = false, onManualChange, onContextLost, onApplied }: {
   request: CameraRequest;
   sceneVersion: unknown;
   /** Dentro de una estancia: se puede mirar al techo y no se reencuadra sola. */
   interior?: boolean;
   enabled?: boolean;
   plan?: boolean;
+  pan?: boolean;
   onManualChange: () => void;
   onContextLost: () => void;
   onApplied?: (sequence: number) => void;
 }) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null), bounds = useBounds();
   const lastSequence = useRef<number | null>(null);
+  const lastSceneVersion = useRef<unknown>(null);
   const lastAction = useRef<CameraRequest['action'] | null>(null);
   // Campo de visión de fuera, guardado al entrar en una estancia para devolverlo al salir.
   const exteriorFov = useRef<number | null>(null);
@@ -58,15 +61,21 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     const orbit = controls.current;
     if (!orbit || !(camera instanceof PerspectiveCamera)) return;
     const isNewRequest = lastSequence.current !== request.sequence;
-    // En el plano cenital una edición no debe deshacer el zoom ni el desplazamiento elegidos por el usuario.
-    if (plan && !isNewRequest) return;
+    // Editar propiedades o abrir paneles conserva la cámara. Solo una petición
+    // explícita o cambiar de planta/plantas apiladas vuelve a encuadrar.
+    if (!isNewRequest && lastSceneVersion.current === sceneVersion) return;
+    lastSceneVersion.current = sceneVersion;
     lastSequence.current = request.sequence;
     // Un cambio de escena reencuadra la vista, salvo estando dentro de una
     // estancia: ahí el usuario perdería su punto de vista sin haberlo pedido.
     if (!isNewRequest && lastAction.current === 'interior') return;
     const action = isNewRequest ? request.action : lastAction.current === 'top' ? 'top' : 'fit';
     lastAction.current = action;
-    if (action === 'interior' && request.pose) {
+    if (action === 'locate' && request.point) {
+      const delta = new Vector3(request.point.x / 1000 - orbit.target.x, 0, request.point.y / 1000 - orbit.target.z);
+      orbit.target.add(delta);
+      camera.position.add(delta);
+    } else if (action === 'interior' && request.pose) {
       const { position, focus: aim, fovDeg } = request.pose;
       exteriorFov.current ??= camera.fov;
       camera.position.set(...position);
@@ -120,6 +129,6 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     return () => canvas.removeEventListener('webglcontextlost', lost);
   }, [gl, onContextLost]);
   return <OrbitControls ref={controls} makeDefault enabled={enabled} enableDamping={false} minDistance={.3}
-    enableRotate={!plan} mouseButtons={plan ? { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN } : undefined}
+    enableRotate={!plan} mouseButtons={plan ? { LEFT: pan ? MOUSE.PAN : MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN } : undefined}
     onStart={onManualChange} maxPolarAngle={interior ? Math.PI : Math.PI / 2} />;
 }

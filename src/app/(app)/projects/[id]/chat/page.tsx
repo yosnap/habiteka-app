@@ -8,6 +8,7 @@ import { prisma } from '@/server/db/prisma';
 import { QualificationChat } from '@/components/chat/qualification-chat';
 import { PlanReviewPanel } from '@/components/chat/plan-review-panel';
 import { advanceAgent } from '../_actions/agent-actions';
+import { Bot, CheckCheck } from 'lucide-react';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,12 +35,9 @@ export default async function ChatPage({ params, searchParams }: Props) {
     | 'entrega'
     | 'feedback';
   return (
-    <main className="mx-auto flex h-[calc(100vh-7rem)] w-full max-w-2xl flex-col gap-3 p-4">
-      <p className="text-ink-soft text-sm">
-        Sube una foto o un boceto de tu espacio y cuéntame qué quieres conseguir.
-      </p>
-      <PlanReviewPanel projectId={id} zoneId={zoneId} />
-      <div className="min-h-0 flex-1">
+    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-5 overflow-y-auto p-5 sm:p-8">
+      <header className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-violet-100 text-violet-700"><Bot size={24} /></span><div><h1 className="text-xl font-semibold">Asistente de diseño</h1><p className="text-ink-soft text-sm">Una foto, un plano o una idea. Te acompañamos paso a paso.</p></div></header>
+      <div className="min-h-0 flex-1 rounded-2xl border border-line bg-surface p-4 sm:p-6">
         <QualificationChat
           projectId={id}
           advance={advanceAgent}
@@ -48,6 +46,7 @@ export default async function ChatPage({ params, searchParams }: Props) {
           initialCollected={collected}
         />
       </div>
+      <details className="rounded-xl border border-line px-4 py-3 text-sm"><summary className="flex cursor-pointer items-center gap-2 text-ink-soft"><CheckCheck size={18} />Revisar un plano que ya has dibujado</summary><div className="mt-3"><PlanReviewPanel projectId={id} zoneId={zoneId} /></div></details>
     </main>
   );
 }
