@@ -51,7 +51,7 @@ Abre `http://docs.localhost:3040`: mismos proceso y puerto que la aplicación. D
 ## Vincular el dominio en el despliegue existente
 
 1. En el servicio actual de Habiteka en Dokploy, añade `docs.habiteka.app` como **otro dominio del mismo servicio**, apuntando al mismo puerto 3000.
-2. En Cloudflare, crea el registro DNS de ese subdominio hacia el destino que ya usa la aplicación. No hace falta crear un proyecto Cloudflare Pages/Workers.
+2. En el proveedor DNS que gestione el dominio (actualmente Hostinger), crea el registro DNS de ese subdominio hacia el destino que ya usa la aplicación. No hace falta crear otro proyecto ni servidor para la documentación.
 3. Mantén el hostname `docs.habiteka.app` en la petición que llega a Next; el routing distingue documentación por el host.
 4. Configura TLS/HTTPS en el proxy del servicio con el procedimiento existente.
 5. Publica el mismo repositorio/rama por su flujo habitual y comprueba portada, página interior, CSS, búsqueda y que el dominio principal sigue mostrando la app.
