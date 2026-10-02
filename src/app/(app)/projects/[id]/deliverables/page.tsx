@@ -12,7 +12,7 @@ import { DeliverablesPanel, type DeliverableView } from '@/components/deliverabl
 import { latestQualityByRef } from '@/server/quality/result-repo';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
-import type { DesignVideoJob } from '@/lib/editor-document/design-video';
+import { isDesignVideoMode, type DesignVideoJob } from '@/lib/editor-document/design-video';
 import { DesignVideoTask } from '@/components/editor-v2/design-video-task';
 import type { EditorScope } from '@/server/editor/authority';
 import { advertisingVideoSchema, ADVERTISING_DIMENSIONS, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
@@ -28,7 +28,7 @@ type ResultsTab = 'disenos' | 'recorridos' | 'videos';
 type VideoView = {
   id: string;
   title: string | null;
-  mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai' | 'advertising';
+  mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai' | 'walkthrough-ai' | 'advertising';
   advertising: AdvertisingVideoOptions | null;
   scope: EditorScope;
   designJob: DesignVideoJob | null;
@@ -41,7 +41,7 @@ type VideoView = {
 
 function videoMode(payload: unknown): VideoView['mode'] {
   if (!payload || typeof payload !== 'object' || !('mode' in payload)) return 'walkthrough';
-  return payload.mode === 'showcase' || payload.mode === 'images' || payload.mode === 'promotion' || payload.mode === 'construction' || payload.mode === 'construction-ai' || payload.mode === 'advertising' ? payload.mode : 'walkthrough';
+  return payload.mode === 'showcase' || payload.mode === 'images' || payload.mode === 'promotion' || payload.mode === 'construction' || isDesignVideoMode(payload.mode) || payload.mode === 'advertising' ? payload.mode : 'walkthrough';
 }
 /** Los vídeos con obra y los montados con imágenes conviven en la pestaña «Vídeos». */
 const inVideosTab = (mode: VideoView['mode']) => mode !== 'walkthrough';
@@ -81,7 +81,7 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
       if (row.zoneId) designQuery.set('zona', row.zoneId);
       return { id: row.id, title: readVideoTitle(row.payload), mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
         advertising: advertising.success ? advertising.data : null,
-        scope: { projectId: id, zoneId: row.zoneId }, designJob: videoMode(row.payload) === 'construction-ai' ? row.payload as unknown as DesignVideoJob : null,
+        scope: { projectId: id, zoneId: row.zoneId }, designJob: isDesignVideoMode(videoMode(row.payload)) ? row.payload as unknown as DesignVideoJob : null,
         approvedRevision: typeof payload.approvedRevision === 'number' && Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
         designHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${designQuery}` : null,
         legalSeal: row.legalSeal };
@@ -142,6 +142,7 @@ function ResultsTabs({ tabs, active, href }: {
 const VIDEO_LABEL: Record<VideoView['mode'], string> = {
   advertising: 'Publicidad con un vídeo guardado',
   'construction-ai': 'Construcción desde diseños · piloto H3',
+  'walkthrough-ai': 'Primera persona desde diseños · piloto H3',
   construction: 'Construcción del edificio · 3D',
   walkthrough: 'Recorrido 3D del editor', showcase: 'Muestra 3D · obra + recorrido', images: 'Montaje de diseños generados', promotion: 'Muestra 3D sobre la parcela' };
 

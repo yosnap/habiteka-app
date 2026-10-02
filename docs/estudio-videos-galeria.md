@@ -1,10 +1,20 @@
 # Estudio de vídeos y galería de renders
 
+## Primera persona desde diseños — 02/10/2026
+
+`Primera persona → Mis diseños` prepara una toma H3 de una estancia, 8/12 s, mediante el contrato KIE `reference-to-video` existente. `prepareDesignVisit` comparte persistencia, reserva, envío único, conciliación, consulta, almacenamiento y revisión con construcción. El JSON usa `mode: walkthrough-ai`; sin cambios de DB. Las galerías/Historial reconocen el modo y publicidad exige `accepted`, también en servidor. Renombrar durante un envío se bloquea en ambas modalidades.
+
+`designVisitContext` comprueba una captura `custom` con paredes/objetos/techo completos contra la cámara interior calculada del documento aprobado y su planta. No confía en los nombres/IDs de habitación guardados. Rechaza imágenes aéreas, recortadas o sin cámara verificable. Se aplican además las validaciones existentes de organización/proyecto/zona, rechazo, revisión visual vigente y homogeneidad; antes de enviar se revalidan. La selección requiere una misma estancia y tanda. Los muebles y acabados se piden desde la referencia principal; no se envía inventario del editor.
+
+El panel compartido muestra por defecto solo interiores, permite mostrar otras vistas y enlaza al flujo existente `?generar=interiores`, sin generación automática. La limpieza muestra todas y conserva la clasificación de rechazo original: una imagen aérea incompatible con primera persona no es por ello una imagen inválida para construcción. La preparación local no sube imágenes ni consume créditos; el envío conserva su consentimiento de referencias y presupuesto. Contrato [KIE H3](https://docs.kie.ai/market/minimax-h3/reference-to-video) vuelto a consultar el 02/10/2026; tarifa orientativa del 01/10/2026 sin nueva generación ni verificación del saldo del proveedor.
+
+Pendiente: validar visualmente un clip pagado interior, continuidad por puertas entre habitaciones y composición de construcción con tomas interiores. No se anuncia la prueba de una estancia como película profesional completa. Guía `videos/recorrido`, tabla del estudio y novedades actualizadas.
+
 ## Limpieza y nombres — 02/10/2026
 
 El estudio permite mover renders a la papelera individualmente o en selecciones de hasta 200, incluidas referencias rechazadas. Son escrituras con sesión y ámbito de organización/proyecto/zona, dentro de transacción y con bloqueo del proyecto. Un lote parcialmente ajeno se rechaza completo. Solo cambia `deletedAt` y la versión; no borra objetos ni MP4 derivados. La papelera se puede listar y restaurar después de cerrar el estudio. Se conserva el rechazo original. Aplica la retención existente, de 30 días por defecto.
 
-Los vídeos tienen nombre opcional de hasta 100 caracteres, validado y guardado en el JSON existente. Los tickets de subida lo firman junto con la procedencia; H3 lo registra al preparar, sin enviarlo como parte del guion. Se muestra en la galería, en el selector del original de publicidad, Diseños e Historial. Renombrar modifica solo el nombre mediante comprobación de versión; conserva aprobación, estado, fuentes y archivo. No hay migraciones. Primera persona y Construcción + visita siguen usando el modelo editable: los ajustes explican que no incorporan el interiorismo de los renders. Guía pública actualizada en `videos/estudio` y novedades.
+Los vídeos tienen nombre opcional de hasta 100 caracteres, validado y guardado en el JSON existente. Los tickets de subida lo firman junto con la procedencia; H3 lo registra al preparar, sin enviarlo como parte del guion. Se muestra en la galería, en el selector del original de publicidad, Diseños e Historial. Renombrar modifica solo el nombre mediante comprobación de versión; conserva aprobación, estado, fuentes y archivo. No hay migraciones. La vía nativa de primera persona y Construcción + visita usa el modelo editable: los ajustes explican que no incorpora el interiorismo de los renders. Guía pública actualizada en `videos/estudio` y novedades.
 
 ## Flujo implementado
 
@@ -20,6 +30,7 @@ El editor modifica el borrador. La escena grabable utiliza una copia de la insta
 | promotion | Modelo aprobado sobre ortofoto confirmada | No | 30 s |
 | walkthrough | Modelo aprobado | Sí | La del recorrido |
 | showcase | Modelo aprobado, construcción y recorrido | Sí | 8 s (o 12 s) + recorrido |
+| walkthrough-ai | Imágenes interiores de una estancia y tanda compatibles con la aprobación | No | Piloto H3 de 8/12 s |
 | images | Renders del mismo diseño visual | No | Según imágenes seleccionadas |
 
 La película profesional desde renders **no está validada**. Existe un piloto conectado de construcción H3, documentado abajo; la primera generación de pago fue rechazada por secuencia de muros y continuidad de la envolvente. Los modos nativos no reconstruyen los muebles creados por IA en las imágenes. El montaje mueve y funde imágenes; no simula construcción ni un paseo continuo.

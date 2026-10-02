@@ -17,6 +17,9 @@ export interface DesignVideoReference {
   id: string; view: string; name: string; batchId: string | null; revision: number;
   zones: string[]; scope: string; closedRoof: boolean; url: string; issue?: string;
   preset?: RenderView['preset'];
+  interiorRoomId?: string;
+  interiorRoomName?: string;
+  visitIssue?: string;
 }
 
 /** Una vista fija distribución y muebles; las demás aportan geometría sin mezclar interiorismos. */
@@ -42,13 +45,17 @@ export function designVideoReferenceRole(reference: DesignVideoReference, refere
   return reference.closedRoof ? 'Fachadas y tejado' : 'Apoyo de geometría';
 }
 export interface DesignVideoJob {
-  type: 'video'; mode: 'construction-ai'; status: DesignVideoState; provider: 'kie'; model: string;
+  type: 'video'; mode: 'construction-ai' | 'walkthrough-ai'; status: DesignVideoState; provider: 'kie'; model: string;
   approvalId: string; approvedRevision: number; approvedFingerprint: string;
   sourceIds: string[]; sourceScopes: { id: string; options: RenderDesignOptions }[];
   includedZones: string[]; prompt: string; settings: DesignVideoSettings; durationMs: number;
   structuralConstraints?: string;
   estimateUsd: number; credits: number; taskId?: string; assetKey?: string; error?: string;
   title?: string;
+}
+
+export function isDesignVideoMode(mode: unknown): mode is DesignVideoJob['mode'] {
+  return mode === 'construction-ai' || mode === 'walkthrough-ai';
 }
 
 /** Tarifa KIE contrastada 01/10/2026: salida + imágenes; aquí no se adjunta vídeo de entrada. */

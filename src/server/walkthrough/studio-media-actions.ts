@@ -9,6 +9,7 @@ import { videoTitleSchema } from '@/lib/editor-document/video-title';
 import { renderImageLabel } from '@/lib/editor-document/render-gallery';
 import type { Deliverable } from '@/lib/contracts';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
+import { isDesignVideoMode } from '@/lib/editor-document/design-video';
 
 const idsSchema = z.array(z.string().min(1).max(128)).min(1).max(200)
   .refine(ids => new Set(ids).size === ids.length, 'La selección contiene imágenes repetidas.');
@@ -56,7 +57,7 @@ export async function renameStudioVideo(scope: EditorScope, id: string, input: s
       const row = await tx.deliverable.findFirst({ where: { ...target, id, type: 'VIDEO', deletedAt: null,
         project: { organizationId: ctx.organizationId, deletedAt: null } }, select: { payload: true, version: true } });
       if (!row || !row.payload || typeof row.payload !== 'object' || Array.isArray(row.payload)) fail('Vídeo no encontrado en este proyecto y zona.');
-      if (row.payload.mode === 'construction-ai' && ['submitting', 'generating', 'unknown'].includes(String(row.payload.status)))
+      if (isDesignVideoMode(row.payload.mode) && ['submitting', 'generating', 'unknown'].includes(String(row.payload.status)))
         fail('Espera a que termine o se resuelva el envío H3 antes de cambiar su nombre.');
       const changed = await tx.deliverable.updateMany({ where: { ...target, id, type: 'VIDEO', deletedAt: null, version: row.version },
         data: { payload: { ...row.payload, title }, version: { increment: 1 } } });

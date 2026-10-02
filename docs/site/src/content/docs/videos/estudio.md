@@ -14,18 +14,19 @@ En cualquier proyecto, abre la pestaña **Vídeos**, o pulsa **Crear vídeo** en
 | Publicidad → Mis diseños | Presentación de imágenes generadas con movimiento suave y fundidos. | Imágenes compatibles con el diseño aprobado, con estilo y luz coherentes. |
 | Publicidad → Vídeo guardado | Otro MP4 horizontal/vertical con panel de cotas opcional; conserva sonido y duración del original. | Clip de la misma aprobación; H3 debe estar aceptado. |
 | Publicidad → 3D en parcela real | 30 s de etapas sobre la ortofoto y vuelo exterior. | Parcela confirmada y revisión aprobada; no necesita ruta interior. |
-| Primera persona | Paseo por el modelo 3D editable. | Recorrido válido en la revisión aprobada. |
+| Primera persona → Mis diseños | Piloto H3 interior de 8/12 s dentro de una estancia. | Vista interior verificada, paredes y techo completos, una misma tanda; confirmación de coste/envío. |
+| Primera persona → Prueba del plano 3D | Paseo por el modelo 3D editable. | Recorrido válido en la revisión aprobada. |
 | Construcción + visita | Obra y vuelo de 8 s (o 12 s), seguidos del paseo 3D. | Recorrido válido y revisión aprobada. |
 
 :::note[Fuente de las imágenes]
-En construcción, **Mis diseños** prepara una prueba H3 basada en tus imágenes, pendiente de revisar su fidelidad. En publicidad, **Mis diseños** monta imágenes con movimiento y fundidos. **Prueba del plano 3D**, primera persona y construcción + visita graban el modelo del editor. La película profesional validada y la inmersión continua desde renders siguen pendientes.
+En construcción y primera persona, **Mis diseños** prepara una prueba H3 basada en tus imágenes, pendiente de revisar su fidelidad. Primera persona prepara una toma de una estancia, no una ruta entre habitaciones. En publicidad, **Mis diseños** monta imágenes con movimiento y fundidos. **Prueba del plano 3D** y construcción + visita graban el modelo del editor. La película profesional validada y la inmersión continua entre estancias desde renders siguen pendientes.
 :::
 
 ## Poner nombre y limpiar las imágenes
 
 El campo **Nombre del vídeo (opcional)** está en los ajustes antes de preparar o crear cualquier modalidad. Admite hasta 100 caracteres. Si lo dejas vacío, se utiliza la etiqueta automática. En **Vídeos guardados → Cambiar nombre** puedes renombrar los resultados existentes; el nombre también aparece al elegir **Publicidad → Vídeo guardado**, en Diseños y en el Historial. Las tareas H3 en curso conservan sus controles de seguimiento: espera a que terminen para renombrarlas.
 
-En **Construcción → Mis diseños** y **Publicidad → Mis diseños** puedes limpiar las imágenes:
+En **Construcción → Mis diseños**, **Primera persona → Mis diseños** y **Publicidad → Mis diseños** puedes limpiar las imágenes:
 
 - Para quitar una sola, pasa el puntero por su miniatura y pulsa el icono de papelera. También está disponible al enfocar la tarjeta con el teclado; en pantallas táctiles se muestra directamente.
 - Para quitar varias, pulsa **Limpiar imágenes**, marca las casillas de eliminación y pulsa **Mover N a la papelera**. Estas casillas son distintas de las que eligen referencias para generar un vídeo.
@@ -68,7 +69,7 @@ El identificador de una tarea aceptada se guarda antes de registrar su coste. Si
 
 ## Preparar la prueba 3D sin salir del estudio
 
-1. Elige el objetivo.
+1. Elige el objetivo y **Prueba del plano 3D** si aparece el selector de material.
 2. En **Qué aparece en el vídeo**, elige **Solo la casa** (opción inicial) o **Todo el plano**. En **Preparar el diseño**, abre **Tejado** para revisar la cubierta exterior y **Parcela real** para situar el diseño sobre su fotografía.
 3. Para primera persona o construcción + visita, abre **Recorrido por las estancias**. Prepara una ruta automática o dibuja puntos en **Plano y recorrido**. Comprueba los tramos con **Previsualizar en 3D**.
 4. Elige formato horizontal o vertical, luz, efectos de construcción, volumen y presentación de las medidas. En vertical se encaja la vista 3D completa con márgenes arriba y abajo. Puedes preparar indicaciones en **Guion para generar con IA**.

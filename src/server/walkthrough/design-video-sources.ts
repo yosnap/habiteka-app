@@ -12,6 +12,8 @@ import { sameContentRevisions, tourImagesFromRows, tourDocumentReader, sameVisua
 import { assessTourHomogeneity } from '@/lib/editor-document/image-tour';
 import { renderViewIntegrityIssue } from '@/lib/editor-document/render-view-integrity';
 import { renderReviewIssue } from '@/lib/editor-document/render-review';
+import { renderViewSchema } from '@/lib/editor-document/render-view';
+import { designVisitContext } from '@/lib/editor-document/design-visit';
 
 export async function designVideoSources(ctx: OrgContext, scope: EditorScope, approvalId?: string, ids?: string[]) {
   const repo = withEditorDocuments(ctx);
@@ -49,12 +51,15 @@ export async function designVideoSources(ctx: OrgContext, scope: EditorScope, ap
     const view = row.payload.generation?.view, label = renderImageLabel(row.payload ? { payload: row.payload } as Deliverable : {} as Deliverable);
     const url = await resolveRenderUrl(row.payload);
     if (!url) throw new Error('Una imagen elegida no tiene archivo disponible.');
+    const parsedView = renderViewSchema.safeParse(view);
+    const visit = approved && parsedView.success ? designVisitContext(approved.document, parsedView.data)
+      : { visitIssue: 'La imagen no tiene una cámara interior verificable.' };
     return { id: row.id, name: label.zone, view: label.view, preset: view?.preset, batchId: row.payload.generation?.batchId ?? null,
       revision: row.revision, scope: row.options.designScope,
       zones: row.options.regions.map(region => region.name),
       closedRoof: view?.ceilingView === 'solid' && view.cutaway !== true,
       ...(issues.get(row.id) ? { issue: issues.get(row.id)! } : {}),
-      url };
+      url, ...visit };
   }));
   return { approved, references, rows: ordered };
 }

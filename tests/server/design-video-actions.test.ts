@@ -23,7 +23,7 @@ vi.mock('@/server/billing/credit-hold', () => ({ hold: mock.hold, settle: mock.s
 vi.mock('@/server/billing/gating', () => ({ canUse: mock.access, isPremium: mock.premium }));
 vi.mock('@/server/billing/global-cap', () => ({ assertGlobalCap: mock.cap }));
 vi.mock('@/server/ai/guard/spend-guard', () => ({ assertCanSpend: mock.spend, recordOutcome: mock.outcome }));
-import { prepareDesignConstruction, startDesignConstruction, checkDesignConstruction, discardDesignPreparation } from '@/server/walkthrough/design-video-actions';
+import { prepareDesignConstruction, prepareDesignVisit, startDesignConstruction, checkDesignConstruction, discardDesignPreparation } from '@/server/walkthrough/design-video-actions';
 import { KieSubmissionUnknownError, KieSubmissionRejectedError } from '@/server/ai/video/kie-video';
 const scope = { projectId: 'project', zoneId: 'zone' };
 const settings = { presentation: DEFAULT_VIDEO_PRESENTATION, resolution: '768P' as const };
@@ -43,6 +43,26 @@ beforeEach(() => {
   mock.create.mockResolvedValue('task'); mock.status.mockResolvedValue({ state: 'pending' }); mock.url.mockResolvedValue('https://storage.example/video.mp4');
 });
 describe('piloto de construcción desde diseños', () => {
+  it('prepara primera persona solo con interior verificado, sin reserva ni transferencia', async () => {
+    const sources = await mock.sources();
+    sources.references = [{ id: 'design', batchId: 'batch', name: 'Salón', view: 'Interior', zones: ['Salón'], closedRoof: true,
+      interiorRoomId: 'ground:salon', interiorRoomName: 'Salón' }];
+    mock.sources.mockResolvedValue(sources);
+    const result = await prepareDesignVisit(scope, 'approval', ['design'], settings, 'Interior del salón');
+    expect(result.job).toMatchObject({ mode: 'walkthrough-ai', title: 'Interior del salón', includedZones: ['Salón'], durationMs: 8000, estimateUsd: .32 });
+    expect(result.job.prompt).toContain('no mostrar construcción');
+    expect(result.job.structuralConstraints).toBeUndefined();
+    expect(mock.create).not.toHaveBeenCalled(); expect(mock.upload).not.toHaveBeenCalled(); expect(mock.hold).not.toHaveBeenCalled();
+    mock.read.mockResolvedValue({ version: 1, job: result.job });
+    await startDesignConstruction(scope, 'visit', { referencesToKie: true, maxUsd: .32 });
+    expect(mock.create).toHaveBeenCalledWith(result.job.prompt, result.job.settings, ['https://example.com/design.png']);
+  });
+  it('revalida referencias de primera persona al enviar y bloquea cambios antes de reserva o subida', async () => {
+    mock.read.mockResolvedValue({ version: 1, job: { ...job(), mode: 'walkthrough-ai' } });
+    await expect(prepareDesignVisit(scope, 'approval', ['design'], settings)).rejects.toThrow('estancia interior');
+    await expect(startDesignConstruction(scope, 'visit', { referencesToKie: true, maxUsd: .32 })).rejects.toThrow('estancia interior');
+    expect(mock.createRow).not.toHaveBeenCalled(); expect(mock.key).not.toHaveBeenCalled(); expect(mock.hold).not.toHaveBeenCalled(); expect(mock.upload).not.toHaveBeenCalled();
+  });
   it('bloquea preparación sin cubierta terminada antes de guardar, reservar o enviar', async () => {
     mock.sources.mockResolvedValue({ approved: { document: emptyEditorDocument() },
       rows: [{ payload: { generation: { view: { preset: 'top' } } }, options: defaultRenderDesignOptions() }],

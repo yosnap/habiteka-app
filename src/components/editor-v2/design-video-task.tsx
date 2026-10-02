@@ -17,6 +17,7 @@ export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBu
 }) {
   const [job, setJob] = useState(initial), [url, setUrl] = useState(initialUrl ?? null);
   const [consent, setConsent] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const visit = job.mode === 'walkthrough-ai';
   const update = (next: DesignVideoJob) => { setJob(next); onChange?.(next); };
   async function act(operation: () => Promise<void>) {
     setBusy(true); onBusyChange?.(true); setError('');
@@ -29,6 +30,7 @@ export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBu
   }
   return <section className="space-y-3 rounded-control border border-line p-4">
     <h3 className="font-semibold">{job.title || DESIGN_VIDEO_STATUS[job.status]}</h3>
+    <p className="text-xs text-ink-soft">{visit ? 'Primera persona desde diseños · toma de una estancia' : 'Construcción desde diseños'} · piloto H3</p>
     {job.title && <p className="text-sm text-ink-soft">{DESIGN_VIDEO_STATUS[job.status]}</p>}
     {!busy && !['submitting', 'generating', 'unknown'].includes(job.status) && <RenameVideo scope={scope} id={id} title={job.title ?? null} onBusyChange={onBusyChange} onSaved={() => {
       void checkDesignConstruction(scope, id).then(current => update(current.job)); onRenamed?.();
@@ -52,7 +54,7 @@ export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBu
     {(job.status === 'submitting' || job.status === 'unknown' && !job.taskId) && <p role="status" className="text-sm text-amber-800">Comprueba la tarea en KIE antes de otro intento. Una interrupción puede haber dejado una generación en curso.</p>}
     {url && <video src={url} controls playsInline preload="metadata" className="max-h-[55vh] w-full rounded-control bg-black" />}
     {job.status === 'review' && <>
-      <p className="text-sm text-ink-soft">Revisa todo el clip: zonas exteriores, cubierta, cantidad y posición de muebles, muros consecutivos e identidad de la casa. Una prueba que pierda elementos debe rechazarse. Las cotas exactas aún no se componen en clips IA.</p>
+      <p className="text-sm text-ink-soft">{visit ? 'Compara todo el clip con la referencia principal: muebles, TV, cortinas, puertas, ventanas, paredes y techo. La cámara debe permanecer dentro de la estancia y no atravesar sólidos.' : 'Revisa todo el clip: zonas exteriores, cubierta, cantidad y posición de muebles, muros consecutivos e identidad de la casa.'} Una prueba que pierda elementos debe rechazarse. Las cotas exactas aún no se componen en clips IA.</p>
       <div className="flex flex-wrap gap-2">{[true, false].map(accepted => <Button key={String(accepted)} variant={accepted ? 'default' : 'outline'} disabled={busy}
         onClick={() => void act(async () => { await reviewDesignConstruction(scope, id, accepted); update({ ...job, status: accepted ? 'accepted' : 'rejected' }); })}>
         {accepted ? 'Aceptar esta prueba' : 'Rechazar por falta de fidelidad'}</Button>)}</div>

@@ -18,6 +18,7 @@ import { constructionTiming } from '@/lib/editor-document/construction-timing';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { designVideoStructure } from '@/lib/editor-document/design-video-structure';
 import { videoTitleSchema } from '@/lib/editor-document/video-title';
+import { designVisitPrompt, designVisitSelectionIssue } from '@/lib/editor-document/design-visit';
 
 export async function loadDesignVideoReferences(scope: EditorScope) {
   const ctx = await requireOrgContext();
@@ -29,20 +30,29 @@ export async function loadDesignVideoReferences(scope: EditorScope) {
 
 /** Preparar solo lee medios propios y guarda un presupuesto; no sube referencias ni llama a KIE. */
 export async function prepareDesignConstruction(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings, name?: string) {
+  return prepareDesignVideo(scope, approvalId, ids, input, name, 'construction-ai');
+}
+
+export async function prepareDesignVisit(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings, name?: string) {
+  return prepareDesignVideo(scope, approvalId, ids, input, name, 'walkthrough-ai');
+}
+
+async function prepareDesignVideo(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings, name: string | undefined, mode: DesignVideoJob['mode']) {
   const ctx = await requireOrgContext(), settings = designVideoSettingsSchema.parse(input);
   const title = videoTitleSchema.parse(name);
   const sources = await designVideoSources(ctx, scope, approvalId, ids), approved = sources.approved!;
-  assertConstructionReferences(sources);
+  assertDesignReferences(sources, mode);
   // El piloto aún no compone medidas exactas sobre una cámara generada por IA.
   settings.presentation = { ...settings.presentation, contentScope: 'all', showDimensions: false, dimensionMode: 'none' };
-  const structuralConstraints = designVideoStructure(approved.document, sources.rows.map(row => ({ view: row.payload.generation?.view, options: row.options })));
-  const prompt = designConstructionPrompt(approved.lightingPreset, settings, sources.references, structuralConstraints);
+  const structuralConstraints = mode === 'construction-ai' ? designVideoStructure(approved.document, sources.rows.map(row => ({ view: row.payload.generation?.view, options: row.options }))) : undefined;
+  const prompt = mode === 'construction-ai' ? designConstructionPrompt(approved.lightingPreset, settings, sources.references, structuralConstraints)
+    : designVisitPrompt(approved.lightingPreset, settings, sources.references);
   if (prompt.length > 7000) throw new Error('El guion supera el límite de H3. Acorta tus indicaciones antes de preparar.');
   const estimate = designVideoEstimate(settings, ids.length), id = crypto.randomUUID();
-  const job: DesignVideoJob = { type: 'video', mode: 'construction-ai', status: 'prepared', provider: 'kie', model: DESIGN_VIDEO_MODEL,
+  const job: DesignVideoJob = { type: 'video', mode, status: 'prepared', provider: 'kie', model: DESIGN_VIDEO_MODEL,
     approvalId, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, sourceIds: ids,
     sourceScopes: sources.rows.map(row => ({ id: row.id, options: row.options })),
-    includedZones: [...new Set(sources.references.flatMap(reference => reference.zones))], prompt, settings, structuralConstraints,
+    includedZones: [...new Set(sources.references.flatMap(reference => mode === 'walkthrough-ai' ? [reference.interiorRoomName!] : reference.zones))], prompt, settings, structuralConstraints,
     durationMs: constructionTiming(settings.presentation).durationMs, estimateUsd: estimate.usd, credits: estimate.credits, ...(title ? { title } : {}) };
   await prisma.$transaction(async tx => {
     await assertEditorScope(tx, ctx, scope, { lock: true });
@@ -58,7 +68,7 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
   if (consent.referencesToKie !== true || !Number.isFinite(consent.maxUsd) || consent.maxUsd < job.estimateUsd)
     throw new Error('Confirma las imágenes enviadas a KIE/MiniMax y su presupuesto antes de generar.');
   const sources = await designVideoSources(ctx, scope, job.approvalId, job.sourceIds);
-  assertConstructionReferences(sources);
+  assertDesignReferences(sources, job.mode);
   if (sources.approved?.fingerprint !== job.approvedFingerprint) throw new Error('La aprobación cambió. Prepara otra prueba con la versión correcta.');
   if (!(await canUse(ctx.organizationId, 'generate')).allowed) throw new Error('Necesitas saldo de créditos para generar el vídeo.');
   await assertGlobalCap(await isPremium(ctx.organizationId));
@@ -107,6 +117,12 @@ function assertConstructionReferences(sources: Awaited<ReturnType<typeof designV
     throw new Error('Añade Exterior terminado del mismo diseño y tanda, con fachadas completas y tejado visible, antes de preparar la construcción.');
   const batches = new Set(sources.references.map(reference => reference.batchId));
   if (batches.size !== 1 || batches.has(null)) throw new Error('Para el piloto elige referencias de una misma tanda. No se mezclarán diseños distintos.');
+}
+
+function assertDesignReferences(sources: Awaited<ReturnType<typeof designVideoSources>>, mode: DesignVideoJob['mode']) {
+  if (mode === 'construction-ai') return assertConstructionReferences(sources);
+  const issue = designVisitSelectionIssue(sources.references);
+  if (issue) throw new Error(issue);
 }
 
 export async function checkDesignConstruction(scope: EditorScope, id: string) {

@@ -11,7 +11,7 @@ import type { DeliverableType } from '@/lib/contracts';
 export interface HistoryDeliverable {
   id: string;
   type: DeliverableType | 'video';
-  videoMode?: 'walkthrough' | 'showcase' | 'promotion' | 'construction' | 'construction-ai' | 'images' | 'advertising';
+  videoMode?: 'walkthrough' | 'showcase' | 'promotion' | 'construction' | 'construction-ai' | 'walkthrough-ai' | 'images' | 'advertising';
   videoUrl?: string | null;
   videoTitle?: string | null;
   /** URL del render, si el entregable es de tipo render3d; null en otro caso. */
@@ -36,7 +36,7 @@ const TYPE_LABEL: Record<DeliverableType, string> = {
 function typeLabel(deliverable: HistoryDeliverable): string {
   if (deliverable.type === 'video' && deliverable.videoTitle) return deliverable.videoTitle;
   return deliverable.type === 'video'
-    ? deliverable.videoMode === 'advertising' ? 'Publicidad con un vídeo guardado' : deliverable.videoMode === 'construction-ai' ? 'Construcción desde diseños · piloto H3' : deliverable.videoMode === 'construction' ? 'Construcción del edificio · 3D' : deliverable.videoMode === 'images' ? 'Montaje de diseños generados' : deliverable.videoMode === 'promotion' ? 'Muestra 3D sobre la parcela' : deliverable.videoMode === 'showcase' ? 'Muestra 3D · obra + recorrido' : 'Recorrido 3D del editor'
+    ? deliverable.videoMode === 'advertising' ? 'Publicidad con un vídeo guardado' : deliverable.videoMode === 'walkthrough-ai' ? 'Primera persona desde diseños · piloto H3' : deliverable.videoMode === 'construction-ai' ? 'Construcción desde diseños · piloto H3' : deliverable.videoMode === 'construction' ? 'Construcción del edificio · 3D' : deliverable.videoMode === 'images' ? 'Montaje de diseños generados' : deliverable.videoMode === 'promotion' ? 'Muestra 3D sobre la parcela' : deliverable.videoMode === 'showcase' ? 'Muestra 3D · obra + recorrido' : 'Recorrido 3D del editor'
     : TYPE_LABEL[deliverable.type];
 }
 

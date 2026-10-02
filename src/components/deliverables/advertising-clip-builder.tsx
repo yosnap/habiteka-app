@@ -11,7 +11,7 @@ import { callAction } from '@/lib/action-result';
 import { VideoNameField } from './video-name';
 
 interface Clip { id: string; mode: string; durationMs: number; title?: string | null }
-const LABELS: Record<string, string> = { 'construction-ai': 'Construcción H3', construction: 'Construcción 3D',
+const LABELS: Record<string, string> = { 'walkthrough-ai': 'Primera persona H3', 'construction-ai': 'Construcción H3', construction: 'Construcción 3D',
   images: 'Montaje de diseños', promotion: 'Parcela 3D', walkthrough: 'Primera persona 3D', showcase: 'Construcción + visita 3D' };
 export function AdvertisingClipBuilder({ scope, approvalId, clips, disabled, portalContainer, onBusyChange, onCreated }: {
   scope: EditorScope; approvalId: string | null; clips: Clip[]; disabled: boolean; portalContainer?: HTMLElement | null;

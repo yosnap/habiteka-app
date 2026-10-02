@@ -61,8 +61,8 @@ export function VideoStudioDialog(props: Props) {
   const item = VIDEO_GOALS.find(item => item.id === goal)!;
   const mode: NativeVideoMode = goal === 'construction' ? 'construction' : goal === 'advertising' ? 'promotion' : goal === 'visit' ? 'walkthrough' : 'showcase';
   const needsRoute = nativeVideoNeedsRoute(mode);
-  const constructionDesigns = goal === 'construction' && source === 'images';
-  const imagesMode = (goal === 'advertising' || goal === 'construction') && source !== 'model';
+  const constructionDesigns = (goal === 'construction' || goal === 'visit') && source === 'images';
+  const imagesMode = (goal === 'advertising' || goal === 'construction' || goal === 'visit') && source !== 'model';
   const approved = approvalCurrent && approval?.lightingPreset === lighting;
   const approvedStore = useMemo(() => {
     if (!approval) return null;
@@ -118,11 +118,11 @@ export function VideoStudioDialog(props: Props) {
               <Icon size={20} className={goal === option.id ? 'mt-0.5 shrink-0 text-brand-600' : 'mt-0.5 shrink-0 text-ink-soft'} /><div><strong className="text-sm">{option.title}</strong><p className="mt-1 text-xs text-ink-soft">{option.description}</p></div>
             </button>; })}
           </div>
-          {(goal === 'advertising' || goal === 'construction') && <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-4 lg:px-6"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
+          {(goal === 'advertising' || goal === 'construction' || goal === 'visit') && <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-4 lg:px-6"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
             <Button variant={source === 'images' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('images')}>Mis diseños</Button>
             {goal === 'advertising' && <Button variant={source === 'clip' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('clip')}>Vídeo guardado</Button>}
-            <Button variant={source === 'model' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('model')}>{goal === 'construction' ? 'Prueba del plano 3D' : '3D en parcela real'}</Button></div>}
-          {constructionDesigns && <DesignConstructionPanel scope={scope} approved={Boolean(approved)} onReviewApproval={onReviewApproval} onBusyChange={setImageBusy} portalContainer={container} />}
+            <Button variant={source === 'model' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('model')}>{goal === 'advertising' ? '3D en parcela real' : 'Prueba del plano 3D'}</Button></div>}
+          {constructionDesigns && <DesignConstructionPanel key={goal} goal={goal === 'visit' ? 'visit' : 'construction'} scope={scope} approved={Boolean(approved)} onReviewApproval={onReviewApproval} onBusyChange={setImageBusy} portalContainer={container} />}
           {imagesMode && !constructionDesigns && <><div className="px-5"><Button variant="outline" disabled={busy || approvalDisabled} onClick={onReviewApproval}>{approved ? 'Revisar aprobación' : 'Guardar y aprobar revisión'}</Button></div>
             <VideoStudioMedia scope={scope} gallery={false} clips={source === 'clip'} portalContainer={container} revisionKey={savedKey} onBusyChange={setImageBusy} onReviewApproval={onReviewApproval} /></>}
           <div className={!imagesMode ? 'grid min-h-0 flex-1 gap-4 px-4 pb-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-6 lg:pb-6' : 'hidden'}>

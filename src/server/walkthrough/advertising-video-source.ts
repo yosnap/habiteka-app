@@ -7,6 +7,7 @@ import { sameVisualDesignContent } from './tour-images';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { videoMeasurements } from '@/lib/editor-document/video-measurements';
 import { fail } from '@/server/errors/run-action';
+import { isDesignVideoMode } from '@/lib/editor-document/design-video';
 
 export async function advertisingVideoSource(ctx: OrgContext, scope: EditorScope, approvalId: string, sourceId: string) {
   const repo = withEditorDocuments(ctx), approved = await repo.readApproval(scope, approvalId), current = await repo.load(scope);
@@ -18,7 +19,7 @@ export async function advertisingVideoSource(ctx: OrgContext, scope: EditorScope
   if (!payload?.assetKey || payload.approvalId !== approved.id || payload.approvedFingerprint !== approved.fingerprint)
     fail('El clip no pertenece a este diseño aprobado o no tiene archivo guardado.');
   if (payload.mode === 'advertising') fail('Elige el vídeo original para evitar duplicar sus medidas.');
-  if (payload.mode === 'construction-ai' && payload.status !== 'accepted')
+  if (isDesignVideoMode(payload.mode) && payload.status !== 'accepted')
     fail('Revisa y acepta la fidelidad del clip H3 antes de usarlo en publicidad.');
   if (!Number.isFinite(payload.durationMs) || payload.durationMs! <= 0 || payload.durationMs! > 110000)
     fail('El clip debe durar como máximo 110 segundos.');

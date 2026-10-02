@@ -29,6 +29,11 @@ describe('procedencia del clip publicitario', () => {
     await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).rejects.toThrow(/acepta la fidelidad/);
     expect(mocks.url).not.toHaveBeenCalled();
   });
+  it.each(['review', 'rejected', 'generating'])('bloquea primera persona H3 %s antes de publicidad', async status => {
+    mocks.row.mockResolvedValue({ payload: { ...payload(), mode: 'walkthrough-ai', status } });
+    await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).rejects.toThrow(/acepta la fidelidad/);
+    expect(mocks.url).not.toHaveBeenCalled();
+  });
   it.each([{ approvalId: 'other' }, { approvedFingerprint: 'other' }, { assetKey: undefined }])('bloquea un original incompatible %j', async override => {
     mocks.row.mockResolvedValue({ payload: { ...payload(), ...override } });
     await expect(advertisingVideoSource(ctx, scope, 'approval', 'clip')).rejects.toThrow(/no pertenece/);

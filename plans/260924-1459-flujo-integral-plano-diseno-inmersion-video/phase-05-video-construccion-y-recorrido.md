@@ -250,3 +250,9 @@ El usuario autorizó el único clip de $0.34 y las seis referencias. También au
 Publicidad vertical y cotas confirmadas en commit `2b159ac`. Añadida limpieza individual y por selección, con papelera durable y restauración, también para referencias rechazadas. Los vídeos se pueden nombrar antes de crear y renombrar después; los originales de publicidad utilizan esos nombres. No hay migraciones ni generaciones de pago.
 
 Probados en Comet los flujos reales del recorrido aprobado completo y la pieza de construcción + visita: MP4 1920×1080 H.264 de 22,77 s y 30,83 s, respectivamente, con audio AAC de efectos en la pieza combinada. Guardados en MinIO local y comparados con las descargas mediante SHA-256. Estos resultados son muestras del modelo editable, no inmersión fotorrealista desde renders. Esta última y la fidelidad profesional de H3 siguen pendientes. No se aprobaron ni modificaron diseños durante estas pruebas.
+
+## Preparación de primera persona desde diseños — 02/10/2026
+
+Añadida opción `Primera persona → Mis diseños`, con piloto H3 de una estancia de 8/12 s, presupuesto, nombre, guion y revisión. Reutiliza el envío único y recuperación existentes; `walkthrough-ai` se conserva en el JSON sin migraciones. Comprueba cámara interior real, planta, techo/muros completos, misma estancia/tanda, revisión visual vigente y rechazo antes de preparar y enviar. Publicidad bloquea resultados H3 no aceptados de ambas modalidades.
+
+El estudio muestra interiores por defecto y enlaza directamente a su preparación en el editor, sin generar automáticamente. Las referencias actuales verificadas en navegador son aéreas/exteriores: faltan interiores para una prueba real. No hay transferencia ni consumo IA en esta implementación. Continúan pendientes continuidad entre habitaciones, revisión del piloto interior pagado y montaje combinado con construcción; la muestra nativa conserva sus límites.
