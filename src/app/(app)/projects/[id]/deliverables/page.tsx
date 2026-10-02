@@ -15,6 +15,8 @@ import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
 import type { DesignVideoJob } from '@/lib/editor-document/design-video';
 import { DesignVideoTask } from '@/components/editor-v2/design-video-task';
 import type { EditorScope } from '@/server/editor/authority';
+import { advertisingVideoSchema, ADVERTISING_DIMENSIONS, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
+import { VIDEO_FORMATS } from '@/lib/editor-document/video-format';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -24,7 +26,8 @@ interface Props {
 type ResultsTab = 'disenos' | 'recorridos' | 'videos';
 type VideoView = {
   id: string;
-  mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai';
+  mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai' | 'advertising';
+  advertising: AdvertisingVideoOptions | null;
   scope: EditorScope;
   designJob: DesignVideoJob | null;
   url: string | null;
@@ -36,7 +39,7 @@ type VideoView = {
 
 function videoMode(payload: unknown): VideoView['mode'] {
   if (!payload || typeof payload !== 'object' || !('mode' in payload)) return 'walkthrough';
-  return payload.mode === 'showcase' || payload.mode === 'images' || payload.mode === 'promotion' || payload.mode === 'construction' || payload.mode === 'construction-ai' ? payload.mode : 'walkthrough';
+  return payload.mode === 'showcase' || payload.mode === 'images' || payload.mode === 'promotion' || payload.mode === 'construction' || payload.mode === 'construction-ai' || payload.mode === 'advertising' ? payload.mode : 'walkthrough';
 }
 /** Los vídeos con obra y los montados con imágenes conviven en la pestaña «Vídeos». */
 const inVideosTab = (mode: VideoView['mode']) => mode !== 'walkthrough';
@@ -67,13 +70,15 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
     const videos = await Promise.all(videoRows.filter((row) =>
       inVideosTab(videoMode(row.payload)) === (activeTab === 'videos')).map(async (row): Promise<VideoView> => {
       const payload = row.payload && typeof row.payload === 'object'
-        ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number }
+        ? row.payload as { assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number; advertising?: unknown }
         : {};
+      const advertising = advertisingVideoSchema.safeParse(payload.advertising);
       const approvalId = typeof payload.approvalId === 'string' && payload.approvalId ? payload.approvalId : null;
       const designQuery = new URLSearchParams();
       if (approvalId) designQuery.set('aprobado', approvalId);
       if (row.zoneId) designQuery.set('zona', row.zoneId);
       return { id: row.id, mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
+        advertising: advertising.success ? advertising.data : null,
         scope: { projectId: id, zoneId: row.zoneId }, designJob: videoMode(row.payload) === 'construction-ai' ? row.payload as unknown as DesignVideoJob : null,
         approvedRevision: typeof payload.approvedRevision === 'number' && Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
         designHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${designQuery}` : null,
@@ -133,6 +138,7 @@ function ResultsTabs({ tabs, active, href }: {
 }
 
 const VIDEO_LABEL: Record<VideoView['mode'], string> = {
+  advertising: 'Publicidad con un vídeo guardado',
   'construction-ai': 'Construcción desde diseños · piloto H3',
   construction: 'Construcción del edificio · 3D',
   walkthrough: 'Recorrido 3D del editor', showcase: 'Muestra 3D · obra + recorrido', images: 'Montaje de diseños generados', promotion: 'Muestra 3D sobre la parcela' };
@@ -145,8 +151,11 @@ function VideoCard({ video }: { video: VideoView }) {
       {video.durationMs ? <span className="text-ink-soft ml-2 text-sm font-normal">{Math.round(video.durationMs / 1000)} s</span> : null}
     </h2>
     <p className="text-ink-soft text-sm">{video.mode === 'images' ? 'Presentación de imágenes con zoom y fundidos; no es una visita continua.'
+      : video.mode === 'advertising' ? 'Composición del clip original con formato y cotas opcionales; conserva su sonido y duración.'
       : 'Exportación del modelo editable; no incorpora los acabados y la decoración de las imágenes generadas por IA.'}</p>
-    {video.url ? <><video controls preload="metadata" src={video.url} className="w-full rounded-control" />
+    {video.advertising && <p className="text-ink-soft text-xs">{VIDEO_FORMATS.find(item => item.value === video.advertising?.format)?.label}
+      {' · '}{ADVERTISING_DIMENSIONS.find(item => item.value === video.advertising?.dimensionMode)?.label}</p>}
+    {video.url ? <><video controls playsInline preload="metadata" src={video.url} className="max-h-[65vh] w-full rounded-control bg-black" />
       <a href={video.url} download={showcase ? 'habiteka-muestra.mp4' : 'habiteka-recorrido.mp4'} className="text-emerald-800 underline">Descargar MP4</a></>
       : <p className="text-muted-foreground text-sm">Vídeo no disponible temporalmente.</p>}
     {video.designHref && <a href={video.designHref} className="text-ink text-sm underline">

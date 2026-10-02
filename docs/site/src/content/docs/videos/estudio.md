@@ -12,6 +12,7 @@ En cualquier proyecto, abre la pestaña **Vídeos**, o pulsa **Crear vídeo** en
 | Construcción → Mis diseños | Piloto H3 de 8 s; 12 s opcionales para amueblado. | Imágenes de una tanda del diseño aprobado, KIE activo y confirmación de coste/envío. |
 | Construcción → Prueba del plano 3D | 8 s de obra rápida y vuelo del modelo 3D; 12 s opcionales. | Plano y revisión aprobada; no necesita recorrido ni parcela. |
 | Publicidad → Mis diseños | Presentación de imágenes generadas con movimiento suave y fundidos. | Imágenes compatibles con el diseño aprobado, con estilo y luz coherentes. |
+| Publicidad → Vídeo guardado | Otro MP4 horizontal/vertical con panel de cotas opcional; conserva sonido y duración del original. | Clip de la misma aprobación; H3 debe estar aceptado. |
 | Publicidad → 3D en parcela real | 30 s de etapas sobre la ortofoto y vuelo exterior. | Parcela confirmada y revisión aprobada; no necesita ruta interior. |
 | Primera persona | Paseo por el modelo 3D editable. | Recorrido válido en la revisión aprobada. |
 | Construcción + visita | Obra y vuelo de 8 s (o 12 s), seguidos del paseo 3D. | Recorrido válido y revisión aprobada. |
@@ -46,7 +47,7 @@ El guion preparado añade cantidad, forma, huella y posición local de escaleras
 
 El presupuesto de salida de 8 s con cinco referencias es **$0.32 a 768P** o **$0.52 a 2K**; cada referencia adicional a la quinta suma **$0.02**. Se muestran también los créditos que se reservarán. No se adjunta vídeo de entrada en este piloto. Tarifa orientativa contrastada el 01/10/2026; auditorías e intentos adicionales no están incluidos. [Tarifa y modelo KIE H3](https://kie.ai/minimax-h3).
 
-Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin confirmar**, revisa esa tarea antes de otra prueba. No hay reintentos automáticos de generación. Si hay identificador, puedes volver a consultar; si falla la descarga, la tarea se conserva para recuperarla sin pagar otro clip. Las cotas exactas sobre vídeo IA siguen pendientes de composición; el piloto se solicita sin cifras.
+Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin confirmar**, revisa esa tarea antes de otra prueba. No hay reintentos automáticos de generación. Si hay identificador, puedes volver a consultar; si falla la descarga, la tarea se conserva para recuperarla sin pagar otro clip. El piloto se solicita sin cifras. Tras revisarlo y aceptarlo, **Publicidad → Vídeo guardado** permite añadir un panel con las medidas globales del diseño aprobado, sin otra generación IA. Las cotas ancladas a la geometría y al movimiento de un clip IA siguen pendientes.
 
 El identificador de una tarea aceptada se guarda antes de registrar su coste. Si se interrumpe ese registro, **Consultar resultado sin regenerar** vuelve a conciliar el coste y los créditos de la misma tarea, sin crear ni cobrar un segundo intento. Si aparece saldo pendiente de conciliación, conserva la tarea y vuelve a consultarla cuando se recupere el servicio.
 
@@ -55,7 +56,7 @@ El identificador de una tarea aceptada se guarda antes de registrar su coste. Si
 1. Elige el objetivo.
 2. En **Qué aparece en el vídeo**, elige **Solo la casa** (opción inicial) o **Todo el plano**. En **Preparar el diseño**, abre **Tejado** para revisar la cubierta exterior y **Parcela real** para situar el diseño sobre su fotografía.
 3. Para primera persona o construcción + visita, abre **Recorrido por las estancias**. Prepara una ruta automática o dibuja puntos en **Plano y recorrido**. Comprueba los tramos con **Previsualizar en 3D**.
-4. Elige luz, efectos de construcción, volumen y presentación de las medidas. Puedes preparar indicaciones en **Guion para generar con IA**.
+4. Elige formato horizontal o vertical, luz, efectos de construcción, volumen y presentación de las medidas. En vertical se encaja la vista 3D completa con márgenes arriba y abajo. Puedes preparar indicaciones en **Guion para generar con IA**.
 5. Pulsa **Guardar y aprobar revisión**. Revisa la ventana y confirma la aprobación: volverás al estudio, con las opciones elegidas conservadas.
 6. Pulsa **Crear vídeo**. Si está deshabilitado, el motivo aparece debajo: ruta, aprobación, carga o parcela pendientes.
 
@@ -63,7 +64,7 @@ Cambiar la luz o el contenido del diseño exige revisar su aprobación. Durante 
 
 Al exportar desde el estudio o desde la visita aprobada se guardan con el vídeo las opciones utilizadas de sonido, cotas, ámbito y duración. La ficha del resultado conserva esos ajustes junto a la aprobación correspondiente.
 
-En publicidad con imágenes, revisa la selección por ambiente y pulsa **Crear montaje**. No necesitas una ruta del editor para esta presentación.
+En publicidad con imágenes o un vídeo guardado, elige formato y cotas y prepara la vista previa. Después puedes guardar o descargar. No necesitas una ruta del editor para estas presentaciones. Consulta la [guía de montajes y anuncios](/videos/montaje-imagenes/).
 
 ## Construcción: orden y ámbito
 

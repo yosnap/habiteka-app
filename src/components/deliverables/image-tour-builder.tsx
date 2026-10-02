@@ -1,11 +1,13 @@
 'use client';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { assessTourHomogeneity, orderTourImages, pickTourImages, tourDurationMs, MAX_TOUR_SHOTS, missingTourAmbients, tourAmbientKey, type TourImage } from '@/lib/editor-document/image-tour';
 import { recordImageTour } from './record-image-tour';
 import { callAction } from '@/lib/action-result';
 import { prepareImageTourUpload, finishImageTourUpload, validateImageTourSources } from '@/server/walkthrough/image-tour-actions';
 import { assessKeyframeSet, type KeyframeAssessment } from '@/server/walkthrough/keyframe-assessment';
+import { AdvertisingControls } from './advertising-controls';
+import { DEFAULT_ADVERTISING_VIDEO, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
 
 interface Props {
   projectId: string;
@@ -21,10 +23,11 @@ interface Props {
   onCreated?: () => void;
   onBusyChange?: (busy: boolean) => void;
   onReviewApproval?: () => void;
+  portalContainer?: HTMLElement | null;
 }
 
 /** Montaje del vídeo sobre las imágenes generadas: una selección por ámbito que se puede ajustar antes de crearlo. */
-export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevision, images, ambients, validRevisions, approvalOutdated, onCreated, onBusyChange, onReviewApproval }: Props) {
+export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevision, images, ambients, validRevisions, approvalOutdated, onCreated, onBusyChange, onReviewApproval, portalContainer }: Props) {
   const router = useRouter();
   // Sin diseño aprobado no hay revisión de referencia con la que comparar.
   const valid = useMemo(() => approvalId ? new Set(validRevisions) : null, [approvalId, validRevisions]);
@@ -32,7 +35,13 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
   const [selected, setSelected] = useState<string[]>(() => suggestion.shots.map((shot) => shot.id));
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  const [options, setOptions] = useState({ ...DEFAULT_ADVERTISING_VIDEO });
+  const [preview, setPreview] = useState<{ blob: Blob; url: string; ids: string[]; options: AdvertisingVideoOptions; saved?: boolean } | null>(null);
+  useEffect(() => () => { abort.current?.abort(); }, []);
+  const previewUrl = preview?.url;
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   const byId = useMemo(() => new Map(images.map((image) => [image.id, image])), [images]);
   const ordered = selected.map((id) => byId.get(id)).filter((image): image is TourImage => !!image);
   const groups = useMemo(() => {
@@ -52,7 +61,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
   // Un montaje parcial es válido; mezclar casas, luces o acabados no lo es.
   const incompatible = homogeneity.issues.some(issue => issue.code !== 'missing');
 
-  const toggle = (id: string) => { setAssessment(null); setSelected((current) => current.includes(id) ? current.filter((item) => item !== id)
+  const toggle = (id: string) => { setPreview(null); setAssessment(null); setSelected((current) => current.includes(id) ? current.filter((item) => item !== id)
     : current.length >= MAX_TOUR_SHOTS ? current : [...current, id]); };
 
   async function askJev() {
@@ -66,25 +75,34 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
   async function create() {
     if (!approvalId || approvalOutdated || incompatible) return;
     const shots = orderTourImages(ordered);
-    setMessage(null); setProgress(0);
+    setMessage(null); setProgress(0); setPreview(null);
     onBusyChange?.(true);
     abort.current = new AbortController();
     try {
-      await callAction(validateImageTourSources({ projectId, zoneId }, approvalId, shots.map(shot => shot.id)));
-      const { blob } = await recordImageTour(shots, abort.current.signal, setProgress);
-      const link = document.createElement('a'), local = URL.createObjectURL(blob);
-      link.href = local; link.download = 'habiteka-video-imagenes.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(local), 60000);
-      const scope = { projectId, zoneId };
-      const upload = await callAction(prepareImageTourUpload(scope, approvalId, shots.map((shot) => shot.id), blob.size));
-      const response = await fetch(upload.url, { method: 'PUT', body: blob, headers: { 'Content-Type': 'video/mp4' } });
-      if (!response.ok) throw new Error('El MP4 se descargó, pero no se pudo subir a Vídeos.');
+      const source = await callAction(validateImageTourSources({ projectId, zoneId }, approvalId, shots.map(shot => shot.id)));
+      if (options.dimensionMode !== 'none' && !source.measurements) throw new Error('El diseño aprobado no tiene medidas disponibles. Elige Sin medidas.');
+      const { blob } = await recordImageTour(shots, abort.current.signal, setProgress, options, source.measurements);
+      setPreview({ blob, url: URL.createObjectURL(blob), ids: shots.map(shot => shot.id), options });
+      setMessage('Vista previa preparada. Revisa el encuadre y las medidas antes de guardar.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo preparar el montaje.'); }
+    finally { setProgress(null); abort.current = null; onBusyChange?.(false); }
+  }
+
+  async function save() {
+    if (!preview || !approvalId || approvalOutdated) return;
+    setSaving(true); setMessage(null); setProgress(0); onBusyChange?.(true);
+    try {
+      const upload = await callAction(prepareImageTourUpload({ projectId, zoneId }, approvalId, preview.ids, preview.blob.size, preview.options));
+      const response = await fetch(upload.url, { method: 'PUT', body: preview.blob, headers: { 'Content-Type': 'video/mp4' } });
+      if (!response.ok) throw new Error('No se pudo subir a Vídeos. Puedes descargar la vista previa.');
       await callAction(finishImageTourUpload(upload.ticket));
       setMessage('Vídeo creado y guardado en Vídeos.');
+      setPreview({ ...preview, saved: true });
       router.refresh();
       onCreated?.();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No se pudo crear el vídeo.');
-    } finally { setProgress(null); abort.current = null; onBusyChange?.(false); }
+    } finally { setSaving(false); setProgress(null); abort.current = null; onBusyChange?.(false); }
   }
 
   if (!images.length) return <p className="text-muted-foreground text-sm">Aún no hay imágenes generadas para montar el vídeo. Créalas desde «Diseñar con IA» en el editor.</p>;
@@ -93,6 +111,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     <p className="text-ink-soft text-sm">Recorre las imágenes de cada ambiente con movimiento de cámara y fundidos. Sin consumo de IA.
       {approvedRevision !== null ? ` Se vincula al diseño aprobado · revisión ${approvedRevision}.` : ''}</p>
     <p className="text-ink-soft text-xs">Muestra tus renders terminados. El paseo continuo fotorrealista entre estancias todavía no está disponible.</p>
+    <AdvertisingControls value={options} disabled={recording} portalContainer={portalContainer} onChange={value => { setOptions(value); setPreview(null); }} />
     {approvalOutdated && <p role="alert" className="rounded-control border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
       El diseño del editor ha cambiado desde esta aprobación. Revisa y aprueba los cambios, incluido el tejado, y genera imágenes de esa versión.
       {' '}{onReviewApproval ? <button type="button" className="font-semibold underline" onClick={onReviewApproval}>Revisar y aprobar aquí</button>
@@ -129,10 +148,13 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     </div>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50"
-        disabled={recording || !ordered.length || !approvalId || approvalOutdated || incompatible} onClick={() => void create()}>Crear montaje con {ordered.length} imágenes · {Math.round(tourDurationMs(ordered.length) / 1000)} s</button>
-      {recording && <><progress max={1} value={progress ?? 0} aria-label="Progreso del vídeo" /><button type="button" onClick={() => abort.current?.abort()}>Cancelar</button></>}
+        disabled={recording || !ordered.length || !approvalId || approvalOutdated || incompatible} onClick={() => void create()}>Preparar montaje con {ordered.length} imágenes · {Math.round(tourDurationMs(ordered.length) / 1000)} s</button>
+      {recording && <><progress max={1} value={progress ?? 0} aria-label="Progreso del vídeo" />{!saving && <button type="button" onClick={() => abort.current?.abort()}>Cancelar</button>}</>}
       {!approvalId && <span role="status" className="text-sm">Aprueba un diseño en el editor para poder crear el vídeo.</span>}
     </div>
+    {preview && <div className="space-y-3"><video src={preview.url} controls playsInline className="max-h-[55vh] w-full rounded-control bg-black" />
+      <div className="flex flex-wrap gap-3"><button type="button" disabled={recording || approvalOutdated || preview.saved} className="rounded-control border border-line px-3 py-2 text-sm disabled:opacity-50" onClick={() => void save()}>{preview.saved ? 'Montaje guardado' : 'Guardar en Vídeos'}</button>
+        <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a></div></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;
 }

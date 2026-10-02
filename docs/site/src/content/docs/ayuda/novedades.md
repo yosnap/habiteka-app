@@ -3,6 +3,12 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## En desarrollo — Publicidad vertical y cotas
+
+- **Publicidad**: formato horizontal 16:9 o vertical 9:16, con panel de ancho, fondo y altura del diseño aprobado. Medidas animadas, solo al inicio, fijas o desactivadas. Vista previa antes de guardar o descargar.
+- **Publicidad → Vídeo guardado**: compone otro anuncio desde un montaje, vídeo 3D o H3 aceptado de la misma aprobación, conservando audio, duración y original. Composición local sin nueva generación IA; el panel no sigue la cámara ni verifica la fidelidad del clip.
+- Exportación 3D con formato vertical opcional: conserva la vista completa con márgenes y sus cotas geométricas existentes.
+
 ## Versión 0.4.0 — 2 de octubre de 2026
 
 Esta versión reúne tejados, parcela geográfica, estudio de vídeo, galerías y las correcciones revisadas de seguridad, cocina y recuperación de tareas. La construcción H3 sigue siendo un piloto que requiere revisión visual; las funciones pendientes se detallan al final de esta página.
@@ -80,7 +86,7 @@ Estas guías corresponden a la implementación actual del repositorio. El entorn
 | Etapas de reforma parcial | Pendiente definición de elementos conservados. |
 | Película fotorrealista continua | Pendiente imágenes coherentes, guion y piloto de clips con presupuesto. |
 | Editor de tomas y ritmo libre | Pendiente; construcción ya permite elegir 8 o 12 s. |
-| Formato vertical 9:16 | Pendiente. |
+| Cotas geométricas sobre vídeo IA | Pendiente seguimiento de cámara; el panel de medidas globales sí está disponible en publicidad. |
 | Música, locución y pistas externas | Pendiente; los efectos sintetizados de construcción sí están disponibles en vídeo nativo. |
 
 Las funciones pendientes se documentan como tales; sus guías se actualizarán cuando estén implementadas y verificadas.

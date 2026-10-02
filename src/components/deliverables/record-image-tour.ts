@@ -1,4 +1,8 @@
 import { tourDurationMs, tourFrameAt, type TourImage } from '@/lib/editor-document/image-tour';
+import { videoFormatSize } from '@/lib/editor-document/video-format';
+import { DEFAULT_ADVERTISING_VIDEO, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
+import type { VideoMeasurements } from '@/lib/editor-document/video-measurements';
+import { advertisingFrame } from './advertising-frame';
 
 const WIDTH = 1920, HEIGHT = 1080, FPS = 30, BITRATE = 6_000_000;
 
@@ -22,14 +26,16 @@ function drawCover(context: CanvasRenderingContext2D, bitmap: ImageBitmap, zoom:
 }
 
 /** Codifica en el navegador un MP4 H.264 a 1080p con las imágenes en el orden dado; el tiempo del vídeo no depende del equipo. */
-export async function recordImageTour(shots: TourImage[], signal: AbortSignal, progress: (value: number) => void): Promise<{ blob: Blob; durationMs: number }> {
+export async function recordImageTour(shots: TourImage[], signal: AbortSignal, progress: (value: number) => void,
+  options: AdvertisingVideoOptions = DEFAULT_ADVERTISING_VIDEO, measurements: VideoMeasurements | null = null): Promise<{ blob: Blob; durationMs: number }> {
   if (!shots.length) throw new Error('Elige al menos una imagen para el montaje.');
   if (typeof VideoEncoder === 'undefined') throw new Error('Este navegador no permite exportar H.264. Usa un navegador con WebCodecs.');
   const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, canEncodeVideo } = await import('mediabunny');
-  if (!await canEncodeVideo('avc', { width: WIDTH, height: HEIGHT, bitrate: BITRATE })) throw new Error('H.264 a 1080p no está disponible en este navegador.');
+  const { width, height } = videoFormatSize(options.format);
+  if (!await canEncodeVideo('avc', { width, height, bitrate: BITRATE })) throw new Error('H.264 a 1080p no está disponible en este navegador.');
   const bitmaps = await loadBitmaps(shots, signal);
   const canvas = document.createElement('canvas');
-  canvas.width = WIDTH; canvas.height = HEIGHT;
+  canvas.width = width; canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('No se pudo preparar el lienzo del vídeo.');
   const durationMs = tourDurationMs(shots.length), frames = Math.ceil(durationMs / 1000 * FPS);
@@ -40,10 +46,24 @@ export async function recordImageTour(shots: TourImage[], signal: AbortSignal, p
     for (let frame = 0; frame < frames; frame++) {
       signal.throwIfAborted();
       const shot = tourFrameAt(shots.length, frame / FPS * 1000);
-      context.fillStyle = '#000'; context.fillRect(0, 0, WIDTH, HEIGHT);
-      for (const layer of shot.layers) {
+      if (options.format === 'horizontal' && options.dimensionMode === 'none') {
+        context.fillStyle = '#000'; context.fillRect(0, 0, width, height);
+        for (const layer of shot.layers) {
         // La imagen que aparece lo hace con la opacidad del fundido; la que queda debajo, opaca.
-        drawCover(context, bitmaps[layer.index]!, layer.zoom, layer.panX, layer.panY, layer.index === shot.index ? shot.alpha : 1);
+          drawCover(context, bitmaps[layer.index]!, layer.zoom, layer.panX, layer.panY, layer.index === shot.index ? shot.alpha : 1);
+        }
+      } else {
+        advertisingFrame(context, width, height, bitmaps[shot.index]!.width, bitmaps[shot.index]!.height, frame / FPS * 1000, options, measurements, () => {
+          for (const layer of shot.layers) {
+            const bitmap = bitmaps[layer.index]!;
+            // Cada imagen puede tener otra relación de aspecto: encaje independiente.
+            const available = height - (options.dimensionMode !== 'none' && measurements ? (height > width ? 320 : 180) : 0);
+            const scale = Math.min(width / bitmap.width, available / bitmap.height) * (1 - .04 + (layer.zoom - 1) / .09 * .04);
+            const w = bitmap.width * scale, h = bitmap.height * scale;
+            context.globalAlpha = layer.index === shot.index ? shot.alpha : 1;
+            context.drawImage(bitmap, (width - w) / 2, (available - h) / 2, w, h); context.globalAlpha = 1;
+          }
+        });
       }
       await source.add(frame / FPS, 1 / FPS, { keyFrame: frame % (FPS * 2) === 0 });
       if (frame % 10 === 0) { progress(frame / frames); await new Promise<void>((resolve) => setTimeout(resolve, 0)); }

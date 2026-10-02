@@ -12,6 +12,7 @@ import { signUploadTicket, readUploadTicket, assertVideoUpload } from './upload-
 import { promotionVideoIssue, PROMOTION_ROUTE_ID } from '@/lib/editor-document/promotion-video';
 import { videoScopeRegions, type VideoContentScope } from '@/lib/editor-document/video-content-scope';
 import { videoPresentationSchema, type VideoPresentationOptions } from '@/lib/editor-document/video-presentation';
+import { videoFormatSize } from '@/lib/editor-document/video-format';
 
 function secret() {
   const value = process.env.BETTER_AUTH_SECRET;
@@ -73,7 +74,7 @@ export async function finishWalkthroughUpload(token: string) {
     await tx.deliverable.create({ data: { id, projectId: ticket.projectId, zoneId: ticket.zoneId, type: 'VIDEO',
       payload: { type: 'video', assetKey, routeId: ticket.routeId, mode: ticket.mode ?? 'walkthrough',
         approvalId: ticket.approvalId, approvedRevision: ticket.approvedRevision, approvedFingerprint: ticket.approvedFingerprint,
-        durationMs: ticket.durationMs, width: 1920, height: 1080, contentScope: ticket.contentScope ?? 'all',
+        durationMs: ticket.durationMs, ...videoFormatSize(ticket.presentation?.format), contentScope: ticket.contentScope ?? 'all',
         ...(ticket.presentation ? { presentation: videoPresentationSchema.parse(ticket.presentation) } : {}),
         ...(approved.document.geographicSite?.confirmed ? { geographicSite: approved.document.geographicSite } : {}) },
       legalSeal: DELIVERABLE_LEGAL_SEAL } });

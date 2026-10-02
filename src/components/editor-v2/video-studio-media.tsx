@@ -5,12 +5,16 @@ import type { EditorScope } from '@/server/editor/authority';
 import { ImageTourBuilder } from '@/components/deliverables/image-tour-builder';
 import { VIDEO_DIMENSION_MODES, videoDimensionMode } from '@/lib/editor-document/video-presentation';
 import { DesignVideoTask } from './design-video-task';
+import { AdvertisingClipBuilder } from '@/components/deliverables/advertising-clip-builder';
+import { ADVERTISING_DIMENSIONS } from '@/lib/editor-document/advertising-video';
+import { VIDEO_FORMATS } from '@/lib/editor-document/video-format';
 
 const LABELS: Record<string, string> = { construction: 'Construcción del edificio · 3D', promotion: 'Publicidad en parcela · 3D',
-  walkthrough: 'Primera persona · 3D', showcase: 'Construcción + visita · 3D', images: 'Publicidad con mis diseños' };
+  walkthrough: 'Primera persona · 3D', showcase: 'Construcción + visita · 3D', images: 'Publicidad con mis diseños', advertising: 'Publicidad con un vídeo guardado' };
 
-export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, onReviewApproval }: {
+export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, onReviewApproval, clips = false, portalContainer }: {
   scope: EditorScope; gallery: boolean; revisionKey: string; onBusyChange?: (busy: boolean) => void; onReviewApproval?: () => void;
+  clips?: boolean; portalContainer?: HTMLElement | null;
 }) {
   const [media, setMedia] = useState<Awaited<ReturnType<typeof loadVideoStudioMedia>> | null>(null);
   const [error, setError] = useState(''), [loading, setLoading] = useState(true);
@@ -31,17 +35,24 @@ export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, on
     <div className="mx-auto max-w-4xl space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div><h2 className="text-xl font-semibold">{gallery ? 'Vídeos guardados' : 'Publicidad con tus diseños'}</h2>
-          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí.' : 'Selecciona imágenes de una misma versión. Se montan con movimiento suave y fundidos.'}</p></div>
+          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí.' : clips ? 'Adapta un vídeo existente y revisa el anuncio antes de guardarlo.' : 'Selecciona imágenes de una misma versión. Se montan con movimiento suave y fundidos.'}</p></div>
         <button type="button" className="rounded-control border border-line px-3 py-2 text-sm" disabled={loading} onClick={() => void refresh()}>{loading ? 'Cargando…' : 'Actualizar'}</button>
       </header>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!media && loading && <p role="status">Cargando los resultados de este inmueble…</p>}
-      {media && !gallery && <ImageTourBuilder key={`${media.approvalId}:${media.images.map(image => image.id).join()}`} projectId={scope.projectId} zoneId={scope.zoneId ?? null} {...media}
-        onBusyChange={onBusyChange} onReviewApproval={onReviewApproval} onCreated={() => void refresh()} />}
+      {media && !gallery && (clips ? <AdvertisingClipBuilder key={media.approvalId} scope={scope} approvalId={media.approvalId}
+        clips={media.videos.filter(video => video.url && video.mode !== 'advertising' && video.approvalId === media.approvalId
+          && (!video.designJob || video.designJob.status === 'accepted'))} disabled={!media.approvalId || media.approvalOutdated}
+        portalContainer={portalContainer} onBusyChange={onBusyChange} onCreated={() => void refresh()} />
+        : <ImageTourBuilder key={`${media.approvalId}:${media.images.map(image => image.id).join()}`} projectId={scope.projectId} zoneId={scope.zoneId ?? null} {...media}
+          portalContainer={portalContainer} onBusyChange={onBusyChange} onReviewApproval={onReviewApproval} onCreated={() => void refresh()} />)}
       {media && gallery && (!media.videos.length ? <p className="rounded-card border border-dashed border-line p-8 text-center text-ink-soft">Todavía no hay vídeos. Elige «Crear vídeo» para preparar el primero.</p>
         : media.videos.map(video => video.designJob ? <DesignVideoTask key={video.id} scope={scope} id={video.id} initial={video.designJob} initialUrl={video.url} onBusyChange={onBusyChange} /> : <section className="space-y-3 rounded-card border border-line bg-surface p-4" key={video.id}>
           <h3 className="font-semibold">{LABELS[video.mode] ?? 'Vídeo'} <span className="ml-2 text-sm font-normal text-ink-soft">{Math.round(video.durationMs / 1000)} s{video.approvedRevision !== null ? ` · revisión ${video.approvedRevision}` : ''}</span></h3>
-          {video.mode !== 'images' && <p className="text-xs text-ink-soft">{video.contentScope === 'house' ? 'Solo la casa' : 'Todo el plano'} · {new Date(video.createdAt).toLocaleString('es-ES')}</p>}
+          {video.mode !== 'images' && video.mode !== 'advertising' && <p className="text-xs text-ink-soft">{video.contentScope === 'house' ? 'Solo la casa' : 'Todo el plano'} · {new Date(video.createdAt).toLocaleString('es-ES')}</p>}
+          <p className="text-xs text-ink-soft">{VIDEO_FORMATS.find(item => item.value === (video.advertising?.format ?? video.presentation?.format ?? 'horizontal'))?.label}</p>
+          {video.advertising && <p className="text-xs text-ink-soft">{ADVERTISING_DIMENSIONS.find(item => item.value === video.advertising?.dimensionMode)?.label}
+            {video.advertising.dimensionMode !== 'none' ? ' · panel de medidas globales del diseño aprobado' : ''}</p>}
           {video.presentation && <p className="text-xs text-ink-soft">Cotas: {VIDEO_DIMENSION_MODES.find(item => item.value === videoDimensionMode(video.presentation!))?.label}
             {video.presentation.dimensionOcclusion !== false && videoDimensionMode(video.presentation) !== 'none' ? ' · ocultación detrás de la casa' : ''}</p>}
           {video.presentation?.prompt && <details className="text-sm"><summary className="cursor-pointer">Indicaciones guardadas para IA</summary><p className="mt-2 whitespace-pre-wrap text-ink-soft">{video.presentation.prompt}</p></details>}

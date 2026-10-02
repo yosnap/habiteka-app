@@ -24,6 +24,7 @@ import { createWalkthroughVideoSaver } from './session/save-walkthrough-video';
 import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { videoScopeRegions, type VideoContentScope } from '@/lib/editor-document/video-content-scope';
+import { VIDEO_FORMATS, type VideoFormat } from '@/lib/editor-document/video-format';
 
 const EditorSceneView = dynamic(() => import('./scene/editor-scene-view').then(module => module.EditorSceneView), { ssr: false });
 const CanvasView = dynamic(() => import('./canvas-view').then(module => module.CanvasView), { ssr: false });
@@ -43,7 +44,7 @@ export function VideoStudioDialog(props: Props) {
     lighting, onLightingChange, onReviewApproval, onClose } = props;
   const [goal, setGoal] = useState<VideoGoal>('construction');
   const [tab, setTab] = useState<'create' | 'saved'>('create');
-  const [source, setSource] = useState<'images' | 'model'>('images');
+  const [source, setSource] = useState<'images' | 'model' | 'clip'>('images');
   const [preview, setPreview] = useState<'scene' | 'plan' | 'result'>('scene');
   const [options, setOptions] = useState({ ...DEFAULT_VIDEO_PRESENTATION, contentScope: 'house' as VideoContentScope });
   const [status, setStatus] = useState(INITIAL_STATUS);
@@ -59,7 +60,7 @@ export function VideoStudioDialog(props: Props) {
   const mode: NativeVideoMode = goal === 'construction' ? 'construction' : goal === 'advertising' ? 'promotion' : goal === 'visit' ? 'walkthrough' : 'showcase';
   const needsRoute = nativeVideoNeedsRoute(mode);
   const constructionDesigns = goal === 'construction' && source === 'images';
-  const imagesMode = (goal === 'advertising' || goal === 'construction') && source === 'images';
+  const imagesMode = (goal === 'advertising' || goal === 'construction') && source !== 'model';
   const approved = approvalCurrent && approval?.lightingPreset === lighting;
   const approvedStore = useMemo(() => {
     if (!approval) return null;
@@ -88,6 +89,7 @@ export function VideoStudioDialog(props: Props) {
   const exportIssue = readiness.issue || scopeIssue || (!approved ? 'Guarda y aprueba esta revisión antes de crear el vídeo.'
     : !status.ready ? 'Preparando la vista 3D…' : document.geographicSite?.confirmed && !status.siteReady ? 'Cargando la fotografía de la parcela…' : null);
   function chooseGoal(value: VideoGoal) {
+    if (value !== 'advertising' && source === 'clip') setSource('images');
     setGoal(value); setPreview('scene'); store.getState().setWalkthroughPlaying(false); store.getState().setTool('select');
   }
   const editRoute = () => { store.getState().setWalkthroughPlaying(false); setPreview('plan'); };
@@ -116,10 +118,11 @@ export function VideoStudioDialog(props: Props) {
           </div>
           {(goal === 'advertising' || goal === 'construction') && <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-4 lg:px-6"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
             <Button variant={source === 'images' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('images')}>Mis diseños</Button>
+            {goal === 'advertising' && <Button variant={source === 'clip' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('clip')}>Vídeo guardado</Button>}
             <Button variant={source === 'model' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('model')}>{goal === 'construction' ? 'Prueba del plano 3D' : '3D en parcela real'}</Button></div>}
           {constructionDesigns && <DesignConstructionPanel scope={scope} approved={Boolean(approved)} onReviewApproval={onReviewApproval} onBusyChange={setImageBusy} portalContainer={container} />}
           {imagesMode && !constructionDesigns && <><div className="px-5"><Button variant="outline" disabled={busy || approvalDisabled} onClick={onReviewApproval}>{approved ? 'Revisar aprobación' : 'Guardar y aprobar revisión'}</Button></div>
-            <VideoStudioMedia scope={scope} gallery={false} revisionKey={savedKey} onBusyChange={setImageBusy} onReviewApproval={onReviewApproval} /></>}
+            <VideoStudioMedia scope={scope} gallery={false} clips={source === 'clip'} portalContainer={container} revisionKey={savedKey} onBusyChange={setImageBusy} onReviewApproval={onReviewApproval} /></>}
           <div className={!imagesMode ? 'grid min-h-0 flex-1 gap-4 px-4 pb-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-6 lg:pb-6' : 'hidden'}>
             <section className="flex min-h-[380px] flex-col overflow-hidden rounded-card border border-line bg-surface-muted lg:min-h-[470px]">
               <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-4 py-3">
@@ -168,6 +171,10 @@ export function VideoStudioDialog(props: Props) {
               {routePlaying && <Button variant="outline" size="sm" onClick={() => previewStore.getState().setWalkthroughPlaying(false)}>Detener vista previa</Button>}
               <fieldset disabled={status.busy} className="space-y-3 rounded-control border border-line p-3">
                 <legend className="px-1 text-sm font-medium">Acabado del vídeo</legend>
+                <label className="block text-sm">Formato<ModernSelect aria-label="Formato del vídeo 3D" portalContainer={container} popoverZIndex={150} value={options.format ?? 'horizontal'}
+                  onChange={event => setOptions({ ...options, format: event.target.value as VideoFormat })} className="mt-1 w-full">
+                  {VIDEO_FORMATS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</ModernSelect></label>
+                {options.format === 'vertical' && <p className="text-xs text-ink-soft">Se conserva la vista completa del modelo con márgenes arriba y abajo.</p>}
                 {(mode === 'construction' || mode === 'showcase') && <VideoDurationControls value={options} combined={mode === 'showcase'} portalContainer={container}
                   onChange={value => setOptions({ ...value, contentScope: options.contentScope })} />}
                 <label className="block text-sm">Luz<ModernSelect aria-label="Luz del vídeo" portalContainer={container} popoverZIndex={150} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2" value={lighting} onChange={event => onLightingChange(event.target.value as ApprovedLightingPreset)}>

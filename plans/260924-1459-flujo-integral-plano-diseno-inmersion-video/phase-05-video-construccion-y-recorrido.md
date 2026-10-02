@@ -5,6 +5,12 @@ status: in-progress
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Publicidad vertical y panel de cotas — 02/10/2026
+
+Prioridad elegida por el usuario: publicidad vertical y cotas. Implementación de formato compartido 16:9/9:16, vista previa y guardado separados, y composición local desde vídeos existentes de la misma aprobación. H3 requiere aceptación previa. Se conserva audio y duración del original y se añade otro entregable con procedencia; no se generan clips de pago.
+
+Las cotas del anuncio muestran ancho/fondo/altura globales del diseño aprobado en panel separado, con modos animado, inicio, fijo y desactivado. No reconstruyen la geometría del vídeo ni siguen su cámara. La exportación 3D conserva su cámara horizontal y encaja la imagen completa en vertical. No requiere migraciones. Verificados 47 casos enfocados, suite de 2396 pruebas, tipos/lint/documentación, compilación Next y exportaciones reales H.264/AAC; [reporte](../reports/publicidad-261002-1337-vertical-cotas.md). La fase sigue abierta por fidelidad H3, primera persona continua, editor de tomas y pistas externas. Referencia técnica: `docs/publicidad-video.md`.
+
 ## Referencias con función y tercera preparación — 02/10/2026
 
 Exterior corregido generado y revisado: fachada lateral cerrada, cubierta y pérgolas conservadas. La inspección conjunta detecta muebles/colores discordantes en las vistas anteriores. El estudio propone ahora cenital para distribución y mobiliario, exterior para fachadas/tejado/cámara, con función visible e índices alineados con el envío. El guion pide cámara fija, muros consecutivos y vuelo final corto; no garantiza fidelidad del modelo.

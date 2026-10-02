@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DEFAULT_CONSTRUCTION_SECONDS, type ConstructionDurationSeconds } from './construction-timing';
+import { videoFormatSchema, type VideoFormat } from './video-format';
 
 export const VIDEO_DIMENSION_MODES = [
   { value: 'animated', label: 'Animadas', description: 'Las líneas se dibujan una a una y después permanecen.' },
@@ -13,6 +14,7 @@ export interface VideoPresentationOptions {
   contentScope?: import('./video-content-scope').VideoContentScope;
   dimensionMode?: VideoDimensionMode; dimensionOcclusion?: boolean; prompt?: string;
   constructionDurationSeconds?: ConstructionDurationSeconds;
+  format?: VideoFormat;
 }
 export const DEFAULT_VIDEO_PRESENTATION: VideoPresentationOptions = {
   soundEffects: true, soundVolume: .4, showDimensions: true, dimensionMode: 'animated', dimensionOcclusion: true, prompt: '',
@@ -23,6 +25,7 @@ export const videoPresentationSchema = z.object({
   contentScope: z.enum(['house', 'all']).optional(), dimensionMode: z.enum(['animated', 'start', 'fixed', 'none']).optional(),
   dimensionOcclusion: z.boolean().optional(), prompt: z.string().trim().max(2000).optional(),
   constructionDurationSeconds: z.union([z.literal(8), z.literal(12)]).optional(),
+  format: videoFormatSchema.optional(),
 }).strict();
 
 /** Mantiene compatibles los vídeos anteriores, que solo tenían el interruptor de cotas. */
