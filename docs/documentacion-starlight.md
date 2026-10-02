@@ -8,7 +8,7 @@ La guía pública se escribe en `docs/site/src/content/docs/`. Astro Starlight c
 
 `docs/site/package.json` aísla las dependencias del compilador de documentación de React/Next. Es una herramienta de build dentro del repositorio, no otro servidor de producción, servicio de Astro, aplicación desplegada o repositorio. No hay configuración de Workers/Pages ni despliegue independiente.
 
-Dominio previsto: **https://docs.habiteka.app**. `next.config.ts` reescribe las peticiones de ese host hacia los archivos estáticos; el dominio principal conserva sus rutas. En desarrollo se admite **http://docs.localhost:3040** en el mismo servidor.
+Dominio público: **https://docs.habiteka.app**, publicado y verificado por HTTPS el 2 de octubre de 2026. `next.config.ts` reescribe las peticiones de ese host hacia los archivos estáticos; el dominio principal conserva sus rutas. En desarrollo se admite **http://docs.localhost:3040** en el mismo servidor.
 
 ## Instalación local
 
@@ -98,6 +98,8 @@ CI incorpora el gate y compila la documentación con el build de Habiteka. La co
 
 Configuración según [Starlight: instalación manual](https://starlight.astro.build/manual-setup/) y [referencia de configuración](https://starlight.astro.build/reference/configuration/). La guía pública se genera estáticamente; su hosting en este proyecto lo realiza Next.js, dentro del despliegue actual.
 
-## Pendiente para publicación
+## Publicación verificada — 2 de octubre de 2026
 
-Vincular DNS y dominio del servicio existente, desplegar la rama revisada y verificar `https://docs.habiteka.app`. La compilación local no acredita esa publicación.
+El DNS de Hostinger y el dominio adicional del mismo servicio de Dokploy están configurados. La documentación se sirve desde el mismo despliegue de Habiteka, sin una aplicación separada.
+
+Se verificaron por HTTPS la portada, `/videos/tipos/`, los estilos CSS y el JavaScript de búsqueda de Pagefind, con respuestas 200. Esta comprobación pública confirma la publicación de `https://docs.habiteka.app`.

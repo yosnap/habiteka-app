@@ -33,7 +33,7 @@ Se revisó el conjunto pendiente desde `develop` y su integración con `main`, n
 - TypeScript: pasa. Lint: 0 errores y 15 avisos existentes.
 - Compilación de producción Next.js y `docs:build`: pasan en un worktree aislado con las correcciones finales. Starlight genera 17 páginas.
 - `docs:updates` y `git diff --check`: pasan.
-- Las 23 migraciones y el seed se ejecutaron correctamente en una base local nueva, aislada y marcada para pruebas.
+- Las 22 migraciones y el seed se ejecutaron correctamente en una base local nueva, aislada y marcada para pruebas.
 - El conjunto que llega a `main` incluye dos migraciones anteriores de aprobación de diseño e iluminación. Los commits recientes de funcionalidad/seguridad no añadieron migraciones. El arranque Docker aplica las pendientes; no se ha consultado el estado de producción.
 
 ## Integración
