@@ -2,6 +2,37 @@
 
 Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] — 2026-10-02
+
+### Added
+
+- Tejado por planta con cubiertas planas, a una, dos o cuatro aguas y cierre de muros hasta la cubierta.
+- Parcela geográfica con ortofoto, encaje del diseño, intervención y presentación conceptual sobre el terreno.
+- Estudio de vídeo y pestaña Vídeos: construcción nativa, visita aprobada, montaje de imágenes y construcción con visita. Piloto MiniMax H3 desde diseños generados, con presupuesto confirmado y recuperación de la tarea sin regenerar.
+- Galerías por tanda, continuación de vistas pendientes, revisión de imágenes existentes y referencia auxiliar de fondo del plano.
+- Manual Astro Starlight integrado en el mismo despliegue, con búsqueda, temas y guías de herramientas, parcela y vídeos. La publicación del subdominio de documentación requiere completar su DNS.
+
+### Changed
+
+- Controles comunes de duración, calidad, luz y cotas; exportación con metadatos de sonido, ámbito y duración coherentes con la visita aprobada.
+- Prompts compactos de vistas interiores y exteriores dentro del presupuesto de los modelos de respaldo, conservando geometría, permisos y luces.
+
+### Fixed
+
+- Las páginas `/dev/*` devuelven 404 fuera de desarrollo.
+- Las tareas H3 aceptadas conservan su identificador aunque falle la conciliación de coste; consultar recupera el registro sin generar un segundo vídeo.
+- Los aparatos de cocina respetan pilares y recortes solapados; carcasa, zócalo y encimera utilizan la profundidad necesaria.
+- Retirados ejemplos de ubicación privada y excluido de ESLint el JavaScript generado de documentación.
+
+### Validation
+
+- Tres rondas de revisión completadas; 2377 pruebas pasan y 5 se omiten. TypeScript, compilación de producción y documentación correctos; lint sin errores y con 15 avisos existentes.
+- Release preparada en `develop` e integrada en `main`; los artefactos privados permanecen fuera de Git.
+
+### Pending
+
+- Fidelidad profesional del piloto H3, película fotorrealista continua, etapas de reforma parcial, composición de cotas sobre clips IA, formato vertical, música y locución siguen pendientes. Revisa visualmente los resultados antes de utilizarlos.
+
 ## [Unreleased]
 
 ### Added — 2026-09-23

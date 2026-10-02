@@ -3,7 +3,9 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
-## 2 de octubre de 2026
+## Versión 0.4.0 — 2 de octubre de 2026
+
+Esta versión reúne tejados, parcela geográfica, estudio de vídeo, galerías y las correcciones revisadas de seguridad, cocina y recuperación de tareas. La construcción H3 sigue siendo un piloto que requiere revisión visual; las funciones pendientes se detallan al final de esta página.
 
 - La cocina evita aparatos dentro de pilares, también cuando el pilar solo recorta el fondo del módulo. Los recortes solapados conservan la profundidad necesaria en carcasa, zócalo y encimera.
 - Duración, calidad, luz y cotas del estudio usan los desplegables comunes de la aplicación, contenidos dentro de su panel.
