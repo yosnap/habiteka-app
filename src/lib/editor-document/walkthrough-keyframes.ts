@@ -5,6 +5,8 @@ import { cameraPoseSchema, type CameraPose } from '@/lib/contracts/walkthrough-k
 
 /** Una pose por punto: conserva la misma altura, orientación y planta que la reproducción. */
 export function walkthroughKeyframes(doc: EditorDocument, route: WalkthroughPath): Array<{ waypointId: string; camera: CameraPose }> {
+  if (route.waypoints.some((point) => point.levelId))
+    throw new Error('Las imágenes por punto de rutas entre plantas aún requieren captura por planta.');
   const compiled = buildWalkthrough(doc, route);
   if (compiled.invalidSegments.length) throw new Error('Corrige los tramos bloqueados antes de preparar imágenes.');
   return route.waypoints.map((point, index) => {

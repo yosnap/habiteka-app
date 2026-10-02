@@ -25,6 +25,8 @@ export const ZONE_KINDS: readonly ZoneKindOption[] = [
   { value: 'jardin', label: 'Jardín', exterior: true },
   { value: 'aerea', label: 'Vista aérea', exterior: true },
   { value: 'trasera', label: 'Parte trasera', exterior: true },
+  // El inmueble completo se retrata desde fuera: cubierta, fachadas y exteriores, con los interiores como parte del conjunto.
+  { value: 'casa', label: 'Casa completa', exterior: true },
 ];
 
 /** Valores de tipo que representan un espacio EXTERIOR (derivado del vocabulario). */

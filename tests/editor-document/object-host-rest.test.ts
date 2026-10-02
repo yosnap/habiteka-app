@@ -5,7 +5,7 @@ import { insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { alignBackToWall } from '@/canvas/editor-v2/wall-back-alignment';
-import { restOnHost } from '@/lib/editor-document/object-host-rest';
+import { canFitOnHost, hostSurfaceTop, placeOnHost, restOnHost } from '@/lib/editor-document/object-host-rest';
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
@@ -94,4 +94,39 @@ it('un aparato de pie con el centro sobre la encimera no se sube a ella; una pla
   expect(restOnHost(doc, fridge)).toEqual(fridge);
   doc = normalizeEditorDocument(insertSpatialItem(doc, { ...plant, hostId: undefined }));
   expect(doc.furniture.find((f) => f.id === 'planta')!.hostId).toBe(run.id);
+});
+
+it('el menú puede apoyar un adorno pequeño sobre una mesa o una cama sin usar el cabecero como altura', () => {
+  const table = piece('mesa', 'mesa-comedor', 1000, 1000, [1600, 900, 750]);
+  const bed = piece('cama', 'cama-doble', 4000, 1000, [1600, 2100, 1000]);
+  const decor = piece('adorno', 'adorno', 500, 500, [250, 250, 300], { catalogId: undefined });
+  expect(canFitOnHost(decor, table)).toBe(true);
+  expect(canFitOnHost(piece('grande', 'adorno', 0, 0, [1800, 1000, 300], { catalogId: undefined }), table)).toBe(false);
+  const onTable = placeOnHost(decor, table);
+  expect(onTable.hostId).toBe(table.id); expect(onTable.elevationMm).toBe(750);
+  expect(restOnHost({ ...house(), furniture: [table, onTable] }, onTable)).toEqual(onTable);
+  const onBed = placeOnHost(decor, bed);
+  expect(hostSurfaceTop(bed)).toBe(680);
+  expect(onBed.hostId).toBe(bed.id); expect(onBed.elevationMm).toBe(680);
+});
+
+it('una lámpara de mesa usa la superficie como cota al colocarla sobre una mesa baja', () => {
+  const table = piece('mesa', 'mesa-centro', 1000, 1000, [1100, 600, 420]);
+  const lamp = piece('luz', 'lampara-mesa', 1100, 1100, [300, 300, 450], { elevationMm: 550 });
+  expect(placeOnHost(lamp, table)).toMatchObject({ hostId: 'mesa', elevationMm: 420 });
+  expect(restOnHost({ ...house(), furniture: [table] }, lamp)).toMatchObject({ hostId: 'mesa', elevationMm: 420 });
+});
+
+it('un objeto colocado sobre una mesa la acompaña al moverla o girarla', () => {
+  const table = piece('mesa', 'mesa-comedor', 1000, 1000, [1600, 900, 750]);
+  const decor = placeOnHost(piece('adorno', 'adorno', 0, 0, [250, 250, 300], { catalogId: undefined }), table);
+  const doc = insertSpatialItem(insertSpatialItem(house(), table), decor);
+  const shifted = updateFurniture(doc, table.id, { x: table.x + 500, y: table.y + 300 });
+  const moved = shifted.furniture.find((item) => item.id === decor.id)!;
+  expect(moved.x).toBeCloseTo(decor.x + 500); expect(moved.y).toBeCloseTo(decor.y + 300);
+  const rotated = updateFurniture(shifted, table.id, { rotation: 90 });
+  const turned = rotated.furniture.find((item) => item.id === decor.id)!;
+  expect(turned.hostId).toBe(table.id);
+  expect(turned.rotation).toBe(90);
+  expect(restOnHost(rotated, turned)).toEqual(turned);
 });

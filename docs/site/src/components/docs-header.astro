@@ -1,0 +1,23 @@
+---
+import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
+import Search from '@astrojs/starlight/components/Search.astro';
+import ThemeIconPicker from './theme-icon-picker.astro';
+---
+
+<div class="docs-header">
+  <div class="title"><SiteTitle /></div>
+  <div class="search"><Search /></div>
+  <ThemeIconPicker />
+</div>
+
+<style>
+  .docs-header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center;
+    gap: 0.5rem; height: 100%; padding-inline-end: 2.75rem; }
+  .title { min-width: 0; overflow: hidden; }
+  .title :global(a) { min-width: 0; }
+  .title :global(span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .search { min-width: 0; }
+  @media (min-width: 50rem) {
+    .docs-header { grid-template-columns: minmax(0, 1fr) minmax(12rem, 24rem) auto; gap: 1.5rem; padding-inline-end: 0; }
+  }
+</style>

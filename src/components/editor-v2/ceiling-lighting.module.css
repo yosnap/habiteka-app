@@ -1,16 +1,15 @@
-.panel { --ceiling-ink: var(--ink); --ceiling-muted: var(--muted); --ceiling-line: var(--line); --ceiling-paper: var(--paper); --ceiling-accent: var(--brand); position: absolute; right: 16px; top: 128px; z-index: 35; width: min(360px, calc(100% - 32px)); max-height: calc(100% - 152px); overflow-y: auto; overscroll-behavior: contain; padding: 20px; border: 1px solid var(--ceiling-line); border-radius: 12px; background: var(--ceiling-paper); color: var(--ceiling-ink); display: grid; gap: 16px; font-size: .875rem; line-height: 1.5; }
-.heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.panel { --ceiling-ink: var(--ink); --ceiling-muted: var(--muted); --ceiling-line: var(--line); --ceiling-paper: var(--paper); --ceiling-accent: var(--brand); padding: 16px; background: var(--ceiling-paper); color: var(--ceiling-ink); display: grid; gap: 16px; font-size: .875rem; line-height: 1.5; }
 .panel h2 { font-size: 1.125rem; font-weight: 650; margin: 0; }
 .panel h3 { font-size: .9375rem; font-weight: 650; margin: 8px 0; }
 .panel p { color: var(--ceiling-muted); margin: 0; }
 .panel label { display: grid; gap: 4px; min-width: 0; }
 .panel fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
-.panel button, .panel select, .panel input { min-height: 44px; border: 1px solid var(--ceiling-line); border-radius: 8px; background: var(--ceiling-paper); padding: 8px; color: var(--ceiling-ink); font: inherit; max-width: 100%; }
-.panel input, .panel select { width: 100%; font-size: 1rem; }
+.panel button, .panel :is(select, [role='combobox']), .panel input { min-height: 44px; border: 1px solid var(--ceiling-line); border-radius: 8px; background: var(--ceiling-paper); padding: 8px; color: var(--ceiling-ink); font: inherit; max-width: 100%; }
+.panel input, .panel :is(select, [role='combobox']) { width: 100%; font-size: 1rem; }
 .panel input[type=color] { padding: 4px; }
 .panel button { cursor: pointer; }
 .panel button:hover:not(:disabled) { background: var(--selected); }
-.panel :is(button,input,select,summary):focus-visible { outline: 2px solid var(--ceiling-accent); outline-offset: 2px; }
+.panel :is(button,input,select, [role='combobox'],summary):focus-visible { outline: 2px solid var(--ceiling-accent); outline-offset: 2px; }
 .panel button:disabled, .panel fieldset:disabled { opacity: .6; }
 .panel .primary { background: var(--ceiling-accent); color: var(--paper); border-color: var(--ceiling-accent); }
 .panel .primary:hover:not(:disabled) { background: color-mix(in oklch, var(--brand), var(--ink) 20%); }
@@ -22,6 +21,14 @@
 .light { border-top: 1px solid var(--ceiling-line); padding-top: 8px; }
 .light summary { cursor: pointer; min-height: 44px; padding: 8px 0; font-weight: 600; }
 .light > button { margin-top: 12px; }
+.blockReport { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--danger); border-radius: 8px; background: color-mix(in oklch, var(--paper), var(--danger) 5%); }
+.blockReport ol { display: grid; gap: 12px; margin: 0; padding-left: 22px; }
+.blockReport li { padding-bottom: 12px; border-bottom: 1px solid var(--ceiling-line); }
+.blockReport li.activeBlock { margin-left: -10px; padding: 8px 10px 12px; border: 2px solid var(--danger); border-radius: 8px; background: var(--paper); }
+.blockReport li:last-child { padding-bottom: 0; border-bottom: 0; }
+.blockReport li p { margin: 4px 0; }
+.blockReport li small { display: block; color: var(--ceiling-muted); }
+.blockReport li button { margin-top: 8px; }
 .proposal { border-top: 1px solid var(--ceiling-line); padding-top: 12px; display: grid; gap: 12px; }
 .proposal > div { display: grid; gap: 12px; }
-@media (max-width: 480px) { .panel { right: 8px; width: calc(100% - 16px); padding: 16px; } }
+@media (max-width: 480px) { .panel { padding: 12px; } }

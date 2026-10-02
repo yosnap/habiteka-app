@@ -6,14 +6,27 @@
  * La extracción (visión + ráster) y el almacenamiento se simulan; la evidencia,
  * los pesos y las bandas son los reales, y Jev se simula a nivel de `fetch`.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
-const source = JSON.parse(
-  readFileSync(join(process.cwd(), 'tests/fixtures/plans/plano-cad-limpio-1.raw.json'), 'utf8'),
-);
+// Geometría sin solapes ni ajustes: estas pruebas aíslan el veredicto de Jev.
+// Los riesgos del plano CAD real se comprueban en plan-import-risks.test.ts.
+const source = {
+  raw: {
+    anchoMetros: 6, altoMetros: 4, escalaFiable: true,
+    muros: [
+      { x1: 0.1, y1: 0.1, x2: 0.7, y2: 0.1 },
+      { x1: 0.7, y1: 0.1, x2: 0.7, y2: 0.5 },
+      { x1: 0.7, y1: 0.5, x2: 0.1, y2: 0.5 },
+      { x1: 0.1, y1: 0.5, x2: 0.1, y2: 0.1 },
+    ],
+    aberturas: [],
+    habitaciones: [{ nombre: 'Salón', poligono: [
+      { x: 0.1, y: 0.1 }, { x: 0.7, y: 0.1 }, { x: 0.7, y: 0.5 }, { x: 0.1, y: 0.5 },
+    ] }],
+  },
+  detected: null,
+};
 const saved: Array<Record<string, unknown>> = [];
 
 vi.mock('@/server/plan/studio-image', () => ({

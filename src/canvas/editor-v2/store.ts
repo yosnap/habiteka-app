@@ -7,14 +7,35 @@ import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { applyCommand } from '@/lib/editor-document/commands';
 import { addStair } from '@/lib/editor-document/construction-commands';
 import { distance, wallPoints } from '@/lib/editor-document/geometry';
-import { assertSpatialPlacement, placeNewObject } from './spatial-placement';
+import { assertSpatialPlacement, placeNewObject, relieveFurnitureForThickerWalls } from './spatial-placement';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialClipboardItem } from './spatial-clipboard';
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 import { inheritFloorFinishes } from '@/lib/editor-document/floor-level';
+import type { LightZoneMode } from './light-zone-draw';
 
-export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'kitchen' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough';
+/** Paneles que comparten la única ranura lateral del editor: solo uno abierto a la vez. */
+export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling';
+
+/**
+ * Una selección normal solo actualiza la barra de medidas: abrir Propiedades
+ * automáticamente desplaza o tapa el plano al primer clic. El lateral se abre
+ * a petición; una luz o un techo sí lleva a «Techo y luces».
+ */
+export function sidePanelForSelection(
+  current: EditorSidePanel | null,
+  options: { hasSelection: boolean; lighting: boolean },
+): EditorSidePanel | null {
+  // Quedarse sin selección solo cierra Propiedades: «Techo y luces» deselecciona
+  // por su cuenta al cambiar de ámbito o de estancia y debe seguir abierto.
+  if (!options.hasSelection) return current === 'inspector' ? null : current;
+  if (options.lighting) return 'ceiling';
+  if (current === 'ceiling') return null;
+  return current;
+}
+
+export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'kitchen' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough' | 'light-strip' | 'light-zone';
 export interface EditorState {
   detailAnchor: Point | null;
   setDetailAnchor: (point: Point) => void;
@@ -29,14 +50,31 @@ export interface EditorState {
   viewRequest: { kind: 'fit' | 'zoom-in' | 'zoom-out'; nonce: number } | null;
   requestView: (kind: 'fit' | 'zoom-in' | 'zoom-out') => void;
   walkthroughId: string | null;
+  walkthroughFocusIndex: number | null;
   walkthroughPlaying: boolean;
   hideWalkthrough: () => void;
   setWalkthrough: (id: string | null) => void;
+  focusWalkthroughSegment: (index: number | null) => void;
   setWalkthroughPlaying: (playing: boolean) => void;
   ceilingView: 'hidden' | 'transparent' | 'solid';
   setCeilingView: (view: 'hidden' | 'transparent' | 'solid') => void;
+  /** Zona de luces en la que se está trabajando; es estado de sesión, no del documento. */
+  activeLightZoneId: string | null;
+  setActiveLightZone: (id: string | null) => void;
+  /**
+   * Encargo de dibujo de zona en curso: el panel elige modo y si se redibuja una
+   * zona existente (`zoneId`), y el lienzo grande es quien traza. Vive mientras
+   * la herramienta sea `light-zone`.
+   */
+  lightZoneDraw: { mode: LightZoneMode; zoneId: string | null } | null;
+  beginLightZoneDraw: (mode: LightZoneMode, zoneId: string | null) => void;
   detailPanel: 'paint' | 'comments' | null;
   setDetailPanel: (panel: 'paint' | 'comments' | null) => void;
+  /** Ranura lateral única: abrir un panel cierra el que hubiera. */
+  sidePanel: EditorSidePanel | null;
+  openSidePanel: (panel: EditorSidePanel) => void;
+  closeSidePanel: () => void;
+  toggleSidePanel: (panel: EditorSidePanel) => void;
   readOnly: boolean;
   document: EditorDocument;
   past: EditorDocument[];
@@ -79,14 +117,28 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     focusPoint: null, focusOn: (point) => set({ focusPoint: { point, nonce: (get().focusPoint?.nonce ?? 0) + 1 } }),
     pan: false, setPan: (pan) => set({ pan }),
     viewRequest: null, requestView: (kind) => set({ viewRequest: { kind, nonce: (get().viewRequest?.nonce ?? 0) + 1 } }),
-    walkthroughId: null, walkthroughPlaying: false,
-    hideWalkthrough: () => set({ walkthroughId: null, walkthroughPlaying: false, tool: 'select' }),
-    setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughPlaying: false }),
+    walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false,
+    hideWalkthrough: () => set({ walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false, tool: 'select',
+      sidePanel: get().sidePanel === 'walkthrough' ? null : get().sidePanel }),
+    setWalkthrough: (walkthroughId) => set({ walkthroughId, walkthroughFocusIndex: null, walkthroughPlaying: false }),
+    focusWalkthroughSegment: (walkthroughFocusIndex) => set({ walkthroughFocusIndex }),
     setWalkthroughPlaying: (walkthroughPlaying) => set({ walkthroughPlaying }),
     ceilingView: 'transparent',
     setCeilingView: (ceilingView) => set({ ceilingView }),
+    activeLightZoneId: null,
+    setActiveLightZone: (activeLightZoneId) => set({ activeLightZoneId }),
+    lightZoneDraw: null,
+    beginLightZoneDraw: (mode, zoneId) => {
+      if (get().readOnly) return;
+      get().setTool('light-zone');
+      set({ lightZoneDraw: { mode, zoneId } });
+    },
     detailPanel: null,
     setDetailPanel: (detailPanel) => set({ detailPanel }),
+    sidePanel: null,
+    openSidePanel: (sidePanel) => set({ sidePanel }),
+    closeSidePanel: () => set({ sidePanel: null }),
+    toggleSidePanel: (panel) => set({ sidePanel: get().sidePanel === panel ? null : panel }),
     readOnly: options.readOnly ?? false,
     // Al cargar se sanea sin contar como edición: no se guarda hasta que el usuario cambie algo.
     document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(initial), { onLoad: true })), past: [], future: [], selection: [],
@@ -151,7 +203,9 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
       const state = get();
       // Los restos invisibles de contornos de patio anteriores se retiran en cada edición: parten estancias y bloquean suelos.
-      const document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
+      let document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
+      if (document.activeLevelId === state.document.activeLevelId)
+        document = relieveFurnitureForThickerWalls(state.document, document);
       for (const light of document.luminaires ?? []) {
         const previous = state.document.luminaires?.find((item) => item.id === light.id);
         if (document.activeLevelId === state.document.activeLevelId && JSON.stringify(previous) !== JSON.stringify(light)) {
@@ -170,20 +224,29 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     undo: () => {
       const state = get(), document = state.past.at(-1);
       if (state.readOnly || !document) return;
-      set({ document, past: state.past.slice(0, -1), future: [state.document, ...state.future],
+      set({ document, past: state.past.slice(0, -1), future: [state.document, ...state.future], sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: false, lighting: false }),
         sequence: state.sequence + 1, selection: [], pendingSplitWallId: null, tool: state.tool === 'split-wall' ? 'select' : state.tool, error: null });
     },
     redo: () => {
       const state = get(), document = state.future[0];
       if (state.readOnly || !document) return;
-      set({ document, past: [...state.past, state.document], future: state.future.slice(1),
+      set({ document, past: [...state.past, state.document], future: state.future.slice(1), sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: false, lighting: false }),
         sequence: state.sequence + 1, selection: [], pendingSplitWallId: null, tool: state.tool === 'split-wall' ? 'select' : state.tool, error: null });
     },
-    select: (selection) => set({ selection }),
-    setTool: (tool) => set({ tool, magneticGuides: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
+    select: (selection) => {
+      const state = get(), document = state.document;
+      const lighting = selection.length > 0 && selection.some((id) =>
+        (document.luminaires?.some((light) => light.id === id) ?? false)
+        || (document.ceilings?.some((ceiling) => ceiling.id === id) ?? false));
+      set({ selection, sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: selection.length > 0, lighting }) });
+    },
+    // Cambiar de herramienta deja la ranura como estaba salvo Propiedades, que se
+    // queda sin selección que mostrar; «Techo y luces» sigue abierto porque es
+    // quien lanza el dibujo de una tira LED o de una zona.
+    setTool: (tool) => set({ lightZoneDraw: null, sidePanel: get().sidePanel === 'inspector' ? null : get().sidePanel, tool, magneticGuides: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
     setSnap: (snap) => set({ snap }),
     setError: (error) => set({ error }),
-    restore: (candidate) => set({ document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
+    restore: (candidate) => set({ sidePanel: null, lightZoneDraw: null, activeLightZoneId: null, document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
       sequence: 0, selection: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, tool: 'select', error: null }),
   }));
 }

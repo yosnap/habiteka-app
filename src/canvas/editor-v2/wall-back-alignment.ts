@@ -5,7 +5,7 @@ import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalo
 import { wallFloorElevation } from '@/lib/editor-document/floor-level';
 import { wallConstruction } from '@/lib/editor-document/construction-properties';
 
-interface WallFaceHit { wall: Wall; gap: number; normal: { x: number; y: number }; tangent: { x: number; y: number }; face: { x: number; y: number } }
+interface WallFaceHit { wall: Wall; gap: number; score: number; normal: { x: number; y: number }; tangent: { x: number; y: number }; face: { x: number; y: number } }
 /** Cara de muro recto más cercana a alguna esquina del mueble, con su normal hacia la estancia. */
 function nearestWallFace(doc: EditorDocument, item: Furniture, toleranceMm: number): WallFaceHit | null {
   const corners = [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }].map((p) => localToWorld(item, p));
@@ -18,8 +18,13 @@ function nearestWallFace(doc: EditorDocument, item: Furniture, toleranceMm: numb
     if (Math.max(...along) < 0 || Math.min(...along) > path.length) continue;
     const side = ((center.x - a.x) * -u.y + (center.y - a.y) * u.x) >= 0 ? 1 : -1, normal = { x: -u.y * side, y: u.x * side };
     const gap = Math.min(...corners.map((p) => (p.x - a.x) * normal.x + (p.y - a.y) * normal.y)) - wall.thicknessMm / 2;
-    if (Math.abs(gap) <= toleranceMm && (!best || Math.abs(gap) < Math.abs(best.gap)))
-      best = { wall, gap, normal, tangent: u, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
+    // En una esquina dos caras compiten. Priorizar la que conserva el eje del mueble
+    // evita que un desplazamiento mínimo lo gire 90° y salte a la otra pared.
+    const angle = item.rotation * Math.PI / 180;
+    const parallel = Math.abs(Math.cos(angle) * u.x + Math.sin(angle) * u.y);
+    const score = Math.abs(gap) + (1 - parallel) * Math.min(150, toleranceMm / 2);
+    if (Math.abs(gap) <= toleranceMm && (!best || score < best.score))
+      best = { wall, gap, score, normal, tangent: u, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
   }
   return best;
 }
@@ -39,7 +44,28 @@ export function alignBackToWall(doc: EditorDocument, item: Furniture, toleranceM
   return { ...turned, x: turned.x - best.normal.x * offset, y: turned.y - best.normal.y * offset };
 }
 
+/** Giro máximo con el que un tramo de cocina se endereza contra su muro: corrige desviaciones, no cambia de pared. */
+const KITCHEN_RUN_MAX_TURN_DEG = 3;
+/**
+ * Un tramo de cocina pegado a un muro ligeramente inclinado gira lo justo para apoyar toda la trasera en su cara y no
+ * dejar una cuña de holgura. Si el muro más cercano exigiera un giro mayor, el tramo se queda como estaba.
+ */
+export function alignKitchenRunToWall<T extends Furniture>(doc: EditorDocument, run: T, toleranceMm: number): T {
+  const aligned = alignBackToWall(doc, run, toleranceMm) as T;
+  const turn = Math.abs((aligned.rotation - run.rotation + 540) % 360 - 180);
+  return turn <= KITCHEN_RUN_MAX_TURN_DEG ? aligned : run;
+}
+
 const BLINDS = new Set(['roller', 'venetian', 'shutter']), CURTAINS = new Set(['curtain', 'curtain-open']);
+/** Una alfombra es un revestimiento del suelo: los muebles se apoyan encima, no chocan con ella. */
+export function isFloorCovering(item: Furniture): boolean {
+  return getFurnitureCatalogEntry(item.catalogId)?.profile === 'rug';
+}
+/** Estores, persianas y cortinas cuelgan de la ventana: son una piel sobre el muro, no un volumen que estorbe. */
+export function isWindowCovering(item: Furniture): boolean {
+  const profile = getFurnitureCatalogEntry(item.catalogId)?.profile;
+  return !!profile && (BLINDS.has(profile) || CURTAINS.has(profile));
+}
 /**
  * Estores, persianas y cortinas se enganchan a la ventana más cercana del muro donde apoyan: centrados en ella y con
  * medidas que la cubren (los estores y persianas nacen a la altura del alféizar; las cortinas llegan hasta el dintel).

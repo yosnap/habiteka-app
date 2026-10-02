@@ -21,6 +21,7 @@ import {
   type SketchWall,
 } from './sketch-types';
 import { sanitizeExtractedText } from './sanitize-extracted-text';
+import { validDoorArcGeometry } from './door-arc-geometry';
 
 const APERTURE_KINDS = ['puerta', 'ventana', 'hueco'] as const;
 
@@ -80,6 +81,17 @@ export const SKETCH_SCHEMA: JsonSchema = {
           anchoSobreMuro: {
             type: 'number',
             description: 'Ancho de la abertura como fracción de la longitud del muro (0–1).',
+          },
+          swing: { type: 'string', enum: ['left', 'right'], description: 'Solo para puertas: lado del arco de barrido respecto al muro orientado (x1,y1)→(x2,y2): left = normal positiva (-dy,dx); right = lado opuesto. Omite si no se ve.' },
+          hinge: { type: 'string', enum: ['left', 'right'], description: 'Solo para puertas: bisagra en el extremo inicial (left) o final (right) del hueco, según el muro orientado. Omite si no se ve.' },
+          arcVisible: { type: 'boolean', description: 'true solo si se ve el arco de barrido de la hoja de esta puerta; un hueco sin arco se clasifica como hueco.' },
+          arcGeometry: {
+            type: 'object', additionalProperties: false,
+            required: ['hinge', 'openingEnd', 'arcPoint'],
+            description: 'Tres puntos medidos en la imagen para una puerta con arco visible.',
+            properties: {
+              hinge: POINT_SCHEMA, openingEnd: POINT_SCHEMA, arcPoint: POINT_SCHEMA,
+            },
           },
         },
       },
@@ -160,6 +172,17 @@ export function sketchPrompt(): string {
     '- aberturas: SOLO las puertas, ventanas y huecos de paso claramente dibujados, cada una',
     '  anclada a su muro por índice, con su centro como fracción 0–1 a lo largo del muro y su',
     '  ancho como fracción de la longitud del muro. En caso de duda, no la devuelvas.',
+    '  Una PUERTA exige ver el arco de barrido de la hoja: marca arcVisible=true.',
+    '  Si se ve, da arcGeometry: hinge=punto exacto de bisagra sobre el muro,',
+    '  openingEnd=otro extremo del vano sobre ESE MISMO muro, arcPoint=un punto',
+    '  del arco visible lejos del muro. Usa las coordenadas de la imagen 0–1;',
+    '  estos puntos prevalecen sobre el índice de muro y los giros estimados.',
+    '  Si solo ves un hueco sin arco, devuelve tipo=hueco; no inventes una puerta.',
+    '  Para cada puerta, lee el ARCO dibujado: swing=left si abre hacia la normal',
+    '  (-dy,dx) del muro orientado (x1,y1)→(x2,y2), right si abre al lado opuesto.',
+    '  hinge=left si la bisagra está en el extremo inicial del hueco sobre ese muro,',
+    '  right si está en el final. Omite swing/hinge si el arco o la bisagra no se ven;',
+    '  no los deduzcas del nombre de la estancia.',
     '- habitaciones: cada estancia con su nombre (el rotulado en el boceto, o dedúcelo del',
     '  mobiliario dibujado) y su contorno como polígono normalizado.',
     '- anchoMetros/altoMetros: estima SIEMPRE el ancho y alto reales del plano completo, en',
@@ -233,17 +256,23 @@ function parseApertures(list: unknown, wallCount: number): SketchAperture[] {
   const out: SketchAperture[] = [];
   for (const a of list) {
     if (typeof a !== 'object' || a === null) continue;
-    const { tipo, muro, posicion, anchoSobreMuro } = a as Record<string, unknown>;
+    const { tipo, muro, posicion, anchoSobreMuro, swing, hinge, arcVisible, arcGeometry } = a as Record<string, unknown>;
     if (typeof tipo !== 'string' || !APERTURE_KINDS.includes(tipo as (typeof APERTURE_KINDS)[number]))
       continue;
     if (typeof muro !== 'number' || !Number.isInteger(muro) || muro < 0 || muro >= wallCount)
       continue;
     if (!isUnit(posicion)) continue;
+    const observedArc = tipo === 'puerta' && arcVisible === true
+      ? validDoorArcGeometry(arcGeometry) : null;
     out.push({
       tipo: tipo as SketchAperture['tipo'],
       muro,
       posicion,
       ...(isUnit(anchoSobreMuro) && anchoSobreMuro > 0 ? { anchoSobreMuro } : {}),
+      ...(tipo === 'puerta' && (swing === 'left' || swing === 'right') ? { swing } : {}),
+      ...(tipo === 'puerta' && (hinge === 'left' || hinge === 'right') ? { hinge } : {}),
+      ...(tipo === 'puerta' && arcVisible === true ? { arcVisible: true } : {}),
+      ...(observedArc ? { arcGeometry: observedArc } : {}),
     });
   }
   return out;

@@ -9,23 +9,38 @@ import { activateEditorDocument } from '@/server/editor/save-document';
 import { EditorShell } from '../editor-shell';
 import { DurableEditor } from './durable-editor';
 import type { AutoGenerateRequest } from '../auto-generate-request';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
+import { ApprovedDesignView } from './approved-design-view';
 
-export function ProjectEditor({ scope, projectName, initial, writable, migration, autoGenerate }: {
+export function ProjectEditor({ scope, projectName, initial, approvedDesign, autoOpenApproved, writable, migration, autoGenerate, reference, openVideoStudio }: {
   scope: DraftScope; projectName: string; initial: EditorDocument; writable: boolean;
+  approvedDesign: ApprovedDesign | null;
+  autoOpenApproved: boolean;
   migration: { fingerprint: string; complete: boolean; issues: string[] } | null;
   autoGenerate?: AutoGenerateRequest | null;
+  reference?: PlanReference | null;
+  openVideoStudio?: boolean;
 }) {
   const router = useRouter();
   const [store] = useState(() => createEditorStore(initial, { readOnly: true }));
   const [confirmed, setConfirmed] = useState(false), [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  if (autoOpenApproved && approvedDesign) {
+    const query = scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : '';
+    return <ApprovedDesignView key={approvedDesign.id} approval={approvedDesign} scope={scope}
+      onBack={() => router.push(`/projects/${encodeURIComponent(scope.projectId)}/editor${query}`)} />;
+  }
   if (!migration && writable)
     return (
       <DurableEditor
         scope={scope}
         projectName={projectName}
         initial={initial}
+        approvedDesign={approvedDesign}
         autoGenerate={autoGenerate ?? null}
+        reference={reference}
+        openVideoStudio={openVideoStudio}
       />
     );
   return <div>
@@ -50,6 +65,6 @@ export function ProjectEditor({ scope, projectName, initial, writable, migration
       </>}
       {error && <p role="alert">{error}</p>}
     </section>
-    <EditorShell store={store} projectName={projectName} saveStatus="Solo lectura · sin cambios" />
+    <EditorShell store={store} projectName={projectName} saveStatus="Solo lectura · sin cambios" reference={reference} />
   </div>;
 }

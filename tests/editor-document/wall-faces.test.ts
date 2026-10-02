@@ -4,7 +4,7 @@ import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { paintElement } from '@/lib/editor-document/spatial-commands';
 import { wallMeshes, junctionMeshes } from '@/canvas/editor-v2/scene/wall-meshes';
-import { WALL_PLAN_COLOR } from '@/lib/editor-document/wall-appearance';
+import { WALL_SECTION_COLOR } from '@/lib/editor-document/wall-appearance';
 
 describe('interior and exterior wall finishes', () => {
   const points = [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }];
@@ -34,13 +34,20 @@ describe('interior and exterior wall finishes', () => {
     expect(after.sideColors).toEqual(['#ff0000', '#0000ff']);
     expect(after.color).toBe(before.color);
     expect(after.color).not.toBe('#ff0000');
-    expect(after.topColor).toBe(WALL_PLAN_COLOR);
-    expect(junctionMeshes(both).every((mesh) => mesh.topColor === WALL_PLAN_COLOR)).toBe(true);
+    expect(after.topColor).toBe(WALL_SECTION_COLOR);
+    expect(junctionMeshes(both).every((mesh) => mesh.topColor === WALL_SECTION_COLOR)).toBe(true);
     const leftEdges = junctionMeshes(left).flatMap((j) => j.edgeFinishes ?? []);
     const bothEdges = junctionMeshes(both).flatMap((j) => j.edgeFinishes ?? []);
     expect(bothEdges.filter((edge) => edge.color === '#ff0000')).toEqual(leftEdges.filter((edge) => edge.color === '#ff0000'));
     expect(bothEdges.some((edge) => edge.color === '#0000ff')).toBe(true);
     expect(bothEdges.filter((edge) => edge.sourceEntityId !== id)).toEqual(leftEdges.filter((edge) => edge.sourceEntityId !== id));
+  });
+  it('uses the original color map for a photographic wall finish', () => {
+    const doc = addWallPath(emptyEditorDocument(), points, true);
+    const wall = { ...doc.walls[0]!, materials: { left: 'polyhaven:painted_plaster_wall', right: 'plaster-white' } };
+    const mesh = wallMeshes({ ...doc, walls: [wall, ...doc.walls.slice(1)] }, wall)[0]!;
+    expect(mesh.sideMaterials).toEqual(['polyhaven:painted_plaster_wall', 'plaster-white']);
+    expect(mesh.sideColors).toEqual(['#ffffff', '#eeeae2']);
   });
   it('continues different exterior paints to the two edges of the same miter', () => {
     let doc = addWallPath(emptyEditorDocument(), points, true);
@@ -54,6 +61,6 @@ describe('interior and exterior wall finishes', () => {
     expect(vertical.length).toBeGreaterThan(0);
     expect(horizontal.every((edge) => edge.finish.color === '#0000ff')).toBe(true);
     expect(vertical.every((edge) => edge.finish.color === '#00ff00')).toBe(true);
-    expect(join.topColor).toBe(WALL_PLAN_COLOR);
+    expect(join.topColor).toBe(WALL_SECTION_COLOR);
   });
 });

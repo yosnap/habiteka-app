@@ -15,6 +15,7 @@ const PROBE_MM = 350;
 export type DoorSwing = 'left' | 'right';
 
 export function doorSwing(aperture: PlanAperture, wall: PlanWall, zones: PlanZone[]): DoorSwing {
+  if (aperture.swing) return aperture.swing;
   const dir = direction(wall.from, wall.to);
   if (!dir) return 'left';
   const n = normal(dir);

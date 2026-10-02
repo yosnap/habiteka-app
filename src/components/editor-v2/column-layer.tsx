@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { updateColumn } from '@/lib/editor-document/construction-commands';
 import type { Column } from '@/lib/editor-document/schema';
+import { surfaceMaterialAppearance } from '@/lib/editor-document/surface-materials';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
@@ -27,7 +28,7 @@ export function ColumnLayer({ store, scale, disabled = false }: { store: EditorS
       try { state.apply(updateColumn(state.document, column.id, { x: snapped.x, y: snapped.y })); state.select([column.id]); }
       catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo mover la columna.'); }
     }}>
-    <Rect width={column.widthMm} height={column.depthMm} fill={column.color ?? '#a6a6a0'} stroke={selected.includes(column.id) ? ACCENT : '#48524e'} strokeWidth={2 * unit} />
+    <Rect width={column.widthMm} height={column.depthMm} fill={surfaceMaterialAppearance(column.materialId)?.baseColor ?? column.color ?? '#a6a6a0'} stroke={selected.includes(column.id) ? ACCENT : '#48524e'} strokeWidth={2 * unit} />
     <Text text={column.name ?? 'Columna'} x={0} y={column.depthMm / 2 - 6 * unit} width={column.widthMm} align="center"
       rotation={-column.rotation} fontSize={11 * unit} fill={selected.includes(column.id) ? ACCENT : '#48524e'} listening={false} />
   </Group>)}</Group>;

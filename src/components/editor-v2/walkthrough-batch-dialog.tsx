@@ -13,6 +13,7 @@ import { StyleGallery } from '@/components/canvas/style-gallery';
 import type { Estilo } from '@/lib/contracts';
 import { runRenderBatch } from './render-batch';
 import { storyboardBatchPoints } from '@/lib/editor-document/storyboard-batch';
+import { ModernSelect } from '@/components/ui/modern-select';
 
 interface Frame { waypointId: string; label: string; capture: RenderCapture }
 
@@ -38,7 +39,7 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
   onClose: () => void;
 }) {
   const [estilo, setEstilo] = useState<Estilo>('moderno');
-  const [lighting, setLighting] = useState<'daylight' | 'warm' | 'evening'>('daylight');
+  const [lighting, setLighting] = useState<import('@/lib/lighting-preset').LightingPreset>('daylight');
   const [instructions, setInstructions] = useState('');
   const [frames, setFrames] = useState<Frame[]>([]);
   const [results, setResults] = useState<Array<RenderGeneratedResult | undefined>>([]);
@@ -82,11 +83,11 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
     const options = { ...defaultRenderDesignOptions(), lighting };
     try {
       const outcome = await runRenderBatch({ items: frames, initialResults: results, shouldStop: () => stop.current,
-        render: async (frame, index, referenceDesignId) => {
+        render: async (frame, index) => {
           if (store.getState().readOnly || snapshot.current !== fingerprint()) throw new Error('El plano cambió. Conservamos las imágenes terminadas en Diseños; prepara de nuevo las pendientes.');
           setStatus(`Generando ${index + 1} de ${frames.length}…`);
           const result = await render({ estilo, objetivo: '', promptLibre: instructions, options,
-            capture: frame.capture, batchId: batchId.current, qualityAck, ...(referenceDesignId ? { referenceDesignId } : {}) });
+            capture: frame.capture, batchId: batchId.current, qualityAck });
           // Una asociación fallida nunca debe hacer repetir una generación que ya terminó.
           if (result.id && !store.getState().readOnly && snapshot.current === fingerprint()) {
             try {
@@ -114,9 +115,9 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
       <p>Hasta 8 vistas por lote. Primero revisa las capturas sin IA. Cada imagen terminada queda guardada en Diseños.</p>
       <fieldset disabled={busy}>
         <StyleGallery value={estilo} onChange={(value) => { setEstilo(value); reset(); }} />
-        <label>Iluminación<select value={lighting} onChange={(event) => { setLighting(event.target.value as typeof lighting); reset(); }}>
-          <option value="daylight">Día</option><option value="warm">Atardecer</option><option value="evening">Noche</option>
-        </select></label>
+        <label>Iluminación<ModernSelect value={lighting} onChange={(event) => { setLighting(event.target.value as typeof lighting); reset(); }}>
+          <option value="daylight">Día</option><option value="afternoon">Tarde</option><option value="warm">Atardecer</option><option value="evening">Noche</option>
+        </ModernSelect></label>
         <label>Instrucciones<input value={instructions} maxLength={500} onChange={(event) => { setInstructions(event.target.value); reset(); }} /></label>
         <button type="button" onClick={() => void prepare()}>Preparar vistas sin IA</button>
       </fieldset>

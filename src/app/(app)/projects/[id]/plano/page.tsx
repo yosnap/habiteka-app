@@ -7,7 +7,8 @@
 import { sendPlanoToEditor } from '../_actions/agent-actions';
 import {
   redrawStudio,
-  selectRedrawStudio,
+  selectStudioResult,
+  startNewStudioPlan,
   cenitalStudio,
   importCanvasStudio,
   drawingStudio,
@@ -18,9 +19,14 @@ import {
   applyPlanImportStudio,
 } from '../_actions/studio-actions';
 import { requireOrgContext } from '@/server/auth/require-org-context';
-import { loadStudio } from '@/server/plan/studio-repo';
+import { loadStudio, resolveStudioResultViews } from '@/server/plan/studio-repo';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { PlanoStudio } from '@/components/plano-studio/plano-studio';
+import { withOrg } from '@/server/db/scoped-repo';
+import { withEditorDocuments } from '@/server/editor/document-repo';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
+import { deserializeCanvas } from '@/canvas/serialize';
+import type { StudioDeliverableView } from '@/components/plano-studio/studio-results-panel';
 
 import type { StudioQuality } from '@/lib/studio-state';
 
@@ -41,7 +47,24 @@ const UNEVALUATED: StudioQuality = {
 
 export default async function PlanoStudioPage({ params }: Props) {
   const { id } = await params;
-  const initialState = await loadStudio(await requireOrgContext(), id);
+  const ctx = await requireOrgContext();
+  const [initialState, deliverableRows, editor] = await Promise.all([
+    loadStudio(ctx, id),
+    withOrg(ctx).deliverables.list(id),
+    withEditorDocuments(ctx).load({ projectId: id }),
+  ]);
+  const [initialResults, deliverables] = await Promise.all([
+    resolveStudioResultViews(initialState),
+    Promise.all(deliverableRows.map(async (row): Promise<StudioDeliverableView> => ({
+      id: row.id,
+      type: row.type,
+      version: row.version,
+      createdAt: row.createdAt.toISOString(),
+      url: row.type === 'RENDER_3D' || row.type === 'VIDEO'
+        ? await resolveRenderUrl(row.payload as { assetKey?: string; assetUrl?: string })
+        : null,
+    }))),
+  ]);
   // Extracción de plano dibujado guardada: se recalcula (determinista, sin IA)
   // para que el usuario pueda retomar la tabla de medidas tras recargar.
   const importImage = initialState.planImport?.image ?? initialState.source;
@@ -49,6 +72,10 @@ export default async function PlanoStudioPage({ params }: Props) {
     initialState.planImport && importImage
       ? {
           ...buildPlanImport(initialState.planImport.raw, {
+            roomOverrides: initialState.planImport.roomOverrides,
+            doorOverrides: initialState.planImport.doorOverrides,
+            generalWidthMm: initialState.planImport.generalWidthMm,
+            includeFurniture: initialState.planImport.includeFurniture,
             normalize: initialState.planImport.detected
               ? {
                   wallsOverride: initialState.planImport.detected.walls,
@@ -65,13 +92,19 @@ export default async function PlanoStudioPage({ params }: Props) {
   // El layout del proyecto ya reserva la cabecera y las pestañas (flex + min-h-0);
   // aquí basta con ocupar el hueco restante en vez de restar un alto fijo.
   return (
-    <main className="h-full min-h-0 overflow-hidden">
+    <main className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
       <PlanoStudio
-        key={id}
+        key={`${id}:${initialState.plan?.assetKey ?? 'sin-plano'}:${initialState.planImportRevision ?? 'sin-revision'}`}
         projectId={id}
         initialState={initialState}
+        initialResults={initialResults}
+        deliverables={deliverables}
+        hasEditorPlan={editor.authority === 'v2'
+          ? editor.document.walls.length > 0
+          : deserializeCanvas(editor.legacySnapshot).objects.some((item) => item.kind === 'wall')}
         redrawAction={redrawStudio}
-        selectRedrawAction={selectRedrawStudio}
+        selectResultAction={selectStudioResult}
+        startNewAction={startNewStudioPlan}
         drawingAction={drawingStudio}
         uploadAction={uploadStudio}
         cenitalAction={cenitalStudio}
@@ -82,6 +115,8 @@ export default async function PlanoStudioPage({ params }: Props) {
         refitAction={refitPlanImportStudio}
         applyAction={applyPlanImportStudio}
         initialImport={initialImport}
+        initialGeneralWidthMm={initialState.planImport?.generalWidthMm}
+        initialIncludeFurniture={initialState.planImport?.includeFurniture}
       />
     </main>
   );

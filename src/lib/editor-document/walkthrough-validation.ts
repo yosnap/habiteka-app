@@ -23,7 +23,8 @@ export function assertWalkthroughFields(doc: Record<string, unknown>, ids: Set<s
     if (!Array.isArray(path.zoneIds) || path.zoneIds.length > 100 || path.zoneIds.some((v) => typeof v !== 'string' || v.length > 10000)) fail();
     if (!Array.isArray(path.waypoints) || path.waypoints.length > 400) fail();
     for (const rawPoint of path.waypoints as unknown[]) {
-      const point = object(rawPoint, 'id x y eyeHeightMm yawDeg pitchDeg lookAt dwellMs speedMmPerS'); id(point.id);
+      const point = object(rawPoint, 'id levelId x y eyeHeightMm yawDeg pitchDeg lookAt dwellMs speedMmPerS'); id(point.id);
+      if (point.levelId !== undefined && (typeof point.levelId !== 'string' || !point.levelId.trim() || point.levelId.length > 200)) fail();
       number(point.x, -1e8, 1e8); number(point.y, -1e8, 1e8);
       number(point.eyeHeightMm, 900, 2200); number(point.dwellMs, 0, 10000); number(point.speedMmPerS, 200, 3000);
       if (point.yawDeg !== undefined) number(point.yawDeg, -360, 360);
@@ -32,6 +33,8 @@ export function assertWalkthroughFields(doc: Record<string, unknown>, ids: Set<s
         const focus = object(point.lookAt, 'x y'); number(focus.x, -1e8, 1e8); number(focus.y, -1e8, 1e8);
       }
     }
+    if ((path.waypoints as Array<{ levelId?: string }>).some((point) => point.levelId !== undefined) &&
+      (path.waypoints as Array<{ levelId?: string }>).some((point) => point.levelId === undefined)) fail();
     if (path.storyboardImages !== undefined) {
       if (!Array.isArray(path.storyboardImages) || path.storyboardImages.length > 400) fail();
       const references = new Set<string>();

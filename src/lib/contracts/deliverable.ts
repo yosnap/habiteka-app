@@ -36,7 +36,8 @@ export type DeliverablePayload =
         options?: RenderDesignOptions;
         batchId?: string;
         referenceDesignId?: string;
-        /** Zonas permitidas compuestas desde dos pasadas (base estricta + diseño). */
+        review?: import('@/lib/editor-document/render-review').RenderReview;
+        /** Metadatos de composiciones anteriores; los nuevos diseños usan una sola imagen auditada. */
         zoneComposite?: { mode: string; coverage: number };
       };
     }

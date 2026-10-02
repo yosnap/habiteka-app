@@ -26,23 +26,23 @@ export function jambLines(a: Pt, b: Pt, n: Pt, thicknessMm: number, theme: PlanS
 }
 
 /**
- * Puerta: hoja perpendicular al muro desde la bisagra (`a`) y arco de barrido
- * de 90° hasta el otro borde del hueco (`b`). El barrido se dibuja hacia el
- * lado de `n`.
+ * Puerta: hoja perpendicular al muro desde la bisagra elegida y arco de
+ * 90° hasta el otro borde del hueco. El barrido se dibuja hacia `n`.
  */
-export function doorSymbol(a: Pt, b: Pt, n: Pt, theme: PlanSvgTheme): string {
-  const dir = direction(a, b);
+export function doorSymbol(a: Pt, b: Pt, n: Pt, theme: PlanSvgTheme, hinge: 'left' | 'right' = 'left'): string {
+  const pivot = hinge === 'left' ? a : b;
+  const stop = hinge === 'left' ? b : a;
+  const dir = direction(pivot, stop);
   if (!dir) return '';
   const width = Math.hypot(b.x - a.x, b.y - a.y);
-  const leafEnd = add(a, n, width);
-  // Sentido del arco: de la hoja (leafEnd) al borde del hueco (b), centrado en
-  // la bisagra. El sweep correcto es el que recorre el cuadrante corto; con
-  // n = perpendicular "positiva" de dir, ese es sweep=1 en el sistema y-abajo
-  // del SVG cuando cross(n→dir) es negativo, y sweep=0 en el caso contrario.
+  const leafEnd = add(pivot, n, width);
+  // El arco debe conservar la bisagra como centro. Con SVG (eje Y hacia abajo),
+  // el recorrido corto de la normal a la hoja cerrada usa sweep=1 cuando
+  // cross(n→dir) es positivo; el valor opuesto elige el otro centro posible.
   const cross = n.x * dir.y - n.y * dir.x;
-  const sweep = cross > 0 ? 0 : 1;
-  const leaf = `<line x1="${fmt(a.x)}" y1="${fmt(a.y)}" x2="${fmt(leafEnd.x)}" y2="${fmt(leafEnd.y)}" stroke="${theme.lineColor}" stroke-width="${theme.symbolLineMm}"/>`;
-  const arc = `<path d="M ${fmt(leafEnd.x)} ${fmt(leafEnd.y)} A ${fmt(width)} ${fmt(width)} 0 0 ${sweep} ${fmt(b.x)} ${fmt(b.y)}" fill="none" stroke="${theme.lineColor}" stroke-width="${theme.thinLineMm}"/>`;
+  const sweep = cross > 0 ? 1 : 0;
+  const leaf = `<line x1="${fmt(pivot.x)}" y1="${fmt(pivot.y)}" x2="${fmt(leafEnd.x)}" y2="${fmt(leafEnd.y)}" stroke="${theme.lineColor}" stroke-width="${theme.symbolLineMm}"/>`;
+  const arc = `<path d="M ${fmt(leafEnd.x)} ${fmt(leafEnd.y)} A ${fmt(width)} ${fmt(width)} 0 0 ${sweep} ${fmt(stop.x)} ${fmt(stop.y)}" fill="none" stroke="${theme.lineColor}" stroke-width="${theme.thinLineMm}"/>`;
   return leaf + arc;
 }
 

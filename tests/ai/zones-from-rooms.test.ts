@@ -74,4 +74,12 @@ describe('zonesFromRooms: anclaje guiado por cotas', () => {
     expect(rooms[0]!.maxY).toBe(0.3);
     expect(addedWalls).toEqual([]);
   });
+
+  it('ancla también una cota que incluye el grosor de las dos paredes', () => {
+    const { rooms } = zonesFromRooms(
+      [{ nombre: 'Sala', poligono: sq(0.1, 0.1, 0.4, 0.35), altoMetros: 2.12 }],
+      twoBottoms, 0.03, guide,
+    );
+    expect(rooms[0]!.maxY).toBe(0.3);
+  });
 });

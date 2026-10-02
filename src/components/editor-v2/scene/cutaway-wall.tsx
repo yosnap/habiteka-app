@@ -1,8 +1,12 @@
 'use client';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { Camera, Group, Object3D } from 'three';
+import { Mesh, type Camera, type Group, type Material, type Object3D,
+  type WebGLProgramParametersWithUniforms } from 'three';
 import type { ExteriorWall } from '@/canvas/editor-v2/scene/types';
+import type { EditorDocument } from '@/lib/editor-document/schema';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { floorFinish } from '@/lib/editor-document/floor-finishes';
 
 const facesCamera = (camera: Camera, wall: ExteriorWall) =>
   (camera.position.x - wall.x) * wall.normalX + (camera.position.z - wall.z) * wall.normalZ > .01;
@@ -20,6 +24,77 @@ export function hideWallsFacingCamera(root: Object3D, camera: Camera): () => voi
     if (wall && object.visible && facesCamera(camera, wall)) { object.visible = false; hidden.push(object); }
   });
   return () => hidden.forEach((object) => { object.visible = true; });
+}
+
+/** Conserva el zócalo bajo el suelo elevado cuando se abre un alzado para ver una zona. */
+export function cutawaySupportHeights(document: EditorDocument, wallIds: ReadonlySet<string>,
+  levelElevationMm = 0): Map<string, number> {
+  const rooms = deriveRoomsSafe(document);
+  return new Map([...wallIds].flatMap((id) => {
+    const elevations = rooms.filter((room) => room.wallIds.includes(id))
+      .map((room) => floorFinish(document, room.id).elevationMm ?? 0);
+    const wall = document.walls.find((item) => item.id === id);
+    const supportMm = elevations.length ? Math.min(...elevations) : 0;
+    return wall && supportMm > (wall.baseElevationMm ?? 0)
+      ? [[id, (levelElevationMm + supportMm) / 1000] as const] : [];
+  }));
+}
+
+/** Recorta temporalmente un muro por encima de su zócalo sin alterar su malla ni el plano. */
+export function clipShaderAboveSupport(shader: WebGLProgramParametersWithUniforms, heightM: number): void {
+  const project = '#include <project_vertex>';
+  const main = /void\s+main\s*\(\s*\)\s*\{/;
+  if (!shader.vertexShader.includes(project) || !main.test(shader.fragmentShader))
+    throw new Error('No se puede preparar el zócalo de esta vista.');
+  shader.vertexShader = `varying float vHabitekaCutawayY;\n${shader.vertexShader.replace(project,
+    `vHabitekaCutawayY = (modelMatrix * vec4(transformed, 1.0)).y;\n${project}`)}`;
+  shader.fragmentShader = `varying float vHabitekaCutawayY;\n${shader.fragmentShader.replace(main,
+    (opening) => `${opening}\nif (vHabitekaCutawayY > ${heightM.toFixed(6)}) discard;`)}`;
+}
+
+/** Oculta tabiques y huecos; en muros con suelo elevado conserva solo la base portante. */
+export function hideWallsByIds(root: Object3D, wallIds: ReadonlySet<string>,
+  supportHeights: ReadonlyMap<string, number> = new Map()): () => void {
+  const hidden: Object3D[] = [];
+  const changed: { mesh: Mesh; material: Material | Material[] }[] = [];
+  const supports: { object: Object3D; previous: unknown }[] = [];
+  const copies: Material[] = [];
+  const restore = () => {
+    hidden.forEach((object) => { object.visible = true; });
+    changed.forEach(({ mesh, material }) => { mesh.material = material; });
+    supports.forEach(({ object, previous }) => {
+      if (previous === undefined) delete object.userData.cutawaySupportHeightM;
+      else object.userData.cutawaySupportHeightM = previous;
+    });
+    copies.forEach((material) => material.dispose());
+  };
+  try {
+    root.traverse((object) => {
+      const id = object.userData.cutawayWallId as string | undefined;
+      if (!object.visible || !id || !wallIds.has(id)) return;
+      const heightM = object.userData.cutawayStructural ? supportHeights.get(id) : undefined;
+      if (heightM === undefined) { object.visible = false; hidden.push(object); return; }
+      supports.push({ object, previous: object.userData.cutawaySupportHeightM });
+      object.userData.cutawaySupportHeightM = heightM;
+      object.traverse((child) => {
+        if (!(child instanceof Mesh)) return;
+        const original = child.material;
+        const clipped = (material: Material) => {
+          const copy = material.clone(), beforeCompile = material.onBeforeCompile;
+          copy.onBeforeCompile = (shader, renderer) => {
+            beforeCompile.call(copy, shader, renderer);
+            clipShaderAboveSupport(shader, heightM);
+          };
+          copy.customProgramCacheKey = () => `${material.customProgramCacheKey()}|habiteka-support-${heightM}`;
+          copies.push(copy);
+          return copy;
+        };
+        changed.push({ mesh: child, material: original });
+        child.material = Array.isArray(original) ? original.map(clipped) : clipped(original);
+      });
+    });
+  } catch (error) { restore(); throw error; }
+  return restore;
 }
 
 /**

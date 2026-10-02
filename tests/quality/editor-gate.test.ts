@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 import { addOpening, addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { emptyEditorDocument, type EditorDocument } from '@/lib/editor-document/schema';
+import { editorGeometryFingerprint } from '@/server/quality/editor-geometry-fingerprint';
 import { assertEditorQuality, EDITOR_STRUCTURE_CHECKPOINT } from '@/server/quality/editor-gate';
 import { QUALITY_THRESHOLDS_KEY } from '@/server/quality/evaluate';
 import { prisma } from '@/server/db/prisma';
@@ -91,6 +92,43 @@ async function withKey() {
 }
 
 describe('assertEditorQuality', () => {
+  it('mantiene bloqueada una importación contradictoria hasta cambiar su geometría', async () => {
+    await withKey();
+    fetchMock.mockImplementation(async () => jevResponse(5, 0.98, 'none'));
+    const source = plan();
+    const flagged: EditorDocument = {
+      ...source,
+      importReview: {
+        geometryFingerprint: editorGeometryFingerprint(source),
+        reasons: ['Las estancias del origen se solapan.'],
+      },
+    };
+    await expect(generateWithGate(flagged, true)).rejects.toThrow(/se solapan/);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(imageAdapter).not.toHaveBeenCalled();
+
+    const corrected: EditorDocument = {
+      ...flagged,
+      vertices: flagged.vertices.map((vertex) => ({ ...vertex, x: vertex.x === 4000 ? 4200 : vertex.x })),
+    };
+    await expect(generateWithGate(corrected)).rejects.toThrow(/Entiendo las dudas/);
+    await expect(generateWithGate(corrected, true)).resolves.toBeDefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('bloquea un boceto sin escala confirmada aunque Jev diera una nota alta y el usuario aceptase', async () => {
+    await withKey();
+    fetchMock.mockImplementation(async () => jevResponse(5, 0.98, 'none'));
+    const source = plan();
+    const unscaled = {
+      ...source,
+      walls: source.walls.map((wall) => ({ ...wall, dimensionalOrigin: 'raster' as const })),
+    };
+    await expect(generateWithGate(unscaled, true)).rejects.toThrow(/escala física/);
+    expect(imageAdapter).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('con fiabilidad alta genera sin fricción y registra la evaluación', async () => {
     await withKey();
     fetchMock.mockImplementation(async () => jevResponse(5, 0.98, 'none'));

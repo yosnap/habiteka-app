@@ -2,7 +2,7 @@ import { OUTDOOR_CATALOG } from './outdoor-catalog';
 import type { Furniture } from './schema';
 import { ASSET_CATALOG } from './furniture-assets';
 
-export type FurnitureProfile = 'outdoor' | 'sofa' | 'sofa-chaise' | 'sofa-corner' | 'sofa-modular' | 'sofa-bed' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'rug'
+export type FurnitureProfile = 'outdoor' | 'sofa' | 'sofa-chaise' | 'sofa-corner' | 'sofa-modular' | 'sofa-bed' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'decor' | 'rug'
   | 'curtain' | 'curtain-open' | 'roller' | 'venetian' | 'vertical-blind' | 'shutter' | 'appliance' | 'screen' | 'bench';
 export type FurnitureRoom = 'salon' | 'dormitorio' | 'comedor' | 'cocina' | 'bano' | 'oficina' | 'exterior' | 'iluminacion' | 'decoracion';
 export interface FurnitureCatalogEntry {

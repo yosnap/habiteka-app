@@ -9,6 +9,9 @@ import type { PlanAperture, PlanWall, Plano2dPayload } from '@/lib/contracts';
 
 // Separación mínima entre dos aberturas del mismo muro (mm).
 const MIN_GAP_MM = 50;
+// La lectura de símbolos pequeños puede desplazar la unión puerta/ventana
+// algunos píxeles. Solo se corrige una discrepancia de esta magnitud.
+const MAX_WINDOW_NUDGE_MM = 150;
 
 export function cleanupApertures(plano: Plano2dPayload): Plano2dPayload {
   const wallsById = new Map<string, PlanWall>();
@@ -30,18 +33,19 @@ export function cleanupApertures(plano: Plano2dPayload): Plano2dPayload {
     if (!wall) continue;
     const length = Math.hypot(wall.to.x - wall.from.x, wall.to.y - wall.from.y);
     if (length <= 0) continue;
-    // Aberturas más anchas primero: son las que se conservan ante un solape.
+    // Una puerta con arco reconocido manda sobre una ventana que invade su
+    // jambaje por unos píxeles; entre aberturas del mismo tipo manda el ancho.
     const candidates = entries
       .map(({ zoneIndex, aperture }) => ({ zoneIndex, aperture: fitInsideWall(aperture, length) }))
       .filter((e): e is { zoneIndex: number; aperture: PlanAperture } => e.aperture !== null)
-      .sort((a, b) => b.aperture.widthMm - a.aperture.widthMm);
+      .sort((a, b) => Number(b.aperture.kind === 'puerta') - Number(a.aperture.kind === 'puerta') ||
+        b.aperture.widthMm - a.aperture.widthMm);
     const placed: PlanAperture[] = [];
-    for (const { zoneIndex, aperture } of candidates) {
+    for (const { zoneIndex, aperture: candidate } of candidates) {
+      const aperture = candidate.kind === 'ventana'
+        ? nudgeWindowAfterDoor(candidate, placed, length) : candidate;
       const [lo, hi] = extent(aperture, length);
-      const overlaps = placed.some((p) => {
-        const [plo, phi] = extent(p, length);
-        return lo < phi + MIN_GAP_MM && hi > plo - MIN_GAP_MM;
-      });
+      const overlaps = placed.some((p) => overlapsWithGap([lo, hi], extent(p, length)));
       if (overlaps) continue;
       placed.push(aperture);
       kept.set(zoneIndex, [...(kept.get(zoneIndex) ?? []), aperture]);
@@ -55,6 +59,24 @@ export function cleanupApertures(plano: Plano2dPayload): Plano2dPayload {
       apertures: (kept.get(i) ?? []).sort((a, b) => a.position - b.position),
     })),
   };
+}
+
+function overlapsWithGap([lo, hi]: [number, number], [otherLo, otherHi]: [number, number]): boolean {
+  return lo < otherHi + MIN_GAP_MM && hi > otherLo - MIN_GAP_MM;
+}
+
+function nudgeWindowAfterDoor(window: PlanAperture, placed: PlanAperture[], length: number): PlanAperture {
+  const door = placed.find((item) => item.kind === 'puerta' &&
+    overlapsWithGap(extent(window, length), extent(item, length)));
+  if (!door) return window;
+  const center = window.position * length;
+  const [doorLo, doorHi] = extent(door, length);
+  const half = window.widthMm / 2;
+  const target = center >= (doorLo + doorHi) / 2
+    ? doorHi + MIN_GAP_MM + half : doorLo - MIN_GAP_MM - half;
+  if (target < half || target > length - half || Math.abs(target - center) > MAX_WINDOW_NUDGE_MM) return window;
+  const moved = { ...window, position: target / length };
+  return placed.some((item) => overlapsWithGap(extent(moved, length), extent(item, length))) ? window : moved;
 }
 
 /** Recentra la abertura para que quepa entera en el muro; null si el muro es más corto que ella. */

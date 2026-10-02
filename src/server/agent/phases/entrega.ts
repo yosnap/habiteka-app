@@ -382,9 +382,11 @@ export function isExteriorZone(kind?: string | null): boolean {
  * Función pura (testeable).
  */
 export function renderPrompt(input: DeliveryInput): string {
-  const espacio = isExteriorZone(input.zoneKind)
-    ? 'del EXTERIOR de la vivienda (fachada/jardín, con entorno y vegetación coherentes)'
-    : 'del INTERIOR del espacio';
+  const espacio = input.zoneKind === 'casa'
+    ? 'de la CASA COMPLETA terminada (cubierta, fachadas e interiores visibles vestidos según su uso; el terreno exterior se conserva tal cual)'
+    : isExteriorZone(input.zoneKind)
+      ? 'del EXTERIOR de la vivienda (fachada/jardín, con entorno y vegetación coherentes)'
+      : 'del INTERIOR del espacio';
   const base = [
     `Render arquitectónico fotorrealista ${espacio}, estilo ${estiloLabel(input.collected.estilo)}. ${input.collected.objetivo ?? ''}`,
     'Calidad editorial de interiorismo: luz físicamente coherente, materiales reales, escala humana, un único punto de fuga y composición limpia.',
@@ -437,6 +439,8 @@ function spaceDesignRule(kind?: string | null): string {
       return 'Es una ENTRADA EXTERIOR. Mantén libre el acceso y prioriza recorrido, seguridad, iluminación exterior y materiales resistentes.';
     case 'fachada':
       return 'Es una FACHADA EXTERIOR. No inventes una estancia interior ni mobiliario; conserva todos los huecos y proporciones arquitectónicas.';
+    case 'casa':
+      return 'Es la CASA COMPLETA: la vivienda terminada, cubierta, fachadas e interiores. Conserva la cubierta, las fachadas, los huecos y la distribución; viste cada estancia según su uso sin inventar habitaciones ni cambiar el volumen. El terreno y el jardín exteriores se conservan tal cual, sin rediseñarlos.';
     default:
       return 'Es una HABITACIÓN INTERIOR. Diseña distribución, iluminación y mobiliario de interior respetando la circulación estructural.';
   }

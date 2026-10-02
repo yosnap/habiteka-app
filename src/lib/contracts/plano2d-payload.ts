@@ -35,6 +35,10 @@ export interface PlanAperture {
   /** Posición a lo largo de la pared (0–1 desde `from`). */
   position: number;
   widthMm: number;
+  /** Lado de apertura respecto al muro final orientado de from a to. */
+  swing?: 'left' | 'right';
+  /** Bisagra en el inicio (left) o final (right) del hueco sobre ese muro. */
+  hinge?: 'left' | 'right';
 }
 
 /** Cota acotada entre dos puntos, con su valor textual. */

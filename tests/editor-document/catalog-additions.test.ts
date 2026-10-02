@@ -48,4 +48,18 @@ it('la pérgola existe en madera, aluminio y acero y la carpa tiene laterales tr
   expect(clear.some((v) => v.y + v.depthMm >= carpa.depthMm - 1 && v.widthMm > carpa.widthMm / 2)).toBe(false);
   const scene = editorDocumentToScene(insertSpatialItem(emptyEditorDocument(), carpa));
   expect(scene.boxes.filter((b) => b.opacity !== undefined)).toHaveLength(3);
+  expect(scene.boxes.find((b) => b.shape === 'hip-roof')).toMatchObject({
+    color: carpa.color, materialId: 'polyhaven:fabric_pattern_05', useColorMap: false,
+  });
+});
+
+it('la pérgola de aluminio adapta lamas finas al ancho sin cerrar el paso y lleva acabado metálico', () => {
+  const item = { ...place('habiteka:outdoor:pergola-aluminio'), widthMm: 4290 };
+  const volumes = furnitureVolumes(item);
+  const louvers = volumes.filter((volume) => volume.bottom >= item.heightMm! * .94);
+  expect(louvers).toHaveLength(18);
+  expect(louvers.every((volume) => volume.widthMm <= 110 && volume.appearance === 'powder-coated-metal')).toBe(true);
+  const scene = editorDocumentToScene(insertSpatialItem(emptyEditorDocument(), item));
+  expect(scene.boxes.filter((box) => box.sourceEntityId === item.id)).toHaveLength(volumes.length);
+  expect(scene.boxes.filter((box) => box.sourceEntityId === item.id).every((box) => box.appearance === 'powder-coated-metal')).toBe(true);
 });

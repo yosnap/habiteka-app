@@ -76,6 +76,15 @@ export function worldToLocal(item: Pick<Footprint, 'x' | 'y' | 'rotation'>, poin
   const a = (item.rotation * Math.PI) / 180, dx = point.x - item.x, dy = point.y - item.y;
   return { x: dx * Math.cos(a) + dy * Math.sin(a), y: -dx * Math.sin(a) + dy * Math.cos(a) };
 }
+/** Huella física del objeto en coordenadas del plano, girada como esté colocado. */
+export function footprint(item: Footprint): Point[] {
+  return [
+    { x: 0, y: 0 },
+    { x: item.widthMm, y: 0 },
+    { x: item.widthMm, y: item.depthMm },
+    { x: 0, y: item.depthMm },
+  ].map((point) => localToWorld(item, point));
+}
 export const objectCenter = (item: Footprint) =>
   localToWorld(item, { x: item.widthMm / 2, y: item.depthMm / 2 });
 /** Keep historical top-left storage, but rotate and resize around the physical center. */

@@ -27,6 +27,7 @@ function Thumbnail({ item }: { item: FurnitureCatalogEntry }) {
     shower: 'M18 49H82V59H18ZM26 49V13H59V22M50 22H68M54 28V33M63 28V33',
     lamp: 'M37 13H63L73 34H27ZM50 34V57M34 58H66',
     plant: 'M36 42H64L60 59H40ZM50 42V19M50 30Q21 30 28 12Q48 11 50 30ZM50 23Q55 3 74 12Q73 29 50 32',
+    decor: 'M35 16Q50 9 65 16L60 22Q75 38 68 54Q50 64 32 54Q25 38 40 22ZM36 17Q50 22 64 17',
     rug: 'M19 19H81V55H19ZM25 25H75V49H25M14 22H19M14 30H19M14 38H19M14 46H19M81 22H86M81 30H86M81 38H86M81 46H86',
     curtain: 'M18 12H82M24 14V59H45V14M55 14V59H76V14M31 16V56M39 16V56M62 16V56M70 16V56',
     appliance: 'M28 10H72V60H28ZM28 23H72M36 15H40M48 15H52M62 15H66M39 31H61V51H39Z',
@@ -83,7 +84,6 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
   return <aside className={styles.catalog} aria-label="Catálogo de muebles" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
-    <header className={styles.heading}><h2>Amueblar</h2><button type="button" onClick={onClose} aria-label="Cerrar catálogo">Cerrar</button></header>
     <div className={styles.filters}>
       <label>Buscar mueble<input type="search" name="furniture-search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sofá, mesa, lavabo…" /></label>
       <div className={styles.filterRow}>

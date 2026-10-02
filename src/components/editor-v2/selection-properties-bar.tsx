@@ -19,6 +19,7 @@ import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-comm
 import { CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { DecimalStepper } from './decimal-stepper';
+import { CarpaSidesField } from './carpa-sides-field';
 
 type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 
@@ -32,6 +33,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
   const doc = useStore(store, (state) => state.document), selection = useStore(store, (state) => state.selection);
   const readOnly = useStore(store, (state) => state.readOnly), id = selection[0];
   const wall = doc.walls.find((item) => item.id === id), opening = doc.openings.find((item) => item.id === id);
+  const floor = id?.startsWith('room:');
   const furniture = planObjects(doc).find((item) => item.id === id);
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
@@ -41,7 +43,7 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
     : [['widthMm', 'Ancho'], ['depthMm', 'Longitud'], ['riseMm', ramp.route ? 'Desnivel tramo 1' : 'Desnivel'], ['elevationMm', 'Elevación inicial']];
   const spatial = furniture ?? stair ?? ramp;
   if (!id) return null;
-  const label = wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
+  const label = floor ? 'Suelo' : wall ? 'Pared' : opening ? opening.kind === 'puerta' ? 'Puerta' : opening.kind === 'ventana' ? 'Ventana' : 'Hueco'
     : stair ? 'Escalera' : landing ? 'Descansillo' : ramp ? 'Rampa' : furniture ? elementName(furniture) : 'Selección';
   const run = (operation: (current: EditorDocument) => EditorDocument) => {
     try { const state = store.getState(); state.apply(operation(state.document)); return true; }
@@ -63,7 +65,10 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
             x: a.x + (b.x - a.x) * factor, y: a.y + (b.y - a.y) * factor });
         })} />
         <MeasureField label="Grosor" value={wall.thicknessMm / 1000} onCommit={(n) => run((current) => editDocument(current,
-          (next) => { next.walls.find((item) => item.id === id)!.thicknessMm = n * 1000; }))} />
+          (next) => { for (const selectedId of selection) {
+            const selectedWall = next.walls.find((item) => item.id === selectedId);
+            if (selectedWall) selectedWall.thicknessMm = n * 1000;
+          } }))} />
         <MeasureField label="Altura" value={wallConstruction(wall).heightMm / 1000}
           onCommit={(n) => run((current) => setWallConstruction(current, id, { heightMm: n * 1000 }))} />
         <MeasureField label="Cota base" value={(wall.baseElevationMm ?? 0) / 1000} minimum={0}
@@ -95,16 +100,22 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
         {([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, text]) =>
           <MeasureField key={key} label={text} value={({ ...furniture, ...furnitureSpatial(furniture) })[key] / 1000}
             minimum={key === 'elevationMm' ? 0 : .001} onCommit={(n) => run((current) => updateFurniture(current, id, { [key]: n * 1000 }))} />)}
+        {furniture.kind === 'carpa' && <CarpaSidesField className={styles.measureField} value={furniture.rolledSides}
+          onChange={(rolledSides) => run((current) => updateFurniture(current, id, { rolledSides }))} />}
       </>}
       {(furniture || stair || ramp) && <MeasureField label="Ángulo" unit="°" minimum={-36000} value={(furniture ?? stair ?? ramp)!.rotation}
         onCommit={(rotation) => run((current) => furniture ? updateFurniture(current, id, { rotation }) : stair ? updateStair(current, id, { rotation }) : updateRamp(current, id, { rotation }))} />}
     </fieldset>
     <div className={styles.propertyActions}>
+      {floor && <button type="button" disabled={readOnly} onClick={() => store.getState().setDetailPanel('paint')}>Acabados del suelo</button>}
       {wall && <button type="button" disabled={readOnly} onClick={() => run((d) => setWallCurve(d, id,
         wall.curveHeightMm ? 0 : defaultWallCurve(d, id)))}>{wall.curveHeightMm ? <StraightWallIcon size={20} aria-hidden="true" /> : <CurvedWallIcon size={20} aria-hidden="true" />}
         {wall.curveHeightMm ? 'Pared recta' : 'Curvar pared'}</button>}
       {(wall || opening || furniture || stair || ramp) && <>
-        <button type="button" disabled={readOnly} onClick={() => store.getState().setDetailPanel('paint')}>Pintar</button>
+        <button type="button" disabled={readOnly}
+          onClick={() => { if (wall && selection.length > 1) onProperties(); else store.getState().setDetailPanel('paint'); }}>
+          {wall && selection.length > 1 ? 'Acabados' : 'Pintar'}
+        </button>
         <button type="button" onClick={() => store.getState().setDetailPanel('comments')}>Comentarios ({doc.comments?.filter((c) => c.targetEntityId === id).length ?? 0})</button>
       </>}
       {opening && <button type="button" disabled={readOnly} onClick={() => run((current) => editDocument(current,

@@ -5,7 +5,9 @@ import { previewVertex } from '@/canvas/editor-v2/vertex-preview';
 import { snapWallPoint } from '@/canvas/editor-v2/snap-candidates';
 import { addWallSegment } from '@/canvas/editor-v2/wall-draw-machine';
 import { snapWallMove } from '@/canvas/editor-v2/wall-move-snap';
-import { snapObject } from '@/canvas/editor-v2/spatial-placement';
+import { collisions, snapObject } from '@/canvas/editor-v2/spatial-placement';
+import { createEditorStore } from '@/canvas/editor-v2/store';
+import { snapSpatialDrag } from '@/components/editor-v2/magnetic-drag';
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 import { upgradeSpatialDocument, localToWorld } from '@/lib/editor-document/spatial-properties';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -121,5 +123,19 @@ describe('los muebles conservan el pegado a caras', () => {
     expect(Math.max(...corners.map((p) => p.x))).toBeCloseTo(7925, 6);
     expect(Math.max(...corners.map((p) => p.y))).toBeCloseTo(2925, 6);
     expect(deriveRooms(doc)).toHaveLength(1);
+  });
+
+  it('mantiene horizontal un mueble arrastrado al rincón sin saltos ni colisiones', () => {
+    const doc = upgradeSpatialDocument(house()), store = createEditorStore(doc);
+    const furniture = { id: 'sofa', kind: 'sofa', catalogId: 'builtin:sofa', x: 6000, y: 2000,
+      widthMm: 1800, depthMm: 800, rotation: 0, heightMm: 900, elevationMm: 0,
+      dimensionalOrigin: 'physical' } as Furniture;
+    for (const [x, y] of [[5950, 1850], [6000, 1950], [6050, 2000], [6100, 2050]] as const) {
+      const preview = snapSpatialDrag(store, { ...furniture, x, y }, .08) as Furniture;
+      const dropped = snapObject(doc, preview, .08, true, { preserveRotation: true }) as Furniture;
+      expect(dropped).toMatchObject({ x: 6125, y: 2125, rotation: 0 });
+      expect(preview).toEqual(dropped);
+      expect([...collisions({ ...doc, furniture: [dropped] }).keys()]).toEqual([]);
+    }
   });
 });

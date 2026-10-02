@@ -2,10 +2,10 @@ import type { EditorDocument, Furniture } from './schema';
 import { isBoundary, planObjects } from './boundary-types';
 import { isKitchenRun } from './kitchen-run-types';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
-import { furnitureSpatial, objectCenter, transformAroundCenter, worldToLocal } from './spatial-properties';
+import { furnitureSpatial, objectCenter, localToWorld, transformAroundCenter, worldToLocal } from './spatial-properties';
 
 /** Perfiles con una cara superior plana sobre la que se apoyan otros objetos. */
-const SURFACE_PROFILES = new Set(['cabinet', 'table', 'shelf', 'kitchen', 'bench', 'appliance']);
+const SURFACE_PROFILES = new Set(['cabinet', 'table', 'shelf', 'kitchen', 'bench', 'appliance', 'bed']);
 export function isSurfaceHost(item: Furniture): boolean {
   if (isKitchenRun(item)) return true;
   if (isBoundary(item)) return false;
@@ -21,10 +21,43 @@ export function canRestOnHost(item: Furniture): boolean {
   const entry = getFurnitureCatalogEntry(item.catalogId), heightMm = furnitureSpatial(item).heightMm;
   if (!entry) return heightMm <= 600 && !isSurfaceHost(item);
   if (entry.profile === 'screen' || entry.profile === 'plant') return true;
+  if (entry.profile === 'decor') return heightMm <= 600;
   return (entry.profile === 'lamp' || entry.profile === 'appliance') && heightMm <= 600;
 }
-/** Cota de la cara superior: en un mueble de cocina es la encimera. */
-export const hostSurfaceTop = (host: Furniture) => { const s = furnitureSpatial(host); return s.elevationMm + s.heightMm; };
+/** Cota de apoyo; la altura total de una cama incluye el cabecero, no solo el colchón. */
+export const hostSurfaceTop = (host: Furniture) => {
+  const s = furnitureSpatial(host);
+  return s.elevationMm + (getFurnitureCatalogEntry(host.catalogId)?.profile === 'bed'
+    ? Math.min(680, Math.round(s.heightMm * .68)) : s.heightMm);
+};
+/** El objeto cabe completo en la cara superior, también cuando está girado. */
+export function canFitOnHost(item: Furniture, host: Furniture): boolean {
+  if (item.id === host.id || !canRestOnHost(item) || !isSurfaceHost(host) || host.hostId === item.id) return false;
+  const angle = (item.rotation - host.rotation) * Math.PI / 180;
+  const width = Math.abs(item.widthMm * Math.cos(angle)) + Math.abs(item.depthMm * Math.sin(angle));
+  const depth = Math.abs(item.widthMm * Math.sin(angle)) + Math.abs(item.depthMm * Math.cos(angle));
+  return width <= host.widthMm + 1 && depth <= host.depthMm + 1;
+}
+/** Centra un objeto sobre una superficie elegida explícitamente en el plano visual. */
+export function placeOnHost(item: Furniture, host: Furniture): Furniture {
+  if (!canFitOnHost(item, host)) throw new Error('Este elemento no cabe sobre esa superficie.');
+  const center = localToWorld(host, { x: host.widthMm / 2, y: host.depthMm / 2 });
+  const offset = objectCenter({ ...item, x: 0, y: 0 });
+  return { ...item, x: center.x - offset.x, y: center.y - offset.y,
+    hostId: host.id, elevationMm: hostSurfaceTop(host) };
+}
+/** Un objeto apoyado conserva su posición relativa cuando se mueve o gira el mueble que lo sostiene. */
+export function followHostedChildren(doc: EditorDocument, previous: Furniture, next: Furniture): void {
+  if (previous.x === next.x && previous.y === next.y && previous.rotation === next.rotation) return;
+  for (const child of doc.furniture) {
+    if (child.hostId !== previous.id) continue;
+    const local = worldToLocal(previous, objectCenter(child));
+    const center = localToWorld(next, local);
+    const turned = transformAroundCenter(child, { rotation: child.rotation + next.rotation - previous.rotation });
+    const offset = objectCenter({ ...turned, x: 0, y: 0 });
+    Object.assign(child, { rotation: turned.rotation, x: center.x - offset.x, y: center.y - offset.y });
+  }
+}
 function containsCenter(host: Furniture, item: Furniture): boolean {
   const local = worldToLocal(host, objectCenter(item));
   return local.x >= 0 && local.x <= host.widthMm && local.y >= 0 && local.y <= host.depthMm;
@@ -41,9 +74,11 @@ export function findHost(doc: EditorDocument, item: Furniture): Furniture | unde
  */
 export function restOnHost(doc: EditorDocument, item: Furniture, options: { alignRotation?: boolean } = {}): Furniture {
   if (!canRestOnHost(item)) return item.hostId ? { ...item, hostId: undefined } : item;
-  const host = findHost(doc, item), catalogElevation = getFurnitureCatalogEntry(item.catalogId)?.elevationMm ?? 0;
+  const preferred = item.hostId && planObjects(doc).find((candidate) => candidate.id === item.hostId);
+  const host = preferred && isSurfaceHost(preferred) && containsCenter(preferred, item) ? preferred : findHost(doc, item);
+  const catalogElevation = getFurnitureCatalogEntry(item.catalogId)?.elevationMm ?? 0;
   if (!host) return item.hostId ? { ...item, hostId: undefined, elevationMm: catalogElevation } : item;
-  const minimum = hostSurfaceTop(host) + catalogElevation;
+  const minimum = hostSurfaceTop(host);
   if (item.hostId === host.id) return (item.elevationMm ?? 0) >= minimum ? item : { ...item, elevationMm: minimum };
   const rested = { ...item, hostId: host.id, elevationMm: minimum };
   return options.alignRotation && rested.rotation !== host.rotation ? transformAroundCenter(rested, { rotation: host.rotation }) : rested;

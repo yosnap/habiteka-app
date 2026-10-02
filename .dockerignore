@@ -21,6 +21,11 @@ src/generated
 # docs/legal, que la página /legal/terminos lee del disco al prerenderizarse.
 docs/*
 !docs/legal
+!docs/site
+docs/site/node_modules
+docs/site/dist
+docs/site/.astro
+public/documentacion
 plans
 infra
 README*.md

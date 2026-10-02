@@ -24,10 +24,11 @@
   flex-direction: column;
   border: 1px solid var(--line);
   overflow: hidden;
+  position: relative;
 }
 .shell button,
-.shell select,
-.shell input {
+.shell :is(select, [role='combobox']),
+.shell input:not([type='checkbox']):not([type='radio']) {
   font: inherit;
   color: inherit;
   background: var(--paper);
@@ -54,7 +55,7 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.shell :is(button, input, select):focus-visible {
+.shell :is(button, input, select, [role='combobox']):focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
@@ -108,6 +109,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+/* Un desplegable en una fila de acciones comparte la fila con su botón en vez de ocuparla entera. */
+.actions [role='combobox'] {
+  width: auto;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 .actions button,
 .secondary button {
@@ -165,9 +172,12 @@
   min-height: 0;
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   position: relative;
 }
 .canvasHost {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -179,6 +189,8 @@
   display: none;
 }
 .sceneHost {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -187,6 +199,16 @@
 .sceneHost > * {
   flex: 1;
   min-width: 0;
+}
+.storyboardHost {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+}
+/* El recorrido ocupa solo la parte visible del plano cuando hay lateral abierto. */
+.workspace:has(> .sidebar[data-open='true']) > .storyboardHost {
+  margin-left: min(400px, calc(100vw - 104px));
 }
 .viewSwitch {
   display: flex;
@@ -197,6 +219,8 @@
   font-weight: 600;
 }
 .tools {
+  grid-column: 1;
+  grid-row: 1 / -1;
   position: relative;
   z-index: 35; /* Por encima del lateral de propiedades: los tooltips salen por la derecha. */
   display: flex;
@@ -219,6 +243,9 @@
   position: relative;
   background: var(--paper);
   touch-action: none;
+}
+.canvas[data-presentation='visual'] {
+  background: #e9eeeb;
 }
 .canvas:focus-visible {
   outline: 2px solid var(--brand);
@@ -311,33 +338,53 @@
   left: 88px;
   top: 0;
   bottom: 0;
-  width: 280px;
+  width: min(400px, calc(100vw - 104px));
   max-width: 100%;
   z-index: 30;
   min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   border-right: 1px solid var(--line);
   background: var(--paper);
   box-shadow: var(--shadow-panel);
 }
 .sidebar[data-open='true'] {
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
-.inspector,
-.catalog {
-  padding: 16px;
-}
-.inspectorHeading {
+.sidePanelHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
 }
-.inspectorHeading h2 {
+.sidePanelHeader h2 {
   margin: 0;
   font-size: 1rem;
+}
+.sidePanelHeader button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.sidePanelBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.inspector,
+.catalog {
+  padding: 16px;
 }
 .search span {
   display: flex;
@@ -402,14 +449,17 @@
   font-size: 0.75rem;
   font-weight: 600;
 }
-.inspectorHeading button {
-  display: inline-flex;
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
+.bulkWallAppearance {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
+.bulkWallAppearance h3 { margin: 0; font-size: .875rem; }
+.bulkWallAppearance > div { display: grid; gap: 8px; }
 .fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -424,7 +474,7 @@
   font-size: 0.75rem;
 }
 .field input,
-.field select {
+.field :is(select, [role='combobox']) {
   width: 100%;
   min-width: 0;
   font-size: 1rem;
@@ -632,6 +682,15 @@
   border-top: 1px solid var(--line);
   z-index: 10;
 }
+.shell[data-mode='visual'] .propertiesBar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 88px;
+  max-height: 34%;
+  overflow: auto;
+  box-shadow: 0 -6px 24px rgb(25 45 36 / 10%);
+}
 .propertiesBar > strong {
   min-width: 72px;
 }
@@ -661,6 +720,15 @@
   font-variant-numeric: tabular-nums;
   font-size: 1rem;
   padding: 8px;
+}
+.measureField select {
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.875rem;
 }
 .propertyActions {
   display: flex;
@@ -744,9 +812,14 @@
   }
   .workspace {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 76px minmax(180px, 1fr);
+    grid-template-rows: 76px minmax(180px, 1fr) auto;
+  }
+  .shell[data-mode='visual'] .propertiesBar {
+    left: 0;
   }
   .tools {
+    grid-column: 1;
+    grid-row: 1;
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid var(--line);
@@ -759,13 +832,28 @@
     flex: 1;
   }
   .sidebar {
+    position: absolute;
     top: 76px;
     left: 0;
-    width: min(320px, 100%);
+    right: 0;
+    bottom: 0;
+    width: min(400px, 100%);
     border-top: 1px solid var(--line);
   }
+  .canvasHost,
+  .sceneHost {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .storyboardHost {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .workspace:has(> .sidebar[data-open='true']) > .storyboardHost {
+    margin-left: 0;
+  }
   .sidebar[data-open='true'] {
-    display: block;
+    display: flex;
   }
   .mobileInspector {
     display: inline-block;

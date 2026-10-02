@@ -6,11 +6,14 @@ import type { EditorDocument, Furniture } from './schema';
 import { furnitureSpatial } from './spatial-properties';
 import { catalogFurnitureVolumes, type FurnitureVolume } from './furniture-profiles';
 import { furnitureAsset } from './furniture-assets';
+import { outdoorVolumes } from './outdoor-volumes';
 
 /** Local solid volumes shared by rendering and placement, including free space below tables. */
 export function furnitureVolumes(item: Furniture, doc?: EditorDocument): FurnitureVolume[] {
   if (isBoundary(item)) return doc ? boundaryDisplayVolumes(item, doc.boundaries ?? []) : boundaryVolumes(item);
   if (isKitchenRun(item)) return doc ? kitchenRunDisplayVolumes(item, doc) : kitchenRunVolumes(item);
+  // El turismo conserva su volumen de colisión y su silueta de respaldo si el GLB falla al cargar.
+  if (item.kind === 'coche') return outdoorVolumes(item);
   // Real assets use a conservative collision envelope until calibrated proxies exist.
   if (furnitureAsset(item)) {
     const props = furnitureSpatial(item);

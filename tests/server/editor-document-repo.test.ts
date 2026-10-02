@@ -4,6 +4,8 @@ import { makeOrg, makeUser, resetDb } from '../helpers/db';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import type { OrgContext } from '@/server/auth/org-context';
+import { visualSampleDocument } from '@/app/dev/editor-v2/visual-sample';
+import { approvedAssets, approvedAssetsMatch } from '@/lib/editor-document/approved-design';
 
 let ctx: OrgContext;
 let projectId: string;
@@ -17,14 +19,14 @@ beforeEach(async () => {
     })
   ).id;
 });
-async function activate() {
+async function activate(document = emptyEditorDocument()) {
   const repo = withEditorDocuments(ctx);
   const state = await repo.load({ projectId });
   if (state.authority !== 'legacy') throw new Error('Expected legacy');
   await repo.activate(
     { projectId },
     {
-      document: emptyEditorDocument(),
+      document,
       confirmed: true,
       expectedLegacyFingerprint: state.legacyFingerprint,
     },
@@ -32,6 +34,37 @@ async function activate() {
   return repo;
 }
 describe('revisioned editor repository', () => {
+  it('fija la revisión aprobada y deja el borrador posterior independiente', async () => {
+    const sample = visualSampleDocument();
+    const repo = await activate(sample);
+    const first = await repo.approve({ projectId }, 0, 'warm');
+    expect(first.revision).toBe(0);
+    expect(first.lightingPreset).toBe('warm');
+    expect(first.assets.some((asset) => asset.itemId === 'sofa' && asset.sha256)).toBe(true);
+    expect(approvedAssetsMatch(first.document, first.assets)).toBe(true);
+    const next = structuredClone(sample);
+    next.furniture.find((item) => item.id === 'sofa')!.x += 300;
+    expect((await repo.save({ projectId }, { document: next, expectedRevision: 0, requestKey: 'move-sofa' })).status).toBe('saved');
+    expect((await repo.readApproval({ projectId }, first.id)).document.furniture.find((item) => item.id === 'sofa')!.x).toBe(500);
+    expect((await repo.latestApproval({ projectId }))?.id).toBe(first.id);
+    const second = await repo.approve({ projectId }, 1, 'daylight');
+    expect(second.id).not.toBe(first.id);
+    expect((await repo.latestApproval({ projectId }))?.id).toBe(second.id);
+    expect((await repo.listApprovals({ projectId })).map((item) => item.id)).toEqual([second.id, first.id]);
+    expect((await repo.readApproval({ projectId }, first.id)).lightingPreset).toBe('warm');
+    await expect(repo.approve({ projectId }, 1, 'evening')).rejects.toThrow(/otra iluminación/);
+    expect(approvedAssets(second.document)).toEqual(second.assets);
+  });
+  it('bloquea planos sin estancias, revisión obsoleta y acceso ajeno', async () => {
+    const repo = await activate();
+    await expect(repo.approve({ projectId }, 0, 'daylight')).rejects.toThrow(/estancia/);
+    const sample = visualSampleDocument();
+    await repo.save({ projectId }, { document: sample, expectedRevision: 0, requestKey: 'ready' });
+    await expect(repo.approve({ projectId }, 0, 'daylight')).rejects.toThrow(/cambió/);
+    const otherCtx = { ...ctx, organizationId: await makeOrg() };
+    await expect(withEditorDocuments(otherCtx).approve({ projectId }, 1, 'daylight')).rejects.toThrow(/encontrado/);
+    expect(await withEditorDocuments(otherCtx).listApprovals({ projectId }).catch((error: Error) => error.message)).toMatch(/encontrado/);
+  });
   it('keeps legacy raw snapshot, without auto activation or normalization', async () => {
     const raw = { version: 88, unknown: { field: 'preserve' }, walls: [{ id: 'special' }] };
     await prisma.canvasState.create({ data: { projectId, data: raw } });
@@ -78,6 +111,30 @@ describe('revisioned editor repository', () => {
       'clave',
     );
     expect(await prisma.editorDocumentRevision.count()).toBe(2);
+  });
+  it('lista versiones y recupera una anterior como revisión nueva sin alterar la actual ni la aprobada', async () => {
+    const first = visualSampleDocument();
+    const repo = await activate(first);
+    const approved = await repo.approve({ projectId }, 0, 'daylight');
+    const second = structuredClone(first);
+    second.furniture = [];
+    await repo.save({ projectId }, { document: second, expectedRevision: 0, requestKey: 'clear-furniture' });
+    const history = await repo.listRevisions({ projectId });
+    expect(history).toMatchObject({ headRevision: 1, total: 2 });
+    expect(history.revisions.map((item) => [item.revision, item.furniture])).toEqual([
+      [1, 0], [0, first.furniture.length],
+    ]);
+    const source = await repo.readRevision({ projectId }, 0);
+    const restored = await repo.save({ projectId }, {
+      document: { ...source, revision: 1 }, expectedRevision: 1, requestKey: 'restore:0:1',
+    });
+    expect(restored.status).toBe('saved');
+    expect(restored.document.revision).toBe(2);
+    expect(restored.document.furniture).toEqual(first.furniture);
+    expect((await repo.readRevision({ projectId }, 1)).furniture).toEqual([]);
+    expect((await repo.readApproval({ projectId }, approved.id)).revision).toBe(0);
+    await expect(withEditorDocuments({ ...ctx, organizationId: await makeOrg() })
+      .listRevisions({ projectId })).rejects.toThrow('encontrado');
   });
   it('rejects cross-org and foreign/deleted zones', async () => {
     await activate();

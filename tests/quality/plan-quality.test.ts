@@ -4,7 +4,7 @@
  * aproximado, con sus motivos para el usuario.
  */
 import { describe, expect, it } from 'vitest';
-import { applyPlanQuality } from '@/lib/plan-quality';
+import { applyPlanQuality, blockingPlanImportWarning } from '@/lib/plan-quality';
 import type { Plano2dPayload } from '@/lib/contracts';
 
 const PLANO: Plano2dPayload = {
@@ -26,6 +26,24 @@ const PLANO: Plano2dPayload = {
 };
 
 describe('applyPlanQuality', () => {
+  it('el desplazamiento medido bloquea aunque Jev pueda puntuar alto', () => {
+    const warning = { code: 'ajuste-desplaza-muros' as const, message: 'Los muros se desplazarían 1,42 m.' };
+    expect(blockingPlanImportWarning([
+      { code: 'muro-inferido-omitido', message: 'Tabique sin apoyo visual.' },
+      warning,
+    ])).toEqual(warning);
+  });
+
+  it('bloquea el 3D si las cotas generales contradicen el perímetro leído', () => {
+    const warning = { code: 'cotas-generales-discordantes' as const, message: '15 m escritos frente a 13,96 m dibujados.' };
+    expect(blockingPlanImportWarning([warning])).toEqual(warning);
+  });
+
+  it('bloquea el 3D si un muro estructural solo está respaldado por visión', () => {
+    const warning = { code: 'muro-solo-modelo' as const, message: 'Comprueba este tabique sobre el original.' };
+    expect(blockingPlanImportWarning([warning])).toEqual(warning);
+  });
+
   it('con fiabilidad alta el plano se entrega como fiel', () => {
     const plano = applyPlanQuality(PLANO, { score: 96, decision: 'proceed', reasons: [] });
     expect(plano.aproximado).toBeUndefined();

@@ -1,0 +1,100 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import type { EditorScope } from '@/server/editor/authority';
+import { loadDesignVideoReferences, prepareDesignConstruction } from '@/server/walkthrough/design-video-actions';
+import { defaultDesignVideoReferenceIds, designVideoEstimate, designVideoLayoutReference, designVideoReferenceRole, type DesignVideoJob, type DesignVideoReference } from '@/lib/editor-document/design-video';
+import { DEFAULT_VIDEO_PRESENTATION } from '@/lib/editor-document/video-presentation';
+import { VideoDurationControls } from './video-duration-controls';
+import { DesignVideoTask } from './design-video-task';
+import { Button } from '@/components/ui/button';
+import { ModernSelect } from '@/components/ui/modern-select';
+import Link from 'next/link';
+import { continueRenderBatchHref } from './auto-generate-request';
+
+export function DesignConstructionPanel({ scope, approved, onReviewApproval, onBusyChange, portalContainer }: {
+  scope: EditorScope; approved: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void; portalContainer?: HTMLElement | null;
+}) {
+  const [media, setMedia] = useState<Awaited<ReturnType<typeof loadDesignVideoReferences>> | null>(null);
+  const [ids, setIds] = useState<string[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [presentation, setPresentation] = useState({ ...DEFAULT_VIDEO_PRESENTATION });
+  const [resolution, setResolution] = useState<'768P' | '2K'>('768P');
+  const [task, setTask] = useState<{ id: string; job: DesignVideoJob } | null>(null);
+  useEffect(() => {
+    let active = true;
+    void loadDesignVideoReferences(scope).then(value => {
+      if (!active) return; setMedia(value);
+      setIds(defaultDesignVideoReferenceIds(value.references));
+    }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los diseños.'); });
+    return () => { active = false; };
+  }, [scope, approved]);
+  const selected = useMemo(() => ids.flatMap(id => {
+    const reference = media?.references.find(reference => reference.id === id);
+    return reference ? [reference] : [];
+  }), [media, ids]);
+  const groups = useMemo(() => {
+    const result = new Map<string, DesignVideoReference[]>();
+    for (const reference of media?.references ?? []) {
+      const key = reference.batchId ?? reference.id; result.set(key, [...(result.get(key) ?? []), reference]);
+    }
+    return [...result.values()];
+  }, [media]);
+  const estimate = designVideoEstimate({ presentation, resolution }, selected.length);
+  const included = [...new Set(selected.flatMap(reference => reference.zones))];
+  const hasFinishedExterior = selected.some(reference => reference.closedRoof);
+  const layoutReference = designVideoLayoutReference(selected);
+  async function prepare() {
+    if (!media?.approvalId) return;
+    setBusy(true); onBusyChange(true); setError('');
+    try { setTask(await prepareDesignConstruction(scope, media.approvalId, ids, { presentation, resolution })); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo preparar la prueba.'); }
+    finally { setBusy(false); onBusyChange(false); }
+  }
+  return <section className="mx-auto w-full max-w-6xl space-y-5 p-5 lg:p-6">
+    <header><h2 className="text-xl font-semibold">Construcción desde mis diseños</h2>
+      <p className="mt-2 max-w-3xl text-sm text-ink-soft">Las imágenes elegidas son las referencias de la casa, las zonas exteriores y los muebles. Se pide construir el conjunto de ese diseño. No se usa el inventario de muebles del plano.</p>
+      <p className="mt-2 text-xs text-ink-soft">Piloto MiniMax H3 en KIE: necesita revisión de fidelidad antes de aceptar el resultado. Preparar la prueba no consume IA; generar requiere confirmar imágenes y coste.</p></header>
+    <p className="text-sm text-ink-soft">La selección inicial usa una cenital para distribución y muebles, y un exterior para fachadas y tejado. Puedes añadir vistas de apoyo de esa tanda. La referencia principal manda sobre el mobiliario si otras vistas discrepan.</p>
+    {!approved && <div className="flex flex-wrap items-center gap-3 rounded-control border border-line p-3"><p className="text-sm">Revisa la aprobación del diseño y la luz antes de preparar el vídeo.</p><Button variant="outline" onClick={onReviewApproval}>Revisar y aprobar</Button></div>}
+    {!media && !error && <p role="status">Cargando las tandas del diseño aprobado…</p>}
+    {media && !media.references.length && <p role="status">No hay imágenes generadas compatibles con la revisión aprobada. Genera vistas del conjunto y del interiorismo antes de preparar la prueba.</p>}
+    {!task && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="space-y-5">{groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy} className="space-y-3 rounded-card border border-line p-4">
+        <legend className="px-1 text-sm font-semibold">Tanda {index + 1} · revisión {group[0]!.revision}</legend>
+        <p className="text-sm text-ink-soft">{[...new Set(group.flatMap(reference => reference.zones))].join(', ') || group[0]!.name}</p>
+        {group[0]!.batchId && <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-soft" href={continueRenderBatchHref(scope.projectId, scope.zoneId ?? null, group[0]!.batchId)}>Completar vistas de la tanda {index + 1}</Link>}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{group.map(reference => <label key={reference.id} className={`${reference.issue ? 'cursor-not-allowed' : 'cursor-pointer'} overflow-hidden rounded-control border ${ids.includes(reference.id) ? 'border-brand-500 ring-1 ring-brand-500' : 'border-line'}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={reference.url} alt={`${reference.name} · ${reference.view}`} className="aspect-video w-full object-cover" loading="lazy" />
+          <span className="flex items-start gap-2 p-2 text-xs"><input type="checkbox" aria-label={`Usar ${reference.view} de la tanda ${index + 1}`} disabled={Boolean(reference.issue)} checked={ids.includes(reference.id)}
+            onChange={event => setIds(event.target.checked ? [...ids, reference.id] : ids.filter(id => id !== reference.id))} />{reference.view}</span>
+          {ids.includes(reference.id) && <span className="block px-2 pb-2 text-xs text-ink-soft">{designVideoReferenceRole(reference, selected)}</span>}
+          {reference.issue && <span className="block px-2 pb-2 text-xs text-danger"><strong>No válida para construcción.</strong> {reference.issue}</span>}
+        </label>)}</div>
+      </fieldset>)}</div>
+      <aside className="space-y-4 rounded-card border border-line p-4"><fieldset disabled={busy} className="space-y-4">
+        <VideoDurationControls value={presentation} onChange={setPresentation} combined={false} portalContainer={portalContainer} />
+        <label className="block text-sm">Calidad<ModernSelect aria-label="Calidad de la prueba H3" value={resolution} portalContainer={portalContainer} popoverZIndex={150} onChange={event => setResolution(event.target.value as '768P' | '2K')} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2">
+          <option value="768P">768P · prueba económica</option><option value="2K">2K · mayor detalle</option></ModernSelect></label>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={presentation.soundEffects} onChange={event => setPresentation({ ...presentation, soundEffects: event.target.checked })} />Pedir efectos sincronizados</label>
+        <label className="block text-sm">Indicaciones para el vídeo<textarea aria-label="Indicaciones para construcción desde diseños" maxLength={2000} value={presentation.prompt ?? ''}
+          onChange={event => setPresentation({ ...presentation, prompt: event.target.value })} className="mt-1 min-h-24 w-full rounded-control border border-line bg-surface p-2 text-sm"
+          placeholder="Ej.: mostrar el patio y el baño exterior; conservar todas las camas del diseño." /></label>
+      </fieldset>
+      <p className="text-sm"><strong>Se incluye:</strong> {included.join(', ') || 'El ámbito visible de las imágenes elegidas.'}</p>
+      <p className="text-sm text-ink-soft">{ids.length} referencias · coste previsto ${estimate.usd.toFixed(2)}. Las primeras cinco referencias no añaden coste; cada imagen adicional suma $0.02.</p>
+      <p className="text-xs text-ink-soft">El ritmo y los efectos se piden mediante el guion; revisa que H3 los respete. Cotas exactas pendientes para clips IA.</p>
+      {media && !hasFinishedExterior && <p role="status" className="text-sm">Falta el exterior con tejado. En Diseñar con IA, genera Exterior terminado y una cenital del mismo ámbito y tanda, junto a las vistas que quieras incluir.</p>}
+      {media && !layoutReference && <p role="status" className="text-sm">Falta la distribución: elige una cenital, isométrica o dron del conjunto y de la misma tanda.</p>}
+      <Button className="w-full" disabled={busy || !approved || !media?.providerReady || !ids.length || ids.length > 9 || !hasFinishedExterior || !layoutReference} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Preparar prueba H3'}</Button>
+      {ids.length > 9 && <p role="status" className="text-sm">H3 admite hasta nueve imágenes. Elige referencias de la misma tanda que cubran todo el diseño.</p>}
+      {media && !media.providerReady && <p role="status" className="text-sm">KIE debe estar configurado y activo en los ajustes de IA.</p>}
+      </aside>
+    </div>}
+    {task && <><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{selected.map(reference => <figure key={reference.id} className="overflow-hidden rounded-control border border-line">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={reference.url} alt={`${reference.name} · ${reference.view}`} className="aspect-video w-full object-cover" />
+      <figcaption className="p-2 text-xs">Referencia {selected.indexOf(reference) + 1} · {reference.view} · {designVideoReferenceRole(reference, selected)}</figcaption>
+    </figure>)}</div><DesignVideoTask key={task.id} scope={scope} id={task.id} initial={task.job} onBusyChange={onBusyChange} onEdit={() => setTask(null)} /></>}
+    {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+  </section>;
+}

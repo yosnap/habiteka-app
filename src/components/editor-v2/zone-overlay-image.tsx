@@ -1,30 +1,16 @@
 'use client';
 
-/**
- * Vista de referencia con la zona permitida teñida encima. La máscara es la
- * misma que usa el servidor para componer, así que lo verde es exactamente lo
- * que se puede diseñar. Solo se muestra: al modelo le llega la captura limpia.
- */
+/** Muestra únicamente los píxeles de la zona que llegará a la generación. */
 export function ZoneOverlayImage({ src, maskSrc, alt, className }: {
   src: string; maskSrc?: string; alt: string; className?: string;
 }) {
   return (
-    <span className="relative block">
-      <img src={src} alt={alt} className={className} />
-      {maskSrc && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundColor: 'rgb(34 197 94 / 0.4)',
-            maskImage: `url(${maskSrc})`, WebkitMaskImage: `url(${maskSrc})`,
-            maskMode: 'luminance',
-            maskSize: 'contain', WebkitMaskSize: 'contain',
-            maskPosition: 'center', WebkitMaskPosition: 'center',
-            maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
-          }}
-        />
-      )}
+    <span className="block bg-[#d8d8d8]">
+      <img src={src} alt={alt} className={className} style={maskSrc ? {
+        maskImage: `url(${maskSrc})`, WebkitMaskImage: `url(${maskSrc})`,
+        maskMode: 'luminance', maskSize: '100% 100%', WebkitMaskSize: '100% 100%',
+        maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
+      } : undefined} />
     </span>
   );
 }

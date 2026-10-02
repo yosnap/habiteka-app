@@ -3,12 +3,76 @@
  * escalar a mm y anclar aberturas dentro de su muro.
  */
 import { describe, expect, it } from 'vitest';
-import { normalizeSketch } from '@/server/ai/sketch/normalize-geometry';
+import { anchorApertures, normalizeSketch, prepareSketch, seedsFromGaps } from '@/server/ai/sketch/normalize-geometry';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
 
 const emptySketch: RawSketch = { muros: [], aberturas: [], habitaciones: [] };
 
 describe('normalizeSketch', () => {
+  it('sitúa una puerta por el arco medido aunque visión cite un muro perpendicular', () => {
+    const raw: RawSketch = {
+      muros: [{ x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.2 }], habitaciones: [],
+      aberturas: [{ tipo: 'puerta', muro: 0, posicion: 0.5, arcVisible: true,
+        arcGeometry: {
+          hinge: { x: 0.5, y: 0.3 }, openingEnd: { x: 0.5, y: 0.38 },
+          arcPoint: { x: 0.58, y: 0.3 },
+        } }],
+    };
+    const seed = prepareSketch(raw).seeds[0]!;
+    expect(seed).toMatchObject({ sourceDirection: { x: 0, y: 1 }, swing: 'right', hinge: 'left' });
+    expect(seed.center.y).toBeCloseTo(0.34);
+    const walls = [{ x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.2 },
+      { x1: 0.5, y1: 0.2, x2: 0.5, y2: 0.6 }];
+    const doors = anchorApertures([seed], walls,
+      walls.map((w, i) => ({ id: `w${i}`, from: { x: w.x1 * 10000, y: w.y1 * 10000 },
+        to: { x: w.x2 * 10000, y: w.y2 * 10000 }, thicknessMm: 100 })),
+      { mmPerUnitX: 10000, mmPerUnitY: 10000 },
+      { snapDistance: 0.03 } as Parameters<typeof anchorApertures>[4]);
+    expect(doors).toMatchObject([{ wallId: 'w1', swing: 'right', hinge: 'left' }]);
+    expect(doors[0]!.position).toBeCloseTo(0.35);
+  });
+  it('elige el tramo que contiene el centro en una unión en T', () => {
+    const walls = [
+      { x1: 0.5, y1: 0.2, x2: 0.5, y2: 0.3 },
+      { x1: 0.5, y1: 0.3, x2: 0.5, y2: 0.5 },
+      { x1: 0.3, y1: 0.35, x2: 0.5, y2: 0.35 },
+    ];
+    const apertures = anchorApertures(
+      [{ tipo: 'puerta', center: { x: 0.5, y: 0.35 }, widthUnit: 0.05, sourceDirection: { x: 0, y: 1 } }],
+      walls,
+      walls.map((wall, i) => ({ id: `w${i}`, from: { x: wall.x1 * 10000, y: wall.y1 * 10000 },
+        to: { x: wall.x2 * 10000, y: wall.y2 * 10000 }, thicknessMm: 100 })),
+      { mmPerUnitX: 10000, mmPerUnitY: 10000 },
+      { snapDistance: 0.03 } as Parameters<typeof anchorApertures>[4],
+    );
+    expect(apertures).toHaveLength(1);
+    expect(apertures[0]!.wallId).toBe('w1');
+  });
+
+  it('no transforma en puerta un hueco medido en un muro perpendicular al arco', () => {
+    const seeds = seedsFromGaps(
+      [{ center: { x: 0.5, y: 0.2 }, width: 0.08, direction: { x: 1, y: 0 } }],
+      [{ tipo: 'puerta', center: { x: 0.52, y: 0.22 }, widthUnit: 0.08,
+        sourceDirection: { x: 0, y: 1 }, swing: 'right', hinge: 'left' }],
+      [{ x1: 0.1, y1: 0.1, x2: 0.9, y2: 0.1 }, { x1: 0.1, y1: 0.9, x2: 0.9, y2: 0.9 }],
+      'hueco',
+    );
+    expect(seeds[0]).toMatchObject({ tipo: 'hueco', sourceDirection: { x: 1, y: 0 } });
+    expect(seeds[0]!.swing).toBeUndefined();
+    expect(seeds[0]!.hinge).toBeUndefined();
+  });
+
+  it('invierte giro y bisagra cuando el muro final tiene orientación opuesta al leído', () => {
+    const apertures = anchorApertures(
+      [{ tipo: 'puerta', center: { x: 0.5, y: 0.5 }, widthUnit: 0.1,
+        sourceDirection: { x: 1, y: 0 }, swing: 'left', hinge: 'right' }],
+      [{ x1: 0.8, y1: 0.5, x2: 0.2, y2: 0.5 }],
+      [{ id: 'w', from: { x: 8000, y: 5000 }, to: { x: 2000, y: 5000 }, thicknessMm: 100 }],
+      { mmPerUnitX: 10000, mmPerUnitY: 10000 },
+      { snapDistance: 0.03 } as Parameters<typeof anchorApertures>[4],
+    );
+    expect(apertures[0]).toMatchObject({ swing: 'right', hinge: 'left' });
+  });
   it('endereza un trazo casi horizontal y respeta una diagonal intencionada', () => {
     const plano = normalizeSketch({
       ...emptySketch,
@@ -428,6 +492,29 @@ describe('normalizeSketch', () => {
 });
 
 describe('normalizeSketchDetailed: escala fiable isotrópica', () => {
+  it('ancla una cota general a la planta y no a líneas exteriores de anotación', async () => {
+    const { normalizeSketchDetailed } = await import('@/server/ai/sketch/normalize-geometry');
+    const walls = [
+      { x1: 0.08, y1: 0.1, x2: 0.86, y2: 0.1 },
+      { x1: 0.08, y1: 0.9, x2: 0.86, y2: 0.9 },
+      { x1: 0.08, y1: 0.1, x2: 0.08, y2: 0.9 },
+      { x1: 0.86, y1: 0.1, x2: 0.86, y2: 0.9 },
+      // La cota dibujada a la derecha no forma parte de la planta.
+      { x1: 0.98, y1: 0.04, x2: 0.98, y2: 0.93 },
+    ];
+    const raw: RawSketch = {
+      anchoMetros: 10, escalaFiable: true, muros: [], aberturas: [],
+      habitaciones: [{
+        nombre: 'Sala', poligono: [
+          { x: 0.08, y: 0.1 }, { x: 0.86, y: 0.1 },
+          { x: 0.86, y: 0.9 }, { x: 0.08, y: 0.9 },
+        ],
+      }],
+    };
+    const { scale } = normalizeSketchDetailed(raw, { wallsOverride: walls, imageHeightOverWidth: 1.3 });
+    expect(scale.mmPerUnitX * (0.86 - 0.08)).toBeCloseTo(10000, 0);
+  });
+
   it('deriva el alto del ancho con la proporción de la imagen y descarta la cota general que no cuadra', async () => {
     const { normalizeSketchDetailed } = await import('@/server/ai/sketch/normalize-geometry');
     // Caja de muros 0.1–0.9 × 0.1–0.5 en una imagen de proporción 0.5. Ancho

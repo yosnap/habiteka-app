@@ -6,6 +6,7 @@ export const DESIGN_SPACE_KINDS = [
   { value: 'jardin', label: 'Jardín' },
   { value: 'entrada', label: 'Entrada exterior' },
   { value: 'fachada', label: 'Fachada' },
+  { value: 'casa', label: 'Casa completa' },
 ] as const;
 
 export type DesignSpaceKind = (typeof DESIGN_SPACE_KINDS)[number]['value'];

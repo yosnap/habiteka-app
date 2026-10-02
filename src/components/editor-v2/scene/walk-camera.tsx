@@ -45,7 +45,7 @@ export function WalkCamera({ store, elevationMm }: { store: EditorStore; elevati
       if (doc.walkthroughs?.find((r) => r.id === id)?.loop) elapsed.current %= compiled.durationMs;
       else { store.getState().setWalkthroughPlaying(false); return; }
     }
-    applyWalkPose(camera, compiled.samplePose(elapsed.current), elevationMm); invalidate();
+    applyWalkPose(camera, compiled.samplePose(elapsed.current), compiled.absoluteElevation ? 0 : elevationMm); invalidate();
   });
   return null;
 }

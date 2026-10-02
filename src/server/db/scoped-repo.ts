@@ -8,7 +8,7 @@
  * que quien programa recuerde filtrar.
  */
 import type { Prisma } from '@/generated/prisma/client';
-import type { SourceImageRole } from '@/generated/prisma/enums';
+import type { DeliverableType, SourceImageRole } from '@/generated/prisma/enums';
 import { prisma } from './prisma';
 import type { OrgContext } from '@/server/auth/org-context';
 import { EditorScopeNotFoundError, withLegacyAuthority } from '@/server/editor/authority';
@@ -75,10 +75,11 @@ export interface ScopedRepo {
     ): Promise<
       Array<{
         id: string;
-        type: string;
+        type: DeliverableType;
         payload: unknown;
         legalSeal: string;
         version: number;
+        createdAt: Date;
         sourceImageId: string | null;
         zoneId: string | null;
       }>
@@ -213,6 +214,7 @@ export function withOrg(ctx: OrgContext): ScopedRepo {
             payload: true,
             legalSeal: true,
             version: true,
+            createdAt: true,
             sourceImageId: true,
             zoneId: true,
           },

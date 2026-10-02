@@ -1,6 +1,8 @@
+import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import type { Boundary } from './boundary-types';
 import type { KitchenRun } from './kitchen-run-types';
 import type { WalkthroughPath } from './walkthrough';
+import type { Estilo } from '@/lib/contracts';
 export type DimensionalOrigin = 'raster' | 'physical';
 export interface Point {
   x: number;
@@ -59,6 +61,8 @@ export interface Stair extends Point {
   rotation: number;
   stepCount: number;
   materialId: string;
+  /** Acabado de contrahuellas, laterales y cara inferior; independiente de las huellas. */
+  bodyMaterialId?: string;
   color?: string;
   /** Los laterales son opcionales: una escalera puede mostrarse sin pasamanos. */
   railingLeft?: boolean;
@@ -97,6 +101,8 @@ export interface Ramp extends Point {
   elevationMm: number;
   rotation: number;
   materialId: string;
+  /** PBR finish of the vertical sides and underside of a ramp or landing. */
+  bodyMaterialId?: string;
   color?: string;
   /** Pasamanos por lado de circulación; se aplican a cada tramo inclinado. */
   railingLeft?: boolean;
@@ -120,6 +126,8 @@ export interface Furniture extends Point {
   hostId?: string;
   /** Fracción de la ventana que cubre una cortina, estor o persiana (0 abierta, 1 tapada del todo). */
   coverage?: number;
+  /** Laterales de la carpa recogidos bajo la cubierta; sin valor equivale a ambos desplegados. */
+  rolledSides?: 'none' | 'left' | 'right' | 'both';
 }
 export interface ElementComment {
   id: string;
@@ -151,6 +159,19 @@ export interface FloorFinish {
   undersideColor?: string;
   undersideTexture?: 'none' | 'wood' | 'tile' | `polyhaven:${string}` | `outdoor:${string}`;
 }
+/** Suelo exterior visible, independiente de las superficies transitables del recorrido. */
+export interface TerrainSurface {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  widthMm: number;
+  depthMm: number;
+  texture: FloorFinish['texture'];
+  color: string;
+  tileSizeMm: number;
+  rotation: number;
+}
 /** Superficie anclada al recinto; altura derivada de los muros y descenso explícito. */
 export interface Ceiling {
   id: string;
@@ -158,17 +179,79 @@ export interface Ceiling {
   kind: 'plain' | 'suspended';
   dropMm: number;
   color: string;
+  /** Material visible desde fuera en la cara superior; el color sigue siendo el acabado interior. */
+  topMaterialId?: string;
+  /** Acabado exterior del canto de la losa, independiente de la cara superior. */
+  edgeMaterialId?: string;
+  /** Espesor de la losa exterior, independiente del descenso del falso techo. */
+  roofThicknessMm?: number;
 }
 /** Posición XY del centro; caída medida desde la cara inferior del techo. */
 export interface Luminaire extends Point {
   id: string;
   ceilingId: string;
-  kind: 'pendant' | 'flush' | 'recessed';
+  kind: 'pendant' | 'flush' | 'recessed' | 'spot';
   dropMm: number;
   color: string;
   temperatureK: number;
   lumens: number;
   enabled: boolean;
+  /** Solo en focos orientables: empotrado en el techo o en superficie. */
+  mount?: 'recessed' | 'surface';
+  /** Solo en focos orientables: inclinación 0–60°, 0 = vertical hacia abajo. */
+  tiltDeg?: number;
+  /** Solo en focos orientables: giro 0–360°, 0 = eje +X del plano, horario en planta. */
+  azimuthDeg?: number;
+}
+/**
+ * Tira LED. `pathMm` se guarda SIEMPRE, también en las derivadas: ahí es la
+ * instantánea del último recorrido calculado a partir del muro o del mueble.
+ * Con `derived: false` el recorrido manda y no se recalcula nada.
+ */
+export interface LightStrip {
+  id: string;
+  kind: 'cove' | 'under-cabinet' | 'free';
+  /** Foseado: techo al que sigue el perímetro. */
+  ceilingId?: string;
+  /** Bajo módulos altos: tramo de cocina al que sigue. */
+  kitchenRunId?: string;
+  pathMm: Point[];
+  derived: boolean;
+  /** Cota desde el suelo acabado de la estancia. */
+  elevationMm: number;
+  color: string;
+  temperatureK: number;
+  lumensPerMeter: number;
+  enabled: boolean;
+}
+/** Escena de iluminación de una estancia: temperatura, intensidad y qué se apaga. */
+export interface LightingScene {
+  id: string;
+  roomId: string;
+  name: string;
+  temperatureK: number;
+  intensityPct: number;
+  offLightIds: string[];
+  offStripIds: string[];
+  active: boolean;
+}
+/**
+ * Zona de luces guardada en el proyecto: acota selección, edición y propuesta.
+ * Se compone de una o varias partes (polígonos), que no tienen por qué tocarse:
+ * así una zona puede cubrir varias estancias sueltas del plano.
+ */
+export interface LightZone {
+  id: string;
+  name: string;
+  polygonsMm: Point[][];
+}
+/** Ámbito de diseño editable dentro de una estancia o exterior, sin crear muros. */
+export interface DesignZone {
+  id: string;
+  name: string;
+  polygon: Point[];
+  /** Acabado visual de esta parte del suelo; la cota estructural sigue en FloorFinish. */
+  floorFinish?: Pick<FloorFinish, 'texture' | 'color' | 'tileSizeMm' | 'rotation'>;
 }
 /** Active level uses root collections; inactive levels retain an isolated document. */
 export interface BuildingLevel {
@@ -178,10 +261,15 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
-  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  renderBackdrop?: import('./render-backdrop').RenderBackdrop;
+  exteriorRoof?: import('./exterior-roof').ExteriorRoof;
+  geographicSite?: import('./geographic-site').GeographicSite;
+  schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   revision: number;
   units: 'mm';
   calibration: { mmPerPixel: number } | null;
+  /** Riesgo de la extracción que exige corregir geometría antes de generar. */
+  importReview?: { geometryFingerprint: string; reasons: string[] };
   vertices: Vertex[];
   walls: Wall[];
   openings: Opening[];
@@ -195,13 +283,20 @@ export interface EditorDocument {
   columns?: Column[];
   comments?: ElementComment[];
   floorFinishes?: FloorFinish[];
+  terrainSurfaces?: TerrainSurface[];
   walkthroughs?: WalkthroughPath[];
   ceilings?: Ceiling[];
   luminaires?: Luminaire[];
+  lightStrips?: LightStrip[];
+  lightingScenes?: LightingScene[];
+  lightZones?: LightZone[];
+  designZones?: DesignZone[];
   levels?: BuildingLevel[];
   activeLevelId?: string;
   /** Uso arquitectónico guardado para que los flujos IA interpreten el plano. */
-  designSpaceKind?: 'interior' | 'patio' | 'terraza' | 'jardin' | 'entrada' | 'fachada';
+  designSpaceKind?: DesignSpaceKind;
+  /** Estilo común de las propuestas editables aplicadas a esta planta. */
+  designStyle?: Estilo;
 }
 export function emptyEditorDocument(): EditorDocument {
   return {

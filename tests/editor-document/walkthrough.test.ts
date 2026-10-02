@@ -11,6 +11,7 @@ import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { addBuildingLevel, switchBuildingLevel } from '@/lib/editor-document/building-levels';
 import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
+import { walkthroughBlockReport } from '@/lib/editor-document/walkthrough-block-report';
 
 function threeRooms() {
   const doc = emptyEditorDocument();
@@ -45,12 +46,27 @@ describe('recorridos persistidos y navegación', () => {
   it('no suaviza una ruta atravesando una esquina ni permite muros/objetos', () => {
     const doc=threeRooms(), route={id:'route',name:'Manual',zoneIds:[],loop:false,
       waypoints:[waypoint({x:1000,y:1000}),waypoint({x:8000,y:1000})]};
-    expect(buildWalkthrough(doc,route).invalidSegments).toEqual([0]);
+    const blocked = buildWalkthrough(doc,route);
+    expect(blocked.invalidSegments).toEqual([0]);
+    expect(blocked.blockedSegments).toMatchObject([{ index: 0, block: { kind: 'wall', entityId: 'w7' } }]);
+    expect(walkthroughBlockReport(doc, blocked.blockedSegments[0]!.block).cause).toContain('Muro 8');
     const nav=walkthroughNavigation(doc);
     expect(nav.free({x:3000,y:1000})).toBe(false);
     expect(nav.free({x:3000,y:2000})).toBe(true);
     doc.furniture.push({id:'box',kind:'armario',x:1200,y:1200,widthMm:600,depthMm:600,rotation:0,dimensionalOrigin:'physical'});
     expect(walkthroughNavigation(doc).free({x:1500,y:1500})).toBe(false);
+    expect(walkthroughNavigation(doc).blockAt({x:1500,y:1500})).toMatchObject({kind:'furniture',entityId:'box'});
+  });
+  it('explica puertas cerradas y puntos fuera del plano transitable', () => {
+    const doc = upgradeConstructionDocument(threeRooms());
+    doc.openings[0]!.openAngleDeg = 0;
+    const nav = walkthroughNavigation(doc);
+    const door = nav.segmentBlock({x:2500,y:2000},{x:3500,y:2000});
+    expect(door).toMatchObject({kind:'closed-door',entityId:'door7'});
+    expect(walkthroughBlockReport(doc, door!).cause).toContain('menos de 75°');
+    const outside = nav.blockAt({x:-1000,y:2000});
+    expect(outside?.kind).toBe('outside');
+    expect(walkthroughBlockReport(doc, outside!).cause).toContain('sin suelo transitable');
   });
   it('respeta pausas, velocidad y coordenadas de cámara', () => {
     const doc=addWallPath(emptyEditorDocument(),[{x:0,y:0},{x:5000,y:0},{x:5000,y:5000},{x:0,y:5000}],true);
@@ -103,5 +119,25 @@ describe('recorridos persistidos y navegación', () => {
     route.waypoints[0]!.x=NaN;expect(()=>putWalkthrough(doc,route)).toThrow();
     route.waypoints[0]!.x=1500;route.waypoints[1]!.id=route.waypoints[0]!.id;
     expect(()=>putWalkthrough(doc,route)).toThrow();
+  });
+});
+
+describe('recorrido completo', () => {
+  const dosSalasAisladas = () => {
+    const first = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }], true);
+    return addWallPath(first, [{ x: 8000, y: 0 }, { x: 10000, y: 0 }, { x: 10000, y: 2500 }, { x: 8000, y: 2500 }], true);
+  };
+
+  it('sin puertas entre estancias, el recorrido normal falla y el completo recorre las alcanzables sin romper', () => {
+    const doc = dosSalasAisladas(), ids = deriveRooms(doc).map((room) => room.id);
+    expect(ids).toHaveLength(2);
+    expect(() => autoTour(doc, ids)).toThrow(/no están conectadas/);
+    const route = autoTour(doc, ids, { bestEffort: true, name: 'Recorrido completo' });
+    expect(route.name).toBe('Recorrido completo');
+    expect(buildWalkthrough(doc, route).invalidSegments).toEqual([]);
+    expect(route.waypoints.length).toBeGreaterThan(1);
+    // Solo consta como visitada la estancia a la que la ruta llega; la aislada se omite.
+    const largest = deriveRooms(doc).sort((a, b) => b.areaMm2 - a.areaMm2)[0]!;
+    expect(route.zoneIds).toEqual([largest.id]);
   });
 });

@@ -21,7 +21,13 @@ function rotatedBox(x: number, y: number, width: number, depth: number, rotation
   return corners.map(([dx, dy]) => ({ x: x + dx * cos - dy * sin, y: y + dx * sin + dy * cos }));
 }
 
-function bounds(doc: EditorDocument) {
+function bounds(doc: EditorDocument, zone?: readonly Point[]) {
+  if (zone?.length) {
+    const xs = zone.map((point) => point.x), ys = zone.map((point) => point.y);
+    const x = Math.min(...xs) - PADDING_MM, y = Math.min(...ys) - PADDING_MM;
+    return { x, y, width: Math.max(...xs) - x + PADDING_MM,
+      height: Math.max(...ys) - y + PADDING_MM };
+  }
   const points: Point[] = [...doc.vertices];
   doc.furniture.forEach((item) =>
     points.push(...rotatedBox(item.x, item.y, item.widthMm, item.depthMm, item.rotation)),
@@ -54,6 +60,7 @@ function svg(
   doc: EditorDocument,
   view: ReturnType<typeof bounds>,
   size: { width: number; height: number },
+  zone?: readonly Point[],
 ) {
   const walls = doc.walls
     .filter((wall) => !wall.hidden)
@@ -110,16 +117,17 @@ function svg(
     .join('');
   // width/height en píxeles de salida: sin ellos librsvg rasteriza a un píxel por
   // milímetro del viewBox y un plano grande supera el límite de píxeles de sharp.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" preserveAspectRatio="none" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}"><rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="#fbfaf7"/><g>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
+  const clip = zone?.length ? `<defs><clipPath id="zone"><polygon points="${polygon([...zone])}"/></clipPath></defs>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" preserveAspectRatio="none" viewBox="${n(view.x)} ${n(view.y)} ${n(view.width)} ${n(view.height)}">${clip}<rect x="${n(view.x)}" y="${n(view.y)}" width="${n(view.width)}" height="${n(view.height)}" fill="${zone ? '#fff' : '#fbfaf7'}"/><g${zone ? ' clip-path="url(#zone)"' : ''}>${walls}${furniture}${columns}${slopes}${stairs}</g></svg>`;
 }
 
-export async function rasterizeEditorDocument(doc: EditorDocument): Promise<RasterResult> {
-  const view = bounds(doc);
+export async function rasterizeEditorDocument(doc: EditorDocument, zone?: readonly Point[]): Promise<RasterResult> {
+  const view = bounds(doc, zone);
   const outWidth =
     view.width >= view.height ? MAX_SIDE : Math.round((MAX_SIDE * view.width) / view.height);
   const outHeight =
     view.height > view.width ? MAX_SIDE : Math.round((MAX_SIDE * view.height) / view.width);
-  const png = await sharp(Buffer.from(svg(doc, view, { width: outWidth, height: outHeight })))
+  const png = await sharp(Buffer.from(svg(doc, view, { width: outWidth, height: outHeight }, zone)))
     .resize(outWidth, outHeight, { fit: 'fill' })
     .png()
     .toBuffer();

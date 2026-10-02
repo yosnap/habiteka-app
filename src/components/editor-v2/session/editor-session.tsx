@@ -1,14 +1,14 @@
 'use client';
 
 import { listStoryboardImages } from '@/server/walkthrough/storyboard-gallery';
-import { saveWalkthroughVideo } from './save-walkthrough-video';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useStore } from 'zustand';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { EditorSaveQueue, hasPendingRemoteChanges } from '@/canvas/editor-v2/save-queue';
 import { indexedDbDraftStorage } from '@/canvas/editor-v2/draft-storage';
 import type { DraftScope, EditorDraft } from '@/canvas/editor-v2/draft-contract';
 import type { EditorDocument } from '@/lib/editor-document/schema';
-import { loadCurrentEditorDocument, saveEditorDocument } from '@/server/editor/save-document';
+import { approveEditorDesign, loadCurrentEditorDocument, loadLatestApprovedEditorDesign, saveEditorDocument } from '@/server/editor/save-document';
 import { EditorConflictBanner } from './editor-conflict-banner';
 import { checkEditorSession } from '@/server/editor/check-session';
 import { registerEditorSession } from '@/canvas/editor-v2/session-registry';
@@ -22,19 +22,31 @@ import { evaluateEditorQuality } from '@/app/(app)/projects/[id]/_actions/editor
 import { callAction } from '@/lib/action-result';
 import { EditorShell } from '../editor-shell';
 import type { AutoGenerateRequest } from '../auto-generate-request';
+import { useAutoGenerateRequest } from '../use-auto-generate-request';
+import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import { sameDesignContent, type ApprovedDesign, type ApprovedLightingPreset } from '@/lib/editor-document/approved-design';
+import { ApprovedDesignView } from './approved-design-view';
+import { ApprovalReviewDialog } from './approval-review-dialog';
+import { VideoStudioDialog } from '../video-studio-dialog';
 
 export function EditorSession({
   scope,
   initial,
+  approvedDesign,
   recovered,
   projectName,
   autoGenerate,
+  reference,
+  openVideoStudio = false,
 }: {
   scope: DraftScope;
   initial: EditorDocument;
+  approvedDesign: ApprovedDesign | null;
   recovered?: EditorDraft;
   projectName: string;
   autoGenerate?: AutoGenerateRequest | null;
+  reference?: PlanReference | null;
+  openVideoStudio?: boolean;
 }) {
   const [queue] = useState(
     () =>
@@ -50,8 +62,36 @@ export function EditorSession({
       ),
   );
   const [store] = useState(() => createEditorStore(queue.getDocument()));
+  useEffect(() => {
+    const key = `habiteka:walkthrough-ui:${scope.userId}:${scope.projectId}:${scope.zoneId ?? 'default'}`;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(key) ?? 'null') as { id?: string; panelOpen?: boolean } | null;
+      if (saved?.id && store.getState().document.walkthroughs?.some((route) => route.id === saved.id))
+        store.getState().setWalkthrough(saved.id);
+      if (saved?.panelOpen) store.getState().openSidePanel('walkthrough');
+    } catch { /* La edición continúa aunque el navegador no permita recordar el panel. */ }
+    return store.subscribe((state, previous) => {
+      if (state.walkthroughId === previous.walkthroughId && state.sidePanel === previous.sidePanel) return;
+      try { sessionStorage.setItem(key, JSON.stringify({ id: state.walkthroughId,
+        panelOpen: state.sidePanel === 'walkthrough' })); } catch { /* Estado de sesión opcional. */ }
+    });
+  }, [scope.userId, scope.projectId, scope.zoneId, store]);
+  const [approval, setApproval] = useState(approvedDesign);
+  const [approvedRouteId, setApprovedRouteId] = useState<string | null>(null);
+  const [lightingPreset, setLightingPreset] = useState<ApprovedLightingPreset>(approvedDesign?.lightingPreset ?? 'daylight');
+  const [studioOpen, setStudioOpen] = useState(openVideoStudio);
+  const [reviewApproval, setReviewApproval] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [viewApproved, setViewApproved] = useState(() => Boolean(
+    approvedDesign && approvedDesign.revision === initial.revision && !autoGenerate &&
+    sameDesignContent(queue.getDocument(), approvedDesign.document) &&
+    !hasPendingRemoteChanges(queue.getSnapshot()) && !queue.getSnapshot().conflict,
+  ));
+  useAutoGenerateRequest(autoGenerate, () => setViewApproved(false));
   const restoring = useRef(false);
   const status = useSyncExternalStore(queue.subscribe, queue.getSnapshot, queue.getSnapshot);
+  const currentDocument = useStore(store, (state) => state.document);
   useEffect(() => {
     const unregister = registerEditorSession(scope.userId, queue);
     const watchClosed = queue.subscribe(() => {
@@ -91,6 +131,8 @@ export function EditorSession({
   }, [queue, store, scope.userId]);
   const loadStoryboardImages = useCallback(() => listStoryboardImages({ projectId: scope.projectId, zoneId: scope.zoneId }), [scope.projectId, scope.zoneId]);
   const pendingChanges = hasPendingRemoteChanges(status);
+  const needsApproval = useMemo(() => !approval ||
+    !sameDesignContent(currentDocument, approval.document), [currentDocument, approval]);
   const saveStatus = status.closed
     ? 'Sesión cerrada'
     : status.conflict
@@ -147,8 +189,10 @@ export function EditorSession({
     capture?: import('@/lib/editor-document/render-view').RenderCapture;
     options?: import('@/lib/editor-document/render-design-options').RenderDesignOptions;
     batchId?: string;
-    referenceDesignId?: string;
     qualityAck: boolean;
+    styleAnchor?: boolean;
+    orthophotoDataUrl?: string;
+    existingImageDataUrl?: string;
   }) => {
     const geometry = JSON.stringify({ ...store.getState().document, revision: 0 });
     await Promise.resolve();
@@ -170,11 +214,51 @@ export function EditorSession({
         {
           options: input.options,
           batchId: input.batchId,
-          referenceDesignId: input.referenceDesignId,
           qualityAck: input.qualityAck,
+          ...(input.styleAnchor ? { styleAnchor: true } : {}),
+          orthophotoDataUrl: input.orthophotoDataUrl,
+          existingImageDataUrl: input.existingImageDataUrl,
         },
       ),
     );
+  };
+  const approve = async () => {
+    if (approving) return;
+    setApproving(true); setApprovalError(null);
+    const proposed = structuredClone(store.getState().document);
+    try {
+      await Promise.resolve();
+      await queue.flush();
+      const state = queue.getSnapshot();
+      if (state.closed || state.conflict || hasPendingRemoteChanges(state))
+        throw new Error('Sincroniza el borrador y resuelve cualquier conflicto antes de aprobar.');
+      const saved = await loadCurrentEditorDocument(scope);
+      if (!sameDesignContent(saved, proposed) || !sameDesignContent(store.getState().document, proposed))
+        throw new Error('El diseño cambió mientras se preparaba la aprobación. Revisa y vuelve a confirmar.');
+      const next = await approveEditorDesign(scope, saved.revision, lightingPreset);
+      setApproval(next); setApprovedRouteId(store.getState().walkthroughId);
+      setReviewApproval(false); if (!studioOpen) setViewApproved(true);
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'No se pudo aprobar el diseño.');
+    } finally { setApproving(false); }
+  };
+  const openApproved = async (routeId: string | null) => {
+    setApprovalError(null);
+    try {
+      // Otra pestaña puede haber aprobado una revisión mientras este editor seguía abierto.
+      const latest = await loadLatestApprovedEditorDesign(scope);
+      if (!latest) throw new Error('Aprueba el diseño antes de exportar su recorrido.');
+      if (routeId) {
+        const approvedRoute = latest.document.walkthroughs?.find((route) => route.id === routeId);
+        if (!approvedRoute) throw new Error('Este recorrido aún no está aprobado. Guarda y aprueba los cambios para exportarlo.');
+        const draftRoute = store.getState().document.walkthroughs?.find((route) => route.id === routeId);
+        if (draftRoute && JSON.stringify(draftRoute) !== JSON.stringify(approvedRoute))
+          throw new Error('Este recorrido cambió desde la aprobación. Guarda y aprueba los cambios antes de exportarlo.');
+      }
+      setApproval(latest); setApprovedRouteId(routeId); setViewApproved(true);
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'No se pudo abrir la visita aprobada.');
+    }
   };
   return (
     <>
@@ -206,20 +290,36 @@ export function EditorSession({
             }
           }} />
       )}
-      <EditorShell
+      {studioOpen && <VideoStudioDialog store={store} scope={scope} projectName={projectName} approval={approval}
+        approvalCurrent={!needsApproval && !pendingChanges && !status.conflict && !status.closed}
+        approvalDisabled={status.closed || Boolean(status.conflict) || approving} approvalError={approvalError}
+        lighting={lightingPreset} onLightingChange={setLightingPreset} onSave={() => void queue.flush()}
+        onReviewApproval={() => { setApprovalError(null); setReviewApproval(true); }} onClose={() => setStudioOpen(false)} />}
+      <ApprovalReviewDialog open={reviewApproval && (!viewApproved || studioOpen)} pending={approving} error={approvalError} lighting={lightingPreset}
+        onLightingChange={setLightingPreset} onClose={() => setReviewApproval(false)} onConfirm={() => void approve()} />
+      {approvalError && !reviewApproval && <p role="alert" className="bg-amber-100 px-4 py-2 text-sm text-amber-950">{approvalError}</p>}
+      {viewApproved && approval ? <ApprovedDesignView key={`${approval.id}:${approvedRouteId ?? ''}`} approval={approval} scope={scope}
+        initialRouteId={approvedRouteId} onOpenVideoStudio={() => setStudioOpen(true)} onBack={() => setViewApproved(false)} /> : <EditorShell
+        preferencesOwner={scope.userId}
         store={store}
+        reference={reference}
         projectName={projectName}
+        onOpenVideoStudio={() => setStudioOpen(true)}
         loadStoryboardImages={loadStoryboardImages}
         saveStatus={saveStatus}
         onSave={() => void queue.flush()}
         saveEnabled={pendingChanges && !status.saving && !status.closed && !status.conflict}
+        onApproveDesign={needsApproval ? () => { setApprovalError(null); setReviewApproval(true); } : undefined}
+        approveDisabled={status.closed || Boolean(status.conflict) || approving}
+        approveLabel={approval ? 'Aprobar cambios' : 'Aprobar diseño'}
+        onOpenApproved={approval ? () => void openApproved(null) : undefined}
+        videoResultsHref={`/projects/${encodeURIComponent(scope.projectId)}/deliverables?vista=videos${scope.zoneId ? `&zona=${encodeURIComponent(scope.zoneId)}` : ''}`}
+        onOpenApprovedRoute={(routeId) => openApproved(routeId)}
         projectId={scope.projectId}
-        onSaveNativeVideo={async (blob, routeId) => {
-          await queue.flush();
-          const current = queue.getSnapshot();
-          if (current.conflict || current.closed || hasPendingRemoteChanges(current)) throw new Error('El MP4 se descargó. Sincroniza el plano antes de guardarlo en Diseños.');
-          await saveWalkthroughVideo(scope, blob, routeId);
-        }}
+        zoneId={scope.zoneId}
+        allowVideoExport={false}
+        lightingPreset={lightingPreset}
+        onLightingChange={setLightingPreset}
         onSaveNativeRender={async (capture) => {
           await callAction(
             saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view),
@@ -247,7 +347,7 @@ export function EditorSession({
               ? 'La sesión de edición está cerrada'
               : undefined
         }
-      />
+      />}
     </>
   );
 }

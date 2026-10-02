@@ -2,7 +2,8 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { OrgContext } from '@/server/auth/org-context';
 import { prisma } from '@/server/db/prisma';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
-import type { StudioState } from '@/lib/studio-state';
+import type { StudioResultView, StudioState } from '@/lib/studio-state';
+import { studioResults } from '@/lib/studio-results';
 
 export async function loadStudio(ctx: OrgContext, projectId: string): Promise<StudioState> {
   const project = await prisma.project.findFirst({
@@ -32,4 +33,12 @@ export async function saveStudio(ctx: OrgContext, projectId: string, state: Stud
     data: { studioState: state as Prisma.InputJsonValue },
   });
   if (!result.count) throw new Error('Proyecto no encontrado en tu organización');
+}
+
+/** Hidrata la galería con URLs nuevas sin persistirlas en el historial. */
+export async function resolveStudioResultViews(state: StudioState): Promise<StudioResultView[]> {
+  return Promise.all(studioResults(state).map(async (result) => ({
+    ...result,
+    url: await resolveRenderUrl({ assetKey: result.assetKey }),
+  })));
 }

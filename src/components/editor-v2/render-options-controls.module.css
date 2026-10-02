@@ -1,14 +1,15 @@
 .optionButton {
   display: flex;
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   flex-direction: column;
   justify-content: center;
-  gap: 0.2rem;
+  gap: 0.1rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
-  padding: 0.45rem 0.6rem;
+  padding: 0.3rem 0.6rem;
   text-align: left;
   font-size: 0.8rem;
+  line-height: 1.2;
   transition:
     background 0.15s,
     border-color 0.15s;
@@ -49,6 +50,7 @@
 .optionButton small {
   color: var(--muted-foreground);
   font-size: 0.68rem;
+  line-height: 1.25;
 }
 .map {
   aspect-ratio: 1.45;

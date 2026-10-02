@@ -6,22 +6,26 @@
  * un plano en planta: hay que darle una captura del 3D real tomada como la
  * tomaría un fotógrafo de interiores (ojo a 1,6 m sobre el suelo ACABADO de la
  * estancia, separado de los muros y de las puertas, en el punto que más metros
- * deja por delante, mirando al centro). Así el modelo solo pone materiales, luz
- * y muebles sobre una geometría que ya es correcta.
+ * deja por delante, mirando al centro o a las camas si un armario alto domina
+ * la vista). Así el modelo solo pone materiales, luz y muebles sobre una
+ * geometría que ya es correcta.
  *
  * Todo lo de aquí es puro: mismas entradas, misma pose, sin tocar la escena.
  */
 import { cameraPoseSchema, type CameraPose } from '@/lib/contracts/walkthrough-keyframe';
+import { planObjects } from './boundary-types';
 import { boundaryClearance, insideRoom } from './ceiling-geometry';
 import { floorFinish } from './floor-finishes';
+import { getFurnitureCatalogEntry } from './furniture-catalog';
 import { distance, interpolate, wallPoints } from './geometry';
 import { deriveRoomsSafe, type DerivedRoom } from './rooms';
 import type { EditorDocument, Point } from './schema';
+import { footprint, furnitureSpatial, objectCenter } from './spatial-properties';
 
 /** Altura del ojo sobre el suelo acabado, en milímetros (fotografía de interiores). */
 export const EYE_HEIGHT_MM = 1600;
-/** El punto de mira baja un poco respecto al ojo: encuadre natural, no de techo. */
-const FOCUS_DROP_MM = 200;
+/** El punto de mira baja hacia el mobiliario sin perder los muros ni el techo. */
+const FOCUS_DROP_MM = 500;
 /** Campo de visión de una estancia amplia: un 24 mm en formato completo. */
 export const INTERIOR_FOV_DEG = 65;
 /** Campo de visión máximo, para estancias pequeñas donde 65° no cabe. */
@@ -32,10 +36,20 @@ const WIDE_ROOM_M2 = 20;
 const TIGHT_ROOM_M2 = 6;
 /** Separación mínima respecto a los muros para que no dominen el encuadre. */
 const MIN_CLEARANCE_MM = 450;
+/** En salones amplios un ojo a 45 cm del muro convierte ese muro en primer plano. */
+const WIDE_ROOM_CLEARANCE_MM = 1200;
+const SPACIOUS_ROOM_M2 = 30;
+/** En baños pequeños el mejor punto puede estar cerca de la puerta. */
+const COMPACT_ROOM_M2 = 6;
 /** Distancia mínima a una puerta: ni dentro del vano ni pegado a su marco. */
 const MIN_DOOR_CLEARANCE_MM = 1000;
+/** Evita situar el ojo pegado a un mueble alto o dentro de él. */
+const MIN_OBJECT_CLEARANCE_MM = 450;
+const TALL_OBJECT_CLEARANCE_MM = 1300;
+const ROOM_GRID_STEP_MM = 200;
 /** Retracciones probadas desde cada candidato hacia el interior de la estancia. */
 const RETRACTIONS_MM = [450, 700, 1000, 1400];
+const SPACIOUS_RETRACTIONS_MM = [...RETRACTIONS_MM, 2200, 3000];
 /**
  * Superficie por debajo de la cual nada es una estancia fotografiable: ni el
  * aseo más pequeño baja de aquí, así que es un hueco de instalaciones.
@@ -111,11 +125,12 @@ export function roomInteriorCameras(doc: EditorDocument): RoomInteriorCamera[] {
     const boundary = room.boundary;
     const centre = interiorPoint(boundary);
     const eye = eyePoint(doc, room, centre);
+    const focusPoint = bedFocusPoint(doc, room, centre);
     const elevationMm = floorFinish(doc, room.id).elevationMm ?? 0;
     const eyeY = (elevationMm + EYE_HEIGHT_MM) / 1000;
     const camera = cameraPoseSchema.parse({
       position: [eye.x / 1000, eyeY, eye.y / 1000],
-      focus: [centre.x / 1000, eyeY - FOCUS_DROP_MM / 1000, centre.y / 1000],
+      focus: [focusPoint.x / 1000, eyeY - FOCUS_DROP_MM / 1000, focusPoint.y / 1000],
       fovDeg: interiorFovDeg(room.areaMm2 / 1_000_000),
       levelId: doc.activeLevelId ?? null,
     });
@@ -129,6 +144,27 @@ export function roomInteriorCameras(doc: EditorDocument): RoomInteriorCamera[] {
       camera,
     };
   });
+}
+
+/** En dormitorios con armarios altos, apunta al conjunto de camas para que el armario no domine la vista. */
+function bedFocusPoint(doc: EditorDocument, room: DerivedRoom, fallback: Point): Point {
+  const eyeElevation = (floorFinish(doc, room.id).elevationMm ?? 0) + EYE_HEIGHT_MM;
+  const hasTallFurniture = doc.furniture.some((item) => {
+    const { elevationMm, heightMm } = furnitureSpatial(item);
+    return getFurnitureCatalogEntry(item.catalogId)?.profile === 'cabinet' &&
+      insideRoom(objectCenter(item), room.boundary) &&
+      elevationMm + heightMm >= eyeElevation;
+  });
+  if (!hasTallFurniture) return fallback;
+  const beds = doc.furniture.filter((item) =>
+    getFurnitureCatalogEntry(item.catalogId)?.profile === 'bed' &&
+    insideRoom(objectCenter(item), room.boundary));
+  if (!beds.length) return fallback;
+  const focus = {
+    x: beds.reduce((sum, item) => sum + objectCenter(item).x, 0) / beds.length,
+    y: beds.reduce((sum, item) => sum + objectCenter(item).y, 0) / beds.length,
+  };
+  return insideRoom(focus, room.boundary) ? focus : fallback;
 }
 
 /**
@@ -153,9 +189,8 @@ function roomLabel(doc: EditorDocument, room: DerivedRoom): string | null {
 
 /**
  * Mejor punto de vista de la estancia. Se evalúan esquinas y puntos medios de
- * muro retraídos hacia el interior y gana el que más profundidad libre deja en
- * la dirección de mirada: así el encuadre enseña metros de estancia en vez de
- * un paño de pared o el marco de una puerta en primer plano.
+ * muro retraídos hacia el interior. En estancias amplias se mide también la
+ * profundidad de los laterales del encuadre, para evitar un muro en primer plano.
  *
  * Los filtros (holgura a muro, distancia a puerta, estar dentro del polígono)
  * se relajan en cascada porque un aseo de 2 m² no admite 45 cm de separación a
@@ -163,31 +198,84 @@ function roomLabel(doc: EditorDocument, room: DerivedRoom): string | null {
  */
 function eyePoint(doc: EditorDocument, room: DerivedRoom, centre: Point): Point {
   const boundary = room.boundary;
+  const spacious = room.areaMm2 >= SPACIOUS_ROOM_M2 * 1_000_000;
+  const compact = room.areaMm2 <= COMPACT_ROOM_M2 * 1_000_000;
   const doors = doorPoints(doc, room);
-  const candidates = placementCandidates(boundary, centre).filter((point) =>
+  const floorElevation = floorFinish(doc, room.id).elevationMm ?? 0;
+  const objects = planObjects(doc).filter((item) => {
+    const { elevationMm, heightMm } = furnitureSpatial(item);
+    return insideRoom(objectCenter(item), boundary) &&
+      elevationMm < floorElevation + EYE_HEIGHT_MM &&
+      elevationMm + heightMm > floorElevation + 300;
+  });
+  const obstacles = objects.map(footprint);
+  const tallObjects = objects.filter((item) => {
+    const { elevationMm, heightMm } = furnitureSpatial(item);
+    return elevationMm + heightMm >= floorElevation + EYE_HEIGHT_MM;
+  }).map(footprint);
+  const candidates = [...placementCandidates(boundary, centre,
+    spacious ? SPACIOUS_RETRACTIONS_MM : RETRACTIONS_MM),
+    ...(!spacious ? gridCandidates(boundary) : []), centre].filter((point) =>
     insideRoom(point, boundary),
   );
-  const ranked = (minClearance: number, minDoor: number) =>
+  const depth = (point: Point) => spacious || compact ? framingDepth(point, centre, boundary)
+    : visibleDepth(point, centre, boundary);
+  const ranked = (minClearance: number, minDoor: number, minObject: number, minTall = 0) =>
     candidates
       .filter(
         (point) =>
           boundaryClearance(point, boundary) >= minClearance &&
-          doors.every((door) => distance(point, door) >= minDoor),
+          doors.every((door) => distance(point, door) >= minDoor) &&
+          objectClearance(point, obstacles) >= minObject &&
+          objectClearance(point, tallObjects) >= minTall,
       )
-      .sort((a, b) => visibleDepth(b, centre, boundary) - visibleDepth(a, centre, boundary))[0];
+      .sort((a, b) => {
+        const depthDifference = depth(b) - depth(a);
+        if (Math.abs(depthDifference) > 1 || !doors.length) return depthDifference;
+        // Una planta rectangular ofrece esquinas con idéntica profundidad. Evita
+        // que el orden de sus vértices escoja la hoja de la puerta como primer plano.
+        const nearestDoor = (point: Point) => Math.min(...doors.map((door) => distance(point, door)));
+        return nearestDoor(b) - nearestDoor(a);
+      })[0];
   // El centro siempre tiene la mayor holgura posible: sirve de listón cuando la
   // estancia es más estrecha que la separación deseada.
   const reachable = Math.min(MIN_CLEARANCE_MM, boundaryClearance(centre, boundary));
   return (
-    ranked(MIN_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM) ??
-    ranked(reachable, MIN_DOOR_CLEARANCE_MM) ??
-    ranked(reachable, 0) ??
+    (spacious
+      ? ranked(WIDE_ROOM_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM, MIN_OBJECT_CLEARANCE_MM) : undefined) ??
+    (!spacious && tallObjects.length
+      ? ranked(MIN_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM, MIN_OBJECT_CLEARANCE_MM, TALL_OBJECT_CLEARANCE_MM) : undefined) ??
+    (compact ? ranked(MIN_CLEARANCE_MM, 0, MIN_OBJECT_CLEARANCE_MM) : undefined) ??
+    ranked(MIN_CLEARANCE_MM, MIN_DOOR_CLEARANCE_MM, MIN_OBJECT_CLEARANCE_MM) ??
+    ranked(reachable, MIN_DOOR_CLEARANCE_MM, 0) ??
+    ranked(reachable, 0, 0) ??
+    ranked(0, 0, 0) ??
     centre
   );
 }
 
+/** Muestrea los pasillos libres que no suelen coincidir con puntos retraídos de un muro. */
+function gridCandidates(boundary: Point[]): Point[] {
+  const xs = boundary.map((point) => point.x), ys = boundary.map((point) => point.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const stepX = Math.max(ROOM_GRID_STEP_MM, (maxX - minX) / 40);
+  const stepY = Math.max(ROOM_GRID_STEP_MM, (maxY - minY) / 40);
+  const result: Point[] = [];
+  for (let x = minX + stepX; x < maxX; x += stepX)
+    for (let y = minY + stepY; y < maxY; y += stepY)
+      result.push({ x, y });
+  return result;
+}
+
+/** Distancia firmada a las huellas ocupadas: negativa si el ojo cae dentro. */
+function objectClearance(point: Point, obstacles: Point[][]): number {
+  if (!obstacles.length) return Infinity;
+  return Math.min(...obstacles.map((polygon) =>
+    boundaryClearance(point, polygon) * (insideRoom(point, polygon) ? -1 : 1)));
+}
+
 /** Esquinas y puntos medios de muro, retraídos hacia el interior de la estancia. */
-function placementCandidates(boundary: Point[], centre: Point): Point[] {
+function placementCandidates(boundary: Point[], centre: Point, retractions: readonly number[]): Point[] {
   const anchors = boundary.flatMap((a, index) => {
     const b = boundary[(index + 1) % boundary.length]!;
     return [a, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }];
@@ -195,21 +283,22 @@ function placementCandidates(boundary: Point[], centre: Point): Point[] {
   return anchors.flatMap((anchor) => {
     const span = distance(anchor, centre);
     if (span < 1) return [centre];
-    return RETRACTIONS_MM.map((retraction) =>
+    return retractions.map((retraction) =>
       interpolate(anchor, centre, Math.min(1, retraction / span)),
     );
   });
 }
 
 /**
- * Metros de estancia por delante de la cámara: cuánto recorre el rayo que va
+ * Milímetros de estancia por delante de la cámara: cuánto recorre el rayo que va
  * del ojo al punto interior antes de salir del polígono.
  */
-function visibleDepth(eye: Point, centre: Point, boundary: Point[]): number {
+function visibleDepth(eye: Point, centre: Point, boundary: Point[], angle = 0): number {
   const span = distance(eye, centre);
   if (span < 1) return 0;
-  const dx = (centre.x - eye.x) / span;
-  const dy = (centre.y - eye.y) / span;
+  const forwardX = (centre.x - eye.x) / span, forwardY = (centre.y - eye.y) / span;
+  const dx = forwardX * Math.cos(angle) - forwardY * Math.sin(angle);
+  const dy = forwardX * Math.sin(angle) + forwardY * Math.cos(angle);
   let nearest = Infinity;
   for (let i = 0; i < boundary.length; i++) {
     const a = boundary[i]!;
@@ -223,6 +312,13 @@ function visibleDepth(eye: Point, centre: Point, boundary: Point[]): number {
     if (t > 1 && u >= 0 && u <= 1 && t < nearest) nearest = t;
   }
   return Number.isFinite(nearest) ? nearest : 0;
+}
+
+/** Evita que un lateral del encuadre ancho quede dominado por un muro cercano. */
+function framingDepth(eye: Point, centre: Point, boundary: Point[]): number {
+  const side = Math.min(visibleDepth(eye, centre, boundary, -Math.PI / 4),
+    visibleDepth(eye, centre, boundary, Math.PI / 4));
+  return side + visibleDepth(eye, centre, boundary) * .2;
 }
 
 /**

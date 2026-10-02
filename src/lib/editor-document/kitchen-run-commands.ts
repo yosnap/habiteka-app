@@ -6,6 +6,7 @@ import { localToWorld, projectAlong, transformAroundCenter } from './spatial-pro
 import { floorElevationAt } from './floor-level';
 import { slotSpan, type Span } from './kitchen-run-volumes';
 import { kitchenRunObstacles } from './kitchen-run-obstacles';
+import { refreshDerivedStripPaths } from './light-strip-geometry';
 
 /** Migración explícita y reversible: leer un plano antiguo nunca lo cambia. */
 export function upgradeKitchenDocument(source: EditorDocument): EditorDocument {
@@ -34,12 +35,20 @@ export function updateKitchenRun(source: EditorDocument, id: string, patch: Part
   const doc = upgradeKitchenDocument(source), index = doc.kitchenRuns!.findIndex((r) => r.id === id);
   if (index < 0) throw new Error('Mueble de cocina no encontrado');
   doc.kitchenRuns![index] = transformAroundCenter<KitchenRun>(doc.kitchenRuns![index]!, patch as Partial<KitchenRun>);
+  // Mover, girar o recomponer el mueble arrastra su tira derivada; la ajustada a mano se queda donde está.
+  refreshDerivedStripPaths(doc);
   doc.revision++; return parseEditorDocument(doc);
+}
+/** Las tiras bajo módulos altos viven pegadas a su tramo: sin tramo no hay tira. */
+export function dropStripsOfKitchenRuns(doc: EditorDocument, removedRunIds: readonly string[]): void {
+  if (!doc.lightStrips?.length || !removedRunIds.length) return;
+  doc.lightStrips = doc.lightStrips.filter((strip) => !removedRunIds.includes(strip.kitchenRunId ?? ''));
 }
 const overlaps = (a: Span, b: Span) => a.from < b.to && a.to > b.from;
 export function putKitchenSlot(source: EditorDocument, runId: string, slot: KitchenSlot): EditorDocument {
   const doc = upgradeKitchenDocument(source), run = find(doc, runId), slots = run.kitchen.slots, index = slots.findIndex((s) => s.id === slot.id);
-  if (kitchenRunObstacles(doc, run).base.some((cut) => overlaps(slotSpan(slot), cut))) throw new Error('El aparato cae sobre el hueco de un pilar');
+  const cuts = kitchenRunObstacles(doc, run);
+  if ([...cuts.base, ...(cuts.baseNotches ?? [])].some((cut) => overlaps(slotSpan(slot), cut))) throw new Error('El aparato cae sobre el hueco de un pilar');
   if (index < 0) slots.push(slot); else slots[index] = slot;
   doc.revision++; return parseEditorDocument(doc);
 }
@@ -53,7 +62,8 @@ export function freeSlotPosition(run: KitchenRun, widthMm: number, blocked: Span
 }
 export function addKitchenSlot(source: EditorDocument, runId: string, kind: KitchenSlotKind, positionMm?: number): EditorDocument {
   const doc = upgradeKitchenDocument(source), run = find(doc, runId), defaults = KITCHEN_SLOT_DEFAULTS[kind];
-  const centre = positionMm ?? freeSlotPosition(run, defaults.widthMm, kitchenRunObstacles(doc, run).base);
+  const cuts = kitchenRunObstacles(doc, run);
+  const centre = positionMm ?? freeSlotPosition(run, defaults.widthMm, [...cuts.base, ...(cuts.baseNotches ?? [])]);
   if (centre === undefined) throw new Error('No queda hueco libre en el tramo para este aparato');
   return putKitchenSlot(doc, runId, { id: crypto.randomUUID(), kind, positionMm: centre, widthMm: defaults.widthMm, color: defaults.color });
 }

@@ -21,10 +21,16 @@ describe('techo y luces de toda la planta', () => {
   it('propone luces solo para los techos que no tienen y las añade en un paso', () => {
     let doc = setCeilingsForAllRooms(twoRooms()).document;
     doc = addLuminaire(doc, doc.ceilings![0]!.id, 'flush');
-    const proposals = proposeLightingForPlan(doc, 'moderno');
+    const { proposals, skippedLit } = proposeLightingForPlan(doc, 'moderno');
     expect(proposals.map((proposal) => proposal.ceilingId)).toEqual([doc.ceilings![1]!.id]);
+    expect(skippedLit).toBe(1);
     const lit = applyLightingProposals(doc, proposals);
     expect(lit.luminaires!.length).toBe(1 + proposals[0]!.lights.length);
+    // Pedirlo expresamente también propone donde ya hay luces, sin saltarse ninguna.
+    const both = proposeLightingForPlan(doc, 'moderno', { includeLit: true });
+    expect(both.skippedLit).toBe(0);
+    expect(both.proposals.map((proposal) => proposal.ceilingId).sort())
+      .toEqual(doc.ceilings!.map((ceiling) => ceiling.id).sort());
   });
 
   it('cambia varias luces a la vez y es todo o nada', () => {

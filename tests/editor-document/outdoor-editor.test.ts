@@ -11,6 +11,9 @@ import { deriveRooms } from '@/lib/editor-document/rooms';
 import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { createEditorStore } from '@/canvas/editor-v2/store';
+import { updateFurniture } from '@/lib/editor-document/spatial-commands';
+import { walkthroughNavigation } from '@/lib/editor-document/walkthrough-navigation';
+import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import { existsSync } from 'node:fs';
 
 it('crea patio abierto con suelo editable sin techo ni muros 3D, persistido y reversible', () => {
@@ -72,13 +75,47 @@ it('permite aparcar sobre las marcas del parking sin desplazar el coche', async 
   expect([placed.x, placed.y]).toEqual([car.x, car.y]);
 });
 
-it('permite caminar bajo la pérgola pero evita sus postes', async () => {
-  const { walkthroughNavigation } = await import('@/lib/editor-document/walkthrough-navigation');
+it('permite caminar bajo la pérgola pero evita sus postes', () => {
   const patio = addOutdoorArea(emptyEditorDocument(), { x: 0, y: 0 }, { x: 10000, y: 10000 });
   const doc = addFurniture(patio, OUTDOOR_CATALOG.find((item) => item.kind === 'pergola')!, { x: 1000, y: 1000 });
   const pergola = doc.furniture[0]!, nav = walkthroughNavigation(doc);
   expect(nav.free({ x: pergola.x + pergola.widthMm / 2, y: pergola.y + pergola.depthMm / 2 })).toBe(true);
   expect(nav.free({ x: pergola.x + 30, y: pergola.y + 30 })).toBe(false);
+});
+
+it('recoger cada lateral de la carpa abre ese paso en el 3D y el recorrido', () => {
+  const patio = addOutdoorArea(emptyEditorDocument(), { x: 0, y: 0 }, { x: 10000, y: 10000 });
+  const source = addFurniture(patio, OUTDOOR_CATALOG.find((item) => item.kind === 'carpa')!, { x: 5000, y: 5000 });
+  const tent = source.furniture[0]!;
+  const left = [{ x: tent.x - 500, y: tent.y + 1500 }, { x: tent.x + 500, y: tent.y + 1500 }] as const;
+  const right = [{ x: tent.x + tent.widthMm - 500, y: tent.y + 1500 },
+    { x: tent.x + tent.widthMm + 500, y: tent.y + 1500 }] as const;
+  const back = [{ x: tent.x + 1500, y: tent.y - 500 }, { x: tent.x + 1500, y: tent.y + 500 }] as const;
+  const front = [{ x: tent.x + 1500, y: tent.y + tent.depthMm - 500 },
+    { x: tent.x + 1500, y: tent.y + tent.depthMm + 500 }] as const;
+  for (const [mode, openLeft, openRight] of [
+    ['none', false, false], ['left', true, false], ['right', false, true], ['both', true, true],
+  ] as const) {
+    const doc = updateFurniture(source, tent.id, { rolledSides: mode });
+    const item = doc.furniture[0]!, volumes = furnitureVolumes(item), nav = walkthroughNavigation(doc);
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(doc)))).toEqual(doc);
+    expect(volumes.filter((part) => part.opacity === .3)).toHaveLength(3 - Number(openLeft) - Number(openRight));
+    expect(volumes.filter((part) => part.opacity === .72)).toHaveLength(Number(openLeft) + Number(openRight));
+    expect(nav.segmentFree(...left)).toBe(openLeft);
+    expect(nav.segmentFree(...right)).toBe(openRight);
+    if (!openRight) expect(nav.segmentBlock(...right)).toMatchObject({ kind: 'outdoor', entityId: tent.id, part: 'lona derecha' });
+    expect(nav.segmentFree(...back)).toBe(false);
+    expect(nav.segmentFree(...front)).toBe(true);
+  }
+  const rotated = updateFurniture(source, tent.id, { rolledSides: 'left', rotation: 90 });
+  const item = rotated.furniture[0]!, rotatedNav = walkthroughNavigation(rotated);
+  expect(rotatedNav.segmentFree(localToWorld(item, { x: -500, y: 1500 }), localToWorld(item, { x: 500, y: 1500 }))).toBe(true);
+  expect(rotatedNav.segmentFree(localToWorld(item, { x: 2500, y: 1500 }), localToWorld(item, { x: 3500, y: 1500 }))).toBe(false);
+  const store = createEditorStore(source);
+  store.getState().apply(updateFurniture(store.getState().document, tent.id, { rolledSides: 'both' }));
+  store.getState().undo(); expect(store.getState().document.furniture[0]!.rolledSides).toBeUndefined();
+  store.getState().redo(); expect(store.getState().document.furniture[0]!.rolledSides).toBe('both');
+  expect(() => updateFurniture(source, tent.id, { rolledSides: 'frente' as 'both' })).toThrow(/Laterales de carpa/);
 });
 
 it('mueve patio independiente y su etiqueta, conserva acabado y permite deshacer', async () => {

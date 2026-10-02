@@ -6,7 +6,7 @@ import { BoundaryFields } from './boundary-fields';
 import { KitchenFields } from './kitchen-fields';
 import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -27,9 +27,14 @@ import { isWindowDressing, windowCoverage } from '@/lib/editor-document/furnitur
 import { MeterField, NumberField } from './property-number-field';
 import { OpeningConstructionFields, RampConstructionFields, StairConstructionFields, WallConstructionFields } from './construction-fields';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
+import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
+import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
+import { CarpaSidesField } from './carpa-sides-field';
+import { TerrainFields } from './terrain-fields';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
-export function Inspector({ store, onClose }: { store: EditorStore; onClose?: () => void }) {
+export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const readOnly = useStore(store, (s) => s.readOnly);
   const [mergeId, setMergeId] = useState(''), [query, setQuery] = useState(''), id = selection[0];
@@ -39,8 +44,10 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
   const column = doc.columns?.find((item) => item.id === id);
+  const terrain = doc.terrainSurfaces?.find((item) => item.id === id);
   // Las estancias no son entidades: su nombre es la etiqueta de texto situada dentro del contorno.
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
+  const facadeIds = useMemo(() => new Set(exteriorWallIds(doc)), [doc]);
   const room = rooms.find((item) => item.id === id), outdoor = room ? editableOutdoorRoom(doc, room) : false;
   const roomLabel = room ? doc.labels.find((item) => insideRoom(item, room.boundary)) : undefined;
   const renameRoom = (value: string) => room && apply((document) => editDocument(document, (next) => {
@@ -50,6 +57,8 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
   }));
   // Con varios elementos del mismo tipo seleccionados, cada cambio del inspector se repite en todos ellos.
   const peers = id ? bulkPeers(doc, id, selection) : [];
+  const selectedWallIds = wall ? [wall.id, ...peers.filter((peerId) => doc.walls.some((item) => item.id === peerId))] : [];
+  const allFacades = selectedWallIds.length > 1 && selectedWallIds.every((wallId) => facadeIds.has(wallId));
   const apply = (operation: (current: EditorDocument) => EditorDocument) => {
     try {
       const current = store.getState().document, next = operation(current);
@@ -78,8 +87,6 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
     setQuery('');
   };
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
-    <header className={styles.inspectorHeading}><h2>Propiedades</h2>
-      {onClose && <button type="button" onClick={onClose} aria-label="Cerrar propiedades"><X size={18} aria-hidden="true" /></button>}</header>
     <label className={`${styles.field} ${styles.search}`}>Buscar en el plano
       <span><Search size={14} aria-hidden="true" /><input type="search" value={query} placeholder="Pared, patio, sofá…" aria-label="Buscar elemento del plano"
         onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && matches[0]) goTo(matches[0].id); if (event.key === 'Escape') setQuery(''); }} /></span>
@@ -106,6 +113,7 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
       <MeterField label="Cota del suelo" valueMm={floorFinish(doc, room.id).elevationMm ?? 0} change={(elevationMm) => apply((d) => setFloorFinish(d, room.id, { elevationMm }))} />
       <button type="button" onClick={() => store.getState().setDetailPanel('paint')}>Textura del suelo</button>
     </>}
+    {terrain && <TerrainFields surface={terrain} edit={apply} />}
     {wall && points && <>
       <div className={styles.fields}>
         {meterField('Grosor', wall.thicknessMm, (d, n) => { d.walls.find((w) => w.id === id)!.thicknessMm = n; })}
@@ -132,8 +140,11 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
           v === wall.startVertexId || v === wall.endVertexId)).map((w, i) => <option key={w.id} value={w.id}>Contiguo {i + 1} ({(distance(...wallPoints(doc, w)) / 1000).toFixed(2)} m)</option>)}
       </ModernSelect></label>
       <button disabled={!mergeId} onClick={() => apply((d) => applyCommand(d, { type: 'merge-walls', wallId: wall.id, otherWallId: mergeId }))}>Unir muros</button>
-      <WallConstructionFields wall={wall} document={doc} edit={apply} />
+      <WallConstructionFields wall={wall} document={doc} edit={apply} showSurfaceFields={!peers.length} />
+      {selectedWallIds.length > 1 && <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />}
     </>}
+    {furniture?.kind === 'carpa' && !partOwner && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
+      onChange={(rolledSides) => apply((document) => updateFurniture(document, furniture.id, { rolledSides }))} />}
     {furniture && !partOwner && <div className={styles.fields}>
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
         ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
@@ -148,7 +159,7 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
         change={(percent) => apply((doc) => updateFurniture(doc, furniture.id, { coverage: Math.max(0, Math.min(100, percent)) / 100 }))} />}
     </div>}
     {furniture && (isBoundary(furniture) || isLegacyBoundary(furniture)) && <BoundaryFields item={furniture} edit={apply} />}
-    {furniture && isKitchenRun(furniture) && <KitchenFields item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
+    {furniture && isKitchenRun(furniture) && <KitchenFields doc={doc} item={furniture} selectedSlotId={slotOwner?.slot.id} edit={apply} />}
     {opening && <><div className={styles.fields}>
       {meterField('Ancho', opening.widthMm, (d, n) => {
         const target = d.openings.find((o) => o.id === id)!;
@@ -161,9 +172,11 @@ export function Inspector({ store, onClose }: { store: EditorStore; onClose?: ()
     </div><OpeningConstructionFields opening={opening} edit={apply} /></>}
     {stair && <StairConstructionFields stair={stair} edit={apply} />}
     {ramp && <RampConstructionFields ramp={ramp} edit={apply} />}
-    {column && <div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
+    {column && <><div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
       <MeterField key={key} label={label} valueMm={column[key]} change={(value) => apply((document) => updateColumn(document, column.id, { [key]: value }))} />)}
-      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>}
+      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>
+      <SurfaceMaterialPicker label="Material de columna" value={column.materialId} onChange={(materialId) =>
+        apply((document) => updateColumn(document, column.id, { materialId: materialId ?? 'concrete-grey' }))} /></>}
     {label && <label className={styles.field}>Texto<input key={label.text} defaultValue={label.text}
       onBlur={(e) => { const text = e.currentTarget.value; apply((d) => editDocument(d, (next) => { next.labels.find((l) => l.id === id)!.text = text; })); }} /></label>}
     {id && <button className={styles.danger} onClick={() => {

@@ -20,6 +20,15 @@ export interface WrittenRoomDimensions {
   exterior?: boolean;
 }
 
+/** Corrección revisada de una puerta, identificada en la geometría reconstruida. */
+export interface PlanDoorOverride {
+  apertureId: string;
+  swing?: 'left' | 'right';
+  hinge?: 'left' | 'right';
+  /** Centro revisado a lo largo del muro final (0–1). */
+  position?: number;
+}
+
 /** Ajuste aplicado por el solver a una estancia y eje. */
 export interface DimensionCorrection {
   zoneId: string;
@@ -63,13 +72,24 @@ export interface PlanImportWarning {
     | 'cota-contradictoria'
     | 'mueble-fuera-de-estancia'
     | 'mueble-sin-catalogo'
-    | 'zona-exterior-sin-contorno';
+    | 'zona-exterior-sin-contorno'
+    | 'estancias-solapadas'
+    | 'estancias-fusionadas'
+    | 'estancia-inferida'
+    | 'cotas-generales-discordantes'
+    | 'muro-inferido-omitido'
+    | 'muro-solo-modelo'
+    | 'ventana-interior-por-revisar'
+    | 'arcos-insuficientes'
+    | 'ajuste-desplaza-muros';
   message: string;
   zoneId?: string;
 }
 
 export interface PlanImportResult {
   plano: Plano2dPayload;
+  /** Marco completo de la imagen fuente en el espacio métrico, para alinear la superposición. */
+  sourceFrameMm?: { width: number; height: number };
   /** True si la escala es conjetura (sin cotas ni escala gráfica legibles). */
   escalaEstimada: boolean;
   writtenDimensions: WrittenRoomDimensions[];

@@ -19,6 +19,7 @@ import { fail } from '@/server/errors/run-action';
 import { evaluateCheckpointCached, type QualityContext } from './evaluate';
 import type { GateContext } from './gate-mark';
 import { buildEditorEvidence } from './evidence/editor-evidence';
+import { editorGeometryFingerprint } from './editor-geometry-fingerprint';
 
 export const EDITOR_STRUCTURE_CHECKPOINT = 'editor_structure';
 
@@ -39,13 +40,41 @@ export async function editorDocumentQuality(
   document: EditorDocument,
   gate?: GateContext,
 ): Promise<QualityVerdict> {
+  if (document.importReview?.geometryFingerprint === editorGeometryFingerprint(document))
+    return {
+      score: null,
+      decision: 'block',
+      reasons: document.importReview.reasons,
+      failOpen: false,
+    };
+  const evidence = buildEditorEvidence(document);
+  // Una escala conjeturada no se convierte en física por una puntuación alta
+  // del evaluador ni por aceptar un aviso: hay que calibrar el documento.
+  if (evidence.murosSinMedidaFisica > 0 && !evidence.escalaConocida)
+    return {
+      score: null,
+      decision: 'block',
+      reasons: ['El plano procede de una imagen sin escala física confirmada. Define una cota real antes de generar.'],
+      failOpen: false,
+    };
   const evaluation = await evaluateCheckpointCached(
     ctx,
     EDITOR_STRUCTURE_CHECKPOINT,
-    buildEditorEvidence(document),
+    evidence,
     { projectId: scope.projectId, refId: scope.zoneId ?? null },
     gate,
   );
+  // Jev solo ve la estructura actual, no la imagen de origen. Después de una
+  // corrección geométrica, la comparación visual sigue requiriendo aceptación.
+  if (document.importReview && evaluation.decision === 'proceed') return {
+    score: evaluation.score,
+    decision: 'confirm',
+    reasons: [
+      'La geometría cambió desde la importación. Comprueba que coincide con el plano original antes de generar.',
+      ...document.importReview.reasons.slice(0, 2),
+    ],
+    failOpen: false,
+  };
   return {
     score: evaluation.score,
     decision: evaluation.decision,

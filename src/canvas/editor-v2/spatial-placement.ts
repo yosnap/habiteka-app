@@ -1,9 +1,9 @@
-import { planObjects } from '@/lib/editor-document/boundary-types';
+import { isLegacyBoundary, planObjects } from '@/lib/editor-document/boundary-types';
 import { isBoundaryJoint } from './boundary-junction';
 import { isKitchenJoint } from '@/lib/editor-document/kitchen-run-volumes';
 import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
-import { localToWorld, objectCenter, type Footprint } from '@/lib/editor-document/spatial-properties';
+import { footprint, localToWorld, objectCenter } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { wallMeshes } from './scene/wall-meshes';
 import { stairMeshes } from './scene/stair-meshes';
@@ -13,12 +13,13 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
-import { alignBackToWall, dockToWindow } from './wall-back-alignment';
+import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isFloorCovering, isWindowCovering } from './wall-back-alignment';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { landingHugsWallEnd } from '@/lib/editor-document/landing-wall-corner';
+import { doorSweepSolids } from './door-sweep-solids';
 
 interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
@@ -30,10 +31,9 @@ function bounds(solid: Solid) {
     minY: Math.min(...solid.polygon.map((p) => p.y)), maxY: Math.max(...solid.polygon.map((p) => p.y)) }; boundsCache.set(solid, value); }
   return value;
 }
-export function footprint(item: Footprint): Point[] {
-  return [{ x: 0, y: 0 }, { x: item.widthMm, y: 0 }, { x: item.widthMm, y: item.depthMm }, { x: 0, y: item.depthMm }]
-    .map((p) => localToWorld(item, p));
-}
+// La huella vive en `spatial-properties` (pura, sin lienzo); aquí solo se reexporta
+// para no tocar a quien ya la importaba desde la colocación.
+export { footprint };
 function isColumn(item: Furniture | Stair | Ramp | Column): item is Column {
   return item.catalogId === 'builtin:column-rectangular' && !('kind' in item);
 }
@@ -99,17 +99,89 @@ function walls(doc: EditorDocument): Solid[] {
       bottom: (box.position[1] - box.size[1] / 2) * 1000, top: (box.position[1] + box.size[1] / 2) * 1000 };
   })];
 }
+
+/** Al engrosar un muro, desplaza cada mueble apoyado en su cara solo lo necesario para conservar el contacto. */
+export function relieveFurnitureForThickerWalls(previous: EditorDocument, candidate: EditorDocument): EditorDocument {
+  const thicker = candidate.walls.filter((wall) => {
+    const old = previous.walls.find((item) => item.id === wall.id);
+    return old && !wall.hidden && wall.thicknessMm > old.thicknessMm + .1;
+  });
+  if (!thicker.length || (!candidate.furniture.length && !candidate.kitchenRuns?.length)) return candidate;
+  const oldSolids = walls(previous), newSolids = walls(candidate);
+  const result = structuredClone(candidate);
+  const movable = [...result.furniture, ...(result.kitchenRuns ?? [])].filter((item) =>
+    !item.hostId && !isBoundary(item) && !isLegacyBoundary(item));
+  const previousObjects = new Map([...previous.furniture, ...(previous.kitchenRuns ?? [])].map((item) => [item.id, item]));
+  const depth = (item: Furniture, solids: Solid[]) => Math.max(0, ...objectSolids(item).flatMap((a) => solids.map((b) => penetration(a, b))));
+
+  // Un tabique compartido puede tocar muebles a ambos lados; la orientación de cada uno decide hacia qué cara sale.
+  for (let pass = 0; pass < Math.min(4, thicker.length + 1); pass++) {
+    let moved = false;
+    for (const wall of thicker) {
+      const target = newSolids.filter((solid) => solid.id === wall.id);
+      const oldTarget = oldSolids.filter((solid) => solid.id === wall.id);
+      const path = wallPath(result, wall);
+      for (const item of movable) {
+        const original = previousObjects.get(item.id);
+        if (!original) continue;
+        const allowed = depth(original, oldTarget) + .1;
+        if (depth(item, target) <= allowed) continue;
+        const center = objectCenter(item), t = path.project(center), onWall = path.at(t), tangent = path.tangent(t);
+        const signed = (center.x - onWall.x) * -tangent.y + (center.y - onWall.y) * tangent.x;
+        const normal = { x: -tangent.y * (signed >= 0 ? 1 : -1), y: tangent.x * (signed >= 0 ? 1 : -1) };
+        const shifted = (mm: number): Furniture => ({ ...item, x: item.x + normal.x * mm, y: item.y + normal.y * mm });
+        const maxShift = Math.min(1500, Math.max(200, wall.thicknessMm - (previous.walls.find((old) => old.id === wall.id)?.thicknessMm ?? 0) + Math.max(item.widthMm, item.depthMm)));
+        if (depth(shifted(maxShift), target) > allowed) continue;
+        let low = 0, high = maxShift;
+        for (let i = 0; i < 18; i++) {
+          const middle = (low + high) / 2;
+          if (depth(shifted(middle), target) > allowed) low = middle; else high = middle;
+        }
+        item.x += normal.x * (high + .1);
+        item.y += normal.y * (high + .1);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  // Los objetos colocados encima conservan su posición relativa con la mesa, armario o módulo que los soporta.
+  const byId = new Map([...result.furniture, ...(result.kitchenRuns ?? [])].map((item) => [item.id, item]));
+  const adjusted = new Set<string>(), visiting = new Set<string>();
+  const followHost = (item: Furniture) => {
+    if (adjusted.has(item.id) || visiting.has(item.id)) return;
+    visiting.add(item.id);
+    const host = item.hostId && byId.get(item.hostId), oldHost = item.hostId && previousObjects.get(item.hostId);
+    if (host && oldHost) {
+      followHost(host);
+      item.x += host.x - oldHost.x;
+      item.y += host.y - oldHost.y;
+    }
+    visiting.delete(item.id);
+    adjusted.add(item.id);
+  };
+  for (const item of result.furniture) if (item.hostId) followHost(item);
+  return result;
+}
 /** Pares de sólidos que se penetran y su profundidad; útil para diagnosticar bloqueos de colocación. */
 export function collisions(doc: EditorDocument): Map<string, number> {
-  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids), wallSolids = walls(doc);
+  const objects = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids);
+  const wallSolids = [...walls(doc), ...doorSweepSolids(doc)];
   const result = new Map<string, number>();
   const boundaryItems = new Map(planObjects(doc).map((item) => [item.id, item]));
+  const planIds = new Set(planObjects(doc).map((item) => item.id));
+  const rugIds = new Set(planObjects(doc).filter(isFloorCovering).map((item) => item.id));
+  const baseId = (id: string) => id.split(':')[0]!;
   objects.forEach((a, index) => {
     for (const b of [...objects.slice(index + 1), ...wallSolids]) {
       if (a.id === b.id) continue;
       const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
       if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
       if (first && second && (first.hostId === second.id || second.hostId === first.id)) continue;
+      // Las alfombras cubren el suelo bajo sofás, mesas y sillas: no se cuentan como choque con el mobiliario. Un mueble
+      // compuesto aporta varios sólidos con id derivado («id:n»), por eso se compara por id base.
+      if ((rugIds.has(baseId(a.id)) && planIds.has(baseId(b.id))) || (rugIds.has(baseId(b.id)) && planIds.has(baseId(a.id)))) continue;
+      // El grifo o los aparatos de un tramo de cocina pueden asomar delante de un estor colgado de la ventana: no es choque.
+      if (first && second && ((isKitchenRun(first) && isWindowCovering(second)) || (isWindowCovering(first) && isKitchenRun(second)))) continue;
       const depth = penetration(a, b);
       if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
     }
@@ -133,6 +205,8 @@ function collisionLabel(doc: EditorDocument, id: string): string {
   if (object) return `«${elementName(object)}»`;
   const wall = doc.walls.find((item) => item.id === id);
   if (wall) return wall.name?.trim() ? `la pared «${wall.name.trim()}»` : 'la pared';
+  const opening = doc.openings.find((item) => item.id === id);
+  if (opening) return opening.name?.trim() ? `la puerta «${opening.name.trim()}»` : 'la puerta';
   const column = doc.columns?.find((item) => item.id === id);
   if (column) return column.name?.trim() ? `la columna «${column.name.trim()}»` : 'la columna';
   const stair = doc.stairs?.find((item) => item.id === id);
@@ -170,15 +244,23 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     if ((columnIds.has(first) && (structuralIds.has(second) || boundaryIds.has(second))) || (columnIds.has(second) && (structuralIds.has(first) || boundaryIds.has(first)))) continue;
     // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
-    if (depth > (before.get(key) ?? 0) + .1)
+    if (depth > (before.get(key) ?? 0) + .1) {
+      const doorId = candidate.openings.find((opening) => opening.kind === 'puerta' &&
+        (opening.id === first || opening.id === second))?.id;
+      if (doorId) {
+        const obstacleId = doorId === first ? second : first;
+        throw new Error(`El giro de ${collisionLabel(candidate, doorId)} choca con ${collisionLabel(candidate, obstacleId)}. Cambia el giro o mueve el obstáculo.`);
+      }
       throw new Error(`${collisionLabel(candidate, first)} atraviesa ${collisionLabel(candidate, second)} (${Math.max(1, Math.round(depth / 10))} cm). Ajusta posición, tamaño o elevación.`);
+    }
   }
 }
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
   const item = planObjects(candidate).find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
   if (!item) throw new Error('Elemento no encontrado');
-  const occupied = [...walls(previous), ...planObjects(previous).flatMap(objectSolids), ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
+  const occupied = [...walls(previous), ...doorSweepSolids(previous), ...planObjects(previous).flatMap(objectSolids),
+    ...(previous.stairs ?? []).flatMap(objectSolids), ...(previous.ramps ?? []).flatMap(objectSolids), ...(previous.columns ?? []).flatMap(objectSolids)];
   for (let ring = 0; ring <= 32; ring++) for (let direction = 0; direction < (ring ? 8 : 1); direction++) {
     const angle = direction * Math.PI / 4;
     const placed = { ...item, x: item.x + Math.cos(angle) * ring * 250, y: item.y + Math.sin(angle) * ring * 250 };
@@ -192,7 +274,8 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
   throw new Error('No hay espacio libre cercano. Libera espacio antes de añadir el elemento.');
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
-export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean) {
+export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean,
+  options: { preserveRotation?: boolean } = {}) {
   if (!enabled) return item;
   // El imán manda: la rejilla de 10 cm solo actúa en el eje sin referencia, y después el objeto puede afinar a una cara.
   const magnet = alignPoints(doc, footprintAnchors(item), scale, enabled, [item.id]);
@@ -234,8 +317,14 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   const aligned = alignPoints(doc, footprintAnchors(result), scale, enabled, [item.id]);
   result = { ...result, x: result.x + aligned.delta.x, y: result.y + aligned.delta.y };
   const furniture = 'kind' in result && !('stepCount' in result) && !isBoundary(result) && !isKitchenRun(result);
-  // Un mueble se gira con la trasera contra el muro y, si cae sobre otro mueble, se apoya en él y toma su orientación.
-  if (furniture) result = restOnHost(doc, dockToWindow(doc, alignBackToWall(doc, result as Furniture, faceTolerance), faceTolerance), { alignRotation: true });
+  // Durante un arrastre la orientación elegida por el usuario tiene prioridad sobre el giro automático al muro.
+  if (furniture) {
+    const positioned = options.preserveRotation ? result as Furniture : alignBackToWall(doc, result as Furniture, faceTolerance);
+    result = restOnHost(doc, dockToWindow(doc, positioned, faceTolerance), { alignRotation: !options.preserveRotation });
+  }
+  // Un tramo de cocina se endereza contra un muro inclinado para no dejar una cuña de holgura entre trasera y pared.
+  if ('kind' in result && !('stepCount' in result) && isKitchenRun(result) && !options.preserveRotation)
+    result = alignKitchenRunToWall(doc, result, faceTolerance);
   // La cara física tiene prioridad: alinear otro eje no debe separar el objeto de la pared.
   return snapToWallFace(doc, result, faceTolerance);
 }

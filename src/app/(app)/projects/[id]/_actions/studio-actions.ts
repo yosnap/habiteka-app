@@ -1,5 +1,6 @@
 'use server';
 
+import { isDeepStrictEqual } from 'node:util';
 import { requireOrgContext } from '@/server/auth/require-org-context';
 import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
@@ -16,7 +17,7 @@ import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-editor-document';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
-import type { Estilo, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
+import type { Estilo, PlanDoorOverride, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
 import type { StudioQuality } from '@/lib/studio-state';
 import {
   importPlanFromImage,
@@ -24,13 +25,16 @@ import {
   evaluatePlanQuality,
   type PlanImportStudioResult,
 } from '@/server/plan/import-plan-from-image';
-import { drawingToPlano } from '@/server/plan/drawing-to-plano';
+import { drawingToPlanImport } from '@/server/plan/drawing-to-plano';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
+import { blockingPlanImportWarning } from '@/lib/plan-quality';
 import { importPlanToEditor } from '@/server/plan/import-plan-to-editor';
 import { sanitizeExtractedText } from '@/server/ai/sketch/sanitize-extracted-text';
 import { assertPlanoRasterizable } from '@/server/ai/design/cenital-pipeline';
 import { runAction, fail } from '@/server/errors/run-action';
 import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
+import { appendStudioResult, studioResults } from '@/lib/studio-results';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
 
 async function context(projectId: string) {
   const ctx = await requireOrgContext();
@@ -56,14 +60,25 @@ async function redrawStudioImpl(
   const { ctx, state } = await context(projectId);
   const source = parts[0] ? await persistStudioSource(parts[0].base64) : state.source;
   if (!source) fail('Sube o dibuja un plano primero.');
+  const baseline = source.assetKey !== state.source?.assetKey
+    ? { ...state, results: appendStudioResult(state, source, { kind: 'source' }) }
+    : state;
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
   const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
   const result = await redrawPlan({ image }, await readStudioImage(source), redrawMode);
   // Se conserva el redibujado del otro modo: el usuario alterna entre ambos.
-  const redraws = { ...state.redraws, [redrawMode]: result };
+  const redraws = { ...baseline.redraws, [redrawMode]: result };
   // Otra imagen de trabajo: el veredicto y la extracción del plano anterior ya no valen.
-  await saveStudio(ctx, projectId, { ...state, source, plan: result, redrawMode, redraws, quality: undefined, planImport: undefined });
-  return { imageUrl: result.assetUrl, assetKey: result.assetKey };
+  const results = appendStudioResult(baseline, result, {
+    kind: 'redraw', mode: redrawMode, ...(source.assetKey ? { sourceKey: source.assetKey } : {}),
+  });
+  await saveStudio(ctx, projectId, {
+    ...baseline, source, plan: result, redrawMode, redraws, results,
+    sourceKind: 'upload', plano: undefined, escalaEstimada: undefined,
+    cenital: undefined, quality: undefined, planImport: undefined,
+    planImportApplied: false, planImportRevision: undefined,
+  });
+  return { imageUrl: result.assetUrl, assetKey: result.assetKey, studioResult: results.find((item) => item.assetKey === result.assetKey) };
 }
 
 /**
@@ -79,7 +94,11 @@ async function selectRedrawStudioImpl(projectId: string, mode: RedrawMode) {
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
   const plan = state.redraws?.[redrawMode];
   if (!plan) fail('Ese redibujado aún no se ha generado.');
-  await saveStudio(ctx, projectId, { ...state, plan, redrawMode, plano: undefined, cenital: undefined, quality: undefined, planImport: undefined });
+  await saveStudio(ctx, projectId, {
+    ...state, plan, redrawMode, plano: undefined, cenital: undefined,
+    quality: undefined, planImport: undefined, planImportApplied: false,
+    planImportRevision: undefined,
+  });
   return { imageUrl: plan.assetUrl, assetKey: plan.assetKey };
 }
 
@@ -89,10 +108,14 @@ export async function uploadStudio(projectId: string, base64: string) {
 }
 
 async function uploadStudioImpl(projectId: string, base64: string) {
-  const { ctx } = await context(projectId);
+  const { ctx, state } = await context(projectId);
   const source = await persistStudioSource(base64);
-  await saveStudio(ctx, projectId, { source, plan: source, sourceKind: 'upload' });
-  return { imageUrl: source.assetUrl };
+  const results = appendStudioResult(state, source, { kind: 'source' });
+  await saveStudio(ctx, projectId, {
+    source, plan: source, sourceKind: 'upload', results,
+    estilo: state.estilo, detalles: state.detalles,
+  });
+  return { imageUrl: source.assetUrl, assetKey: source.assetKey, studioResult: results.find((item) => item.assetKey === source.assetKey) };
 }
 
 export async function drawingStudio(projectId: string, base64: string) {
@@ -100,12 +123,31 @@ export async function drawingStudio(projectId: string, base64: string) {
 }
 
 async function drawingStudioImpl(projectId: string, base64: string) {
-  const { ctx } = await context(projectId);
+  const { ctx, state } = await context(projectId);
   const source = await persistStudioSource(base64);
   const sanitized = await readStudioImage(source);
-  const result = await drawingToPlano(Buffer.from(sanitized.base64, 'base64'));
-  await saveStudio(ctx, projectId, { source, plan: source, sourceKind: 'drawing', ...result });
-  return { imageUrl: source.assetUrl, ...result };
+  const { raw, detected, result } = await drawingToPlanImport(Buffer.from(sanitized.base64, 'base64'));
+  // El boceto no contiene cotas reales: se revisa sin atribuirle una puntuación de Jev.
+  const quality: StudioQuality = {
+    score: null,
+    decision: 'confirm',
+    reasons: ['El boceto no tiene escala confirmada. Revisa los muros e indica el ancho real antes de diseñar.'],
+    failOpen: false,
+  };
+  const results = appendStudioResult(state, source, { kind: 'source' });
+  await saveStudio(ctx, projectId, {
+    source, plan: source, sourceKind: 'drawing', results,
+    estilo: state.estilo, detalles: state.detalles,
+    plano: result.plano, escalaEstimada: result.escalaEstimada,
+    planImport: { raw, detected, image: source, includeFurniture: false },
+    planImportApplied: false, planImportRevision: crypto.randomUUID(), quality,
+  });
+  return {
+    imageUrl: source.assetUrl, assetKey: source.assetKey,
+    studioResult: results.find((item) => item.assetKey === source.assetKey),
+    importResult: { ...result, imageUrl: source.assetUrl, quality },
+    plano: result.plano, escalaEstimada: result.escalaEstimada,
+  };
 }
 
 
@@ -154,8 +196,12 @@ async function cenitalStudioImpl(
       ...(hasRedraw ? { structuralReference: await readStudioImage(state.plan) } : {}),
     },
   );
-  await saveStudio(ctx, projectId, { ...state, cenital: result, estilo, detalles: notes, vista: renderVista });
-  return { imageUrl: result.assetUrl };
+  const results = appendStudioResult(state, result, {
+    kind: 'render', vista: renderVista, estilo,
+    ...(original.assetKey ? { sourceKey: original.assetKey } : {}),
+  });
+  await saveStudio(ctx, projectId, { ...state, cenital: result, estilo, detalles: notes, vista: renderVista, results });
+  return { imageUrl: result.assetUrl, assetKey: result.assetKey, studioResult: results.find((item) => item.assetKey === result.assetKey) };
 }
 
 /** El canvas amueblado viaja directamente como referencia, sin eliminar muebles. */
@@ -164,7 +210,7 @@ export async function importCanvasStudio(projectId: string) {
 }
 
 async function importCanvasStudioImpl(projectId: string) {
-  const { ctx } = await context(projectId);
+  const { ctx, state } = await context(projectId);
   const editor = await withEditorDocuments(ctx).load({ projectId });
   let base64: string;
   let canvasDescription: string | undefined;
@@ -181,8 +227,12 @@ async function importCanvasStudioImpl(projectId: string) {
     canvasDescription = serializeDocToPrompt(doc) ?? undefined;
   }
   const source = await persistStudioSource(base64);
-  await saveStudio(ctx, projectId, { source, plan: source, sourceKind: 'canvas', canvasDescription });
-  return { imageUrl: source.assetUrl };
+  const results = appendStudioResult(state, source, { kind: 'source' });
+  await saveStudio(ctx, projectId, {
+    source, plan: source, sourceKind: 'canvas', canvasDescription, results,
+    estilo: state.estilo, detalles: state.detalles,
+  });
+  return { imageUrl: source.assetUrl, assetKey: source.assetKey, studioResult: results.find((item) => item.assetKey === source.assetKey) };
 }
 
 // ── Importar plano dibujado o creado (F1 plano importado) ─────────────────────
@@ -208,8 +258,13 @@ async function importPlanStudioImpl(
 ): Promise<PlanImportStudioResult> {
   const { ctx, state } = await context(projectId);
   const source = await persistStudioSource(base64);
-  // Los redibujados del estudio se conservan: importar un fichero no debe borrar trabajo.
-  return importPlanFromImage(ctx, projectId, source, options, { ...state, source, plan: source, sourceKind: 'upload' });
+  // El trabajo anterior queda en la galería; el nuevo origen empieza sin
+  // redibujados ni render activos de otro plano.
+  const results = appendStudioResult(state, source, { kind: 'source' });
+  return importPlanFromImage(ctx, projectId, source, options, {
+    ...state, source, plan: source, sourceKind: 'upload', redraws: undefined,
+    cenital: undefined, canvasDescription: undefined, results,
+  });
 }
 
 /**
@@ -233,6 +288,50 @@ async function importStudioPlanStudioImpl(
   return importPlanFromImage(ctx, projectId, state.plan, options, state);
 }
 
+/** Vuelve a un origen o redibujado guardado sin confundir sus medidas con las de otro plano. */
+export async function selectStudioResult(projectId: string, assetKey: string) {
+  return runAction(() => selectStudioResultImpl(projectId, assetKey));
+}
+
+async function selectStudioResultImpl(projectId: string, assetKey: string) {
+  const { ctx, state } = await context(projectId);
+  const results = studioResults(state);
+  const selected = results.find((item) => item.assetKey === assetKey);
+  if (!selected || selected.kind === 'render') fail('Este resultado no es un plano de trabajo.');
+  const sourceKey = selected.kind === 'source' ? selected.assetKey : selected.sourceKey;
+  if (!sourceKey || !results.some((item) => item.kind === 'source' && item.assetKey === sourceKey)) {
+    fail('No se encuentra el original de este redibujado.');
+  }
+  const sourceUrl = await resolveRenderUrl({ assetKey: sourceKey });
+  const planUrl = await resolveRenderUrl({ assetKey: selected.assetKey });
+  if (!sourceUrl || !planUrl) fail('No se pudo recuperar el plano guardado.');
+  const source = { assetKey: sourceKey, assetUrl: sourceUrl };
+  const plan = { assetKey: selected.assetKey, assetUrl: planUrl };
+  await saveStudio(ctx, projectId, {
+    ...state, results, source, plan, sourceKind: 'upload',
+    plano: undefined, planImport: undefined, planImportApplied: false,
+    planImportRevision: undefined, quality: undefined,
+    cenital: undefined, canvasDescription: undefined, escalaEstimada: undefined,
+    redrawMode: selected.kind === 'redraw' ? selected.mode : undefined,
+    redraws: undefined,
+    ...(selected.kind === 'redraw' ? {
+      redraws: { [selected.mode ?? 'tecnico']: plan },
+    } : {}),
+  });
+  return { imageUrl: planUrl, sourceUrl, assetKey: selected.assetKey };
+}
+
+/** Prepara otro plano conservando el historial y las preferencias no geométricas. */
+export async function startNewStudioPlan(projectId: string) {
+  return runAction(async () => {
+    const { ctx, state } = await context(projectId);
+    await saveStudio(ctx, projectId, {
+      results: studioResults(state), estilo: state.estilo, detalles: state.detalles,
+    });
+    return { ok: true };
+  });
+}
+
 /**
  * Recalcula la importación con las medidas corregidas en la tabla (sin volver
  * a llamar a la IA: la extracción cruda quedó guardada en el estudio).
@@ -240,7 +339,7 @@ async function importStudioPlanStudioImpl(
 export async function refitPlanImportStudio(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
-  options: { includeFurniture?: boolean; generalWidthMm?: number } = {},
+  options: { includeFurniture?: boolean; generalWidthMm?: number | null; doorOverrides?: PlanDoorOverride[] } = {},
 ) {
   return runAction(() => refitPlanImportStudioImpl(projectId, roomOverrides, options));
 }
@@ -248,17 +347,22 @@ export async function refitPlanImportStudio(
 async function refitPlanImportStudioImpl(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
-  options: { includeFurniture?: boolean; generalWidthMm?: number } = {},
+  options: { includeFurniture?: boolean; generalWidthMm?: number | null; doorOverrides?: PlanDoorOverride[] } = {},
 ): Promise<PlanImportResult & { quality: StudioQuality }> {
   const { ctx, state } = await context(projectId);
   if (!state.planImport) fail('Importa un plano primero.');
   const { raw, detected } = state.planImport;
-  const width = options.generalWidthMm;
+  const width = options.generalWidthMm === undefined
+    ? state.planImport.generalWidthMm : options.generalWidthMm;
   const generalWidthMm =
     typeof width === 'number' && Number.isFinite(width) && width >= 1000 && width <= 100000 ? Math.round(width) : undefined;
+  const safeOverrides = sanitizeOverrides(roomOverrides);
+  const doorOverrides = sanitizeDoorOverrides(options.doorOverrides ?? state.planImport.doorOverrides);
+  const includeFurniture = options.includeFurniture ?? state.planImport.includeFurniture ?? true;
   const result = buildPlanImport(raw, {
-    roomOverrides: sanitizeOverrides(roomOverrides),
-    includeFurniture: options.includeFurniture !== false,
+    roomOverrides: safeOverrides,
+    doorOverrides,
+    includeFurniture,
     ...(generalWidthMm !== undefined ? { generalWidthMm } : {}),
     normalize: importNormalizeOptions(detected),
   });
@@ -271,9 +375,17 @@ async function refitPlanImportStudioImpl(
   });
   await saveStudio(ctx, projectId, {
     ...state,
+    planImport: {
+      ...state.planImport, roomOverrides: safeOverrides,
+      doorOverrides,
+      includeFurniture,
+      generalWidthMm,
+    },
     plano: result.plano,
     escalaEstimada: result.escalaEstimada,
     quality,
+    planImportApplied: false,
+    planImportRevision: crypto.randomUUID(),
   });
   return { ...result, quality };
 }
@@ -294,12 +406,53 @@ async function applyPlanImportStudioImpl(
   result: PlanImportResult,
 ): Promise<{ issues: string[]; needsCorrection: boolean }> {
   const { ctx, state } = await context(projectId);
-  assertPlanoRasterizable(result.plano);
-  const { issues } = await importPlanToEditor(ctx, projectId, result);
-  // Con fiabilidad bajo mínimos el plano SÍ se lleva al editor (es donde el
-  // usuario lo arregla), pero queda marcado: nada de pago se genera hasta que
-  // lo corrija. El veredicto se lee del estudio, no del cliente.
-  return { issues, needsCorrection: state.quality?.decision === 'block' };
+  if (!state.planImport) fail('Importa y revisa un plano antes de enviarlo al editor.');
+  // El navegador solo confirma la revisión que vio. Reconstruir desde la
+  // extracción y las correcciones guardadas impide aplicar cotas/objetos de
+  // otra importación o falsear `escalaEstimada` desde el cliente.
+  const canonical = buildPlanImport(state.planImport.raw, {
+    normalize: importNormalizeOptions(state.planImport.detected),
+    roomOverrides: state.planImport.roomOverrides,
+    doorOverrides: state.planImport.doorOverrides,
+    generalWidthMm: state.planImport.generalWidthMm,
+    includeFurniture: state.planImport.includeFurniture,
+  });
+  const payload = (value: PlanImportResult) => ({
+    plano: value.plano,
+    sourceFrameMm: value.sourceFrameMm,
+    escalaEstimada: value.escalaEstimada,
+    writtenDimensions: value.writtenDimensions,
+    corrections: value.corrections,
+    exteriors: value.exteriors,
+    furniture: value.furniture,
+    warnings: value.warnings,
+  });
+  // La acción y JSONB pueden omitir `undefined` o reordenar claves: comparar
+  // solo el valor serializable que el navegador realmente confirma.
+  if (!result || !isDeepStrictEqual(JSON.parse(JSON.stringify(payload(result))), JSON.parse(JSON.stringify(payload(canonical)))))
+    fail('El plano cambió desde la revisión. Recalcula las medidas y confirma de nuevo.');
+  // Una extracción guardada puede reabrirse tras mejorar el reconstruidor. El
+  // usuario confirma el plano canónico que acaba de ver; el JSON vectorial
+  // persistido antes de esa mejora no debe impedir llevarlo al editor.
+  const cachedMatches = isDeepStrictEqual(state.plano, JSON.parse(JSON.stringify(canonical.plano)));
+  const unsafe = blockingPlanImportWarning(canonical.warnings);
+  const quality = unsafe ? {
+    score: null,
+    decision: 'block' as const,
+    reasons: [unsafe.message, 'Corrige la distribución en el editor antes de generar diseños o vistas.'],
+    failOpen: false,
+  } : !cachedMatches && state.quality?.decision === 'proceed'
+    ? await evaluatePlanQuality(ctx, projectId, state.planImport.image, { raw: state.planImport.raw, detected: state.planImport.detected, result: canonical })
+    : state.quality;
+  assertPlanoRasterizable(canonical.plano);
+  const { issues } = await importPlanToEditor(ctx, projectId, canonical, quality);
+  await saveStudio(ctx, projectId, {
+    ...state, plano: canonical.plano, escalaEstimada: canonical.escalaEstimada,
+    quality, planImportApplied: true, planImportRevision: crypto.randomUUID(),
+  });
+  // El plano se lleva al editor para corregirlo. Un bloqueo de calidad o una
+  // escala aún estimada impiden generar hasta revisar el documento.
+  return { issues, needsCorrection: quality?.decision === 'block' || canonical.escalaEstimada };
 }
 
 /** Solo números plausibles y nombres saneados entran en el solver desde la tabla. */
@@ -318,4 +471,17 @@ function sanitizeOverrides(rows: WrittenRoomDimensions[]): WrittenRoomDimensions
       ...(row.exterior === true ? { exterior: true } : {}),
     };
   });
+}
+
+function sanitizeDoorOverrides(items: PlanDoorOverride[] | undefined): PlanDoorOverride[] {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 100).flatMap((item) =>
+    item && typeof item.apertureId === 'string' && item.apertureId.length <= 64 &&
+    (item.swing === undefined || item.swing === 'left' || item.swing === 'right') &&
+    (item.hinge === undefined || item.hinge === 'left' || item.hinge === 'right')
+      ? [{ apertureId: item.apertureId,
+        ...(item.swing ? { swing: item.swing } : {}), ...(item.hinge ? { hinge: item.hinge } : {}),
+        ...(typeof item.position === 'number' && Number.isFinite(item.position) && item.position >= 0 && item.position <= 1
+          ? { position: item.position } : {}) }]
+      : []);
 }

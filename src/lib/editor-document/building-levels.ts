@@ -1,12 +1,13 @@
 import { upgradeWalkthroughDocument } from './walkthrough';
 import { emptyEditorDocument, type EditorDocument } from './schema';
 import { upgradeCeilingDocument } from './ceiling-commands';
+import { upgradeLightingDocument } from './lighting-migration';
 import { upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 
 /** Old commands remain scoped to root arrays; never duplicate the active document. */
 export function levelDocument(input: EditorDocument): EditorDocument {
-  const copy = structuredClone(input); delete copy.levels; delete copy.activeLevelId;
+  const copy = structuredClone(input); delete copy.levels; delete copy.activeLevelId; delete copy.geographicSite;
   return copy;
 }
 function building(input: EditorDocument): EditorDocument {
@@ -25,13 +26,14 @@ export function switchBuildingLevel(input: EditorDocument, id: string): EditorDo
   const content = target.document;
   current.document = levelDocument(doc); delete target.document;
   return parseEditorDocument({ ...content, schemaVersion: Math.max(5, content.schemaVersion), floorFinishes: content.floorFinishes ?? [],
-    levels: doc.levels, activeLevelId: id, revision: doc.revision + 1 });
+    levels: doc.levels, activeLevelId: id, geographicSite: doc.geographicSite, revision: doc.revision + 1 });
 }
 export function addBuildingLevel(input: EditorDocument, copyActive = false): EditorDocument {
   const doc = building(input), id = crypto.randomUUID();
   let content = copyActive ? levelDocument(doc) : upgradeSpatialDocument(emptyEditorDocument());
   if (doc.schemaVersion >= 8) content = upgradeCeilingDocument(content);
   if (doc.schemaVersion >= 9) content = upgradeWalkthroughDocument(content);
+  if (doc.schemaVersion >= 12) content = upgradeLightingDocument(content);
   if (content.schemaVersion < 5) content.schemaVersion = 5; content.floorFinishes ??= [];
   doc.levels!.push({ id, name: `Planta ${doc.levels!.length}`, heightMm: doc.levels!.find((l) => l.id === doc.activeLevelId)!.heightMm, document: content });
   return switchBuildingLevel(doc, id);

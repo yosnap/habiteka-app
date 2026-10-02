@@ -54,6 +54,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node for static documentation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/site/package-lock.json
+
+      - name: Documentation accompanies changes
+        env:
+          DOCS_CHANGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$DOCS_CHANGE_BASE" ] && [ "$DOCS_CHANGE_BASE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/check-docs-updates.mjs --base "$DOCS_CHANGE_BASE"
+          else
+            node scripts/check-docs-updates.mjs --base HEAD^
+          fi
+
+      - name: Install documentation compiler
+        run: npm ci --prefix docs/site --no-audit --no-fund
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

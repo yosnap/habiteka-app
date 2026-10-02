@@ -43,9 +43,12 @@ export type AiCallContext = AiCostScope;
 export async function getChatVisionAdapter(
   ctx: AiCallContext,
   action: ModelAction,
+  options: { preferredProvider?: ResolvedRoute['provider'] } = {},
 ): Promise<ChatVisionAdapter> {
   const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' && route.provider !== 'openai');
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de chat compatible para ${action}`);
+  if (options.preferredProvider && routes.some((route) => route.provider === options.preferredProvider))
+    routes.sort((a, b) => Number(b.provider === options.preferredProvider) - Number(a.provider === options.preferredProvider));
 
   return {
     async chat(req: ChatRequest): Promise<ChatResult> {

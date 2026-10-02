@@ -36,14 +36,22 @@ import {
 export interface PlanSvgOptions {
   /** Resolución de salida: píxeles por metro de plano. */
   pxPerMeter?: number;
+  /** Marco fijo en milímetros; al superponer, coincide con la imagen fuente completa. */
+  viewBox?: { minX: number; minY: number; width: number; height: number };
+  /** La imagen fuente manda en la proporción, también si la escala X/Y estimada difiere. */
+  stretchToFrame?: boolean;
   theme?: Partial<PlanSvgTheme>;
   showDimensions?: boolean;
   showLabels?: boolean;
+  /** Etiquetas concretas que se conservan cuando el resto se oculta sobre el original. */
+  labelZoneIds?: string[];
   /**
    * Superficies (m²) bajo el nombre de cada estancia. Apagarlas cuando la
    * escala es estimada: un área inventada presentada como dato engaña.
    */
   showAreas?: boolean;
+  /** Marca puertas con números en la superposición para corregir giro/bisagra. */
+  showDoorNumbers?: boolean;
 }
 
 const DEFAULT_PX_PER_METER = 60;
@@ -63,6 +71,10 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
   // factor 1 corresponde a un plano de referencia de ~9 m de lado.
   const sizeFactor = Math.min(Math.max((bounds.maxX - bounds.minX) / 9000, 0.7), 1.8);
   const theme = scaleTheme({ ...DEFAULT_PLAN_SVG_THEME, ...options.theme }, sizeFactor);
+  const minX = options.viewBox?.minX ?? bounds.minX - theme.paddingMm;
+  const minY = options.viewBox?.minY ?? bounds.minY - theme.paddingMm;
+  const w = options.viewBox?.width ?? bounds.maxX - bounds.minX + theme.paddingMm * 2;
+  const h = options.viewBox?.height ?? bounds.maxY - bounds.minY + theme.paddingMm * 2;
   // Referencia "interior" del plano para decidir lados: cotas hacia fuera,
   // barrido de puertas hacia dentro.
   const planCenter = centroid(walls.flatMap((w) => [w.from, w.to]));
@@ -76,14 +88,30 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
     }
   }
 
-  // 2. Muros macizos.
-  for (const wall of walls) layers.push(wallPolygon(wall, theme));
+  // 2. Muros macizos. En la superposición transparente, una máscara abre los
+  // huecos de verdad: pintarlos de transparente encima no borraría el muro.
+  if (theme.background === 'transparent') {
+    const gaps = plano.zones.flatMap((zone) => zone.apertures.map((ap) => {
+      const wall = wallById.get(ap.wallId);
+      return wall ? apertureGapShape(ap, wall, '#000000') : '';
+    })).join('');
+    layers.push(`<defs><mask id="plan-wall-openings" maskUnits="userSpaceOnUse"><rect x="${fmt(minX)}" y="${fmt(minY)}" width="${fmt(w)}" height="${fmt(h)}" fill="#ffffff"/>${gaps}</mask></defs>`);
+    layers.push(`<g mask="url(#plan-wall-openings)">${walls.map((wall) => wallPolygon(wall, theme)).join('')}</g>`);
+  } else {
+    for (const wall of walls) layers.push(wallPolygon(wall, theme));
+  }
 
   // 3. Aberturas: hueco sobre el poché + simbología.
+  let doorNumber = 0;
   for (const zone of plano.zones) {
     for (const ap of zone.apertures) {
       const wall = wallById.get(ap.wallId);
-      if (wall) layers.push(renderAperture(ap, wall, plano.zones, theme));
+      if (wall) {
+        layers.push(renderAperture(ap, wall, plano.zones, theme));
+        if (ap.kind === 'puerta' && options.showDoorNumbers) {
+          layers.push(doorNumberSymbol(ap, wall, ++doorNumber, theme));
+        }
+      }
     }
   }
 
@@ -103,19 +131,18 @@ export function planoToSvg(plano: Plano2dPayload, options: PlanSvgOptions = {}):
   }
 
   // 5. Etiquetas de estancia: nombre + superficie.
-  if (showLabels) {
-    for (const zone of plano.zones) layers.push(zoneLabel(zone, theme, showAreas));
+  if (showLabels || options.labelZoneIds?.length) {
+    const selected = new Set(options.labelZoneIds);
+    for (const zone of plano.zones) {
+      if (showLabels || selected.has(zone.id)) layers.push(zoneLabel(zone, theme, showLabels && showAreas));
+    }
   }
 
-  const minX = bounds.minX - theme.paddingMm;
-  const minY = bounds.minY - theme.paddingMm;
-  const w = bounds.maxX - bounds.minX + theme.paddingMm * 2;
-  const h = bounds.maxY - bounds.minY + theme.paddingMm * 2;
   const pxW = Math.max(1, Math.round((w / 1000) * pxPerMeter));
   const pxH = Math.max(1, Math.round((h / 1000) * pxPerMeter));
 
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${pxW}" height="${pxH}" viewBox="${fmt(minX)} ${fmt(minY)} ${fmt(w)} ${fmt(h)}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${pxW}" height="${pxH}" viewBox="${fmt(minX)} ${fmt(minY)} ${fmt(w)} ${fmt(h)}"${options.stretchToFrame ? ' preserveAspectRatio="none"' : ''}>`,
     `<rect x="${fmt(minX)}" y="${fmt(minY)}" width="${fmt(w)}" height="${fmt(h)}" fill="${theme.background}"/>`,
     ...layers,
     '</svg>',
@@ -160,12 +187,12 @@ function renderAperture(ap: PlanAperture, wall: PlanWall, zones: PlanZone[], the
   const a = add(center, dir, -halfW);
   const b = add(center, dir, halfW);
 
-  const parts = [apertureGap(a, b, n, wall.thicknessMm, theme.background)];
+  const parts = theme.background === 'transparent' ? [] : [apertureGap(a, b, n, wall.thicknessMm, theme.background)];
   if (ap.kind === 'puerta') {
     // La hoja bate hacia la estancia a la que se entra (misma regla que el editor).
     const inward = doorSwing(ap, wall, zones) === 'left' ? n : { x: -n.x, y: -n.y };
     parts.push(jambLines(a, b, n, wall.thicknessMm, theme));
-    parts.push(doorSymbol(a, b, inward, theme));
+    parts.push(doorSymbol(a, b, inward, theme, ap.hinge));
   } else if (ap.kind === 'ventana') {
     parts.push(windowSymbol(a, b, n, wall.thicknessMm, theme));
   } else {
@@ -173,6 +200,22 @@ function renderAperture(ap: PlanAperture, wall: PlanWall, zones: PlanZone[], the
     parts.push(openingSymbol(a, b, theme));
   }
   return parts.join('');
+}
+
+function doorNumberSymbol(ap: PlanAperture, wall: PlanWall, number: number, theme: PlanSvgTheme): string {
+  const center = lerp(wall.from, wall.to, ap.position);
+  const radius = 105;
+  return `<circle cx="${fmt(center.x)}" cy="${fmt(center.y)}" r="${radius}" fill="#ffffff" stroke="${theme.lineColor}" stroke-width="18"/><text x="${fmt(center.x)}" y="${fmt(center.y + 48)}" text-anchor="middle" font-family="${theme.fontFamily}" font-size="135" font-weight="700" fill="${theme.lineColor}">${number}</text>`;
+}
+
+function apertureGapShape(ap: PlanAperture, wall: PlanWall, color: string): string {
+  const dir = direction(wall.from, wall.to);
+  if (!dir) return '';
+  const n = normal(dir);
+  const center = lerp(wall.from, wall.to, ap.position);
+  const a = add(center, dir, -ap.widthMm / 2);
+  const b = add(center, dir, ap.widthMm / 2);
+  return apertureGap(a, b, n, wall.thicknessMm, color);
 }
 
 /** Nombre de la estancia y (opcionalmente) su superficie, centrados en el contorno. */

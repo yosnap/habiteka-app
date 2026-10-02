@@ -9,20 +9,40 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
   const box = (x: number, y: number, z: number, a: number, b: number, c: number, tint = color, extra: Partial<FurnitureVolume> = {}) => {
     parts.push({ x: x * w, y: y * d, widthMm: a * w, depthMm: b * d, bottom: e + z * h, top: e + (z + c) * h, color: tint, ...extra });
   };
-  const posts = (top = .9) => { for (const x of [0, .94]) for (const y of [0, .94]) box(x, y, 0, .06, .06, top); };
+  const posts = (top = .9, extra: Partial<FurnitureVolume> = {}) => {
+    for (const x of [0, .94]) for (const y of [0, .94]) box(x, y, 0, .06, .06, top, color, extra);
+  };
   const basin = () => {
     box(0, 0, 0, 1, 1, .08); box(0, 0, .08, .06, 1, .92); box(.94, 0, .08, .06, 1, .92);
     box(.06, 0, .08, .88, .06, .92); box(.06, .94, .08, .88, .06, .92);
   };
   switch (item.kind) {
-    case 'pergola': case 'pergola-aluminio': case 'pergola-metal': posts(); box(0, 0, .86, 1, .08, .08); box(0, .92, .86, 1, .08, .08);
-      for (let i = 0; i < 9; i++) box(i / 9, 0, .94, .06, 1, .06); break;
+    case 'pergola': case 'pergola-aluminio': case 'pergola-metal': {
+      const finish: Partial<FurnitureVolume> = item.kind === 'pergola' ? {} : { appearance: 'powder-coated-metal' };
+      posts(.9, finish);
+      box(0, 0, .86, 1, .08, .08, color, finish);
+      box(0, .92, .86, 1, .08, .08, color, finish);
+      const louverCount = Math.max(2, Math.min(64, Math.ceil(w / 240)));
+      const louverWidth = Math.min(110 / w, .55 / louverCount);
+      for (let i = 0; i < louverCount; i++) {
+        const x = (i + .5) / louverCount - louverWidth / 2;
+        box(x, 0, .94, louverWidth, 1, .045, color, finish);
+      }
+      break;
+    }
     case 'carpa': {
-      // Cuatro postes, cubierta a dos niveles y lona transparente en el fondo y los laterales; el frente queda abierto.
+      // Frente abierto; los laterales recogidos dejan solo un rollo alto, fuera del paso a altura de persona.
       posts(.8);
-      box(0, 0, .8, 1, 1, .04); box(.08, .08, .84, .84, .84, .06); box(.2, .2, .9, .6, .6, .06); box(.35, .35, .96, .3, .3, .04);
+      box(0, 0, .8, 1, 1, .2, color, { shape: 'hip-roof', materialId: 'polyhaven:fabric_pattern_05',
+        useColorMap: false, walkthroughPart: 'cubierta' });
       const clear = { opacity: .3 };
-      box(0, 0, 0, 1, .015, .8, '#dfe9ec', clear); box(0, 0, 0, .015, 1, .8, '#dfe9ec', clear); box(.985, 0, 0, .015, 1, .8, '#dfe9ec', clear);
+      const leftRolled = item.rolledSides === 'left' || item.rolledSides === 'both';
+      const rightRolled = item.rolledSides === 'right' || item.rolledSides === 'both';
+      box(0, 0, 0, 1, .015, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona del fondo' });
+      if (leftRolled) box(0, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72, walkthroughPart: 'lona izquierda' });
+      else box(0, 0, 0, .015, 1, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona izquierda' });
+      if (rightRolled) box(.982, .06, .76, .018, .88, .04, '#dfe9ec', { opacity: .72, walkthroughPart: 'lona derecha' });
+      else box(.985, 0, 0, .015, 1, .8, '#dfe9ec', { ...clear, walkthroughPart: 'lona derecha' });
       break;
     }
     case 'toldo':
@@ -61,7 +81,7 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
       box(.06, .04, .22, .88, .92, .3); box(.15, .3, .52, .7, .42, .43, '#53646b'); box(.18, .32, .95, .64, .38, .05);
       for (const x of [0, .86]) for (const y of [.16, .7]) box(x, y, 0, .14, .16, .32, '#303331');
       for (const x of [.12, .72]) box(x, .02, .35, .16, .03, .1, '#f6e9bf'); break;
-    case 'piscina': case 'estanque': basin(); box(.06, .06, .75, .88, .88, .02, '#64afbe'); break;
+    case 'piscina': case 'estanque': basin(); box(.06, .06, .75, .88, .88, .02, '#398da4', { appearance: 'water' }); break;
     case 'fuente':
       box(0, 0, 0, 1, 1, .15); box(.08, .08, .15, .84, .84, .025, '#6bb3be');
       box(.44, .44, .15, .12, .12, .65); box(.2, .2, .7, .6, .6, .1); box(.48, .48, .8, .04, .04, .2, '#a8d4dc'); break;

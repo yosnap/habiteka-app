@@ -34,4 +34,17 @@ describe('rasterizeEditorDocument', () => {
     expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(1280);
     expect(result.aspectRatio).toBeTruthy();
   });
+  it('recorta una referencia de diseño al polígono elegido', async () => {
+    const doc = emptyEditorDocument();
+    doc.vertices.push({ id: 'a', x: 0, y: 0 }, { id: 'b', x: 10_000, y: 0 });
+    const full = await rasterizeEditorDocument(doc);
+    const zone = await rasterizeEditorDocument(doc, [
+      { x: 0, y: 0 }, { x: 2_000, y: 0 }, { x: 2_000, y: 2_000 }, { x: 0, y: 2_000 },
+    ]);
+    expect(zone.base64).not.toBe(full.base64);
+    expect(zone.aspectRatio).toBe('1:1');
+    const meta = await sharp(Buffer.from(zone.base64, 'base64')).metadata();
+    expect(meta.width).toBe(1280);
+    expect(meta.height).toBe(1280);
+  });
 });

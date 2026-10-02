@@ -11,20 +11,20 @@ const suggestions = [
 ];
 
 export function RenderInstructionField({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
-  const [preset, setPreset] = useState('none');
+  const preset = suggestions.find((item) => item.text === value)?.id ?? 'custom';
   const [custom, setCustom] = useState(false);
   return <div className="space-y-2">
     <label className="text-ink-soft flex flex-col gap-1 text-sm">Instrucciones de diseño
-      <ModernSelect value={custom ? 'custom' : preset} disabled={disabled} onChange={(event) => {
+      <ModernSelect compact value={custom ? 'custom' : preset} disabled={disabled} onChange={(event) => {
         const id = event.target.value;
         setCustom(id === 'custom');
-        if (id !== 'custom') { setPreset(id); onChange(suggestions.find((item) => item.id === id)?.text ?? ''); }
+        if (id !== 'custom') onChange(suggestions.find((item) => item.id === id)?.text ?? '');
       }}>
         {suggestions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         <option value="custom">Personalizar instrucciones…</option>
       </ModernSelect>
     </label>
-    {custom ? <label className="text-ink-soft flex flex-col gap-1 text-sm">Tus instrucciones
+    {custom || preset === 'custom' ? <label className="text-ink-soft flex flex-col gap-1 text-sm">Tus instrucciones
       <textarea value={value} disabled={disabled} maxLength={500} rows={4} onChange={(e) => onChange(e.target.value)}
         placeholder="Describe los acabados y el ambiente que buscas…" className="border-line bg-surface resize-none rounded-control border px-2 py-1.5 text-sm" />
       <span className="text-xs">{value.length}/500 · Se respetan los permisos de decoración.</span>

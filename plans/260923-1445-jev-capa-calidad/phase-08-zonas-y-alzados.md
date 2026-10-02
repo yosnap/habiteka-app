@@ -45,6 +45,11 @@ Paulo dio el «sí» a máscara + 2 pasadas. Suite: 260 ficheros / 1667 tests en
 - **Maqueta seccionada (23:10):** las vistas desde fuera (alzados, isométrica, dron, cenital o cámara libre
   con muros recortados) llevan `SECTION_VIEW_RULE`: el borde del corte es el límite y no se prolongan suelo,
   paredes ni techo hacia la cámara. Prompt `habiteka-selected-view-v2`.
+- **Exterior terminado (27/09):** cuando una sola planta tiene todas las estancias interiores cubiertas,
+  las capturas frontal/trasera/laterales/dron muestran fachada y techo sólidos y llevan una regla de
+  exterior terminado; las maquetas abiertas mantienen la regla de sección. Se verificó la referencia
+  de FInca y un render de dron. La IA aún añadió terreno y árboles ausentes del 3D, por lo que esa imagen
+  no demuestra fidelidad suficiente para aprobar el diseño.
 - **Prompt compacto de vistas exteriores bajo el tope (23:25):** ids de estancia abreviados (`r0`…),
   valores comunes por planta (`wallDefaults`/`ceilingDefaults`/`floorDefaults`), política de techos condensada
   y, solo si aún no cabe, sin contornos de estancia/techo y luces resumidas por estancia. Plano real de Paulo

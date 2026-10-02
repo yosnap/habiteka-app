@@ -6,10 +6,14 @@ import { localToWorld } from './spatial-properties';
 import type { Point } from './schema';
 
 export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptions['additions'][number] | null {
+  if (item.id === 'habiteka:outdoor:tira-led') return 'lights';
+  if (item.id === 'habiteka:outdoor:puf-exterior') return 'furniture';
   if (item.profile === 'plant') return 'plants';
+  // Plantas, macetas y jardineras de exterior son vegetación; el resto del perfil «outdoor» (carpas, pérgolas) es construcción.
+  if (item.profile === 'outdoor' && /planta|maceta|jardinera/.test(item.id)) return 'plants';
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';
-  if (['rug', 'curtain'].includes(item.profile)) return 'decor';
+  if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';
   if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile)) return 'furniture';
   return null; // No instalaciones, electrodomésticos ni construcción implícita.
 }
@@ -20,13 +24,14 @@ export function allowedProposalCatalog(item: FurnitureCatalogEntry, options: Ren
     && (options.freedom === 'free' || options.additions.includes(category));
 }
 
-export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions) {
+export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !allowedProposalCatalog(catalog, options)) return false;
-  if (options.placement === 'all') return true;
   const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, widthMm: catalog.widthMm, depthMm: catalog.depthMm };
   const footprint = [[0, 0], [catalog.widthMm, 0], [catalog.widthMm, catalog.depthMm], [0, catalog.depthMm]]
     .map(([x, y]) => localToWorld(transform, { x: x!, y: y! }));
+  if (zonePolygon && !polygonContainsFootprint(zonePolygon, footprint)) return false;
+  if (options.placement === 'all') return true;
   return options.regions.some(({ polygon }) => polygonContainsFootprint(polygon, footprint));
 }
 

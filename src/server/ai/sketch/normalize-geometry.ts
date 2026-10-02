@@ -35,6 +35,8 @@ import {
 import { detectRoomRegions, type RoomRegion } from './detect-room-regions';
 import { assignMeasuredThickness, classifyWallThickness } from './wall-thickness';
 import { zonesFromRooms, type RoomBox } from './zones-from-rooms';
+import { reliableScale } from './reliable-scale';
+import { credibleDoorArc, observedDoorArc } from './door-arc-geometry';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -135,6 +137,8 @@ export interface NormalizedSketch {
 /** Muros medidos y limpios, huecos, semillas de abertura y escala: base común de las dos reconstrucciones. */
 export interface PreparedSketch {
   opts: NormalizeOptions;
+  /** Trazos estructurales leídos por visión, útiles si el raster pierde una fachada rayada. */
+  modelWalls: SketchWall[];
   /** Muros limpios en unidades de imagen (medidos por píxeles o del modelo). */
   walls: SketchWall[];
   /** Muros de origen sin limpiar (con grosor medido, si lo hay). */
@@ -160,7 +164,8 @@ export function prepareSketch(raw: RawSketch, options: Partial<NormalizeOptions>
   // Semillas de abertura con geometría ABSOLUTA antes de tocar los muros: los
   // índices del modelo dejan de valer tras filtrar/fusionar segmentos.
   const seeds = raw.aberturas
-    .map((a) => apertureSeed(a, raw.muros))
+    .filter((a) => a.tipo !== 'puerta' || raw.habitaciones.length < 4 || credibleDoorArc(a, raw.aberturas, raw.muros, opts.imageHeightOverWidth))
+    .map((a) => apertureSeed(a, raw.muros, opts.imageHeightOverWidth))
     .filter((s): s is ApertureSeed => s !== null);
 
   const fromPixels = (opts.wallsOverride?.length ?? 0) >= MIN_OVERRIDE_WALLS;
@@ -199,7 +204,7 @@ export function prepareSketch(raw: RawSketch, options: Partial<NormalizeOptions>
   // La limpieza puede colapsar un muro corto en un punto: sin dirección, fuera.
   walls = walls.filter((w) => segmentLength(w) > 0);
 
-  return { opts, walls, sourceWalls, gaps, seeds, fromPixels, scale: resolveScale(raw, walls, opts) };
+  return { opts, modelWalls: raw.muros, walls, sourceWalls, gaps, seeds, fromPixels, scale: resolveScale(raw, walls, opts) };
 }
 
 export function normalizeSketchDetailed(
@@ -398,8 +403,18 @@ function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOption
   if (raw.escalaFiable === true && (raw.anchoMetros ?? raw.altoMetros) !== undefined && walls.length > 0) {
     const xs = walls.flatMap((w) => [w.x1, w.x2]);
     const ys = walls.flatMap((w) => [w.y1, w.y2]);
-    const spanX = Math.max(...xs) - Math.min(...xs);
-    const spanY = Math.max(...ys) - Math.min(...ys);
+    const roomPoints = raw.habitaciones.flatMap((room) => room.poligono);
+    const roomXs = roomPoints.map((point) => point.x);
+    const roomYs = roomPoints.map((point) => point.y);
+    const wallSpanX = Math.max(...xs) - Math.min(...xs);
+    const wallSpanY = Math.max(...ys) - Math.min(...ys);
+    const roomSpanX = roomXs.length ? Math.max(...roomXs) - Math.min(...roomXs) : 0;
+    const roomSpanY = roomYs.length ? Math.max(...roomYs) - Math.min(...roomYs) : 0;
+    // Las líneas de cota y los títulos pueden entrar como falsos muros. Si
+    // rebasan claramente el perímetro de las estancias, anclar la escala a
+    // la caja de muros encogería la planta al llevarla al editor.
+    const spanX = roomSpanX > 0.2 && wallSpanX > roomSpanX * 1.08 ? roomSpanX : wallSpanX;
+    const spanY = roomSpanY > 0.2 && wallSpanY > roomSpanY * 1.08 ? roomSpanY : wallSpanY;
     const reliable = reliableScale(raw, spanX, spanY, opts.imageHeightOverWidth);
     if (reliable) return reliable;
   }
@@ -434,58 +449,6 @@ function resolveScale(raw: RawSketch, walls: SketchWall[], opts: NormalizeOption
 
   return { mmPerUnitX: mmX, mmPerUnitY: mmY };
 }
-
-/**
- * Escala fiable e ISOTRÓPICA. Una imagen no deforma ejes, así que con la
- * proporción real conocida basta un factor: el alto se deriva del ancho (o al
- * revés). Las dos cotas generales no siempre miden la misma caja que los muros
- * (la vertical de un plano puede abarcar terraza y entrada, fuera del
- * perímetro medido): se elige la cota general cuya escala concuerda con la
- * que implican las medidas escritas por estancia sobre sus cajas leídas. Sin
- * proporción de imagen se conserva la escala por eje.
- */
-function reliableScale(
-  raw: RawSketch,
-  spanX: number,
-  spanY: number,
-  aspect: number | undefined,
-): Scale | null {
-  const fromWidth = raw.anchoMetros !== undefined && spanX > 0 ? (raw.anchoMetros * 1000) / spanX : undefined;
-  const fromHeight = raw.altoMetros !== undefined && spanY > 0 ? (raw.altoMetros * 1000) / spanY : undefined;
-  if (aspect === undefined || !(aspect > 0)) {
-    if (fromWidth === undefined && fromHeight === undefined) return null;
-    const mmX = fromWidth ?? fromHeight!;
-    return { mmPerUnitX: mmX, mmPerUnitY: fromHeight ?? mmX };
-  }
-  // Candidatos expresados como mm por unidad de imagen en X.
-  const candidates = [fromWidth, fromHeight !== undefined ? fromHeight / aspect : undefined]
-    .filter((c): c is number => c !== undefined && c > 0);
-  if (candidates.length === 0) return null;
-  const implied = scaleImpliedByRooms(raw, aspect);
-  const mmX =
-    implied === undefined
-      ? candidates[0]!
-      : candidates.reduce((best, c) => (Math.abs(c - implied) < Math.abs(best - implied) ? c : best));
-  return { mmPerUnitX: mmX, mmPerUnitY: mmX * aspect };
-}
-
-/** Mediana de (medida escrita / lado leído) sobre las estancias con cota: mm por unidad de imagen en X. */
-function scaleImpliedByRooms(raw: RawSketch, aspect: number): number | undefined {
-  const ratios: number[] = [];
-  for (const room of raw.habitaciones) {
-    if (room.poligono.length < 3) continue;
-    const xs = room.poligono.map((p) => p.x);
-    const ys = room.poligono.map((p) => p.y);
-    const w = Math.max(...xs) - Math.min(...xs);
-    const h = (Math.max(...ys) - Math.min(...ys)) * aspect;
-    if (room.anchoMetros !== undefined && w > 0.01) ratios.push((room.anchoMetros * 1000) / w);
-    if (room.altoMetros !== undefined && h > 0.01) ratios.push((room.altoMetros * 1000) / h);
-  }
-  if (ratios.length === 0) return undefined;
-  ratios.sort((a, b) => a - b);
-  return ratios[Math.floor(ratios.length / 2)];
-}
-
 
 function toMm(p: SketchPoint, s: Scale): PlanPoint {
   return { x: Math.round(p.x * s.mmPerUnitX), y: Math.round(p.y * s.mmPerUnitY) };
@@ -538,21 +501,33 @@ export interface ApertureSeed {
   center: SketchPoint;
   /** Ancho en unidades de imagen (a lo largo del muro), si el modelo lo dio. */
   widthUnit?: number;
+  /** Giro y bisagra referidos a la dirección del muro leído por visión. */
+  swing?: PlanAperture['swing'];
+  hinge?: PlanAperture['hinge'];
+  arcVisible?: boolean;
+  observedArc?: boolean;
+  sourceDirection?: SketchPoint;
 }
 
 /** Geometría absoluta de una abertura a partir del muro crudo que referencia. */
-function apertureSeed(a: SketchAperture, rawWalls: SketchWall[]): ApertureSeed | null {
+function apertureSeed(a: SketchAperture, rawWalls: SketchWall[], imageHeightOverWidth = 1): ApertureSeed | null {
   const w = rawWalls[a.muro];
   if (!w) return null;
   const len = segmentLength(w);
   if (len <= 0) return null;
+  const observed = observedDoorArc(a, imageHeightOverWidth);
   return {
     tipo: a.tipo,
-    center: {
+    center: observed?.center ?? {
       x: w.x1 + (w.x2 - w.x1) * a.posicion,
       y: w.y1 + (w.y2 - w.y1) * a.posicion,
     },
-    ...(a.anchoSobreMuro ? { widthUnit: a.anchoSobreMuro * len } : {}),
+    ...(observed ? { widthUnit: observed.widthUnit } : a.anchoSobreMuro ? { widthUnit: a.anchoSobreMuro * len } : {}),
+    ...(observed ? { swing: observed.swing, hinge: observed.hinge } :
+      a.tipo === 'puerta' ? { ...(a.swing ? { swing: a.swing } : {}), ...(a.hinge ? { hinge: a.hinge } : {}) } : {}),
+    ...(a.tipo === 'puerta' && a.arcVisible ? { arcVisible: true } : {}),
+    ...(observed ? { observedArc: true } : {}),
+    sourceDirection: observed?.sourceDirection ?? { x: (w.x2 - w.x1) / len, y: (w.y2 - w.y1) / len },
   };
 }
 
@@ -567,25 +542,32 @@ export function anchorApertures(
   planWalls: PlanWall[],
   scale: Scale,
   opts: NormalizeOptions,
+  maxPerp = opts.snapDistance * 2,
 ): PlanAperture[] {
   const out: PlanAperture[] = [];
-  const maxPerp = opts.snapDistance * 2;
 
   for (const seed of seeds) {
-    let best: { wall: PlanWall; t: number; perp: number } | null = null;
+    let best: { wall: PlanWall; t: number; score: number; dx: number; dy: number } | null = null;
     for (let i = 0; i < walls.length; i++) {
       const w = walls[i]!;
       const len = segmentLength(w);
       if (len <= 0) continue;
       const dx = (w.x2 - w.x1) / len;
       const dy = (w.y2 - w.y1) / len;
+      // Una puerta leída sobre un muro vertical no puede saltar al tramo
+      // horizontal vecino al resolver una unión en T.
+      if (seed.sourceDirection && Math.abs(seed.sourceDirection.x * dx + seed.sourceDirection.y * dy) < 0.9) continue;
       const relX = seed.center.x - w.x1;
       const relY = seed.center.y - w.y1;
       const t = (relX * dx + relY * dy) / len;
       if (t < -0.1 || t > 1.1) continue;
       const perp = Math.abs(relX * -dy + relY * dx);
       if (perp > maxPerp) continue;
-      if (!best || perp < best.perp) best = { wall: planWalls[i]!, t, perp };
+      // Cerca del extremo compartido, gana el tramo que contiene el centro
+      // antes que otro igual de paralelo al que habría que proyectarlo.
+      const overhang = Math.max(0, -t, t - 1) * len;
+      const score = perp + overhang;
+      if (!best || score < best.score) best = { wall: planWalls[i]!, t, score, dx, dy };
     }
     if (!best) continue; // Lejos de todo muro: era ruido o su muro se descartó.
 
@@ -615,7 +597,14 @@ export function anchorApertures(
     );
     if (duplicated) continue;
 
-    out.push({ id: `a${out.length}`, kind: seed.tipo, wallId: best.wall.id, position, widthMm });
+    const reversed = seed.sourceDirection &&
+      seed.sourceDirection.x * best.dx + seed.sourceDirection.y * best.dy < 0;
+    const flip = (side: 'left' | 'right') => side === 'left' ? 'right' : 'left';
+    out.push({
+      id: `a${out.length}`, kind: seed.tipo, wallId: best.wall.id, position, widthMm,
+      ...(seed.swing ? { swing: reversed ? flip(seed.swing) : seed.swing } : {}),
+      ...(seed.hinge ? { hinge: reversed ? flip(seed.hinge) : seed.hinge } : {}),
+    });
   }
   return out;
 }
@@ -629,18 +618,12 @@ const GAP_MATCH_DIST = 0.08;
 // Distancia al borde del plano por debajo de la cual un hueco sin tipo es ventana.
 const PERIMETER_TOL = 0.05;
 
-/**
- * Convierte los HUECOS medidos en semillas de abertura. El tipo lo decide la
- * semilla del modelo más cercana; sin candidata, la posición: un hueco en el
- * perímetro es una ventana, uno interior es una puerta. Las semillas del
- * modelo que no casan con ningún hueco solo se conservan si son ventanas (las
- * ventanas no siempre abren hueco en la banda detectada); las puertas
- * fantasma del modelo se descartan — la medición manda.
- */
+/** Convierte huecos medidos en aberturas; conserva ventanas exteriores sin hueco. */
 export function seedsFromGaps(
   gaps: WallGap[],
   modelSeeds: ApertureSeed[],
   walls: SketchWall[],
+  unmatchedInteriorKind: 'puerta' | 'hueco' = 'puerta',
 ): ApertureSeed[] {
   const xs = walls.flatMap((w) => [w.x1, w.x2]);
   const ys = walls.flatMap((w) => [w.y1, w.y2]);
@@ -654,10 +637,15 @@ export function seedsFromGaps(
     const near = modelSeeds
       .filter((s) => dist(s.center, gap.center) <= GAP_MATCH_DIST)
       .sort((a, b) => dist(a.center, gap.center) - dist(b.center, gap.center))[0];
+    const aligned = !near?.sourceDirection || !gap.direction ||
+      Math.abs(near.sourceDirection.x * gap.direction.x + near.sourceDirection.y * gap.direction.y) >= 0.9;
     return {
-      tipo: near?.tipo ?? (nearPerimeter(gap.center) ? 'ventana' : 'puerta'),
+      tipo: (aligned ? near?.tipo : undefined) ?? (nearPerimeter(gap.center) ? 'ventana' : unmatchedInteriorKind),
       center: gap.center,
       widthUnit: gap.width,
+      ...(aligned && near?.swing ? { swing: near.swing } : {}),
+      ...(aligned && near?.hinge ? { hinge: near.hinge } : {}),
+      ...(gap.direction ? { sourceDirection: gap.direction } : near?.sourceDirection ? { sourceDirection: near.sourceDirection } : {}),
     };
   });
   for (const seed of modelSeeds) {

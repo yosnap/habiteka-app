@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { rasterizeEditorDocument } from './rasterize-editor-document';
 import { rasterizeEditorStructure } from './rasterize-editor-structure';
 
@@ -11,13 +11,18 @@ export interface EditorDesignReferences {
 }
 
 /**
- * Prepara las cuatro referencias geométricas que recibe la IA de imagen: planta
- * activa, dos vistas axonométricas opuestas y una lámina sin rótulos con todas las
- * plantas. La geometría siempre procede del documento V2, nunca de una captura UI.
+ * Prepara cuatro referencias globales o una sola planta recortada a la zona.
+ * La geometría siempre procede del documento V2, nunca de una captura UI.
  */
 export async function rasterizeEditorDesignReferences(
   document: EditorDocument,
+  zone?: readonly Point[],
 ): Promise<EditorDesignReferences> {
+  if (zone?.length) {
+    const plan = await rasterizeEditorDocument(document, zone);
+    const reference = { base64: plan.base64, mimeType: 'image/png' as const };
+    return { primary: reference, all: [reference], aspectRatio: plan.aspectRatio };
+  }
   const [activePlan, front, reverse, levelSheet] = await Promise.all([
     rasterizeEditorDocument(document),
     rasterizeEditorStructure(document, 'front'),

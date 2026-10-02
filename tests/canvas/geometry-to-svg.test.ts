@@ -4,6 +4,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
+import { doorSymbol } from '@/lib/plan-svg/architectural-symbols';
+import { DEFAULT_PLAN_SVG_THEME } from '@/lib/plan-svg/plan-svg-theme';
 import type { Plano2dPayload } from '@/lib/contracts';
 
 /** Sala rectangular 4×3 m con puerta al sur, ventana al norte y una cota. */
@@ -39,6 +41,17 @@ function room(name = 'Salón'): Plano2dPayload {
 }
 
 describe('planoToSvg', () => {
+  it('dibuja el arco con centro en la bisagra para los dos lados y extremos', () => {
+    const a = { x: 0, y: 0 }, b = { x: 1000, y: 0 };
+    expect(doorSymbol(a, b, { x: 0, y: 1 }, DEFAULT_PLAN_SVG_THEME, 'left'))
+      .toContain('A 1000 1000 0 0 0 1000 0');
+    expect(doorSymbol(a, b, { x: 0, y: -1 }, DEFAULT_PLAN_SVG_THEME, 'left'))
+      .toContain('A 1000 1000 0 0 1 1000 0');
+    expect(doorSymbol(a, b, { x: 0, y: 1 }, DEFAULT_PLAN_SVG_THEME, 'right'))
+      .toContain('A 1000 1000 0 0 1 0 0');
+    expect(doorSymbol(a, b, { x: 0, y: -1 }, DEFAULT_PLAN_SVG_THEME, 'right'))
+      .toContain('A 1000 1000 0 0 0 0 0');
+  });
   it('produce un SVG con viewBox que envuelve el plano más el margen adaptativo', () => {
     const svg = planoToSvg(room());
     // Plano de 4000×3000 mm (bbox 4120 con grosor de muro). El margen escala con
@@ -47,6 +60,19 @@ describe('planoToSvg', () => {
     expect(svg).toContain('viewBox="-1040 -1040 6080 5080"');
     expect(svg.endsWith('</svg>')).toBe(true);
     expect(svg).not.toContain('NaN');
+  });
+
+  it('alinea una superposición transparente con el marco de la imagen y abre los huecos', () => {
+    const svg = planoToSvg(room(), {
+      viewBox: { minX: 0, minY: 0, width: 5000, height: 4000 },
+      stretchToFrame: true,
+      theme: { background: 'transparent', floorFill: 'transparent' },
+    });
+    expect(svg).toContain('viewBox="0 0 5000 4000"');
+    expect(svg).toContain('preserveAspectRatio="none"');
+    expect(svg).toContain('mask="url(#plan-wall-openings)"');
+    expect(svg).toContain('fill="#000000"');
+    expect(svg).toContain('fill="transparent"');
   });
 
   it('dibuja los cuatro muros como polígonos macizos', () => {
@@ -61,6 +87,14 @@ describe('planoToSvg', () => {
     expect(svg).toMatch(/A 900 900 /);
     // Hueco pintado con el color de fondo sobre el muro.
     expect(svg).toContain('fill="#ffffff"/>');
+  });
+
+  it('respeta el lado y la bisagra revisados y numera la puerta en la superposición', () => {
+    const plano = room();
+    plano.zones[0]!.apertures[0] = { ...plano.zones[0]!.apertures[0]!, swing: 'right', hinge: 'right' };
+    const svg = planoToSvg(plano, { showDoorNumbers: true });
+    expect(svg).toContain('<line x1="1550" y1="3000" x2="1550" y2="3900"');
+    expect(svg).toContain('>1</text>');
   });
 
   it('la ventana lleva triple línea y el hueco de paso línea discontinua', () => {
@@ -91,6 +125,15 @@ describe('planoToSvg', () => {
   it('permite apagar cotas y etiquetas', () => {
     const svg = planoToSvg(room(), { showDimensions: false, showLabels: false });
     expect(svg).not.toContain('<text');
+  });
+
+  it('muestra una zona exterior seleccionada incluso sobre el original sin otras etiquetas', () => {
+    const plano = room('Portal');
+    const svg = planoToSvg(plano, {
+      showDimensions: false, showLabels: false, labelZoneIds: ['z0'], showAreas: false,
+    });
+    expect(svg).toContain('>Portal</text>');
+    expect(svg).not.toContain('m²');
   });
 
   it('con showAreas apagado mantiene el nombre pero oculta los m² (escala estimada)', () => {

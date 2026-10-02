@@ -39,4 +39,14 @@ describe('buildEditorRenderContract', () => {
     expect(contract.prompt).not.toContain('F-01');
     expect(contract.prompt).toContain('superficie total de suelos acabados es 24 metros cuadrados');
   });
+  it('describe el acabado visible del canto sin alterar la cota del forjado', () => {
+    const doc = setFloorFinish(elevatedPatio(), 'room:["w1","w2","w3","w4"]', {
+      undersideTexture: 'polyhaven:brushed_concrete', undersideColor: '#ffffff',
+    });
+    const contract = buildEditorRenderContract(doc);
+    expect(contract.elements.find((element) => element.id === 'F-01')?.attributes)
+      .toMatchObject({ 'color del canto y cara inferior': '#ffffff' });
+    expect(contract.prompt).toContain('acabado del canto y cara inferior');
+    expect(contract.prompt).toContain('cota acabada 1.2 metros');
+  });
 });

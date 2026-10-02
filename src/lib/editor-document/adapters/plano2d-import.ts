@@ -14,7 +14,7 @@ import { vertexId } from './shared';
 import { planarizeWalls } from './planarize-walls';
 import { deriveRooms } from '../rooms';
 import { upgradeConstructionDocument } from '../migrations';
-import { upgradeRampDocument } from '../spatial-properties';
+import { objectCenter, upgradeRampDocument } from '../spatial-properties';
 import { assertEditorDocument } from '../validation';
 import type { EditorDocument, FloorFinish, Point } from '../schema';
 
@@ -39,6 +39,14 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
   let doc = base.document;
   const issues = [...base.issues];
 
+  // El adaptador genérico recibe milímetros físicos. Una extracción sin escala
+  // confirmada usa esos milímetros solo como hipótesis: el editor y su puerta
+  // de calidad deben conservar esta procedencia hasta que se calibre.
+  if (result.escalaEstimada) {
+    for (const wall of doc.walls) wall.dimensionalOrigin = 'raster';
+    for (const opening of doc.openings) opening.dimensionalOrigin = 'raster';
+  }
+
   // Muros ocultos: cierran la zona exterior para que el editor la derive como
   // estancia (suelo, etiqueta, mobiliario dentro) sin dibujar muro alguno.
   result.exteriors.forEach((zone, i) => {
@@ -50,7 +58,7 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
         startVertexId: vertexId(doc, edge.from),
         endVertexId: vertexId(doc, edge.to),
         thicknessMm: 80,
-        dimensionalOrigin: 'physical',
+        dimensionalOrigin: result.escalaEstimada ? 'raster' : 'physical',
       });
     });
     if (!doc.labels.some((l) => l.id === zone.id)) {
@@ -79,18 +87,24 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
       if (aperture.kind !== 'puerta') continue;
       const wall = wallsById.get(aperture.wallId);
       const opening = doc.openings.find((o) => o.id === aperture.id);
-      if (wall && opening) opening.swing = doorSwing(aperture, wall, result.plano.zones);
+      if (wall && opening) {
+        opening.swing = doorSwing(aperture, wall, result.plano.zones);
+        opening.hinge = aperture.hinge ?? 'left';
+      }
     }
   }
 
   for (const item of result.furniture) {
+    // La extracción da el CENTRO de la caja; el editor almacena el origen
+    // local del objeto. El desplazamiento depende también del giro.
+    const offset = objectCenter({ x: 0, y: 0, widthMm: item.widthMm, depthMm: item.depthMm, rotation: item.rotation });
     doc.furniture.push({
       id: `furniture:import:${item.id}`,
       name: item.label,
       kind: item.kind,
       catalogId: item.catalogId,
-      x: item.x,
-      y: item.y,
+      x: item.x - offset.x,
+      y: item.y - offset.y,
       widthMm: item.widthMm,
       depthMm: item.depthMm,
       rotation: item.rotation,

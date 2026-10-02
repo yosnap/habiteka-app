@@ -52,7 +52,7 @@ export function StepPlanNext({
     <div className="flex flex-col gap-4">
       <StepHeading step={3} intent="plan">
         {blocked
-          ? 'Tu plano ya está en el editor, pero la lectura no es de fiar. Corrígelo allí antes de generar nada.'
+          ? 'Tu plano ya está en el editor, pero debes revisar la lectura y confirmar la escala antes de generar nada.'
           : 'Tu plano ya está en el editor. Puedo generarte una vista realista de cada estancia, tomada desde dentro sobre tus propios muros.'}
       </StepHeading>
 

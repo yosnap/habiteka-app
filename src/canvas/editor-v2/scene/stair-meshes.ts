@@ -12,7 +12,7 @@ export function stairMeshes(stair: Stair): SceneBox[] {
         meters(stair.elevationMm + z + height / 2), meters(stair.y + centerX * Math.sin(angle) + centerY * Math.cos(angle))],
       size: [meters(width), meters(height), meters(depth)], rotation: -angle,
       color: role === 'rail' ? '#424d51' : stair.color ?? materialColor(stair.materialId),
-      ...(role === 'rail' ? {} : { topMaterialId: stair.materialId }) });
+      ...(role === 'rail' ? {} : { topMaterialId: stair.materialId, bodyMaterialId: stair.bodyMaterialId }) });
   };
   for (const [role, parts] of [['step', layout.steps], ['landing', layout.landings]] as const) {
     for (const part of parts) {
