@@ -51,6 +51,8 @@ import { isInteriorRenderMode, MAX_RENDER_PASSES, renderDesignOptionsSchema, zon
 import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
 import { fitZoneReferenceAspect, isolateZoneReference, isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
 import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
+import { assertRenderViewIntegrity } from '@/lib/editor-document/render-view-integrity';
+import { requestedRenderRedesign } from '@/lib/editor-document/render-redesign';
 import { resolveRoutes } from '@/server/ai/model-routing';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { runAction, fail } from '@/server/errors/run-action';
@@ -61,8 +63,12 @@ import { assertFreePromptQuality } from '@/server/quality/instruction-gate';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { readRenderBytes } from '@/server/agent/editor-v2/render-asset-reader';
 import { findBatchStyleAnchor } from '@/server/agent/editor-v2/batch-style-anchor';
+import { assertRenderBatchCompatible } from '@/server/agent/editor-v2/render-batch-continuation';
 import { verifiedEditorDocument } from '@/server/agent/editor-v2/verified-editor-document';
-import { z } from 'zod';
+import { renderRoomContext } from '@/lib/editor-document/render-room-context';
+import { droneReferences } from '@/server/agent/editor-v2/drone-references';
+import { conceptRenderSettingsSchema, NATIVE_RENDER_DATA_URL } from '@/server/agent/editor-v2/concept-render-settings';
+import { generateOrReviewRender, EXISTING_RENDER_REVIEW_VERSION } from '@/server/agent/editor-v2/existing-render-review';
 import type {
   DeliverableType,
   Estilo,
@@ -71,16 +77,6 @@ import type {
   MessagePart,
   Plano2dPayload,
 } from '@/lib/contracts';
-
-const NATIVE_RENDER_DATA_URL = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/;
-const conceptRenderSettingsSchema = z.object({
-  options: renderDesignOptionsSchema.optional(),
-  batchId: z.string().uuid().optional(),
-  /** Confirmación expresa del usuario cuando la puerta de calidad pide confirmar. */
-  qualityAck: z.boolean().optional(),
-  /** Opt-in: las vistas siguientes de un lote reciben la primera ya guardada como referencia de estilo. */
-  styleAnchor: z.boolean().optional(),
-}).strict();
 
 /**
  * Verifica que el proyecto pertenece a la organización de la sesión. El agente
@@ -466,6 +462,8 @@ export async function generateConceptRenderFromEditor(
     options?: RenderDesignOptions;
     batchId?: string;
     qualityAck?: boolean;
+    orthophotoDataUrl?: string;
+    existingImageDataUrl?: string;
   },
 ) {
   return runAction(() =>
@@ -495,8 +493,10 @@ async function generateConceptRenderFromEditorImpl(
     batchId?: string;
     qualityAck?: boolean;
     styleAnchor?: boolean;
+    orthophotoDataUrl?: string;
+    existingImageDataUrl?: string;
   },
-): Promise<{ id: string; assetUrl: string; generation?: import('@/lib/contracts').ImageResult['generation'] }> {
+): Promise<import('@/lib/editor-document/render-design-options').RenderGeneratedResult & { id: string }> {
   const ctx = await requireOrgContext();
   await assertProjectInOrg(ctx, projectId);
   const zid = await assertZoneInProject(ctx, projectId, zoneId);
@@ -509,6 +509,7 @@ async function generateConceptRenderFromEditorImpl(
     fail('El plano está vacío: añade estructura antes de crear un render.');
   }
   const view = capture ? renderViewSchema.parse(capture.view) : undefined;
+  if (view) assertRenderViewIntegrity(document, view);
   const camera = view ? cameraPoseFromView(view) : undefined;
   const parsedSettings = conceptRenderSettingsSchema.parse(settings ?? {});
   // Puerta de calidad antes de tocar el adaptador de imagen: un plano bloqueado
@@ -530,6 +531,17 @@ async function generateConceptRenderFromEditorImpl(
   const options = renderDesignOptionsSchema.parse(parsedSettings.options ?? {});
   if (!capture || !view)
     fail('Para generar un diseño fiel prepara primero la captura de cada vista del 3D.');
+  // La identidad se obtiene del documento verificado, nunca de etiquetas del cliente.
+  delete view.roomId;
+  delete view.roomName;
+  delete view.roomAreaM2;
+  delete view.zones;
+  if (isInteriorRenderMode(options)) {
+    const context = renderRoomContext(document, view);
+    if (!context || !options.interiorRoomIds.includes(context.roomId))
+      fail('La cámara no corresponde a una estancia elegida. Vuelve a preparar las vistas.');
+    Object.assign(view, context);
+  }
   if (view.lighting && view.lighting !== options.lighting)
     fail('La iluminación de las opciones no coincide con la captura de la vista.');
   if (typeof capture.dataUrl !== 'string' || capture.dataUrl.length > 14_000_000) fail('La captura excede el tamaño permitido.');
@@ -553,11 +565,15 @@ async function generateConceptRenderFromEditorImpl(
   }
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
   // Solo si el usuario lo pide: la ancla da estilo, pero puede arrastrar geometría de otra cámara a la nueva vista.
-  const styleAnchor = parsedSettings.styleAnchor === true ? await findBatchStyleAnchor(projectId, parsedSettings.batchId) : null;
+  const drone = await droneReferences(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.orthophotoDataUrl);
+  const redesignRequested = requestedRenderRedesign(options, objetivo, promptLibre);
+  const styleAnchor = drone?.identity ?? (parsedSettings.styleAnchor === true || redesignRequested
+    ? await findBatchStyleAnchor(projectId, parsedSettings.batchId) : null);
+  const generatedOptions = { ...options, redesignInterior: options.redesignInterior || (redesignRequested && !options.redesignFixed) };
+  await assertRenderBatchCompatible(ctx, { projectId, zoneId: zid }, document, parsedSettings.batchId, generatedOptions);
   const imagePrompt = selectedViewImagePrompt(
-    document, view, estilo, options, String(objetivo), String(promptLibre), Boolean(zoneMask), Boolean(styleAnchor),
+    document, view, estilo, options, String(objetivo), String(promptLibre), Boolean(zoneMask), Boolean(styleAnchor), Boolean(drone?.environment),
   );
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: parsedSettings.batchId }, 'render3d');
   const request = {
     prompt: imagePrompt,
     compactPrompt: imagePrompt,
@@ -565,9 +581,14 @@ async function generateConceptRenderFromEditorImpl(
     ...(aspectRatio ? { aspectRatio } : {}),
     referenceImages: [{ base64: reference.base64, mimeType: reference.mimeType },
       ...(zoneMask ? [{ base64: zoneMask.base64, mimeType: zoneMask.mimeType }] : []),
-      ...(styleAnchor ? [{ base64: styleAnchor.base64, mimeType: styleAnchor.mimeType }] : [])],
+      ...(styleAnchor ? [{ base64: styleAnchor.base64, mimeType: styleAnchor.mimeType }] : []),
+      ...(drone?.environment ? [drone.environment] : [])],
   };
-  const result = await image.generate(request);
+  const result = await generateOrReviewRender(parsedSettings.existingImageDataUrl, async () => {
+    const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: parsedSettings.batchId }, 'render3d');
+    return image.generate(request);
+  });
+  const promptVersion = parsedSettings.existingImageDataUrl ? EXISTING_RENDER_REVIEW_VERSION : SELECTED_VIEW_IMAGE_PROMPT_VERSION;
   const downloaded = await readRenderBytes(result);
   const candidate = await sanitizeOwnRenderBuffer(downloaded.raw);
   const visibleCandidate = zoneMask
@@ -578,7 +599,8 @@ async function generateConceptRenderFromEditorImpl(
   );
   await assertRenderFidelity(vision, reference, visibleCandidate, view, zoneMask, projectVehicleCount(document),
     options.freedom === 'strict' && !isInteriorRenderMode(options) &&
-    (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)));
+    (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)) && !drone, drone ?? undefined, options.redesignFixed,
+    redesignRequested);
   let finalAsset = { assetUrl: result.assetUrl, assetKey: result.assetKey };
   if (!finalAsset.assetKey && !zoneMask) {
     // El proveedor no pudo copiar el resultado (CDN lenta): se conservan los bytes originales ya descargados para la
@@ -600,13 +622,14 @@ async function generateConceptRenderFromEditorImpl(
     id,
     type: 'render3d',
     payload: { type: 'render3d', assetUrl: finalAsset.assetUrl, ...(camera ? { camera } : {}), ...(finalAsset.assetKey ? { assetKey: finalAsset.assetKey } : {}),
-      generation: { ...result.generation, promptVersion: SELECTED_VIEW_IMAGE_PROMPT_VERSION, documentRevision: document.revision, view, options, ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
+      generation: { ...result.generation, promptVersion, documentRevision: document.revision, view, options: generatedOptions, ...(drone ? { referenceDesignId: drone.deliverableId } : {}), ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
     legalSeal: DELIVERABLE_LEGAL_SEAL,
     version: 1,
   }], undefined, zid, { allowEditorV2: true });
   revalidatePath(`/projects/${projectId}/deliverables`);
   revalidatePath(`/projects/${projectId}/historial`);
-  return { id, assetUrl: finalAsset.assetUrl, generation: result.generation };
+  return { id, assetUrl: finalAsset.assetUrl, generation: { ...result.generation, view, options: generatedOptions,
+    documentRevision: document.revision, promptVersion } };
 }
 
 /** Estimación local: resuelve la ruta y consulta solo precios explícitos de la allowlist. */

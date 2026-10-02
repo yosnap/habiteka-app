@@ -32,6 +32,10 @@ El código ya permite elegir el ámbito de una propuesta editable y aplicarla si
 
 ## Diagnóstico del producto actual
 
+### Continuación implementada — 30/09/2026
+
+Estancias y zonas en los renders interiores (con recuperación de históricos), tandas que continúan tras rechazo, referencias obligatorias cenital→isométrica→dron con identidad completa, permiso explícito de rediseño de fijos registrado para Jev, ámbito Solo la casa y plantillas/instrucciones por organización. Verificación y límites en [el informe de implementación](../reports/implementacion-260930-1730-continuacion-diseno.md). En FInca, la selección de 12 imágenes ya cubre Salón/Cocina; siguen pendientes imágenes identificadas de Entrada/Patio y validar las vistas lejanas con el proveedor real. Las fases 3–5 permanecen abiertas.
+
 | Parte | Ya existe | Brecha real |
 |---|---|---|
 | Estudio | Original, redibujado opcional, extracción, vista cenital/maqueta | Estados y destinos poco claros; pestaña editable limitada al boceto dibujado; panel «resultados» sin galería. |

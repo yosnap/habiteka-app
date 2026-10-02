@@ -7,17 +7,18 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { visualSampleDocument } from './visual-sample';
 import { buildingSampleDocument } from './building-sample';
+import { constructionSampleDocument } from './construction-sample';
 
 const EditorShell = dynamic(
   () => import('@/components/editor-v2/editor-shell').then((module) => module.EditorShell),
   { ssr: false, loading: () => <p role="status">Cargando el editor…</p> },
 );
 
-export function EditorPreview({ sample = null }: { sample?: 'visual' | 'plantas' | null }) {
+export function EditorPreview({ sample = null }: { sample?: 'visual' | 'plantas' | 'obra' | null }) {
   const storageKey = sample === 'visual' ? 'habiteka:dev-preview-visual-sample-v3'
-    : sample === 'plantas' ? 'habiteka:dev-preview-building-sample-v1' : 'habiteka:dev-preview-document';
+    : sample === 'plantas' ? 'habiteka:dev-preview-building-sample-v1' : sample === 'obra' ? 'habiteka:dev-preview-construction-v1' : 'habiteka:dev-preview-document';
   const sampleDocument = () => sample === 'visual' ? visualSampleDocument()
-    : sample === 'plantas' ? buildingSampleDocument() : emptyEditorDocument();
+    : sample === 'plantas' ? buildingSampleDocument() : sample === 'obra' ? constructionSampleDocument() : emptyEditorDocument();
   const [store] = useState(() => {
     try {
       const saved = sessionStorage.getItem(storageKey);
@@ -66,7 +67,7 @@ export function EditorPreview({ sample = null }: { sample?: 'visual' | 'plantas'
       </aside>
       <EditorShell store={store} projectName={sample === 'visual' ? 'Vivienda de muestra · Vista previa'
         : sample === 'plantas' ? 'Dos plantas de muestra · Vista previa' : 'Nuevo plano · Vista previa'}
-        saveStatus={status} />
+        saveStatus={status} allowVideoExport={sample === 'obra'} />
     </main>
   );
 }

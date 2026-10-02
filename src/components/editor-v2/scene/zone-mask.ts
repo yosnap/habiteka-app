@@ -1,6 +1,7 @@
 import { CanvasTexture, Color, Mesh, NoColorSpace, ShaderMaterial, type Camera, type Material, type Scene, type WebGLRenderer } from 'three';
 import type { ZoneMaskRegions } from '@/lib/editor-document/render-view';
 import { belongsToFurnitureGroup, cutawaySupportHeight } from './zone-scene-objects';
+import { belongsToZoneStructure } from './zone-structural-mask';
 
 /**
  * Margen alrededor de la zona: incluye la cara interior de los muros que la
@@ -101,7 +102,7 @@ function zoneMaskMaterial(texture: CanvasTexture, layout: ZoneMapLayout, clipToZ
  * Restaura material, fondo y color de borrado aunque falle.
  */
 export function renderZoneMask(gl: WebGLRenderer, scene: Scene, camera: Camera, regions: ZoneMaskRegions,
-  encode: (canvas: HTMLCanvasElement) => string): string | undefined {
+  encode: (canvas: HTMLCanvasElement) => string, structuralMarginMm?: number): string | undefined {
   const layout = zoneMapLayout(regions);
   if (!layout) return undefined;
   const texture = new CanvasTexture(drawZoneMap(regions, layout));
@@ -113,6 +114,10 @@ export function renderZoneMask(gl: WebGLRenderer, scene: Scene, camera: Camera, 
   supportTexture.colorSpace = NoColorSpace;
   const material = zoneMaskMaterial(texture, layout);
   const furnitureMaterial = zoneMaskMaterial(texture, layout, false);
+  const structuralLayout = structuralMarginMm === undefined ? null : zoneMapLayout(regions, structuralMarginMm);
+  const structuralTexture = structuralLayout ? new CanvasTexture(drawZoneMap(regions, structuralLayout, structuralMarginMm)) : null;
+  if (structuralTexture) { structuralTexture.flipY = false; structuralTexture.colorSpace = NoColorSpace; }
+  const structuralMaterial = structuralTexture && structuralLayout ? zoneMaskMaterial(structuralTexture, structuralLayout) : null;
   const supportMaterials = new Map<number, ShaderMaterial>();
   const background = scene.background, override = scene.overrideMaterial;
   const clearColor = gl.getClearColor(new Color()), clearAlpha = gl.getClearAlpha();
@@ -127,7 +132,8 @@ export function renderZoneMask(gl: WebGLRenderer, scene: Scene, camera: Camera, 
       if (supportHeightM !== undefined && !supportMaterials.has(supportHeightM))
         supportMaterials.set(supportHeightM, zoneMaskMaterial(supportTexture, supportLayout, true, supportHeightM));
       object.material = supportHeightM !== undefined ? supportMaterials.get(supportHeightM)!
-        : belongsToFurnitureGroup(object) ? furnitureMaterial : material;
+        : belongsToFurnitureGroup(object) ? furnitureMaterial
+          : structuralMaterial && belongsToZoneStructure(object) ? structuralMaterial : material;
     });
     gl.setClearColor(0x000000, 1);
     gl.render(scene, camera);
@@ -139,6 +145,8 @@ export function renderZoneMask(gl: WebGLRenderer, scene: Scene, camera: Camera, 
     gl.setClearColor(clearColor, clearAlpha);
     material.dispose();
     furnitureMaterial.dispose();
+    structuralMaterial?.dispose();
+    structuralTexture?.dispose();
     supportMaterials.forEach((item) => item.dispose());
     supportTexture.dispose();
     texture.dispose();

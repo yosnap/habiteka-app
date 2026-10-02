@@ -7,8 +7,8 @@ import { fail, runAction } from '@/server/errors/run-action';
 import { evaluateCheckpoint } from '@/server/quality/evaluate';
 import { VIDEO_KEYFRAMES_CHECKPOINT } from '@/server/quality/checkpoints-video';
 import { buildKeyframeSetEvidence } from '@/server/quality/evidence/keyframe-set-evidence';
-import { MAX_TOUR_SHOTS, WHOLE_PROPERTY } from '@/lib/editor-document/image-tour';
-import { sameContentRevisions, tourImagesFromRows } from './tour-images';
+import { MAX_TOUR_SHOTS, WHOLE_PROPERTY, missingTourAmbients } from '@/lib/editor-document/image-tour';
+import { sameContentRevisions, tourImagesFromRows, tourDocumentReader } from './tour-images';
 
 export interface KeyframeAssessment {
   /** Decisión de Jev: proceed = animar, confirm = revisar antes, block = regenerar. */
@@ -39,13 +39,12 @@ async function assessKeyframeSetImpl(scope: EditorScope, approvalId: string, del
     select: { id: true, payload: true, createdAt: true } });
   // Las revisiones son por estado del editor (proyecto y zona): solo cuentan los renders del mismo ámbito.
   if (rows.length !== new Set(deliverableIds).size) fail('Alguna imagen no pertenece a este proyecto o a este ámbito.');
-  const shots = await tourImagesFromRows(rows);
+  const shots = await tourImagesFromRows(rows, tourDocumentReader(ctx, scope));
   // Una imagen ilegible no puede desaparecer en silencio: Jev evaluaría un conjunto que no es el elegido.
   if (shots.length !== rows.length) fail('Alguna imagen elegida no tiene archivo disponible.');
   const validRevisions = await sameContentRevisions(ctx, scope, approved, shots.map((shot) => shot.revision));
-  const present = new Set(shots.map((shot) => shot.ambient));
   const expected = [WHOLE_PROPERTY, ...(approved.document.designZones ?? []).map((zone) => zone.name)];
-  const evidence = buildKeyframeSetEvidence(shots, new Set(validRevisions), expected.filter((name) => !present.has(name)));
+  const evidence = buildKeyframeSetEvidence(shots, new Set(validRevisions), missingTourAmbients(shots, expected));
   const result = await evaluateCheckpoint(ctx, VIDEO_KEYFRAMES_CHECKPOINT, evidence, { projectId: scope.projectId });
   return { decision: result.decision, score: result.score, confidence: result.confidence, reasons: result.reasons,
     fromJev: result.failOpen, validRevisions };

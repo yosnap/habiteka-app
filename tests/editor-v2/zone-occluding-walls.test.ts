@@ -15,20 +15,31 @@ function documentWithCrossWalls() {
     { id: 'front-a', x: 0, y: 0 }, { id: 'front-b', x: 4000, y: 0 },
     { id: 'rear-a', x: 0, y: 4000 }, { id: 'rear-b', x: 4000, y: 4000 },
     { id: 'other-a', x: 6000, y: 0 }, { id: 'other-b', x: 6000, y: 4000 },
-    { id: 'right-a', x: 4000, y: 0 }, { id: 'right-b', x: 4000, y: 4000 },
-    { id: 'left-a', x: 0, y: 0 }, { id: 'left-b', x: 0, y: 4000 },
   ];
   document.walls = [
     { id: 'front', startVertexId: 'front-a', endVertexId: 'front-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
     { id: 'rear', startVertexId: 'rear-a', endVertexId: 'rear-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
     { id: 'other', startVertexId: 'other-a', endVertexId: 'other-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
-    { id: 'right', startVertexId: 'right-a', endVertexId: 'right-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
-    { id: 'left', startVertexId: 'left-a', endVertexId: 'left-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
+    { id: 'right', startVertexId: 'front-b', endVertexId: 'rear-b', thicknessMm: 180, dimensionalOrigin: 'physical' },
+    { id: 'left', startVertexId: 'front-a', endVertexId: 'rear-a', thicknessMm: 180, dimensionalOrigin: 'physical' },
   ];
   return document;
 }
 
 describe('recorte de muros delante de una zona de diseño', () => {
+  it('conserva el tabique que limita una zona cuando la casa tiene varias habitaciones', () => {
+    const document = documentWithCrossWalls();
+    document.vertices.push({ id: 'mid-left', x: 0, y: 2000 }, { id: 'mid-right', x: 4000, y: 2000 });
+    document.walls = document.walls.filter(wall => wall.id !== 'left' && wall.id !== 'right');
+    document.walls.push(...([['left-1', 'front-a', 'mid-left'], ['left-2', 'mid-left', 'rear-a'],
+      ['right-1', 'front-b', 'mid-right'], ['right-2', 'mid-right', 'rear-b'], ['partition', 'mid-left', 'mid-right']] as const)
+      .map(([id, startVertexId, endVertexId]) => ({ id, startVertexId, endVertexId, thicknessMm: 180, dimensionalOrigin: 'physical' as const })));
+    expect(deriveRooms(document)).toHaveLength(2);
+    const bedroom = [[{ x: 0, y: 2000 }, { x: 4000, y: 2000 }, { x: 4000, y: 4000 }, { x: 0, y: 4000 }]];
+    // Desde el frente el tabique queda delante del dormitorio, pero nunca se retira.
+    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, bedroom)).not.toContain('partition');
+    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: 9 }, bedroom)).toEqual(['rear']);
+  });
   it('escoge la pared que tapa desde cada lado, conserva la del fondo', () => {
     const document = documentWithCrossWalls();
     expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
@@ -48,7 +59,8 @@ describe('recorte de muros delante de una zona de diseño', () => {
     expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
     document.vertices.push({ id: 'inner-a', x: 0, y: 2000 }, { id: 'inner-b', x: 4000, y: 2000 });
     document.walls.push({ id: 'inner', startVertexId: 'inner-a', endVertexId: 'inner-b', thicknessMm: 120, dimensionalOrigin: 'physical' });
-    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual(['front']);
+    // Este tabique toca otros muros sin unir vértices: con topología ambigua se conserva todo.
+    expect(zoneOccludingWallIds(document, { x: 2, y: 2, z: -5 }, region)).toEqual([]);
   });
 
   it('no recorta paredes desde dentro de la zona', () => {

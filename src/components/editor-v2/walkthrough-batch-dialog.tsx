@@ -39,7 +39,7 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
   onClose: () => void;
 }) {
   const [estilo, setEstilo] = useState<Estilo>('moderno');
-  const [lighting, setLighting] = useState<'daylight' | 'warm' | 'evening'>('daylight');
+  const [lighting, setLighting] = useState<import('@/lib/lighting-preset').LightingPreset>('daylight');
   const [instructions, setInstructions] = useState('');
   const [frames, setFrames] = useState<Frame[]>([]);
   const [results, setResults] = useState<Array<RenderGeneratedResult | undefined>>([]);
@@ -116,7 +116,7 @@ export function WalkthroughBatchDialog({ store, getCapture, render, estimate, qu
       <fieldset disabled={busy}>
         <StyleGallery value={estilo} onChange={(value) => { setEstilo(value); reset(); }} />
         <label>Iluminación<ModernSelect value={lighting} onChange={(event) => { setLighting(event.target.value as typeof lighting); reset(); }}>
-          <option value="daylight">Día</option><option value="warm">Atardecer</option><option value="evening">Noche</option>
+          <option value="daylight">Día</option><option value="afternoon">Tarde</option><option value="warm">Atardecer</option><option value="evening">Noche</option>
         </ModernSelect></label>
         <label>Instrucciones<input value={instructions} maxLength={500} onChange={(event) => { setInstructions(event.target.value); reset(); }} /></label>
         <button type="button" onClick={() => void prepare()}>Preparar vistas sin IA</button>

@@ -9,6 +9,15 @@ const project = () => ({ ...emptyEditorDocument(), designSpaceKind: 'patio' as c
 const payload = (prompt: string) => JSON.parse(prompt.split('DATOS DEL PROYECTO:\n')[1]!.split('\n\n')[0]!);
 
 describe('selected view render prompt', () => {
+  it.each([false, true])('respeta visibilidad de cámara en el prompt compacto=%s', compact => {
+    const cut = selectedViewPrompt(project(), { ...view, cutaway: true, ceilingView: 'solid',
+      cutawayObjectIds: ['persiana'] }, 'moderno', '', '', undefined, compact);
+    expect(cut).toContain('CORTE DE FACHADA');
+    expect(cut).toContain('persiana');
+    const aerial = selectedViewPrompt(project(), { ...view, preset: 'drone', ceilingView: 'hidden' },
+      'moderno', '', '', undefined, compact);
+    expect(aerial).toContain('techo, falso techo y tejado ocultos');
+  });
   it('incluye cámara, revisión y reglas sin tocar el documento ni el baseline', () => {
     const doc = project(), before = JSON.stringify(doc);
     const prompt = selectedViewPrompt(doc, view, 'moderno', 'Iluminación nocturna');

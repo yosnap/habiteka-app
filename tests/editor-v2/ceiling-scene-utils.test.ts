@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, sceneCoversHidden, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
+  it('conserva pérgolas en capturas laterales aunque la escena esté en cenital sin techo', () => {
+    expect(sceneCoversHidden('top', 'hidden', { ceiling: 'solid', aerial: false }, false)).toBe(false);
+    expect(sceneCoversHidden('front', 'solid', { ceiling: 'hidden', aerial: true }, false)).toBe(true);
+    expect(sceneCoversHidden('top', 'hidden', null, false)).toBe(true);
+    expect(sceneCoversHidden('top', 'hidden', null, true)).toBe(false);
+  });
   it('recorta el techo inferior con un hueco transitable para la escalera', () => {
     const shapes = ceilingShapes([
       { x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 },
@@ -100,20 +106,26 @@ describe('representación de techos e iluminación', () => {
     for (const view of ['top', 'isometric', 'drone']) expect(captureCeilingView(view)).toBe('hidden');
     for (const view of ['front', 'back', 'left', 'right', null]) expect(captureCeilingView(view)).toBe('solid');
   });
-  it('mantiene cubierta y fachada en vistas exteriores de una vivienda terminada', () => {
-    const context = { cutaway: false, cameraHeightM: 9, highestCeilingM: 3, finishedExterior: true };
-    expect(captureCeilingView('drone', context)).toBe('solid');
-    expect(captureCutaway('front', true, true)).toBe(false);
-    expect(captureCutaway('right', true, true)).toBe(false);
+  it('mantiene fachada y cubierta en Exterior terminado aunque la vista viva esté seccionada', () => {
+    expect(captureCutaway('exterior', true)).toBe(false);
+    expect(captureCeilingView('exterior', { cutaway: true, cameraHeightM: 9, highestCeilingM: 3, forDesign: true })).toBe('solid');
+    expect(sceneCoversHidden('isometric', 'hidden', { ceiling: 'solid', aerial: false }, false)).toBe(false);
+  });
+  it('oculta cubierta en dron y abre fachadas independientemente de que exista un tejado', () => {
+    const context = { cutaway: false, cameraHeightM: 9, highestCeilingM: 3 };
+    expect(captureCeilingView('drone', context)).toBe('hidden');
+    expect(captureCutaway('front', false)).toBe(true);
+    expect(captureCutaway('right', false)).toBe(true);
   });
   it('adapta el techo al cambiar entre maqueta y vistas exteriores terminadas', () => {
-    for (const view of ['front', 'back', 'left', 'right', 'drone']) {
-      expect(presetCeilingView(view, 'transparent', true)).toBe('solid');
-      expect(presetCeilingView(view, 'hidden', false)).toBe('hidden');
+    for (const view of ['front', 'back', 'left', 'right']) {
+      expect(presetCeilingView(view, 'transparent')).toBe('solid');
+      expect(presetCeilingView(view, 'hidden')).toBe('solid');
     }
-    expect(presetCeilingView('isometric', 'solid', true)).toBe('transparent');
-    expect(presetCeilingView('top', 'solid', true)).toBe('hidden');
-    expect(presetCeilingView('fit', 'solid', true)).toBe('solid');
+    expect(presetCeilingView('isometric', 'solid')).toBe('hidden');
+    expect(presetCeilingView('top', 'solid')).toBe('hidden');
+    expect(presetCeilingView('drone', 'solid')).toBe('hidden');
+    expect(presetCeilingView('fit', 'solid')).toBe('solid');
   });
   it('oculta techo en órbita libre por encima del edificio solo con corte activo', () => {
     const context = { cutaway: true, cameraHeightM: 8, highestCeilingM: 5.4 };

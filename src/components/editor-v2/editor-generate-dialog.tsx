@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Camera, Sofa } from 'lucide-react';
+import { ExistingRenderReview } from './existing-render-review';
 import { captureFileName } from '@/lib/editor-document/capture-file-name';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
@@ -14,6 +15,7 @@ import {
   RENDER_ADDITIONS,
   RENDER_ADDITION_LABELS,
   RENDER_VIEW_LABELS,
+  renderBatchSettingsKey,
   type RenderDesignOptions,
   type RenderGeneratedResult,
 } from '@/lib/editor-document/render-design-options';
@@ -36,7 +38,7 @@ import { EditorQualityGate, type EditorQualityState } from './editor-quality-gat
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import { needsQualityConfirmation } from '@/lib/quality-messages';
 import RenderOptionsControls from './render-options-controls';
-import { runRenderBatch } from './render-batch';
+import { renderBatchFailureMessage, runRenderBatch } from './render-batch';
 import { RenderLivePreview, type PreviewRender } from './render-live-preview';
 import { RenderInstructionField } from './render-instruction-field';
 import { useMountEffect } from '@/lib/use-mount-effect';
@@ -45,8 +47,14 @@ import { RenderCostEstimate } from './render-cost-estimate';
 import { DesignScopePicker } from './design-scope-picker';
 import { buildingDesignStyle } from '@/lib/editor-document/design-scope';
 import { designMaterialPalette } from '@/lib/editor-document/design-material-palette';
+import { DroneReferenceField } from './drone-reference-field';
+import { RenderPresetControls } from './render-preset-controls';
+import { GeneratedRenderGallery } from './generated-render-gallery';
+import type { AutoGenerateRequest } from './auto-generate-request';
 
 interface EditorGenerateDialogProps {
+  projectId?: string; zoneId?: string | null;
+  preferencesOwner?: string;
   document?: EditorDocument;
   capture?: RenderCapture;
   onPreview?: PreviewRender;
@@ -79,6 +87,8 @@ interface EditorGenerateDialogProps {
     batchId?: string;
     qualityAck: boolean;
     styleAnchor?: boolean;
+    orthophotoDataUrl?: string;
+    existingImageDataUrl?: string;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
   onCreateDesignZone?: (name: string, polygon: Point[]) => string;
@@ -91,7 +101,7 @@ interface EditorGenerateDialogProps {
    * Arranque preconfigurado cuando se llega desde el asistente: estilo ya
    * elegido y vistas interiores de todas las estancias habitables marcadas.
    */
-  initialSetup?: { estilo?: Estilo; interiorRooms?: boolean };
+  initialSetup?: Partial<AutoGenerateRequest>;
   onClose: () => void;
 }
 
@@ -99,6 +109,8 @@ interface EditorGenerateDialogProps {
 const DRESSED_IMAGE_OPTIONS = { freedom: 'controlled', additions: [...RENDER_ADDITIONS] } as const satisfies Pick<RenderDesignOptions, 'freedom' | 'additions'>;
 
 export function EditorGenerateDialog({
+  projectId, zoneId = null,
+  preferencesOwner,
   document,
   capture,
   onPreview,
@@ -128,6 +140,7 @@ export function EditorGenerateDialog({
   const [objetivo, setObjetivo] = useState('');
   const [promptLibre, setPromptLibre] = useState('');
   const [options, setOptions] = useState<RenderDesignOptions>(() => {
+    if (initialSetup?.continuation) return initialSetup.continuation.options;
     const base = defaultRenderDesignOptions();
     if (!document) return base;
     // Un plano sin muebles con «Estricto» devuelve estancias vacías: no es lo
@@ -156,14 +169,16 @@ export function EditorGenerateDialog({
     if (initialSetup?.interiorRooms && !spaceKind) onSpaceKindChange('interior');
   });
   const [prepared, setPrepared] = useState<RenderCapture[]>([]);
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const [batchId, setBatchId] = useState<string | null>(initialSetup?.continuation?.batchId ?? null);
   // Apagada por defecto: la ancla da coherencia de estilo, pero en pruebas puede arrastrar geometría de otra cámara.
   const [styleAnchor, setStyleAnchor] = useState(false);
-  const [results, setResults] = useState<RenderGeneratedResult[]>([]);
+  const [orthophotoDataUrl, setOrthophotoDataUrl] = useState('');
+  const [results, setResults] = useState<Array<RenderGeneratedResult | undefined>>([]);
+  const completedCount = results.filter(Boolean).length;
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
   const stopRequested = useRef(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialSetup?.error ?? null);
   const [proposal, setProposal] = useState<NativeDesignProposal | null>(null);
   const [selection, setSelection] = useState<NativeDesignSelection | null>(null);
   const [mode, setMode] = useState<'choose' | 'renders' | 'proposal'>('choose');
@@ -242,16 +257,16 @@ export function EditorGenerateDialog({
   const labelAt = (index: number) =>
     interiorMode
       ? (interiorNames[index] ?? `Estancia ${index + 1}`)
-      : RENDER_VIEW_LABELS[options.views[index] ?? 'current'];
+      : RENDER_VIEW_LABELS[(prepared[index]?.view.preset === 'custom' ? 'current' : prepared[index]?.view.preset) ?? options.views[index] ?? 'current'];
   const renderableCaptures = useMemo(
     () => prepared.slice(0, itemCount),
     [prepared, itemCount],
   );
 
-  const invalidatePrepared = () => {
+  const invalidatePrepared = (resetBatch = true) => {
     setPrepared([]);
     setResults([]);
-    setBatchId(null);
+    if (resetBatch) setBatchId(null);
     setError(null);
   };
   const changeOptions = (next: RenderDesignOptions) => {
@@ -261,7 +276,7 @@ export function EditorGenerateDialog({
       setEstilo(establishedStyle);
     // Activar las vistas interiores ya dice qué clase de espacio es.
     if (isInteriorRenderMode(next) && !spaceKind) onSpaceKindChange('interior');
-    invalidatePrepared();
+    invalidatePrepared(intent !== 'image' || renderBatchSettingsKey(options) !== renderBatchSettingsKey(next));
   };
   const changeContext = (setter: (value: string) => void, value: string) => {
     setter(value);
@@ -277,7 +292,7 @@ export function EditorGenerateDialog({
     setBusy(true);
     setError(null);
     setResults([]);
-    setBatchId(crypto.randomUUID());
+    setBatchId(batchId ?? crypto.randomUUID());
     try {
       const captures = await onPrepare(options);
       if (!captures.length) throw new Error('No se pudo preparar ninguna vista 2D/3D.');
@@ -309,24 +324,31 @@ export function EditorGenerateDialog({
           options,
           batchId: stableBatchId,
           qualityAck: quality.ack,
-          ...(styleAnchor && renderableCaptures.length > 1 ? { styleAnchor: true } : {}),
+          ...(['drone', 'isometric', 'exterior'].includes(capture.view.preset) ? { orthophotoDataUrl } : {}),
+          ...((styleAnchor || options.redesignInterior || options.redesignFixed) && renderableCaptures.length > 1 ? { styleAnchor: true } : {}),
         }),
       shouldStop: () => stopRequested.current,
-      onResult: (_result, _index, nextResults) =>
-        setResults(
-          nextResults.filter((result): result is RenderGeneratedResult => Boolean(result)),
-        ),
+      continueOnError: (error) => error instanceof Error && 'code' in error && error.code === 'render_rejected',
+      onResult: (_result, _index, nextResults) => setResults(nextResults),
     });
-    setResults(state.results.filter((result): result is RenderGeneratedResult => Boolean(result)));
-    if (state.error)
-      showFailure(
-        state.error instanceof Error
-          ? state.error.message
-          : 'No se pudo completar el lote de renders.',
-      );
+    setResults(state.results);
+    const failureMessage = renderBatchFailureMessage(state, labelAt);
+    if (failureMessage) showFailure(failureMessage);
     setBusy(false);
     setStopping(false);
     stopRequested.current = false;
+  };
+  const reviewExisting = async (index: number, existingImageDataUrl: string) => {
+    const capture = renderableCaptures[index];
+    if (!capture || busy || qualityBlocked) return;
+    setBusy(true); setError(null);
+    const stableBatchId = batchId ?? crypto.randomUUID(); setBatchId(stableBatchId);
+    try {
+      const result = await onRender({ estilo, objetivo: objetivo.trim(), promptLibre: promptLibre.trim(), capture,
+        options, batchId: stableBatchId, qualityAck: quality.ack, existingImageDataUrl,
+        ...(['drone', 'isometric', 'exterior'].includes(capture.view.preset) ? { orthophotoDataUrl } : {}) });
+      setResults(previous => { const next = [...previous]; next[index] = result; return next; });
+    } finally { setBusy(false); }
   };
   const generateProposal = async () => {
     if (qualityBlocked) return;
@@ -348,6 +370,7 @@ export function EditorGenerateDialog({
         ramps: true,
         columns: true,
         furniture: next.furniture.map((_, index) => index),
+        fixedFinishes: next.fixedFinishes?.map((_, index) => index),
       });
       setMode('proposal');
     } catch (cause) {
@@ -436,6 +459,18 @@ export function EditorGenerateDialog({
                 <p className="text-ink-soft text-sm">
                   {intent === 'image' ? '1. Configura el aspecto. 2. Revisa las vistas de referencia (sin IA). 3. Genera las imágenes con IA. El plano no cambia.' : 'La IA propondrá acabados y objetos permitidos del catálogo. No crea una imagen: revisa el resultado y pulsa Aplicar al plano. Consultar la IA puede consumir créditos; no garantiza que haya objetos que encajen.'}
                 </p>
+                {initialSetup?.continuation && batchId === initialSetup.continuation.batchId && <p role="status" className="mt-3 rounded-control border border-line bg-surface-soft p-3 text-sm">
+                  Completar tanda: se conservan {initialSetup.continuation.completedViews.length} vistas guardadas. Preparar y generar solo procesa las {options.views.length} pendientes. Revisa las instrucciones antes de generar: el texto libre anterior no se recupera.
+                </p>}
+                {preferencesOwner && <RenderPresetControls disabled={busy} onInstructionLoad={(instruction) => { invalidatePrepared(); setPromptLibre(instruction); }}
+                  current={{ style: estilo, objective: objetivo, instruction: promptLibre, intent, options, spaceKind }} onLoad={(preset) => {
+                    invalidatePrepared();
+                    setIntent(preset.intent); setOptions(preset.options);
+                    setEstilo(preset.intent === 'editable' && preset.options.designScope !== 'all' && establishedStyle ? establishedStyle : preset.style);
+                    setObjetivo(preset.objective); setPromptLibre(preset.instruction);
+                    if (preset.spaceKind) onSpaceKindChange(preset.spaceKind);
+                    optionsByIntent.current[preset.intent] = preset.options;
+                  }} />}
                 {intent === 'image' && !capture && !prepared.length && (
                   <p className="bg-canvas text-ink-soft mt-3 rounded-control border border-line p-3 text-xs">
                     Este flujo necesita preparar una captura 3D. Para conservar una cámara concreta,
@@ -445,6 +480,9 @@ export function EditorGenerateDialog({
                 {intent === 'editable' && <DesignScopePicker document={document} options={options} onChange={changeOptions}
                   onCreateZone={onCreateDesignZone} onRenameZone={onRenameDesignZone}
                   onReshapeZone={onReshapeDesignZone} onRemoveZone={onRemoveDesignZone} disabled={busy} />}
+                {intent === 'image' && !interiorMode && !zoneCompositeActive(options) &&
+                  (options.views.some((view) => ['drone', 'isometric', 'exterior'].includes(view)) || prepared.some((item) => ['drone', 'isometric', 'exterior'].includes(item.view.preset))) &&
+                  <DroneReferenceField savedSite={document?.geographicSite?.confirmed} value={orthophotoDataUrl} onChange={(value) => { setOrthophotoDataUrl(value); setResults([]); setBatchId(null); }} disabled={busy} />}
                 {prepared.length > 0 && (
                   <div className={`mt-3 grid gap-2 ${prepared.length > 1 ? 'sm:grid-cols-2' : ''}`}>
                     {prepared.map((item, index) => (
@@ -562,7 +600,7 @@ export function EditorGenerateDialog({
                   <p className="text-ink-soft mt-1">
                     {intent === 'image' && <>{options.lighting === 'daylight'
                       ? 'Día'
-                      : options.lighting === 'warm'
+                      : options.lighting === 'afternoon' ? 'Tarde' : options.lighting === 'warm'
                         ? 'Atardecer'
                         : 'Noche'} · </>}
                     Libertad{' '}
@@ -572,12 +610,13 @@ export function EditorGenerateDialog({
                         ? `controlada (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
                         : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
-                    {intent === 'editable' && <>Ámbito {options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : options.designScope === 'zone' ? document?.designZones?.find((zone) => zone.id === options.designZoneId)?.name ?? 'zona sin elegir' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
+                    {intent === 'editable' && <>Ámbito {options.designScope === 'house' ? 'solo la casa de esta planta' : options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : options.designScope === 'zone' ? document?.designZones?.find((zone) => zone.id === options.designZoneId)?.name ?? 'zona sin elegir' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
                     {options.freedom === 'strict' && intent === 'editable'
                       ? 'sin colocación de objetos'
                       : options.placement === 'selected'
                       ? `${options.regions.length} zona(s) permitida(s)${zoneCompositeActive(options) && intent === 'image' ? ', verificadas contra la captura 3D' : ''}`
-                      : intent === 'editable' ? 'todo el ámbito' : 'toda la planta'}{' '}
+                      : intent === 'editable' ? 'todo el ámbito' : options.designScope === 'house' ? 'solo la casa de esta planta' : 'toda la planta'}{' '}
+                    · {options.redesignFixed ? intent === 'editable' ? 'acabados de fijos autorizados' : 'rediseño de fijos autorizado' : 'fijos conservados'}
                     {intent === 'image' && <> · {itemCount} {interiorMode ? 'estancia(s).' : 'vista(s).'}</>}
                   </p>
                   {intent === 'image' && cachedEstimate && itemCount > 0 && (
@@ -588,16 +627,17 @@ export function EditorGenerateDialog({
                 </div>
               </div>
             </div>
-            {mode === 'renders' && results.length > 0 && (
+            {mode === 'renders' && <ExistingRenderReview captures={renderableCaptures} disabled={busy || qualityBlocked} labelAt={labelAt} onReview={reviewExisting} />}
+            {mode === 'renders' && completedCount > 0 && (
               <div className="mt-5 border-t border-line pt-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-ink text-sm font-medium">Galería del lote</h3>
                   <span className="text-muted-foreground text-xs">
-                    {results.length}/{renderableCaptures.length} completadas
+                    {completedCount}/{renderableCaptures.length} completadas
                   </span>
                 </div>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {results.map((result, index) => (
+                  {!projectId && results.map((result, index) => result && (
                     <figure
                       key={`${result.id ?? index}-${index}`}
                       className="overflow-hidden rounded-card border border-line"
@@ -613,6 +653,7 @@ export function EditorGenerateDialog({
                         }
                         aria-label={`Abrir resultado ${labelAt(index)} en grande`}
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- Render con URL firmada; descarga directa sin optimización remota. */}
                         <img
                           src={result.assetUrl}
                           alt={`Render ${labelAt(index)}`}
@@ -631,12 +672,13 @@ export function EditorGenerateDialog({
                     </figure>
                   ))}
                 </div>
+                {projectId && <GeneratedRenderGallery results={results} captures={renderableCaptures} options={options} projectId={projectId} zoneId={zoneId} revision={document?.revision ?? 0} />}
               </div>
             )}
           </>
         )}
         {error && (
-          <p className="text-destructive mt-4 text-sm" role="alert">
+          <p className="text-destructive mt-4 whitespace-pre-line text-sm" role="alert">
             {error}
           </p>
         )}
@@ -724,12 +766,12 @@ export function EditorGenerateDialog({
                   <Button
                     type="button"
                     size="sm"
-                    disabled={busy || qualityBlocked || results.length >= renderableCaptures.length}
+                    disabled={busy || qualityBlocked || completedCount >= renderableCaptures.length}
                     onClick={() => void renderBatch()}
                   >
                     {busy
-                      ? `${Math.min(results.length + 1, renderableCaptures.length)}/${renderableCaptures.length} renderizando…`
-                      : results.length
+                      ? `${Math.min(completedCount + 1, renderableCaptures.length)}/${renderableCaptures.length} renderizando…`
+                      : completedCount
                         ? 'Reintentar pendientes'
                         : 'Generar imágenes con IA'}
                   </Button>
@@ -781,14 +823,14 @@ function ProposalPreview({
   selection: NativeDesignSelection;
   palette?: ReturnType<typeof designMaterialPalette>;
   onChange: (selection: NativeDesignSelection) => void;
-  onMaterialChange: (key: Exclude<keyof NativeDesignSelection, 'furniture'>, value: string) => void;
+  onMaterialChange: (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>, value: string) => void;
 }) {
   const materialLabel = (id: string) => surfaceMaterial(id)?.label ?? id;
-  const materialChoices = (key: Exclude<keyof NativeDesignSelection, 'furniture'>) => {
+  const materialChoices = (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>) => {
     const ids = key === 'floors' ? ['none', 'wood', 'tile'] : [];
     return [...new Set([...ids, ...(palette?.[key] ?? []), ...SURFACE_MATERIALS.map((material) => material.id)])];
   };
-  const toggle = (key: Exclude<keyof NativeDesignSelection, 'furniture'>) =>
+  const toggle = (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>) =>
     onChange({ ...selection, [key]: !selection[key] });
   const toggleFurniture = (index: number) =>
     onChange({
@@ -800,7 +842,16 @@ function ProposalPreview({
   return (
     <div className="text-ink mt-5 space-y-3 text-sm">
       <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
-      <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'interior' ? 'las estancias interiores'
+      {proposal.fixedFinishes?.map((finish, index) => <label key={finish.id} className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={selection.fixedFinishes?.includes(index) ?? false} onChange={(event) => onChange({ ...selection,
+          fixedFinishes: event.target.checked ? [...(selection.fixedFinishes ?? []), index] : selection.fixedFinishes?.filter((value) => value !== index) })} />
+        {finish.label ?? `Fijo ${index + 1}`}: {finish.color}{finish.baseMaterialId ? ` · frentes ${materialLabel(finish.baseMaterialId)}` : ''}
+        {finish.worktopMaterialId ? ` · encimera ${materialLabel(finish.worktopMaterialId)}` : ''}
+        {finish.worktopColor ? ` · encimera ${finish.worktopColor}` : ''}
+        {finish.uppersColor ? ` · altos ${finish.uppersColor}` : ''}{finish.plinthColor ? ` · zócalo ${finish.plinthColor}` : ''}
+      </label>)}
+      <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'house' ? 'solo la casa de esta planta'
+        : proposal.scope?.kind === 'interior' ? 'las estancias interiores'
         : proposal.scope?.kind === 'exterior' ? 'las zonas exteriores'
         : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) y ${proposal.scope.structureIds?.length ?? 0} pieza(s) elegida(s)`
           : proposal.scope?.kind === 'zone' ? 'la zona dibujada' : 'toda esta planta'}.

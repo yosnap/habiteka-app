@@ -21,7 +21,7 @@ export function ProjectTabs({ projectId, title }: Props) {
   // Conserva la zona activa al navegar entre pestañas: el trabajo (asistente, plano,
   // diseños) es por zona, así que cambiar de pestaña no debe perder la zona seleccionada.
   const zona = searchParams.get('zona');
-  const suffix = zona ? `?zona=${zona}` : '';
+  const suffix = zona ? `?zona=${encodeURIComponent(zona)}` : '';
 
   // `path` es la ruta sin query (para resaltar la pestaña activa); `href` lleva la zona.
   // La raíz es el canvas v2. "Plano" conserva el flujo de boceto → plano → cenital.
@@ -30,6 +30,7 @@ export function ProjectTabs({ projectId, title }: Props) {
     { path: `${base}/plano`, href: `${base}/plano`, label: 'Plano' },
     { path: base, href: `${base}${suffix}`, label: 'Editor', exact: true },
     { path: `${base}/deliverables`, href: `${base}/deliverables${suffix}`, label: 'Diseños' },
+    { path: `${base}/videos`, href: `${base}/videos${suffix}`, label: 'Vídeos' },
     { path: `${base}/historial`, href: `${base}/historial${suffix}`, label: 'Historial' },
   ];
 
@@ -40,7 +41,7 @@ export function ProjectTabs({ projectId, title }: Props) {
           ← Proyectos
         </Link>
         <span className="text-ink mr-4 truncate text-sm font-medium">{title}</span>
-        <nav className="flex gap-1">
+        <nav className="flex min-w-0 gap-1 overflow-x-auto">
           {tabs.map((t) => {
             const active = t.exact ? pathname === t.path : pathname.startsWith(t.path);
             return (
@@ -48,7 +49,7 @@ export function ProjectTabs({ projectId, title }: Props) {
                 key={t.path}
                 href={t.href}
                 className={cn(
-                  'border-b-2 px-3 py-3 text-sm transition-colors',
+                  'shrink-0 border-b-2 px-3 py-3 text-sm transition-colors',
                   active
                     ? 'border-brand-500 text-ink font-medium'
                     : 'text-ink-soft hover:text-ink border-transparent',

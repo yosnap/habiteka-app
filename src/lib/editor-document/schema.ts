@@ -261,6 +261,9 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
+  renderBackdrop?: import('./render-backdrop').RenderBackdrop;
+  exteriorRoof?: import('./exterior-roof').ExteriorRoof;
+  geographicSite?: import('./geographic-site').GeographicSite;
   schemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   revision: number;
   units: 'mm';

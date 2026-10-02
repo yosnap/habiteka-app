@@ -11,6 +11,44 @@ const document = { ...emptyEditorDocument(), designSpaceKind: 'patio' as const }
 const view = { preset: 'isometric' } as RenderView;
 
 describe('instrucción de imagen basada en la captura', () => {
+  it('conserva la cubierta y las fachadas de la vista Exterior terminado', () => {
+    const prompt = selectedViewImagePrompt(document, { ...view, preset: 'exterior', cutaway: false, ceilingView: 'solid' },
+      'moderno', defaultRenderDesignOptions(), '', '', false, true);
+    expect(prompt).toContain('Exterior terminado'); expect(prompt).toContain('VISTA EXTERIOR TERMINADA');
+    expect(prompt).toContain('No retires el techo'); expect(prompt).not.toContain('CORTE DE FACHADA');
+  });
+  it('exige rediseño real sin fijar los acabados antiguos ni liberar geometría o fijos', () => {
+    const prompt = selectedViewImagePrompt(document, view, 'moderno', defaultRenderDesignOptions(), 'Rediseñar el dormitorio', '', false);
+    expect(prompt).toContain('REDISEÑO SOLICITADO');
+    expect(prompt).not.toContain('DISEÑO FIJADO');
+    expect(prompt).toContain('FIJOS PROTEGIDOS');
+    expect(prompt).toContain('No entregues una copia');
+  });
+  it('respeta el corte de fachada y no reconstruye las cubiertas aéreas ocultas', () => {
+    const base = defaultRenderDesignOptions();
+    const front = selectedViewImagePrompt(document, { ...view, preset: 'front', cutaway: true,
+      ceilingView: 'solid', cutawayObjectIds: ['cortina-frontal'] }, 'moderno', base, '', '', false);
+    expect(front).toContain('CORTE DE FACHADA');
+    expect(front).toContain('cortina-frontal');
+    expect(front).toContain('Conserva TODOS los tabiques interiores');
+    const aerial = selectedViewImagePrompt(document, { ...view, preset: 'drone', ceilingView: 'hidden' },
+      'moderno', base, '', '', false);
+    expect(aerial).toContain('techo, falso techo y tejado ocultos');
+    expect(aerial).toContain('No los reconstruyas');
+    expect(aerial).not.toContain('VISTA EXTERIOR TERMINADA');
+  });
+  it('protege los fijos por defecto y permite su rediseño explícito sin autorizar muros ni huecos', () => {
+    const base = defaultRenderDesignOptions();
+    const protectedText = selectedViewImagePrompt(document, view, 'moderno', base, '', '', false);
+    expect(protectedText).toContain('FIJOS PROTEGIDOS');
+    expect(protectedText).not.toContain('REDISEÑO DE FIJOS AUTORIZADO');
+    const redesign = selectedViewImagePrompt(document, view, 'moderno', { ...base, redesignFixed: true }, '', '', false);
+    expect(redesign).toContain('REDISEÑO DE FIJOS AUTORIZADO');
+    expect(redesign).toContain('muros, huecos y accesos');
+    expect(redesign).not.toContain('FIJOS PROTEGIDOS');
+    expect(selectedViewImagePrompt({ ...document, designSpaceKind: 'casa' }, view, 'moderno', base, '', '', false))
+      .toContain('Conserva el terreno y jardín sin rediseñarlos');
+  });
   it('prioriza cámara y geometría sin enviar el inventario completo', () => {
     const text = selectedViewImagePrompt(document, view, 'moderno', defaultRenderDesignOptions(), '', '', false);
     expect(text).toContain('MISMA cámara (Isométrica)');

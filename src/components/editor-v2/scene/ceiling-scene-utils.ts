@@ -6,11 +6,16 @@ import { spotAimVector, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM, type CeilingSu
 
 export type CeilingView = 'hidden' | 'transparent' | 'solid';
 export const MAX_LUMINAIRE_LIGHTS = 12;
-/** Las cámaras de presentación muestran la cubierta terminada si existe; la maqueta deja ver el interior. */
-export function presetCeilingView(view: string, current: CeilingView, completeRoof: boolean): CeilingView {
-  if (view === 'top') return 'hidden';
-  if (view === 'isometric') return current === 'solid' ? 'transparent' : current;
-  if (completeRoof && (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'drone')) return 'solid';
+/** La captura usa su visibilidad propia, aunque la escena viva esté en otra cámara. */
+export function sceneCoversHidden(view: string | null, ceiling: CeilingView,
+  capture: { ceiling: CeilingView; aerial: boolean } | null, recording: boolean): boolean {
+  if (recording) return false;
+  return capture ? capture.aerial || capture.ceiling === 'hidden' : view === 'top' || ceiling === 'hidden';
+}
+/** Vistas de estudio: desde arriba sin cubierta; alzados con techo y fachada recortada. */
+export function presetCeilingView(view: string, current: CeilingView): CeilingView {
+  if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
+  if (view === 'front' || view === 'back' || view === 'left' || view === 'right') return 'solid';
   return current;
 }
 /** El falso techo baja hacia el interior; la losa exterior arranca a la altura de los muros. */
@@ -24,9 +29,7 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
   cutaway: boolean; cameraHeightM: number; highestCeilingM: number | null;
   /** Captura para diseñar con IA: desde encima del techo la IA vería una losa, no el interior. */
   forDesign?: boolean;
-  finishedExterior?: boolean;
 }): CeilingView {
-  if (custom?.finishedExterior) return 'solid';
   if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
   if ((!view || view === 'current' || view === 'custom') && (custom?.cutaway || custom?.forDesign) &&
     custom.highestCeilingM !== null && custom.cameraHeightM > custom.highestCeilingM) return 'hidden';
@@ -38,9 +41,9 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
  * el interior. Cenital, isométrica y dron conservan todos los muros; para ver
  * el interior desde arriba se gestiona el techo por separado.
  */
-export function captureCutaway(view: string | null | undefined, cutaway: boolean, finishedExterior = false): boolean {
+export function captureCutaway(view: string | null | undefined, cutaway: boolean): boolean {
+  if (view === 'exterior') return false;
   if (view === 'top' || view === 'isometric' || view === 'drone') return false;
-  if (finishedExterior) return false;
   if (view === 'front' || view === 'back' || view === 'left' || view === 'right') return true;
   return cutaway;
 }

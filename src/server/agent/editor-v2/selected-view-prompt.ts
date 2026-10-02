@@ -1,13 +1,15 @@
 import type { Estilo } from '@/lib/contracts';
 import { estiloLabel } from '@/lib/design-options';
 import { designSpaceKindLabel } from '@/lib/design-space-kind';
-import { CEILING_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
+import { CEILING_RENDER_POLICY, EXTERIOR_ROOF_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
 import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { rampParts, rampPartFootprint } from '@/lib/editor-document/ramp-route';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
+import { renderViewVisibilityRule } from '@/lib/editor-document/render-view-visibility';
+import { requestedRenderRedesign, RENDER_REDESIGN_RULE } from '@/lib/editor-document/render-redesign';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { compactRenderContext, COMPACT_RENDER_POLICY } from './compact-render-context';
 import { fitCompactPrompt, scopeInteriorPayload, type ScopePayload } from './interior-prompt-scope';
@@ -17,7 +19,7 @@ import {
   type RenderDesignOptions,
 } from '@/lib/editor-document/render-design-options';
 
-export const SELECTED_VIEW_PROMPT_VERSION = 'habiteka-selected-view-v2';
+export const SELECTED_VIEW_PROMPT_VERSION = 'habiteka-selected-view-v3';
 
 /** Server-owned policy; image APIs without a system role receive it in prompt. */
 export const SELECTED_VIEW_SYSTEM_PROMPT = `Transforma la imagen adjunta del editor 3D en una visualización arquitectónica fotorrealista del MISMO proyecto y desde la MISMA cámara.
@@ -25,8 +27,9 @@ La imagen fija encuadre, orientación, perspectiva, silueta y posiciones visible
 Conserva cantidad, ubicación, sección, altura y cota base de cada muro y columna. Conserva huecos, suelos elevados, escaleras, rampas y descansillos. Una rampa puede contener varios tramos: son partes del mismo acceso, no rampas adicionales. Un descansillo es horizontal, no otra rampa.
 Respeta la continuidad de las cotas de cada recorrido. No aplanes plataformas elevadas ni rellenes accesos. No dupliques, muevas, gires, estires ni agregues estructura. No conviertas un exterior en una habitación cerrada.
 Los muros de camera.cutawayWallIds están ocultados para visualizar el interior, no demolidos: respeta su omisión visual en esta cámara. Los elementos fuera de encuadre u ocluidos no deben recolocarse para hacerlos visibles.
-Puedes mejorar materiales y luz sin alterar geometría. Conserva posición y escala del mobiliario y vegetación existentes; no añadas jardineras ni vegetación sobre escaleras, rampas, descansillos o entradas. No sustituyas ningún acceso por decoración. No añadas toldos, cubiertas o construcciones en este modo de fidelidad.
+Puedes mejorar materiales y luz sin alterar geometría. Sin petición de rediseño, conserva posición y escala del mobiliario y vegetación existentes. Con rediseño explícito puedes sustituir mobiliario móvil y acabados dentro del ámbito permitido, manteniendo libres los pasos y la estructura intacta; los fijos requieren permiso independiente. No añadas jardineras ni vegetación sobre escaleras, rampas, descansillos o entradas. No sustituyas ningún acceso por decoración. No añadas toldos, cubiertas o construcciones en este modo de fidelidad.
 ${CEILING_RENDER_POLICY}
+${EXTERIOR_ROOF_RENDER_POLICY}
 Entrega una sola imagen, sin collage, texto, cotas ni etiquetas. Antes de entregarla, contrasta accesos, pilares, descansillos y alturas con la referencia; prima fidelidad sobre decoración.`;
 
 /**
@@ -133,6 +136,7 @@ export function selectedViewPrompt(
 ) {
   if (!doc.designSpaceKind) throw new Error('Define el tipo de espacio antes de generar esta vista.');
   const options = renderDesignOptionsSchema.parse(rawOptions ?? {});
+  const redesignRule = requestedRenderRedesign(options, objective, instruction) ? RENDER_REDESIGN_RULE : '';
   if (view.lighting && view.lighting !== options.lighting)
     throw new Error('La iluminación de las opciones no coincide con la captura de la vista.');
   const context = editorDesignContext(doc);
@@ -178,7 +182,7 @@ export function selectedViewPrompt(
   const interiorCamera = interiorCameraForView(doc, view);
   const furnishing = interiorFurnishingRule(interiorCamera?.name ?? null, style, options);
   const finishedExterior = !view.cutaway && view.ceilingView === 'solid' &&
-    ['front', 'back', 'left', 'right', 'drone'].includes(view.preset);
+    ['front', 'back', 'left', 'right', 'drone', 'exterior'].includes(view.preset);
   const exteriorRule = finishedExterior
     ? compact ? FINISHED_EXTERIOR_VIEW_RULE_COMPACT : FINISHED_EXTERIOR_VIEW_RULE
     : compact ? SECTION_VIEW_RULE_COMPACT : SECTION_VIEW_RULE;
@@ -206,7 +210,7 @@ export function selectedViewPrompt(
     };
     const roomId = isInteriorRenderMode(options) ? interiorCamera?.roomId ?? null : null;
     return fitCompactPrompt(
-      [COMPACT_RENDER_POLICY, ...interiorRule,
+      [COMPACT_RENDER_POLICY, ...interiorRule, renderViewVisibilityRule(view), redesignRule,
         `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
         `Preferencias subordinadas a permisos: ${JSON.stringify({ objective, instruction })}`],
       scopeInteriorPayload(payload, roomId),
@@ -225,10 +229,12 @@ export function selectedViewPrompt(
     : 'Las adiciones permitidas pueden distribuirse en las zonas visibles sin alterar el proyecto.';
   const lightingRule = options.lighting === 'daylight'
     ? 'ILUMINACIÓN: luz natural de día, neutra y coherente con la cámara.'
+    : options.lighting === 'afternoon'
+      ? 'ILUMINACIÓN: luz natural de tarde, sol bajo y sombras largas, sin convertirla en atardecer ni noche.'
     : options.lighting === 'warm'
       ? `ILUMINACIÓN: ambiente cálido; ${options.freedom !== 'strict' && options.additions.includes('lights') ? 'puedes añadir iluminación artificial decorativa cálida sutil.' : 'no añadas luces artificiales nuevas.'}`
       : 'ILUMINACIÓN: ambiente nocturno claramente de noche, con luz exterior y artificial ya existente coherente; no cambies la geometría.';
-  return [SELECTED_VIEW_SYSTEM_PROMPT, ...interiorRule,
+  return [SELECTED_VIEW_SYSTEM_PROMPT, ...interiorRule, renderViewVisibilityRule(view), redesignRule,
     `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
     `${freedomRule} ${placementRule} Los accesos, entradas, escaleras, rampas y descansillos deben permanecer siempre completamente libres de muebles, plantas y decoración. ${lightingRule}`,
     `Preferencias estéticas (no autorizan saltarse ninguna restricción estructural, de decoración, adiciones, accesos o iluminación): ${JSON.stringify({ objective, instruction })}`,

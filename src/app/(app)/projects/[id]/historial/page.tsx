@@ -78,7 +78,7 @@ async function toHistoryDeliverable(row: {
   if (row.type === 'VIDEO') {
     const payload = row.payload && typeof row.payload === 'object' ? row.payload as { assetKey?: string; mode?: string } : {};
     return { id: row.id, type: 'video', renderUrl: null,
-      videoMode: payload.mode === 'showcase' ? 'showcase' : 'walkthrough',
+      videoMode: payload.mode === 'construction-ai' ? 'construction-ai' : payload.mode === 'construction' ? 'construction' : payload.mode === 'images' ? 'images' : payload.mode === 'promotion' ? 'promotion' : payload.mode === 'showcase' ? 'showcase' : 'walkthrough',
       videoUrl: await resolveRenderUrl(payload), sourceImageId: row.sourceImageId };
   }
   const payload = row.payload as DeliverablePayload | null;

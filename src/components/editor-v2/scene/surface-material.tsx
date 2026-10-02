@@ -47,5 +47,9 @@ function LoadedMaterial({ id, color, attach, width = 1, height = 1, offsetX = 0,
 export function SurfaceMaterial(props: Props) {
   const fallback = <meshStandardMaterial attach={props.attach} color={props.color} roughness={.85} side={props.doubleSide ? DoubleSide : undefined} />;
   if (!surfaceMaterial(props.id)) return fallback;
-  return <TextureBoundary key={props.id} fallback={fallback}><Suspense fallback={fallback}><LoadedMaterial {...props} /></Suspense></TextureBoundary>;
+  return <TextureBoundary key={props.id} fallback={<meshStandardMaterial attach={props.attach} color={props.color} roughness={.85}
+    side={props.doubleSide ? DoubleSide : undefined} userData={{ textureLoadState: 'failed' }} />}>
+    <Suspense fallback={<meshStandardMaterial attach={props.attach} color={props.color} roughness={.85}
+      side={props.doubleSide ? DoubleSide : undefined} userData={{ textureLoadState: 'loading' }} />}><LoadedMaterial {...props} /></Suspense>
+  </TextureBoundary>;
 }

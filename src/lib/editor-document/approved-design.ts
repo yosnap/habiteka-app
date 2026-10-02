@@ -2,7 +2,7 @@ import type { EditorDocument } from './schema';
 import { buildingDocuments } from './building-levels';
 import { furnitureAsset } from './furniture-assets';
 
-export type ApprovedLightingPreset = 'daylight' | 'warm' | 'evening';
+export type ApprovedLightingPreset = import('@/lib/lighting-preset').LightingPreset;
 
 export interface ApprovedAsset {
   levelId: string;
@@ -52,8 +52,8 @@ function canonical(value: unknown): unknown {
   return value;
 }
 
-/** Compara el contenido ignorando la revisión técnica y el orden de claves de JSONB. */
+/** Compara el diseño ignorando revisión, fondo auxiliar del plano y orden de claves de JSONB. */
 export function sameDesignContent(first: EditorDocument, second: EditorDocument): boolean {
-  return JSON.stringify(canonical({ ...first, revision: 0 })) ===
-    JSON.stringify(canonical({ ...second, revision: 0 }));
+  return JSON.stringify(canonical({ ...first, revision: 0, renderBackdrop: undefined })) ===
+    JSON.stringify(canonical({ ...second, revision: 0, renderBackdrop: undefined }));
 }

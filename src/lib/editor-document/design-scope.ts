@@ -6,7 +6,7 @@ import type { DesignZone, EditorDocument, Point, Wall } from './schema';
 import { designZoneRooms, designZoneStructures } from './design-zone-geometry';
 
 export interface DesignScope {
-  kind: 'all' | 'interior' | 'exterior' | 'rooms' | 'zone';
+  kind: 'all' | 'house' | 'interior' | 'exterior' | 'rooms' | 'zone';
   roomIds: string[];
   structureIds?: string[];
   zoneId?: string;
@@ -27,7 +27,7 @@ export function assertCompatibleDesignStyle(doc: EditorDocument, style: Estilo, 
 
 /** El ámbito espacial se resuelve siempre contra el documento vigente. */
 export function designScopeRooms(doc: EditorDocument, scope: DesignScope): DerivedRoom[] {
-  if (!['all', 'interior', 'exterior', 'rooms', 'zone'].includes(scope.kind)) throw new Error('Ámbito de diseño no válido');
+  if (!['all', 'house', 'interior', 'exterior', 'rooms', 'zone'].includes(scope.kind)) throw new Error('Ámbito de diseño no válido');
   const rooms = deriveRooms(doc);
   if (scope.kind === 'all') return rooms;
   if (scope.kind === 'zone') {
@@ -39,7 +39,7 @@ export function designScopeRooms(doc: EditorDocument, scope: DesignScope): Deriv
   const indoorIds = new Set(eligibleCeilingRooms(doc).map((room) => room.id));
   const selected = scope.kind === 'rooms'
     ? rooms.filter((room) => scope.roomIds.includes(room.id))
-    : rooms.filter((room) => scope.kind === 'interior' ? indoorIds.has(room.id) : !indoorIds.has(room.id));
+    : rooms.filter((room) => scope.kind === 'interior' || scope.kind === 'house' ? indoorIds.has(room.id) : !indoorIds.has(room.id));
   if (!selected.length || (scope.kind === 'rooms' && selected.length !== new Set(scope.roomIds).size))
     throw new Error('El ámbito del diseño ya no coincide con las estancias del plano. Vuelve a elegirlas.');
   return selected;

@@ -10,9 +10,10 @@ import { saveWalkthroughVideo } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ceilingSurfaces, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
+import Link from 'next/link';
 
-export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: {
-  approval: ApprovedDesign; scope: DraftScope; initialRouteId?: string | null; onBack: () => void;
+export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, onOpenVideoStudio }: {
+  approval: ApprovedDesign; scope: DraftScope; initialRouteId?: string | null; onBack: () => void; onOpenVideoStudio?: () => void;
 }) {
   const [store] = useState(() => {
     const value = createEditorStore(approval.document, { readOnly: true });
@@ -55,12 +56,14 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: 
       <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'plan'} onClick={() => setPresentation('plan')}>Plano visual</button>
       <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'spatial'} onClick={() => setPresentation('spatial')}>3D y visita</button>
       <a className="rounded border px-3 py-2" href={visitHref}>Enlace de esta versión</a>
+      {onOpenVideoStudio ? <button type="button" className="rounded-control bg-brand-600 px-3 py-2 text-white" onClick={onOpenVideoStudio}>Crear vídeo</button>
+        : <Link className="rounded-control bg-brand-600 px-3 py-2 text-white" href={`/projects/${encodeURIComponent(scope.projectId)}/videos${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>Crear vídeo</Link>}
       <button type="button" className="rounded border px-3 py-2" onClick={onBack}>Editar diseño</button>
     </header>
     {(approximate > 0 || uncoveredRooms.length > 0 || !routes.length) && <p className="border-b bg-amber-50 px-4 py-2 text-xs text-amber-950">
       {approximate > 0 && `${approximate} objetos usan una representación aproximada; no se presentan como producto exacto. `}
       {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); la visita y el vídeo las muestran abiertas. `}
-      {!routes.length && 'Para crear un MP4, dibuja un recorrido en el borrador y aprueba una nueva revisión.'}
+      {!routes.length && 'Para grabar una visita del modelo 3D, dibuja un recorrido en el borrador y aprueba una nueva revisión. Para presentar tus renders, abre «Vídeos con mis imágenes». La promoción de la parcela usa su propio guion.'}
     </p>}
     {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido del vídeo
       <ModernSelect className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
@@ -70,7 +73,7 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack }: 
     </label>}
     <div className="flex min-h-0 flex-1">
       <div className="min-w-0 flex-1">
-        <EditorSceneView key={presentation} store={store} presentation={presentation}
+        <EditorSceneView key={presentation} store={store} projectId={scope.projectId} presentation={presentation}
         lightingPreset={approval.lightingPreset} lightingLocked
         onSaveNativeVideo={(blob, id, mode) => saveWalkthroughVideo(scope, approval.id, blob, id, mode)} />
       </div>

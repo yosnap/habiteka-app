@@ -5,6 +5,6 @@ import { EditorPreview } from './preview-client';
 export default async function EditorPreviewPage({ searchParams }: { searchParams: Promise<{ muestra?: string }> }) {
   if (process.env.NODE_ENV !== 'development') notFound();
   const requested = (await searchParams).muestra;
-  const sample = requested === 'visual' || requested === 'plantas' ? requested : null;
+  const sample = requested === 'visual' || requested === 'plantas' || requested === 'obra' ? requested : null;
   return <EditorPreview key={sample ?? 'empty'} sample={sample} />;
 }

@@ -26,6 +26,7 @@ interface Props {
 
 const scopes = [
   ['all', 'Toda esta planta'],
+  ['house', 'Solo la casa'],
   ['interior', 'Solo interior'],
   ['exterior', 'Solo exterior'],
   ['rooms', 'Estancias concretas'],
@@ -82,10 +83,11 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
     <ModernSelect compact id="editor-design-scope" value={options.designScope} disabled={disabled}
       onChange={(event) => changeScope({ designScope: event.target.value as RenderDesignOptions['designScope'] })}>
       {scopes.map(([kind, label]) => <option key={kind} value={kind}
-        disabled={kind === 'interior' ? !interiorCount : kind === 'exterior' ? !exteriorCount : kind === 'rooms' ? !rooms.length : false}>
+        disabled={kind === 'interior' || kind === 'house' ? !interiorCount : kind === 'exterior' ? !exteriorCount : kind === 'rooms' ? !rooms.length : false}>
         {label}
       </option>)}
     </ModernSelect>
+    {options.designScope === 'house' && <p className="mt-2 text-xs text-ink-soft">Estancias interiores y sus fachadas de esta planta. La parcela, los patios y las construcciones exteriores quedan fuera del ámbito.</p>}
     {options.designScope === 'rooms' && <div className="mt-3 grid max-h-40 gap-2 overflow-y-auto border-t border-line pt-3 sm:grid-cols-2">
       {rooms.map((room) => <CheckToggle key={room.id} checked={options.designRoomIds.includes(room.id)}
         disabled={disabled} onChange={() => toggleRoom(room.id)}

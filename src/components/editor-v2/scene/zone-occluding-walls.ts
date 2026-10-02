@@ -3,6 +3,7 @@ import type { ZoneMaskRegions } from '@/lib/editor-document/render-view';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { wallConstruction } from '@/lib/editor-document/construction-properties';
+import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 
 function targets(regions: ZoneMaskRegions): Point[] {
   return regions.flatMap((polygon) => {
@@ -55,8 +56,11 @@ export function zoneOccludingWallIds(document: EditorDocument, camera: { x: numb
   if (regions.some((region) => pointInPolygon(eye, region))) return [];
   const points = targets(regions);
   if (!points.length) return [];
+  const facingExteriors = new Set(editorDocumentToScene(document).exteriorWalls
+    .filter(wall => (camera.x - wall.x) * wall.normalX + (camera.z - wall.z) * wall.normalZ > .01)
+    .map(wall => wall.sourceEntityId));
   return document.walls.filter((wall) => {
-    if (wall.hidden) return false;
+    if (wall.hidden || !facingExteriors.has(wall.id)) return false;
     const path = wallPath(document, wall);
     const segments = wall.curveHeightMm ? path.samples() : [path.at(0), path.at(1)];
     const bottom = (wall.baseElevationMm ?? 0) / 1000;

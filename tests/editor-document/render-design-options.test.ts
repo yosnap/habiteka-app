@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { defaultRenderDesignOptions, renderDesignOptionsSchema } from '@/lib/editor-document/render-design-options';
+import { defaultRenderDesignOptions, renderDesignOptionsSchema, renderBatchSettingsKey } from '@/lib/editor-document/render-design-options';
 
 describe('permisos de diseño IA', () => {
+  it('continuar por cámaras conserva el contrato, pero cambiar luz o permisos lo invalida', () => {
+    const base = defaultRenderDesignOptions();
+    expect(renderBatchSettingsKey({ ...base, views: ['top'] })).toBe(renderBatchSettingsKey({ ...base, views: ['left', 'exterior'] }));
+    for (const changed of [{ ...base, lighting: 'warm' as const }, { ...base, redesignFixed: true }, { ...base, freedom: 'free' as const }])
+      expect(renderBatchSettingsKey(changed)).not.toBe(renderBatchSettingsKey(base));
+  });
   it('no autoriza adiciones por defecto', () => {
     expect(renderDesignOptionsSchema.parse({})).toEqual(defaultRenderDesignOptions());
   });

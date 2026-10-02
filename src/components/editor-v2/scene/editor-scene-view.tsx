@@ -2,6 +2,7 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { TriangleAlert, X } from 'lucide-react';
 import { Canvas, type RootState } from '@react-three/fiber';
+import { scenePointerEvents } from './scene-pointer-events';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import { Bounds, Edges, Html } from '@react-three/drei';
@@ -12,7 +13,7 @@ import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
 import { BoxMesh, PolygonMesh, RampMesh } from './scene-meshes';
-import { EXTERIOR_ELEVATION, SceneCamera, type CameraRequest } from './scene-camera';
+import { SceneCamera, type CameraRequest } from './scene-camera';
 import { scenePresetFocus, sceneZoneFocus, zoneObliqueDirection } from './scene-preset-focus';
 import { CutawayWall, cutawaySupportHeights, hideWallsByIds, hideWallsFacingCamera, revealHiddenLighting } from './cutaway-wall';
 import { zoneOccludingWallIds } from './zone-occluding-walls';
@@ -29,20 +30,32 @@ import { FreeWalkOverlay } from './free-walk-overlay';
 import { freeWalkStart } from '@/lib/editor-document/free-walk-navigation';
 import { buildingWalkNavigation } from '@/lib/editor-document/building-free-walk';
 import { recordWalkthrough } from './offline-recorder';
-import { nativeVideoDurationIssue, type NativeVideoMode } from '@/lib/editor-document/native-video';
+import { CONSTRUCTION_ROUTE_ID, nativeVideoNeedsRoute, nativeVideoDurationIssue, type NativeVideoMode } from '@/lib/editor-document/native-video';
+import { SceneVideoControlBridge, type VideoStudioScene } from './scene-video-control';
+import { promotionVideoIssue, PROMOTION_ROUTE_ID } from '@/lib/editor-document/promotion-video';
+import { DEFAULT_VIDEO_PRESENTATION, type VideoPresentationOptions } from './construction-audio';
+import { VideoPresentationControls } from './video-presentation-controls';
+import { ExteriorRoofMeshes } from './exterior-roof-meshes';
+import { NativeVideoPreview } from './native-video-preview';
+import { GeographicSiteScene } from './geographic-site-scene';
+import { waitSceneModels } from './wait-scene-models';
+import { VideoSceneScope } from './video-scene-scope';
+import { videoScopeRegions } from '@/lib/editor-document/video-content-scope';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
 import { SceneEnvironment } from './scene-environment';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
 import { viewCoverIds } from '@/lib/editor-document/view-covers';
-import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, presetCeilingView, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
+import { viewCutawayHosts } from '@/lib/editor-document/view-cutaway-hosts';
+import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, presetCeilingView, sceneCoversHidden, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
-import { resolvedLuminaires, ceilingSurfaces, hasCompleteInteriorRoof, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
+import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
 import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from './scene-view-controls';
 import { withTimeout } from '@/lib/async-wait';
 import { renderZoneMask } from './zone-mask';
 import { isolateSceneToZone } from './zone-scene-isolation';
+import { exteriorZoneMarginMm } from './zone-structural-mask';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { placeOnHost } from '@/lib/editor-document/object-host-rest';
@@ -87,6 +100,8 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { error: boo
 }
 function SceneView({
   store,
+  videoStudio,
+  projectId,
   presentation = 'spatial',
   allowVideoExport = true,
   onOpenApprovedRoute,
@@ -101,13 +116,15 @@ function SceneView({
   readOnlyLabel = 'Diseño aprobado · vista cenital de la misma escena 3D',
 }: {
   store: EditorStore;
+  videoStudio?: VideoStudioScene;
+  projectId?: string;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
   onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   lightingPreset?: SceneLightingPreset;
   onLightingChange?: (preset: SceneLightingPreset) => void;
   lightingLocked?: boolean;
-  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode, options?: VideoPresentationOptions) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
   showLighting?: boolean;
@@ -115,22 +132,28 @@ function SceneView({
   readOnlyLabel?: string;
 }) {
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
+  const studioRegions = useMemo(() => {
+    if (!videoStudio) return [];
+    try { return videoScopeRegions(document, videoStudio.contentScope ?? 'all'); } catch { return []; }
+  }, [document, videoStudio]);
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
   const ceilingView = useStore(store, (s) => s.ceilingView);
   const [captureCeilings, setCaptureCeilings] = useState<CeilingView | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  useEffect(() => () => { if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl); }, [videoPreviewUrl]);
+  const [videoPresentation, setVideoPresentation] = useState(DEFAULT_VIDEO_PRESENTATION);
   // Durante una captura aérea se quitan pérgolas, carpas, toldos y sombrillas: taparían lo que hay debajo.
   const [captureHideCovers, setCaptureHideCovers] = useState(false);
   const stairLinks = useMemo(() => buildingStairLinks(document), [document]);
   const scene = useMemo(() => editorDocumentToScene(document,
     stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [document, stairLinks]);
-  const openingHosts = useMemo(() => new Map(document.openings.map((opening) => [opening.id, opening.wallId])), [document]);
+  const openingHosts = useMemo(() => viewCutawayHosts(document), [document]);
   const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
   const [request, setRequest] = useState<CameraRequest>(() => presentation === 'plan'
     ? { sequence: 0, action: 'top' }
     : { sequence: 0, action: 'isometric', focus: scenePresetFocus(document, 'isometric') });
   const [activeView, setActiveView] = useState<SceneViewPreset | null>(presentation === 'plan' ? 'top' : 'isometric');
   // «Techo: Oculto» (maqueta, cenital) quita también las construcciones tipo techo del exterior, aunque la cámara se haya movido.
-  const hideCovers = captureHideCovers || activeView === 'top' || ceilingView === 'hidden';
   const coverIds = useMemo(() => viewCoverIds(document), [document]);
   const boundaryIds = useMemo(() => new Set((document.boundaries ?? []).map((item) => item.id)), [document]);
   const routeId = useStore(store, (s) => s.walkthroughId);
@@ -160,6 +183,11 @@ function SceneView({
   }, [document, presentation, route]);
   const [capturingPose, setCapturingPose] = useState(false);
   const [recording, setRecording] = useState(false), [recordProgress, setRecordProgress] = useState(0);
+  const [promoting, setPromoting] = useState(false);
+  const hideCovers = sceneCoversHidden(activeView, ceilingView,
+    captureCeilings === null ? null : { ceiling: captureCeilings, aerial: captureHideCovers }, recording);
+  const [siteReady, setSiteReady] = useState(false);
+  const promotionIssue = promotionVideoIssue(document);
   const abortRecording = useRef<AbortController | null>(null);
   useEffect(() => () => { abortRecording.current?.abort(); store.getState().setWalkthroughPlaying(false); }, [store]);
   const [contextLost, setContextLost] = useState(false);
@@ -170,7 +198,7 @@ function SceneView({
   const [interiorRoomId, setInteriorRoomId] = useState<string | null>(null);
   const [allLevels, setAllLevels] = useState(false);
   const multiLevelRoute = Boolean(route?.waypoints.some((point) => point.levelId));
-  const renderAllLevels = allLevels || (multiLevelRoute && (walking || recording));
+  const renderAllLevels = allLevels || promoting || Boolean(videoStudio && videoStudio.mode !== 'walkthrough') || (multiLevelRoute && (walking || recording));
   const activeElevation = renderAllLevels ? buildingDocuments(document).find((level) => level.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
@@ -217,7 +245,7 @@ function SceneView({
   const exitFreeWalk = () => { pauseFreeWalk(); setFreeWalk(null); };
   const inside = interiorRoomId !== null && interiorCameras.some((room) => room.roomId === interiorRoomId);
   // Dentro de una estancia no se recortan muros ni se destapa el techo: se ve lo que vería el usuario.
-  const wallCutaway = cutaway && !inside;
+  const wallCutaway = cutaway && !inside && !videoStudio;
   const captureRender = useRef<CaptureScene | null>(null);
   const root = useRef<RootState | null>(null);
   const sceneContainer = useRef<HTMLDivElement | null>(null);
@@ -239,9 +267,6 @@ function SceneView({
     const capture: CaptureScene = (options, fullResolution = false) => {
       if (abortRecording.current || store.getState().walkthroughPlaying || freeWalk) return Promise.reject(new Error('Sal de la visita antes de capturar una imagen.'));
       const inner = captureQueue.current.then(async (): Promise<SceneCapture> => {
-      const finishedExterior = !fullResolution && !allLevels && !options?.camera && !options?.maskRegions?.length &&
-        (options?.view === 'front' || options?.view === 'back' || options?.view === 'left' ||
-          options?.view === 'right' || options?.view === 'drone') && hasCompleteInteriorRoof(store.getState().document);
       const initial = root.current?.get();
       if (!initial) throw new Error('La vista 3D no está disponible.');
       const originalPosition = initial.camera.position.clone();
@@ -263,7 +288,7 @@ function SceneView({
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
       store.getState().select([]);
-      if (options?.maskRegions?.length || aerialCapture) flushSync(() => setCapturingPose(true));
+      if (options?.maskRegions?.length || aerialCapture || (options?.view && options.view !== 'current')) flushSync(() => setCapturingPose(true));
       if (options?.lighting) flushSync(() => setCaptureLighting(options.lighting!));
       // El ángulo se conserva, pero se encuadra la zona elegida en lugar de toda la finca.
       if (!options?.camera && (options?.fit || (options?.view && options.view !== 'current'))) {
@@ -273,24 +298,21 @@ function SceneView({
           cameraApplied.current = (applied) => {
             if (applied === sequence) { clearTimeout(timeout); cameraApplied.current = null; resolve(); }
           };
-          const view = options?.view && options.view !== 'current' ? options.view : null;
-          const finishedDirection: Record<string, [number, number, number]> = {
-            front: [0, EXTERIOR_ELEVATION, 1], back: [0, EXTERIOR_ELEVATION, -1],
-            left: [-1, EXTERIOR_ELEVATION, 0], right: [1, EXTERIOR_ELEVATION, 0],
-          };
+          // La cámara oblicua se comparte; la vista terminada conserva muros y cubierta.
+          const view = options?.view === 'exterior' ? 'isometric' : options?.view && options.view !== 'current' ? options.view : null;
           const zoneFocus = options?.maskRegions?.length
             ? sceneZoneFocus(options.maskRegions, activeElevation) : undefined;
           const obliqueDirection = zoneFocus && (view === 'isometric' || view === 'drone')
             ? zoneObliqueDirection(zoneFocus, view) : undefined;
           setRequest({ sequence, action: view ?? 'fit',
             focus: zoneFocus ?? (view && !allLevels ? scenePresetFocus(store.getState().document, view, activeElevation) : undefined),
-            direction: obliqueDirection ?? (finishedExterior && view ? finishedDirection[view] : undefined) });
+            direction: obliqueDirection });
         });
       }
       const currentDocument = store.getState().document;
       // «Vista actual» captura lo que se ve; solo un alzado pedido fuerza el recorte.
       const cut = aerialCapture || options?.maskRegions?.length || options?.camera ? false : options?.view && options.view !== 'current'
-        ? captureCutaway(options.view, wallCutaway, finishedExterior) : wallCutaway;
+        ? captureCutaway(options.view, wallCutaway) : wallCutaway;
       const sideView = ['front', 'back', 'left', 'right'].includes(capturedView ?? '');
       const zoneWallIds = options?.maskRegions?.length && !options.camera && sideView
         ? zoneOccludingWallIds(currentDocument, initial.camera.position, options.maskRegions,
@@ -307,6 +329,11 @@ function SceneView({
         initial.camera.fov = pose.fovDeg; initial.camera.updateProjectionMatrix();
       }
       const visibleLevels = allLevels ? buildingDocuments(currentDocument) : [{ document: currentDocument, elevationMm: 0 }];
+      const hiddenWallIds = new Set([...(cut ? visibleLevels.flatMap(level => editorDocumentToScene(level.document).exteriorWalls
+        .filter(wall => (initial.camera.position.x - wall.x) * wall.normalX + (initial.camera.position.z - wall.z) * wall.normalZ > .01)
+        .map(wall => wall.sourceEntityId)) : []), ...zoneWallIds]);
+      const cutawayObjectIds = visibleLevels.flatMap(level => [...viewCutawayHosts(level.document)]
+        .filter(([id, wallId]) => hiddenWallIds.has(wallId) && level.document.furniture.some(item => item.id === id)).map(([id]) => id));
       const ceilingHeights = visibleLevels.flatMap((level) => ceilingSurfaces(level.document)
         .map((surface) => (surface.heightMm + level.elevationMm) / 1000));
       const capturedCeilingView = options?.camera ? 'solid'
@@ -315,7 +342,7 @@ function SceneView({
           : captureCeilingView(
         capturedView,
         { cutaway: capturedCutaway, forDesign: !fullResolution, cameraHeightM: initial.camera.position.y,
-          highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null, finishedExterior },
+          highestCeilingM: ceilingHeights.length ? Math.max(...ceilingHeights) : null },
       );
       flushSync(() => setCaptureCeilings(capturedCeilingView));
       flushSync(() => setCaptureHideCovers(aerialCapture));
@@ -332,7 +359,9 @@ function SceneView({
         restoreZoneWalls = hideWallsByIds(state.scene, ids,
           cutawaySupportHeights(currentDocument, ids, activeElevation));
       }
-      if (options?.maskRegions?.length) restoreZoneScene = isolateSceneToZone(state.scene, options.maskRegions);
+      const structuralMarginMm = capturedView === 'exterior'
+        ? Math.max(...visibleLevels.map(level => exteriorZoneMarginMm(level.document))) : undefined;
+      if (options?.maskRegions?.length) restoreZoneScene = isolateSceneToZone(state.scene, options.maskRegions, false, false, structuralMarginMm);
       if (options?.maskRegions?.length) {
         const previousBackground = state.scene.background;
         state.scene.background = new Color('#d8d8d8');
@@ -347,16 +376,14 @@ function SceneView({
       const downloadDataUrl = fullResolution ? state.gl.domElement.toDataURL('image/png') : undefined;
       // Misma cámara y mismo encuadre: la máscara casa píxel a píxel con la captura.
       const maskDataUrl = options?.maskRegions?.length
-        ? renderZoneMask(state.gl, state.scene, camera, options.maskRegions, captureForPersistence) : undefined;
+        ? renderZoneMask(state.gl, state.scene, camera, options.maskRegions, captureForPersistence, structuralMarginMm) : undefined;
       return { dataUrl, ...(maskDataUrl ? { maskDataUrl } : {}),
         ...(downloadDataUrl ? { downloadDataUrl } : {}), view: {
         preset: options?.camera ? 'custom' : options?.view && options.view !== 'current' ? options.view : activeView ?? 'custom', focus: camera.position.clone().add(camera.getWorldDirection(new Vector3())).toArray(), levelId: currentDocument.activeLevelId ?? null, levelElevationM: allLevels ? (buildingDocuments(currentDocument).find((level) => level.id === currentDocument.activeLevelId)?.elevationMm ?? 0) / 1000 : 0, position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
         fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: capturedCutaway,
         ceilingView: capturedCeilingView,
         lighting: options?.lighting ?? originalLighting,
-        cutawayWallIds: [...new Set([...(cut ? scene.exteriorWalls.filter((wall) =>
-          (camera.position.x - wall.x) * wall.normalX + (camera.position.z - wall.z) * wall.normalZ > .01,
-        ).map((wall) => wall.sourceEntityId) : []), ...zoneWallIds])],
+        cutawayWallIds: [...hiddenWallIds], cutawayObjectIds,
       } };
       } finally {
         restoreBackground?.();
@@ -392,7 +419,7 @@ function SceneView({
     return () => { captureRender.current = null; onCaptureReady?.(null); };
   }, [onCaptureReady, rendererReady, contextLost, store, activeView, allLevels, wallCutaway, scene, lighting, freeWalk, activeElevation, ceilingView, inside, presentation]);
   const otherLevels = useMemo(() => renderAllLevels ? buildingDocuments(document).filter((l) => l.id !== document.activeLevelId)
-    .map((l) => ({ ...l, scene: editorDocumentToScene(l.document,
+    .map((l) => ({ ...l, cutawayHosts: viewCutawayHosts(l.document), scene: editorDocumentToScene(l.document,
       stairLinks.filter((link) => link.upperLevelId === l.id).map((link) => link.outline)) })) : [], [document, renderAllLevels, stairLinks]);
   // La estancia que manda en el reparto de luces reales: donde está la cámara y,
   // si no, la del elemento seleccionado. Así se encienden primero las que se ven.
@@ -480,10 +507,11 @@ function SceneView({
     if (abortRecording.current || walking || freeWalk) return;
     // Cualquier vista preset o encuadre saca al usuario de la estancia.
     if (action !== 'in' && action !== 'out') setInteriorRoomId(null);
-    if (action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') setCutaway(false);
     if (action === 'top' || action === 'isometric' || action === 'front' || action === 'back' || action === 'left' || action === 'right' || action === 'drone') {
       setActiveView(action);
-      const roof = presetCeilingView(action, ceilingView, !renderAllLevels && hasCompleteInteriorRoof(document));
+      store.getState().select([]);
+      setCutaway(captureCutaway(action, false));
+      const roof = presetCeilingView(action, ceilingView);
       if (roof !== ceilingView) store.getState().setCeilingView(roof);
     }
     setRequest((r) => ({ sequence: r.sequence + 1, action: action as CameraRequest['action'],
@@ -541,32 +569,39 @@ function SceneView({
       setExporting(false);
     }
   };
-  const exportWalk = async (mode: NativeVideoMode) => {
-    if (!allowVideoExport || !route || !root.current || recording || exporting || freeWalk) return;
-    const issue = mode === 'showcase' ? routeExport?.showcaseIssue : routeExport?.walkthroughIssue;
+  const exportWalk = async (mode: NativeVideoMode, options: VideoPresentationOptions = videoPresentation) => {
+    if (!allowVideoExport || (nativeVideoNeedsRoute(mode) && !route) || !root.current || recording || exporting || freeWalk) return;
+    const issue = mode === 'promotion' ? promotionIssue ?? (!siteReady ? 'Espera a que cargue la ortofoto de la parcela.' : null)
+      : mode === 'construction' ? !document.vertices.length ? 'Dibuja el edificio antes de crear el vídeo.' : null
+      : mode === 'showcase' ? routeExport?.showcaseIssue : routeExport?.walkthroughIssue;
     if (issue) { setExportMessage(issue); return; }
     const frozen = store.getState().document, selectionBefore = [...store.getState().selection];
     const controller = new AbortController(); abortRecording.current = controller;
     store.getState().setWalkthroughPlaying(false); store.getState().select([]);
     const unsubscribe = store.subscribe((next) => { if (next.document !== frozen) controller.abort(); });
-    flushSync(() => { setRecording(true); setRecordProgress(0); setExportMessage(null); });
+    flushSync(() => {
+      setRecording(true); setPromoting(!nativeVideoNeedsRoute(mode)); setRecordProgress(0); setExportMessage(null);
+    });
     try {
       const job = captureQueue.current.then(async () => {
         controller.signal.throwIfAborted();
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-        const elevationMm = multiLevelRoute ? buildingDocuments(frozen).find((level) => level.id === frozen.activeLevelId)?.elevationMm ?? 0 : activeElevation;
-        return recordWalkthrough(root.current!.get(), frozen, route, elevationMm, controller.signal, setRecordProgress, mode);
+        await waitSceneModels(root.current!.get().scene, controller.signal);
+        const elevationMm = !nativeVideoNeedsRoute(mode) ? 0 : multiLevelRoute ? buildingDocuments(frozen).find((level) => level.id === frozen.activeLevelId)?.elevationMm ?? 0 : activeElevation;
+        return recordWalkthrough(root.current!.get(), frozen, route, elevationMm, controller.signal, setRecordProgress, mode, options);
       });
       captureQueue.current = job.catch(() => undefined);
       const blob = await job;
       const url = URL.createObjectURL(blob), link = window.document.createElement('a');
-      link.href = url; link.download = mode === 'showcase' ? 'habiteka-video-resumen.mp4' : 'habiteka-recorrido.mp4'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      link.href = url; link.download = mode === 'construction' ? 'habiteka-construccion.mp4' : mode === 'promotion' ? 'habiteka-promocion-parcela.mp4' : mode === 'showcase' ? 'habiteka-video-resumen.mp4' : 'habiteka-recorrido.mp4'; link.click(); setVideoPreviewUrl(url);
       setExportMessage('MP4 descargado.');
-      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, route.id, mode); setExportMessage(`MP4 descargado y guardado en ${mode === 'showcase' ? 'Vídeos' : 'Recorridos'}.`); }
+      if (onSaveNativeVideo) { await onSaveNativeVideo(blob, mode === 'construction' ? CONSTRUCTION_ROUTE_ID : mode === 'promotion' ? PROMOTION_ROUTE_ID : route!.id, mode, options); setExportMessage('Vídeo creado, descargado y guardado. Puedes verlo aquí o en Vídeos guardados.'); }
     } catch (error) { setExportMessage(controller.signal.aborted ? 'Exportación cancelada.' : error instanceof Error ? error.message : 'No se pudo exportar'); }
-    finally { unsubscribe(); setRecording(false); store.getState().select(selectionBefore); abortRecording.current = null; }
+    finally { unsubscribe(); setRecording(false); setPromoting(false); store.getState().select(selectionBefore); abortRecording.current = null; }
   };
   if (contextLost) return <div role="alert" style={{ padding: 24 }}>
+    {videoStudio && <SceneVideoControlBridge studio={videoStudio} create={exportWalk} cancel={() => abortRecording.current?.abort()}
+      status={{ ready: false, busy: recording || exporting, progress: recordProgress, siteReady, message: exportMessage, previewUrl: videoPreviewUrl }} />}
     <p>Se interrumpió la vista 3D. El documento permanece disponible en 2D.</p>
     <button type="button" onClick={() => setContextLost(false)}>Reintentar vista 3D</button>
   </div>;
@@ -578,7 +613,7 @@ function SceneView({
       onPlanClick(event);
     }}
     onPointerMove={onPlanPointerMove} onPointerUp={onPlanPointerUp} onPointerCancel={onPlanPointerCancel}>
-    {presentation === 'spatial' && route && !freeWalk && <div style={{ position: 'absolute', zIndex: 5, top: 16, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', boxShadow: '0 8px 24px #17352724', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
+    {presentation === 'spatial' && route && !freeWalk && !videoStudio && <div style={{ position: 'absolute', zIndex: 5, top: 16, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', boxShadow: '0 8px 24px #17352724', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
       <strong>{route.name}</strong>
       {routeExport && routeExport.durationMs > 0 && <span>{Math.ceil(routeExport.durationMs / 1000)} s de recorrido</span>}
       <button type="button" disabled={recording} onClick={() => store.getState().hideWalkthrough()}>Ocultar recorrido</button>
@@ -590,15 +625,15 @@ function SceneView({
         } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Ruta inválida'); }
       }}>{walking ? 'Detener' : 'Reproducir'}</button>
       {allowVideoExport ? <>
-        <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar y guardar recorrido · MP4</button>
-        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Guardar vídeo resumen · terreno, obra, vuelo y recorrido</button>
+        <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('walkthrough')}>Exportar recorrido 3D · MP4</button>
+        <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.showcaseIssue) || (store.getState().readOnly && !onSaveNativeVideo)} onClick={() => void exportWalk('showcase')}>Exportar muestra 3D · obra, vuelo y recorrido</button>
       </> : onOpenApprovedRoute && <button type="button" className="rounded bg-emerald-800 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={recording || walking || exporting || Boolean(routeExport?.walkthroughIssue)}
         onClick={() => void onOpenApprovedRoute(route.id)}>Abrir visita aprobada para exportar vídeo</button>}
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
       {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
     </div>}
-    <Canvas frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
+    <Canvas events={scenePointerEvents} frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
       onCreated={onSceneCreated} camera={{ position: [8, 9, -10], fov: presentation === 'plan' ? 25 : 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => {
         if (presentation !== 'plan' || store.getState().tool !== 'place-object') store.getState().select([]);
@@ -606,6 +641,9 @@ function SceneView({
       <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <SceneEnvironment preset={lighting} />
+      {projectId && document.geographicSite?.confirmed && <GeographicSiteScene
+        projectId={projectId} site={document.geographicSite} onReady={setSiteReady} />}
+      {videoStudio && <VideoSceneScope regions={studioRegions} disabled={recording} hideTerrain={Boolean(document.geographicSite?.confirmed)} />}
       <Bounds>
         <group position={[0, activeElevation / 1000, 0]} onContextMenu={presentation === 'plan' ? (event) => {
           const id = sceneEntityId(event.object), item = document.furniture.find((entry) => entry.id === id);
@@ -621,13 +659,15 @@ function SceneView({
           planDrag.current = beginPlanDrag(event, store, root, planElevationM);
         } : undefined}>
           <OutdoorLighting document={document} />
+          <ExteriorRoofMeshes document={document} exteriorWalls={scene.exteriorWalls} cutaway={!walking && !freeWalk && !recording && !capturingPose && wallCutaway}
+            visible={recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : !inside && presentation === 'spatial' && ceilingView !== 'hidden')} />
           <group position={[0, ceilingOffset(activeElevation), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={document} view={walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? (presentation === 'plan' ? 'hidden' : ceilingView)}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === document.activeLevelId).map((link) => link.outline)}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
           {scene.polygons.map((polygon) => <group key={polygon.id} position={planPreview?.id === polygon.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-            userData={{ videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined,
+            userData={{ buildKey: polygon.sourceEntityId, buildBaseM: polygon.role === 'floor' ? 0 : polygon.elevation, videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1, cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined,
               cutawayStructural: polygon.role === 'wall' || polygon.role === 'junction' }}><CutawayWall cuttable={polygon.role !== 'floor'} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
@@ -636,18 +676,19 @@ function SceneView({
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
             return <group key={box.id} position={planPreview?.id === box.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-              userData={{ videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1, zoneEdge: boundaryIds.has(box.sourceEntityId),
+              userData={{ buildKey: box.sourceEntityId, buildBaseM: box.role === 'wall' ? (document.walls.find(w => w.id === box.sourceEntityId)?.baseElevationMm ?? 0) / 1000 : Math.max(0, box.position[1] - box.size[1] / 2), videoStage: box.role === 'furniture' ? 3 : cuttable && box.role !== 'wall' ? 2 : 1, zoneEdge: boundaryIds.has(box.sourceEntityId),
                 cutawayWallId: cuttable ? hostWallId ?? box.sourceEntityId : undefined,
                 cutawayStructural: box.role === 'wall' }}><CutawayWall cuttable={cuttable} enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && cuttable}
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === (hostWallId ?? box.sourceEntityId))} selected={selection.includes(box.sourceEntityId)}>
             <BoxMesh box={box} selected={selection.includes(box.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>;
           })}
-          {scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1 }}><RampMesh ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} /></group>)}
+          {scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1, buildKey: ramp.sourceEntityId }}><RampMesh ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} /></group>)}
           {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <group key={item.id}
             position={planPreview?.id === item.id ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
-            userData={{ videoStage: 3 }}><FurnitureModel item={item}
-            boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} /></group>)}
+            userData={{ videoStage: 3, cutawayWallId: openingHosts.get(item.id) }}><CutawayWall exterior={scene.exteriorWalls.find(wall => wall.sourceEntityId === openingHosts.get(item.id))}
+              enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway} selected={selection.includes(item.id)}><FurnitureModel item={item}
+            boxes={scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={selection.includes(item.id)} onSelect={select} /></CutawayWall></group>)}
           {pendingPlanItem && (() => {
             const center = objectCenter(pendingPlanItem);
             return <mesh position={[center.x / 1000, (pendingPlanItem.elevationMm ?? 0) / 1000 + .035, center.y / 1000]}
@@ -660,20 +701,30 @@ function SceneView({
         </group>
         {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
           <OutdoorLighting document={level.document} />
+          <ExteriorRoofMeshes document={level.document} exteriorWalls={level.scene.exteriorWalls} cutaway={!walking && !freeWalk && !recording && !capturingPose && wallCutaway}
+            visible={recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : presentation === 'spatial' && ceilingView !== 'hidden')} />
           <group position={[0, ceilingOffset(level.elevationMm), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
             <CeilingLightingMeshes document={level.document} view={walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
-          {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1 }}>
-            <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></group>)}
+          {level.scene.polygons.map((polygon) => <group key={polygon.id} userData={{ buildKey: polygon.sourceEntityId, buildBaseM: polygon.role === 'floor' ? 0 : polygon.elevation, videoStage: polygon.role === 'floor' ? polygon.elevation < 0 ? -1 : 0 : 1,
+            cutawayWallId: polygon.role !== 'floor' ? polygon.sourceEntityId : undefined, cutawayStructural: polygon.role !== 'floor' }}>
+            <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === polygon.sourceEntityId)} cuttable={polygon.role !== 'floor'}
+              enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'} selected={false}>
+              <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></CutawayWall></group>)}
           {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && (furnitureAsset(item) || (hideCovers && viewCoverIds(level.document).has(item.id)))))
-            .map((box) => <group key={box.id} userData={{ videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2 }}>
-              <BoxMesh box={box} selected={false} onSelect={() => {}} /></group>)}
-          {level.scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1 }}>
+            .map((box) => <group key={box.id} userData={{ buildKey: box.sourceEntityId, buildBaseM: box.role === 'wall' ? (level.document.walls.find(w => w.id === box.sourceEntityId)?.baseElevationMm ?? 0) / 1000 : Math.max(0, box.position[1] - box.size[1] / 2), videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2,
+              cutawayWallId: box.role === 'wall' ? box.sourceEntityId : level.cutawayHosts.get(box.sourceEntityId), cutawayStructural: box.role === 'wall' }}>
+              <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === (level.cutawayHosts.get(box.sourceEntityId) ?? box.sourceEntityId))}
+                enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway} selected={false}>
+                <BoxMesh box={box} selected={false} onSelect={() => {}} /></CutawayWall></group>)}
+          {level.scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1, buildKey: ramp.sourceEntityId }}>
             <RampMesh ramp={ramp} selected={false} onSelect={() => {}} /></group>)}
-          {level.document.furniture.filter((item) => furnitureAsset(item)).map((item) => <group key={item.id} userData={{ videoStage: 3 }}>
-            <FurnitureModel item={item} boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} /></group>)}
+          {level.document.furniture.filter((item) => furnitureAsset(item) && !(hideCovers && viewCoverIds(level.document).has(item.id))).map((item) => <group key={item.id} userData={{ videoStage: 3, cutawayWallId: level.cutawayHosts.get(item.id) }}>
+            <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === level.cutawayHosts.get(item.id))}
+              enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway} selected={false}>
+              <FurnitureModel item={item} boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} /></CutawayWall></group>)}
         </group>)}
         <WalkCamera store={store} elevationMm={activeElevation} />
         {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
@@ -718,7 +769,7 @@ function SceneView({
         ? readOnlyLabel
         : 'Arrastra muebles para moverlos · clic derecho para girar o colocar encima · Amueblar para añadir'}
     </div>}
-    {presentation === 'spatial' && !recording && !walking && !freeWalk && <SceneViewControls activeView={activeView} maquetteActive={activeView === 'top' && ceilingView === 'hidden' && !allLevels && !cutaway && !inside} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
+    {presentation === 'spatial' && !recording && !walking && !freeWalk && !videoStudio && <SceneViewControls activeView={activeView} maquetteActive={activeView === 'top' && ceilingView === 'hidden' && !allLevels && !cutaway && !inside} hasLevels={Boolean(document.levels)} cutaway={cutaway} allLevels={allLevels} exporting={exporting}
       ceilingView={ceilingView} interiorRooms={interiorCameras} interiorRoomId={inside ? interiorRoomId : null}
       interiorDisabledReason={allLevels ? 'Activa «Una planta» para entrar en una estancia' : null}
       onCamera={camera} onViewChange={camera} onMaquette={showMaquette} onCutawayChange={() => setCutaway((v) => !v)} onAllLevelsChange={() => { setInteriorRoomId(null); setAllLevels((v) => !v); }}
@@ -737,7 +788,21 @@ function SceneView({
       {coverage.emitting} de {coverage.enabled} luces iluminan en 3D (límite del navegador); el diseño con IA las usa todas.
       {' '}{inside ? 'Se priorizan las de la estancia en la que estás.' : 'Entra en una estancia para priorizar las suyas.'}
     </div>}
-    {exportMessage && <div role="status" style={{ position: 'absolute', bottom: 56, left: 16 }}>{exportMessage}</div>}
+    {presentation === 'spatial' && projectId && document.geographicSite && !freeWalk && !videoStudio && <div className="absolute bottom-28 left-4 z-10 max-w-md rounded border bg-white p-3 text-sm shadow">
+      <button type="button" className="rounded border px-3 py-2 disabled:opacity-50"
+        disabled={!allowVideoExport || !!promotionIssue || !siteReady || recording || walking || exporting || !onSaveNativeVideo}
+        onClick={() => void exportWalk('promotion')}>Muestra 3D sobre la parcela · 30 s · MP4</button>
+      <p className="mt-1 text-xs">{!allowVideoExport ? 'Guarda y aprueba esta revisión para exportar.' : promotionIssue ?? (!siteReady ? 'Cargando ortofoto…' : 'Visualización conceptual 3D con el diseño completo y el entorno de la ortofoto.')}</p>
+      {recording && promoting && <div role="status">{Math.round(recordProgress * 100)} %
+        <button type="button" className="ml-3 underline" onClick={() => abortRecording.current?.abort()}>Cancelar</button></div>}
+    </div>}
+    {allowVideoExport && presentation === 'spatial' && !freeWalk && !walking && !recording && !videoStudio && <div className="absolute right-4 bottom-4 z-10 max-w-xs">
+      {videoPreviewUrl && <div className="mb-2"><NativeVideoPreview url={videoPreviewUrl} /></div>}
+      <VideoPresentationControls value={videoPresentation} onChange={setVideoPresentation} disabled={exporting} />
+    </div>}
+    {videoStudio && <SceneVideoControlBridge studio={videoStudio} create={exportWalk} cancel={() => abortRecording.current?.abort()}
+      status={{ ready: rendererReady && !contextLost, busy: recording || exporting, progress: recordProgress, siteReady, message: exportMessage, previewUrl: videoPreviewUrl }} />}
+    {!videoStudio && exportMessage && <div role="status" style={{ position: 'absolute', bottom: 56, left: 16 }}>{exportMessage}</div>}
     {showNotices && notices.length > 0 && dismissedNotice !== noticeKey && <div role="status" style={{ position: 'absolute', top: 12, left: 16, maxWidth: 420, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 10px', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-panel)', fontSize: 12 }}>
       <TriangleAlert size={16} aria-hidden="true" style={{ flex: 'none', color: '#b8860b' }} />
       <div><strong>Revisar en el plano</strong><ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>{notices.map((notice) => <li key={`${notice.id ?? ''}:${notice.message}`}>
@@ -749,6 +814,8 @@ function SceneView({
 }
 export function EditorSceneView({
   store,
+  videoStudio,
+  projectId,
   presentation,
   allowVideoExport,
   onOpenApprovedRoute,
@@ -763,20 +830,22 @@ export function EditorSceneView({
   readOnlyLabel,
 }: {
   store: EditorStore;
+  videoStudio?: VideoStudioScene;
+  projectId?: string;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
   onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   lightingPreset?: SceneLightingPreset;
   onLightingChange?: (preset: SceneLightingPreset) => void;
   lightingLocked?: boolean;
-  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
+  onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode, options?: VideoPresentationOptions) => Promise<void>;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onCaptureReady?: (capture: CaptureRenderView | null) => void;
   showLighting?: boolean;
   showNotices?: boolean;
   readOnlyLabel?: string;
 }) {
-  return <SceneErrorBoundary><SceneView store={store} presentation={presentation} allowVideoExport={allowVideoExport}
+  return <SceneErrorBoundary><SceneView store={store} videoStudio={videoStudio} projectId={projectId} presentation={presentation} allowVideoExport={allowVideoExport}
     onOpenApprovedRoute={onOpenApprovedRoute}
     lightingPreset={lightingPreset} onLightingChange={onLightingChange} lightingLocked={lightingLocked}
     onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady}

@@ -1,0 +1,60 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+const themes = [
+  { value: 'light', label: 'Modo claro', icon: 'sun' },
+  { value: 'dark', label: 'Modo oscuro', icon: 'moon' },
+  { value: 'auto', label: 'Tema del sistema', icon: 'laptop' },
+] as const;
+---
+
+<habiteka-theme-icons role="group" aria-label="Tema de la documentación">
+  {themes.map(theme => <button type="button" data-theme-choice={theme.value} aria-label={theme.label}
+    title={theme.label} aria-pressed="false"><Icon name={theme.icon} size="20" /></button>)}
+</habiteka-theme-icons>
+
+<script>
+  type Theme = 'light' | 'dark' | 'auto';
+  const readTheme = (): Theme => {
+    try {
+      const saved = localStorage.getItem('starlight-theme');
+      return saved === 'light' || saved === 'dark' ? saved : 'auto';
+    } catch { return 'auto'; }
+  };
+  const media = matchMedia('(prefers-color-scheme: light)');
+  const applyTheme = (theme: Theme) => {
+    document.documentElement.dataset.theme = theme === 'auto' ? (media.matches ? 'light' : 'dark') : theme;
+    document.querySelectorAll<HTMLButtonElement>('[data-theme-choice]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
+    });
+  };
+  class ThemeIcons extends HTMLElement {
+    onClick = (event: Event) => {
+      const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-theme-choice]') : null;
+      const theme = button?.dataset.themeChoice;
+      if (theme !== 'dark' && theme !== 'light' && theme !== 'auto') return;
+      try { localStorage.setItem('starlight-theme', theme === 'auto' ? '' : theme); } catch { /* Theme still works without storage. */ }
+      applyTheme(theme);
+    };
+    onSystemChange = () => { if (readTheme() === 'auto') applyTheme('auto'); };
+    connectedCallback() {
+      applyTheme(readTheme());
+      this.addEventListener('click', this.onClick);
+      media.addEventListener('change', this.onSystemChange);
+    }
+    disconnectedCallback() {
+      this.removeEventListener('click', this.onClick);
+      media.removeEventListener('change', this.onSystemChange);
+    }
+  }
+  if (!customElements.get('habiteka-theme-icons')) customElements.define('habiteka-theme-icons', ThemeIcons);
+</script>
+
+<style>
+  habiteka-theme-icons { display: inline-flex; flex-shrink: 0; gap: 0.2rem; }
+  button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0;
+    border: 1px solid transparent; border-radius: 0.5rem; color: var(--sl-color-text); background: transparent; cursor: pointer; }
+  button:hover { background: var(--sl-color-gray-6); }
+  button[aria-pressed='true'] { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); border-color: var(--sl-color-accent); }
+  button:focus-visible { outline: 2px solid var(--sl-color-accent); outline-offset: 2px; }
+  @media (max-width: 30rem) { button { width: 2rem; height: 2rem; } }
+</style>

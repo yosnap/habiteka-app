@@ -356,7 +356,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       onDblClick={() => { if (!pan && zoneTool.active) zoneTool.close(); }} >
 
       {showReference && reference && referenceImage && <Layer listening={false}>
-        <KonvaImage image={referenceImage} x={0} y={0} width={reference.widthMm} height={reference.heightMm}
+        <KonvaImage image={referenceImage} x={reference.xMm ?? 0} y={reference.yMm ?? 0} width={reference.widthMm} height={reference.heightMm}
           opacity={referenceOpacity} listening={false} />
       </Layer>}
       {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}

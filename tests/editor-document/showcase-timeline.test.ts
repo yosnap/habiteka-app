@@ -7,7 +7,7 @@ describe('guion visual del vídeo', () => {
   it('revela el mismo inmueble por capas con cámaras deterministas', () => {
     const doc = visualSampleDocument();
     // Terreno vacío primero, después las cuatro etapas de obra y la casa terminada durante el vuelo.
-    expect([0, 1900, 2000, 4500, 7500, 9500, SHOWCASE_INTRO_MS - 1].map((time) => showcaseFrame(doc, time).stage)).toEqual([-1, -1, 0, 1, 2, 3, 3]);
+    expect([0, 499, 500, 1300, 4300, 5100, SHOWCASE_INTRO_MS - 1].map((time) => showcaseFrame(doc, time).stage)).toEqual([-1, -1, 0, 1, 2, 3, 3]);
     expect(showcaseFrame(doc, 2500)).toEqual(showcaseFrame(doc, 2500));
     const first = showcaseFrame(doc, 0), last = showcaseFrame(doc, SHOWCASE_INTRO_MS - 1);
     expect(first.position).not.toEqual(last.position);
@@ -16,6 +16,7 @@ describe('guion visual del vídeo', () => {
   it('suma la introducción solo al vídeo de montaje', () => {
     expect(nativeVideoDurationMs(22000, 'walkthrough')).toBe(22000);
     expect(nativeVideoDurationMs(22000, 'showcase')).toBe(22000 + SHOWCASE_INTRO_MS);
+    expect(nativeVideoDurationMs(22000, 'showcase', { constructionDurationSeconds: 12 })).toBe(34000);
   });
   it('acepta una visita de 93 s y su montaje sin superar el límite compartido', () => {
     expect(nativeVideoDurationIssue(93000, 'walkthrough')).toBeNull();

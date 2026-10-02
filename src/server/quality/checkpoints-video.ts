@@ -33,10 +33,10 @@ export const VIDEO_KEYFRAMES: CheckpointDefinition<KeyframeSetEvidence> = {
     },
     same_fidelity: {
       weight: 3,
-      reason: 'Se generaron con distinta libertad de decoración y algunas añaden objetos que no están en el plano.',
+      reason: 'Se mezclan niveles de libertad o permisos de rediseño de fijos distintos.',
       build: () => ({
         type: 'noul',
-        instructions: 'All images were generated with one single decoration freedom level (the freedoms list has exactly one entry).',
+        instructions: 'All images share one single decoration freedom level (freedoms has exactly one entry) AND one fixed furniture redesign permission (fixedDesignModes has exactly one entry). Mixing redesigned kitchens or fixtures with preserved fixtures is inconsistent.',
       }),
     },
     coverage: {

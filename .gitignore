@@ -25,6 +25,9 @@ coverage/
 # Cache
 .turbo/
 .cache/
+.astro/
+.wrangler/
+public/documentacion/
 *.tsbuildinfo
 
 # Next.js (autogenerado)

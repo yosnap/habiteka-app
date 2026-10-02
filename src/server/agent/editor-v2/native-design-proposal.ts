@@ -1,4 +1,5 @@
 import type { ChatVisionAdapter, Estilo, JsonSchema, MessagePart } from '@/lib/contracts';
+import { scopedDesignFixtures, validateFixedFinishes } from '@/lib/editor-document/fixed-design-finishes';
 import { estiloLabel } from '@/lib/design-options';
 import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { getFurnitureCatalogEntry, FURNITURE_CATALOG } from '@/lib/editor-document/furniture-catalog';
@@ -22,9 +23,13 @@ const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
 
 export const NATIVE_DESIGN_SCHEMA: JsonSchema = {
-  type: 'object', additionalProperties: false, required: ['summary', 'materials', 'furniture'],
+  type: 'object', additionalProperties: false, required: ['summary', 'materials', 'furniture', 'fixedFinishes'],
   properties: {
     summary: { type: 'string' },
+    fixedFinishes: { type: 'array', items: { type: 'object', additionalProperties: false,
+      required: ['id', 'color'], properties: { id: { type: 'string' }, color: { type: 'string' },
+        baseMaterialId: { type: 'string' }, worktopMaterialId: { type: 'string' },
+        worktopColor: { type: 'string' }, uppersColor: { type: 'string' }, plinthColor: { type: 'string' } } } },
     materials: { type: 'object', additionalProperties: false, required: ['walls', 'floors', 'slabUndersides', 'stairBodies', 'rampBodies', 'landingBodies', 'stairs', 'ramps', 'columns'], properties: {
       walls: { type: 'string' }, floors: { type: 'string' }, slabUndersides: { type: 'string' }, stairBodies: { type: 'string' }, rampBodies: { type: 'string' }, landingBodies: { type: 'string' },
       stairs: { type: 'string' }, ramps: { type: 'string' }, columns: { type: 'string' },
@@ -82,6 +87,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
   return [
     `Eres interiorista y paisajista. Diseña el espacio con estilo ${estiloLabel(style)}.`,
     objective ? `Objetivo: ${objective}.` : '', instruction ? `Preferencia del cliente: ${instruction}.` : '',
+    options.redesignFixed ? `Rediseño de acabados de fijos AUTORIZADO. fixedFinishes puede cambiar colores y materiales de estos objetos existentes: ${JSON.stringify(scopedDesignFixtures(document, scope).map((item) => ({ id: item.id, kind: item.kind, color: item.color, kitchen: 'kitchen' in item ? item.kitchen : undefined })))}. Conserva posición, tamaño, altura, módulos y aparatos. Para cocinas puedes usar baseMaterialId, worktopMaterialId, worktopColor, uppersColor y plinthColor. Para otros fijos solo color. Usa IDs existentes y materiales permitidos.` : 'Conserva todos los acabados de los fijos existentes; fixedFinishes debe ser [].',
     zone ? 'La única imagen adjunta muestra exclusivamente la zona elegida. El resto del inmueble se ha ocultado: no lo uses para esta propuesta.'
       : 'Las imágenes adjuntas son planta y vistas estructurales de referencia. NO las reconstruyas ni propongas cambios físicos.',
     'No puedes añadir, quitar, mover, redimensionar, ocultar o cambiar la altura de muros, huecos, pisos, columnas, rampas, descansillos o escaleras.',
@@ -160,13 +166,15 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
   // El texto libre del modelo puede atribuir montajes o muebles que el plano no
   // representa. El resumen se construye a partir de la propuesta validada.
   const objectLabels = furniture.map((item) => getFurnitureCatalogEntry(item.catalogId)?.label ?? item.catalogId);
+  const fixedFinishes = validateFixedFinishes(input.fixedFinishes, document, scope, options.redesignFixed);
   const summary = [`Propuesta ${estiloLabel(style)}: revisa los acabados antes de aplicar.`,
     objectLabels.length ? `Objetos aplicables: ${objectLabels.join(', ')}.` : 'Sin objetos aplicables.',
+    fixedFinishes.length ? `Acabados de ${fixedFinishes.length} fijo(s) existentes para revisar.` : '',
     rejected.length ? `Se descartaron ${rejected.length} objeto(s): ${rejected.slice(0, 4).join('; ')}${rejected.length > 4 ? '; y otros' : ''}.` : ''].filter(Boolean).join(' ');
   return { rejections, proposal: { style, summary,
     scope, sourceRevision: document.revision,
     materials: { walls: material('walls', 'plaster-white'), floors: floor, slabUndersides, stairBodies, rampBodies, landingBodies,
-      stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture } };
+      stairs: material('stairs', 'wood-oak'), ramps: material('ramps', 'concrete-grey'), columns: material('columns', 'concrete-grey') }, furniture, fixedFinishes } };
 }
 
 function placementIssueLabel(issue: NativeFurniturePlacementIssue): string {

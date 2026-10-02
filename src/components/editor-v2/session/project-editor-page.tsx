@@ -9,9 +9,12 @@ import type { AutoGenerateRequest } from '../auto-generate-request';
 import { loadStudio } from '@/server/plan/studio-repo';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import { resolveRenderUrl } from '@/server/storage/render-urls';
+import { loadRenderBatchContinuation } from '@/server/agent/editor-v2/render-batch-continuation';
+import { UserFacingError } from '@/server/errors/user-facing-error';
 
-export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId }: {
-  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string;
+export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId, openVideoStudio, continuationId }: {
+  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string; openVideoStudio?: boolean; continuationId?: string;
 }) {
   const ctx = await requireOrgContext();
   const project = await withOrg(ctx).projects.findById(projectId);
@@ -20,6 +23,13 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
   const scope = { userId: ctx.userId, organizationId: ctx.organizationId, projectId, zoneId: zoneId ?? null };
   const documents = withEditorDocuments(ctx);
   const source = await documents.load(scope);
+  if (continuationId && source.authority === 'v2') {
+    try { autoGenerate = { interiorRooms: false, continuation: await loadRenderBatchContinuation(ctx, scope, source.document, continuationId) }; }
+    catch (error) {
+      if (!(error instanceof UserFacingError)) throw error;
+      autoGenerate = { interiorRooms: false, error: error.message };
+    }
+  }
   const approvalHistory = source.authority === 'v2' ? await documents.listApprovals(scope) : [];
   if (approvedId && !approvalHistory.some((entry) => entry.id === approvedId)) notFound();
   const selectedApprovalId = approvedId ?? approvalHistory[0]?.id;
@@ -47,6 +57,13 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
     }
   }
 
+  if (source.authority === 'v2' && source.document.renderBackdrop) {
+    const backdrop = source.document.renderBackdrop;
+    const row = (await withOrg(ctx).deliverables.list(projectId)).find(item => item.id === backdrop.deliverableId
+      && item.type === 'RENDER_3D' && (item.zoneId ?? null) === (zoneId ?? null));
+    const imageUrl = row ? await resolveRenderUrl(row.payload as { assetKey?: string; assetUrl?: string }) : null;
+    if (imageUrl) reference = { imageUrl, widthMm: backdrop.widthMm, heightMm: backdrop.heightMm, xMm: backdrop.xMm, yMm: backdrop.yMm };
+  }
   return (
     <ProjectEditor
       key={JSON.stringify(scope)}
@@ -57,6 +74,7 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
       approvedDesign={approvedDesign}
       autoOpenApproved={Boolean(approvedId)}
       reference={reference}
+      openVideoStudio={openVideoStudio}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {
         fingerprint: source.legacyFingerprint,

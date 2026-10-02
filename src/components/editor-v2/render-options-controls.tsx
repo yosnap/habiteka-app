@@ -59,10 +59,11 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
       </section>}
       {!editable && <section>
         <h3 className="text-ink text-sm font-medium">Iluminación</h3>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {(
             [
               ['daylight', 'Día'],
+              ['afternoon', 'Tarde'],
               ['warm', 'Atardecer'],
               ['evening', 'Noche'],
             ] as const
@@ -73,13 +74,27 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
               disabled={disabled}
               onClick={() => update({ lighting: value })}
             >
-              <span className="flex items-center gap-2">{value === 'daylight' ? <Sun size={17} aria-hidden="true" /> : value === 'warm' ? <Sunset size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}{label}</span>
+              <span className="flex items-center gap-2">{value === 'daylight' || value === 'afternoon' ? <Sun size={17} aria-hidden="true" /> : value === 'warm' ? <Sunset size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}{label}</span>
             </OptionButton>
           ))}
         </div>
       </section>}
+      {!editable && <section>
+        <h3 className="text-ink text-sm font-medium">Diseño de la imagen</h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <OptionButton active={!options.redesignInterior} disabled={disabled} onClick={() => update({ redesignInterior: false })}>Respetar diseño actual</OptionButton>
+          <OptionButton active={options.redesignInterior} disabled={disabled} onClick={() => update({ redesignInterior: true })}>Rediseñar interiorismo</OptionButton>
+        </div>
+        <p className="mt-2 text-xs text-ink-soft">{options.redesignInterior ? 'Nuevos muebles móviles y acabados según tu estilo. Se conservan paredes, distribución y huecos; los fijos necesitan el permiso de debajo.' : 'Presenta el diseño existente con materiales y luz realistas. También puedes pedir un rediseño en las instrucciones.'}</p>
+      </section>}
       <section>
         <h3 className="text-ink text-sm font-medium">Libertad de decoración</h3>
+        <label className="my-2 flex items-start gap-2 text-xs">
+          <input type="checkbox" disabled={disabled} checked={options.redesignFixed}
+            onChange={(event) => update({ redesignFixed: event.target.checked })} />
+          <span>{editable ? 'Rediseñar acabados de fijos existentes. Conserva medidas y posiciones; revisa cada cambio antes de aplicarlo.'
+            : 'Rediseño: permitir cambiar cocina, isla, sanitarios y armarios empotrados. Puede requerir más inversión; muros y huecos se conservan.'}</span>
+        </label>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {(
             [
@@ -132,20 +147,23 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <OptionButton
-              active={options.placement === 'all'}
+              active={options.placement === 'all' && (editable || options.designScope !== 'house')}
               disabled={disabled}
-              onClick={() => update({ placement: 'all' })}
+              onClick={() => update({ placement: 'all', ...(!editable ? { designScope: 'all' } : {}) })}
             >
               {editable ? 'Todo el ámbito' : 'Toda la planta'}
             </OptionButton>
+            {!editable && <OptionButton active={options.designScope === 'house'} disabled={disabled}
+              onClick={() => update({ designScope: 'house', placement: 'all', regions: [] })}>Solo la casa</OptionButton>}
             <OptionButton
               active={options.placement === 'selected'}
               disabled={disabled}
-              onClick={() => update({ placement: 'selected' })}
+              onClick={() => update({ placement: 'selected', ...(!editable ? { designScope: 'all' } : {}) })}
             >
               {editable ? 'Zonas permitidas' : 'Zonas concretas'}
             </OptionButton>
           </div>
+          {!editable && options.designScope === 'house' && <p className="mt-2 text-xs text-ink-soft">Solo las estancias interiores de esta planta y sus fachadas, sobre fondo neutro. Se excluyen parcela y patios.</p>}
           {options.placement === 'selected' && (
             <div className="mt-2">
               <p className="text-muted-foreground mb-2 text-xs">
@@ -219,7 +237,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
                 })
               }
             />
-            Todas (7 sin actual)
+            Todas ({allViews.length} sin actual)
           </label>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
@@ -238,6 +256,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             </label>
           ))}
         </div>
+        <p className="mt-2 text-xs text-ink-soft">Exterior terminado conserva fachadas y tejado para el final de obra. Cenital, isométrica y dron muestran la distribución sin cubierta.</p>
       </section>}
     </div>
   );

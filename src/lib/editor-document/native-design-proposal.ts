@@ -18,6 +18,7 @@ import { isRampLanding } from './ramp-kind';
 import { canFitOnHost, canRestOnHost, hostSurfaceTop, isSurfaceHost, restOnHost } from './object-host-rest';
 import { sameDesignContent } from './approved-design';
 import { assertSpatialPlacement } from '@/canvas/editor-v2/spatial-placement';
+import { applyFixedFinishes, type FixedDesignFinish } from './fixed-design-finishes';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -44,6 +45,7 @@ export interface NativeDesignProposal {
     columns: string;
   };
   furniture: NativeDesignFurniture[];
+  fixedFinishes?: FixedDesignFinish[];
 }
 
 export interface NativeDesignSelection {
@@ -53,6 +55,7 @@ export interface NativeDesignSelection {
   ramps: boolean;
   columns: boolean;
   furniture: number[];
+  fixedFinishes?: number[];
 }
 
 /** El servidor devuelve su revisión confirmada; el editor puede conservar otro número local para el mismo contenido. */
@@ -91,7 +94,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
 
   if (selection.walls) doc.walls.forEach((wall) => {
     const sides = zone ? polygonContainsFootprint(zone.polygon, wallPath(doc, wall).samples()) ? scopedWallSides(wall, selectedRooms) : []
-      : scope.kind === 'all' ? ['left', 'right'] as const
+      : scope.kind === 'all' || (scope.kind === 'house' && selectedRooms.some((room) => room.wallIds.includes(wall.id))) ? ['left', 'right'] as const
       : scope.kind !== 'exterior' ? scopedWallSides(wall, selectedRooms)
         : exteriorWallSides(wall, selectedRooms, indoorRooms);
     if (!sides.length) return;
@@ -141,6 +144,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
     const item = proposal.furniture[index];
     if (item) addSuggestedFurniture(doc, item, rooms, allowedRooms, zone?.polygon);
   }
+  applyFixedFinishes(doc, scope, (selection.fixedFinishes ?? []).flatMap((index) => proposal.fixedFinishes?.[index] ?? []));
   doc.designStyle = proposal.style;
   doc.revision += 1;
   return parseEditorDocument(doc);
@@ -148,7 +152,7 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
 
 function everything(proposal: NativeDesignProposal): NativeDesignSelection {
   return { walls: true, floors: true, stairs: true, ramps: true, columns: true,
-    furniture: proposal.furniture.map((_, index) => index) };
+    furniture: proposal.furniture.map((_, index) => index), fixedFinishes: proposal.fixedFinishes?.map((_, index) => index) };
 }
 
 function exteriorWallSides(wall: EditorDocument['walls'][number], selected: ReturnType<typeof deriveRooms>, indoors: ReturnType<typeof deriveRooms>): ('left' | 'right')[] {

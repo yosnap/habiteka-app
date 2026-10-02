@@ -2,9 +2,14 @@
 export interface TourImage {
   id: string;
   ambient: string;
+  ambientId?: string;
+  /** Zonas cubiertas por esta estancia; su nombre visible puede ser diferente. */
+  coveredAmbients?: string[];
   view: string;
   lighting: string;
   freedom: string;
+  redesignFixed?: boolean;
+  redesignInterior?: boolean;
   revision: number;
   createdAt: string;
   url: string;
@@ -16,8 +21,16 @@ export const MAX_TOUR_SHOTS = 24;
 /** Ámbito de las imágenes que abarcan todo el inmueble; abren el montaje. */
 export const WHOLE_PROPERTY = 'Inmueble completo';
 
+export function missingTourAmbients(shots: TourImage[], expected: string[]): string[] {
+  const present = new Set(shots.flatMap((shot) => [shot.ambient, ...(shot.coveredAmbients ?? [])]));
+  return expected.filter((name) => !present.has(name));
+}
+
+/** Dos dormitorios con la misma etiqueta siguen siendo estancias distintas. */
+export const tourAmbientKey = (shot: TourImage): string => shot.ambientId ?? shot.ambient;
+
 // Exteriores y vuelos primero; después las vistas de estudio de cada ambiente.
-const VIEW_ORDER = ['drone', 'front', 'back', 'left', 'right', 'isometric', 'top', 'custom'];
+const VIEW_ORDER = ['exterior', 'drone', 'front', 'back', 'left', 'right', 'isometric', 'top', 'custom'];
 const viewRank = (view: string) => { const index = VIEW_ORDER.indexOf(view); return index === -1 ? VIEW_ORDER.length : index; };
 // Entre varias imágenes equivalentes gana la de día, después la más fiel al plano y la más reciente.
 const FREEDOM_RANK: Record<string, number> = { strict: 0, controlled: 1, free: 2 };
@@ -36,30 +49,38 @@ export function pickTourImages(images: TourImage[], ambients: string[] = [], per
   { shots: TourImage[]; missing: string[] } {
   const byAmbient = new Map<string, Map<string, TourImage>>();
   for (const image of images) {
-    const views = byAmbient.get(image.ambient) ?? new Map<string, TourImage>();
+    if (valid && !valid.has(image.revision)) continue;
+    const key = tourAmbientKey(image);
+    const views = byAmbient.get(key) ?? new Map<string, TourImage>();
     const current = views.get(image.view);
     if (!current || better(image, current, valid) < 0) views.set(image.view, image);
-    byAmbient.set(image.ambient, views);
+    byAmbient.set(key, views);
   }
-  const names = [...byAmbient.keys()].sort((a, b) =>
-    (a === WHOLE_PROPERTY ? 0 : 1) - (b === WHOLE_PROPERTY ? 0 : 1) || a.localeCompare(b, 'es'));
+  const names = [...byAmbient.keys()].sort((a, b) => {
+    const nameA = byAmbient.get(a)!.values().next().value!.ambient;
+    const nameB = byAmbient.get(b)!.values().next().value!.ambient;
+    return (nameA === WHOLE_PROPERTY ? 0 : 1) - (nameB === WHOLE_PROPERTY ? 0 : 1)
+      || nameA.localeCompare(nameB, 'es') || a.localeCompare(b);
+  });
   const shots: TourImage[] = [];
   for (const name of names) {
     const views = [...byAmbient.get(name)!.values()].sort((a, b) => viewRank(a.view) - viewRank(b.view) || better(a, b, valid));
-    shots.push(...views.slice(0, name === WHOLE_PROPERTY ? Math.max(perAmbient, 4) : perAmbient));
+    shots.push(...views.slice(0, views[0]?.ambient === WHOLE_PROPERTY ? Math.max(perAmbient, 4) : perAmbient));
   }
-  return { shots: shots.slice(0, limit), missing: ambients.filter((name) => !byAmbient.has(name)) };
+  const selected = shots.slice(0, limit);
+  return { shots: selected, missing: missingTourAmbients(selected, ambients) };
 }
 
 /** Ordena las imágenes elegidas: inmueble completo primero, luego ámbitos por nombre y, dentro de cada uno, exteriores antes que planos. */
 export function orderTourImages(images: TourImage[]): TourImage[] {
   return [...images].sort((a, b) =>
     (a.ambient === WHOLE_PROPERTY ? 0 : 1) - (b.ambient === WHOLE_PROPERTY ? 0 : 1)
-    || a.ambient.localeCompare(b.ambient, 'es') || viewRank(a.view) - viewRank(b.view) || better(a, b));
+    || a.ambient.localeCompare(b.ambient, 'es') || tourAmbientKey(a).localeCompare(tourAmbientKey(b))
+    || viewRank(a.view) - viewRank(b.view) || better(a, b));
 }
 
 export interface HomogeneityIssue {
-  code: 'revision' | 'lighting' | 'freedom' | 'missing';
+  code: 'revision' | 'lighting' | 'freedom' | 'redesign' | 'missing';
   message: string;
   imageIds: string[];
 }
@@ -88,6 +109,12 @@ export function assessTourHomogeneity(shots: TourImage[], valid: ReadonlySet<num
   const freedom = minority((shot) => shot.freedom);
   if (freedom.values.length > 1) issues.push({ code: 'freedom', imageIds: freedom.ids,
     message: `Las imágenes se generaron con distinta libertad (${freedom.values.join(', ')}); las que añaden objetos no coinciden con el plano.` });
+  const redesign = minority((shot) => shot.redesignFixed === true ? 'rediseño' : 'fijos conservados');
+  if (redesign.values.length > 1) issues.push({ code: 'redesign', imageIds: redesign.ids,
+    message: 'Hay imágenes con y sin permiso de rediseño de fijos; elige un único criterio para todo el vídeo.' });
+  const interior = minority((shot) => shot.redesignInterior ? 'interiorismo rediseñado' : 'interiorismo conservado');
+  if (interior.values.length > 1) issues.push({ code: 'redesign', imageIds: interior.ids,
+    message: 'Hay imágenes de interiorismo conservado y rediseñado; utiliza el mismo diseño para todo el vídeo.' });
   if (missing.length) issues.push({ code: 'missing', imageIds: [], message: `La selección no incluye imágenes de: ${missing.join(', ')}.` });
   return { ok: !issues.length, issues };
 }

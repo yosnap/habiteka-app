@@ -11,7 +11,7 @@ import type { DeliverableType } from '@/lib/contracts';
 export interface HistoryDeliverable {
   id: string;
   type: DeliverableType | 'video';
-  videoMode?: 'walkthrough' | 'showcase';
+  videoMode?: 'walkthrough' | 'showcase' | 'promotion' | 'construction' | 'construction-ai' | 'images';
   videoUrl?: string | null;
   /** URL del render, si el entregable es de tipo render3d; null en otro caso. */
   renderUrl: string | null;
@@ -34,7 +34,7 @@ const TYPE_LABEL: Record<DeliverableType, string> = {
 
 function typeLabel(deliverable: HistoryDeliverable): string {
   return deliverable.type === 'video'
-    ? deliverable.videoMode === 'showcase' ? 'Muestra de obra + recorrido' : 'Recorrido grabado'
+    ? deliverable.videoMode === 'construction-ai' ? 'Construcción desde diseños · piloto H3' : deliverable.videoMode === 'construction' ? 'Construcción del edificio · 3D' : deliverable.videoMode === 'images' ? 'Montaje de diseños generados' : deliverable.videoMode === 'promotion' ? 'Muestra 3D sobre la parcela' : deliverable.videoMode === 'showcase' ? 'Muestra 3D · obra + recorrido' : 'Recorrido 3D del editor'
     : TYPE_LABEL[deliverable.type];
 }
 

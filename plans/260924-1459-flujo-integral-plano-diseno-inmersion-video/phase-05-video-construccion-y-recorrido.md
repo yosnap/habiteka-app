@@ -5,6 +5,28 @@ status: in-progress
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Referencias con función y tercera preparación — 02/10/2026
+
+Exterior corregido generado y revisado: fachada lateral cerrada, cubierta y pérgolas conservadas. La inspección conjunta detecta muebles/colores discordantes en las vistas anteriores. El estudio propone ahora cenital para distribución y mobiliario, exterior para fachadas/tejado/cámara, con función visible e índices alineados con el envío. El guion pide cámara fija, muros consecutivos y vuelo final corto; no garantiza fidelidad del modelo.
+
+Prueba real enviada y revisada con autorización específica: 8 s/768P, dos imágenes aisladas de la misma tanda y revisión, efectos solicitados, **0,32 USD registrados**. Tarea KIE `9550ebc163f7a7c2540dddc51fb7695c`, **rechazada**: pierde camas de la cenital, mezcla muebles del exterior, inventa jardín y no cumple los tiempos ni el crecimiento individual de muros. Tejado y pérgolas sí aparecen. MP4 conservado. Límite global restaurado y verificado en **0 USD**; no se generó otro intento. [Informe](../reports/video-261002-0409-referencias-con-funcion-report.md). Fase **in-progress**: fidelidad profesional, accesos completos, sonido validado y cotas exactas sobre IA siguen pendientes.
+
+## Segundo piloto H3 — 02/10/2026
+
+Completadas cinco referencias compatibles de la misma tanda: frontal, trasera, izquierda, cenital y exterior con cubierta. Se implementó la revisión de PNG existentes por el mismo flujo de auditoría para recuperar una cenital sin regenerarla. El panel permaneció abierto tras guardar y completar únicamente la vista pendiente.
+
+Corrección del usuario a las 01:49: el exterior falla en su lado izquierdo y la vista derecha tampoco está bien. Está creando las sustituciones personalmente. Las cinco referencias admitidas no equivalen a un conjunto visual validado; revisar las nuevas antes de cualquier otro piloto. La derecha no participó en el último envío.
+
+Con autorización adicional de hasta 0,60 USD se generó un único H3 de 8 s/768P por 0,32 USD, usando imágenes aisladas sin ortofoto ni coordenadas geográficas. Total registrado de la ronda: 0,49665825 USD; cap global restaurado y verificado en 0.
+
+**Rechazado:** a 2 s introduce tabiques diagonales y redistribuye las camas respecto a la cenital; mezcla muebles con la construcción de muros. Tiene tejado, pérgolas y pista AAC, sin certificar sincronización de FX ni identidad completa. Las vistas aceptadas también presentan diferencias de acabados entre cámaras: la auditoría individual no garantiza coherencia del conjunto. No hubo otro vídeo. Antes de más gasto, unificar referencias y preparar estados de obra con cámara común. La fase sigue en curso. [Informe y evidencia](../reports/video-261002-0102-construccion-referencias-recuperadas-report.md).
+
+## Avance 01/10/2026: cubierta y presentación nativa
+
+Se implementa **Editor → Tejado** por planta (plana, una/dos/cuatro aguas, pendiente, orientación, alero, espesor y acabado), recortado por habitaciones y patios. Se incorpora a referencias/contexto de imágenes y al vídeo. Los muros del vídeo nativo crecen progresivamente desde su base, los otros componentes entran por fundido; se añaden cotas del diseño, efectos sintetizados opcionales con AAC y previsualización del MP4 recién exportado. Mejora de render interno y espera de texturas/modelos. Referencia nueva: YouTube `X_dNq6G60bw`, 00:07–00:39. Informe en `docs/reports/video-261001-cubierta-animacion-sonido-report.md`.
+
+La fase sigue **in-progress**: estas mejoras del vídeo conceptual no cierran el requisito de película fotorrealista continua sobre imágenes generadas. Falta incorporar el tejado elegido al inmueble, aprobarlo, completar imágenes coherentes y ejecutar el piloto de clips con presupuesto.
+
 ## Aclaración de producto (28/09/2026)
 
 El entregable final se llamará **vídeo resumen**: empieza en el terreno vacío, muestra cómo se levanta y termina el inmueble aprobado, incluye un vuelo exterior tipo dron y entra para un **vuelo interior breve y dirigido por todas las zonas del inmueble**. El espectador solo reproduce la pieza. No se presenta como «visita»: la visita libre permite decidir rumbo y mirada, y un «recorrido» es una ruta guardada que puede exportarse por separado. La cámara del resumen necesita guion, ritmo y trayectoria propios, con pasos físicamente posibles por puertas y conexiones. No basta con pegar la ruta peatonal existente tras ocho segundos de introducción.
@@ -74,6 +96,10 @@ Las cinco imágenes de referencia del resultado final no llegaron adjuntas en el
 **Cierre 30-09-2026 (14:40):** las 8 vistas interiores están hechas (segunda hoja en `plans/reports/demo-260930-interiores-rev144-b.jpg`). La auditoría rechazó un intento por añadir una ventana inexistente (filtro anti-inventos funcionando) y la tanda se detuvo en ese punto; al reintentar salieron las dos que faltaban en 70 s. **Dron derivado** (`demo-260930-dron-derivado-parcela-real.jpg`): generado por script con ortofoto + isométrica + cenital rev. 144 como referencias; entorno real coherente y sin inventos, pero la casa no es idéntica (faltan las pérgolas y el volumen sale más compacto): para producto, el dron debe generarse con la isométrica como ancla obligatoria y comprobar la identidad del volumen en la auditoría. Gasto total de la ronda ≈2,1 $ de 2,50 $. Problema de proceso a corregir: una imagen rechazada detiene toda la tanda y obliga a reintentar a mano.
 
 ### Puerta de homogeneidad antes del vídeo con IA (30-09-2026)
+
+**Verificación de referencias y emplazamiento (30/09, 18:04):** Paulo distingue presentación de la casa terminada, promoción del proceso de obra sobre la parcela real y recorrido en primera persona. Coordenadas exactas recibidas: 40.70940806753031, -3.5302981596101293; ortofoto guardada y examinada. Reconstrucción puede retirar visualmente la edificación existente dentro de la intervención y construir el nuevo diseño; reforma representa las partes conservadas/cambiadas. Luz coherente en parcela, casa e interiores (día/tarde/atardecer/noche); transición temporal solo si forma parte del guion. Examinados cuatro pins únicos y seis imágenes de acabado. El montaje existente es válido como presentación; la promoción geográfica aún necesita huella/orientación, escenario de obra, estados del modelo e integración/exportación. Informe y guion de 30 s en [verificación de promoción geográfica](../reports/verificacion-260930-1804-promocion-geografica-report.md). No se han generado nuevas imágenes ni clips de pago.
+
+**Continuación de implementación (30/09, 17:30):** se han aplicado los seis puntos descritos arriba: identidad de estancia/zona y recuperación de cámaras históricas; continuación tras rechazo; anclas obligatorias cenital→isométrica→dron y auditoría de identidad completa (incluidas pérgolas); permiso de rediseño de fijos registrado y diferenciado por Jev; Solo la casa de la planta activa; plantillas por organización y carga independiente de instrucciones. En el diseño editable, el permiso solo modifica acabados de fijos existentes. Detalles y pruebas en [el informe](../reports/implementacion-260930-1730-continuacion-diseno.md). No se han ejecutado nuevas generaciones de pago: queda contrastar las vistas lejanas reales y producir las imágenes identificadas de Entrada/Patio. La película completa continúa pendiente.
 
 Decisión de Paulo: el vídeo se hace con los diseños generados y, **antes de lanzarlo, el conjunto de imágenes tiene que ser homogéneo**; la confianza y la decisión las da **Jev**.
 - **Comprobación automática** (`assessTourHomogeneity`, `src/lib/editor-document/image-tour.ts`): todas las imágenes deben proceder del diseño aprobado (su revisión o una con el mismo aspecto: se ignoran rutas, comentarios y nombres de zona, pero no el contorno ni el acabado de suelo de cada zona), con una sola luz, un solo nivel de fidelidad y sin ámbitos vacíos. Señala como discordantes las minoritarias.
@@ -158,3 +184,57 @@ La pieza pedida el 27/09 es **automática y cinematográfica**: empieza con una 
 ## Riesgos
 
 El vídeo de construcción no debe inventar fases de obra o piezas que no existen en el documento. Señal: un elemento aparece en vídeo sin `sourceEntityId` aprobado. Respuesta: excluirlo o incorporarlo al modelo tras revisión.
+
+## Continuación 30/09/2026 — parcela y promoción
+
+Implementados el panel de encaje sobre ortofoto versionada, la luz «Tarde» y la promoción geográfica nativa de 30 s sin depender de una ruta interior. La sustitución se limita al contorno confirmado; reforma pendiente de elementos conservados. Las referencias lejanas usan la ortofoto confirmada. Detalle: [informe de implementación](../reports/implementacion-260930-parcela-promocion.md).
+
+Pendiente para la parcela aportada: marcar contorno, orientar el plano y confirmar acceso/escenario/luz. No se ha generado un MP4 geográfico del caso real. La promoción fotorrealista y su continuidad siguen pendientes; el modo implementado es una visualización conceptual 3D.
+
+## Estado consolidado 30/09/2026 — vídeos y tejado exterior
+
+La fase continúa en curso. El guion nativo actual tiene una introducción de **16 s** antes de la ruta; las referencias históricas a 8 s describen versiones anteriores. La promoción sobre ortofoto dura 30 s y aún necesita una exportación revisada del caso real.
+
+Requisito añadido por Paulo: **tejado exterior independiente** del techo interior y falso techo de luminarias. Actualmente solo hay cara superior/canto/espesor de cubierta plana ligados a los techos. Pendientes tipos plana/una agua/dos aguas/cuatro aguas, pendiente, orientación, aleros, material, geometría 3D y conservación en aprobación, renders y vídeo. No cerrar las vistas del edificio completo sin esta cubierta.
+
+Orden: tejado → MP4 geográfico conceptual real → fotogramas coherentes y guion → piloto IA con presupuesto → montaje profesional y formatos. Los modos nativos y el montaje de imágenes no acreditan que la película fotorrealista esté terminada.
+
+Detalle y estado verificado: [reporte consolidado](../reports/estado-260930-2206-videos-tejado-documentacion-report.md). Manual: [guía de uso](../../docs/guia-de-uso.md); guía rápida incorporada a Ayuda.
+
+## Corrección de identidad y cubierta — 01/10/2026
+
+El usuario rechaza los MP4 como resultado final: no representan el acabado de su casa. No cerrar la fase por las mejoras de exportación nativa. La cubierta exterior está implementada y los muros ahora cierran hasta su intradós inclinado con el mismo acabado. Verificada la casa real desde frontal y lateral; no se ha aprobado automáticamente el borrador.
+
+Se bloquean montajes con fuentes obsoletas o configuración visual discordante, también en el servidor; una aprobación anterior no permite presentar el borrador actualizado. Las exportaciones del editor se identifican como muestras 3D. En el caso revisado aún faltan imágenes del diseño actualizado y el escenario de reforma no define elementos conservados.
+
+Pendientes: estados fotorrealistas de obra, tareas persistentes del proveedor de vídeo, tarifa y presupuesto, clips piloto de obra/visita y auditoría de fotogramas intermedios. La admisión de anclas inicial/final de Kling 2.5 en KIE se ha contrastado, sin llamadas de pago. Evidencia y pasos: [reporte de corrección](../../docs/reports/video-261001-cubierta-animacion-sonido-report.md).
+
+## Estudio, galería y secuencia — 01/10/2026
+
+Implementado un estudio único desde pestaña Vídeos y Crear vídeo, con construcción independiente sin ruta, publicidad con renders o modelo sobre parcela, primera persona y construcción + visita. Integra tejado, parcela, ruta, revisión, luz, efectos, cotas, creación, reproducción y resultados. No se cambian ni aprueban automáticamente diseños reales durante las verificaciones.
+
+La construcción sola utiliza 30 s, cámara fija mientras crecen muros consecutivos, FX por muro y vuelo final. Solo la casa limita geometría, encuadre y cotas a interiores/tejado, manteniendo la ortofoto confirmada; elimina parcela modelada exterior. El tapado se recorta al ámbito y las caras de los muros se conservan completas. Las fuentes del vídeo nativo siguen siendo el editor, no los renders de interiorismo.
+
+Cada tanda de renders forma una galería con estancia/zona y vista. Sus acciones se muestran al abrir la imagen. El recorte de referencia mantiene tabiques interiores. Se exige rediseño reconocible cuando se pide y se utiliza una vista aceptada como ancla de las siguientes; el montaje rechaza mezclar mobiliario conservado/rediseñado. Fondo v2 con referencia estable al render y control de ámbito/conflictos.
+
+126 pruebas focalizadas, tipos y documentación construida verifican estos cambios. Hay exportaciones nativas reales de prueba, sin consumo de IA. Higgsfield/Kling 3.0 contrastado con anclas inicial/final y audio, sin integración ni llamadas de pago. La fase **continúa abierta**: preparar estados fotorrealistas, conectar proveedor/tareas/presupuesto y verificar identidad temporal y mobiliario de los diseños. Detalle técnico: [estudio y galería](../../docs/estudio-videos-galeria.md).
+
+## Cotas y guion para MiniMax H3 — 01/10/2026, 13:49
+
+Implementados modos de cotas animadas, solo al inicio, fijas y desactivadas. Líneas/etiquetas ancladas en 3D con profundidad y opción de ocultación detrás del edificio; se sustituyen los overlays 2D superpuestos. Guion portable editable/copiable con ámbito, luz, identidad, secuencia y sonido. Ajustes e indicaciones se conservan con el MP4; el texto libre no modifica la animación nativa.
+
+API oficial de MiniMax H3 contrastada: referencias multimodales, primer/último fotograma, audio y variante H3 Max rápida con menor resolución. No hay generación conectada ni pruebas de latencia/fidelidad de H3; referencia de movimiento e imagen a vídeo son modos distintos. Las cotas sobre clips IA necesitan composición y validación de cámara. 37 pruebas enfocadas, tipos/lint/docs y MP4 real con cotas animadas verificados. Detalle: [reporte](../reports/video-261001-1349-cotas-guion-minimax-report.md). Mantener abierta la película profesional.
+
+## Construcción breve desde diseños — 01/10/2026, 17:55
+
+La construcción nativa dura ahora 8 s, con opción 12 s para dedicar más tiempo al mobiliario. Los muros crecen consecutivamente durante 3 s en ambas opciones. Cámara fija durante obra, tejado y muebles; vuelo final independiente. Ticket, límites, exportador y FX comparten tiempos. Verificado MP4 real 1080p H.264/AAC de 8.064 s, incluida la cola del audio. Esta vía continúa usando el modelo del editor.
+
+Corregida la fuente del piloto solicitado: Construcción → Mis diseños prepara MiniMax H3 mediante KIE con imágenes generadas de una misma tanda compatible con la aprobación. Congela las selecciones de los renders, incluyendo zonas exteriores, y exige muebles según las imágenes, sin enviar el inventario del plano. Preparación sin transferencia ni gasto; confirmación explícita de referencias y presupuesto antes de reservar y enviar. Tarea persistente, envío único, consulta sin regenerar, descarga a almacenamiento propio y revisión humana. Los errores ambiguos nunca reenvían automáticamente.
+
+Caso real FInca: preparada prueba `a417fe82-9687-4403-b548-39ed37594672`, seis vistas de revisión 156, doce zonas, 8 s/768P, previsión $0.34/34 créditos Habiteka. Sin identificador de tarea KIE: no ha habido generación ni transferencia al proveedor. Presupuesto pendiente de autorización. 41 pruebas nativas y 17 del piloto, tipos/lint/docs verificados. La fase sigue abierta: auditoría temporal de identidad y mobiliario, referencia exterior terminada con tejado, cotas compuestas sobre IA, primera persona continua desde diseños, worker y conciliación del coste real. [Reporte de esta intervención](../reports/video-261001-1712-construccion-desde-disenos-report.md).
+
+## Veredicto del primer piloto H3 — 01/10/2026, 18:10
+
+El usuario autorizó el único clip de $0.34 y las seis referencias. También autorizó habilitar temporalmente el cap global en $0.34 porque estaba en 0; restaurado a 0 y auditado inmediatamente tras aceptar KIE la tarea `9db0219df7bd9cfe3fff16721dd16a9d`. Resultado archivado: 8 s, 1344×768/24 fps, audio AAC estéreo, 286 s de generación según KIE.
+
+**Rechazado**, no cumple muros uno a uno ni continuidad de la envolvente. Sí aparecen partes de terraza, pérgola, escaleras y mobiliario de las referencias; no se certifica identidad total ni todas las cantidades. Mezclar vistas seccionadas no fija un exterior cerrado durante el giro. Las referencias tenían fondo neutro, por lo que tampoco fijan encaje geográfico. Sin segunda generación. Antes de otro gasto, preparar estados de obra coherentes, exterior cerrado y referencia del conjunto sobre ortofoto. El guion solo no ha alcanzado el umbral. [Evaluación y fotogramas](../reports/video-261001-1756-piloto-h3-finca-report.md).

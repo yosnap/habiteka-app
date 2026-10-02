@@ -10,12 +10,11 @@ import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { DeliverablesPanel, type DeliverableView } from '@/components/deliverables/deliverables-panel';
 import { latestQualityByRef } from '@/server/quality/result-repo';
-import { withEditorDocuments } from '@/server/editor/document-repo';
-import { sameContentRevisions, tourImagesFromRows } from '@/server/walkthrough/tour-images';
-import { ImageTourBuilder } from '@/components/deliverables/image-tour-builder';
-import { WHOLE_PROPERTY } from '@/lib/editor-document/image-tour';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import type { DeliverablePayload, DeliverableType } from '@/lib/contracts';
+import type { DesignVideoJob } from '@/lib/editor-document/design-video';
+import { DesignVideoTask } from '@/components/editor-v2/design-video-task';
+import type { EditorScope } from '@/server/editor/authority';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -25,7 +24,9 @@ interface Props {
 type ResultsTab = 'disenos' | 'recorridos' | 'videos';
 type VideoView = {
   id: string;
-  mode: 'walkthrough' | 'showcase' | 'images';
+  mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai';
+  scope: EditorScope;
+  designJob: DesignVideoJob | null;
   url: string | null;
   durationMs?: number;
   approvedRevision: number | null;
@@ -35,7 +36,7 @@ type VideoView = {
 
 function videoMode(payload: unknown): VideoView['mode'] {
   if (!payload || typeof payload !== 'object' || !('mode' in payload)) return 'walkthrough';
-  return payload.mode === 'showcase' || payload.mode === 'images' ? payload.mode : 'walkthrough';
+  return payload.mode === 'showcase' || payload.mode === 'images' || payload.mode === 'promotion' || payload.mode === 'construction' || payload.mode === 'construction-ai' ? payload.mode : 'walkthrough';
 }
 /** Los vídeos con obra y los montados con imágenes conviven en la pestaña «Vídeos». */
 const inVideosTab = (mode: VideoView['mode']) => mode !== 'walkthrough';
@@ -63,12 +64,6 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   };
 
   if (activeTab !== 'disenos') {
-    const scope = { projectId: id, zoneId: query.zona ?? null };
-    const approval = activeTab === 'videos' ? await withEditorDocuments(ctx).latestApproval(scope) : null;
-    // Las revisiones son por estado del editor (proyecto y zona): el montaje usa solo los renders del mismo ámbito.
-    const tourImages = activeTab === 'videos' ? await tourImagesFromRows(rows.filter((row) => row.type === 'RENDER_3D' && (row.zoneId ?? null) === scope.zoneId)) : [];
-    const validRevisions = approval ? await sameContentRevisions(ctx, scope, approval, tourImages.map((image) => image.revision)) : [];
-    const ambients = [WHOLE_PROPERTY, ...(approval?.document.designZones ?? []).map((zone) => zone.name)];
     const videos = await Promise.all(videoRows.filter((row) =>
       inVideosTab(videoMode(row.payload)) === (activeTab === 'videos')).map(async (row): Promise<VideoView> => {
       const payload = row.payload && typeof row.payload === 'object'
@@ -79,14 +74,14 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
       if (approvalId) designQuery.set('aprobado', approvalId);
       if (row.zoneId) designQuery.set('zona', row.zoneId);
       return { id: row.id, mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
+        scope: { projectId: id, zoneId: row.zoneId }, designJob: videoMode(row.payload) === 'construction-ai' ? row.payload as unknown as DesignVideoJob : null,
         approvedRevision: typeof payload.approvedRevision === 'number' && Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
         designHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${designQuery}` : null,
         legalSeal: row.legalSeal };
     }));
     return <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
-      {activeTab === 'videos' && <ImageTourBuilder key={`${tourImages.map((image) => image.id).join()}|${validRevisions.join()}`} projectId={id} zoneId={query.zona ?? null} approvalId={approval?.id ?? null}
-        approvedRevision={approval?.revision ?? null} images={tourImages} ambients={ambients} validRevisions={validRevisions} />}
+      <a href={`/projects/${encodeURIComponent(id)}/videos${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`} className="self-start rounded-control bg-brand-600 px-4 py-3 text-sm font-medium text-white">Crear vídeo</a>
       {videos.length ? videos.map((video) => <VideoCard key={video.id} video={video} />) :
         <p className="text-muted-foreground p-6 text-center text-sm">{activeTab === 'recorridos'
           ? 'Aún no hay recorridos exportados de una revisión aprobada.'
@@ -138,14 +133,19 @@ function ResultsTabs({ tabs, active, href }: {
 }
 
 const VIDEO_LABEL: Record<VideoView['mode'], string> = {
-  walkthrough: 'Recorrido grabado', showcase: 'Vídeo resumen · obra + recorrido', images: 'Vídeo con las imágenes generadas' };
+  'construction-ai': 'Construcción desde diseños · piloto H3',
+  construction: 'Construcción del edificio · 3D',
+  walkthrough: 'Recorrido 3D del editor', showcase: 'Muestra 3D · obra + recorrido', images: 'Montaje de diseños generados', promotion: 'Muestra 3D sobre la parcela' };
 
 function VideoCard({ video }: { video: VideoView }) {
+  if (video.designJob) return <DesignVideoTask scope={video.scope} id={video.id} initial={video.designJob} initialUrl={video.url} />;
   const showcase = video.mode !== 'walkthrough';
   return <section aria-label={VIDEO_LABEL[video.mode]} className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
     <h2 className="text-ink text-base font-semibold">{VIDEO_LABEL[video.mode]}{' '}
       {video.durationMs ? <span className="text-ink-soft ml-2 text-sm font-normal">{Math.round(video.durationMs / 1000)} s</span> : null}
     </h2>
+    <p className="text-ink-soft text-sm">{video.mode === 'images' ? 'Presentación de imágenes con zoom y fundidos; no es una visita continua.'
+      : 'Exportación del modelo editable; no incorpora los acabados y la decoración de las imágenes generadas por IA.'}</p>
     {video.url ? <><video controls preload="metadata" src={video.url} className="w-full rounded-control" />
       <a href={video.url} download={showcase ? 'habiteka-muestra.mp4' : 'habiteka-recorrido.mp4'} className="text-emerald-800 underline">Descargar MP4</a></>
       : <p className="text-muted-foreground text-sm">Vídeo no disponible temporalmente.</p>}

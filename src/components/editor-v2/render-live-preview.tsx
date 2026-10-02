@@ -29,7 +29,7 @@ export function RenderLivePreview({ capture, lighting, view, options, onPreview,
   }, [key, onPreview, options, view]);
   const current = result?.capture ?? capture;
   const pending = Boolean(onPreview && result?.key !== key);
-  const label = `${RENDER_VIEW_LABELS[view]} · ${lighting === 'daylight' ? 'Día' : lighting === 'warm' ? 'Atardecer' : 'Noche'}`;
+  const label = `${RENDER_VIEW_LABELS[view]} · ${lighting === 'daylight' ? 'Día' : lighting === 'afternoon' ? 'Tarde' : lighting === 'warm' ? 'Atardecer' : 'Noche'}`;
   return <figure className="mt-3 overflow-hidden rounded-card border border-line" aria-busy={pending}>
     <button type="button" className="relative block w-full cursor-zoom-in" disabled={!current || pending || Boolean(result?.error)}
       aria-label="Ampliar previsualización" onClick={() => current && onExpand(current.dataUrl, label, current.maskDataUrl)}>

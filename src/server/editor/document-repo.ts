@@ -1,3 +1,4 @@
+import { LIGHTING_PRESETS, type LightingPreset } from '@/lib/lighting-preset';
 import { Prisma } from '@/generated/prisma/client';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
@@ -8,6 +9,7 @@ import { assertEditorScope, type EditorScope } from './authority';
 import { assertRevision, documentFingerprint, readDocumentInput } from './document-input';
 import { approvedAssets, approvedAssetsMatch, type ApprovedAsset, type ApprovedDesign, type ApprovedDesignSummary, type ApprovedLightingPreset } from '@/lib/editor-document/approved-design';
 import { designApprovalIssues } from './design-approval';
+import { assertGeographicSiteOwnership } from './geographic-site-ownership';
 
 export type EditorLoadResult =
   | { authority: 'legacy'; legacySnapshot: unknown; legacyFingerprint: string }
@@ -46,7 +48,7 @@ function approvedFromRecord(row: {
   approvedById: string; lightingPreset: string; revision: { stateId: string; revision: number; document: Prisma.JsonValue };
 }): ApprovedDesign {
   if (row.stateId !== row.revision.stateId) throw new Error('La revisión aprobada no pertenece a este plano.');
-  if (!Array.isArray(row.assets) || !['daylight', 'warm', 'evening'].includes(row.lightingPreset))
+  if (!Array.isArray(row.assets) || !LIGHTING_PRESETS.includes(row.lightingPreset as LightingPreset))
     throw new Error('Aprobación incompleta');
   const document = parseEditorDocument(row.revision.document);
   const assets = row.assets as unknown as ApprovedAsset[];
@@ -96,7 +98,7 @@ export function withEditorDocuments(ctx: OrgContext) {
           orderBy: { revision: { revision: 'desc' } },
         });
         return rows.map((row) => {
-          if (row.revision.stateId !== state.id || !['daylight', 'warm', 'evening'].includes(row.lightingPreset))
+          if (row.revision.stateId !== state.id || !LIGHTING_PRESETS.includes(row.lightingPreset as LightingPreset))
             throw new Error('Aprobación incompleta');
           return { id: row.id, revision: row.revision.revision, approvedAt: row.approvedAt.toISOString(),
             lightingPreset: row.lightingPreset as ApprovedLightingPreset };
@@ -131,7 +133,7 @@ export function withEditorDocuments(ctx: OrgContext) {
     },
     async approve(input: EditorScope, expectedRevision: number, lightingPreset: ApprovedLightingPreset): Promise<ApprovedDesign> {
       assertRevision(expectedRevision);
-      if (!['daylight', 'warm', 'evening'].includes(lightingPreset)) throw new Error('Iluminación inválida');
+      if (!LIGHTING_PRESETS.includes(lightingPreset)) throw new Error('Iluminación inválida');
       return prisma.$transaction(async (tx) => {
         const scope = await assertEditorScope(tx, ctx, input, { lock: true });
         const state = await tx.editorDocumentState.findFirst({ where: scope });
@@ -189,6 +191,7 @@ export function withEditorDocuments(ctx: OrgContext) {
         throw new Error('Activación requiere confirmación explícita');
       const document = readDocumentInput(request.document);
       document.revision = 0;
+      assertGeographicSiteOwnership(document, ctx, input.projectId);
       return prisma.$transaction(async (tx) => {
         const scope = await assertEditorScope(tx, ctx, input, { lock: true });
         if (await tx.editorDocumentState.findFirst({ where: scope }))
@@ -228,6 +231,7 @@ export function withEditorDocuments(ctx: OrgContext) {
       const document = readDocumentInput(request.document);
       if (document.revision !== request.expectedRevision)
         throw new Error('Revisión del documento no coincide');
+      assertGeographicSiteOwnership(document, ctx, input.projectId);
       const fingerprint = documentFingerprint({
         document,
         expectedRevision: request.expectedRevision,

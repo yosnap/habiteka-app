@@ -40,7 +40,7 @@ export function FurnitureModel({ item, boxes, selected, onSelect }: {
   item: Furniture; boxes: SceneBox[]; selected: boolean; onSelect: (id: string) => void;
 }) {
   const asset = furnitureAsset(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
-  const fallback = (failed: boolean) => <group>
+  const fallback = (failed: boolean) => <group userData={{ modelLoadState: failed ? 'failed' : 'loading' }}>
     {boxes.map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
     <Html center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
       <span role={failed ? 'alert' : 'status'} style={{ background: '#fff', color: '#36443d', padding: 4, fontSize: 11, whiteSpace: 'nowrap' }}>

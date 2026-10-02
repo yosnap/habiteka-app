@@ -12,6 +12,7 @@ export interface KeyframeSetEvidence {
   fromApprovedDesign: number;
   lightings: string[];
   freedoms: string[];
+  fixedDesignModes: string[];
   /** Ámbitos esperados (inmueble y zonas) sin ninguna imagen en el conjunto. */
   missingAmbients: string[];
   ambients: { name: string; views: string[] }[];
@@ -24,12 +25,14 @@ const MAX_IMAGES = 24;
 export function buildKeyframeSetEvidence(shots: TourImage[], valid: ReadonlySet<number>, missingAmbients: string[]): KeyframeSetEvidence {
   const limited = shots.slice(0, MAX_IMAGES);
   const byAmbient = new Map<string, string[]>();
-  for (const shot of limited) byAmbient.set(shot.ambient, [...(byAmbient.get(shot.ambient) ?? []), shot.view]);
+  for (const shot of limited) for (const name of new Set([shot.ambient, ...(shot.coveredAmbients ?? [])]))
+    byAmbient.set(name, [...(byAmbient.get(name) ?? []), shot.view]);
   return {
     imageCount: limited.length,
     fromApprovedDesign: limited.filter((shot) => valid.has(shot.revision)).length,
     lightings: [...new Set(limited.map((shot) => shot.lighting))].sort(),
     freedoms: [...new Set(limited.map((shot) => shot.freedom))].sort(),
+    fixedDesignModes: [...new Set(limited.map((shot) => shot.redesignFixed ? 'rediseño' : 'fijos conservados'))].sort(),
     missingAmbients,
     ambients: [...byAmbient.entries()].map(([name, views]) => ({ name, views })),
     automaticIssues: assessTourHomogeneity(limited, valid, missingAmbients).issues.map((issue) => issue.message),

@@ -1,6 +1,7 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { ZoneMaskRegions } from '@/lib/editor-document/render-view';
 import type { CameraRequest, SceneCameraPreset } from './scene-camera';
+import { exteriorRoofGeometry, type RoofGeometry } from '@/lib/editor-document/exterior-roof-geometry';
 
 /** El área seleccionada llena la cámara sin incluir el resto de la finca. */
 export function sceneZoneFocus(regions: ZoneMaskRegions, elevationMm = 0): CameraRequest['focus'] | undefined {
@@ -60,7 +61,13 @@ export function scenePresetFocus(
     }
   }
   const lowMm = Math.min(0, ...walls.map((wall) => wall.baseElevationMm ?? 0));
-  const highMm = Math.max(2800, ...walls.map((wall) => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2800)));
+  let roofs: RoofGeometry[] = [];
+  try { roofs = exteriorRoofGeometry(document); } catch { /* El panel permite corregir la cubierta; la exportación sí la valida. */ }
+  for (const roof of roofs) for (let i = 0; i < roof.positions.length; i += 3) {
+    xMin = Math.min(xMin, roof.positions[i]! * 1000); xMax = Math.max(xMax, roof.positions[i]! * 1000);
+    zMin = Math.min(zMin, roof.positions[i + 2]! * 1000); zMax = Math.max(zMax, roof.positions[i + 2]! * 1000);
+  }
+  const highMm = Math.max(2800, ...walls.map((wall) => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2800)), ...roofs.map(roof => roof.peakM * 1000));
   // La isométrica prioriza la casa; el dron muestra además el agua próxima.
   const padding = preset === 'isometric' ? 1.2
     : preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.55;

@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { LIGHTING_PRESETS } from '@/lib/lighting-preset';
 
-export const RENDER_VIEWS = ['current', 'top', 'isometric', 'front', 'back', 'left', 'right', 'drone'] as const;
-export const RENDER_VIEW_LABELS: Record<(typeof RENDER_VIEWS)[number], string> = { current: 'Vista actual', top: 'Cenital', isometric: 'Isométrica', front: 'Frontal', back: 'Trasera', left: 'Izquierda', right: 'Derecha', drone: 'Dron' };
+export const RENDER_VIEWS = ['current', 'top', 'isometric', 'front', 'back', 'left', 'right', 'drone', 'exterior'] as const;
+export const RENDER_VIEW_LABELS: Record<(typeof RENDER_VIEWS)[number], string> = { current: 'Vista actual', top: 'Cenital', isometric: 'Isométrica', front: 'Frontal', back: 'Trasera', left: 'Izquierda', right: 'Derecha', drone: 'Dron', exterior: 'Exterior terminado' };
 export const RENDER_ADDITIONS = ['plants', 'mirrors', 'lights', 'furniture', 'decor'] as const;
 export const RENDER_ADDITION_LABELS = { plants: 'Plantas', mirrors: 'Espejos', lights: 'Lámparas e iluminación decorativa', furniture: 'Muebles', decor: 'Otros objetos decorativos' };
 export const renderDesignOptionsSchema = z.object({
-  lighting: z.enum(['daylight', 'warm', 'evening']).default('daylight'),
+  lighting: z.enum(LIGHTING_PRESETS).default('daylight'),
   freedom: z.enum(['strict', 'controlled', 'free']).default('strict'),
   additions: z.array(z.enum(RENDER_ADDITIONS)).max(5).default([]),
   placement: z.enum(['all', 'selected']).default('all'),
@@ -13,7 +14,7 @@ export const renderDesignOptionsSchema = z.object({
     id: z.string().min(1).max(100), name: z.string().min(1).max(80),
     polygon: z.array(z.object({ x: z.number().finite(), y: z.number().finite() })).min(3).max(20),
   })).max(12).default([]),
-  views: z.array(z.enum(RENDER_VIEWS)).min(1).max(8).default(['current']),
+  views: z.array(z.enum(RENDER_VIEWS)).min(1).max(RENDER_VIEWS.length).default(['current']),
   /**
    * Estancias para las que se genera una vista interior a altura de ojos. Con la
    * lista vacía manda `views`; con estancias elegidas, cada una es una imagen y
@@ -22,10 +23,12 @@ export const renderDesignOptionsSchema = z.object({
    */
   // El id de estancia enumera sus muros, así que es largo por construcción.
   interiorRoomIds: z.array(z.string().min(1).max(4000)).max(12).default([]),
-  designScope: z.enum(['all', 'interior', 'exterior', 'rooms', 'zone']).default('all'),
+  designScope: z.enum(['all', 'house', 'interior', 'exterior', 'rooms', 'zone']).default('all'),
   designRoomIds: z.array(z.string().min(1).max(4000)).max(40).default([]),
   designStructureIds: z.array(z.string().min(1).max(128)).max(40).default([]),
   designZoneId: z.string().max(128).default(''),
+  redesignFixed: z.boolean().default(false),
+  redesignInterior: z.boolean().default(false),
 }).superRefine((value, ctx) => {
   if (new Set(value.interiorRoomIds).size !== value.interiorRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['interiorRoomIds'], message: 'No repitas estancias.' });
@@ -43,7 +46,11 @@ export const renderDesignOptionsSchema = z.object({
 });
 export type RenderDesignOptions = z.infer<typeof renderDesignOptionsSchema>;
 export type RenderViewChoice = RenderDesignOptions['views'][number];
-export const defaultRenderDesignOptions = (): RenderDesignOptions => ({ lighting: 'daylight', freedom: 'strict', additions: [], placement: 'all', regions: [], views: ['current'], interiorRoomIds: [], designScope: 'all', designRoomIds: [], designStructureIds: [], designZoneId: '' });
+export const defaultRenderDesignOptions = (): RenderDesignOptions => renderDesignOptionsSchema.parse({});
+
+/** Cambiar solo las cámaras permite continuar la misma tanda, sin mezclar permisos. */
+export const renderBatchSettingsKey = (options: RenderDesignOptions): string =>
+  JSON.stringify({ ...options, views: [] });
 
 /** ¿Se generan vistas interiores por estancia en vez de los ángulos genéricos? */
 export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
@@ -51,7 +58,7 @@ export const isInteriorRenderMode = (options: RenderDesignOptions): boolean =>
 
 /** Las zonas seleccionadas requieren una máscara tomada desde la misma cámara. */
 export const zoneCompositeActive = (options: RenderDesignOptions): boolean =>
-  options.placement === 'selected' && options.regions.length > 0;
+  options.designScope === 'house' || (options.placement === 'selected' && options.regions.length > 0);
 
 /** Tope de generaciones de un lote. */
 export const MAX_RENDER_PASSES = 24;
@@ -67,5 +74,6 @@ export const renderItemCount = (options: RenderDesignOptions): number =>
 export interface RenderGeneratedResult {
   id?: string;
   assetUrl: string;
-  generation?: { provider: string; model: string; fallbackIndex: number };
+  generation?: { provider?: string; model?: string; fallbackIndex?: number;
+    view?: import('./render-view').RenderView; options?: RenderDesignOptions; documentRevision?: number; promptVersion?: string };
 }

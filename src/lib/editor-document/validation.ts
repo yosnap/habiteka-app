@@ -1,4 +1,7 @@
 import { assertBoundaryFields } from './boundary-validation';
+import { geographicSiteSchema } from './geographic-site';
+import { renderBackdropSchema } from './render-backdrop';
+import { exteriorRoofSchema } from './exterior-roof';
 import { isValidEstilo } from '@/lib/design-options';
 import { assertKitchenRunFields } from './kitchen-run-validation';
 import { assertWalkthroughFields } from './walkthrough-validation';
@@ -61,8 +64,11 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite exteriorRoof renderBackdrop${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
+  if (value.geographicSite !== undefined) geographicSiteSchema.parse(value.geographicSite);
+  if (value.renderBackdrop !== undefined) renderBackdropSchema.parse(value.renderBackdrop);
+  if (value.exteriorRoof !== undefined) exteriorRoofSchema.parse(value.exteriorRoof);
   if (value.terrainSurfaces !== undefined) {
     if (!Array.isArray(value.terrainSurfaces) || value.terrainSurfaces.length > 40)
       throw new Error('Superficies de terreno inválidas');

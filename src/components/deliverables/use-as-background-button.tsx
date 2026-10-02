@@ -14,12 +14,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { applyBaseImageToCanvas } from '@/server/actions/canvas';
+import { applyRenderBackdrop } from '@/server/editor/render-backdrop-actions';
 
 interface Props {
   projectId: string;
   assetUrl: string;
   /** Zona que originó el diseño; el fondo se aplica a SU plano (null = por defecto). */
   zoneId?: string | null;
+  deliverableId?: string;
 }
 
 // Mide el ancho/alto natural de una imagen sin insertarla en el DOM.
@@ -32,7 +34,7 @@ function measureNaturalSize(url: string): Promise<{ width: number; height: numbe
   });
 }
 
-export function UseAsBackgroundButton({ projectId, assetUrl, zoneId = null }: Props) {
+export function UseAsBackgroundButton({ projectId, assetUrl, zoneId = null, deliverableId }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +44,13 @@ export function UseAsBackgroundButton({ projectId, assetUrl, zoneId = null }: Pr
     setError(null);
     try {
       const { width, height } = await measureNaturalSize(assetUrl);
-      await applyBaseImageToCanvas(projectId, { url: assetUrl, width, height }, zoneId);
+      const native = deliverableId ? await applyRenderBackdrop({ projectId, zoneId }, deliverableId, width / height) : false;
+      if (!native) await applyBaseImageToCanvas(projectId, { url: assetUrl, width, height }, zoneId);
       // Abre el editor en la zona del diseño (sin zona, el plano por defecto).
-      router.push(zoneId ? `/projects/${projectId}?zona=${zoneId}` : `/projects/${projectId}`);
-    } catch {
-      setError('No se pudo aplicar el render como fondo. Inténtalo de nuevo.');
+      const href = `/projects/${encodeURIComponent(projectId)}${zoneId ? `?zona=${encodeURIComponent(zoneId)}` : ''}`;
+      if (native) window.location.assign(href); else router.push(href);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo aplicar el render como fondo. Inténtalo de nuevo.');
       setBusy(false);
     }
   };

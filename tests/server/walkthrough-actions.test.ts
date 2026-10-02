@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readUploadTicket, signUploadTicket } from '@/server/walkthrough/upload-ticket';
+import { emptyEditorDocument } from '@/lib/editor-document/schema';
+import { PROMOTION_ROUTE_ID } from '@/lib/editor-document/promotion-video';
+import { CONSTRUCTION_ROUTE_ID } from '@/lib/editor-document/native-video';
+import { DEFAULT_VIDEO_PRESENTATION } from '@/lib/editor-document/video-presentation';
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), readApproval: vi.fn(), scope: vi.fn(), inspect: vi.fn(), promote: vi.fn(),
   presign: vi.fn(), compile: vi.fn(), existing: vi.fn(), find: vi.fn(), create: vi.fn(), usage: vi.fn(), transaction: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -23,6 +27,72 @@ beforeEach(() => {
   mocks.transaction.mockImplementation((fn) => fn({deliverable:{findUnique:mocks.find,create:mocks.create},usageEvent:{create:mocks.usage}}));
 });
 describe('finalización de vídeos con ámbito y reintento', () => {
+  it('firma y conserva cotas, ocultación e instrucciones Unicode sin un error de tamaño del ticket', async () => {
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64),
+      document: { ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }] } });
+    const presentation = { ...DEFAULT_VIDEO_PRESENTATION, dimensionMode: 'start' as const, dimensionOcclusion: true, prompt: '建'.repeat(2000) };
+    const upload = await prepareWalkthroughUpload({ projectId: 'project' }, 'approval', CONSTRUCTION_ROUTE_ID, 64, 'construction', 'all', presentation);
+    expect(readUploadTicket(upload.ticket, 'test-signing-secret').presentation).toMatchObject(presentation);
+    await finishWalkthroughUpload(upload.ticket);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: expect.objectContaining({ presentation: expect.objectContaining(presentation) }) }) });
+  });
+  it('rechaza presentación no válida antes de firmar o emitir una URL de subida', async () => {
+    await expect(prepareWalkthroughUpload({ projectId: 'project' }, 'approval', 'route', 64, 'walkthrough', 'all', { ...DEFAULT_VIDEO_PRESENTATION, soundVolume: 8 })).rejects.toThrow();
+    expect(mocks.presign).not.toHaveBeenCalled();
+  });
+  it('prepara y guarda construcción de 8 s sin consultar una ruta interior ni una parcela', async () => {
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64),
+      document: { ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }] } });
+    const upload = await prepareWalkthroughUpload({ projectId: 'project' }, 'approval', CONSTRUCTION_ROUTE_ID, 64, 'construction');
+    expect(readUploadTicket(upload.ticket, 'test-signing-secret')).toMatchObject({ mode: 'construction', durationMs: 8000, routeId: CONSTRUCTION_ROUTE_ID });
+    expect(mocks.compile).not.toHaveBeenCalled();
+    await finishWalkthroughUpload(upload.ticket);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: expect.objectContaining({ mode: 'construction', durationMs: 8000, approvedRevision: 2 }) }) });
+  });
+  it('firma doce segundos cuando se elige dar más tiempo al amueblado', async () => {
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64),
+      document: { ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }] } });
+    const options = { ...DEFAULT_VIDEO_PRESENTATION, constructionDurationSeconds: 12 as const };
+    const upload = await prepareWalkthroughUpload({ projectId: 'project' }, 'approval', CONSTRUCTION_ROUTE_ID, 64, 'construction', 'all', options);
+    expect(readUploadTicket(upload.ticket, 'test-signing-secret')).toMatchObject({ durationMs: 12000, presentation: options });
+    await finishWalkthroughUpload(upload.ticket);
+    expect(mocks.usage).toHaveBeenCalledWith({ data: expect.objectContaining({ amount: 12, cost: '0' }) });
+  });
+  it('rechaza una construcción con id de ruta ajeno y sin diseño, antes de permitir la subida', async () => {
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64), document: emptyEditorDocument() });
+    await expect(prepareWalkthroughUpload({ projectId: 'project' }, 'approval', CONSTRUCTION_ROUTE_ID, 64, 'construction')).rejects.toThrow('Falta el diseño');
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64), document: { ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }] } });
+    await expect(prepareWalkthroughUpload({ projectId: 'project' }, 'approval', 'route', 64, 'construction')).rejects.toThrow('Falta el diseño');
+    expect(mocks.presign).not.toHaveBeenCalled();
+    await expect(finishWalkthroughUpload(signUploadTicket({ ...claims, mode: 'construction', durationMs: 30000 }, 'test-signing-secret'))).rejects.toThrow('versión aprobada');
+    expect(mocks.inspect).not.toHaveBeenCalled();
+  });
+  const promotionDocument = () => ({ ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }],
+    geographicSite: { source: 'IGN-PNOA', latitude: 40.7, longitude: -3.5, groundWidthM: 180,
+      assetKey: 'geographic-sites/org/project/00000000-0000-4000-8000-000000000000.jpg',
+      capturedAt: '2026-09-30T10:00:00.000Z', anchor: { x: .5, y: .5 }, planOriginMm: { x: 0, y: 0 },
+      rotationDeg: 0, intervention: [{ x: .2, y: .2 }, { x: .8, y: .2 }, { x: .8, y: .8 }],
+      scenario: 'reconstruction', lighting: 'afternoon', confirmed: true } });
+  it('prepares a promotion from a confirmed approved site without an interior route', async () => {
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64), document: promotionDocument() });
+    const result = await prepareWalkthroughUpload({ projectId: 'project' }, 'approval', PROMOTION_ROUTE_ID, 1024, 'promotion');
+    expect(readUploadTicket(result.ticket, 'test-signing-secret')).toMatchObject({ mode: 'promotion', durationMs: 30000 });
+    expect(mocks.compile).not.toHaveBeenCalled();
+  });
+  it('refuses promotion before placement is confirmed, before signing an upload', async () => {
+    const document = promotionDocument(); document.geographicSite.confirmed = false;
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64), document });
+    await expect(prepareWalkthroughUpload({ projectId: 'project' }, 'approval', PROMOTION_ROUTE_ID, 1024, 'promotion')).rejects.toThrow(/confirma/);
+    expect(mocks.presign).not.toHaveBeenCalled();
+  });
+  it('saves the approved geographic placement and light in promotion metadata', async () => {
+    const document = promotionDocument();
+    mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64), document });
+    await finishWalkthroughUpload(signUploadTicket({ ...claims, routeId: PROMOTION_ROUTE_ID, mode: 'promotion', durationMs: 30000 }, 'test-signing-secret'));
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: expect.objectContaining({
+      mode: 'promotion', durationMs: 30000, geographicSite: document.geographicSite,
+    }) }) });
+  });
   it('prepara el MP4 largo desde la ruta aprobada y conserva su duración exacta', async () => {
     const upload = await prepareWalkthroughUpload({projectId:'project'}, 'approval', 'route', 1024, 'showcase');
     expect(readUploadTicket(upload.ticket, 'test-signing-secret').durationMs).toBe(101000);

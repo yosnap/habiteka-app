@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from '@/server/db/prisma';
 import { readRenderReference } from './render-asset-reader';
+import { renderReviewIssue, type RenderReview } from '@/lib/editor-document/render-review';
 
 /**
  * Primera imagen ya guardada del mismo lote de renders. Sirve de referencia de materiales y ambiente para las vistas
@@ -13,8 +14,8 @@ export async function findBatchStyleAnchor(projectId: string, batchId?: string) 
     orderBy: { createdAt: 'asc' },
     select: { payload: true },
   });
-  const payload = row?.payload as { assetKey?: unknown; assetUrl?: unknown } | null | undefined;
-  if (!payload || (!payload.assetKey && !payload.assetUrl)) return null;
+  const payload = row?.payload as { assetKey?: unknown; assetUrl?: unknown; generation?: { review?: RenderReview } } | null | undefined;
+  if (!payload || renderReviewIssue(payload.generation) || (!payload.assetKey && !payload.assetUrl)) return null;
   // Una ancla que no se puede leer no debe impedir generar la vista.
   try { return await readRenderReference(payload); } catch { return null; }
 }

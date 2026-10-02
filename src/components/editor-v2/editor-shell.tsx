@@ -20,6 +20,8 @@ import {
   X,
 } from 'lucide-react';
 import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
+import { GeographicSitePanel } from './geographic-site-panel';
+import { ExteriorRoofPanel } from './exterior-roof-panel';
 import type { EditorDocument, Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
 import {
@@ -60,14 +62,11 @@ import { placeLandingAtRampArrival } from '@/lib/editor-document/ramp-landing-pl
 import { placeLandingAtStairArrival } from '@/lib/editor-document/stair-landing-placement';
 import { EditorGenerateDialog } from './editor-generate-dialog';
 import { usePlanIssueGate } from './plan-issues-panel';
-import {
-  roomInteriorCameras,
-  selectedInteriorCameras,
-} from '@/lib/editor-document/room-interior-cameras';
+import { prepareRenderCaptures } from './prepare-render-captures';
 import type { AutoGenerateRequest } from './auto-generate-request';
-import { useMountEffect } from '@/lib/use-mount-effect';
+import { useAutoGenerateRequest } from './use-auto-generate-request';
 import { waitUntil } from '@/lib/async-wait';
-import { isInteriorRenderMode, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions, type RenderGeneratedResult } from '@/lib/editor-document/render-design-options';
+import { zoneCompositeActive, type RenderDesignOptions, type RenderGeneratedResult } from '@/lib/editor-document/render-design-options';
 import type { Estilo } from '@/lib/contracts';
 import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
@@ -75,6 +74,7 @@ import { applyNativeDesignProposal, bindNativeDesignProposal, type NativeDesignP
 import { sameDesignContent } from '@/lib/editor-document/approved-design';
 import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } from '@/lib/editor-document/design-zone-commands';
 import { zoneCaptureRegions } from '@/lib/editor-document/zone-capture-regions';
+import { renderScopeRegions } from '@/lib/editor-document/render-scope-regions';
 import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
@@ -110,11 +110,15 @@ export interface EditorShellProps {
   approveDisabled?: boolean;
   approveLabel?: string;
   onOpenApproved?: () => void;
+  onOpenVideoStudio?: () => void;
+  videoResultsHref?: string;
   onOpenApprovedRoute?: (routeId: string) => Promise<void>;
   onImport?: () => void;
   onExport?: () => void;
   onAddStair?: (kind: Stair['kind']) => void;
   projectId?: string;
+  zoneId?: string | null;
+  preferencesOwner?: string;
   onSaveNativeVideo?: (blob: Blob, routeId: string, mode: NativeVideoMode) => Promise<void>;
   allowVideoExport?: boolean;
   lightingPreset?: SceneLightingPreset;
@@ -136,6 +140,8 @@ export interface EditorShellProps {
     batchId?: string;
     qualityAck: boolean;
     styleAnchor?: boolean;
+    orthophotoDataUrl?: string;
+    existingImageDataUrl?: string;
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado que ve el diálogo al abrirse. */
@@ -157,11 +163,15 @@ export function EditorShell({
   approveDisabled = false,
   approveLabel = 'Aprobar diseño',
   onOpenApproved,
+  onOpenVideoStudio,
+  videoResultsHref,
   onOpenApprovedRoute,
   onImport,
   onExport,
   onAddStair,
   projectId,
+  zoneId,
+  preferencesOwner,
   onSaveNativeVideo,
   allowVideoExport,
   lightingPreset,
@@ -211,6 +221,7 @@ export function EditorShell({
     if (mode === 'visual' && next.tool !== previous.tool && next.tool !== 'select' && next.tool !== 'place-object') setMode('2d');
   }), [mode, store]);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateSetup, setGenerateSetup] = useState(autoGenerate);
   const planIssueGate = usePlanIssueGate(store, { close: () => setGenerateOpen(false), show2d: () => setMode('2d') });
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
   // La escena 3D se carga en diferido y tarda segundos: lo que dependa de ella
@@ -246,7 +257,7 @@ export function EditorShell({
     const designZone = options.designScope === 'zone'
       ? store.getState().document.designZones?.find((zone) => zone.id === options.designZoneId) : undefined;
     const maskRegions = zoneCompositeActive(options)
-      ? options.regions.map((region) => region.polygon)
+      ? renderScopeRegions(store.getState().document, options)
       : designZone ? [designZone.polygon] : undefined;
     const captureRegions = maskRegions ? zoneCaptureRegions(store.getState().document, maskRegions) : undefined;
     return capture({ view, lighting: options.lighting, fit: view !== 'current' || Boolean(captureRegions),
@@ -282,7 +293,8 @@ export function EditorShell({
    * Que el diálogo espere en vez de bloquearse es lo que impide el «Preparando…»
    * eterno: toda espera pasa por `awaitScene`, que tiene plazo y mensaje.
    */
-  const openGenerate = () => {
+  const openGenerate = (setup: AutoGenerateRequest | null = null) => {
+    setGenerateSetup(setup);
     keyframeCamera.current = null;
     keyframeTarget.current = null;
     setRenderCapture(undefined);
@@ -302,23 +314,11 @@ export function EditorShell({
       }
     })();
   };
-  /**
-   * Llegada desde el asistente: misma ruta que el botón.
-   *
-   * La petición se borra de la URL nada más atenderla para que recargar no
-   * vuelva a abrirla. Se hace con `history.replaceState` y no con
-   * `router.replace` porque una navegación del App Router reejecuta el
-   * componente de servidor, y eso reabre la rama de borrador de la sesión del
-   * editor: limpiar la URL no puede costar el espacio de trabajo.
-   */
-  useMountEffect(() => {
-    if (!autoGenerate || !projectId || !onGenerateRender) return;
-    openGenerate();
-    const url = new URL(window.location.href);
-    url.searchParams.delete('generar');
-    url.searchParams.delete('estilo');
-    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
-  });
+  // La petición se congela en el diálogo: una revalidación puede quitarla de la URL.
+  useAutoGenerateRequest(autoGenerate, (request) => {
+    if (!projectId || !onGenerateRender) return;
+    openGenerate(request);
+  }, true);
 
   const [center, setCenter] = useState<Point>({ x: 3000, y: 2000 });
   const constructionButton = useRef<HTMLButtonElement>(null),
@@ -596,6 +596,7 @@ export function EditorShell({
           <span role="status">{saveStatus ?? 'Guardado no conectado'}</span>
         </div>
         <div className={styles.actions}>
+          {onOpenVideoStudio && <button type="button" onClick={onOpenVideoStudio}>Crear vídeo</button>}
           <BuildingLevelMenu store={store} />
           <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
           <SelectByKindMenu store={store} />
@@ -629,7 +630,7 @@ export function EditorShell({
             disabled={
               readOnly || !projectId || !onGenerateDesign || !onGenerateRender || !generateEnabled
             }
-            onClick={openGenerate}
+            onClick={() => openGenerate()}
             title={
               generateDisabledReason ??
               (!onGenerateDesign
@@ -640,6 +641,13 @@ export function EditorShell({
             <Sparkles size={18} aria-hidden="true" />
             <span>Diseñar con IA</span>
           </button>
+          <ExteriorRoofPanel store={store} onPreview={() => { store.getState().setCeilingView('solid'); setMode('3d'); }} />
+          {projectId && <GeographicSitePanel store={store} projectId={projectId} readOnly={readOnly} approvalDisabled={approveDisabled}
+            videoResultsHref={videoResultsHref} onOpenApproved={onOpenApproved} onReviewApproval={onApproveDesign ? () => {
+              const light = store.getState().document.geographicSite?.lighting;
+              if (light) onLightingChange?.(light);
+              onApproveDesign();
+            } : undefined} />}
           {onExport && <button
             type="button"
             onClick={onExport}
@@ -684,6 +692,7 @@ export function EditorShell({
                 selectedIds = state.selection;
               state.setTool('select');
               state.select(selectedIds);
+              if (mode !== '3d') state.setCeilingView('hidden');
               setConstruction(false);
               if (state.sidePanel === 'catalog') state.closeSidePanel();
               setMode('3d');
@@ -800,7 +809,7 @@ export function EditorShell({
               if (construction) setConstruction(false);
             }}
           >
-            <EditorSceneView key={mode} store={store} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
+            <EditorSceneView key={mode} store={store} projectId={projectId} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
               onOpenApprovedRoute={onOpenApprovedRoute}
               lightingPreset={sceneLighting} onLightingChange={(preset) => { setLocalLighting(preset); onLightingChange?.(preset); }}
               onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
@@ -879,6 +888,8 @@ export function EditorShell({
       {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
+          projectId={projectId} zoneId={zoneId}
+          preferencesOwner={preferencesOwner}
           document={store.getState().document}
           onGenerate={async (input) => {
             const requested = structuredClone(store.getState().document);
@@ -895,36 +906,12 @@ export function EditorShell({
           onEvaluateQuality={onEvaluateQuality}
           renderPlanIssues={planIssueGate}
           onPrepare={async (rawOptions) => {
-            const options = renderDesignOptionsSchema.parse(rawOptions);
             // No se rechaza por «todavía no hay 3D»: se espera a que cargue, con
             // plazo. Quien llega del asistente pulsa antes de que termine.
             const capture = await awaitScene();
             const snapshot = documentGeometry();
-            const captures: RenderCapture[] = [];
-            // La máscara corresponde exactamente a esta cámara y permite auditar las zonas.
-            const zoneMask = zoneCompositeActive(options)
-              ? { maskRegions: zoneCaptureRegions(store.getState().document, options.regions.map((region) => region.polygon)) } : {};
-            // Vistas interiores: una captura por estancia con su cámara a altura
-            // de ojos. La geometría va en la imagen; la IA solo pone el aspecto.
-            if (isInteriorRenderMode(options)) {
-              const rooms = selectedInteriorCameras(
-                roomInteriorCameras(store.getState().document),
-                options.interiorRoomIds,
-              );
-              if (!rooms.length) throw new Error('Elige al menos una estancia con muros cerrados.');
-              for (const room of rooms) {
-                captures.push(await capture({ lighting: options.lighting, camera: room.camera, ...zoneMask }));
-                if (snapshot !== documentGeometry())
-                  throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
-              }
-              captureDocument.current = snapshot;
-              return captures;
-            }
-            for (const view of options.views) {
-              captures.push(await capture({ view, lighting: options.lighting, fit: view !== 'current' || zoneCompositeActive(options), ...zoneMask,
-                ...(keyframeCamera.current && view === 'current' && !zoneCompositeActive(options) ? { camera: keyframeCamera.current } : {}) }));
-              if (snapshot !== documentGeometry()) throw new Error('El plano cambió durante la preparación. Vuelve a preparar las vistas.');
-            }
+            const captures = await prepareRenderCaptures({ options: rawOptions, capture, document: store.getState().document,
+              snapshot, currentSnapshot: documentGeometry, keyframeCamera: keyframeCamera.current });
             captureDocument.current = snapshot;
             return captures;
           }}
@@ -985,14 +972,7 @@ export function EditorShell({
           }}
           spaceKind={designSpaceKind}
           onSpaceKindChange={setSpaceKind}
-          {...(autoGenerate
-            ? {
-                initialSetup: {
-                  interiorRooms: autoGenerate.interiorRooms,
-                  ...(autoGenerate.estilo ? { estilo: autoGenerate.estilo } : {}),
-                },
-              }
-            : {})}
+          {...(generateSetup ? { initialSetup: generateSetup } : {})}
           onClose={() => setGenerateOpen(false)}
         />
       )}

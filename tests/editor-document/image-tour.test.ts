@@ -5,6 +5,36 @@ const image = (id: string, ambient: string, view: string, extra: Partial<TourIma
   ({ id, ambient, view, lighting: 'daylight', freedom: 'strict', revision: 137, createdAt: '2026-09-30T02:00:00Z', url: `https://x/${id}.png`, ...extra });
 
 describe('montaje con las imágenes generadas', () => {
+  it('no mezcla muebles originales y rediseñados en la misma presentación', () => {
+    const result = assessTourHomogeneity([image('a', 'Salón', 'custom'),
+      image('b', 'Salón', 'custom', { redesignInterior: true })], new Set([137]));
+    expect(result.ok).toBe(false);
+    expect(result.issues).toMatchObject([{ code: 'redesign', imageIds: ['b'] }]);
+  });
+  it('Jev distingue imágenes con fijos conservados de imágenes con rediseño', () => {
+    const result = assessTourHomogeneity([image('a', 'Cocina', 'top'),
+      image('b', 'Salón', 'custom', { redesignFixed: true })], new Set([137]));
+    expect(result.ok).toBe(false);
+    expect(result.issues).toMatchObject([{ code: 'redesign', imageIds: ['b'] }]);
+  });
+  it('no rellena la selección aprobada con zonas de revisiones antiguas', () => {
+    const result = pickTourImages([image('old', 'Patio', 'top', { revision: 100 }),
+      image('new', 'Cocina', 'top', { revision: 143 })], ['Patio'], 2, MAX_TOUR_SHOTS, new Set([143]));
+    expect(result.shots.map((shot) => shot.id)).toEqual(['new']);
+    expect(result.missing).toEqual(['Patio']);
+  });
+  it('conserva dormitorios distintos aunque tengan el mismo nombre y ángulo', () => {
+    expect(pickTourImages([image('uno', 'Dormitorio', 'custom', { ambientId: 'room:1' }),
+      image('dos', 'Dormitorio', 'custom', { ambientId: 'room:2' })]).shots).toHaveLength(2);
+  });
+  it('una estancia compartida cubre sus zonas y mantiene el aviso de un ámbito sin imágenes', () => {
+    const result = pickTourImages([image('interior', 'Salón-cocina', 'custom', { coveredAmbients: ['Salón', 'Cocina'] })], ['Salón', 'Cocina', 'Patio']);
+    expect(result.missing).toEqual(['Patio']);
+    expect(result.shots).toHaveLength(1);
+  });
+  it('no declara cobertura de tomas que quedan fuera del límite de selección', () => {
+    expect(pickTourImages([image('a', 'A', 'top'), image('b', 'B', 'top')], ['A', 'B'], 2, 1).missing).toEqual(['B']);
+  });
   it('abre con el inmueble completo y sigue por ámbitos, con una imagen por ámbito y vista', () => {
     const { shots } = pickTourImages([
       image('cocina-iso', 'Cocina', 'isometric'), image('salon-top', 'Salón', 'top'),

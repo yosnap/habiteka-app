@@ -11,11 +11,12 @@ import type { AutoGenerateRequest } from '../auto-generate-request';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 
-export function DurableEditor({ scope, projectName, initial, approvedDesign, autoGenerate, reference }: {
+export function DurableEditor({ scope, projectName, initial, approvedDesign, autoGenerate, reference, openVideoStudio }: {
   scope: DraftScope; projectName: string; initial: EditorDocument;
   approvedDesign: ApprovedDesign | null;
   autoGenerate?: AutoGenerateRequest | null;
   reference?: PlanReference | null;
+  openVideoStudio?: boolean;
 }) {
   const [ready, setReady] = useState<{ scope: DraftScope; recovered?: EditorDraft } | null>(null);
   const [choices, setChoices] = useState<{ scope: DraftScope; drafts: EditorDraft[] } | null>(null);
@@ -89,6 +90,6 @@ export function DurableEditor({ scope, projectName, initial, approvedDesign, aut
     </section>}
     {ready && <EditorSession scope={ready.scope} initial={initial} approvedDesign={approvedDesign}
       recovered={ready.recovered}
-      projectName={projectName} autoGenerate={autoGenerate ?? null} reference={reference} />}
+      projectName={projectName} autoGenerate={autoGenerate ?? null} reference={reference} openVideoStudio={openVideoStudio} />}
   </>;
 }

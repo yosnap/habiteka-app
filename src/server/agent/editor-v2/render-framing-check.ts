@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { RenderRejectedError } from '@/server/errors/render-rejected-error';
 
 type Image = { base64: string; mimeType: string };
 type Bounds = { x: number; y: number; width: number; height: number };
@@ -54,6 +55,6 @@ export async function assertRenderFraming(capture: Image, candidate: Image): Pro
   const outputCenter = [output.x + output.width / 2, output.y + output.height / 2];
   if (ratio(source.width, output.width) > 2.2 || ratio(source.height, output.height) > 2.2
       || distance(sourceCenter, outputCenter) > 0.2) {
-    throw new Error('Se descartó el diseño porque recortó o desplazó demasiado el inmueble en el encuadre.');
+    throw new RenderRejectedError('Se descartó el diseño porque recortó o desplazó demasiado el inmueble en el encuadre.');
   }
 }

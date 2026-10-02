@@ -16,6 +16,35 @@ const adapter = (structured: unknown) => {
 };
 
 describe('auditoría de fidelidad del diseño', () => {
+  it('distingue elementos ocultos por cámara de pérdidas de identidad', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, { ...view, cutaway: true, ceilingView: 'hidden',
+      cutawayObjectIds: ['cortina-frontal'] });
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('No los reconstruyas') });
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('CORTE DE FACHADA') });
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('cortina-frontal') });
+  });
+  it('solo relaja fijos cuando existe permiso explícito, manteniendo geometría protegida', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, redesignApplied: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, true);
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('REDISEÑO DE FIJOS') });
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('muros, huecos, instalaciones, usos y accesos siguen protegidos') });
+    expect(content[0]).not.toMatchObject({ text: expect.stringContaining('FIJOS PROTEGIDOS') });
+  });
+  it('rechaza una copia del mobiliario cuando se pidió un rediseño, aunque la cámara sea fiel', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, redesignApplied: false, violations: [] });
+    await expect(assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, false, true))
+      .rejects.toThrow('no se aplicó el rediseño solicitado');
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('REDISEÑO REAL') });
+  });
+  it('falla cerrado si no se pudo evaluar el rediseño solicitado', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await expect(assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, true))
+      .rejects.toThrow('no se aplicó el rediseño solicitado');
+  });
   it('acepta un resultado fiel y adjunta la máscara después de las dos imágenes', async () => {
     const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true,
       objectIdentityPreserved: true, violations: [] });
@@ -52,6 +81,14 @@ describe('auditoría de fidelidad del diseño', () => {
 
   it('falla cerrado si la respuesta no se puede validar', async () => {
     const vision = adapter({ accepted: true });
-    await expect(assertRenderFidelity(vision, image, image, view)).rejects.toThrow('no respeta la vista 3D');
+    await expect(assertRenderFidelity(vision, image, image, view)).rejects.toThrow('No se pudo verificar la fidelidad');
+  });
+  it('audita el volumen e identidad contra la vista cercana y el entorno contra la ortofoto', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, view, undefined, 0, false, { identity: image, environment: image });
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content.filter((part) => part.type === 'image_url')).toHaveLength(4);
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('pérgolas') });
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('ortofoto real') });
   });
 });

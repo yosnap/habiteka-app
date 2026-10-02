@@ -6,6 +6,8 @@ export interface WalkthroughUploadTicket {
   approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images'; expires: number;
   /** Montaje con imágenes: renders que lo componen, en orden. */
   sourceIds?: string[];
+  contentScope?: import('@/lib/editor-document/video-content-scope').VideoContentScope;
+  presentation?: import('@/lib/editor-document/video-presentation').VideoPresentationOptions;
 }
 function signature(value: string, secret: string) { return createHmac('sha256', secret).update(value).digest('base64url'); }
 export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string): string {
@@ -13,7 +15,8 @@ export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string
   return `${value}.${signature(value, secret)}`;
 }
 export function readUploadTicket(value: string, secret: string, now = Date.now()): WalkthroughUploadTicket {
-  if (typeof value !== 'string' || value.length > 8000) throw new Error('Permiso de subida inválido');
+  // El guion admite 2000 caracteres Unicode; su JSON/base64 puede superar 8000 bytes.
+  if (typeof value !== 'string' || value.length > 24000) throw new Error('Permiso de subida inválido');
   const [payload, signed, extra] = value.split('.');
   if (!payload || !signed || extra) throw new Error('Permiso de subida inválido');
   const actual = Buffer.from(signed), expected = Buffer.from(signature(payload, secret));

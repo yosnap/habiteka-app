@@ -1,5 +1,9 @@
 # Estándares de Código — Habiteka
 
+## Documentación como parte del cambio
+
+Cada implementación, modificación o corrección actualiza la documentación afectada antes de darse por terminada. La guía pública reside en `docs/site/src/content/docs/`; cambios internos sin efecto de usuario se explican en la documentación técnica de `docs/`. Los reportes de trabajo no sustituyen esas guías. Verifica `npm run docs:updates` y `npm run docs:build`; consulta [mantenimiento del sitio](./documentacion-starlight.md) y las instrucciones de `AGENTS.md`.
+
 ## Convenciones de nomenclatura
 
 - **Archivos TS/JS:** kebab-case (ej. `user-service.ts`, `canvas-renderer.tsx`).

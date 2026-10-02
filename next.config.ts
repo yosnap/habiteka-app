@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   // `server.js` que Node ejecuta sin el árbol completo de node_modules. Es lo
   // que arranca la imagen Docker que construye Dokploy.
   output: 'standalone',
+  async rewrites() {
+    // Un único servidor y despliegue: el subdominio sirve el HTML de Starlight
+    // incorporado a public/documentacion durante el build.
+    const has = [{ type: 'host' as const, value: 'docs\\.(habiteka\\.app|localhost)' }];
+    return { beforeFiles: [
+      { source: '/', has, destination: '/documentacion/index.html' },
+      { source: '/:asset((?!documentacion/).*\\..*)', has, destination: '/documentacion/:asset' },
+      { source: '/:path((?!documentacion/).*)', has, destination: '/documentacion/:path/index.html' },
+    ] };
+  },
   // 10 MB de imagen ocupan ~13,4 MB al codificarse como base64.
   experimental: { serverActions: { bodySizeLimit: '16mb' } },
   // El chequeo de tipos de `next build` sin caché necesita varios GB de RAM y
