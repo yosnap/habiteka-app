@@ -42,12 +42,14 @@ Al activar rediseño en un lote de varias vistas, las siguientes utilizan una vi
 - Los ajustes reutilizables ayudan a repetir tus preferencias; comprueba el contexto de cada inmueble.
 
 :::note
-La decoración añadida por IA a una imagen no se incorpora automáticamente al modelo 3D editable. El recorrido nativo muestra el 3D; el montaje de imágenes muestra los renders seleccionados.
+La decoración añadida por IA a una imagen no se incorpora automáticamente al modelo 3D editable. La visita libre y los vídeos nativos muestran el 3D; el montaje y los clips desde tus diseños utilizan las imágenes seleccionadas. Los clips requieren revisar que conserven su mobiliario y distribución.
 :::
 
 ## Preparar cobertura para un vídeo
 
 Genera exteriores y vistas interiores a altura de ojos de cada estancia. Un dron, una isométrica o una cenital no sustituyen un paseo interior. Mantén la misma versión, estilo y luz.
+
+Desde **Vídeos → Primera persona → Mis diseños → Crear vistas interiores**, se prepara una sola estancia y la luz aprobada para el piloto. Puedes cambiar la selección antes de preparar las capturas; el acceso habitual a generación mantiene la selección de todas las estancias habitables. Consulta [el piloto de primera persona](/videos/recorrido/#primera-persona-desde-tus-diseños-piloto-de-una-estancia).
 
 ## Revisar antes de aceptar
 

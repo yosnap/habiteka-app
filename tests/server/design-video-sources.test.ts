@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { twoRoomDocument } from '../fixtures/two-room-document';
+import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 const mocks = vi.hoisted(() => ({ list: vi.fn(), approval: vi.fn(), latest: vi.fn(), load: vi.fn(), revisions: vi.fn(), tour: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/server/db/prisma', () => ({ prisma: { deliverable: { findMany: mocks.list } } }));
@@ -18,6 +19,19 @@ beforeEach(() => {
   mocks.load.mockResolvedValue({ authority: 'v2', document: {} }); mocks.revisions.mockResolvedValue([7]); mocks.tour.mockResolvedValue([]); mocks.list.mockResolvedValue([row()]);
 });
 describe('referencias del diseño para vídeo', () => {
+  it('un interior conserva la cámara verificada pero no sirve para primera persona si cambia la luz aprobada', async () => {
+    const document = twoRoomDocument(), camera = roomInteriorCameras(document)[0]!.camera;
+    const interior = row();
+    Object.assign(interior.payload.generation.view, { preset: 'custom', position: camera.position, focus: camera.focus, levelId: camera.levelId,
+      quaternion: [0, 0, 0, 1], fov: camera.fovDeg, aspect: 16 / 9, allLevels: false, cutaway: false, ceilingView: 'solid', lighting: 'daylight' });
+    mocks.latest.mockResolvedValue({ id: 'approval', revision: 7, lightingPreset: 'warm', document });
+    mocks.list.mockResolvedValue([interior]);
+    const reference = (await designVideoSources(ctx, scope)).references[0]!;
+    expect(reference.interiorRoomId).toBeTruthy();
+    expect(reference.visitIssue).toContain('luz de la imagen interior');
+    Object.assign(interior.payload.generation.view, { lighting: 'warm' });
+    expect((await designVideoSources(ctx, scope)).references[0]?.visitIssue).toBeUndefined();
+  });
   it('impide usar una imagen descartada posteriormente aunque su cámara conserve los tabiques', async () => {
     const bad = row();
     Object.assign(bad.payload.generation, { review: { status: 'rejected', reason: 'Camas convertidas en butacas', reviewedAt: '2026-10-01T21:00:00Z' } });

@@ -50,7 +50,7 @@ import { designMaterialPalette } from '@/lib/editor-document/design-material-pal
 import { DroneReferenceField } from './drone-reference-field';
 import { RenderPresetControls } from './render-preset-controls';
 import { GeneratedRenderGallery } from './generated-render-gallery';
-import type { AutoGenerateRequest } from './auto-generate-request';
+import { autoGenerateInteriorRoomIds, type AutoGenerateRequest } from './auto-generate-request';
 
 interface EditorGenerateDialogProps {
   projectId?: string; zoneId?: string | null;
@@ -141,7 +141,7 @@ export function EditorGenerateDialog({
   const [promptLibre, setPromptLibre] = useState('');
   const [options, setOptions] = useState<RenderDesignOptions>(() => {
     if (initialSetup?.continuation) return initialSetup.continuation.options;
-    const base = defaultRenderDesignOptions();
+    const base = { ...defaultRenderDesignOptions(), ...(initialSetup?.lighting ? { lighting: initialSetup.lighting } : {}) };
     if (!document) return base;
     // Un plano sin muebles con «Estricto» devuelve estancias vacías: no es lo
     // que espera quien viene del asistente a ver su casa amueblada.
@@ -152,9 +152,7 @@ export function EditorGenerateDialog({
       ...base,
       freedom,
       additions,
-      interiorRoomIds: roomInteriorCameras(document)
-        .filter((room) => room.habitable)
-        .map((room) => room.roomId),
+      interiorRoomIds: autoGenerateInteriorRoomIds(roomInteriorCameras(document), initialSetup.singleInterior),
     };
   });
   const optionsByIntent = useRef<{ image: RenderDesignOptions | null; editable: RenderDesignOptions | null }>({
@@ -683,7 +681,7 @@ export function EditorGenerateDialog({
           </p>
         )}
         {mode !== 'proposal' && <p className="text-ink-soft mt-4 text-xs">
-          {intent === 'image' ? 'Las imágenes son referencias visuales y no forman una escena navegable. La visita y los vídeos usarán la versión editable aprobada.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
+          {intent === 'image' ? 'Las imágenes no forman una escena navegable. La visita libre y los vídeos del plano 3D usan la versión editable aprobada; los clips desde tus diseños usan las imágenes seleccionadas y requieren revisión.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
         </p>}
         </div>
         <div className="mt-4 flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line pt-4">

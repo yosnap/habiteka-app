@@ -74,7 +74,7 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
     {media && !media.references.length && <p role="status">No hay imágenes generadas compatibles con la revisión aprobada. Genera vistas del conjunto y del interiorismo antes de preparar la prueba.</p>}
     {!task && <RenderCleanupToolbar cleanup={cleanup} images={media?.references ?? []} disabled={busy} />}
     {!task && visit && <div className="flex flex-wrap items-center gap-3">
-      <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={interiorsEditorHref(scope.projectId, scope.zoneId ?? null)}>Crear vistas interiores</Link>
+      {media ? <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={interiorsEditorHref(scope.projectId, scope.zoneId ?? null, undefined, { lighting: media.lighting, singleInterior: true })}>Crear vistas interiores</Link> : <Button variant="outline" disabled>Crear vistas interiores</Button>}
       <Button variant="outline" size="sm" disabled={busy || cleanup.busy} aria-pressed={showOtherImages} onClick={() => setShowOtherImages(!showOtherImages)}>{showOtherImages ? 'Mostrar solo interiores' : 'Mostrar también otras vistas'}</Button>
       <p className="text-xs text-ink-soft">Abrir el editor no genera ni cobra imágenes. Revisa la estancia, el estilo y el presupuesto antes de generar.</p>
     </div>}

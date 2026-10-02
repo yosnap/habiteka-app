@@ -8,6 +8,7 @@ description: Funciones implementadas y trabajo pendiente.
 - **Crear vídeo**: nombre opcional antes de crear y **Cambiar nombre** para resultados guardados. El selector de originales de publicidad utiliza esos nombres.
 - **Mis diseños**: limpieza individual desde la miniatura o por selección, incluidas imágenes rechazadas; papelera con restauración. Los vídeos guardados permanecen disponibles.
 - **Primera persona → Mis diseños**: preparación de una toma H3 de 8/12 s dentro de una estancia desde imágenes interiores, con nombre, guion, presupuesto y revisión manual. Solo admite cámaras interiores verificadas, paredes y techo completos y una misma estancia/tanda. **Crear vistas interiores** abre el editor sin generar; las vistas de otras modalidades se pueden mostrar aparte.
+- **Crear vistas interiores** propone una sola estancia y conserva la luz aprobada para reducir el coste de preparar el piloto. Una imagen con otra luz queda bloqueada para esta toma. El generador distingue los vídeos desde imágenes de los recorridos del modelo 3D.
 - Primera persona → **Prueba del plano 3D** y Construcción + visita conservan su exportación nativa. El paseo continuo entre estancias y la pieza combinada desde renders siguen pendientes.
 
 - **Publicidad**: formato horizontal 16:9 o vertical 9:16, con panel de ancho, fondo y altura del diseño aprobado. Medidas animadas, solo al inicio, fijas o desactivadas. Vista previa antes de guardar o descargar.

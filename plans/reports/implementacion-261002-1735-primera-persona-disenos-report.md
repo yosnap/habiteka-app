@@ -17,7 +17,16 @@
 - Comet local: se abre Primera persona desde mis diseños, controles de 8 s/768P, indicaciones y nombre; se comprueba bloqueo de las referencias actuales, todas aéreas/laterales/exteriores. Sin modificar ni aprobar el diseño. La comprobación visual fue anterior al ajuste final para ocultar otras vistas por defecto; ese ajuste queda validado por tipos/lint/build, sin afirmar una verificación visual adicional.
 - Contrato de referencia H3 vuelto a consultar en [KIE](https://docs.kie.ai/market/minimax-h3/reference-to-video). La página de tarifa no respondió; se conserva el presupuesto orientativo documentado del 01/10/2026, sin certificar una actualización de precio ni el saldo real.
 
-## Pendiente
+## Verificación adicional del acceso a interiores
+
+- Navegador Chrome local: confirmado el panel con interiores por defecto y ausencia de referencias compatibles; generación bloqueada. El enlace abre el editor de interiores sin gasto.
+- Detectados y corregidos dos ajustes iniciales: ocho estancias preseleccionadas y luz Día. Ahora se verifica en pantalla una sola selección Salón/Cocina, Atardecer y una generación estimada de $0.08 más auditoría. La entrada general conserva todas las estancias habitables.
+- El enlace espera los metadatos de aprobación antes de habilitarse. Servidor bloquea interiores cuya luz difiere de la aprobación. Textos del generador distinguen vídeos nativos y clips desde imágenes.
+- Captura gratuita preparada y ampliada: cámara dentro del salón, muros y objetos conservados; se ve una abertura oscura superior. La aprobación contiene estancias sin techo: elegir techo sólido no añade geometría inexistente. Debe completarse y aprobarse antes de generar una referencia interior terminada. No se certifica un techo completo ni fidelidad de un clip.
+- 28 pruebas correctas en cuatro archivos afectados, TypeScript y ESLint correctos; documentación verificada y construida (17 páginas). Compilación de producción correcta en worktree aislado, con advertencias de credenciales de prueba.
+- No se ha generado imagen o vídeo con IA ni modificado aprobación o límite monetario. Gasto: $0.
+
+## Trabajo pendiente
 
 - Crear al menos una imagen interior coherente con el diseño aprobado; las referencias actuales no permiten el piloto en primera persona. No se ha generado ni certificado un nuevo clip.
 - Autorizar referencias y presupuesto antes de una prueba pagada; consumo de esta intervención: **0 USD**. No se cambia el límite de IA.

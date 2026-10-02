@@ -25,7 +25,8 @@ export async function loadDesignVideoReferences(scope: EditorScope) {
   await prisma.$transaction(tx => assertEditorScope(tx, ctx, scope));
   const sources = await designVideoSources(ctx, scope);
   const credential = await prisma.aiProviderCredential.findUnique({ where: { provider: 'kie' }, select: { enabled: true } });
-  return { references: sources.references, approvalId: sources.approved?.id ?? null, providerReady: credential?.enabled === true };
+  return { references: sources.references, approvalId: sources.approved?.id ?? null,
+    lighting: sources.approved?.lightingPreset, providerReady: credential?.enabled === true };
 }
 
 /** Preparar solo lee medios propios y guarda un presupuesto; no sube referencias ni llama a KIE. */

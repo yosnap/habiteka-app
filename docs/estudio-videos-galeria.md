@@ -2,6 +2,8 @@
 
 ## Primera persona desde diseños — 02/10/2026
 
+La entrada a interiores desde este piloto añade `toma=una` y `luz` al enlace del editor: propone salón/estar o la primera estancia habitable, conserva la luz de la aprobación y permite ajustar antes de capturar. Los enlaces habituales sin estos parámetros mantienen todas las estancias habitables. La luz se valida contra los presets; parámetros desconocidos no cambian los ajustes. `design-video-sources` comprueba además la luz de cada interior contra la aprobación y produce `visitIssue` antes de preparar/enviar; no modifica la compatibilidad de construcción. Los textos del generador distinguen imágenes usadas por H3 de la escena navegable del modelo editable.
+
 `Primera persona → Mis diseños` prepara una toma H3 de una estancia, 8/12 s, mediante el contrato KIE `reference-to-video` existente. `prepareDesignVisit` comparte persistencia, reserva, envío único, conciliación, consulta, almacenamiento y revisión con construcción. El JSON usa `mode: walkthrough-ai`; sin cambios de DB. Las galerías/Historial reconocen el modo y publicidad exige `accepted`, también en servidor. Renombrar durante un envío se bloquea en ambas modalidades.
 
 `designVisitContext` comprueba una captura `custom` con paredes/objetos/techo completos contra la cámara interior calculada del documento aprobado y su planta. No confía en los nombres/IDs de habitación guardados. Rechaza imágenes aéreas, recortadas o sin cámara verificable. Se aplican además las validaciones existentes de organización/proyecto/zona, rechazo, revisión visual vigente y homogeneidad; antes de enviar se revalidan. La selección requiere una misma estancia y tanda. Los muebles y acabados se piden desde la referencia principal; no se envía inventario del editor.

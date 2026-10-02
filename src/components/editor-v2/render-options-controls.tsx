@@ -116,8 +116,8 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
         </div>
         {!editable && options.freedom !== 'strict' && (
           <p role="note" className="mt-2 rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
-            Los objetos que la IA añada en la imagen no existirán en el 3D editable, ni por tanto en la visita ni en el vídeo.
-            Para que existan, propónlos en «Cambiar acabados y muebles», aplícalos y genera después la imagen en modo Estricto.
+            Los objetos que la IA añada en la imagen no aparecerán en la visita libre ni en los vídeos del plano 3D. Los clips desde tus diseños sí usan las imágenes elegidas como referencia y requieren revisión.
+            Para incorporarlos al 3D editable, propónlos en «Cambiar acabados y muebles», aplícalos y genera después la imagen en modo Estricto.
           </p>
         )}
         {options.freedom === 'controlled' && (
