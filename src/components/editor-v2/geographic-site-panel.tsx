@@ -95,7 +95,7 @@ function SiteEditor({ store, projectId, readOnly, menuContainer, ...nextSteps }:
   const locationControls = <details open={!site} className="rounded-lg border p-3 text-sm">
       <summary className="cursor-pointer font-medium">Coordenadas y fotografía</summary>
       <label className="mt-3 block">Coordenadas (latitud, longitud)<input className="mt-1 w-full rounded border p-2"
-        value={coordinates} disabled={disabled} placeholder="40.70940806753031, -3.5302981596101293" onChange={e => setCoordinates(e.target.value)} /></label>
+        value={coordinates} disabled={disabled} placeholder="Latitud, longitud en grados decimales" onChange={e => setCoordinates(e.target.value)} /></label>
       <label className="block">Ancho de la ortofoto (40–500 m)<input type="number" min="40" max="500"
         className="mt-1 w-full rounded border p-2" value={width} disabled={disabled} onChange={e => setWidth(Number(e.target.value))} /></label>
       <button type="button" disabled={disabled || !doc.vertices.length} className="rounded border px-3 py-2" onClick={() => void load()}>

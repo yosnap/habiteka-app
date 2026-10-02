@@ -20,8 +20,9 @@ import { VideoDimensionControls } from './video-dimension-controls';
 import { VideoDurationControls } from './video-duration-controls';
 import { DesignConstructionPanel } from './design-construction-panel';
 import { VideoPromptControls } from './video-prompt-controls';
-import { saveWalkthroughVideo } from './session/save-walkthrough-video';
+import { createWalkthroughVideoSaver } from './session/save-walkthrough-video';
 import { Button } from '@/components/ui/button';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { videoScopeRegions, type VideoContentScope } from '@/lib/editor-document/video-content-scope';
 
 const EditorSceneView = dynamic(() => import('./scene/editor-scene-view').then(module => module.EditorSceneView), { ssr: false });
@@ -116,7 +117,7 @@ export function VideoStudioDialog(props: Props) {
           {(goal === 'advertising' || goal === 'construction') && <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-4 lg:px-6"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
             <Button variant={source === 'images' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('images')}>Mis diseños</Button>
             <Button variant={source === 'model' ? 'default' : 'outline'} size="sm" disabled={busy} onClick={() => setSource('model')}>{goal === 'construction' ? 'Prueba del plano 3D' : '3D en parcela real'}</Button></div>}
-          {constructionDesigns && <DesignConstructionPanel scope={scope} approved={Boolean(approved)} onReviewApproval={onReviewApproval} onBusyChange={setImageBusy} />}
+          {constructionDesigns && <DesignConstructionPanel scope={scope} approved={Boolean(approved)} onReviewApproval={onReviewApproval} onBusyChange={setImageBusy} portalContainer={container} />}
           {imagesMode && !constructionDesigns && <><div className="px-5"><Button variant="outline" disabled={busy || approvalDisabled} onClick={onReviewApproval}>{approved ? 'Revisar aprobación' : 'Guardar y aprobar revisión'}</Button></div>
             <VideoStudioMedia scope={scope} gallery={false} revisionKey={savedKey} onBusyChange={setImageBusy} onReviewApproval={onReviewApproval} /></>}
           <div className={!imagesMode ? 'grid min-h-0 flex-1 gap-4 px-4 pb-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-6 lg:pb-6' : 'hidden'}>
@@ -131,7 +132,7 @@ export function VideoStudioDialog(props: Props) {
                 <div className={preview === 'scene' ? 'absolute inset-0' : 'invisible absolute inset-0 pointer-events-none'}>
                   <EditorSceneView key={approvalCurrent ? approval?.id : 'draft'} store={previewStore} projectId={scope.projectId} videoStudio={sceneStudio}
                     lightingPreset={lighting} lightingLocked allowVideoExport={Boolean(approved)}
-                    onSaveNativeVideo={approved && approval ? (blob, id, videoMode, presentation) => saveWalkthroughVideo(scope, approval.id, blob, id, videoMode, presentation?.contentScope, presentation) : undefined} />
+                    onSaveNativeVideo={approved && approval ? createWalkthroughVideoSaver(scope, approval.id) : undefined} />
                 </div>
                 {preview === 'plan' && <CanvasView store={store} fitOnMount onCenter={() => {}} />}
                 {preview === 'result' && status.previewUrl && <div className="flex h-full min-h-80 items-center justify-center bg-black"><video src={status.previewUrl} controls playsInline className="max-h-[65vh] w-full" /></div>}
@@ -167,14 +168,14 @@ export function VideoStudioDialog(props: Props) {
               {routePlaying && <Button variant="outline" size="sm" onClick={() => previewStore.getState().setWalkthroughPlaying(false)}>Detener vista previa</Button>}
               <fieldset disabled={status.busy} className="space-y-3 rounded-control border border-line p-3">
                 <legend className="px-1 text-sm font-medium">Acabado del vídeo</legend>
-                {(mode === 'construction' || mode === 'showcase') && <VideoDurationControls value={options} combined={mode === 'showcase'}
+                {(mode === 'construction' || mode === 'showcase') && <VideoDurationControls value={options} combined={mode === 'showcase'} portalContainer={container}
                   onChange={value => setOptions({ ...value, contentScope: options.contentScope })} />}
-                <label className="block text-sm">Luz<select aria-label="Luz del vídeo" className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2" value={lighting} onChange={event => onLightingChange(event.target.value as ApprovedLightingPreset)}>
-                  {LIGHTING_PRESETS.map(value => <option key={value} value={value}>{LIGHTING_LABELS[value]}</option>)}</select></label>
+                <label className="block text-sm">Luz<ModernSelect aria-label="Luz del vídeo" portalContainer={container} popoverZIndex={150} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2" value={lighting} onChange={event => onLightingChange(event.target.value as ApprovedLightingPreset)}>
+                  {LIGHTING_PRESETS.map(value => <option key={value} value={value}>{LIGHTING_LABELS[value]}</option>)}</ModernSelect></label>
                 {mode !== 'walkthrough' && <><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={options.soundEffects} onChange={event => setOptions({ ...options, soundEffects: event.target.checked })} />Efectos de construcción</label>
                   {options.soundEffects && <label className="block text-xs">Volumen · {Math.round(options.soundVolume * 100)} %<input className="mt-2 w-full accent-brand-500" aria-label="Volumen de efectos" type="range" min={0} max={1} step={.05} value={options.soundVolume} onChange={event => setOptions({ ...options, soundVolume: Number(event.target.value) })} /></label>}
                   </>}
-                <VideoDimensionControls value={options} onChange={value => setOptions({ ...value, contentScope: options.contentScope })} />
+                <VideoDimensionControls value={options} portalContainer={container} onChange={value => setOptions({ ...value, contentScope: options.contentScope })} />
               </fieldset>
               <VideoPromptControls mode={mode} lighting={lighting} value={options} disabled={status.busy}
                 onChange={value => setOptions({ ...value, contentScope: options.contentScope })} />

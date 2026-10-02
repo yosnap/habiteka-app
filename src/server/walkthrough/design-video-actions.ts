@@ -61,7 +61,7 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
   if (!(await canUse(ctx.organizationId, 'generate')).allowed) throw new Error('Necesitas saldo de créditos para generar el vídeo.');
   await assertGlobalCap(await isPremium(ctx.organizationId));
   const provider = new KieVideoProvider(await resolveKieKey());
-  const version = await updateDesignVideoJob(ctx, scope, id, row.version, { ...job, status: 'submitting' });
+  let version = await updateDesignVideoJob(ctx, scope, id, row.version, { ...job, status: 'submitting' });
   const holdId = `design-video:${id}`; let reserved = false, submitted = false, taskId: string | undefined;
   try {
     assertCanSpend(ctx.organizationId, job.estimateUsd);
@@ -71,22 +71,31 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
     for (const source of sources.rows) urls.push(await provider.uploadReference(await readRenderReference(source.payload)));
     submitted = true;
     taskId = await provider.create(job.prompt, job.settings, urls);
-    await settle(holdId);
-    await prisma.usageEvent.upsert({ where: { id: `design-video:${id}` }, create: { id: `design-video:${id}`, orgId: ctx.organizationId,
-      userId: ctx.userId, action: 'video.kie-h3.estimated', unit: 'second', amount: job.durationMs / 1000, cost: job.estimateUsd, refId: id }, update: {} });
-    await updateDesignVideoJob(ctx, scope, id, version, { ...job, status: 'generating', taskId });
+    // Guardar la recuperación antes del saldo: un fallo contable no debe perder una tarea ya aceptada.
+    version = await updateDesignVideoJob(ctx, scope, id, version, { ...job, status: 'generating', taskId });
+    await reconcileDesignVideoCost(ctx, id, job);
     recordOutcome(ctx.organizationId, true);
     return { status: 'generating' as const, taskId };
   } catch (error) {
     const uncertain = error instanceof KieSubmissionUnknownError || Boolean(taskId);
-    if (reserved) { if (uncertain) await settle(holdId); else await revert(holdId); }
-    const message = error instanceof Error ? error.message : 'No se pudo iniciar la prueba.';
+    let message = error instanceof Error ? error.message : 'No se pudo iniciar la prueba.';
     const status = uncertain ? 'unknown' : 'failed';
     // Una respuesta dudosa puede haber consumido saldo: queda retenida y visible, nunca se reintenta createTask.
     await updateDesignVideoJob(ctx, scope, id, version, { ...job, status, ...(taskId ? { taskId } : {}), error: message });
+    if (reserved) {
+      try { if (uncertain) await settle(holdId); else await revert(holdId); }
+      catch { message += ' El saldo sigue pendiente de conciliación; conserva esta tarea.'; }
+    }
     recordOutcome(ctx.organizationId, false);
     throw new Error(`${message}${submitted && uncertain ? ' Revisa esta tarea; no prepares otro intento todavía.' : ''}`);
   }
+}
+
+/** Ambas escrituras son idempotentes; consultar recupera también un registro de coste interrumpido. */
+async function reconcileDesignVideoCost(ctx: Awaited<ReturnType<typeof requireOrgContext>>, id: string, job: DesignVideoJob) {
+  await prisma.usageEvent.upsert({ where: { id: `design-video:${id}` }, create: { id: `design-video:${id}`, orgId: ctx.organizationId,
+    userId: ctx.userId, action: 'video.kie-h3.estimated', unit: 'second', amount: job.durationMs / 1000, cost: job.estimateUsd, refId: id }, update: {} });
+  await settle(`design-video:${id}`);
 }
 
 function assertConstructionReferences(sources: Awaited<ReturnType<typeof designVideoSources>>) {
@@ -101,6 +110,7 @@ function assertConstructionReferences(sources: Awaited<ReturnType<typeof designV
 export async function checkDesignConstruction(scope: EditorScope, id: string) {
   const ctx = await requireOrgContext(), row = await readDesignVideoJob(ctx, scope, id), job = row.job;
   if (!job.taskId || !['generating', 'unknown'].includes(job.status)) return { id, job, url: job.assetKey ? await getStorageAdapter().getPresignedDownloadUrl(job.assetKey) : null };
+  await reconcileDesignVideoCost(ctx, id, job);
   const provider = new KieVideoProvider(await resolveKieKey()), result = await provider.status(job.taskId);
   if (result.state === 'pending') return { id, job, url: null };
   const next: DesignVideoJob = result.state === 'failed' ? { ...job, status: 'failed', error: 'KIE informa que la generación falló. Revisa el saldo del proveedor antes de otro intento.' }

@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { emptyEditorDocument, type EditorDocument } from '@/lib/editor-document/schema';
 import { addOpening, addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { addColumn } from '@/lib/editor-document/construction-commands';
-import { addKitchenRun, addKitchenSlot, updateKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
+import { addKitchenRun, addKitchenSlot, putKitchenSlot, updateKitchenRun } from '@/lib/editor-document/kitchen-run-commands';
 import { kitchenRunObstacles } from '@/lib/editor-document/kitchen-run-obstacles';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { kitchenSlotDrop, slotKindFor } from '@/lib/editor-document/kitchen-slot-drop';
@@ -20,15 +20,18 @@ const withRun = (doc: EditorDocument, uppers = false) => {
 const column = (doc: EditorDocument, x: number, depthMm: number) => addColumn(doc, { id: `pilar-${x}`, catalogId: 'builtin:column-rectangular', x, y: face(doc), widthMm: 300, depthMm,
   heightMm: 2700, elevationMm: 0, rotation: 0, materialId: 'concrete-grey' });
 
-it('un pilar sobre el tramo vacía bajos y altos en su huella y la encimera continúa por delante', () => {
+it('un pilar recorta el fondo de los bajos y conserva su frente, sin altos en su huella', () => {
   let doc = withRun(house(), true); const t = face(doc);
   doc = column(doc, t + 1500, 300);
   const run = doc.kitchenRuns![0]!, cuts = kitchenRunObstacles(doc, run);
-  expect(cuts.base).toEqual([{ from: 1500, to: 1800 }]); expect(cuts.uppers).toEqual([{ from: 1500, to: 1800 }]);
+  expect(cuts.base).toEqual([]); expect(cuts.baseNotches).toEqual([{ from: 1500, to: 1800, depthMm: 300 }]);
+  expect(cuts.uppers).toEqual([{ from: 1500, to: 1800 }]);
   expect(cuts.worktop).toEqual([]); expect(cuts.worktopNotches).toEqual([{ from: 1500, to: 1800, depthMm: 300 }]);
   const volumes = furnitureVolumes(run, doc);
   const at = (x: number) => volumes.filter((v) => v.x < x && v.x + v.widthMm > x);
-  expect(at(1650).filter((v) => v.bottom < 870 && v.top > 100)).toHaveLength(0);
+  const lower = at(1650).filter((v) => v.bottom < 870 && v.top > 100);
+  expect(lower.length).toBeGreaterThan(0);
+  expect(lower.every(v => v.y >= 300)).toBe(true);
   const strip = at(1650).find((v) => v.top === 900)!;
   expect(strip.y).toBe(300); expect(strip.depthMm).toBe(300);
   expect(at(1650).filter((v) => v.bottom >= 1450)).toHaveLength(0);
@@ -62,6 +65,21 @@ it('un aparato no puede caer sobre el hueco de un pilar y al añadir sin posici�
   const added = addKitchenSlot(doc, id, 'horno');
   const slot = added.kitchenRuns![0]!.kitchen.slots[0]!;
   expect(slot.positionMm + slot.widthMm / 2 <= 2000 || slot.positionMm - slot.widthMm / 2 >= 2300).toBe(true);
+  expect(() => putKitchenSlot(added, id, { ...slot, positionMm: 2100 })).toThrow(/pilar/);
+});
+
+it('los recortes de pilares solapados no dejan carcasa, zócalo ni encimera dentro de ninguno', () => {
+  let doc = withRun(house(), true);
+  doc = column(column(doc, face(doc) + 1500, 300), face(doc) + 1600, 450);
+  const run = doc.kitchenRuns![0]!;
+  for (const columns of [doc.columns, [...doc.columns!].reverse()]) {
+    const volumes = furnitureVolumes(run, { ...doc, columns });
+    for (const obstacle of [{ from: 1500, to: 1800, depth: 300 }, { from: 1600, to: 1900, depth: 450 }]) {
+      const intersections = volumes.filter(v => v.x < obstacle.to && v.x + v.widthMm > obstacle.from && v.y < obstacle.depth);
+      expect(intersections).toEqual([]);
+    }
+    expect(volumes.some(v => v.x <= 1600 && v.x + v.widthMm >= 1800 && v.y === 450)).toBe(true);
+  }
 });
 
 it('un aparato del catálogo soltado sobre el tramo se encaja como hueco', () => {

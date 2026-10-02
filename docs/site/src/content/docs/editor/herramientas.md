@@ -3,6 +3,10 @@ title: Herramientas del editor
 description: Qué hace cada herramienta y cómo revisar sus resultados.
 ---
 
+## Cocina y pilares
+
+Los pilares recortan el fondo del mueble de cocina, conservando la parte frontal cuando cabe, y eliminan los módulos altos que los atraviesan. Si dos pilares se solapan, se utiliza el recorte más profundo para carcasa, zócalo y encimera. Los aparatos no pueden colocarse ni desplazarse sobre el hueco de un pilar; la colocación automática busca otro hueco libre.
+
 ## Vistas y selección
 
 | Control | Para qué sirve |

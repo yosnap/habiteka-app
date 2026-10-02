@@ -48,8 +48,7 @@ export const SECTION_VIEW_RULE =
 
 /** Misma regla para el prompt compacto, que tiene tope de longitud. */
 export const SECTION_VIEW_RULE_COMPACT =
-  'Vista desde FUERA (maqueta seccionada): nada de suelo, paredes o techo más allá del corte; fondo neutro; ' +
-  'mismo encuadre; nunca foto de interior.';
+  'Maqueta desde FUERA: no prolongues suelo/muros/techo tras el corte; fondo neutro, mismo encuadre, nunca interior.';
 
 export const FINISHED_EXTERIOR_VIEW_RULE =
   'VISTA EXTERIOR DEL INMUEBLE TERMINADO: la cámara está fuera. La cubierta y la fachada visibles en la ' +
@@ -210,9 +209,9 @@ export function selectedViewPrompt(
     };
     const roomId = isInteriorRenderMode(options) ? interiorCamera?.roomId ?? null : null;
     return fitCompactPrompt(
-      [COMPACT_RENDER_POLICY, ...interiorRule, renderViewVisibilityRule(view), redesignRule,
+      [COMPACT_RENDER_POLICY, ...interiorRule, renderViewVisibilityRule(view, true), redesignRule,
         `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
-        `Preferencias subordinadas a permisos: ${JSON.stringify({ objective, instruction })}`],
+        `Preferencias sin alterar permisos: ${JSON.stringify({ objective, instruction })}`],
       scopeInteriorPayload(payload, roomId),
       compactRenderContext,
       roomId,

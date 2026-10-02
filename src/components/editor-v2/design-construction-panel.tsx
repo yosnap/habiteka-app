@@ -7,11 +7,12 @@ import { DEFAULT_VIDEO_PRESENTATION } from '@/lib/editor-document/video-presenta
 import { VideoDurationControls } from './video-duration-controls';
 import { DesignVideoTask } from './design-video-task';
 import { Button } from '@/components/ui/button';
+import { ModernSelect } from '@/components/ui/modern-select';
 import Link from 'next/link';
 import { continueRenderBatchHref } from './auto-generate-request';
 
-export function DesignConstructionPanel({ scope, approved, onReviewApproval, onBusyChange }: {
-  scope: EditorScope; approved: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void;
+export function DesignConstructionPanel({ scope, approved, onReviewApproval, onBusyChange, portalContainer }: {
+  scope: EditorScope; approved: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void; portalContainer?: HTMLElement | null;
 }) {
   const [media, setMedia] = useState<Awaited<ReturnType<typeof loadDesignVideoReferences>> | null>(null);
   const [ids, setIds] = useState<string[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
@@ -71,9 +72,9 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
         </label>)}</div>
       </fieldset>)}</div>
       <aside className="space-y-4 rounded-card border border-line p-4"><fieldset disabled={busy} className="space-y-4">
-        <VideoDurationControls value={presentation} onChange={setPresentation} combined={false} />
-        <label className="block text-sm">Calidad<select aria-label="Calidad de la prueba H3" value={resolution} onChange={event => setResolution(event.target.value as '768P' | '2K')} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2">
-          <option value="768P">768P · prueba económica</option><option value="2K">2K · mayor detalle</option></select></label>
+        <VideoDurationControls value={presentation} onChange={setPresentation} combined={false} portalContainer={portalContainer} />
+        <label className="block text-sm">Calidad<ModernSelect aria-label="Calidad de la prueba H3" value={resolution} portalContainer={portalContainer} popoverZIndex={150} onChange={event => setResolution(event.target.value as '768P' | '2K')} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2">
+          <option value="768P">768P · prueba económica</option><option value="2K">2K · mayor detalle</option></ModernSelect></label>
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={presentation.soundEffects} onChange={event => setPresentation({ ...presentation, soundEffects: event.target.checked })} />Pedir efectos sincronizados</label>
         <label className="block text-sm">Indicaciones para el vídeo<textarea aria-label="Indicaciones para construcción desde diseños" maxLength={2000} value={presentation.prompt ?? ''}
           onChange={event => setPresentation({ ...presentation, prompt: event.target.value })} className="mt-1 min-h-24 w-full rounded-control border border-line bg-surface p-2 text-sm"

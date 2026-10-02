@@ -1,5 +1,7 @@
 # Opciones de render y costes por intento
 
+El prompt compacto mantiene un presupuesto de 4800 caracteres para los modelos de respaldo. Las políticas de cubierta, luces y fidelidad se condensan manteniendo geometría, permisos de rediseño, ocultaciones, huecos, pérgolas y recorridos LED. Las pruebas incluyen una vivienda real iluminada y una planta grande; no se aumenta el límite del proveedor para hacerlas pasar. El flujo de generación del usuario sigue igual.
+
 ## Flujo
 
 En el editor 3D, abrir **Diseñar con IA**. Seleccionar día, atardecer o noche;

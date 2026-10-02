@@ -104,6 +104,33 @@ describe('piloto de construcción desde diseños', () => {
     expect(mock.hold.mock.invocationCallOrder[0]).toBeLessThan(mock.upload.mock.invocationCallOrder[0]!);
     expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2, expect.objectContaining({ taskId: 'task', status: 'generating' }));
     expect(mock.usage).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ cost: .32, action: 'video.kie-h3.estimated' }) }));
+    expect(mock.update.mock.invocationCallOrder[1]).toBeLessThan(mock.usage.mock.invocationCallOrder[0]!);
+  });
+  it('conserva la tarea cuando fallan la liquidación y su limpieza; consultar la recupera sin generar otra', async () => {
+    mock.settle.mockRejectedValue(new Error('saldo no disponible'));
+    await expect(startDesignConstruction(scope, 'job', { referencesToKie: true, maxUsd: .32 }))
+      .rejects.toThrow('pendiente de conciliación');
+    expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2,
+      expect.objectContaining({ status: 'unknown', taskId: 'task' }));
+    expect(mock.create).toHaveBeenCalledTimes(1);
+    expect(mock.revert).not.toHaveBeenCalled();
+    mock.settle.mockResolvedValue(undefined);
+    mock.read.mockResolvedValue({ version: 3, job: { ...job(), status: 'unknown', taskId: 'task' } });
+    await checkDesignConstruction(scope, 'job');
+    expect(mock.status).toHaveBeenCalledWith('task');
+    expect(mock.create).toHaveBeenCalledTimes(1);
+  });
+  it('conserva el identificador si falla el registro de uso y lo concilia al consultar', async () => {
+    mock.usage.mockRejectedValueOnce(new Error('registro de uso no disponible'));
+    await expect(startDesignConstruction(scope, 'job', { referencesToKie: true, maxUsd: .32 }))
+      .rejects.toThrow('registro de uso');
+    expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2,
+      expect.objectContaining({ status: 'unknown', taskId: 'task' }));
+    mock.read.mockResolvedValue({ version: 3, job: { ...job(), status: 'unknown', taskId: 'task' } });
+    await checkDesignConstruction(scope, 'job');
+    expect(mock.usage).toHaveBeenCalledTimes(2);
+    expect(mock.status).toHaveBeenCalledWith('task');
+    expect(mock.create).toHaveBeenCalledTimes(1);
   });
   it('recupera y archiva un resultado ya cobrado y exige revisión sin relanzar', async () => {
     mock.read.mockResolvedValue({ version: 2, job: { ...job(), status: 'generating', taskId: 'task' } });

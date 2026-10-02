@@ -48,6 +48,8 @@ El presupuesto de salida de 8 s con cinco referencias es **$0.32 a 768P** o **$0
 
 Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin confirmar**, revisa esa tarea antes de otra prueba. No hay reintentos automáticos de generación. Si hay identificador, puedes volver a consultar; si falla la descarga, la tarea se conserva para recuperarla sin pagar otro clip. Las cotas exactas sobre vídeo IA siguen pendientes de composición; el piloto se solicita sin cifras.
 
+El identificador de una tarea aceptada se guarda antes de registrar su coste. Si se interrumpe ese registro, **Consultar resultado sin regenerar** vuelve a conciliar el coste y los créditos de la misma tarea, sin crear ni cobrar un segundo intento. Si aparece saldo pendiente de conciliación, conserva la tarea y vuelve a consultarla cuando se recupere el servicio.
+
 ## Preparar la prueba 3D sin salir del estudio
 
 1. Elige el objetivo.
@@ -58,6 +60,8 @@ Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin co
 6. Pulsa **Crear vídeo**. Si está deshabilitado, el motivo aparece debajo: ruta, aprobación, carga o parcela pendientes.
 
 Cambiar la luz o el contenido del diseño exige revisar su aprobación. Durante la grabación los ajustes se bloquean; puedes **Cancelar creación**. La grabación usa la instantánea aprobada y no altera el plano.
+
+Al exportar desde el estudio o desde la visita aprobada se guardan con el vídeo las opciones utilizadas de sonido, cotas, ámbito y duración. La ficha del resultado conserva esos ajustes junto a la aprobación correspondiente.
 
 En publicidad con imágenes, revisa la selección por ambiente y pulsa **Crear montaje**. No necesitas una ruta del editor para esta presentación.
 

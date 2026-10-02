@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     "src/generated/**",
     // Astro tiene su propio chequeo; los generados no pertenecen a Next.js.
     "docs/site/**",
+    "public/documentacion/**",
   ]),
 ]);
 

@@ -47,7 +47,7 @@ describe('interior and exterior wall finishes', () => {
     const wall = { ...doc.walls[0]!, materials: { left: 'polyhaven:painted_plaster_wall', right: 'plaster-white' } };
     const mesh = wallMeshes({ ...doc, walls: [wall, ...doc.walls.slice(1)] }, wall)[0]!;
     expect(mesh.sideMaterials).toEqual(['polyhaven:painted_plaster_wall', 'plaster-white']);
-    expect(mesh.sideColors).toEqual(['#ffffff', '#e0dcd4']);
+    expect(mesh.sideColors).toEqual(['#ffffff', '#eeeae2']);
   });
   it('continues different exterior paints to the two edges of the same miter', () => {
     let doc = addWallPath(emptyEditorDocument(), points, true);

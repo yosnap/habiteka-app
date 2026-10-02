@@ -59,16 +59,15 @@ export function kitchenRunVolumes(run: KitchenRun, options: KitchenRunOptions = 
     parts.push({ x, y, widthMm, depthMm, bottom: e + bottom, top: e + top, color, ...extra });
   };
   const notchedBody = (span: Span, depth: number, bottom: number, top: number, color: string,
-    materialId: string | undefined, notches: WorktopNotch[]) => {
-    let x = span.from;
-    for (const notch of notches.filter((n) => n.to > span.from && n.from < span.to).sort((a, b) => a.from - b.from)) {
-      const from = Math.max(x, notch.from), to = Math.min(span.to, notch.to);
-      box(x, 0, from - x, depth, bottom, top, color, { materialId });
-      if (depth - notch.depthMm > .01)
-        box(from, notch.depthMm, to - from, depth - notch.depthMm, bottom, top, color, { materialId });
-      x = Math.max(x, to);
+    materialId: string | undefined, notches: WorktopNotch[], minimumDepthMm = .01) => {
+    const active = notches.filter((n) => n.to > span.from && n.from < span.to);
+    const points = [...new Set([span.from, span.to, ...active.flatMap(n => [Math.max(span.from, n.from), Math.min(span.to, n.to)])])].sort((a, b) => a - b);
+    // En un solape manda el pilar más profundo, independientemente del orden de los elementos.
+    for (let i = 0; i < points.length - 1; i++) {
+      const from = points[i]!, to = points[i + 1]!;
+      const inset = Math.max(0, ...active.filter(n => n.from < to && n.to > from).map(n => n.depthMm));
+      if (depth - inset > minimumDepthMm) box(from, inset, to - from, depth - inset, bottom, top, color, { materialId });
     }
-    box(x, 0, span.to - x, depth, bottom, top, color, { materialId });
   };
   // Carcasa corrida, un frente por módulo con junta y un tirador por frente; el mismo despiece sirve a bajos y altos.
   const cabinets = (span: Span, depth: number, bottom: number, top: number, color: string, materialId: string | undefined,
@@ -85,14 +84,7 @@ export function kitchenRunVolumes(run: KitchenRun, options: KitchenRunOptions = 
     worktopBottom - 70, cuts.baseNotches);
   // La encimera continúa por delante de un pilar que no ocupa todo el fondo: en su tramo queda solo la franja delantera.
   for (const span of cuts.worktop) {
-    let x = span.from;
-    for (const notch of cuts.worktopNotches.filter((n) => n.to > span.from && n.from < span.to).sort((a, b) => a.from - b.from)) {
-      const from = Math.max(x, notch.from), to = Math.min(span.to, notch.to);
-      box(x, 0, from - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
-      if (d - notch.depthMm > 20) box(from, notch.depthMm, to - from, d - notch.depthMm, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
-      x = Math.max(x, to);
-    }
-    box(x, 0, span.to - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+    notchedBody(span, d, worktopBottom, h, k.worktopColor, k.worktopMaterialId, cuts.worktopNotches, 20);
   }
   const u = k.uppers;
   if (u) for (const span of cuts.uppers) cabinets(span, u.depthMm, u.bottomMm, u.bottomMm + u.heightMm, u.color, u.materialId, u.bottomMm + 40);

@@ -6,7 +6,7 @@ import { createEditorStore } from '@/canvas/editor-v2/store';
 import type { DraftScope } from '@/canvas/editor-v2/draft-contract';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { EditorSceneView } from '../scene/editor-scene-view';
-import { saveWalkthroughVideo } from './save-walkthrough-video';
+import { createWalkthroughVideoSaver } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ceilingSurfaces, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -75,7 +75,7 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
       <div className="min-w-0 flex-1">
         <EditorSceneView key={presentation} store={store} projectId={scope.projectId} presentation={presentation}
         lightingPreset={approval.lightingPreset} lightingLocked
-        onSaveNativeVideo={(blob, id, mode) => saveWalkthroughVideo(scope, approval.id, blob, id, mode)} />
+        onSaveNativeVideo={createWalkthroughVideoSaver(scope, approval.id)} />
       </div>
     </div>
   </section>;

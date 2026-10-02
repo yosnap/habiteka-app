@@ -1,19 +1,20 @@
 'use client';
+import { ModernSelect } from '@/components/ui/modern-select';
 import { constructionTiming, type ConstructionDurationSeconds } from '@/lib/editor-document/construction-timing';
 import type { VideoPresentationOptions } from '@/lib/editor-document/video-presentation';
 
-export function VideoDurationControls({ value, onChange, combined }: {
-  value: VideoPresentationOptions; onChange: (value: VideoPresentationOptions) => void; combined: boolean;
+export function VideoDurationControls({ value, onChange, combined, portalContainer }: {
+  value: VideoPresentationOptions; onChange: (value: VideoPresentationOptions) => void; combined: boolean; portalContainer?: HTMLElement | null;
 }) {
   const timing = constructionTiming(value);
   return <div className="space-y-2">
     <label className="block text-sm">{combined ? 'Duración de la construcción' : 'Duración del vídeo'}
-      <select aria-label="Duración de la construcción" value={timing.durationMs / 1000}
+      <ModernSelect aria-label="Duración de la construcción" value={timing.durationMs / 1000} portalContainer={portalContainer} popoverZIndex={150}
         className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2"
         onChange={event => onChange({ ...value, constructionDurationSeconds: Number(event.target.value) as ConstructionDurationSeconds })}>
         <option value={8}>8 s · construcción rápida</option>
         <option value={12}>12 s · más tiempo para los muebles</option>
-      </select>
+      </ModernSelect>
     </label>
     <p className="text-xs text-ink-soft">Paredes una a una en 3 s; después tejado, muebles y vuelo final.{combined ? ' La visita se añade después.' : ''}</p>
   </div>;

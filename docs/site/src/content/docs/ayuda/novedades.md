@@ -5,6 +5,13 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## 2 de octubre de 2026
 
+- La cocina evita aparatos dentro de pilares, también cuando el pilar solo recorta el fondo del módulo. Los recortes solapados conservan la profundidad necesaria en carcasa, zócalo y encimera.
+- Duración, calidad, luz y cotas del estudio usan los desplegables comunes de la aplicación, contenidos dentro de su panel.
+
+- Los vídeos exportados desde la visita aprobada conservan sus opciones de sonido, cotas, ámbito y duración, igual que los creados desde el estudio. El campo de coordenadas de parcela utiliza una indicación genérica, sin ubicaciones privadas como ejemplo.
+
+- Las tareas H3 aceptadas conservan su identificador aunque falle el registro del coste. Consultarlas recupera el registro pendiente sin generar otro vídeo.
+
 - Todas las páginas de demostración `/dev/*`, incluida la muestra 3D, devuelven 404 fuera de desarrollo. El acceso normal a proyectos y administración conserva sus controles de sesión y permisos.
 
 - **Construcción desde mis diseños**: propone distribución y exterior como referencias iniciales, con su función visible en las miniaturas. La cenital fija mobiliario y distribución; el exterior fija fachadas, tejado y encuadre. El guion pide un vuelo final corto y evita mezclar interiorismos distintos. Las preparaciones antiguas no cambian automáticamente; la fidelidad del clip sigue necesitando revisión. La prueba de dos referencias tampoco valida fidelidad profesional: hay que comprobar cantidades, entorno y etapas, aunque el cierre exterior parezca correcto.

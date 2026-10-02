@@ -1,5 +1,7 @@
 # Documentación de Habiteka: desarrollo, publicación y mantenimiento
 
+ESLint excluye `docs/site/` (validado con Astro) y `public/documentacion/` (HTML y JavaScript generados). Compilar la guía antes de lint no introduce comprobaciones sobre el código de terceros generado; el código fuente de la aplicación conserva sus reglas.
+
 ## Un repositorio y un despliegue
 
 La guía pública se escribe en `docs/site/src/content/docs/`. Astro Starlight compila esos archivos a HTML, CSS, JavaScript e índice de búsqueda. El resultado se incorpora a `public/documentacion/` y **lo sirve el mismo Next.js de Habiteka**.
