@@ -9,6 +9,7 @@
  * mostrando los diseños sin la miniatura de origen en vez de romper la vista.
  */
 import { requireOrgContext } from '@/server/auth/require-org-context';
+import { readVideoTitle } from '@/lib/editor-document/video-title';
 import { withOrg } from '@/server/db/scoped-repo';
 import { resolveSourceImageUrls } from '@/server/storage/source-image-urls';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
@@ -77,7 +78,7 @@ async function toHistoryDeliverable(row: {
 }): Promise<HistoryDeliverable | null> {
   if (row.type === 'VIDEO') {
     const payload = row.payload && typeof row.payload === 'object' ? row.payload as { assetKey?: string; mode?: string } : {};
-    return { id: row.id, type: 'video', renderUrl: null,
+    return { id: row.id, type: 'video', videoTitle: readVideoTitle(row.payload), renderUrl: null,
       videoMode: payload.mode === 'advertising' ? 'advertising' : payload.mode === 'construction-ai' ? 'construction-ai' : payload.mode === 'construction' ? 'construction' : payload.mode === 'images' ? 'images' : payload.mode === 'promotion' ? 'promotion' : payload.mode === 'showcase' ? 'showcase' : 'walkthrough',
       videoUrl: await resolveRenderUrl(payload), sourceImageId: row.sourceImageId };
   }

@@ -48,6 +48,7 @@ export interface DesignVideoJob {
   includedZones: string[]; prompt: string; settings: DesignVideoSettings; durationMs: number;
   structuralConstraints?: string;
   estimateUsd: number; credits: number; taskId?: string; assetKey?: string; error?: string;
+  title?: string;
 }
 
 /** Tarifa KIE contrastada 01/10/2026: salida + imágenes; aquí no se adjunta vídeo de entrada. */

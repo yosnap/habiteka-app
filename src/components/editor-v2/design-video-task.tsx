@@ -4,14 +4,16 @@ import type { EditorScope } from '@/server/editor/authority';
 import type { DesignVideoJob } from '@/lib/editor-document/design-video';
 import { startDesignConstruction, checkDesignConstruction, reviewDesignConstruction, discardDesignPreparation } from '@/server/walkthrough/design-video-actions';
 import { Button } from '@/components/ui/button';
+import { RenameVideo } from '@/components/deliverables/video-name';
 
 export const DESIGN_VIDEO_STATUS = { prepared: 'Prueba preparada', submitting: 'Envío en curso; no repetir', generating: 'H3 está generando',
   review: 'Pendiente de revisar', accepted: 'Prueba aceptada', rejected: 'Prueba rechazada', failed: 'Prueba fallida', unknown: 'Envío sin confirmar; no repetir' };
 
-export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBusyChange, onEdit }: {
+export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBusyChange, onEdit, onRenamed }: {
   scope: EditorScope; id: string; initial: DesignVideoJob; initialUrl?: string | null;
   onChange?: (job: DesignVideoJob) => void; onBusyChange?: (busy: boolean) => void;
   onEdit?: () => void;
+  onRenamed?: () => void;
 }) {
   const [job, setJob] = useState(initial), [url, setUrl] = useState(initialUrl ?? null);
   const [consent, setConsent] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -26,7 +28,11 @@ export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBu
     } finally { setBusy(false); onBusyChange?.(false); }
   }
   return <section className="space-y-3 rounded-control border border-line p-4">
-    <h3 className="font-semibold">{DESIGN_VIDEO_STATUS[job.status]}</h3>
+    <h3 className="font-semibold">{job.title || DESIGN_VIDEO_STATUS[job.status]}</h3>
+    {job.title && <p className="text-sm text-ink-soft">{DESIGN_VIDEO_STATUS[job.status]}</p>}
+    {!busy && !['submitting', 'generating', 'unknown'].includes(job.status) && <RenameVideo scope={scope} id={id} title={job.title ?? null} onBusyChange={onBusyChange} onSaved={() => {
+      void checkDesignConstruction(scope, id).then(current => update(current.job)); onRenamed?.();
+    }} />}
     <p className="text-sm text-ink-soft">{job.durationMs / 1000} s · {job.settings.resolution} · {job.sourceIds.length} imágenes · coste previsto ${job.estimateUsd.toFixed(2)} · {job.credits} créditos Habiteka</p>
     <p className="text-sm"><strong>Ámbito de los diseños:</strong> {job.includedZones.length ? job.includedZones.join(', ') : 'Todo el ámbito visible en las referencias elegidas.'}</p>
     <details><summary className="cursor-pointer text-sm">Guion preparado</summary><p className="mt-2 whitespace-pre-wrap text-xs text-ink-soft">{job.prompt}</p></details>

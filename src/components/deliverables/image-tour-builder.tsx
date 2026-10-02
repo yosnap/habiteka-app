@@ -8,6 +8,8 @@ import { prepareImageTourUpload, finishImageTourUpload, validateImageTourSources
 import { assessKeyframeSet, type KeyframeAssessment } from '@/server/walkthrough/keyframe-assessment';
 import { AdvertisingControls } from './advertising-controls';
 import { DEFAULT_ADVERTISING_VIDEO, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
+import { RenderCleanupCardActions, RenderCleanupToolbar, useRenderCleanup } from './render-cleanup';
+import { VideoNameField } from './video-name';
 
 interface Props {
   projectId: string;
@@ -20,7 +22,7 @@ interface Props {
   /** Revisiones con el mismo aspecto que el diseño aprobado. */
   validRevisions: number[];
   approvalOutdated: boolean;
-  onCreated?: () => void;
+  onCreated?: () => void | Promise<void>;
   onBusyChange?: (busy: boolean) => void;
   onReviewApproval?: () => void;
   portalContainer?: HTMLElement | null;
@@ -36,6 +38,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [title, setTitle] = useState('');
   const abort = useRef<AbortController | null>(null);
   const [options, setOptions] = useState({ ...DEFAULT_ADVERTISING_VIDEO });
   const [preview, setPreview] = useState<{ blob: Blob; url: string; ids: string[]; options: AdvertisingVideoOptions; saved?: boolean } | null>(null);
@@ -55,6 +58,10 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
   const recording = progress !== null;
   const [assessment, setAssessment] = useState<KeyframeAssessment | null>(null);
   const [assessing, setAssessing] = useState(false);
+  const cleanup = useRenderCleanup({ projectId, zoneId }, async (ids, removed) => {
+    if (removed) { setSelected(current => current.filter(id => !ids.includes(id))); setPreview(null); setAssessment(null); }
+    await onCreated?.(); router.refresh();
+  }, onBusyChange);
   const homogeneity = useMemo(() => assessTourHomogeneity(ordered, valid, missingTourAmbients(ordered, ambients)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selected, valid, ambients, images]);
@@ -92,7 +99,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     if (!preview || !approvalId || approvalOutdated) return;
     setSaving(true); setMessage(null); setProgress(0); onBusyChange?.(true);
     try {
-      const upload = await callAction(prepareImageTourUpload({ projectId, zoneId }, approvalId, preview.ids, preview.blob.size, preview.options));
+      const upload = await callAction(prepareImageTourUpload({ projectId, zoneId }, approvalId, preview.ids, preview.blob.size, preview.options, title));
       const response = await fetch(upload.url, { method: 'PUT', body: preview.blob, headers: { 'Content-Type': 'video/mp4' } });
       if (!response.ok) throw new Error('No se pudo subir a Vídeos. Puedes descargar la vista previa.');
       await callAction(finishImageTourUpload(upload.ticket));
@@ -105,13 +112,15 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     } finally { setSaving(false); setProgress(null); abort.current = null; onBusyChange?.(false); }
   }
 
-  if (!images.length) return <p className="text-muted-foreground text-sm">Aún no hay imágenes generadas para montar el vídeo. Créalas desde «Diseñar con IA» en el editor.</p>;
+  if (!images.length) return <div className="space-y-3"><p className="text-muted-foreground text-sm">Aún no hay imágenes generadas para montar el vídeo. Créalas desde «Diseñar con IA» en el editor.</p><RenderCleanupToolbar cleanup={cleanup} images={[]} /></div>;
   return <section aria-label="Vídeo con las imágenes generadas" className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
     <h2 className="text-ink text-base font-semibold">Montaje con tus diseños generados</h2>
     <p className="text-ink-soft text-sm">Recorre las imágenes de cada ambiente con movimiento de cámara y fundidos. Sin consumo de IA.
       {approvedRevision !== null ? ` Se vincula al diseño aprobado · revisión ${approvedRevision}.` : ''}</p>
     <p className="text-ink-soft text-xs">Muestra tus renders terminados. El paseo continuo fotorrealista entre estancias todavía no está disponible.</p>
-    <AdvertisingControls value={options} disabled={recording} portalContainer={portalContainer} onChange={value => { setOptions(value); setPreview(null); }} />
+    <VideoNameField value={title} onChange={setTitle} disabled={recording || cleanup.busy || preview?.saved} />
+    <RenderCleanupToolbar cleanup={cleanup} images={images.map(image => ({ id: image.id, issue: valid && !valid.has(image.revision) ? 'Otra revisión' : undefined }))} disabled={recording || assessing} />
+    <AdvertisingControls value={options} disabled={recording || cleanup.busy || assessing} portalContainer={portalContainer} onChange={value => { setOptions(value); setPreview(null); }} />
     {approvalOutdated && <p role="alert" className="rounded-control border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
       El diseño del editor ha cambiado desde esta aprobación. Revisa y aprueba los cambios, incluido el tejado, y genera imágenes de esa versión.
       {' '}{onReviewApproval ? <button type="button" className="font-semibold underline" onClick={onReviewApproval}>Revisar y aprobar aquí</button>
@@ -123,7 +132,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
       {homogeneity.issues.map((issue) => <li key={issue.code}>{issue.message}</li>)}
     </ul>}
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" className="rounded border border-line px-3 py-2 text-sm disabled:opacity-50" disabled={assessing || recording || !ordered.length || !approvalId}
+      <button type="button" className="rounded border border-line px-3 py-2 text-sm disabled:opacity-50" disabled={assessing || recording || cleanup.busy || !ordered.length || !approvalId}
         onClick={() => void askJev()}>{assessing ? 'Consultando a Jev…' : 'Comprobar homogeneidad con Jev'}</button>
       {assessment && <span role="status" className="text-sm">
         {assessment.decision === 'proceed' ? 'Apto para animar' : assessment.decision === 'confirm' ? 'Conviene revisarlo antes de animar' : 'Regenera las imágenes antes de animar'}
@@ -134,26 +143,27 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
       </span>}
     </div>
     <div className="flex flex-col gap-3">
-      {groups.map(([key, list]) => <fieldset key={key} disabled={recording} className="flex flex-col gap-2">
+      {groups.map(([key, list]) => <fieldset key={key} disabled={recording || cleanup.busy} className="flex flex-col gap-2">
         <legend className="text-ink text-sm font-medium">{list[0]!.ambient}</legend>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {list.map((image) => <label key={image.id} className={`relative cursor-pointer overflow-hidden rounded-control border ${selected.includes(image.id) ? 'border-emerald-700 ring-2 ring-emerald-700' : 'border-line opacity-70'}`}>
-            <input type="checkbox" className="sr-only" disabled={!!valid && !valid.has(image.revision)} checked={selected.includes(image.id)} onChange={() => toggle(image.id)} />
+          {list.map((image) => <div key={image.id} className={`group relative overflow-hidden rounded-control border ${selected.includes(image.id) ? 'border-emerald-700 ring-2 ring-emerald-700' : 'border-line'}`}>
+            <RenderCleanupCardActions cleanup={cleanup} id={image.id} label={`${image.ambient} · ${image.view}`} disabled={recording || assessing} />
+            <label className="cursor-pointer"><input type="checkbox" aria-label={`Usar ${image.ambient} · ${image.view}`} className="sr-only" disabled={!!valid && !valid.has(image.revision)} checked={selected.includes(image.id)} onChange={() => toggle(image.id)} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image.url} alt={`${image.ambient} · ${image.view}`} className="aspect-video w-full object-cover" loading="lazy" />
             <span className="bg-black/60 absolute inset-x-0 bottom-0 px-1 text-[11px] text-white">{image.view} · rev. {image.revision}{valid && !valid.has(image.revision) ? ' · otro diseño' : ''}</span>
-          </label>)}
+          </label></div>)}
         </div>
       </fieldset>)}
     </div>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50"
-        disabled={recording || !ordered.length || !approvalId || approvalOutdated || incompatible} onClick={() => void create()}>Preparar montaje con {ordered.length} imágenes · {Math.round(tourDurationMs(ordered.length) / 1000)} s</button>
+        disabled={recording || assessing || cleanup.busy || !ordered.length || !approvalId || approvalOutdated || incompatible} onClick={() => void create()}>Preparar montaje con {ordered.length} imágenes · {Math.round(tourDurationMs(ordered.length) / 1000)} s</button>
       {recording && <><progress max={1} value={progress ?? 0} aria-label="Progreso del vídeo" />{!saving && <button type="button" onClick={() => abort.current?.abort()}>Cancelar</button>}</>}
       {!approvalId && <span role="status" className="text-sm">Aprueba un diseño en el editor para poder crear el vídeo.</span>}
     </div>
     {preview && <div className="space-y-3"><video src={preview.url} controls playsInline className="max-h-[55vh] w-full rounded-control bg-black" />
-      <div className="flex flex-wrap gap-3"><button type="button" disabled={recording || approvalOutdated || preview.saved} className="rounded-control border border-line px-3 py-2 text-sm disabled:opacity-50" onClick={() => void save()}>{preview.saved ? 'Montaje guardado' : 'Guardar en Vídeos'}</button>
+      <div className="flex flex-wrap gap-3"><button type="button" disabled={recording || assessing || cleanup.busy || approvalOutdated || preview.saved} className="rounded-control border border-line px-3 py-2 text-sm disabled:opacity-50" onClick={() => void save()}>{preview.saved ? 'Montaje guardado' : 'Guardar en Vídeos'}</button>
         <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a></div></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;

@@ -21,6 +21,19 @@ En cualquier proyecto, abre la pestaña **Vídeos**, o pulsa **Crear vídeo** en
 En construcción, **Mis diseños** prepara una prueba H3 basada en tus imágenes, pendiente de revisar su fidelidad. En publicidad, **Mis diseños** monta imágenes con movimiento y fundidos. **Prueba del plano 3D**, primera persona y construcción + visita graban el modelo del editor. La película profesional validada y la inmersión continua desde renders siguen pendientes.
 :::
 
+## Poner nombre y limpiar las imágenes
+
+El campo **Nombre del vídeo (opcional)** está en los ajustes antes de preparar o crear cualquier modalidad. Admite hasta 100 caracteres. Si lo dejas vacío, se utiliza la etiqueta automática. En **Vídeos guardados → Cambiar nombre** puedes renombrar los resultados existentes; el nombre también aparece al elegir **Publicidad → Vídeo guardado**, en Diseños y en el Historial. Las tareas H3 en curso conservan sus controles de seguimiento: espera a que terminen para renombrarlas.
+
+En **Construcción → Mis diseños** y **Publicidad → Mis diseños** puedes limpiar las imágenes:
+
+- Para quitar una sola, pasa el puntero por su miniatura y pulsa el icono de papelera. También está disponible al enfocar la tarjeta con el teclado; en pantallas táctiles se muestra directamente.
+- Para quitar varias, pulsa **Limpiar imágenes**, marca las casillas de eliminación y pulsa **Mover N a la papelera**. Estas casillas son distintas de las que eligen referencias para generar un vídeo.
+- **Seleccionar todas** permite limpiar las imágenes mostradas. **Seleccionar no válidas** facilita quitar las rechazadas en construcción o las de otra revisión en el montaje. El máximo es de 200 por selección.
+- **Deshacer limpieza** restaura la última selección retirada. **Papelera de imágenes** permite restaurarlas también después de cerrar el estudio; puedes recuperar una o todas las mostradas. La retención predeterminada es de 30 días.
+
+Puedes quitar cualquier imagen mostrada, aunque no sea válida para el vídeo. Desaparece de Diseños y del material disponible para nuevos vídeos en esa zona. Los MP4 guardados se conservan. Restaurar una imagen conserva su revisión y su rechazo: no la convierte en una referencia válida.
+
 ## Construcción desde mis diseños: prueba H3
 
 1. Elige **Construcción → Mis diseños**. La selección inicial propone una cenital (o isométrica/dron si falta) y un exterior cerrado de la tanda más reciente compatible con la aprobación. Puedes añadir vistas de apoyo de esa tanda. H3 admite de una a nueve imágenes. El piloto exige una misma tanda, al menos una cenital, isométrica o dron del conjunto y una vista del exterior con fachadas completas y cubierta visible.
@@ -40,6 +53,8 @@ Esta prioridad resuelve qué diseño pedir cuando cambian sofás o sillas entre 
 ### Fotos con tabiques ocultos y accesos inventados
 
 Una foto cuyo recorte registrado incluye tabiques interiores aparece como **No válida para construcción**, con su selección desactivada. Se conserva en la galería, pero no puede prepararse ni enviarse a H3, incluso si estaba en una preparación antigua. Vuelve a **Diseñar con IA**, prepara esa vista y revisa la previsualización local sin coste: solo debe abrirse la fachada del lado de la cámara. Crear la nueva imagen sí consume IA.
+
+La selección desactivada impide usarla como referencia; no impide eliminarla desde su papelera o mediante **Seleccionar no válidas**.
 
 La comprobación del recorte se aplica también antes de generar nuevas imágenes. Detecta muros ocultos registrados en la captura; no acredita por sí sola que todos los píxeles de un render sean correctos.
 

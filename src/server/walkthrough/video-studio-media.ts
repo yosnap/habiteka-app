@@ -9,6 +9,7 @@ import { WHOLE_PROPERTY } from '@/lib/editor-document/image-tour';
 import { videoPresentationSchema } from '@/lib/editor-document/video-presentation';
 import type { DesignVideoJob } from '@/lib/editor-document/design-video';
 import { advertisingVideoSchema } from '@/lib/editor-document/advertising-video';
+import { readVideoTitle } from '@/lib/editor-document/video-title';
 
 /** Un único ámbito para imágenes, aprobación y vídeos: conserva la zona activa. */
 export async function loadVideoStudioMedia(scope: EditorScope) {
@@ -23,7 +24,7 @@ export async function loadVideoStudioMedia(scope: EditorScope) {
       ? row.payload as { mode?: string; assetKey?: string; durationMs?: number; approvalId?: string; approvedRevision?: number; contentScope?: string; presentation?: unknown; advertising?: unknown } : {};
     const presentation = videoPresentationSchema.safeParse(payload.presentation);
     const advertising = advertisingVideoSchema.safeParse(payload.advertising);
-    return { id: row.id, mode: payload.mode ?? 'walkthrough', url: await resolveRenderUrl(payload),
+    return { id: row.id, title: readVideoTitle(row.payload), mode: payload.mode ?? 'walkthrough', url: await resolveRenderUrl(payload),
       durationMs: payload.durationMs ?? 0, approvalId: payload.approvalId ?? null, approvedRevision: payload.approvedRevision ?? null,
       advertising: advertising.success ? advertising.data : null,
       contentScope: payload.contentScope ?? 'all', createdAt: row.createdAt.toISOString(), presentation: presentation.success ? presentation.data : null,

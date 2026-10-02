@@ -244,3 +244,9 @@ Caso real FInca: preparada prueba `a417fe82-9687-4403-b548-39ed37594672`, seis v
 El usuario autorizó el único clip de $0.34 y las seis referencias. También autorizó habilitar temporalmente el cap global en $0.34 porque estaba en 0; restaurado a 0 y auditado inmediatamente tras aceptar KIE la tarea `9db0219df7bd9cfe3fff16721dd16a9d`. Resultado archivado: 8 s, 1344×768/24 fps, audio AAC estéreo, 286 s de generación según KIE.
 
 **Rechazado**, no cumple muros uno a uno ni continuidad de la envolvente. Sí aparecen partes de terraza, pérgola, escaleras y mobiliario de las referencias; no se certifica identidad total ni todas las cantidades. Mezclar vistas seccionadas no fija un exterior cerrado durante el giro. Las referencias tenían fondo neutro, por lo que tampoco fijan encaje geográfico. Sin segunda generación. Antes de otro gasto, preparar estados de obra coherentes, exterior cerrado y referencia del conjunto sobre ortofoto. El guion solo no ha alcanzado el umbral. [Evaluación y fotogramas](../reports/video-261001-1756-piloto-h3-finca-report.md).
+
+## Limpieza, nombres y pruebas del paseo — 02/10/2026
+
+Publicidad vertical y cotas confirmadas en commit `2b159ac`. Añadida limpieza individual y por selección, con papelera durable y restauración, también para referencias rechazadas. Los vídeos se pueden nombrar antes de crear y renombrar después; los originales de publicidad utilizan esos nombres. No hay migraciones ni generaciones de pago.
+
+Probados en Comet los flujos reales del recorrido aprobado completo y la pieza de construcción + visita: MP4 1920×1080 H.264 de 22,77 s y 30,83 s, respectivamente, con audio AAC de efectos en la pieza combinada. Guardados en MinIO local y comparados con las descargas mediante SHA-256. Estos resultados son muestras del modelo editable, no inmersión fotorrealista desde renders. Esta última y la fidelidad profesional de H3 siguen pendientes. No se aprobaron ni modificaron diseños durante estas pruebas.

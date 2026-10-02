@@ -27,6 +27,12 @@ beforeEach(() => {
   mocks.transaction.mockImplementation((fn) => fn({deliverable:{findUnique:mocks.find,create:mocks.create},usageEvent:{create:mocks.usage}}));
 });
 describe('finalización de vídeos con ámbito y reintento', () => {
+  it('firma y guarda el nombre de la visita sin modificar su ruta', async () => {
+    const upload = await prepareWalkthroughUpload({ projectId: 'project' }, 'approval', 'route', 64, 'walkthrough', 'all', undefined, '  Visita interior  ');
+    expect(readUploadTicket(upload.ticket, 'test-signing-secret')).toMatchObject({ title: 'Visita interior', routeId: 'route' });
+    await finishWalkthroughUpload(upload.ticket);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: expect.objectContaining({ title: 'Visita interior', routeId: 'route' }) }) });
+  });
   it('firma y conserva cotas, ocultación e instrucciones Unicode sin un error de tamaño del ticket', async () => {
     mocks.readApproval.mockResolvedValue({ id: 'approval', revision: 2, fingerprint: 'a'.repeat(64),
       document: { ...emptyEditorDocument(), vertices: [{ id: 'a', x: 0, y: 0 }] } });

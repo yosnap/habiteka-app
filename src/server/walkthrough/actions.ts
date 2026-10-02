@@ -13,14 +13,16 @@ import { promotionVideoIssue, PROMOTION_ROUTE_ID } from '@/lib/editor-document/p
 import { videoScopeRegions, type VideoContentScope } from '@/lib/editor-document/video-content-scope';
 import { videoPresentationSchema, type VideoPresentationOptions } from '@/lib/editor-document/video-presentation';
 import { videoFormatSize } from '@/lib/editor-document/video-format';
+import { videoTitleSchema } from '@/lib/editor-document/video-title';
 
 function secret() {
   const value = process.env.BETTER_AUTH_SECRET;
   if (!value) throw new Error('No está configurada la firma de subidas');
   return value;
 }
-export async function prepareWalkthroughUpload(scope: EditorScope, approvalId: string, routeId: string, bytes: number, mode: NativeVideoMode = 'walkthrough', contentScope: VideoContentScope = 'all', presentation?: VideoPresentationOptions) {
+export async function prepareWalkthroughUpload(scope: EditorScope, approvalId: string, routeId: string, bytes: number, mode: NativeVideoMode = 'walkthrough', contentScope: VideoContentScope = 'all', presentation?: VideoPresentationOptions, name?: string) {
   const ctx = await requireOrgContext();
+  const title = videoTitleSchema.parse(name);
   if (!Number.isInteger(bytes) || bytes < 32 || bytes > 100 * 1024 * 1024) throw new Error('El vídeo supera el límite de 100 MB');
   const approved = await withEditorDocuments(ctx).readApproval(scope, approvalId);
   if (!['house', 'all'].includes(contentScope)) throw new Error('Ámbito de vídeo no válido.');
@@ -42,7 +44,7 @@ export async function prepareWalkthroughUpload(scope: EditorScope, approvalId: s
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
     projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId,
     approvalId: approved.id, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, bytes,
-    mode, contentScope, ...(presentationOptions ? { presentation: presentationOptions } : {}), durationMs: nativeVideoDurationMs(compiled?.durationMs ?? 0, mode, presentationOptions), expires: Date.now() + 300000 }, secret());
+    mode, contentScope, ...(title ? { title } : {}), ...(presentationOptions ? { presentation: presentationOptions } : {}), durationMs: nativeVideoDurationMs(compiled?.durationMs ?? 0, mode, presentationOptions), expires: Date.now() + 300000 }, secret());
   return { ticket, url: await getStorageAdapter().getPresignedUploadUrl(key, bytes, 'video/mp4') };
 }
 export async function finishWalkthroughUpload(token: string) {
@@ -76,6 +78,7 @@ export async function finishWalkthroughUpload(token: string) {
         approvalId: ticket.approvalId, approvedRevision: ticket.approvedRevision, approvedFingerprint: ticket.approvedFingerprint,
         durationMs: ticket.durationMs, ...videoFormatSize(ticket.presentation?.format), contentScope: ticket.contentScope ?? 'all',
         ...(ticket.presentation ? { presentation: videoPresentationSchema.parse(ticket.presentation) } : {}),
+        ...(ticket.title ? { title: videoTitleSchema.parse(ticket.title) } : {}),
         ...(approved.document.geographicSite?.confirmed ? { geographicSite: approved.document.geographicSite } : {}) },
       legalSeal: DELIVERABLE_LEGAL_SEAL } });
     await tx.usageEvent.create({ data: { userId: ctx.userId, orgId: ctx.organizationId, action: 'walkthrough.native-export',

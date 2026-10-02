@@ -12,6 +12,7 @@ import { validatedImageTourSources } from './image-tour-sources';
 import { advertisingVideoSchema, DEFAULT_ADVERTISING_VIDEO, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
 import { videoFormatSize } from '@/lib/editor-document/video-format';
 import { videoMeasurements } from '@/lib/editor-document/video-measurements';
+import { videoTitleSchema } from '@/lib/editor-document/video-title';
 
 const MAX_BYTES = 100 * 1024 * 1024;
 
@@ -30,12 +31,13 @@ export async function validateImageTourSources(scope: EditorScope, approvalId: s
 }
 
 /** Autoriza la subida del MP4 de un montaje con imágenes generadas de este proyecto, ligado a un diseño aprobado. */
-export async function prepareImageTourUpload(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number, options = DEFAULT_ADVERTISING_VIDEO) {
-  return runAction(() => prepareImageTourUploadImpl(scope, approvalId, deliverableIds, bytes, options));
+export async function prepareImageTourUpload(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number, options = DEFAULT_ADVERTISING_VIDEO, title?: string) {
+  return runAction(() => prepareImageTourUploadImpl(scope, approvalId, deliverableIds, bytes, options, title));
 }
 
-async function prepareImageTourUploadImpl(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number, rawOptions: AdvertisingVideoOptions) {
+async function prepareImageTourUploadImpl(scope: EditorScope, approvalId: string, deliverableIds: string[], bytes: number, rawOptions: AdvertisingVideoOptions, name?: string) {
   const ctx = await requireOrgContext();
+  const title = videoTitleSchema.parse(name);
   if (!Number.isInteger(bytes) || bytes < 32 || bytes > MAX_BYTES) fail('El vídeo supera el límite de 100 MB');
   const approved = await validatedImageTourSources(ctx, scope, approvalId, deliverableIds);
   const options = advertisingVideoSchema.parse(rawOptions);
@@ -44,7 +46,7 @@ async function prepareImageTourUploadImpl(scope: EditorScope, approvalId: string
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId,
     projectId: scope.projectId, zoneId: scope.zoneId ?? null, routeId: 'images',
     approvalId: approved.id, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, bytes,
-    mode: 'images', sourceIds: deliverableIds, advertising: options, durationMs: tourDurationMs(deliverableIds.length), expires: Date.now() + 300000 }, secret());
+    mode: 'images', sourceIds: deliverableIds, advertising: options, ...(title ? { title } : {}), durationMs: tourDurationMs(deliverableIds.length), expires: Date.now() + 300000 }, secret());
   return { ticket, url: await getStorageAdapter().getPresignedUploadUrl(key, bytes, 'video/mp4') };
 }
 
@@ -81,7 +83,8 @@ async function finishImageTourUploadImpl(token: string) {
       payload: { type: 'video', assetKey, mode: 'images', sourceDeliverableIds: ticket.sourceIds,
         approvalId: ticket.approvalId, approvedRevision: ticket.approvedRevision, approvedFingerprint: ticket.approvedFingerprint,
         durationMs: ticket.durationMs, ...videoFormatSize(options.format), advertising: options,
-        measurements: options.dimensionMode === 'none' ? null : videoMeasurements(approved.document), dimensionPlacement: 'screen-panel' },
+        measurements: options.dimensionMode === 'none' ? null : videoMeasurements(approved.document), dimensionPlacement: 'screen-panel',
+        ...(ticket.title ? { title: videoTitleSchema.parse(ticket.title) } : {}) },
       legalSeal: DELIVERABLE_LEGAL_SEAL } });
     await tx.usageEvent.create({ data: { userId: ctx.userId, orgId: ctx.organizationId, action: 'walkthrough.image-tour-export',
       unit: 'second', amount: Math.ceil(ticket.durationMs / 1000), cost: '0', refId: id } });

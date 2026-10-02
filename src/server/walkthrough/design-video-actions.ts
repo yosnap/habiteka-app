@@ -17,6 +17,7 @@ import { canUse, isPremium } from '@/server/billing/gating';
 import { constructionTiming } from '@/lib/editor-document/construction-timing';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { designVideoStructure } from '@/lib/editor-document/design-video-structure';
+import { videoTitleSchema } from '@/lib/editor-document/video-title';
 
 export async function loadDesignVideoReferences(scope: EditorScope) {
   const ctx = await requireOrgContext();
@@ -27,8 +28,9 @@ export async function loadDesignVideoReferences(scope: EditorScope) {
 }
 
 /** Preparar solo lee medios propios y guarda un presupuesto; no sube referencias ni llama a KIE. */
-export async function prepareDesignConstruction(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings) {
+export async function prepareDesignConstruction(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings, name?: string) {
   const ctx = await requireOrgContext(), settings = designVideoSettingsSchema.parse(input);
+  const title = videoTitleSchema.parse(name);
   const sources = await designVideoSources(ctx, scope, approvalId, ids), approved = sources.approved!;
   assertConstructionReferences(sources);
   // El piloto aún no compone medidas exactas sobre una cámara generada por IA.
@@ -41,7 +43,7 @@ export async function prepareDesignConstruction(scope: EditorScope, approvalId: 
     approvalId, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, sourceIds: ids,
     sourceScopes: sources.rows.map(row => ({ id: row.id, options: row.options })),
     includedZones: [...new Set(sources.references.flatMap(reference => reference.zones))], prompt, settings, structuralConstraints,
-    durationMs: constructionTiming(settings.presentation).durationMs, estimateUsd: estimate.usd, credits: estimate.credits };
+    durationMs: constructionTiming(settings.presentation).durationMs, estimateUsd: estimate.usd, credits: estimate.credits, ...(title ? { title } : {}) };
   await prisma.$transaction(async tx => {
     await assertEditorScope(tx, ctx, scope, { lock: true });
     await tx.deliverable.create({ data: { id, projectId: scope.projectId, zoneId: scope.zoneId ?? null, type: 'VIDEO', payload: jobJson(job), legalSeal: DELIVERABLE_LEGAL_SEAL } });

@@ -9,6 +9,7 @@ export interface WalkthroughUploadTicket {
   contentScope?: import('@/lib/editor-document/video-content-scope').VideoContentScope;
   presentation?: import('@/lib/editor-document/video-presentation').VideoPresentationOptions;
   advertising?: import('@/lib/editor-document/advertising-video').AdvertisingVideoOptions;
+  title?: string;
 }
 function signature(value: string, secret: string) { return createHmac('sha256', secret).update(value).digest('base64url'); }
 export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string): string {

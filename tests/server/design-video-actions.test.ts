@@ -64,8 +64,8 @@ describe('piloto de construcción desde diseños', () => {
     expect(mock.create).not.toHaveBeenCalled(); expect(mock.hold).not.toHaveBeenCalled();
   });
   it('prepara ámbito y guion sin transferencias ni consumo y congela las opciones de las imágenes', async () => {
-    const result = await prepareDesignConstruction(scope, 'approval', ['design'], settings);
-    expect(result.job).toMatchObject({ status: 'prepared', includedZones: ['Patio', 'Rampa'], durationMs: 8000, estimateUsd: .32,
+    const result = await prepareDesignConstruction(scope, 'approval', ['design'], settings, '  Construcción del diseño  ');
+    expect(result.job).toMatchObject({ status: 'prepared', title: 'Construcción del diseño', includedZones: ['Patio', 'Rampa'], durationMs: 8000, estimateUsd: .32,
       sourceScopes: [{ id: 'design', options: expect.objectContaining({ regions: [{ name: 'Patio' }, { name: 'Rampa' }] }) }] });
     expect(result.job.structuralConstraints).toContain('No añadir, duplicar, desplazar');
     expect(result.job.settings.presentation.showDimensions).toBe(false);

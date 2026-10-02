@@ -37,6 +37,15 @@ describe('guardado de anuncio local', () => {
     await expect(callAction(finishAdvertisingUpload(upload.ticket))).rejects.toThrow(/cuenta/);
     expect(mocks.source).not.toHaveBeenCalled(); expect(mocks.promote).not.toHaveBeenCalled();
   });
+  it('firma y guarda el nombre del anuncio; rechaza nombres largos antes de emitir una subida', async () => {
+    const upload = await callAction(prepareAdvertisingUpload(scope, 'approval', 'clip', 64, options, '  Anuncio vertical  '));
+    expect(readUploadTicket(upload.ticket, 'test-signing-secret').title).toBe('Anuncio vertical');
+    await callAction(finishAdvertisingUpload(upload.ticket));
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: expect.objectContaining({ title: 'Anuncio vertical' }) }) });
+    mocks.presign.mockClear();
+    await expect(callAction(prepareAdvertisingUpload(scope, 'approval', 'clip', 64, options, 'x'.repeat(101)))).rejects.toThrow();
+    expect(mocks.presign).not.toHaveBeenCalled();
+  });
   it('revalida aprobación y duración al guardar, antes de publicar el MP4', async () => {
     const upload = await prepare(); mocks.source.mockResolvedValue({ ...source(), durationMs: 9000 });
     await expect(callAction(finishAdvertisingUpload(upload.ticket))).rejects.toThrow(/versión del clip/);

@@ -17,6 +17,7 @@ import { DesignVideoTask } from '@/components/editor-v2/design-video-task';
 import type { EditorScope } from '@/server/editor/authority';
 import { advertisingVideoSchema, ADVERTISING_DIMENSIONS, type AdvertisingVideoOptions } from '@/lib/editor-document/advertising-video';
 import { VIDEO_FORMATS } from '@/lib/editor-document/video-format';
+import { readVideoTitle } from '@/lib/editor-document/video-title';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -26,6 +27,7 @@ interface Props {
 type ResultsTab = 'disenos' | 'recorridos' | 'videos';
 type VideoView = {
   id: string;
+  title: string | null;
   mode: 'walkthrough' | 'showcase' | 'images' | 'promotion' | 'construction' | 'construction-ai' | 'advertising';
   advertising: AdvertisingVideoOptions | null;
   scope: EditorScope;
@@ -77,7 +79,7 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
       const designQuery = new URLSearchParams();
       if (approvalId) designQuery.set('aprobado', approvalId);
       if (row.zoneId) designQuery.set('zona', row.zoneId);
-      return { id: row.id, mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
+      return { id: row.id, title: readVideoTitle(row.payload), mode: videoMode(row.payload), url: await resolveRenderUrl(payload), durationMs: payload.durationMs,
         advertising: advertising.success ? advertising.data : null,
         scope: { projectId: id, zoneId: row.zoneId }, designJob: videoMode(row.payload) === 'construction-ai' ? row.payload as unknown as DesignVideoJob : null,
         approvedRevision: typeof payload.approvedRevision === 'number' && Number.isSafeInteger(payload.approvedRevision) ? payload.approvedRevision : null,
@@ -147,9 +149,10 @@ function VideoCard({ video }: { video: VideoView }) {
   if (video.designJob) return <DesignVideoTask scope={video.scope} id={video.id} initial={video.designJob} initialUrl={video.url} />;
   const showcase = video.mode !== 'walkthrough';
   return <section aria-label={VIDEO_LABEL[video.mode]} className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4">
-    <h2 className="text-ink text-base font-semibold">{VIDEO_LABEL[video.mode]}{' '}
+    <h2 className="text-ink text-base font-semibold">{video.title || VIDEO_LABEL[video.mode]}{' '}
       {video.durationMs ? <span className="text-ink-soft ml-2 text-sm font-normal">{Math.round(video.durationMs / 1000)} s</span> : null}
     </h2>
+    {video.title && <p className="text-ink-soft text-xs">{VIDEO_LABEL[video.mode]}</p>}
     <p className="text-ink-soft text-sm">{video.mode === 'images' ? 'Presentación de imágenes con zoom y fundidos; no es una visita continua.'
       : video.mode === 'advertising' ? 'Composición del clip original con formato y cotas opcionales; conserva su sonido y duración.'
       : 'Exportación del modelo editable; no incorpora los acabados y la decoración de las imágenes generadas por IA.'}</p>

@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import Link from 'next/link';
 import { continueRenderBatchHref } from './auto-generate-request';
+import { RenderCleanupCardActions, RenderCleanupToolbar, useRenderCleanup } from '@/components/deliverables/render-cleanup';
+import { VideoNameField } from '@/components/deliverables/video-name';
 
 export function DesignConstructionPanel({ scope, approved, onReviewApproval, onBusyChange, portalContainer }: {
   scope: EditorScope; approved: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void; portalContainer?: HTMLElement | null;
@@ -19,6 +21,11 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
   const [presentation, setPresentation] = useState({ ...DEFAULT_VIDEO_PRESENTATION });
   const [resolution, setResolution] = useState<'768P' | '2K'>('768P');
   const [task, setTask] = useState<{ id: string; job: DesignVideoJob } | null>(null);
+  const [title, setTitle] = useState('');
+  const cleanup = useRenderCleanup(scope, async (removed, isRemoval) => {
+    const next = await loadDesignVideoReferences(scope); setMedia(next);
+    if (isRemoval) setIds(current => current.filter(id => !removed.includes(id)));
+  }, onBusyChange);
   useEffect(() => {
     let active = true;
     void loadDesignVideoReferences(scope).then(value => {
@@ -45,7 +52,7 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
   async function prepare() {
     if (!media?.approvalId) return;
     setBusy(true); onBusyChange(true); setError('');
-    try { setTask(await prepareDesignConstruction(scope, media.approvalId, ids, { presentation, resolution })); }
+    try { setTask(await prepareDesignConstruction(scope, media.approvalId, ids, { presentation, resolution }, title)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo preparar la prueba.'); }
     finally { setBusy(false); onBusyChange(false); }
   }
@@ -57,21 +64,25 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
     {!approved && <div className="flex flex-wrap items-center gap-3 rounded-control border border-line p-3"><p className="text-sm">Revisa la aprobación del diseño y la luz antes de preparar el vídeo.</p><Button variant="outline" onClick={onReviewApproval}>Revisar y aprobar</Button></div>}
     {!media && !error && <p role="status">Cargando las tandas del diseño aprobado…</p>}
     {media && !media.references.length && <p role="status">No hay imágenes generadas compatibles con la revisión aprobada. Genera vistas del conjunto y del interiorismo antes de preparar la prueba.</p>}
+    {!task && <RenderCleanupToolbar cleanup={cleanup} images={media?.references ?? []} disabled={busy} />}
     {!task && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-5">{groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy} className="space-y-3 rounded-card border border-line p-4">
+      <div className="space-y-5">{groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy || cleanup.busy} className="space-y-3 rounded-card border border-line p-4">
         <legend className="px-1 text-sm font-semibold">Tanda {index + 1} · revisión {group[0]!.revision}</legend>
         <p className="text-sm text-ink-soft">{[...new Set(group.flatMap(reference => reference.zones))].join(', ') || group[0]!.name}</p>
         {group[0]!.batchId && <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-soft" href={continueRenderBatchHref(scope.projectId, scope.zoneId ?? null, group[0]!.batchId)}>Completar vistas de la tanda {index + 1}</Link>}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{group.map(reference => <label key={reference.id} className={`${reference.issue ? 'cursor-not-allowed' : 'cursor-pointer'} overflow-hidden rounded-control border ${ids.includes(reference.id) ? 'border-brand-500 ring-1 ring-brand-500' : 'border-line'}`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{group.map(reference => <div key={reference.id} className={`group relative overflow-hidden rounded-control border ${ids.includes(reference.id) ? 'border-brand-500 ring-1 ring-brand-500' : 'border-line'}`}>
+          <RenderCleanupCardActions cleanup={cleanup} id={reference.id} label={`${reference.view} de la tanda ${index + 1}`} disabled={busy} />
+          <label className={reference.issue ? 'cursor-not-allowed' : 'cursor-pointer'}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={reference.url} alt={`${reference.name} · ${reference.view}`} className="aspect-video w-full object-cover" loading="lazy" />
           <span className="flex items-start gap-2 p-2 text-xs"><input type="checkbox" aria-label={`Usar ${reference.view} de la tanda ${index + 1}`} disabled={Boolean(reference.issue)} checked={ids.includes(reference.id)}
             onChange={event => setIds(event.target.checked ? [...ids, reference.id] : ids.filter(id => id !== reference.id))} />{reference.view}</span>
           {ids.includes(reference.id) && <span className="block px-2 pb-2 text-xs text-ink-soft">{designVideoReferenceRole(reference, selected)}</span>}
           {reference.issue && <span className="block px-2 pb-2 text-xs text-danger"><strong>No válida para construcción.</strong> {reference.issue}</span>}
-        </label>)}</div>
+        </label></div>)}</div>
       </fieldset>)}</div>
-      <aside className="space-y-4 rounded-card border border-line p-4"><fieldset disabled={busy} className="space-y-4">
+      <aside className="space-y-4 rounded-card border border-line p-4"><fieldset disabled={busy || cleanup.busy} className="space-y-4">
+        <VideoNameField value={title} onChange={setTitle} />
         <VideoDurationControls value={presentation} onChange={setPresentation} combined={false} portalContainer={portalContainer} />
         <label className="block text-sm">Calidad<ModernSelect aria-label="Calidad de la prueba H3" value={resolution} portalContainer={portalContainer} popoverZIndex={150} onChange={event => setResolution(event.target.value as '768P' | '2K')} className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-2">
           <option value="768P">768P · prueba económica</option><option value="2K">2K · mayor detalle</option></ModernSelect></label>
@@ -85,7 +96,7 @@ export function DesignConstructionPanel({ scope, approved, onReviewApproval, onB
       <p className="text-xs text-ink-soft">El ritmo y los efectos se piden mediante el guion; revisa que H3 los respete. Cotas exactas pendientes para clips IA.</p>
       {media && !hasFinishedExterior && <p role="status" className="text-sm">Falta el exterior con tejado. En Diseñar con IA, genera Exterior terminado y una cenital del mismo ámbito y tanda, junto a las vistas que quieras incluir.</p>}
       {media && !layoutReference && <p role="status" className="text-sm">Falta la distribución: elige una cenital, isométrica o dron del conjunto y de la misma tanda.</p>}
-      <Button className="w-full" disabled={busy || !approved || !media?.providerReady || !ids.length || ids.length > 9 || !hasFinishedExterior || !layoutReference} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Preparar prueba H3'}</Button>
+      <Button className="w-full" disabled={busy || cleanup.busy || !approved || !media?.providerReady || !ids.length || ids.length > 9 || !hasFinishedExterior || !layoutReference} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Preparar prueba H3'}</Button>
       {ids.length > 9 && <p role="status" className="text-sm">H3 admite hasta nueve imágenes. Elige referencias de la misma tanda que cubran todo el diseño.</p>}
       {media && !media.providerReady && <p role="status" className="text-sm">KIE debe estar configurado y activo en los ajustes de IA.</p>}
       </aside>

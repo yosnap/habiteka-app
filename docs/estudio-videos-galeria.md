@@ -1,5 +1,11 @@
 # Estudio de vídeos y galería de renders
 
+## Limpieza y nombres — 02/10/2026
+
+El estudio permite mover renders a la papelera individualmente o en selecciones de hasta 200, incluidas referencias rechazadas. Son escrituras con sesión y ámbito de organización/proyecto/zona, dentro de transacción y con bloqueo del proyecto. Un lote parcialmente ajeno se rechaza completo. Solo cambia `deletedAt` y la versión; no borra objetos ni MP4 derivados. La papelera se puede listar y restaurar después de cerrar el estudio. Se conserva el rechazo original. Aplica la retención existente, de 30 días por defecto.
+
+Los vídeos tienen nombre opcional de hasta 100 caracteres, validado y guardado en el JSON existente. Los tickets de subida lo firman junto con la procedencia; H3 lo registra al preparar, sin enviarlo como parte del guion. Se muestra en la galería, en el selector del original de publicidad, Diseños e Historial. Renombrar modifica solo el nombre mediante comprobación de versión; conserva aprobación, estado, fuentes y archivo. No hay migraciones. Primera persona y Construcción + visita siguen usando el modelo editable: los ajustes explican que no incorporan el interiorismo de los renders. Guía pública actualizada en `videos/estudio` y novedades.
+
 ## Flujo implementado
 
 `/projects/[id]/videos` abre el editor durable con el estudio. Conserva `zoneId` en navegación, lectura de medios, aprobación y guardado. El mismo diálogo se abre desde el editor y el diseño aprobado. Preparación, geometría, recorrido, luz, exportación y resultados están en este estudio.

@@ -5,6 +5,10 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## En desarrollo — Publicidad vertical y cotas
 
+- **Crear vídeo**: nombre opcional antes de crear y **Cambiar nombre** para resultados guardados. El selector de originales de publicidad utiliza esos nombres.
+- **Mis diseños**: limpieza individual desde la miniatura o por selección, incluidas imágenes rechazadas; papelera con restauración. Los vídeos guardados permanecen disponibles.
+- Primera persona y Construcción + visita explican junto a sus ajustes que graban el modelo 3D; el paseo continuo con los acabados de los renders sigue pendiente.
+
 - **Publicidad**: formato horizontal 16:9 o vertical 9:16, con panel de ancho, fondo y altura del diseño aprobado. Medidas animadas, solo al inicio, fijas o desactivadas. Vista previa antes de guardar o descargar.
 - **Publicidad → Vídeo guardado**: compone otro anuncio desde un montaje, vídeo 3D o H3 aceptado de la misma aprobación, conservando audio, duración y original. Composición local sin nueva generación IA; el panel no sigue la cámara ni verifica la fidelidad del clip.
 - Exportación 3D con formato vertical opcional: conserva la vista completa con márgenes y sus cotas geométricas existentes.

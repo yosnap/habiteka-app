@@ -4,15 +4,15 @@ import type { VideoPresentationOptions } from '@/lib/editor-document/video-prese
 import { prepareWalkthroughUpload, finishWalkthroughUpload } from '@/server/walkthrough/actions';
 
 /** Los dos puntos de exportación registran las mismas opciones que recibe el grabador. */
-export function createWalkthroughVideoSaver(scope: EditorScope, approvalId: string) {
+export function createWalkthroughVideoSaver(scope: EditorScope, approvalId: string, title?: string) {
   return (blob: Blob, routeId: string, mode: NativeVideoMode, presentation?: VideoPresentationOptions) =>
-    saveWalkthroughVideo(scope, approvalId, blob, routeId, mode, presentation?.contentScope, presentation);
+    saveWalkthroughVideo(scope, approvalId, blob, routeId, mode, presentation?.contentScope, presentation, title);
 }
 
 export async function saveWalkthroughVideo(scope: EditorScope, approvalId: string, blob: Blob, routeId: string, mode: NativeVideoMode,
-  contentScope: import('@/lib/editor-document/video-content-scope').VideoContentScope = 'all', presentation?: VideoPresentationOptions) {
+  contentScope: import('@/lib/editor-document/video-content-scope').VideoContentScope = 'all', presentation?: VideoPresentationOptions, title?: string) {
   const section = mode !== 'walkthrough' ? 'Vídeos' : 'Recorridos';
-  const upload = await prepareWalkthroughUpload(scope, approvalId, routeId, blob.size, mode, contentScope, presentation);
+  const upload = await prepareWalkthroughUpload(scope, approvalId, routeId, blob.size, mode, contentScope, presentation, title);
   const response = await fetch(upload.url, { method: 'PUT', body: blob, headers: { 'Content-Type': 'video/mp4' } });
   if (!response.ok) throw new Error(`El MP4 se descargó, pero no se pudo subir a ${section}.`);
   try { await finishWalkthroughUpload(upload.ticket); }

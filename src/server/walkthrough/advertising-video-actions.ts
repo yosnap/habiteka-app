@@ -10,6 +10,7 @@ import { videoFormatSize } from '@/lib/editor-document/video-format';
 import { signUploadTicket, readUploadTicket, assertVideoUpload } from './upload-ticket';
 import { advertisingVideoSource } from './advertising-video-source';
 import { fail, runAction } from '@/server/errors/run-action';
+import { videoTitleSchema } from '@/lib/editor-document/video-title';
 
 function secret() {
   const value = process.env.BETTER_AUTH_SECRET; if (!value) throw new Error('No está configurada la firma de subidas.'); return value;
@@ -21,11 +22,12 @@ export async function loadAdvertisingVideo(scope: EditorScope, approvalId: strin
     return { url: source.url, measurements: source.measurements, durationMs: source.durationMs };
   });
 }
-export async function prepareAdvertisingUpload(scope: EditorScope, approvalId: string, sourceId: string, bytes: number, rawOptions: AdvertisingVideoOptions) {
-  return runAction(() => prepareAdvertisingUploadImpl(scope, approvalId, sourceId, bytes, rawOptions));
+export async function prepareAdvertisingUpload(scope: EditorScope, approvalId: string, sourceId: string, bytes: number, rawOptions: AdvertisingVideoOptions, title?: string) {
+  return runAction(() => prepareAdvertisingUploadImpl(scope, approvalId, sourceId, bytes, rawOptions, title));
 }
-async function prepareAdvertisingUploadImpl(scope: EditorScope, approvalId: string, sourceId: string, bytes: number, rawOptions: AdvertisingVideoOptions) {
+async function prepareAdvertisingUploadImpl(scope: EditorScope, approvalId: string, sourceId: string, bytes: number, rawOptions: AdvertisingVideoOptions, name?: string) {
   const ctx = await requireOrgContext(), options = advertisingVideoSchema.parse(rawOptions);
+  const title = videoTitleSchema.parse(name);
   if (!Number.isInteger(bytes) || bytes < 32 || bytes > 100 * 1024 * 1024) fail('El anuncio supera el límite de 100 MB.');
   const source = await advertisingVideoSource(ctx, scope, approvalId, sourceId);
   if (options.dimensionMode !== 'none' && !source.measurements) fail('El diseño aprobado no tiene medidas disponibles. Elige Sin medidas.');
@@ -33,7 +35,7 @@ async function prepareAdvertisingUploadImpl(scope: EditorScope, approvalId: stri
   const ticket = signUploadTicket({ id, key, organizationId: ctx.organizationId, userId: ctx.userId, projectId: scope.projectId,
     zoneId: scope.zoneId ?? null, routeId: 'advertising', approvalId, approvedRevision: source.approved.revision,
     approvedFingerprint: source.approved.fingerprint, bytes, mode: 'advertising', sourceIds: [sourceId],
-    advertising: options, durationMs: source.durationMs, expires: Date.now() + 300000 }, secret());
+    advertising: options, ...(title ? { title } : {}), durationMs: source.durationMs, expires: Date.now() + 300000 }, secret());
   return { ticket, url: await getStorageAdapter().getPresignedUploadUrl(key, bytes, 'video/mp4') };
 }
 export async function finishAdvertisingUpload(token: string) {
@@ -65,7 +67,7 @@ async function finishAdvertisingUploadImpl(token: string) {
       payload: { type: 'video', mode: 'advertising', assetKey, sourceDeliverableIds: ticket.sourceIds, approvalId: ticket.approvalId,
         approvedRevision: ticket.approvedRevision, approvedFingerprint: ticket.approvedFingerprint, durationMs: ticket.durationMs,
         ...videoFormatSize(options.format), advertising: options, measurements: options.dimensionMode === 'none' || !source.measurements ? null : { ...source.measurements },
-        dimensionPlacement: 'screen-panel' }, legalSeal: DELIVERABLE_LEGAL_SEAL } });
+        dimensionPlacement: 'screen-panel', ...(ticket.title ? { title: videoTitleSchema.parse(ticket.title) } : {}) }, legalSeal: DELIVERABLE_LEGAL_SEAL } });
     await tx.usageEvent.create({ data: { userId: ctx.userId, orgId: ctx.organizationId, action: 'walkthrough.advertising-export',
       unit: 'second', amount: Math.ceil(ticket.durationMs / 1000), cost: '0', refId: id } });
   });

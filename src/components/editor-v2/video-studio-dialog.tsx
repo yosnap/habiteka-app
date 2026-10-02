@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { videoScopeRegions, type VideoContentScope } from '@/lib/editor-document/video-content-scope';
 import { VIDEO_FORMATS, type VideoFormat } from '@/lib/editor-document/video-format';
+import { VideoNameField } from '@/components/deliverables/video-name';
 
 const EditorSceneView = dynamic(() => import('./scene/editor-scene-view').then(module => module.EditorSceneView), { ssr: false });
 const CanvasView = dynamic(() => import('./canvas-view').then(module => module.CanvasView), { ssr: false });
@@ -43,6 +44,7 @@ export function VideoStudioDialog(props: Props) {
   const { store, scope, projectName, approval, approvalCurrent, approvalDisabled, approvalError,
     lighting, onLightingChange, onReviewApproval, onClose } = props;
   const [goal, setGoal] = useState<VideoGoal>('construction');
+  const [title, setTitle] = useState('');
   const [tab, setTab] = useState<'create' | 'saved'>('create');
   const [source, setSource] = useState<'images' | 'model' | 'clip'>('images');
   const [preview, setPreview] = useState<'scene' | 'plan' | 'result'>('scene');
@@ -135,7 +137,7 @@ export function VideoStudioDialog(props: Props) {
                 <div className={preview === 'scene' ? 'absolute inset-0' : 'invisible absolute inset-0 pointer-events-none'}>
                   <EditorSceneView key={approvalCurrent ? approval?.id : 'draft'} store={previewStore} projectId={scope.projectId} videoStudio={sceneStudio}
                     lightingPreset={lighting} lightingLocked allowVideoExport={Boolean(approved)}
-                    onSaveNativeVideo={approved && approval ? createWalkthroughVideoSaver(scope, approval.id) : undefined} />
+                    onSaveNativeVideo={approved && approval ? createWalkthroughVideoSaver(scope, approval.id, title) : undefined} />
                 </div>
                 {preview === 'plan' && <CanvasView store={store} fitOnMount onCenter={() => {}} />}
                 {preview === 'result' && status.previewUrl && <div className="flex h-full min-h-80 items-center justify-center bg-black"><video src={status.previewUrl} controls playsInline className="max-h-[65vh] w-full" /></div>}
@@ -144,6 +146,8 @@ export function VideoStudioDialog(props: Props) {
             </section>
             <aside className="space-y-4 overflow-y-auto rounded-card border border-line bg-surface p-4">
               <div><h2 className="font-semibold">{item.title}</h2><p className="mt-1 text-sm text-ink-soft">{readiness.durationMs ? `${Math.round(readiness.durationMs / 1000)} s · ` : ''}1080p · MP4 · sin consumo de IA</p></div>
+              <VideoNameField value={title} onChange={setTitle} disabled={status.busy} />
+              {needsRoute && <p role="status" className="rounded-control border border-line bg-surface-muted p-3 text-sm">Esta modalidad graba el modelo 3D del editor. El paseo continuo con los acabados y muebles de tus renders todavía no está disponible.</p>}
               <fieldset disabled={status.busy} className="space-y-2 rounded-control border border-line p-3">
                 <legend className="px-1 text-sm font-medium">Qué aparece en el vídeo</legend>
                 <div className="flex gap-2">{(['house', 'all'] as const).map(value => <Button key={value} size="sm" variant={options.contentScope === value ? 'default' : 'outline'} aria-pressed={options.contentScope === value}

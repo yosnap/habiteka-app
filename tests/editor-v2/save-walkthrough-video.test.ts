@@ -20,11 +20,17 @@ it('registra sonido, cotas, ámbito y duración seleccionados en la visita aprob
   const presentation = { ...DEFAULT_VIDEO_PRESENTATION, soundEffects: false, soundVolume: 0,
     contentScope: 'house' as const, dimensionMode: 'start' as const, constructionDurationSeconds: 12 as const };
   await createWalkthroughVideoSaver(scope, 'approval')(blob, 'route', 'construction', presentation);
-  expect(mock.prepare).toHaveBeenCalledWith(scope, 'approval', 'route', blob.size, 'construction', 'house', presentation);
+  expect(mock.prepare).toHaveBeenCalledWith(scope, 'approval', 'route', blob.size, 'construction', 'house', presentation, undefined);
   expect(mock.fetch).toHaveBeenCalledWith('https://storage.example/upload', {
     method: 'PUT', body: blob, headers: { 'Content-Type': 'video/mp4' },
   });
   expect(mock.finish).toHaveBeenCalledWith('signed-ticket');
+});
+
+it('envía el nombre elegido en el estudio sin cambiar las opciones del grabador', async () => {
+  const blob = new Blob(['video'], { type: 'video/mp4' });
+  await createWalkthroughVideoSaver(scope, 'approval', 'Visita del diseño')(blob, 'route', 'walkthrough', DEFAULT_VIDEO_PRESENTATION);
+  expect(mock.prepare).toHaveBeenCalledWith(scope, 'approval', 'route', blob.size, 'walkthrough', 'all', DEFAULT_VIDEO_PRESENTATION, 'Visita del diseño');
 });
 
 it('no registra el vídeo si falla la subida y conserva el error visible', async () => {
