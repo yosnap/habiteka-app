@@ -57,6 +57,10 @@ Desde **Crear vídeo → Construcción → Mis diseños**, usa **Completar vista
 
 La cabecera abierta puede conservar información de una sesión caducada. Guarda primero los cambios del plano, recarga la página y vuelve a acceder si se solicita. Los ajustes de una preparación no enviada pueden tener que elegirse de nuevo; una tanda guardada se recupera con **Completar vistas de la tanda**.
 
+## Un enlace de demostración devuelve 404
+
+Las páginas `/dev/*` son muestras locales para desarrollo y no están disponibles en producción. Para trabajar con tus proyectos, entra con tu cuenta y abre el editor desde el proyecto. El acceso al panel administrativo requiere el rol de administrador de la plataforma.
+
 ## Los atajos no responden
 
 Saca el foco del campo de texto y comprueba que los atajos estén activados en el menú de visibilidad. Consulta [Atajos](/editor/atajos/).

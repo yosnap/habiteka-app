@@ -32,6 +32,15 @@ Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas 
 
 ## 3. Arquitectura de alto nivel
 
+### Acceso y muestras de desarrollo
+
+- El layout de servidor `src/app/dev/layout.tsx` bloquea todas las páginas `/dev/*` con 404 salvo cuando `NODE_ENV=development`. Incluye `/dev/3d` y `/dev/editor-v2`; `ENABLE_DEV_LOGIN` no permite abrirlas en producción. Las muestras locales no requieren sesión, pero no exponen proyectos privados.
+- `/api/dev/login` exige entorno distinto de producción y `ENABLE_DEV_LOGIN=true`; el Docker de producción establece `NODE_ENV=production`.
+- El área de proyectos valida sesión y pertenencia a la organización mediante `requireOrgContext`; la administración valida el rol global `admin` mediante `requireAdmin`. Las acciones del servidor revalidan su acceso.
+- Antes de desplegar, comprobar que la base de datos de producción no contiene la cuenta de pruebas ni credenciales conocidas de desarrollo. Bloquear la ruta de login de prueba no invalida una cuenta que ya exista. Esta revisión de código no acredita la configuración ni los usuarios del despliegue real.
+
+El flujo normal del usuario sigue igual: acceder con su cuenta y utilizar los permisos de su organización.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      CLIENTE (Browser)                        │

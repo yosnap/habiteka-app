@@ -2,7 +2,8 @@
  * Ruta de desarrollo del 3D navegable (F6). Monta `Plan3DView` (cliente-only, WebGL)
  * con un `CanvasDoc` real para ver la escena: muros, suelo, muebles glTF y luces. NO es
  * parte del producto (la UI definitiva "Ver en 3D" en el editor es F6.4); vive fuera del
- * área autenticada a propósito (no necesita login).
+ * área autenticada a propósito (no necesita login en desarrollo). El layout
+ * compartido de `/dev` devuelve 404 fuera del entorno de desarrollo.
  *
  * Para probar las luces (F6.3) se deriva el salón de ejemplo añadiéndole un foco — sin
  * mutar `EXAMPLE_SALON`, que es contenido de producto con tests asociados.

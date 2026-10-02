@@ -5,6 +5,8 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## 2 de octubre de 2026
 
+- Todas las páginas de demostración `/dev/*`, incluida la muestra 3D, devuelven 404 fuera de desarrollo. El acceso normal a proyectos y administración conserva sus controles de sesión y permisos.
+
 - **Construcción desde mis diseños**: propone distribución y exterior como referencias iniciales, con su función visible en las miniaturas. La cenital fija mobiliario y distribución; el exterior fija fachadas, tejado y encuadre. El guion pide un vuelo final corto y evita mezclar interiorismos distintos. Las preparaciones antiguas no cambian automáticamente; la fidelidad del clip sigue necesitando revisión. La prueba de dos referencias tampoco valida fidelidad profesional: hay que comprobar cantidades, entorno y etapas, aunque el cierre exterior parezca correcto.
 - **Exterior terminado por zonas**: el recorte conserva las caras exteriores de los muros y los aleros del tejado. El margen estructural también se aplica a la máscara enviada a IA; suelo y parcela mantienen el contorno seleccionado. Las imágenes anteriores necesitan revisión; no se modifican automáticamente.
 - **Revisar una imagen ya generada**: permite comprobar y guardar un PNG contra una vista preparada, sin pagar otra generación de imagen. La auditoría visual sigue teniendo coste y los mismos controles; los archivos importados se identifican como tales.
