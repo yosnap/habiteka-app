@@ -3,6 +3,7 @@ import { emptyEditorDocument, type EditorDocument, type Point } from '@/lib/edit
 import { boundaryClearance, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
+import { footprint, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import {
   EYE_HEIGHT_MM,
   INTERIOR_FOV_DEG,
@@ -175,6 +176,61 @@ describe('cámaras interiores por estancia', () => {
     // Centro del vano: la puerta está a la mitad del muro sur.
     expect(Math.hypot(eye.x - 2500, eye.y - 0)).toBeGreaterThanOrEqual(1000);
     expect(boundaryClearance(eye, boundary)).toBeGreaterThanOrEqual(450);
+  });
+
+  it('aleja la cámara de los muros en un salón amplio cuando hay sitio', () => {
+    const doc = named([
+      { x: 0, y: 0 }, { x: 10000, y: 0 },
+      { x: 10000, y: 7000 }, { x: 0, y: 7000 },
+    ], 'Salón');
+    const room = deriveRooms(doc)[0]!;
+    const [camera] = roomInteriorCameras(doc);
+    const eye = { x: camera!.camera.position[0] * 1000, y: camera!.camera.position[2] * 1000 };
+    expect(boundaryClearance(eye, room.boundary)).toBeGreaterThanOrEqual(1200);
+  });
+
+  it('fotografía las camas desde el espacio libre cuando un armario ocupa el pasillo', () => {
+    const doc = named([
+      { x: 0, y: 0 }, { x: 3200, y: 0 },
+      { x: 3200, y: 6500 }, { x: 0, y: 6500 },
+    ], 'Dormitorio');
+    doc.furniture = [
+      ...[1500, 2800, 4100, 5400].map((y, index) => ({
+        id: `bed-${index}`, kind: 'cama-individual', catalogId: 'habiteka:furniture:cama-individual',
+        x: 100, y, widthMm: 1000, depthMm: 2000, rotation: 270,
+        dimensionalOrigin: 'physical' as const,
+      })),
+      { id: 'wardrobe', kind: 'armario', catalogId: 'habiteka:furniture:armario',
+        x: 2540, y: 2000, widthMm: 600, depthMm: 2600, rotation: 0,
+        dimensionalOrigin: 'physical' },
+    ];
+    const spatial = upgradeSpatialDocument(doc);
+    spatial.furniture[4]!.heightMm = 2200;
+    const [camera] = roomInteriorCameras(spatial);
+    const eye = { x: camera!.camera.position[0] * 1000, y: camera!.camera.position[2] * 1000 };
+    expect(boundaryClearance(eye, footprint(spatial.furniture[4]!))).toBeGreaterThanOrEqual(1300);
+    expect(camera!.camera.focus[0]).toBeCloseTo(1.1, 1);
+  });
+
+  it('puede fotografiar un baño compacto desde cerca de su puerta', () => {
+    const doc = named([
+      { x: 0, y: 0 }, { x: 3200, y: 0 },
+      { x: 3200, y: 1725 }, { x: 0, y: 1725 },
+    ], 'Baño');
+    doc.openings = [{ id: 'door', wallId: 'w1', kind: 'puerta', position: .65,
+      widthMm: 800, dimensionalOrigin: 'physical' }];
+    doc.furniture = [
+      { id: 'bath', kind: 'banera', catalogId: 'habiteka:furniture:banera',
+        x: 100, y: 100, widthMm: 1900, depthMm: 800, rotation: 0, dimensionalOrigin: 'physical' },
+      { id: 'sink', kind: 'lavabo', catalogId: 'habiteka:furniture:lavabo',
+        x: 2500, y: 100, widthMm: 500, depthMm: 500, rotation: 0, dimensionalOrigin: 'physical' },
+      { id: 'cabinet', kind: 'armario', catalogId: 'habiteka:furniture:columna-bano',
+        x: 100, y: 1000, widthMm: 1900, depthMm: 600, rotation: 0, dimensionalOrigin: 'physical' },
+    ];
+    const [camera] = roomInteriorCameras(doc);
+    expect(camera!.camera.position[0]).toBeGreaterThan(2.2);
+    expect(insideRoom({ x: camera!.camera.position[0] * 1000,
+      y: camera!.camera.position[2] * 1000 }, deriveRooms(doc)[0]!.boundary)).toBe(true);
   });
 
   it('descarta las posiciones ocupadas por mobiliario', () => {

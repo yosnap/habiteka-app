@@ -7,7 +7,7 @@ import { parseEditorDocument } from './validation';
 
 /** Old commands remain scoped to root arrays; never duplicate the active document. */
 export function levelDocument(input: EditorDocument): EditorDocument {
-  const copy = structuredClone(input); delete copy.levels; delete copy.activeLevelId;
+  const copy = structuredClone(input); delete copy.levels; delete copy.activeLevelId; delete copy.geographicSite;
   return copy;
 }
 function building(input: EditorDocument): EditorDocument {
@@ -26,7 +26,7 @@ export function switchBuildingLevel(input: EditorDocument, id: string): EditorDo
   const content = target.document;
   current.document = levelDocument(doc); delete target.document;
   return parseEditorDocument({ ...content, schemaVersion: Math.max(5, content.schemaVersion), floorFinishes: content.floorFinishes ?? [],
-    levels: doc.levels, activeLevelId: id, revision: doc.revision + 1 });
+    levels: doc.levels, activeLevelId: id, geographicSite: doc.geographicSite, revision: doc.revision + 1 });
 }
 export function addBuildingLevel(input: EditorDocument, copyActive = false): EditorDocument {
   const doc = building(input), id = crypto.randomUUID();

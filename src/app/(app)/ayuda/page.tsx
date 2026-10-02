@@ -36,10 +36,18 @@ export default function AyudaPage() {
       <div className="mb-8">
         <h1 className="text-ink text-2xl font-semibold tracking-tight">Ayuda</h1>
         <p className="text-ink-soft mt-1 text-sm">
-          Herramientas, atajos de teclado y flujo del estudio de planos.
+          Guía de proyectos, parcela, diseños y vídeos. Herramientas y atajos del editor.
         </p>
       </div>
 
+      <Card className="mb-8 border-brand-100 bg-brand-50 p-5">
+        <h2 className="text-lg font-semibold">Manual de Habiteka</h2>
+        <p className="mt-2 text-sm text-ink-soft">Guías de proyectos, parcela real, imágenes y vídeos, herramientas, atajos y resolución de problemas.</p>
+        <a className="mt-4 inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          href={process.env.NODE_ENV === 'development' ? 'http://docs.localhost:3040' : 'https://docs.habiteka.app'}>
+          Abrir documentación
+        </a>
+      </Card>
       <div className="grid gap-4 sm:grid-cols-2">
         <Section title="Herramientas" hint="Pulsa la tecla con el foco fuera de un campo de texto.">
           <ShortcutRow keys={<Key>S</Key>} label="Seleccionar" />

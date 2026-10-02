@@ -118,6 +118,22 @@ describe('paseo libre', () => {
     expect(centers.every((point) => nav.free(point))).toBe(true);
   });
 
+  it('cruza del descansillo al patio a la misma cota sin inventar un hueco por el margen lateral', () => {
+    const patio = addOutdoorArea(emptyEditorDocument(), { x: 0, y: 0 }, { x: 3000, y: 3000 });
+    const patioId = walkthroughNavigation(patio).roomAt({ x: 2500, y: 1500 })!.id;
+    const raised = setFloorFinish(patio, patioId, { elevationMm: 1000 });
+    const doc = addRamp(raised, { id: 'landing', catalogId: 'builtin:ramp-landing',
+      x: 4000, y: 3000, widthMm: 1000, depthMm: 3000, riseMm: 0,
+      elevationMm: 1000, rotation: 180, materialId: 'concrete-grey' });
+    const nav = walkthroughNavigation(doc);
+    expect(nav.segmentBlock({ x: 3500, y: 1500 }, { x: 2500, y: 1500 })).toBeNull();
+    expect(nav.blockAt({ x: 3900, y: 1500 })).toMatchObject({ kind: 'ramp-edge', entityId: 'landing' });
+    const separated = structuredClone(doc);
+    separated.ramps![0]!.x += 50;
+    expect(walkthroughNavigation(separated).segmentBlock({ x: 3550, y: 1500 },
+      { x: 2500, y: 1500 })?.kind).toBe('ramp-edge');
+  });
+
   it('sube y baja peldaños reales sin poder salir de lado en altura', () => {
     const doc = addStair(twoRooms(), { id: 'stair', kind: 'straight', catalogId: 'stair-straight',
       x: 1000, y: 500, widthMm: 1000, depthMm: 3000, heightMm: 900, elevationMm: 0,

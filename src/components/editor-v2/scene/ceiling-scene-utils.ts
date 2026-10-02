@@ -2,10 +2,28 @@ import { Color, Path, Shape, SpotLight } from 'three';
 import type { Pair, Polygon } from 'polygon-clipping';
 import { robustDifference } from '@/canvas/editor-v2/scene/floor-meshes';
 import type { Luminaire, Point } from '@/lib/editor-document/schema';
-import { spotAimVector, SPOT_CONE_DEG } from '@/lib/editor-document/ceiling-geometry';
+import { spotAimVector, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM, type CeilingSurface } from '@/lib/editor-document/ceiling-geometry';
 
 export type CeilingView = 'hidden' | 'transparent' | 'solid';
 export const MAX_LUMINAIRE_LIGHTS = 12;
+/** La captura usa su visibilidad propia, aunque la escena viva esté en otra cámara. */
+export function sceneCoversHidden(view: string | null, ceiling: CeilingView,
+  capture: { ceiling: CeilingView; aerial: boolean } | null, recording: boolean): boolean {
+  if (recording) return false;
+  return capture ? capture.aerial || capture.ceiling === 'hidden' : view === 'top' || ceiling === 'hidden';
+}
+/** Vistas de estudio: desde arriba sin cubierta; alzados con techo y fachada recortada. */
+export function presetCeilingView(view: string, current: CeilingView): CeilingView {
+  if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
+  if (view === 'front' || view === 'back' || view === 'left' || view === 'right') return 'solid';
+  return current;
+}
+/** El falso techo baja hacia el interior; la losa exterior arranca a la altura de los muros. */
+export function roofSlabPlacement(surface: Pick<CeilingSurface, 'heightMm' | 'ceiling'>) {
+  const bottomM = (surface.heightMm + surface.ceiling.dropMm) / 1000;
+  const thicknessM = (surface.ceiling.roofThicknessMm ?? DEFAULT_ROOF_THICKNESS_MM) / 1000;
+  return { bottomM, thicknessM, topM: bottomM + thicknessM };
+}
 
 export function captureCeilingView(view: string | null | undefined, custom?: {
   cutaway: boolean; cameraHeightM: number; highestCeilingM: number | null;
@@ -19,12 +37,14 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
 }
 
 /**
- * Los alzados e isométrica miran la planta desde fuera: sin recorte solo se ve
- * la fachada. En esas capturas se ocultan los muros exteriores hacia la cámara
- * aunque el 3D de trabajo los muestre; el resto respeta la elección del usuario.
+ * Los alzados miran la planta desde fuera: se puede retirar la fachada para ver
+ * el interior. Cenital, isométrica y dron conservan todos los muros; para ver
+ * el interior desde arriba se gestiona el techo por separado.
  */
 export function captureCutaway(view: string | null | undefined, cutaway: boolean): boolean {
-  if (view === 'front' || view === 'back' || view === 'left' || view === 'right' || view === 'isometric') return true;
+  if (view === 'exterior') return false;
+  if (view === 'top' || view === 'isometric' || view === 'drone') return false;
+  if (view === 'front' || view === 'back' || view === 'left' || view === 'right') return true;
   return cutaway;
 }
 

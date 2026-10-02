@@ -51,7 +51,7 @@ function placementLabel(item: SpatialClipboardItem): string {
   return elementName(item);
 }
 
-export function CanvasView({ store, onCenter, active = true, dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null }) {
+export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -65,8 +65,18 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
   const zoneTool = useLightZoneTool(store);
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
-  const [size, setSize] = useState({ width: 800, height: 600 });
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
+  const initialFitDone = useRef(false);
+  useEffect(() => {
+    if (!fitOnMount || initialFitDone.current || size.width <= 100 || size.height <= 100) return;
+    const frame = requestAnimationFrame(() => {
+      if (initialFitDone.current) return;
+      initialFitDone.current = true;
+      if (!store.getState().focusPoint) setView(fittedView(doc, size));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fitOnMount, doc, size, store]);
   const [loadedReference, setLoadedReference] = useState<{ url: string; image: HTMLImageElement } | null>(null);
   const [referenceVisible, setReferenceVisible] = useState(Boolean(reference));
   const [referenceOpacity, setReferenceOpacity] = useState(0.75);
@@ -85,7 +95,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
   const focusPoint = useStore(store, (s) => s.focusPoint);
   const [handledFocus, setHandledFocus] = useState(focusPoint);
-  if (focusPoint !== handledFocus) {
+  if (active && size.width > 100 && size.height > 100 && focusPoint !== handledFocus) {
     setHandledFocus(focusPoint);
     if (focusPoint) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
   }
@@ -134,7 +144,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const [handledRequest, setHandledRequest] = useState(viewRequest);
   if (viewRequest !== handledRequest) {
     setHandledRequest(viewRequest);
-    if (viewRequest) setView((current) => viewRequest.kind === 'fit' ? fittedView(doc, size) : zoomedView(current, viewRequest.kind === 'zoom-in' ? 1.25 : .8, size));
+    if (viewRequest && active) setView((current) => viewRequest.kind === 'fit' ? fittedView(doc, size) : zoomedView(current, viewRequest.kind === 'zoom-in' ? 1.25 : .8, size));
   }
   const point = () => {
     const p = stage.current?.getRelativePointerPosition();
@@ -220,6 +230,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
     setMarquee(null);
   };
   const grid = useMemo(() => {
+    if (presentation === 'visual') return [];
     const step = view.scale < .04 ? 1000 : 500, lines: number[][] = [];
     const left = -view.x / view.scale, top = -view.y / view.scale;
     for (let x = Math.floor(left / step) * step; x < left + size.width / view.scale; x += step)
@@ -227,7 +238,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
     for (let y = Math.floor(top / step) * step; y < top + size.height / view.scale; y += step)
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
-  }, [size, view]);
+  }, [presentation, size, view]);
   const drawing = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
@@ -250,7 +261,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
-  return <div className={styles.canvas} ref={container} aria-label="Lienzo del plano" tabIndex={0}
+  return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
     onKeyDown={(e) => {
       if (e.key === 'Escape') { cancel(); return; }
       if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
@@ -258,7 +269,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       if (e.key === 'Enter') { e.preventDefault(); zoneTool.close(); }
       else if (e.key === 'Backspace') { e.preventDefault(); zoneTool.undoVertex(); }
     }} onPointerCancel={cancel}>
-    <Stage ref={stage} width={size.width} height={size.height} x={view.x} y={view.y}
+    {size.width > 0 && size.height > 0 && <Stage ref={stage} width={size.width} height={size.height} x={view.x} y={view.y}
       scaleX={view.scale} scaleY={view.scale} draggable={pan}
       onDragEnd={(e) => { if (e.target === stage.current) updateView({ ...view, ...e.target.position() }); }}
       onWheel={(e) => { e.evt.preventDefault(); zoom(e.evt.deltaY > 0 ? .9 : 1.1, stage.current?.getPointerPosition() ?? undefined); }}
@@ -345,11 +356,11 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       onDblClick={() => { if (!pan && zoneTool.active) zoneTool.close(); }} >
 
       {showReference && reference && referenceImage && <Layer listening={false}>
-        <KonvaImage image={referenceImage} x={0} y={0} width={reference.widthMm} height={reference.heightMm}
+        <KonvaImage image={referenceImage} x={reference.xMm ?? 0} y={reference.yMm ?? 0} width={reference.widthMm} height={reference.heightMm}
           opacity={referenceOpacity} listening={false} />
       </Layer>}
       {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}:${presentation}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
       <>{start && pointer && <Line points={(tool === 'rectangle')
@@ -395,7 +406,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       </Group>}</>
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>
-    </Stage>
+    </Stage>}
     {wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Cerrar habitación · prolongar pared existente sin añadir un tramo
     </div>}
@@ -420,7 +431,7 @@ export function CanvasView({ store, onCenter, active = true, dimensions = 'all',
       Mueve la copia y haz clic para colocarla · Esc para cancelar
     </div>}
     {!pan && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina
+      {readOnly ? 'Diseño aprobado · usa el borrador para hacer cambios' : presentation === 'visual' ? 'Añade desde Amueblar o Construir · arrastra para mover · selecciona para editar' : 'Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina'}
     </div>}
     {!pan && <CanvasSelectionMenu store={store} view={view} size={size} />}
     {!doc.walls.length && !planObjects(doc).length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>

@@ -37,6 +37,8 @@ interface Props {
    */
   onPolygon: (polygon: Point[], name: string) => void;
   disabled?: boolean;
+  /** Las subdivisiones de una estancia abierta necesitan vértices libres, sin imán a sus muros. */
+  snapToWalls?: boolean;
   /** Cuando está lleno no se admite dibujar más y se explica por qué. */
   full?: boolean;
   fullMessage?: string;
@@ -58,6 +60,7 @@ export function ZoneDrawCanvas({
   onNameChange,
   onPolygon,
   disabled,
+  snapToWalls = true,
   full = false,
   fullMessage,
   label,
@@ -85,7 +88,7 @@ export function ZoneDrawCanvas({
     return bounds && width ? width / bounds.width : 0;
   };
   const snapped = (point: Point): Point =>
-    document && mode === 'polygon' && scale()
+    document && snapToWalls && mode === 'polygon' && scale()
       ? snapWallPoint(document, point, scale(), true).point
       : point;
 

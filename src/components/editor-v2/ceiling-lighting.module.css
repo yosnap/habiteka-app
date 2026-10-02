@@ -21,6 +21,14 @@
 .light { border-top: 1px solid var(--ceiling-line); padding-top: 8px; }
 .light summary { cursor: pointer; min-height: 44px; padding: 8px 0; font-weight: 600; }
 .light > button { margin-top: 12px; }
+.blockReport { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--danger); border-radius: 8px; background: color-mix(in oklch, var(--paper), var(--danger) 5%); }
+.blockReport ol { display: grid; gap: 12px; margin: 0; padding-left: 22px; }
+.blockReport li { padding-bottom: 12px; border-bottom: 1px solid var(--ceiling-line); }
+.blockReport li.activeBlock { margin-left: -10px; padding: 8px 10px 12px; border: 2px solid var(--danger); border-radius: 8px; background: var(--paper); }
+.blockReport li:last-child { padding-bottom: 0; border-bottom: 0; }
+.blockReport li p { margin: 4px 0; }
+.blockReport li small { display: block; color: var(--ceiling-muted); }
+.blockReport li button { margin-top: 8px; }
 .proposal { border-top: 1px solid var(--ceiling-line); padding-top: 12px; display: grid; gap: 12px; }
 .proposal > div { display: grid; gap: 12px; }
 @media (max-width: 480px) { .panel { padding: 12px; } }

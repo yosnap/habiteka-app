@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
-import { sanitizeImageBuffer, rejectExternalImageUrl } from '@/server/ai/image/input-sanitizer';
+import { randomBytes } from 'node:crypto';
+import { sanitizeImageBuffer, sanitizeOwnRenderBuffer, rejectExternalImageUrl } from '@/server/ai/image/input-sanitizer';
 
 // Genera imágenes reales con sharp para ejercer los bytes mágicos y dimensiones.
 async function pngBuffer(size: number): Promise<Buffer> {
@@ -33,5 +34,17 @@ describe('input-sanitizer (anti-SSRF / decompression-bomb)', () => {
 
   it('prohíbe URLs de imagen externas del usuario', () => {
     expect(() => rejectExternalImageUrl()).toThrowError(/externas/);
+  });
+
+  it('reduce un resultado propio que excede 10 MB antes de auditarlo', async () => {
+    const original = await sharp(randomBytes(1900 * 1900 * 3), {
+      raw: { width: 1900, height: 1900, channels: 3 },
+    }).png().toBuffer();
+    expect(original.byteLength).toBeGreaterThan(10 * 1024 * 1024);
+    await expect(sanitizeImageBuffer(original)).rejects.toMatchObject({ kind: 'call_limit' });
+    const sanitized = await sanitizeOwnRenderBuffer(original);
+    const result = Buffer.from(sanitized.base64, 'base64');
+    expect(result.byteLength).toBeLessThanOrEqual(10 * 1024 * 1024);
+    expect(sanitized.width).toBeLessThan(1900);
   });
 });

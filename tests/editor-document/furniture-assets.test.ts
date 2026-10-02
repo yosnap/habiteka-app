@@ -13,8 +13,8 @@ import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { CATALOG_BY_KIND } from '@/canvas/catalog';
 
 describe('audited local furniture assets', () => {
-  it('registers 34 distinct local assets with intact GLB binaries', () => {
-    expect(ASSET_CATALOG).toHaveLength(34);
+  it('registers 36 distinct local assets with intact GLB binaries', () => {
+    expect(ASSET_CATALOG).toHaveLength(36);
     expect(new Set(FURNITURE_CATALOG.map((item) => item.id)).size).toBe(FURNITURE_CATALOG.length);
     for (const entry of ASSET_CATALOG) {
       const asset = furnitureAsset({ catalogId: entry.id })!;
@@ -34,6 +34,17 @@ describe('audited local furniture assets', () => {
     const before = emptyEditorDocument(), next = addFurniture(before, CATALOG_BY_KIND.sofa!, { x: 0, y: 0 });
     expect(next.schemaVersion).toBe(2); expect(next.furniture[0]!.catalogId).toBe('builtin:sofa');
     expect(before.furniture).toHaveLength(0);
+  });
+  it('resuelve el turismo local auditado sin cambiar su volumen de colisión', () => {
+    expect(furnitureAsset({ catalogId: 'habiteka:outdoor:coche' })).toBeUndefined();
+    const entry = getFurnitureCatalogEntry('habiteka:outdoor:coche:turismo-3d')!;
+    const item = addFurniture(emptyEditorDocument(), entry, { x: 0, y: 0 }).furniture[0]!;
+    const asset = furnitureAsset(item)!;
+    const buffer = readFileSync(`public${asset.url}`);
+    expect(createHash('sha256').update(buffer).digest('hex')).toBe(asset.sha256);
+    expect(asset).toMatchObject({ key: 'coche', license: 'CC0-1.0', frontRotation: Math.PI,
+      tintMaterialNames: ['paintB'] });
+    expect(furnitureVolumes(item)).toHaveLength(9);
   });
   it('names previously approximate files by their real content', () => {
     expect(getFurnitureCatalogEntry('habiteka:asset:bidet')!.label).toBe('Contenedor de baño');

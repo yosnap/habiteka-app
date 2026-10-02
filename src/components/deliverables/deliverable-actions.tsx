@@ -5,7 +5,7 @@
  * una versión nueva y conserva la anterior) o preparar una variante en el asistente.
  * El plano se descarga desde su propio visor (el PNG sale del lienzo con el sello).
  */
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { callAction } from '@/lib/action-result';
@@ -31,11 +31,13 @@ export function DeliverableActions({
   projectId,
   deliverable,
   highlightChanges = false,
+  leadingAction,
 }: {
   projectId: string;
   deliverable: DeliverableView;
   /** Resalta «Pedir cambios» cuando la calidad del resultado es baja. */
   highlightChanges?: boolean;
+  leadingAction?: ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -102,6 +104,7 @@ export function DeliverableActions({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
+        {leadingAction}
         <DownloadButton deliverable={deliverable} />
         <Button
           type="button"

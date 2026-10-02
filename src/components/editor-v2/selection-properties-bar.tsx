@@ -19,6 +19,7 @@ import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-comm
 import { CurvedWallIcon, StraightWallIcon } from './wall-action-icons';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { DecimalStepper } from './decimal-stepper';
+import { CarpaSidesField } from './carpa-sides-field';
 
 type RampDimensionKey = 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
 
@@ -99,6 +100,8 @@ export function SelectionPropertiesBar({ store, onProperties }: { store: EditorS
         {([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, text]) =>
           <MeasureField key={key} label={text} value={({ ...furniture, ...furnitureSpatial(furniture) })[key] / 1000}
             minimum={key === 'elevationMm' ? 0 : .001} onCommit={(n) => run((current) => updateFurniture(current, id, { [key]: n * 1000 }))} />)}
+        {furniture.kind === 'carpa' && <CarpaSidesField className={styles.measureField} value={furniture.rolledSides}
+          onChange={(rolledSides) => run((current) => updateFurniture(current, id, { rolledSides }))} />}
       </>}
       {(furniture || stair || ramp) && <MeasureField label="Ángulo" unit="°" minimum={-36000} value={(furniture ?? stair ?? ramp)!.rotation}
         onCommit={(rotation) => run((current) => furniture ? updateFurniture(current, id, { rotation }) : stair ? updateStair(current, id, { rotation }) : updateRamp(current, id, { rotation }))} />}

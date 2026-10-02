@@ -10,6 +10,7 @@ import { activeSceneForRoom, effectiveLuminaire } from './lighting-scene';
 
 /** Altura libre mínima bajo techo y luminarias; un solo sitio para geometría, comandos y mensajes. */
 export const MIN_FREE_HEIGHT_MM = 2100;
+export const DEFAULT_ROOF_THICKNESS_MM = 160;
 
 export interface CeilingSurface { ceiling: Ceiling; room: DerivedRoom; heightMm: number; }
 export interface ResolvedLuminaire {
@@ -30,10 +31,16 @@ export interface ResolvedLuminaire {
 }
 /** Un recinto lógico exterior no implica una cubierta. Las paredes ocultadas a mano siguen siendo interiores. */
 export function eligibleCeilingRooms(doc: EditorDocument): DerivedRoom[] {
-  if (doc.designSpaceKind && doc.designSpaceKind !== 'interior') return [];
-  return deriveRooms(doc).filter((room) =>
+  const rooms = deriveRooms(doc);
+  const isIndoorRoom = (room: DerivedRoom) =>
     !room.wallIds.some((id) => doc.walls.some((wall) => wall.id === id && wall.hidden && (id.startsWith('hidden:') || id.startsWith('outdoor:')))) &&
-    !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary)));
+    !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary));
+  const indoor = rooms.filter(isIndoorRoom);
+  // «Patio», «terraza» y «jardín» describen un espacio exterior completo solo
+  // cuando el plano no distingue ya sus áreas abiertas de las habitaciones.
+  const wholeOutdoor = ['patio', 'terraza', 'jardin'].includes(doc.designSpaceKind ?? '') &&
+    !doc.ceilings?.length && indoor.length === rooms.length;
+  return wholeOutdoor ? [] : indoor;
 }
 export function ceilingSurfaces(doc: EditorDocument): CeilingSurface[] {
   if (!doc.ceilings?.length) return [];
@@ -49,6 +56,14 @@ export function ceilingSurfaces(doc: EditorDocument): CeilingSurface[] {
     const heightMm = top - ceiling.dropMm;
     return heightMm - (floorFinish(doc, room.id).elevationMm ?? 0) < MIN_FREE_HEIGHT_MM ? [] : [{ ceiling, room, heightMm }];
   });
+}
+/** La vista exterior terminada solo puede ocultar el interior si todas sus estancias tienen cubierta válida. */
+export function hasCompleteInteriorRoof(doc: EditorDocument): boolean {
+  try {
+    const rooms = eligibleCeilingRooms(doc);
+    const covered = new Set(ceilingSurfaces(doc).map((surface) => surface.room.id));
+    return rooms.length > 0 && rooms.every((room) => covered.has(room.id));
+  } catch { return false; }
 }
 export const luminaireRadiusMm = (kind: Luminaire['kind'], mount?: Luminaire['mount']) =>
   kind === 'pendant' ? 180 : kind === 'flush' ? 160 : kind === 'spot' ? (mount === 'recessed' ? 60 : 90) : 50;

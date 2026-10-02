@@ -44,7 +44,28 @@ export function alignBackToWall(doc: EditorDocument, item: Furniture, toleranceM
   return { ...turned, x: turned.x - best.normal.x * offset, y: turned.y - best.normal.y * offset };
 }
 
+/** Giro máximo con el que un tramo de cocina se endereza contra su muro: corrige desviaciones, no cambia de pared. */
+const KITCHEN_RUN_MAX_TURN_DEG = 3;
+/**
+ * Un tramo de cocina pegado a un muro ligeramente inclinado gira lo justo para apoyar toda la trasera en su cara y no
+ * dejar una cuña de holgura. Si el muro más cercano exigiera un giro mayor, el tramo se queda como estaba.
+ */
+export function alignKitchenRunToWall<T extends Furniture>(doc: EditorDocument, run: T, toleranceMm: number): T {
+  const aligned = alignBackToWall(doc, run, toleranceMm) as T;
+  const turn = Math.abs((aligned.rotation - run.rotation + 540) % 360 - 180);
+  return turn <= KITCHEN_RUN_MAX_TURN_DEG ? aligned : run;
+}
+
 const BLINDS = new Set(['roller', 'venetian', 'shutter']), CURTAINS = new Set(['curtain', 'curtain-open']);
+/** Una alfombra es un revestimiento del suelo: los muebles se apoyan encima, no chocan con ella. */
+export function isFloorCovering(item: Furniture): boolean {
+  return getFurnitureCatalogEntry(item.catalogId)?.profile === 'rug';
+}
+/** Estores, persianas y cortinas cuelgan de la ventana: son una piel sobre el muro, no un volumen que estorbe. */
+export function isWindowCovering(item: Furniture): boolean {
+  const profile = getFurnitureCatalogEntry(item.catalogId)?.profile;
+  return !!profile && (BLINDS.has(profile) || CURTAINS.has(profile));
+}
 /**
  * Estores, persianas y cortinas se enganchan a la ventana más cercana del muro donde apoyan: centrados en ella y con
  * medidas que la cubren (los estores y persianas nacen a la altura del alféizar; las cortinas llegan hasta el dintel).

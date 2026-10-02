@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, sceneCoversHidden, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
+  it('conserva pérgolas en capturas laterales aunque la escena esté en cenital sin techo', () => {
+    expect(sceneCoversHidden('top', 'hidden', { ceiling: 'solid', aerial: false }, false)).toBe(false);
+    expect(sceneCoversHidden('front', 'solid', { ceiling: 'hidden', aerial: true }, false)).toBe(true);
+    expect(sceneCoversHidden('top', 'hidden', null, false)).toBe(true);
+    expect(sceneCoversHidden('top', 'hidden', null, true)).toBe(false);
+  });
   it('recorta el techo inferior con un hueco transitable para la escalera', () => {
     const shapes = ceilingShapes([
       { x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 },
@@ -100,6 +106,27 @@ describe('representación de techos e iluminación', () => {
     for (const view of ['top', 'isometric', 'drone']) expect(captureCeilingView(view)).toBe('hidden');
     for (const view of ['front', 'back', 'left', 'right', null]) expect(captureCeilingView(view)).toBe('solid');
   });
+  it('mantiene fachada y cubierta en Exterior terminado aunque la vista viva esté seccionada', () => {
+    expect(captureCutaway('exterior', true)).toBe(false);
+    expect(captureCeilingView('exterior', { cutaway: true, cameraHeightM: 9, highestCeilingM: 3, forDesign: true })).toBe('solid');
+    expect(sceneCoversHidden('isometric', 'hidden', { ceiling: 'solid', aerial: false }, false)).toBe(false);
+  });
+  it('oculta cubierta en dron y abre fachadas independientemente de que exista un tejado', () => {
+    const context = { cutaway: false, cameraHeightM: 9, highestCeilingM: 3 };
+    expect(captureCeilingView('drone', context)).toBe('hidden');
+    expect(captureCutaway('front', false)).toBe(true);
+    expect(captureCutaway('right', false)).toBe(true);
+  });
+  it('adapta el techo al cambiar entre maqueta y vistas exteriores terminadas', () => {
+    for (const view of ['front', 'back', 'left', 'right']) {
+      expect(presetCeilingView(view, 'transparent')).toBe('solid');
+      expect(presetCeilingView(view, 'hidden')).toBe('solid');
+    }
+    expect(presetCeilingView('isometric', 'solid')).toBe('hidden');
+    expect(presetCeilingView('top', 'solid')).toBe('hidden');
+    expect(presetCeilingView('drone', 'solid')).toBe('hidden');
+    expect(presetCeilingView('fit', 'solid')).toBe('solid');
+  });
   it('oculta techo en órbita libre por encima del edificio solo con corte activo', () => {
     const context = { cutaway: true, cameraHeightM: 8, highestCeilingM: 5.4 };
     for (const view of [null, 'current', 'custom']) expect(captureCeilingView(view, context)).toBe('hidden');
@@ -117,11 +144,17 @@ describe('representación de techos e iluminación', () => {
 });
 
 describe('recorte de muros en capturas', () => {
-  it('fuerza el recorte en alzados e isométrica aunque el 3D muestre todos los muros', () => {
-    for (const view of ['front', 'back', 'left', 'right', 'isometric']) expect(captureCutaway(view, false)).toBe(true);
+  it('abre solo los alzados aunque el 3D muestre todos los muros', () => {
+    for (const view of ['front', 'back', 'left', 'right']) expect(captureCutaway(view, false)).toBe(true);
   });
-  it('respeta la elección del usuario en cenital, dron y vista libre', () => {
-    for (const view of ['top', 'drone', 'custom', 'current', null]) {
+  it('conserva todos los muros en cenital, isométrica y dron', () => {
+    for (const view of ['top', 'isometric', 'drone']) {
+      expect(captureCutaway(view, false)).toBe(false);
+      expect(captureCutaway(view, true)).toBe(false);
+    }
+  });
+  it('respeta la elección del usuario en vista libre', () => {
+    for (const view of ['custom', 'current', null]) {
       expect(captureCutaway(view, false)).toBe(false);
       expect(captureCutaway(view, true)).toBe(true);
     }

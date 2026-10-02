@@ -112,9 +112,9 @@ export async function hasPendingUserDrafts(userId: string): Promise<boolean> {
 }
 
 /** Enumera solo el ámbito autorizado. Las ramas de otras pestañas nunca se sobrescriben. */
-export async function listScopeDrafts(scope: DraftScope): Promise<{ drafts: EditorDraft[]; invalid: number }> {
+export async function listScopeDrafts(scope: DraftScope): Promise<{ drafts: EditorDraft[]; invalid: number; invalidKeys: string[] }> {
   return transaction('readonly', (store, done) => {
-    const result = { drafts: [] as EditorDraft[], invalid: 0 };
+    const result = { drafts: [] as EditorDraft[], invalid: 0, invalidKeys: [] as string[] };
     const request = store.index('userId').openCursor(IDBKeyRange.only(scope.userId));
     request.onsuccess = () => {
       const cursor = request.result;
@@ -122,7 +122,8 @@ export async function listScopeDrafts(scope: DraftScope): Promise<{ drafts: Edit
       const raw = cursor.value as EditorDraft;
       if (raw.scope?.organizationId === scope.organizationId && raw.scope?.projectId === scope.projectId &&
         raw.scope?.zoneId === scope.zoneId) {
-        try { result.drafts.push(parseEditorDraft(raw)); } catch { result.invalid += 1; }
+        try { result.drafts.push(parseEditorDraft(raw)); }
+        catch { result.invalid += 1; result.invalidKeys.push(String(cursor.key)); }
       }
       cursor.continue();
     };

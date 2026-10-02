@@ -13,6 +13,7 @@ import type { PlanEvidence } from './evidence/plan-evidence';
 import { explainEditorEvidence, type EditorEvidence } from './evidence/editor-evidence';
 import { CHANGE_INSTRUCTION } from './checkpoints-instruction';
 import { MEMORIA_RESULT, PLAN_RESULT, RENDER_RESULT } from './checkpoints-results';
+import { VIDEO_KEYFRAMES } from './checkpoints-video';
 
 export type { CheckpointDefinition, CheckpointQuestion } from './checkpoint-kit';
 export { choiceToUnit, noulToUnit, scoreToUnit } from './checkpoint-kit';
@@ -236,6 +237,7 @@ const REGISTRY = {
   [RENDER_RESULT.id]: RENDER_RESULT,
   [MEMORIA_RESULT.id]: MEMORIA_RESULT,
   [PLAN_RESULT.id]: PLAN_RESULT,
+  [VIDEO_KEYFRAMES.id]: VIDEO_KEYFRAMES,
 } satisfies Record<string, CheckpointDefinition<never>>;
 
 export type CheckpointId = keyof typeof REGISTRY;

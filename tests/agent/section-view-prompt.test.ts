@@ -4,7 +4,7 @@ import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
 import { renderViewSchema } from '@/lib/editor-document/render-view';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
-import { SECTION_VIEW_RULE, SECTION_VIEW_RULE_COMPACT, selectedViewPrompt } from '@/server/agent/editor-v2/selected-view-prompt';
+import { FINISHED_EXTERIOR_VIEW_RULE, FINISHED_EXTERIOR_VIEW_RULE_COMPACT, SECTION_VIEW_RULE, SECTION_VIEW_RULE_COMPACT, selectedViewPrompt } from '@/server/agent/editor-v2/selected-view-prompt';
 import { COMPACT_PROMPT_LIMIT } from '@/server/agent/editor-v2/interior-prompt-scope';
 import raw from '../editor-document/fixtures/plano-vivienda-real.json';
 
@@ -21,6 +21,16 @@ describe('vistas desde fuera del edificio', () => {
     const compact = selectedViewPrompt(plan, view('right'), 'moderno', '', '', options, true);
     expect(full).toContain(SECTION_VIEW_RULE);
     expect(compact).toContain(SECTION_VIEW_RULE_COMPACT);
+    expect(compact.length).toBeLessThanOrEqual(COMPACT_PROMPT_LIMIT);
+  });
+  it('una cubierta completa se describe como inmueble exterior terminado', () => {
+    const finished = { ...view('drone'), ceilingView: 'solid' as const };
+    const full = selectedViewPrompt(plan, finished, 'moderno', '', '', options);
+    const compact = selectedViewPrompt(plan, finished, 'moderno', '', '', options, true);
+    expect(full).toContain(FINISHED_EXTERIOR_VIEW_RULE);
+    expect(full).not.toContain(SECTION_VIEW_RULE);
+    expect(compact).toContain(FINISHED_EXTERIOR_VIEW_RULE_COMPACT);
+    expect(compact).not.toContain(SECTION_VIEW_RULE_COMPACT);
     expect(compact.length).toBeLessThanOrEqual(COMPACT_PROMPT_LIMIT);
   });
   it('una cámara libre solo lo es si mira a través de muros recortados', () => {

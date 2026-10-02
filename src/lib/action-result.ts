@@ -14,6 +14,7 @@
  */
 export interface ActionErrorResult {
   actionError: string;
+  code?: string;
 }
 
 export function isActionError(value: unknown): value is ActionErrorResult {
@@ -32,6 +33,6 @@ export function isActionError(value: unknown): value is ActionErrorResult {
  */
 export async function callAction<T>(promise: Promise<T | ActionErrorResult>): Promise<T> {
   const result = await promise;
-  if (isActionError(result)) throw new Error(result.actionError);
+  if (isActionError(result)) throw Object.assign(new Error(result.actionError), { code: result.code });
   return result;
 }

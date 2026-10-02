@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Cliente Prisma generado: no se lintea código autogenerado.
     "src/generated/**",
+    // Astro tiene su propio chequeo; los generados no pertenecen a Next.js.
+    "docs/site/**",
+    "public/documentacion/**",
   ]),
 ]);
 

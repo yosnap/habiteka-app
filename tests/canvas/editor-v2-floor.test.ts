@@ -34,6 +34,9 @@ describe('interior finished floor', () => {
     const slab = setFloorFinish(solid, room.id, { slabThicknessMm: 250, undersideColor: '#123456' });
     const structural = editorDocumentToScene(slab).polygons.find((p) => p.sourceEntityId === room.id)!;
     expect(structural).toMatchObject({ elevation: 1.55, height: .25, sideColor: '#123456' });
+    const faced = setFloorFinish(solid, room.id, { undersideTexture: 'polyhaven:brushed_concrete' });
+    expect(editorDocumentToScene(faced).polygons.find((p) => p.sourceEntityId === room.id))
+      .toMatchObject({ sideColor: '#ffffff', floorFinish: { undersideTexture: 'polyhaven:brushed_concrete' } });
   });
   it('keeps door thresholds at floor level but clips solid window sills', () => {
     for (const kind of ['puerta', 'ventana'] as const) {

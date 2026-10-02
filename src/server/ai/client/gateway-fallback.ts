@@ -29,6 +29,9 @@ export async function withGatewayFallback<T>(call: GatewayCall<T>): Promise<T> {
   try {
     return await call.run(getGatewayClient({ baseURL: call.baseURL, apiKey: call.apiKey }));
   } catch (primaryErr) {
+    if ((primaryErr as { status?: number })?.status === 429) {
+      throw aiError('rate_limit', 'El modelo está temporalmente saturado; probando la ruta de respaldo', primaryErr);
+    }
     if (!isServerOrNetworkError(primaryErr)) {
       throw primaryErr;
     }

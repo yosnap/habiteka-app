@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { addLuminaire, removeCeiling, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
-import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
+import { addLuminaire, removeCeiling, setCeilingEdgeMaterialForAllRooms, setCeilingTopMaterialForAllRooms, setRoomCeiling, updateLuminaire } from '@/lib/editor-document/ceiling-commands';
+import { ceilingSurfaces, ceilingWarnings, eligibleCeilingRooms, hasCompleteInteriorRoof, resolvedLuminaires } from '@/lib/editor-document/ceiling-geometry';
 import { parseEditorDocument } from '@/lib/editor-document/validation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { addBuildingLevel, buildingDocuments, switchBuildingLevel } from '@/lib/editor-document/building-levels';
@@ -12,6 +12,9 @@ import { ceilingDesignContext } from '@/lib/editor-document/ceiling-design-conte
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
 import { setWallConstruction } from '@/lib/editor-document/construction-commands';
 import { applyCommand } from '@/lib/editor-document/commands';
+import { roofSlabPlacement } from '@/components/editor-v2/scene/ceiling-scene-utils';
+import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
+import { designScopeRooms } from '@/lib/editor-document/design-scope';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 5000 }, { x: 0, y: 5000 }], true);
 const ceiling = () => { const doc = room(); return setRoomCeiling(doc, deriveRooms(doc)[0]!.id); };
@@ -35,6 +38,95 @@ describe('contrato de techos y luminarias', () => {
     const outdoor = room(); outdoor.walls[0]!.id = 'hidden:outdoor'; outdoor.walls[0]!.hidden = true;
     expect(eligibleCeilingRooms(outdoor)).toEqual([]);
     expect(eligibleCeilingRooms(setDesignSpaceKind(room(), 'patio'))).toEqual([]);
+  });
+  it('conserva los techos existentes si se elige una captura de entrada o fachada', () => {
+    const covered = ceiling();
+    for (const kind of ['entrada', 'fachada'] as const) {
+      const doc = setDesignSpaceKind(covered, kind);
+      expect(eligibleCeilingRooms(doc)).toHaveLength(1);
+      expect(ceilingSurfaces(doc)).toHaveLength(1);
+      expect(ceilingWarnings(doc)).toEqual([]);
+    }
+  });
+  it('mantiene separados interior y exterior al diseñar una entrada con techo existente', () => {
+    const mixed = setDesignSpaceKind(addOutdoorArea(ceiling(), { x: 5000, y: 0 }, { x: 8000, y: 5000 }), 'entrada');
+    const inside = designScopeRooms(mixed, { kind: 'interior', roomIds: [] });
+    const outside = designScopeRooms(mixed, { kind: 'exterior', roomIds: [] });
+    expect(inside).toHaveLength(1);
+    expect(outside).toHaveLength(1);
+    expect(inside[0]!.id).toBe(mixed.ceilings![0]!.roomId);
+    expect(outside[0]!.id).not.toBe(inside[0]!.id);
+  });
+  it('permite diseñar el interior sin techos de un inmueble con exterior definido', () => {
+    const roofless = addOutdoorArea(room(), { x: 5000, y: 0 }, { x: 8000, y: 5000 });
+    for (const kind of ['entrada', 'fachada', 'terraza'] as const) {
+      const doc = setDesignSpaceKind(roofless, kind);
+      expect(doc.ceilings?.length ?? 0).toBe(0);
+      expect(designScopeRooms(doc, { kind: 'interior', roomIds: [] })).toHaveLength(1);
+      expect(designScopeRooms(doc, { kind: 'exterior', roomIds: [] })).toHaveLength(1);
+    }
+    expect(eligibleCeilingRooms(setDesignSpaceKind(room(), 'entrada'))).toHaveLength(1);
+  });
+  it('solo considera terminada una cubierta con todas las estancias interiores válidas', () => {
+    expect(hasCompleteInteriorRoof(room())).toBe(false);
+    const covered = ceiling();
+    expect(hasCompleteInteriorRoof(covered)).toBe(true);
+    expect(hasCompleteInteriorRoof(setDesignSpaceKind(room(), 'patio'))).toBe(false);
+    expect(hasCompleteInteriorRoof(removeCeiling(covered, covered.ceilings![0]!.id))).toBe(false);
+  });
+  it('guarda un material exterior del techo separado del acabado interior', () => {
+    const original = ceiling(), roomId = original.ceilings![0]!.roomId;
+    const textured = setRoomCeiling(original, roomId, { topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(textured.ceilings![0]).toMatchObject({ color: '#f4f1e9', topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(ceilingDesignContext(textured).ceilings[0]?.topMaterialId).toBe('polyhaven:brushed_concrete_03');
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(textured)))).toEqual(textured);
+    expect(setRoomCeiling(textured, roomId, { color: '#eeeeee' }).ceilings![0]!.topMaterialId)
+      .toBe('polyhaven:brushed_concrete_03');
+    expect(setRoomCeiling(textured, roomId, { topMaterialId: null }).ceilings![0]!.topMaterialId).toBeUndefined();
+    expect(() => setRoomCeiling(original, roomId, { topMaterialId: 'material-inexistente' }))
+      .toThrow('Material de la cara superior');
+    expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
+  });
+  it('mantiene la cubierta sobre los muros cuando baja un falso techo y conserva su espesor', () => {
+    const base = ceiling(), roomId = base.ceilings![0]!.roomId;
+    const originalRoof = roofSlabPlacement(ceilingSurfaces(base)[0]!);
+    const lowered = setRoomCeiling(base, roomId, { kind: 'suspended', dropMm: 180, roofThicknessMm: 220 });
+    const changedRoof = roofSlabPlacement(ceilingSurfaces(lowered)[0]!);
+    expect(changedRoof.bottomM).toBe(originalRoof.bottomM);
+    expect(changedRoof.topM).toBeCloseTo(originalRoof.bottomM + .22);
+    expect(ceilingSurfaces(lowered)[0]!.heightMm).toBe(ceilingSurfaces(base)[0]!.heightMm - 180);
+    expect(ceilingDesignContext(lowered).ceilings[0]?.roofTopM).toBeCloseTo(changedRoof.topM);
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(lowered)))).toEqual(lowered);
+    expect(() => setRoomCeiling(base, roomId, { roofThicknessMm: 79 })).toThrow('Espesor de cubierta');
+    expect(() => setRoomCeiling(base, roomId, { roofThicknessMm: 401 })).toThrow('Espesor de cubierta');
+  });
+  it('aplica material superior en bloque sin cambiar el falso techo ni las luces', () => {
+    const base = ceiling(), first = base.ceilings![0]!;
+    const suspended = setRoomCeiling(base, first.roomId, { kind: 'suspended', dropMm: 180, color: '#ccddee' });
+    const original = addLuminaire(suspended, first.id, 'flush');
+    const textured = setCeilingTopMaterialForAllRooms(original, 'polyhaven:brushed_concrete_03');
+    expect(textured.ceilings![0]).toEqual({ ...original.ceilings![0], topMaterialId: 'polyhaven:brushed_concrete_03' });
+    expect(textured.luminaires).toEqual(original.luminaires);
+    expect(setCeilingTopMaterialForAllRooms(textured, null).ceilings).toEqual(original.ceilings);
+    expect(original.ceilings![0]!.topMaterialId).toBeUndefined();
+  });
+  it('mantiene independiente el material PBR del canto exterior', () => {
+    const original = ceiling(), roomId = original.ceilings![0]!.roomId;
+    const top = setRoomCeiling(original, roomId, { topMaterialId: 'polyhaven:brushed_concrete_03' });
+    const edge = setRoomCeiling(top, roomId, { edgeMaterialId: 'polyhaven:white_plaster_02' });
+    expect(edge.ceilings![0]).toMatchObject({
+      topMaterialId: 'polyhaven:brushed_concrete_03', edgeMaterialId: 'polyhaven:white_plaster_02',
+    });
+    expect(ceilingDesignContext(edge).ceilings[0]?.edgeMaterialId).toBe('polyhaven:white_plaster_02');
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(edge)))).toEqual(edge);
+    const lit = addLuminaire(edge, edge.ceilings![0]!.id, 'flush');
+    const cleared = setCeilingEdgeMaterialForAllRooms(lit, null);
+    expect(cleared.ceilings![0]!.topMaterialId).toBe('polyhaven:brushed_concrete_03');
+    expect(cleared.ceilings![0]!.edgeMaterialId).toBeUndefined();
+    expect(cleared.luminaires).toEqual(lit.luminaires);
+    expect(lit.ceilings![0]!.edgeMaterialId).toBe('polyhaven:white_plaster_02');
+    expect(() => setRoomCeiling(top, roomId, { edgeMaterialId: 'material-inexistente' }))
+      .toThrow('Material del canto');
   });
   it('adapta la altura de lámpara al techo y rechaza descensos incompatibles o focos sin cámara', () => {
     const doc = ceiling(), id = doc.ceilings![0]!.id, roomId = doc.ceilings![0]!.roomId;

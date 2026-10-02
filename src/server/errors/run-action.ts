@@ -12,7 +12,8 @@ export async function runAction<T>(fn: () => Promise<T>): Promise<T | ActionErro
   try {
     return await fn();
   } catch (err) {
-    if (err instanceof UserFacingError) return { actionError: err.message };
+    if (err instanceof UserFacingError) return { actionError: err.message,
+      ...('code' in err && typeof err.code === 'string' ? { code: err.code } : {}) };
     throw err;
   }
 }

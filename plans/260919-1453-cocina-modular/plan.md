@@ -62,3 +62,5 @@ Encuentros en esquina y huecos que cruzan una esquina; colisiones entre módulos
 - **Cortinas:** abiertas, enrollables y otras variantes, con colores.
 - **Persianas** y sus variedades.
 ✅ HECHO 2026-09-20: pérgola en madera, aluminio y acero (color editable con Pintar); carpa con cubierta a niveles y lona transparente en fondo y laterales, frente abierto (transparencia nueva en planta y 3D vía `opacity`); cortina abierta de dos paños, estor enrollable, persiana veneciana, de lamas verticales y enrollable exterior, con variantes de color (gris, azul, blanco, madera, negra). Pendiente si Paulo lo pide: material fotografiado (textura) sobre muebles sueltos, hoy solo color.
+
+✅ HECHO 2026-09-26: cada carpa permite recoger el lateral izquierdo, derecho o ambos desde las propiedades de selección (orientados desde el frente abierto). Las lonas recogidas quedan plegadas bajo la cubierta; la escena 3D y las colisiones de la visita comparten esa geometría. El estado se guarda en el documento y las carpas antiguas siguen con ambos laterales desplegados.

@@ -1,6 +1,7 @@
 'use client';
 import { Component, Suspense, useEffect, useMemo, type ReactNode } from 'react';
 import { Edges, Html, useGLTF } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
 import type { Furniture } from '@/lib/editor-document/schema';
 import { furnitureAsset, ORIGINAL_ASSET_COLOR } from '@/lib/editor-document/furniture-assets';
 import { furnitureSpatial, objectCenter } from '@/lib/editor-document/spatial-properties';
@@ -16,8 +17,10 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: boolean; onSelect: (id: string) => void }) {
   const asset = furnitureAsset(item)!, { scene } = useGLTF(asset.url, false, true);
   const spatial = furnitureSpatial(item), center = objectCenter(item);
+  const anisotropy = useThree((state) => Math.min(8, state.gl.capabilities.getMaxAnisotropy()));
   const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation,
-    spatial.color === ORIGINAL_ASSET_COLOR ? undefined : spatial.color), [scene, asset.frontRotation, spatial.color]);
+    spatial.color === ORIGINAL_ASSET_COLOR ? undefined : spatial.color, anisotropy, asset.tintMaterialNames),
+    [scene, asset.frontRotation, spatial.color, anisotropy, asset.tintMaterialNames]);
   useEffect(() => () => prepared.dispose(), [prepared]);
   return <group position={[center.x / 1000, spatial.elevationMm / 1000, center.y / 1000]}
     rotation={[0, -item.rotation * Math.PI / 180, 0]} onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
@@ -37,7 +40,7 @@ export function FurnitureModel({ item, boxes, selected, onSelect }: {
   item: Furniture; boxes: SceneBox[]; selected: boolean; onSelect: (id: string) => void;
 }) {
   const asset = furnitureAsset(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
-  const fallback = (failed: boolean) => <group>
+  const fallback = (failed: boolean) => <group userData={{ modelLoadState: failed ? 'failed' : 'loading' }}>
     {boxes.map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
     <Html center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
       <span role={failed ? 'alert' : 'status'} style={{ background: '#fff', color: '#36443d', padding: 4, fontSize: 11, whiteSpace: 'nowrap' }}>

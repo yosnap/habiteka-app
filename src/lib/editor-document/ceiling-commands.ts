@@ -54,13 +54,28 @@ function ceilingDropIssue(doc: EditorDocument, ceiling: Ceiling): string {
   return `Con ${Math.round(ceiling.dropMm / 10)} cm de descenso quedan ${metres(Math.max(0, free))} libres; el mínimo es ${metres(MIN_FREE_HEIGHT_MM)}.`;
 }
 
-export function setRoomCeiling(source: EditorDocument, roomId: string, patch: Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color'>> = {}): EditorDocument {
+type CeilingPatch = Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color' | 'roofThicknessMm'>> & {
+  topMaterialId?: string | null;
+  edgeMaterialId?: string | null;
+};
+
+export function roofThicknessMm(valueCm: number): number {
+  return Math.round(Math.min(400, Math.max(80, valueCm * 10)));
+}
+
+export function setRoomCeiling(source: EditorDocument, roomId: string, patch: CeilingPatch = {}): EditorDocument {
   if (!eligibleCeilingRooms(source).some((room) => room.id === roomId)) throw new Error('Elige una habitación interior cerrada');
   const doc = upgradeLightingDocument(source);
   const existing = doc.ceilings!.find((ceiling) => ceiling.roomId === roomId);
   const kind = patch.kind ?? existing?.kind ?? 'plain';
+  const topMaterialId = patch.topMaterialId === undefined ? existing?.topMaterialId : patch.topMaterialId ?? undefined;
+  const edgeMaterialId = patch.edgeMaterialId === undefined ? existing?.edgeMaterialId : patch.edgeMaterialId ?? undefined;
+  const thickness = patch.roofThicknessMm ?? existing?.roofThicknessMm;
   const ceiling: Ceiling = { id: existing?.id ?? crypto.randomUUID(), roomId, kind,
     color: patch.color ?? existing?.color ?? '#f4f1e9',
+    ...(topMaterialId ? { topMaterialId } : {}),
+    ...(edgeMaterialId ? { edgeMaterialId } : {}),
+    ...(thickness !== undefined ? { roofThicknessMm: thickness } : {}),
     dropMm: kind === 'plain' ? 0 : patch.dropMm ?? (existing?.kind === 'suspended' ? existing.dropMm : 150) };
   if (ceiling.dropMm > MAX_CEILING_DROP_MM)
     throw new Error(`El descenso del falso techo se indica en centímetros: como mucho ${MAX_CEILING_DROP_MM / 10} cm.`);
@@ -167,7 +182,7 @@ export function applyLightingProposal(source: EditorDocument, proposal: Lighting
  * cerrada, en un solo paso deshacible. Las estancias donde ese techo no cabe
  * (altura libre) se saltan y se devuelven para avisar, en vez de frenar al resto.
  */
-export function setCeilingsForAllRooms(source: EditorDocument, patch: Partial<Pick<Ceiling, 'kind' | 'dropMm' | 'color'>> = {}): { document: EditorDocument; applied: number; skipped: number; skippedReason: string | null } {
+export function setCeilingsForAllRooms(source: EditorDocument, patch: CeilingPatch = {}): { document: EditorDocument; applied: number; skipped: number; skippedReason: string | null } {
   let doc = upgradeLightingDocument(source), applied = 0, skipped = 0, skippedReason: string | null = null;
   for (const room of eligibleCeilingRooms(doc)) {
     try { doc = setRoomCeiling(doc, room.id, patch); applied += 1; }
@@ -175,6 +190,30 @@ export function setCeilingsForAllRooms(source: EditorDocument, patch: Partial<Pi
   }
   if (!applied) throw new Error(`Ninguna estancia admite ese techo. ${skippedReason ?? 'Revisa el cierre de las habitaciones y la altura libre.'}`);
   return { document: doc, applied, skipped, skippedReason };
+}
+/** Cambia solo la cara superior de los techos existentes; conserva tipo, interior y luces. */
+export function setCeilingTopMaterialForAllRooms(source: EditorDocument, topMaterialId: string | null): EditorDocument {
+  const doc = parseEditorDocument(source);
+  if (!doc.ceilings?.length) throw new Error('No hay techos a los que aplicar el material');
+  doc.ceilings = doc.ceilings.map((ceiling) => {
+    const updated = { ...ceiling };
+    if (topMaterialId) updated.topMaterialId = topMaterialId;
+    else delete updated.topMaterialId;
+    return updated;
+  });
+  return parseEditorDocument(doc);
+}
+/** Cambia solo el canto exterior de las losas existentes. */
+export function setCeilingEdgeMaterialForAllRooms(source: EditorDocument, edgeMaterialId: string | null): EditorDocument {
+  const doc = parseEditorDocument(source);
+  if (!doc.ceilings?.length) throw new Error('No hay techos a los que aplicar el material');
+  doc.ceilings = doc.ceilings.map((ceiling) => {
+    const updated = { ...ceiling };
+    if (edgeMaterialId) updated.edgeMaterialId = edgeMaterialId;
+    else delete updated.edgeMaterialId;
+    return updated;
+  });
+  return parseEditorDocument(doc);
 }
 /** Mismo cambio en varias luces a la vez; todo o nada, con el motivo del primer fallo. */
 export function updateLuminaires(source: EditorDocument, ids: readonly string[], patch: Partial<Omit<Luminaire, 'id' | 'ceilingId' | 'x' | 'y'>>): EditorDocument {

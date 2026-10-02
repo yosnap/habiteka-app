@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { zoneMapLayout, ZONE_MASK_MARGIN_MM } from '../../src/components/editor-v2/scene/zone-mask';
-import { defaultRenderDesignOptions, zoneCompositeActive } from '../../src/lib/editor-document/render-design-options';
+import { defaultRenderDesignOptions, renderDesignOptionsSchema, zoneCompositeActive } from '../../src/lib/editor-document/render-design-options';
+import { sceneZoneFocus, zoneObliqueDirection } from '../../src/components/editor-v2/scene/scene-preset-focus';
 
 describe('máscara de zonas permitidas', () => {
   it('cubre todas las zonas con el margen de muro', () => {
@@ -12,21 +13,33 @@ describe('máscara de zonas permitidas', () => {
       width: 6000 + 2 * ZONE_MASK_MARGIN_MM, height: 3000 + 2 * ZONE_MASK_MARGIN_MM });
   });
   it('sin zonas no hay máscara', () => expect(zoneMapLayout([])).toBeNull());
-  it('solo compone dos pasadas cuando se diseña dentro de zonas marcadas', () => {
+  it('encuadra la zona elegida en vez de toda la finca', () => {
+    expect(sceneZoneFocus([[{ x: 10_000, y: 20_000 }, { x: 14_000, y: 20_000 },
+      { x: 14_000, y: 23_000 }]])).toEqual({ center: [12, 1.5, 21.5], size: [5, 3.5, 3.75] });
+  });
+  it('muestra el lado largo de una entrada estrecha en las vistas oblicuas', () => {
+    const focus = sceneZoneFocus([[{ x: 13_400, y: 11_500 }, { x: 15_400, y: 11_500 },
+      { x: 15_400, y: 17_600 }, { x: 13_400, y: 17_600 }]])!;
+    expect(zoneObliqueDirection(focus, 'isometric')).toEqual([1, 1, .28]);
+    expect(zoneObliqueDirection(focus, 'drone')).toEqual([1, 1.35, .28]);
+    expect(zoneObliqueDirection({ center: [0, 0, 0], size: [4, 3, 4] }, 'isometric')).toBeUndefined();
+  });
+  it('requiere máscara cuando se diseña dentro de zonas marcadas', () => {
     const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
     const base = { ...defaultRenderDesignOptions(), placement: 'selected' as const, regions: [region] };
     expect(zoneCompositeActive({ ...base, freedom: 'free' })).toBe(true);
-    expect(zoneCompositeActive({ ...base, freedom: 'strict' })).toBe(false);
+    expect(zoneCompositeActive({ ...base, freedom: 'strict' })).toBe(true);
     expect(zoneCompositeActive({ ...base, freedom: 'free', placement: 'all' })).toBe(false);
+    expect(renderDesignOptionsSchema.safeParse({ ...base, freedom: 'strict', regions: [] }).success).toBe(false);
   });
 });
 
 describe('generaciones que cuesta un lote', () => {
-  it('con zonas cuenta dos pasadas por vista; sin zonas, una', async () => {
+  it('cuenta una imagen independiente por vista también con zonas', async () => {
     const { renderPassCount } = await import('../../src/lib/editor-document/render-design-options');
     const region = { id: 'r', name: 'Salón', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] };
     const views = ['front', 'right', 'drone'] as ('front' | 'right' | 'drone')[];
     expect(renderPassCount({ ...defaultRenderDesignOptions(), views })).toBe(3);
-    expect(renderPassCount({ ...defaultRenderDesignOptions(), views, freedom: 'free', placement: 'selected', regions: [region] })).toBe(6);
+    expect(renderPassCount({ ...defaultRenderDesignOptions(), views, freedom: 'free', placement: 'selected', regions: [region] })).toBe(3);
   });
 });

@@ -135,8 +135,12 @@ describe('construction v3 contract', () => {
   it('stores a structural column as an editable 2D/3D solid', () => {
     const added = addColumn(fixture(), column), scene = editorDocumentToScene(added);
     expect(added.columns).toEqual([column]);
-    expect(scene.boxes.find((box) => box.sourceEntityId === column.id)).toMatchObject({ role: 'column', position: [1.2, 1.35, 2.2], size: [.4, 2.7, .4] });
+    expect(scene.boxes.find((box) => box.sourceEntityId === column.id)).toMatchObject({ role: 'column', position: [1.2, 1.35, 2.2], size: [.4, 2.7, .4], materialId: 'concrete-grey' });
     expect(updateColumn(added, column.id, { widthMm: 500 }).columns![0]).toMatchObject({ widthMm: 500, x: 950 });
+    const painted = updateColumn(added, column.id, { materialId: 'polyhaven:white_plaster_02' });
+    expect(painted.columns![0]).toMatchObject({ materialId: 'polyhaven:white_plaster_02', color: '#ffffff' });
+    expect(editorDocumentToScene(painted).boxes.find((box) => box.sourceEntityId === column.id))
+      .toMatchObject({ materialId: 'polyhaven:white_plaster_02', color: '#ffffff' });
   });
   it('allows independently hiding each side rail or all rails from a stair', () => {
     const added = addStair(fixture(), { ...stair, kind: 'straight', rotation: 0, railingLeft: false });

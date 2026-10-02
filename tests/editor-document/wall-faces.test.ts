@@ -42,6 +42,13 @@ describe('interior and exterior wall finishes', () => {
     expect(bothEdges.some((edge) => edge.color === '#0000ff')).toBe(true);
     expect(bothEdges.filter((edge) => edge.sourceEntityId !== id)).toEqual(leftEdges.filter((edge) => edge.sourceEntityId !== id));
   });
+  it('uses the original color map for a photographic wall finish', () => {
+    const doc = addWallPath(emptyEditorDocument(), points, true);
+    const wall = { ...doc.walls[0]!, materials: { left: 'polyhaven:painted_plaster_wall', right: 'plaster-white' } };
+    const mesh = wallMeshes({ ...doc, walls: [wall, ...doc.walls.slice(1)] }, wall)[0]!;
+    expect(mesh.sideMaterials).toEqual(['polyhaven:painted_plaster_wall', 'plaster-white']);
+    expect(mesh.sideColors).toEqual(['#ffffff', '#eeeae2']);
+  });
   it('continues different exterior paints to the two edges of the same miter', () => {
     let doc = addWallPath(emptyEditorDocument(), points, true);
     doc = paintElement(doc, doc.walls[0]!.id, 'right', '#0000ff');

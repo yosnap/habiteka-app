@@ -66,6 +66,11 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     if (choice.finish_reason === 'content_filter') {
       throw aiError('refusal', 'El modelo rechazó la petición');
     }
+    if (req.responseSchema && !choice.message.content?.trim()) {
+      throw aiError('schema', choice.finish_reason === 'length'
+        ? 'El modelo agotó el límite de respuesta sin devolver el diseño. Inténtalo con una zona más pequeña o cambia el modelo de visión.'
+        : 'El modelo no devolvió datos estructurados para el diseño.');
+    }
 
     const structured = this.parseStructured(req, choice.message.content);
     return {

@@ -25,7 +25,7 @@ export function Render3dViewer({
         <img
           src={assetUrl}
           alt="Render 3D conceptual del espacio"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
         <LegalSeal />
       </div>

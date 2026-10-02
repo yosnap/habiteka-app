@@ -7,9 +7,15 @@ import { isKitchenRun } from './kitchen-run-types';
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
-  rotation?: number; shape?: 'box' | 'cylinder'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  /** Permite conservar el color pintado y usar solo el relieve y la rugosidad del material. */
+  useColorMap?: boolean;
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */
   opacity?: number;
+  /** Aspecto exclusivo del render; no altera el volumen usado para colisiones. */
+  appearance?: 'water' | 'powder-coated-metal';
+  /** Nombre físico para explicar qué pieza de una carpa corta el recorrido. */
+  walkthroughPart?: 'poste' | 'cubierta' | 'lona del fondo' | 'lona izquierda' | 'lona derecha';
 }
 
 /** El mueble lleva un color distinto al de catálogo: el usuario lo ha pintado. */
@@ -43,10 +49,12 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
   const { heightMm: h, elevationMm: elevation, color } = furnitureSpatial(item);
   const painted = isPainted(item);
   const w = item.widthMm, d = item.depthMm, result: FurnitureVolume[] = [], coverage = windowCoverage(item);
-  const box = (x: number, y: number, z: number, width: number, depth: number, height: number, tint = color) => {
+  const box = (x: number, y: number, z: number, width: number, depth: number, height: number,
+    tint = color, shape?: FurnitureVolume['shape']) => {
     const applied = painted && tint !== color && !HARDWARE.has(tint) ? color : tint;
     result.push({ x: x * w, y: y * d, widthMm: width * w, depthMm: depth * d,
-      bottom: elevation + z * h, top: elevation + (z + height) * h, color: applied });
+      bottom: elevation + z * h, top: elevation + (z + height) * h, color: applied,
+      ...(shape ? { shape } : {}) });
   };
   const legs = (top: number, inset = .06) => {
     for (const x of [inset, .94 - inset]) for (const y of [inset, .94 - inset])
@@ -81,15 +89,25 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(0, .18, .43, .06, .82, .32); box(.94, .18, .43, .06, .82, .32);
       break;
     case 'sofa-bed':
-      legs(.2); box(0, 0, .2, 1, 1, .28); box(0, 0, .48, 1, .18, .52);
-      box(0, .18, .48, .1, .82, .3); box(.9, .18, .48, .1, .82, .3);
-      box(.1, .2, .48, .8, .76, .12); box(.1, .94, .3, .8, .04, .1, '#f3eee3');
+      legs(.2); box(0, 0, .2, 1, 1, .28); box(0, 0, .48, 1, .18, .52, color, 'rounded-box');
+      box(0, .18, .48, .1, .82, .3, color, 'rounded-box'); box(.9, .18, .48, .1, .82, .3, color, 'rounded-box');
+      box(.1, .2, .48, .8, .76, .12, color, 'rounded-box');
+      box(.12, .13, .6, .36, .23, .3, color, 'rounded-box'); box(.52, .13, .6, .36, .23, .3, color, 'rounded-box');
+      box(.1, .94, .3, .8, .04, .1, '#f3eee3');
       break;
     case 'bed':
-      legs(.25); box(.02, .02, .25, .96, .96, .23, '#866b4c');
-      box(.03, .1, .48, .94, .88, .2); box(0, 0, .25, 1, .06, .75);
-      box(.08, .12, .68, .38, .16, .1, '#f3eee3');
-      box(.54, .12, .68, .38, .16, .1, '#f3eee3');
+      legs(.22); box(.02, .02, .22, .96, .96, .22, '#866b4c');
+      box(0, 0, .22, 1, .07, .78);
+      box(.04, .1, .44, .92, .87, .2, '#f3eee3', 'rounded-box');
+      box(.05, .11, .64, .9, .85, .04, '#f8f5ee', 'rounded-box');
+      box(.05, .36, .68, .9, .6, .1, '#c8c0b2', 'rounded-box');
+      box(.05, .36, .77, .9, .06, .02, '#eee8dc', 'rounded-box');
+      if (w < 1200) {
+        box(.16, .14, .68, .68, .18, .14, '#f8f5ee', 'ellipsoid');
+      } else {
+        box(.09, .14, .68, .38, .18, .14, '#f8f5ee', 'ellipsoid');
+        box(.53, .14, .68, .38, .18, .14, '#f8f5ee', 'ellipsoid');
+      }
       break;
     case 'chair':
       legs(.46); box(0, .06, .46, 1, .94, .1); box(0, 0, .46, 1, .08, .54);
@@ -137,6 +155,9 @@ export function catalogFurnitureVolumes(item: Furniture): FurnitureVolume[] | nu
       box(.22, .22, 0, .56, .56, .3, '#aa7960'); box(.46, .46, .3, .08, .08, .55, '#735437');
       box(.05, .3, .4, .65, .3, .22); box(.3, .05, .6, .3, .75, .22);
       box(.35, .35, .8, .3, .3, .2); box(.55, .35, .5, .45, .3, .18);
+      break;
+    case 'decor':
+      box(.18, .18, 0, .64, .64, .08); box(.1, .1, .08, .8, .8, .72); box(.24, .24, .8, .52, .52, .2);
       break;
     case 'rug':
       box(0, 0, 0, 1, 1, 1);

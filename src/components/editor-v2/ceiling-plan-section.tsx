@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
 import type { Ceiling, EditorDocument, LightZone } from '@/lib/editor-document/schema';
-import { applyLightingProposals, ceilingDropMm, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, setCeilingsForAllRooms } from '@/lib/editor-document/ceiling-commands';
+import { applyLightingProposals, ceilingDropMm, MAX_CEILING_DROP_MM, MIN_CEILING_DROP_MM, roofThicknessMm, setCeilingEdgeMaterialForAllRooms, setCeilingTopMaterialForAllRooms, setCeilingsForAllRooms } from '@/lib/editor-document/ceiling-commands';
 import { proposeLightingForPlan, type LightingProposal } from '@/lib/editor-document/lighting-proposal';
 import { NumberField } from './property-number-field';
 import styles from './ceiling-lighting.module.css';
 import { ModernSelect } from '@/components/ui/modern-select';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 
 /**
  * Techo y luces de TODA la planta en pocos pasos: el mismo techo en todas las
@@ -25,7 +26,16 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
 }) {
   const [kind, setKind] = useState<Ceiling['kind']>('plain');
   const [color, setColor] = useState('#f4f1e9');
+  const [topMaterialId, setTopMaterialId] = useState<string | null>(() => {
+    const materials = new Set(doc.ceilings?.map((ceiling) => ceiling.topMaterialId ?? null) ?? []);
+    return materials.size === 1 ? [...materials][0] ?? null : null;
+  });
+  const [edgeMaterialId, setEdgeMaterialId] = useState<string | null>(() => {
+    const materials = new Set(doc.ceilings?.map((ceiling) => ceiling.edgeMaterialId ?? null) ?? []);
+    return materials.size === 1 ? [...materials][0] ?? null : null;
+  });
   const [dropMm, setDropMm] = useState(150);
+  const [thicknessMm, setThicknessMm] = useState(160);
   const [style, setStyle] = useState('moderno');
   const [proposals, setProposals] = useState<LightingProposal[] | null>(null);
   // Estancias con luces que la última propuesta se saltó, y si el usuario pidió incluirlas.
@@ -40,7 +50,8 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
   const applyCeilings = () => {
     let summary = '';
     const ok = run((document) => {
-      const result = setCeilingsForAllRooms(document, { kind, color, ...(kind === 'suspended' ? { dropMm } : {}) });
+      const result = setCeilingsForAllRooms(document, { kind, color, topMaterialId, edgeMaterialId, roofThicknessMm: thicknessMm,
+        ...(kind === 'suspended' ? { dropMm } : {}) });
       summary = `Techo aplicado en ${result.applied} estancias.${result.skipped ? ` ${result.skipped} se saltaron. ${result.skippedReason ?? ''}` : ''}`.trim();
       return result.document;
     });
@@ -57,6 +68,20 @@ export function CeilingPlanSection({ doc, roomCount, readOnly, zone, run, onNoti
       <label>Acabado<input type="color" aria-label="Acabado de todos los techos" value={color} onChange={(e) => setColor(e.target.value)} /></label>
       {kind === 'suspended' && <NumberField label="Descenso del techo (cm)" value={dropMm / 10} change={(value) => setDropMm(ceilingDropMm(value))} />}
     </div>
+    <SurfaceMaterialPicker label="Cara superior de todas las cubiertas" value={topMaterialId ?? undefined}
+      onChange={(id) => setTopMaterialId(id ?? null)} />
+    <SurfaceMaterialPicker label="Canto exterior de todas las cubiertas" value={edgeMaterialId ?? undefined}
+      onChange={(id) => setEdgeMaterialId(id ?? null)} />
+    <NumberField label="Espesor de las cubiertas (cm)" value={thicknessMm / 10}
+      change={(value) => setThicknessMm(roofThicknessMm(value))} />
+    <button type="button" disabled={!ceilings} onClick={() => {
+      if (run((document) => setCeilingTopMaterialForAllRooms(document, topMaterialId)))
+        onNotice(`Material superior ${topMaterialId ? 'aplicado' : 'quitado'} en ${ceilings} techos. Se han conservado el tipo, el acabado interior y las luces.`);
+    }}>Aplicar solo a las caras superiores ({ceilings})</button>
+    <button type="button" disabled={!ceilings} onClick={() => {
+      if (run((document) => setCeilingEdgeMaterialForAllRooms(document, edgeMaterialId)))
+        onNotice(`Material del canto ${edgeMaterialId ? 'aplicado' : 'quitado'} en ${ceilings} cubiertas. Se han conservado la cara superior, el interior y las luces.`);
+    }}>Aplicar solo a los cantos exteriores ({ceilings})</button>
     {kind === 'suspended' && <p>El descenso va en centímetros, entre {MIN_CEILING_DROP_MM / 10} y {MAX_CEILING_DROP_MM / 10} cm.</p>}
     <button className={styles.primary} type="button" onClick={applyCeilings}>
       {ceilings ? 'Aplicar este techo a todas las estancias' : 'Poner techo en todas las estancias'}

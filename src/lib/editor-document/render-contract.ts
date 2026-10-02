@@ -2,11 +2,13 @@ import { boundaryDesignContext, BOUNDARY_RENDER_POLICY } from './boundary-contex
 import type { EditorDocument, Point } from './schema';
 import { buildingDocuments } from './building-levels';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
+import { surfaceMaterial } from './surface-materials';
 import { isRampLanding } from './ramp-kind';
 import { rampParts } from './ramp-route';
 import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
 import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
+import { polygonArea } from './geometry';
 
 const meters = (value: number) => Number((value / 1000).toFixed(3));
 const area = (value: number) => Number((value / 1_000_000).toFixed(2));
@@ -77,11 +79,27 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
           finishedElevation: meters(elevationMm), undersideElevation: meters(Math.max(0, elevationMm - slabDepthMm)),
           slabDepth: meters(slabDepthMm),
         },
+        attributes: {
+          'acabado superior': surfaceMaterial(finish.texture)?.label ?? finish.texture,
+          'color superior': finish.color,
+          ...(elevationMm > 0 ? {
+            'acabado del canto y cara inferior': surfaceMaterial(finish.undersideTexture)?.label ?? 'sin textura',
+            'color del canto y cara inferior': finish.undersideColor ?? '#756f66',
+          } : {}),
+        },
         relationships: elevationMm > 0
           ? ['Plataforma elevada: las circulaciones que llegan a este suelo terminan en su cota de acabado.']
           : ['Suelo a cota de la planta.'],
       });
     }
+    for (const zone of source.designZones ?? []) if (zone.floorFinish) elements.push({
+      id: nextId('Z'), sourceId: zone.id, type: 'acabado parcial de suelo', name: zone.name, level: levelName,
+      boundary: zone.polygon.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
+      areaM2: area(Math.abs(polygonArea(zone.polygon))),
+      attributes: { material: surfaceMaterial(zone.floorFinish.texture)?.label ?? zone.floorFinish.texture,
+        color: zone.floorFinish.color },
+      relationships: ['Aplica solo dentro de este contorno; el resto de la estancia conserva su acabado.'],
+    });
 
     const overhead = ceilingDesignContext(source);
     for (const ceiling of overhead.ceilings) {
@@ -151,6 +169,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         position: { x: meters(stair.x), y: meters(stair.y), elevation: meters(stair.elevationMm) }, rotationDeg: degrees(stair.rotation),
         dimensions: { width: meters(stair.widthMm), development: meters(stair.depthMm), rise: meters(stair.heightMm), startElevation: meters(stair.elevationMm), arrivalElevation: meters(stair.elevationMm + stair.heightMm) },
         areaM2: area(stair.widthMm * stair.depthMm),
+        attributes: {
+          'acabado de huellas': surfaceMaterial(stair.materialId)?.label ?? stair.materialId,
+          ...(stair.bodyMaterialId ? { 'acabado de contrahuellas, laterales y cara inferior': surfaceMaterial(stair.bodyMaterialId)?.label ?? stair.bodyMaterialId } : {}),
+        },
         relationships: [`Recorrido único de ${stair.stepCount} peldaños; conserva su posición y dirección.`],
       });
     }
@@ -162,6 +184,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
           position: { x: meters(ramp.x), y: meters(ramp.y), elevation: meters(ramp.elevationMm) }, rotationDeg: degrees(ramp.rotation),
           dimensions: { width: meters(ramp.widthMm), depth: meters(ramp.depthMm), elevation: meters(ramp.elevationMm) },
           areaM2: area(ramp.widthMm * ramp.depthMm),
+          attributes: {
+            'acabado transitable': surfaceMaterial(ramp.materialId)?.label ?? ramp.materialId,
+            ...(ramp.bodyMaterialId ? { 'acabado del canto y cara inferior': surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
+          },
           relationships: ['Plataforma horizontal maciza desde la cota base hasta su cota de acabado.'],
         });
         continue;
@@ -177,6 +203,10 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         position: { x: meters(ramp.x), y: meters(ramp.y), elevation: meters(ramp.elevationMm) }, rotationDeg: degrees(ramp.rotation),
         dimensions: { width: meters(ramp.widthMm), development: meters(developmentMm), rise: meters(totalRiseMm), startElevation: meters(ramp.elevationMm), arrivalElevation: meters(ramp.elevationMm + totalRiseMm) },
         areaM2: area(ramp.widthMm * (developmentMm + (landing?.depthMm ?? 0))),
+        attributes: {
+          'acabado transitable': surfaceMaterial(ramp.materialId)?.label ?? ramp.materialId,
+          ...(ramp.bodyMaterialId ? { 'acabado de laterales y cara inferior': surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
+        },
         relationships: [
           `EXISTE UNA SOLA ${id}: ${flights.length} tramo(s), del nivel ${meters(ramp.elevationMm)} m al ${meters(ramp.elevationMm + totalRiseMm)} m.`,
           ...(landing ? [`Descansillo integrado a ${meters(landing.elevationMm)} m; no crear otro descansillo ni otra rampa.`] : []),

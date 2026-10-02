@@ -12,6 +12,14 @@
 # mismas versiones que el package.json raíz) que el entrypoint ejecuta con
 # `prisma migrate deploy` antes de arrancar el servidor.
 
+# ---------- Documentación: HTML estático, sin segundo servidor ----------
+FROM node:22-slim AS documentation
+WORKDIR /docs
+COPY docs/site/package.json docs/site/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY docs/site/ ./
+RUN npm run build
+
 # ---------- Stage 1: dependencias ----------
 FROM oven/bun:1.3.12 AS deps
 WORKDIR /app
@@ -28,6 +36,7 @@ FROM oven/bun:1.3.12 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY --from=documentation /docs/dist ./public/documentacion
 ENV NEXT_TELEMETRY_DISABLED=1
 # El cliente de Prisma se genera en `src/generated` (fuera de node_modules y
 # gitignorado), así que hay que regenerarlo aquí antes de compilar. La URL de
@@ -38,7 +47,7 @@ RUN bun run db:generate
 # Genera `.next/standalone` (server.js) + `.next/static`. El chequeo de tipos
 # se omite aquí (ver next.config.ts): CI ya lo hace y el VPS anda justo de RAM.
 ENV NEXT_SKIP_TYPECHECK=1
-RUN bun run build
+RUN bun run build:app
 
 # ---------- Stage 3: CLI de migraciones ----------
 # Instalación aislada de la CLI de Prisma para el runner. Se toma la versión

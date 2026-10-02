@@ -15,6 +15,14 @@ import { wallConstruction } from '@/lib/editor-document/construction-properties'
 
 const house = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 8000, y: 0 }, { x: 8000, y: 4000 }, { x: 0, y: 4000 }], true);
 
+it('incluye la tira LED exterior en la selección de luces', () => {
+  const doc = emptyEditorDocument();
+  doc.furniture.push({ id: 'led-terraza', catalogId: 'habiteka:outdoor:tira-led', kind: 'tira-led',
+    x: 1000, y: 1000, widthMm: 2000, depthMm: 25, heightMm: 15, rotation: 0,
+    elevationMm: 0, dimensionalOrigin: 'physical' });
+  expect(idsByKind(doc, [], 'luminaires')).toEqual(['led-terraza']);
+});
+
 it('la altura cambiada en una pared se repite en las demás paredes seleccionadas, no en otros tipos', () => {
   const doc = house();
   const walls = idsByKind(doc, deriveRooms(doc), 'walls');

@@ -2,7 +2,7 @@
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls, useBounds } from '@react-three/drei';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { MOUSE, PerspectiveCamera, Vector3 } from 'three';
 import { cameraFitDistance } from './camera-fit';
 
 export type SceneCameraPreset = 'top' | 'isometric' | 'front' | 'back' | 'left' | 'right' | 'drone';
@@ -11,6 +11,8 @@ export interface CameraRequest {
   action: 'fit' | 'in' | 'out' | 'interior' | SceneCameraPreset;
   /** Caja a encuadrar en lugar de toda la escena (p. ej. la zona permitida). */
   focus?: { center: [number, number, number]; size: [number, number, number] };
+  /** Dirección específica de una captura exterior con cubierta terminada. */
+  direction?: [number, number, number];
   /** Pose exacta para `interior`: ojo dentro de la estancia y punto de mira. */
   pose?: { position: [number, number, number]; focus: [number, number, number]; fovDeg: number };
 }
@@ -21,23 +23,25 @@ export interface CameraRequest {
  * de orbitar la casa desde fuera.
  */
 const INTERIOR_ORBIT_M = .6;
+export const EXTERIOR_ELEVATION = .25;
 
 const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, number]> = {
   top: [0, 1, .0001],
   isometric: [1, 1, 1],
-  front: [0, 0, 1],
-  back: [0, 0, -1],
-  left: [-1, 0, 0],
-  right: [1, 0, 0],
-  drone: [1, 2, 1],
+  front: [0, EXTERIOR_ELEVATION, 1],
+  back: [0, EXTERIOR_ELEVATION, -1],
+  left: [-1, EXTERIOR_ELEVATION, 0],
+  right: [1, EXTERIOR_ELEVATION, 0],
+  drone: [.35, 1.35, 1],
 };
 
-export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, onManualChange, onContextLost, onApplied }: {
+export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, onManualChange, onContextLost, onApplied }: {
   request: CameraRequest;
   sceneVersion: unknown;
   /** Dentro de una estancia: se puede mirar al techo y no se reencuadra sola. */
   interior?: boolean;
   enabled?: boolean;
+  plan?: boolean;
   onManualChange: () => void;
   onContextLost: () => void;
   onApplied?: (sequence: number) => void;
@@ -54,11 +58,13 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     const orbit = controls.current;
     if (!orbit || !(camera instanceof PerspectiveCamera)) return;
     const isNewRequest = lastSequence.current !== request.sequence;
+    // En el plano cenital una edición no debe deshacer el zoom ni el desplazamiento elegidos por el usuario.
+    if (plan && !isNewRequest) return;
     lastSequence.current = request.sequence;
     // Un cambio de escena reencuadra la vista, salvo estando dentro de una
     // estancia: ahí el usuario perdería su punto de vista sin haberlo pedido.
     if (!isNewRequest && lastAction.current === 'interior') return;
-    const action = isNewRequest ? request.action : 'fit';
+    const action = isNewRequest ? request.action : lastAction.current === 'top' ? 'top' : 'fit';
     lastAction.current = action;
     if (action === 'interior' && request.pose) {
       const { position, focus: aim, fovDeg } = request.pose;
@@ -80,11 +86,15 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
       if (exteriorFov.current !== null) { camera.fov = exteriorFov.current; exteriorFov.current = null; }
       // Bounds only measures geometry. A single controller owns the camera,
       // avoiding a pending Bounds animation overwriting a preset on the next frame.
-      const focus = isNewRequest ? request.focus : undefined;
+      // Al cambiar la escena, conservar el área del preset. Si se pierde,
+      // Bounds vuelve a medir todo el terreno y empequeñece el inmueble.
+      const focus = request.focus;
       const { center, size: extent } = focus
         ? { center: new Vector3(...focus.center), size: new Vector3(...focus.size) }
         : bounds.refresh().getSize();
-      const direction = action in PRESET_DIRECTIONS
+      const direction = request.direction && isNewRequest
+        ? new Vector3(...request.direction).normalize()
+        : action in PRESET_DIRECTIONS
         ? new Vector3(...PRESET_DIRECTIONS[action as SceneCameraPreset]).normalize()
         : camera.position.clone().sub(orbit.target).normalize();
       if (!direction.lengthSq()) direction.set(1, 1, 1).normalize();
@@ -101,7 +111,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     orbit.update();
     invalidate();
     onApplied?.(request.sequence);
-  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied]);
+  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied, plan]);
   // Release the external browser subscription when the 3D view unmounts.
   useEffect(() => {
     const canvas = gl.domElement;
@@ -110,5 +120,6 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     return () => canvas.removeEventListener('webglcontextlost', lost);
   }, [gl, onContextLost]);
   return <OrbitControls ref={controls} makeDefault enabled={enabled} enableDamping={false} minDistance={.3}
+    enableRotate={!plan} mouseButtons={plan ? { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN } : undefined}
     onStart={onManualChange} maxPolarAngle={interior ? Math.PI : Math.PI / 2} />;
 }

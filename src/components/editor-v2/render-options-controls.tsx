@@ -16,6 +16,7 @@ import {
 } from '@/lib/editor-document/room-interior-cameras';
 import InteriorRoomsPicker from './interior-rooms-picker';
 import RenderRegionPicker from './render-region-picker';
+import { ModernSelect } from '@/components/ui/modern-select';
 import styles from './render-options-controls.module.css';
 
 interface Props {
@@ -48,12 +49,21 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
     });
   return (
     <div className={`${styles.controls} mt-4 space-y-4`} aria-label="Opciones del render">
+      {editable && <section>
+        <label htmlFor="editor-design-preview-view" className="text-ink text-sm font-medium">Vista de referencia de la zona</label>
+        <ModernSelect compact id="editor-design-preview-view" className="mt-2" value={options.views[0] ?? 'current'}
+          disabled={disabled} onChange={(event) => update({ views: [event.target.value as RenderDesignOptions['views'][number]] })}>
+          {RENDER_VIEWS.map((view) => <option key={view} value={view}>{RENDER_VIEW_LABELS[view]}</option>)}
+        </ModernSelect>
+        <p className="text-muted-foreground mt-1 text-xs">La vista previa usa el 3D editable y no consume créditos.</p>
+      </section>}
       {!editable && <section>
         <h3 className="text-ink text-sm font-medium">Iluminación</h3>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {(
             [
               ['daylight', 'Día'],
+              ['afternoon', 'Tarde'],
               ['warm', 'Atardecer'],
               ['evening', 'Noche'],
             ] as const
@@ -64,13 +74,27 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
               disabled={disabled}
               onClick={() => update({ lighting: value })}
             >
-              <span className="flex items-center gap-2">{value === 'daylight' ? <Sun size={17} aria-hidden="true" /> : value === 'warm' ? <Sunset size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}{label}</span>
+              <span className="flex items-center gap-2">{value === 'daylight' || value === 'afternoon' ? <Sun size={17} aria-hidden="true" /> : value === 'warm' ? <Sunset size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}{label}</span>
             </OptionButton>
           ))}
         </div>
       </section>}
+      {!editable && <section>
+        <h3 className="text-ink text-sm font-medium">Diseño de la imagen</h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <OptionButton active={!options.redesignInterior} disabled={disabled} onClick={() => update({ redesignInterior: false })}>Respetar diseño actual</OptionButton>
+          <OptionButton active={options.redesignInterior} disabled={disabled} onClick={() => update({ redesignInterior: true })}>Rediseñar interiorismo</OptionButton>
+        </div>
+        <p className="mt-2 text-xs text-ink-soft">{options.redesignInterior ? 'Nuevos muebles móviles y acabados según tu estilo. Se conservan paredes, distribución y huecos; los fijos necesitan el permiso de debajo.' : 'Presenta el diseño existente con materiales y luz realistas. También puedes pedir un rediseño en las instrucciones.'}</p>
+      </section>}
       <section>
         <h3 className="text-ink text-sm font-medium">Libertad de decoración</h3>
+        <label className="my-2 flex items-start gap-2 text-xs">
+          <input type="checkbox" disabled={disabled} checked={options.redesignFixed}
+            onChange={(event) => update({ redesignFixed: event.target.checked })} />
+          <span>{editable ? 'Rediseñar acabados de fijos existentes. Conserva medidas y posiciones; revisa cada cambio antes de aplicarlo.'
+            : 'Rediseño: permitir cambiar cocina, isla, sanitarios y armarios empotrados. Puede requerir más inversión; muros y huecos se conservan.'}</span>
+        </label>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {(
             [
@@ -90,6 +114,12 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             </OptionButton>
           ))}
         </div>
+        {!editable && options.freedom !== 'strict' && (
+          <p role="note" className="mt-2 rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+            Los objetos que la IA añada en la imagen no existirán en el 3D editable, ni por tanto en la visita ni en el vídeo.
+            Para que existan, propónlos en «Cambiar acabados y muebles», aplícalos y genera después la imagen en modo Estricto.
+          </p>
+        )}
         {options.freedom === 'controlled' && (
           <div className="bg-canvas mt-2 grid gap-1 rounded-control p-2 sm:grid-cols-2">
             {RENDER_ADDITIONS.map((addition) => (
@@ -112,29 +142,34 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
           </p>
         )}
       </section>
-      {options.freedom !== 'strict' && (
+      {(!editable || (options.freedom !== 'strict' && options.designScope !== 'zone')) && (
         <section>
-          <h3 className="text-ink text-sm font-medium">Dónde puede decorar</h3>
+          <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <OptionButton
-              active={options.placement === 'all'}
+              active={options.placement === 'all' && (editable || options.designScope !== 'house')}
               disabled={disabled}
-              onClick={() => update({ placement: 'all' })}
+              onClick={() => update({ placement: 'all', ...(!editable ? { designScope: 'all' } : {}) })}
             >
-              Toda la planta
+              {editable ? 'Todo el ámbito' : 'Toda la planta'}
             </OptionButton>
+            {!editable && <OptionButton active={options.designScope === 'house'} disabled={disabled}
+              onClick={() => update({ designScope: 'house', placement: 'all', regions: [] })}>Solo la casa</OptionButton>}
             <OptionButton
               active={options.placement === 'selected'}
               disabled={disabled}
-              onClick={() => update({ placement: 'selected' })}
+              onClick={() => update({ placement: 'selected', ...(!editable ? { designScope: 'all' } : {}) })}
             >
-              Zonas permitidas
+              {editable ? 'Zonas permitidas' : 'Zonas concretas'}
             </OptionButton>
           </div>
+          {!editable && options.designScope === 'house' && <p className="mt-2 text-xs text-ink-soft">Solo las estancias interiores de esta planta y sus fachadas, sobre fondo neutro. Se excluyen parcela y patios.</p>}
           {options.placement === 'selected' && (
             <div className="mt-2">
               <p className="text-muted-foreground mb-2 text-xs">
-                Fuera de las zonas marcadas no se añadirán objetos; los accesos se mantienen libres.
+                {editable
+                  ? 'Los objetos nuevos deben caber dentro de estas zonas y del ámbito elegido.'
+                  : 'La generación usa las zonas marcadas como límite. Cada imagen se verifica contra el 3D antes de guardarse.'}
               </p>
               <RenderRegionPicker
                 document={document}
@@ -145,6 +180,11 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             </div>
           )}
         </section>
+      )}
+      {editable && options.freedom !== 'strict' && options.designScope === 'zone' && (
+        <p className="bg-canvas text-muted-foreground rounded-control p-2 text-xs">
+          La zona dibujada define dónde pueden colocarse los objetos nuevos.
+        </p>
       )}
       {!editable && (
         <section>
@@ -197,7 +237,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
                 })
               }
             />
-            Todas (7 sin actual)
+            Todas ({allViews.length} sin actual)
           </label>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
@@ -216,6 +256,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             </label>
           ))}
         </div>
+        <p className="mt-2 text-xs text-ink-soft">Exterior terminado conserva fachadas y tejado para el final de obra. Cenital, isométrica y dron muestran la distribución sin cubierta.</p>
       </section>}
     </div>
   );

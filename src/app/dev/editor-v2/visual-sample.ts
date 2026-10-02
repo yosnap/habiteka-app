@@ -1,4 +1,5 @@
 import { ASSET_CATALOG, ORIGINAL_ASSET_COLOR } from '@/lib/editor-document/furniture-assets';
+import { placeOnHost } from '@/lib/editor-document/object-host-rest';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { emptyEditorDocument, type EditorDocument, type Furniture, type Opening, type Wall } from '@/lib/editor-document/schema';
 import { upgradeRampDocument } from '@/lib/editor-document/spatial-properties';
@@ -41,8 +42,10 @@ export function visualSampleDocument(): EditorDocument {
     furniture: [
       asset('sofa', 'sofa', 500, 850), asset('chair', 'sillon_moderno', 4000, 1500, 20),
       asset('living-table', 'mesa_centro_moderna', 2450, 1800),
-      asset('plant', 'planta', 4700, 600), asset('dining-table', 'mesa_comedor_mantel', 6900, 1900),
+      asset('plant', 'planta', 4700, 600), asset('dining-table', 'mesa_comedor_madera', 6900, 1900),
       asset('dining-chair-1', 'silla_comedor_piel', 7500, 1200), asset('dining-chair-2', 'silla_comedor_piel', 9250, 2300, 270),
+      asset('dining-chair-3', 'silla_comedor_piel', 7700, 3500, 180),
+      asset('vase', 'jarron_ceramica', 7500, 2200),
       asset('kitchen-base', 'encimera', 7800, 500), asset('fridge', 'nevera', 9100, 550),
       asset('bed', 'cama_hotel', 650, 5300), asset('nightstand', 'mesilla', 2850, 5700),
       asset('wardrobe', 'armario', 4450, 4900), asset('bath', 'banera', 6300, 5900),
@@ -65,12 +68,14 @@ export function visualSampleDocument(): EditorDocument {
     heightMm: ASSET_CATALOG.find((entry) => entry.id === item.catalogId)!.heightMm,
     color: ORIGINAL_ASSET_COLOR,
   }));
+  const table = document.furniture.find((item) => item.id === 'dining-table')!;
+  document.furniture = document.furniture.map((item) => item.id === 'vase' ? placeOnHost(item, table) : item);
   const rooms = deriveRooms(document);
   document.floorFinishes = rooms.map((room) => {
     const x = room.boundary.reduce((sum, point) => sum + point.x, 0) / room.boundary.length;
     const y = room.boundary.reduce((sum, point) => sum + point.y, 0) / room.boundary.length;
     return { roomId: room.id, color: '#ffffff',
-      texture: x > 6000 && y > 4500 ? 'polyhaven:interior_tiles' : 'polyhaven:oak_wood_planks',
+      texture: x > 6000 && y > 4500 ? 'polyhaven:floor_tiles_04' : 'polyhaven:wood_floor',
       tileSizeMm: 1700, rotation: 0 };
   });
   document.ceilings = rooms.map((room) => ({

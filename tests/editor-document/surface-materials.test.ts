@@ -15,10 +15,10 @@ import { createEditorStore } from '@/canvas/editor-v2/store';
 
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }], true);
 describe('local surface material library', () => {
-  it('contains 60 unique CC0 materials with verified local PBR maps', () => {
-    expect(polyhavenMaterials).toHaveLength(60);
+  it('contains 61 unique CC0 materials with verified local PBR maps', () => {
+    expect(polyhavenMaterials).toHaveLength(61);
     expect(new Set(SURFACE_MATERIALS.map((m) => m.id)).size).toBe(SURFACE_MATERIALS.length);
-    expect(new Set(polyhavenMaterials.map((m) => m.id)).size).toBe(60);
+    expect(new Set(polyhavenMaterials.map((m) => m.id)).size).toBe(61);
     for (const material of polyhavenMaterials) {
       expect(material.license).toBe('CC0-1.0');
       expect(material.sizeMm.every((n) => Number.isFinite(n) && n >= 50 && n <= 10000)).toBe(true);

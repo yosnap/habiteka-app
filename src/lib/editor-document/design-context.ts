@@ -6,6 +6,9 @@ import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
 import { floorFinish, floorSlabThicknessMm } from './floor-finishes';
 import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
+import { wallConstruction } from './construction-properties';
+import { designMaterialPalette } from './design-material-palette';
+import { buildingDesignStyle } from './design-scope';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -19,12 +22,15 @@ export function editorDesignContext(doc: EditorDocument) {
     format: 'habiteka-editor-design-context-v1',
     units: 'm',
     spaceKind: doc.designSpaceKind ?? null,
+    designStyle: buildingDesignStyle(doc) ?? null,
+    existingMaterialPalette: designMaterialPalette(doc),
     instruction: [
       'Geometría de referencia del plano editado por el usuario.',
       'Las cotas, alturas, elevaciones y dimensiones son restricciones físicas no negociables.',
       'Mantén muros, huecos, columnas y pilares exactamente donde están, con su sección, cota base y altura vertical indicadas.',
       'Mantén cada escalera, rampa y descansillo como un recorrido continuo: conserva su inicio, pendiente, giro, descansillos, cotas de llegada y circulación.',
       'La colección floors representa suelos acabados y forjados: una cota de suelo mayor que cero es una plataforma elevada a la que deben llegar sus rampas y escaleras.',
+      'Cada slabUnderside describe el material visible del canto y de la cara inferior del forjado elevado; conserva el acabado existente salvo que la propuesta lo cambie expresamente.',
       'No aplanes, ocultes, flotes ni interrumpas rampas, descansillos, pilares o columnas; no inventes soportes ni cierres pasos existentes.',
       'Los delimitadores outdoor: y hidden: son límites de áreas abiertas, no construyas muros ni techos sobre ellos. Conserva patios, jardines y terrazas abiertos salvo las pérgolas o toldos explícitos del catálogo.',
       'Solo puedes proponer acabados, iluminación, mobiliario complementario y decoración.',
@@ -46,6 +52,11 @@ export function editorDesignContext(doc: EditorDocument) {
           roomId: room.id,
           surface: { texture: finish.texture, material: surfaceMaterial(finish.texture)?.label ?? finish.texture,
             color: finish.color, tileSizeM: meters(finish.tileSizeMm), rotation: finish.rotation },
+          slabUnderside: finishedElevationMm > 0 ? {
+            texture: finish.undersideTexture ?? 'none',
+            material: surfaceMaterial(finish.undersideTexture)?.label ?? 'sin textura',
+            color: finish.undersideColor ?? '#756f66',
+          } : null,
           finishedFloorElevationM: meters(finishedElevationMm),
           structuralDepthM: meters(structuralDepthMm),
           undersideElevationM: meters(Math.max(0, finishedElevationMm - structuralDepthMm)),
@@ -58,6 +69,7 @@ export function editorDesignContext(doc: EditorDocument) {
       });
       return {
         id: level.id,
+        designStyle: source.designStyle ?? null,
         elevationM: meters(level.elevationMm),
         rooms: rooms.map((room) => ({
           id: room.id,
@@ -65,10 +77,19 @@ export function editorDesignContext(doc: EditorDocument) {
           boundaryM: room.boundary.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
         })),
         floors,
+        designZones: (source.designZones ?? []).map((zone) => ({
+          id: zone.id, name: zone.name,
+          boundaryM: zone.polygon.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
+          floorMaterial: zone.floorFinish ? {
+            texture: zone.floorFinish.texture,
+            material: surfaceMaterial(zone.floorFinish.texture)?.label ?? zone.floorFinish.texture,
+          } : null,
+        })),
         boundaries: boundaryDesignContext(source),
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);
+          const materials = wallConstruction(wall).materials;
           return {
             id: wall.id,
             name: wall.name ?? null,
@@ -77,6 +98,10 @@ export function editorDesignContext(doc: EditorDocument) {
             thicknessM: meters(wall.thicknessMm),
             heightM: meters(wall.heightMm ?? 2700),
             baseElevationM: meters(wall.baseElevationMm ?? 0),
+            finishes: {
+              left: { materialId: materials.left, color: wall.colors?.left ?? null },
+              right: { materialId: materials.right, color: wall.colors?.right ?? null },
+            },
             pathM: path.samples().map((point) => ({ x: meters(point.x), y: meters(point.y) })),
           };
         }),
@@ -136,6 +161,7 @@ export function editorDesignContext(doc: EditorDocument) {
             rise: meters(ramp.riseMm),
           },
           rotationDeg: ramp.rotation,
+          ...(ramp.bodyMaterialId ? { bodyFinish: surfaceMaterial(ramp.bodyMaterialId)?.label ?? ramp.bodyMaterialId } : {}),
           elevationProfileM: {
             start: meters(ramp.elevationMm),
             firstArrival: meters(ramp.elevationMm + ramp.riseMm),

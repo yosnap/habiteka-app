@@ -1,4 +1,8 @@
 import { assertBoundaryFields } from './boundary-validation';
+import { geographicSiteSchema } from './geographic-site';
+import { renderBackdropSchema } from './render-backdrop';
+import { exteriorRoofSchema } from './exterior-roof';
+import { isValidEstilo } from '@/lib/design-options';
 import { assertKitchenRunFields } from './kitchen-run-validation';
 import { assertWalkthroughFields } from './walkthrough-validation';
 import type { EditorDocument } from './schema';
@@ -6,9 +10,11 @@ import { assertCeilingFields } from './ceiling-validation';
 import { assertLightStripFields } from './light-strip-validation';
 import { assertLightingSceneFields } from './lighting-scene-validation';
 import { assertLightZoneFields } from './light-zone-validation';
+import { assertDesignZoneFields } from './design-zone-validation';
 import { surfaceMaterial } from './surface-materials';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
+import { isDesignSpaceKind } from '@/lib/design-space-kind';
 import { wallPath } from './wall-path';
 
 function record(value: unknown): asserts value is Record<string, unknown> {
@@ -58,8 +64,32 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite exteriorRoof renderBackdrop${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
+  if (value.geographicSite !== undefined) geographicSiteSchema.parse(value.geographicSite);
+  if (value.renderBackdrop !== undefined) renderBackdropSchema.parse(value.renderBackdrop);
+  if (value.exteriorRoof !== undefined) exteriorRoofSchema.parse(value.exteriorRoof);
+  if (value.terrainSurfaces !== undefined) {
+    if (!Array.isArray(value.terrainSurfaces) || value.terrainSurfaces.length > 40)
+      throw new Error('Superficies de terreno inválidas');
+    const terrainIds = new Set<string>();
+    for (const surface of value.terrainSurfaces) {
+      record(surface);
+      keys(surface, 'id name x y widthMm depthMm texture color tileSizeMm rotation');
+      text(surface.id); text(surface.name);
+      if (terrainIds.has(surface.id)) throw new Error('Terreno duplicado');
+      terrainIds.add(surface.id);
+      if ((surface.name as string).length > 100) throw new Error('Nombre de terreno demasiado largo');
+      finite(surface.x); finite(surface.y); positive(surface.widthMm); positive(surface.depthMm);
+      if ((surface.widthMm as number) > 200000 || (surface.depthMm as number) > 200000)
+        throw new Error('El terreno no puede superar 200 m por lado');
+      color(surface.color); positive(surface.tileSizeMm); finite(surface.rotation);
+      if ((surface.tileSizeMm as number) < 50 || (surface.tileSizeMm as number) > 10000)
+        throw new Error('Escala de terreno fuera de rango');
+      if (!['none', 'wood', 'tile'].includes(surface.texture as string) && !surfaceMaterial(surface.texture as string))
+        throw new Error('Textura de terreno desconocida');
+    }
+  }
   if (value.importReview !== undefined) {
     record(value.importReview);
     keys(value.importReview, 'geometryFingerprint reasons');
@@ -75,11 +105,11 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   if (
     designSpace &&
     value.designSpaceKind !== undefined &&
-    !['interior', 'patio', 'terraza', 'jardin', 'entrada', 'fachada'].includes(
-      value.designSpaceKind as string,
-    )
+    !isDesignSpaceKind(value.designSpaceKind)
   )
     throw new Error('Tipo de espacio desconocido');
+  if (value.designStyle !== undefined && !isValidEstilo(value.designStyle))
+    throw new Error('Estilo de diseño desconocido');
   if (value.levels !== undefined || value.activeLevelId !== undefined) {
     text(value.activeLevelId);
     if (!Array.isArray(value.levels) || !value.levels.length || value.levels.length > 20)
@@ -170,6 +200,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     positive(value.calibration.mmPerPixel);
   }
   const ids = new Set<string>();
+  for (const surface of value.terrainSurfaces ?? []) ids.add(surface.id);
   for (const key of [
     'vertices',
     'walls',
@@ -198,9 +229,9 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         dimensions: 'id from to label',
         labels: 'id x y text',
         stairs:
-          'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId railingLeft railingRight',
+          'id name x y kind catalogId widthMm depthMm heightMm elevationMm rotation stepCount materialId bodyMaterialId railingLeft railingRight',
         ramps:
-          'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId route railingLeft railingRight',
+          'id name x y catalogId widthMm depthMm riseMm elevationMm rotation materialId bodyMaterialId route railingLeft railingRight',
         columns:
           'id name x y catalogId widthMm depthMm heightMm elevationMm rotation materialId color',
         comments: 'id targetEntityId anchor text',
@@ -215,7 +246,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         allowed.openings += ' colors';
         allowed.stairs += ' color';
         allowed.ramps += ' color';
-        allowed.furniture += ' heightMm elevationMm color hostId coverage';
+        allowed.furniture += ' heightMm elevationMm color hostId coverage rolledSides';
       }
       keys(e, allowed[key]!);
       if (e.name !== undefined) {
@@ -234,6 +265,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         nonnegative(e.elevationMm);
         if (e.hostId !== undefined) text(e.hostId);
         if (e.coverage !== undefined) { finite(e.coverage); if ((e.coverage as number) < 0 || (e.coverage as number) > 1) throw new Error('La cobertura va de 0 a 1'); }
+        if (e.rolledSides !== undefined && (e.kind !== 'carpa' || !['none', 'left', 'right', 'both'].includes(e.rolledSides as string)))
+          throw new Error('Laterales de carpa inválidos');
       }
       if (key === 'comments') {
         text(e.targetEntityId);
@@ -302,6 +335,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
+        if (e.bodyMaterialId !== undefined && !surfaceMaterial(e.bodyMaterialId as string))
+          throw new Error('Acabado del cuerpo de la escalera inválido');
         if (!['straight', 'L', 'U'].includes(e.kind as string))
           throw new Error('Escalera desconocida');
         positive(e.widthMm);
@@ -322,6 +357,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         point(e);
         text(e.catalogId);
         text(e.materialId);
+        if (e.bodyMaterialId !== undefined && !surfaceMaterial(e.bodyMaterialId as string))
+          throw new Error('Acabado del cuerpo de la rampa inválido');
         positive(e.widthMm);
         positive(e.depthMm);
         nonnegative(e.riseMm);
@@ -371,6 +408,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     assertLightingSceneFields(value, ids, ceilingScope?.lightIds ?? new Set());
     assertLightZoneFields(value, ids);
   }
+  assertDesignZoneFields(value.designZones, ids);
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
   if (

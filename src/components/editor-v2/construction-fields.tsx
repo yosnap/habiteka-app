@@ -73,6 +73,8 @@ export function StairConstructionFields({ stair, edit }: { stair: Stair; edit: E
       <NumberField label="Rotación (°)" value={stair.rotation} change={(rotation) => edit((doc) => updateStair(doc, stair.id, { rotation }))} />
       <NumberField label="Subidas" value={stair.stepCount} change={(stepCount) => edit((doc) => updateStair(doc, stair.id, { stepCount }))} /></div>
     <MaterialField label="Acabado transitable" value={stair.materialId} change={(materialId) => edit((doc) => updateStair(doc, stair.id, { materialId }))} />
+    <SurfaceMaterialPicker label="Contrahuellas, laterales y cara inferior" value={stair.bodyMaterialId}
+      onChange={(bodyMaterialId) => edit((doc) => updateStair(doc, stair.id, { bodyMaterialId }))} />
     <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateStair(doc, stair.id, { railingLeft: !(stair.railingLeft ?? true) }))}>
         {stair.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}
@@ -103,6 +105,8 @@ export function RampConstructionFields({ ramp, edit }: { ramp: Ramp; edit: Edit 
       change={(value) => edit((doc) => updateRamp(doc, ramp.id, { [key]: value }))} />)}
       <NumberField label="Rotación (°)" value={ramp.rotation} change={(rotation) => edit((doc) => updateRamp(doc, ramp.id, { rotation }))} /></div>
     <MaterialField label="Acabado transitable" value={ramp.materialId} change={(materialId) => edit((doc) => updateRamp(doc, ramp.id, { materialId }))} />
+    <SurfaceMaterialPicker label={landing ? 'Canto y cara inferior del descansillo' : 'Laterales y cara inferior de la rampa'} value={ramp.bodyMaterialId}
+      onChange={(bodyMaterialId) => edit((doc) => updateRamp(doc, ramp.id, { bodyMaterialId }))} />
     {!landing && <div className={styles.actions}>
       <button type="button" onClick={() => edit((doc) => updateRamp(doc, ramp.id, { railingLeft: !(ramp.railingLeft ?? true) }))}>
         {ramp.railingLeft ?? true ? 'Ocultar pasamanos izquierdo' : 'Mostrar pasamanos izquierdo'}

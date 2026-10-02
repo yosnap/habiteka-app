@@ -3,4 +3,6 @@ export interface PlanReference {
   imageUrl: string;
   widthMm: number;
   heightMm: number;
+  xMm?: number;
+  yMm?: number;
 }

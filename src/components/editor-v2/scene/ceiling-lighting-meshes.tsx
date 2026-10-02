@@ -2,12 +2,16 @@
 import { useEffect, useMemo } from 'react';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { ceilingSurfaces, resolvedLuminaires, luminaireDepthMm, luminaireRadiusMm } from '@/lib/editor-document/ceiling-geometry';
-import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
+import { ceilingShapes, createLuminaireEmitter, lightBudgetSplit, MAX_LUMINAIRE_LIGHTS, MAX_SHADOW_LIGHTS, roofSlabPlacement, shadowLightIds, temperatureColor, type CeilingView } from './ceiling-scene-utils';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
+import { SurfaceMaterial } from './surface-material';
+import { surfaceMaterialAppearance } from '@/lib/editor-document/surface-materials';
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
+// La piel PBR necesita separación de la losa para evitar z-fighting desde dron.
+const ROOF_FINISH_OFFSET_M = .02;
 
 function CeilingMesh({ surface, view, selected, onSelect, voids }: {
   surface: Surface; view: CeilingView; selected: boolean; onSelect?: (id: string) => void; voids: Point[][];
@@ -15,8 +19,10 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
   const shapes = useMemo(() => ceilingShapes(surface.room.boundary, voids), [surface.room.boundary, voids]);
   if (view === 'hidden') return null;
   const transparent = view === 'transparent';
-  return shapes.map((shape, index) => <mesh key={index} rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000, 0]}
-    castShadow={!transparent} receiveShadow={!transparent}
+  const roof = roofSlabPlacement(surface);
+  return shapes.map((shape, index) => <group key={index}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, surface.heightMm / 1000 - (surface.ceiling.kind === 'plain' && !transparent ? .004 : 0), 0]}
+    receiveShadow={!transparent}
     raycast={transparent || !onSelect ? () => undefined : undefined}
     userData={{ sourceEntityId: surface.ceiling.id }}
     onClick={onSelect && !transparent ? (event) => { event.stopPropagation(); onSelect(surface.ceiling.id); } : undefined}>
@@ -26,7 +32,23 @@ function CeilingMesh({ surface, view, selected, onSelect, voids }: {
     <meshStandardMaterial color={selected ? '#43b6a0' : surface.ceiling.color} side={2} roughness={.85}
       emissive={surface.ceiling.color} emissiveIntensity={.08}
       transparent={transparent} opacity={transparent ? .16 : 1} depthWrite={!transparent} />
-  </mesh>);
+    </mesh>
+    {!transparent && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, roof.bottomM, 0]}
+      castShadow receiveShadow userData={{ sourceEntityId: surface.ceiling.id }}
+      onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(surface.ceiling.id); } : undefined}>
+      <extrudeGeometry args={[shape, { depth: roof.thicknessM, bevelEnabled: false, steps: 1 }]} />
+      <meshStandardMaterial attach="material-0" color={selected ? '#43b6a0' : '#e5e1d9'} roughness={.88} />
+      <SurfaceMaterial attach="material-1" id={surface.ceiling.edgeMaterialId}
+        color={selected ? '#43b6a0' : surface.ceiling.edgeMaterialId ? '#ffffff' : '#d1cbc1'} width={1} height={1} />
+    </mesh>}
+    {surface.ceiling.topMaterialId && !transparent && <mesh rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, roof.topM + ROOF_FINISH_OFFSET_M, 0]}
+      receiveShadow raycast={() => undefined}>
+      <shapeGeometry args={[shape]} />
+      <SurfaceMaterial id={surface.ceiling.topMaterialId} color={selected ? '#43b6a0' : '#ffffff'}
+        width={1} height={1} tileSizeMm={surfaceMaterialAppearance(surface.ceiling.topMaterialId) ? 1000 : 8000} />
+    </mesh>}
+  </group>);
 }
 
 function LuminaireMesh({ resolved, view, selected, emitLight, castShadow, onSelect }: {

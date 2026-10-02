@@ -30,6 +30,9 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { exteriorWallIds } from '@/lib/editor-document/exterior-wall-selection';
 import { BulkWallAppearanceFields } from './bulk-wall-appearance-fields';
 import { setWallVisibility, updateColumn } from '@/lib/editor-document/construction-commands';
+import { CarpaSidesField } from './carpa-sides-field';
+import { TerrainFields } from './terrain-fields';
+import { SurfaceMaterialPicker } from './surface-material-picker';
 import styles from './editor.module.css';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
@@ -41,6 +44,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const stair = doc.stairs?.find((item) => item.id === id);
   const ramp = doc.ramps?.find((item) => item.id === id);
   const column = doc.columns?.find((item) => item.id === id);
+  const terrain = doc.terrainSurfaces?.find((item) => item.id === id);
   // Las estancias no son entidades: su nombre es la etiqueta de texto situada dentro del contorno.
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
   const facadeIds = useMemo(() => new Set(exteriorWallIds(doc)), [doc]);
@@ -109,6 +113,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       <MeterField label="Cota del suelo" valueMm={floorFinish(doc, room.id).elevationMm ?? 0} change={(elevationMm) => apply((d) => setFloorFinish(d, room.id, { elevationMm }))} />
       <button type="button" onClick={() => store.getState().setDetailPanel('paint')}>Textura del suelo</button>
     </>}
+    {terrain && <TerrainFields surface={terrain} edit={apply} />}
     {wall && points && <>
       <div className={styles.fields}>
         {meterField('Grosor', wall.thicknessMm, (d, n) => { d.walls.find((w) => w.id === id)!.thicknessMm = n; })}
@@ -138,6 +143,8 @@ export function Inspector({ store }: { store: EditorStore }) {
       <WallConstructionFields wall={wall} document={doc} edit={apply} showSurfaceFields={!peers.length} />
       {selectedWallIds.length > 1 && <BulkWallAppearanceFields store={store} wallIds={selectedWallIds} facades={allFacades} />}
     </>}
+    {furniture?.kind === 'carpa' && !partOwner && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
+      onChange={(rolledSides) => apply((document) => updateFurniture(document, furniture.id, { rolledSides }))} />}
     {furniture && !partOwner && <div className={styles.fields}>
       {([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'],
         ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
@@ -165,9 +172,11 @@ export function Inspector({ store }: { store: EditorStore }) {
     </div><OpeningConstructionFields opening={opening} edit={apply} /></>}
     {stair && <StairConstructionFields stair={stair} edit={apply} />}
     {ramp && <RampConstructionFields ramp={ramp} edit={apply} />}
-    {column && <div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
+    {column && <><div className={styles.fields}>{([['x', 'X'], ['y', 'Y'], ['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura'], ['elevationMm', 'Elevación']] as const).map(([key, label]) =>
       <MeterField key={key} label={label} valueMm={column[key]} change={(value) => apply((document) => updateColumn(document, column.id, { [key]: value }))} />)}
-      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>}
+      <NumberField label="Rotación (°)" value={column.rotation} change={(rotation) => apply((document) => updateColumn(document, column.id, { rotation }))} /></div>
+      <SurfaceMaterialPicker label="Material de columna" value={column.materialId} onChange={(materialId) =>
+        apply((document) => updateColumn(document, column.id, { materialId: materialId ?? 'concrete-grey' }))} /></>}
     {label && <label className={styles.field}>Texto<input key={label.text} defaultValue={label.text}
       onBlur={(e) => { const text = e.currentTarget.value; apply((d) => editDocument(d, (next) => { next.labels.find((l) => l.id === id)!.text = text; })); }} /></label>}
     {id && <button className={styles.danger} onClick={() => {

@@ -2,8 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { runAction, fail } from '@/server/errors/run-action';
 import { UserFacingError } from '@/server/errors/user-facing-error';
 import { callAction, isActionError } from '@/lib/action-result';
+import { RenderRejectedError } from '@/server/errors/render-rejected-error';
 
 describe('runAction / callAction', () => {
+  it('conserva el código de rechazo al atravesar la Server Action', async () => {
+    const result = await runAction(async () => { throw new RenderRejectedError('Imagen rechazada'); });
+    expect(result).toEqual({ actionError: 'Imagen rechazada', code: 'render_rejected' });
+    await expect(callAction(Promise.resolve(result))).rejects.toMatchObject({ code: 'render_rejected' });
+  });
   it('devuelve el valor tal cual cuando la acción resuelve sin errores', async () => {
     const result = await runAction(async () => ({ ok: true }));
     expect(result).toEqual({ ok: true });

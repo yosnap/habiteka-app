@@ -58,7 +58,7 @@ describe('revisión de contratos GLB', () => {
   });
 
   it('mantiene identidades separadas de los muebles procedurales existentes', () => {
-    expect(ASSET_CATALOG).toHaveLength(34);
+    expect(ASSET_CATALOG).toHaveLength(36);
     expect(new Set(FURNITURE_CATALOG.map((item) => item.id)).size).toBe(FURNITURE_CATALOG.length);
     expect(furnitureAsset({ catalogId: 'habiteka:furniture:mesa-comedor' })).toBeUndefined();
     for (const entry of ASSET_CATALOG) {

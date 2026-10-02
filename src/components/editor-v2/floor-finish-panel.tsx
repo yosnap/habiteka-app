@@ -41,7 +41,10 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
         <MeterField label="Grosor del forjado" valueMm={finish.slabThicknessMm ?? finish.elevationMm!} change={(slabThicknessMm) => update({ slabThicknessMm })} />
         <small style={{ color: '#5d665f' }}>Reducirlo deja espacio para una planta o bodega inferior.</small>
         <label>Color inferior <input type="color" aria-label="Color inferior del forjado" value={finish.undersideColor ?? '#756f66'} onChange={(e) => update({ undersideColor: e.target.value })} /></label>
-        <SurfaceMaterialPicker label="Cara inferior del forjado" value={finish.undersideTexture} onChange={(undersideTexture) => update({ undersideTexture: (undersideTexture ?? 'none') as FloorFinish['texture'] })} />
+        <SurfaceMaterialPicker label="Cara inferior y canto del forjado" value={finish.undersideTexture} onChange={(undersideTexture) => update({
+          undersideTexture: (undersideTexture ?? 'none') as FloorFinish['texture'],
+          undersideColor: undersideTexture ? '#ffffff' : finish.undersideColor,
+        })} />
       </>}
       <MeterField label="Tamaño de repetición" valueMm={finish.tileSizeMm} change={(tileSizeMm) => update({ tileSizeMm })} />
       <NumberField label="Giro de textura (°)" value={finish.rotation} change={(rotation) => update({ rotation })} />

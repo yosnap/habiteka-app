@@ -6,12 +6,11 @@ type Estimate = { estimatedUsd: number; model: string };
 
 /**
  * Coste estimado del lote antes de generar. Se monta con `key` = número de
- * generaciones, así que cada cambio de vistas, estancias o zonas vuelve a
+ * generaciones, así que cada cambio de vistas o estancias vuelve a
  * preguntar el precio sin efectos que dependan de props.
  */
-export function RenderCostEstimate({ passes, zoneComposite, estimate }: {
+export function RenderCostEstimate({ passes, estimate }: {
   passes: number;
-  zoneComposite: boolean;
   estimate: (passes: number) => Promise<Estimate>;
 }) {
   const [state, setState] = useState<{ value?: Estimate; error?: string }>({});
@@ -26,8 +25,8 @@ export function RenderCostEstimate({ passes, zoneComposite, estimate }: {
   const usd = state.value.estimatedUsd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <p className="text-ink mt-2">
-      Coste estimado: {zoneComposite ? 'hasta ' : ''}{usd} $ · {passes} {passes === 1 ? 'generación' : 'generaciones'}
-      {zoneComposite && ' (2 por vista por las zonas; si la zona no se ve en una vista, esa paga solo una)'}.
+      Coste estimado de imágenes: {usd} $ · {passes} {passes === 1 ? 'generación' : 'generaciones'}.
+      {' '}La verificación visual de fidelidad puede tener un coste adicional.
     </p>
   );
 }

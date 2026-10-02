@@ -7,7 +7,8 @@
  */
 import dynamic from 'next/dynamic';
 import type { Deliverable } from '@/lib/contracts';
-import { Render3dViewer } from './render3d-viewer';
+import { RenderBatchGallery } from './render-batch-gallery';
+import { groupDeliverables } from '@/lib/editor-document/render-gallery';
 import { MaterialsMemo } from './materials-memo';
 import { DeliverableActions } from './deliverable-actions';
 import { ENTREGABLES } from '@/lib/design-options';
@@ -39,43 +40,44 @@ export function DeliverablesPanel({
   if (deliverables.length === 0) {
     return (
       <p className="text-muted-foreground p-6 text-center text-sm">
-        Aún no hay diseños. Completa tus preferencias en el chat para generarlos.
+        Aún no hay diseños guardados.
       </p>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {deliverables.map((d) => (
-        <section
-          key={d.id}
-          aria-label={`${typeLabel(d.type)} · versión ${d.version}`}
-          className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4"
-        >
-          <header className="flex items-center justify-between gap-2">
-            <h2 className="text-ink text-base font-semibold">{typeLabel(d.type)}</h2>
-            <span className="text-ink-soft text-xs">Versión {d.version}</span>
-          </header>
-          {d.sourceImageUrl && <SourceImageOrigin url={d.sourceImageUrl} />}
-          {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} downloadable />}
-          {d.payload.type === 'render3d' && (
-            <Render3dViewer assetUrl={d.payload.assetUrl} projectId={projectId} zoneId={d.zoneId} />
-          )}
-          {d.payload.type === 'memoria' && <MaterialsMemo markdown={d.payload.markdown} />}
-          {d.quality ? (
-            <QualityVerdictCard
-              quality={d.quality}
-              compact
-              blockedNote="Pide cambios para mejorarlo: los primeros cambios de cada diseño no cuestan créditos."
+      {groupDeliverables(deliverables).map((group) => {
+        const d = group.items[0]!;
+        if (d.payload.type === 'render3d') return <RenderBatchGallery key={group.key} items={group.items} projectId={projectId} />;
+        return (
+          <section
+            key={d.id}
+            aria-label={`${typeLabel(d.type)} · versión ${d.version}`}
+            className="border-line bg-surface flex flex-col gap-3 rounded-card border p-4"
+          >
+            <header className="flex items-center justify-between gap-2">
+              <h2 className="text-ink text-base font-semibold">{typeLabel(d.type)}</h2>
+              <span className="text-ink-soft text-xs">Versión {d.version}</span>
+            </header>
+            {d.sourceImageUrl && <SourceImageOrigin url={d.sourceImageUrl} />}
+            {d.payload.type === 'plano2d' && <Plan2dViewer plano={d.payload.plano} downloadable />}
+            {d.payload.type === 'memoria' && <MaterialsMemo markdown={d.payload.markdown} />}
+            {d.quality ? (
+              <QualityVerdictCard
+                quality={d.quality}
+                compact
+                blockedNote="Pide cambios para mejorarlo: los primeros cambios de cada diseño no cuestan créditos."
+              />
+            ) : null}
+            <DeliverableActions
+              projectId={projectId}
+              deliverable={d}
+              highlightChanges={d.quality?.decision === 'block'}
             />
-          ) : null}
-          <DeliverableActions
-            projectId={projectId}
-            deliverable={d}
-            highlightChanges={d.quality?.decision === 'block'}
-          />
-        </section>
-      ))}
+          </section>
+        );
+      })}
     </div>
   );
 }

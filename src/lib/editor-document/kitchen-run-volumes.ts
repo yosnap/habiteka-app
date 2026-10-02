@@ -24,15 +24,19 @@ export function moduleSpans(span: Span, widthMm: number): Span[] {
 /** Muesca de encimera: en ese tramo la encimera solo conserva el fondo por delante de un pilar (de `depthMm` al frente). */
 export interface WorktopNotch extends Span { depthMm: number }
 /** Recortes que vienen del entorno del tramo (pilares, ventanas), por capa. */
-export interface KitchenRunExtraCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[]; worktopNotches: WorktopNotch[] }
+export interface KitchenRunExtraCuts { plinth: Span[]; base: Span[]; worktop: Span[]; uppers: Span[];
+  plinthNotches: WorktopNotch[]; baseNotches: WorktopNotch[]; worktopNotches: WorktopNotch[] }
 /** Recortes longitudinales de cada capa del mueble; los huecos de aparatos y los extremos cedidos en esquina nacen aquí. */
 export type KitchenRunCuts = KitchenRunExtraCuts;
 export interface KitchenRunOptions { trimStartMm?: number; trimEndMm?: number; extra?: KitchenRunExtraCuts }
 const cutsBase = (kind: KitchenSlotKind) => kind === 'lavavajillas' || kind === 'lavadora' || kind === 'horno' || kind === 'frigorifico-columna';
 export function kitchenRunCuts(run: KitchenRun, options: KitchenRunOptions = {}): KitchenRunCuts {
   const whole = { from: options.trimStartMm ?? 0, to: run.widthMm - (options.trimEndMm ?? 0) };
-  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole], worktopNotches: options.extra?.worktopNotches ?? [] };
-  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [], worktopNotches: [] };
+  const cuts: KitchenRunCuts = { plinth: [whole], base: [whole], worktop: [whole], uppers: [whole],
+    plinthNotches: options.extra?.plinthNotches ?? [], baseNotches: options.extra?.baseNotches ?? [],
+    worktopNotches: options.extra?.worktopNotches ?? [] };
+  if (whole.to - whole.from <= .01) return { plinth: [], base: [], worktop: [], uppers: [],
+    plinthNotches: [], baseNotches: [], worktopNotches: [] };
   for (const slot of run.kitchen.slots) {
     const cut = slotSpan(slot);
     if (cutsBase(slot.kind)) cuts.base = subtractSpan(cuts.base, cut);
@@ -54,27 +58,33 @@ export function kitchenRunVolumes(run: KitchenRun, options: KitchenRunOptions = 
     if (widthMm <= .01 || depthMm <= .01 || top - bottom <= .01) return;
     parts.push({ x, y, widthMm, depthMm, bottom: e + bottom, top: e + top, color, ...extra });
   };
+  const notchedBody = (span: Span, depth: number, bottom: number, top: number, color: string,
+    materialId: string | undefined, notches: WorktopNotch[], minimumDepthMm = .01) => {
+    const active = notches.filter((n) => n.to > span.from && n.from < span.to);
+    const points = [...new Set([span.from, span.to, ...active.flatMap(n => [Math.max(span.from, n.from), Math.min(span.to, n.to)])])].sort((a, b) => a - b);
+    // En un solape manda el pilar más profundo, independientemente del orden de los elementos.
+    for (let i = 0; i < points.length - 1; i++) {
+      const from = points[i]!, to = points[i + 1]!;
+      const inset = Math.max(0, ...active.filter(n => n.from < to && n.to > from).map(n => n.depthMm));
+      if (depth - inset > minimumDepthMm) box(from, inset, to - from, depth - inset, bottom, top, color, { materialId });
+    }
+  };
   // Carcasa corrida, un frente por módulo con junta y un tirador por frente; el mismo despiece sirve a bajos y altos.
-  const cabinets = (span: Span, depth: number, bottom: number, top: number, color: string, materialId: string | undefined, handleZ: number) => {
-    box(span.from, 0, span.to - span.from, depth - FRONT - PROUD, bottom, top, color, { materialId });
+  const cabinets = (span: Span, depth: number, bottom: number, top: number, color: string, materialId: string | undefined,
+    handleZ: number, notches: WorktopNotch[] = []) => {
+    notchedBody(span, depth - FRONT - PROUD, bottom, top, color, materialId, notches);
     for (const m of moduleSpans(span, k.moduleWidthMm)) {
       box(m.from + SEAM / 2, depth - FRONT - PROUD, m.to - m.from - SEAM, FRONT, bottom + SEAM / 2, top - SEAM / 2, color, { materialId });
       const handle = Math.min(180, (m.to - m.from) / 2);
       box((m.from + m.to - handle) / 2, depth - PROUD, handle, PROUD, handleZ, handleZ + 25, HARDWARE);
     }
   };
-  for (const span of cuts.plinth) box(span.from, 0, span.to - span.from, d - PLINTH_RECESS, 0, plinthTop, k.plinthColor);
-  for (const span of cuts.base) cabinets(span, d, plinthTop, worktopBottom, run.color, k.baseMaterialId, worktopBottom - 70);
+  for (const span of cuts.plinth) notchedBody(span, d - PLINTH_RECESS, 0, plinthTop, k.plinthColor, undefined, cuts.plinthNotches);
+  for (const span of cuts.base) cabinets(span, d, plinthTop, worktopBottom, run.color, k.baseMaterialId,
+    worktopBottom - 70, cuts.baseNotches);
   // La encimera continúa por delante de un pilar que no ocupa todo el fondo: en su tramo queda solo la franja delantera.
   for (const span of cuts.worktop) {
-    let x = span.from;
-    for (const notch of cuts.worktopNotches.filter((n) => n.to > span.from && n.from < span.to).sort((a, b) => a.from - b.from)) {
-      const from = Math.max(x, notch.from), to = Math.min(span.to, notch.to);
-      box(x, 0, from - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
-      if (d - notch.depthMm > 20) box(from, notch.depthMm, to - from, d - notch.depthMm, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
-      x = Math.max(x, to);
-    }
-    box(x, 0, span.to - x, d, worktopBottom, h, k.worktopColor, { materialId: k.worktopMaterialId });
+    notchedBody(span, d, worktopBottom, h, k.worktopColor, k.worktopMaterialId, cuts.worktopNotches, 20);
   }
   const u = k.uppers;
   if (u) for (const span of cuts.uppers) cabinets(span, u.depthMm, u.bottomMm, u.bottomMm + u.heightMm, u.color, u.materialId, u.bottomMm + 40);
@@ -141,5 +151,39 @@ export function kitchenRunDisplayVolumes(run: KitchenRun, doc: EditorDocument): 
       if (end === 0) trims.trimStartMm = Math.max(trims.trimStartMm, peer.depthMm); else trims.trimEndMm = Math.max(trims.trimEndMm, peer.depthMm);
     }
   }
-  return kitchenRunVolumes(run, trims);
+  const volumes = kitchenRunVolumes(run, trims);
+  const recess = Math.min(PLINTH_RECESS, run.depthMm);
+  // En el extremo cedido, cerrar el retranqueo del zócalo contra el frente
+  // perpendicular evita un triángulo de suelo visible bajo la esquina.
+  for (const x of [trims.trimStartMm > 0 ? trims.trimStartMm : null,
+    trims.trimEndMm > 0 ? run.widthMm - trims.trimEndMm - recess : null]) {
+    if (x === null || x < 0 || x + recess > run.widthMm) continue;
+    volumes.push({ x, y: run.depthMm - recess, widthMm: recess, depthMm: recess,
+      bottom: run.elevationMm, top: run.elevationMm + run.kitchen.plinthHeightMm,
+      color: run.kitchen.plinthColor });
+  }
+  // El tramo dueño ocupa todo el fondo del vecino en la esquina. Su zócalo
+  // retranqueado dejaría suelo visible bajo ese brazo: cerrarlo hasta el frente.
+  const ownerNormal = bodyNormal(run);
+  for (const end of [0, run.widthMm]) {
+    const corner = localToWorld(run, { x: end, y: 0 });
+    const trimmedPeer = peers.find((peer) => {
+      if (!(run.id < peer.id) || !isKitchenJoint(run, peer)) return false;
+      const peerDir = direction(peer);
+      return [0, peer.widthMm].some((peerEnd) => {
+        const peerCorner = localToWorld(peer, { x: peerEnd, y: 0 });
+        if (Math.hypot(corner.x - peerCorner.x, corner.y - peerCorner.y) > jointTolerance(run, peer)) return false;
+        const sign = peerEnd === 0 ? 1 : -1;
+        return (ownerNormal.x * peerDir.x + ownerNormal.y * peerDir.y) * sign >= .5;
+      });
+    });
+    if (!trimmedPeer) continue;
+    const x = end === 0 ? 0 : run.widthMm - trimmedPeer.depthMm;
+    if (x < 0 || x + trimmedPeer.depthMm > run.widthMm) continue;
+    volumes.push({ x,
+      y: run.depthMm - recess, widthMm: trimmedPeer.depthMm, depthMm: recess,
+      bottom: run.elevationMm, top: run.elevationMm + run.kitchen.plinthHeightMm,
+      color: run.kitchen.plinthColor });
+  }
+  return volumes;
 }

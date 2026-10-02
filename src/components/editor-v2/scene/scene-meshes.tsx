@@ -1,33 +1,53 @@
 'use client';
 import { useMemo } from 'react';
 import { Path, Shape } from 'three';
-import { Edges } from '@react-three/drei';
+import { Edges, RoundedBoxGeometry } from '@react-three/drei';
 import type { SceneBox, ScenePolygon, SceneRamp } from '@/canvas/editor-v2/scene/types';
 import { FloorMaterial } from './floor-material';
 import { SurfaceMaterial } from './surface-material';
-import { rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
+import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
+import { rampBodySurfaceGeometry, rampPrismGeometry, rampSurfaceGeometry } from '@/canvas/editor-v2/scene/ramp-prism';
+import { WaterSurfaceMaterial } from './water-surface-material';
+import { HipRoofGeometry } from './hip-roof-geometry';
+import { HipRoofSeams } from './hip-roof-seams';
 
 export function BoxMesh({ box, selected, onSelect }: { box: SceneBox; selected: boolean; onSelect: (id: string) => void }) {
   const colors = box.sideColors ? [box.color, box.color, box.topColor ?? box.color, box.color, box.sideColors[0], box.sideColors[1]] : null;
   const faceColors = colors ?? Array.from({ length: 6 }, () => box.color);
-  const clear = box.role === 'glass' || box.opacity !== undefined;
-  return <mesh position={box.position} rotation={[0, box.rotation, 0]} castShadow={!clear} receiveShadow
+  const clear = box.role === 'glass' || box.opacity !== undefined || box.appearance === 'water';
+  return <><mesh position={box.position} rotation={[0, box.rotation, 0]}
+    scale={box.shape === 'ellipsoid' ? box.size : undefined} castShadow={!clear} receiveShadow
     userData={{ sourceEntityId: box.sourceEntityId }} onClick={(e) => { e.stopPropagation(); onSelect(box.sourceEntityId); }}>
-    {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} /> : <boxGeometry args={box.size} />}
-    {box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId} width={box.size[0]} height={box.size[1]} /> : (colors || box.topMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
+    {box.shape === 'cylinder' ? <cylinderGeometry args={[box.size[0] / 2, box.size[0] / 2, box.size[1], 24]} />
+      : box.shape === 'hip-roof' ? <HipRoofGeometry size={box.size} />
+        : box.shape === 'rounded-box' ? <RoundedBoxGeometry args={box.size} radius={Math.min(...box.size) * .2} smoothness={3} bevelSegments={2} />
+        : box.shape === 'ellipsoid' ? <sphereGeometry args={[.5, 20, 12]} /> : <boxGeometry args={box.size} />}
+    {box.appearance === 'water' ? <WaterSurfaceMaterial color={selected ? '#43b6a0' : box.color} width={box.size[0]} depth={box.size[2]} /> : box.materialId ? <SurfaceMaterial color={selected ? '#43b6a0' : box.color} id={box.materialId}
+      width={box.size[0]} height={box.shape === 'hip-roof' ? box.size[2] : box.size[1]}
+      useColorMap={box.useColorMap} fabricSheen={box.shape === 'hip-roof'} /> : (colors || box.topMaterialId || box.bodyMaterialId) ? faceColors.map((color, index) => index === 2 && box.topMaterialId
       ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : color} id={box.topMaterialId}
         width={box.size[0]} height={box.size[2]} />
+      : index !== 2 && box.bodyMaterialId
+        ? <SurfaceMaterial key={index} attach={`material-${index}`} color={selected ? '#43b6a0' : '#ffffff'} id={box.bodyMaterialId}
+          width={index < 2 ? box.size[2] : box.size[0]} height={index === 3 ? box.size[2] : box.size[1]} />
       : index === 2 && box.topColor
         ? box.role === 'wall'
           ? <meshStandardMaterial key={index} attach={`material-${index}`} color={color} roughness={.85} />
           : <meshBasicMaterial key={index} attach={`material-${index}`} color={color} toneMapped={false} />
       : <SurfaceMaterial key={index} attach={`material-${index}`} color={color} id={index >= 4 ? box.sideMaterials?.[index - 4] : undefined}
         width={box.size[0]} height={box.size[1]} offsetX={box.textureOffset?.[0]} offsetY={box.textureOffset?.[1]} />)
-      : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color} roughness={box.role === 'glass' ? .12 : .7}
-        metalness={box.role === 'rail' ? .5 : 0} transparent={clear} opacity={box.opacity ?? (box.role === 'glass' ? .35 : 1)}
+      : <meshStandardMaterial emissive={box.emissive} emissiveIntensity={box.emissive ? 2 : 0} color={selected ? '#43b6a0' : box.color}
+        roughness={box.appearance === 'powder-coated-metal' ? .42 : box.role === 'glass' ? .08 : box.role === 'seal' ? .38 : box.shape === 'hip-roof' ? .92 : .7}
+        metalness={box.appearance === 'powder-coated-metal' ? .65 : box.role === 'rail' ? .5 : box.role === 'glass' ? .18 : box.role === 'seal' ? .12 : 0}
+        envMapIntensity={box.role === 'glass' ? 1.6 : 1}
+        transparent={clear} opacity={box.opacity ?? (box.role === 'glass' ? .38 : 1)}
         depthWrite={!clear} />}
     {selected && colors && <Edges color="#087f75" />}
-  </mesh>;
+  </mesh>
+    {box.shape === 'hip-roof' && <group position={box.position} rotation={[0, box.rotation, 0]}>
+      <HipRoofSeams size={box.size} color={box.color} selected={selected} />
+    </group>}
+  </>;
 }
 
 export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; selected: boolean; onSelect: (id: string) => void }) {
@@ -39,13 +59,23 @@ export function RampMesh({ ramp, selected, onSelect }: { ramp: SceneRamp; select
     <boxGeometry args={[ramp.width, Math.max(ramp.baseHeight, .02), ramp.depth]} />
     {[0, 1, 2, 3, 4, 5].map((face) => face === 2 && ramp.floorFinish
       ? <FloorMaterial key={face} finish={ramp.floorFinish} attach={`material-${face}`} width={ramp.width} height={ramp.depth} />
+      : ramp.bodyMaterialId ? <SurfaceMaterial key={face} attach={`material-${face}`} id={ramp.bodyMaterialId}
+        color={selected ? '#43b6a0' : '#ffffff'} width={face === 0 || face === 1 ? ramp.depth : ramp.width}
+        height={face === 3 ? ramp.depth : Math.max(ramp.baseHeight, .02)} />
       : <meshStandardMaterial key={face} attach={`material-${face}`} color={selected ? '#43b6a0' : structuralColor} roughness={.75} />)}
   </mesh>;
   const { vertices, indices } = rampPrismGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
+  const body = ramp.bodyMaterialId ? rampBodySurfaceGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight) : undefined;
   const surface = rampSurfaceGeometry(ramp.width, ramp.depth, ramp.rise, ramp.baseHeight);
   return <group position={ramp.position} rotation={[0, ramp.rotation, 0]} onClick={select}>
-    <mesh castShadow receiveShadow><bufferGeometry><bufferAttribute attach="attributes-position" args={[vertices, 3]} /><bufferAttribute attach="index" args={[indices, 1]} /></bufferGeometry>
-      <meshStandardMaterial color={selected ? '#43b6a0' : structuralColor} roughness={.75} side={2} /></mesh>
+    <mesh castShadow receiveShadow><bufferGeometry>
+      <bufferAttribute attach="attributes-position" args={[body?.vertices ?? vertices, 3]} />
+      {body && <><bufferAttribute attach="attributes-uv" args={[body.uvs, 2]} />
+        <bufferAttribute attach="attributes-normal" args={[body.normals, 3]} /></>}
+      <bufferAttribute attach="index" args={[body?.indices ?? indices, 1]} />
+    </bufferGeometry>
+      {ramp.bodyMaterialId ? <SurfaceMaterial id={ramp.bodyMaterialId} color={selected ? '#43b6a0' : '#ffffff'} width={1} height={1} doubleSide />
+        : <meshStandardMaterial color={selected ? '#43b6a0' : structuralColor} roughness={.75} side={2} />}</mesh>
     {ramp.floorFinish && <mesh receiveShadow raycast={() => undefined}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[surface.vertices, 3]} />
@@ -90,7 +120,10 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
       : <extrudeGeometry args={[shape, { depth: polygon.height, bevelEnabled: false, steps: 1 }]} />}
     {polygon.floorFinish ? polygon.height > 0 ? <>
       <FloorMaterial finish={polygon.floorFinish} attach="material-0" />
-      <meshStandardMaterial attach="material-1" color={polygon.sideColor ?? '#756f66'} roughness={.85} />
+      {surfaceMaterial(polygon.floorFinish.undersideTexture)
+        ? <SurfaceMaterial attach="material-1" color={selected ? '#43b6a0' : polygon.sideColor ?? '#ffffff'}
+          id={polygon.floorFinish.undersideTexture} width={1} height={1} />
+        : <meshStandardMaterial attach="material-1" color={selected ? '#43b6a0' : polygon.sideColor ?? '#756f66'} roughness={.85} />}
     </> : <FloorMaterial finish={polygon.floorFinish} /> : polygon.topColor || polygon.edgeFinishes ? <>
       {polygon.role === 'wall' || polygon.role === 'junction'
         ? <meshStandardMaterial attach="material-0" color={polygon.color} roughness={.85} />
@@ -102,7 +135,7 @@ export function PolygonMesh({ polygon, selected, onSelect }: { polygon: ScenePol
     {polygon.floorFinish && polygon.height > 0 && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, polygon.elevation - .001, 0]} receiveShadow>
       <shapeGeometry args={[shape]} />
       <FloorMaterial finish={polygon.floorFinish} textureId={polygon.floorFinish.undersideTexture ?? 'none'}
-        color={polygon.floorFinish.undersideColor ?? polygon.sideColor ?? '#756f66'} doubleSide />
+        color={polygon.sideColor ?? '#756f66'} doubleSide />
     </mesh>}
     {polygon.edgeFinishes?.map((finish, index) => {
       const a = polygon.points[index]!, b = polygon.points[(index + 1) % polygon.points.length]!;

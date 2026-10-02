@@ -39,6 +39,8 @@ const definitions: AssetDefinition[] = [
   ['mesa_centro_moderna', 'Mesa de centro de piedra y madera', 'salon', 'table', 1200, 600, 390],
   ['silla_comedor_piel', 'Silla de comedor de piel', 'comedor', 'chair', 450, 580, 980],
   ['mesa_comedor_mantel', 'Mesa de comedor con mantel', 'comedor', 'table', 2256, 1390, 877],
+  ['mesa_comedor_madera', 'Mesa de comedor de madera', 'comedor', 'table', 1600, 900, 800],
+  ['jarron_ceramica', 'Jarrón de cerámica', 'decoracion', 'decor', 220, 220, 309],
   ['cama_hotel', 'Cama king tapizada', 'dormitorio', 'bed', 2020, 2204, 1422],
 ];
 export const ASSET_CATALOG: FurnitureCatalogEntry[] = definitions.map(([key, label, room, profile, widthMm, depthMm, heightMm]) => ({
@@ -46,7 +48,21 @@ export const ASSET_CATALOG: FurnitureCatalogEntry[] = definitions.map(([key, lab
   label, room, category: profile, profile, function: label, style: 'Modelo original', material: 'Materiales del modelo',
   color: ORIGINAL_ASSET_COLOR, widthMm, depthMm, heightMm, elevationMm: 0,
 }));
-const assets = new Map(definitions.map(([key]) => {
+interface ModelAsset {
+  key: string;
+  url: string;
+  frontRotation: number;
+  tintMaterialNames?: string[];
+  file: string;
+  kind: string;
+  source: string;
+  author: string;
+  license: string;
+  attributionRequired: boolean;
+  sha256: string;
+  thumbnailUrl?: string;
+}
+const assets = new Map<string, ModelAsset>(definitions.map(([key]) => {
   const provenance = manifest.assets.find((item) => item.kind === key)!;
   if (!provenance) throw new Error(`Falta procedencia del modelo ${key}`);
   return [`habiteka:asset:${key}` as string, { key, url: `/models/cc0/${provenance.file}`, ...provenance,
@@ -55,6 +71,12 @@ const assets = new Map(definitions.map(([key]) => {
       : key === 'mesa_centro_moderna' ? Math.PI / 2 : 0,
   }] as const;
 }));
+const carProvenance = manifest.assets.find((entry) => entry.kind === 'coche');
+if (!carProvenance) throw new Error('Falta procedencia del modelo de coche');
+assets.set('habiteka:outdoor:coche:turismo-3d', {
+  ...carProvenance, key: 'coche', url: `/models/cc0/${carProvenance.file}`,
+  frontRotation: Math.PI, tintMaterialNames: ['paintB'],
+});
 export function furnitureAsset(item: Pick<Furniture, 'catalogId'>) {
   return item.catalogId ? assets.get(item.catalogId) : undefined;
 }
