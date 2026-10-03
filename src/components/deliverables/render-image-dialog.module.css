@@ -1,0 +1,73 @@
+.dialog {
+  position: fixed;
+  inset: 3vh 3vw;
+  z-index: 151;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 24px 80px #0006;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.preview {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--color-surface-muted);
+}
+
+.image {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.actions {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem;
+  border-left: 1px solid var(--color-line);
+}
+
+.actions > * + * { margin-top: 0.75rem; }
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.arrow:hover:not(:disabled) { background: var(--color-surface-muted); }
+.arrow:focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+.arrow:disabled { cursor: default; opacity: 0.35; }
+
+@media (max-width: 900px) {
+  .dialog { inset: 0.5rem; }
+  .body { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  .image { flex: none; height: 32dvh; min-height: 10rem; }
+  .actions { overflow: visible; border-left: 0; border-top: 1px solid var(--color-line); padding: 1rem; }
+}

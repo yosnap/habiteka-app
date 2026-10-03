@@ -51,6 +51,7 @@ import { DroneReferenceField } from './drone-reference-field';
 import { RenderPresetControls } from './render-preset-controls';
 import { GeneratedRenderGallery } from './generated-render-gallery';
 import { autoGenerateInteriorRoomIds, type AutoGenerateRequest } from './auto-generate-request';
+import { DesignPreviewDialog, EditorDesignDialogFrame } from './editor-design-dialog-frame';
 
 interface EditorGenerateDialogProps {
   projectId?: string; zoneId?: string | null;
@@ -379,40 +380,9 @@ export function EditorGenerateDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Diseñar el espacio"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && !busy) onClose();
-      }}
-    >
-      <div className="bg-surface flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-card border border-line p-4 shadow-2xl sm:p-6">
-        <div className="flex shrink-0 items-start justify-between gap-4">
-          <div>
-            <p className="text-primary text-xs font-semibold uppercase tracking-[.18em]">
-              Estudio de diseño
-            </p>
-            <h2 className="text-ink mt-1 text-xl font-semibold">
-              {mode === 'proposal'
-                ? 'Propuesta editable'
-                : mode === 'renders'
-                  ? 'Previsualiza tus vistas'
-                  : 'Diseñar el espacio'}
-            </h2>
-          </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="text-muted-foreground rounded-full px-2 text-xl hover:bg-muted"
-          >
-            ×
-          </button>
-        </div>
-        <div className="min-h-0 overflow-y-auto pr-1">
+    <EditorDesignDialogFrame busy={busy} onClose={onClose}
+      title={mode === 'proposal' ? 'Propuesta editable' : mode === 'renders' ? 'Previsualiza tus vistas' : 'Diseñar el espacio'}>
+        <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
         {mode === 'proposal' && proposal ? (
           <><p role="status" className="mt-4 rounded-lg border border-line bg-canvas p-3 text-sm">
             {applied ? 'Cambios aplicados al plano. Puedes verlos al cerrar y deshacerlos con ⌘Z / Ctrl+Z. Guarda el plano para sincronizarlos.'
@@ -629,7 +599,7 @@ export function EditorGenerateDialog({
             {mode === 'renders' && completedCount > 0 && (
               <div className="mt-5 border-t border-line pt-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-ink text-sm font-medium">Galería del lote</h3>
+                  <h3 className="text-ink text-sm font-medium">Diseños de esta tanda</h3>
                   <span className="text-muted-foreground text-xs">
                     {completedCount}/{renderableCaptures.length} completadas
                   </span>
@@ -681,7 +651,7 @@ export function EditorGenerateDialog({
           </p>
         )}
         {mode !== 'proposal' && <p className="text-ink-soft mt-4 text-xs">
-          {intent === 'image' ? 'El plano es una guía. Acepta el diseño generado en Diseños antes de usarlo en vídeos o visitas. Las imágenes por sí solas no forman una escena navegable; el paseo virtual continuo desde diseños sigue pendiente.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
+          {intent === 'image' ? 'El plano es una guía. Abre cada imagen aquí o en Diseños para revisarla y aceptarla antes de usarla en vídeos o visitas. Las imágenes por sí solas no forman una escena navegable; el paseo virtual continuo desde diseños sigue pendiente.' : 'El ámbito elegido limita los acabados y los objetos nuevos. Estricto cambia solo acabados; controlado y libre permiten decoración, nunca cambios de construcción. Las zonas dibujadas acotan además los objetos.'}
         </p>}
         </div>
         <div className="mt-4 flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
@@ -778,35 +748,8 @@ export function EditorGenerateDialog({
             </>
           )}
         </div>
-        {largePreview && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Vista ampliada: ${largePreview.label}`}
-            onClick={() => setLargePreview(null)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') { event.stopPropagation(); setLargePreview(null); }
-            }}
-          >
-            <div
-              className="bg-surface max-h-[92vh] max-w-6xl rounded-card border border-line p-2 shadow-2xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <ZoneOverlayImage
-                src={largePreview.src}
-                maskSrc={largePreview.maskSrc}
-                alt={largePreview.label}
-                className="max-h-[86vh] max-w-full object-contain"
-              />
-              <p className="text-ink-soft px-2 pt-2 text-xs">
-                {largePreview.label} · cerrar para volver
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+        {largePreview && <DesignPreviewDialog preview={largePreview} onClose={() => setLargePreview(null)} />}
+    </EditorDesignDialogFrame>
   );
 }
 

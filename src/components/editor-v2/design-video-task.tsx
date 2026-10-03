@@ -9,11 +9,12 @@ import { RenameVideo } from '@/components/deliverables/video-name';
 export const DESIGN_VIDEO_STATUS = { prepared: 'Prueba preparada', submitting: 'Envío en curso; no repetir', generating: 'H3 está generando',
   review: 'Pendiente de revisar', accepted: 'Prueba aceptada', rejected: 'Prueba rechazada', failed: 'Prueba fallida', unknown: 'Envío sin confirmar; no repetir' };
 
-export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBusyChange, onEdit, onRenamed }: {
+export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBusyChange, onEdit, onRenamed, onOpenSaved, onCreateAdvertising }: {
   scope: EditorScope; id: string; initial: DesignVideoJob; initialUrl?: string | null;
   onChange?: (job: DesignVideoJob) => void; onBusyChange?: (busy: boolean) => void;
   onEdit?: () => void;
   onRenamed?: () => void;
+  onOpenSaved?: () => void; onCreateAdvertising?: () => void;
 }) {
   const [job, setJob] = useState(initial), [url, setUrl] = useState(initialUrl ?? null);
   const [consent, setConsent] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -60,6 +61,10 @@ export function DesignVideoTask({ scope, id, initial, initialUrl, onChange, onBu
         {accepted ? 'Aceptar esta prueba' : 'Rechazar por falta de fidelidad'}</Button>)}</div>
     </>}
     {url && <a href={url} download className="inline-block text-sm text-brand-700 underline">Descargar prueba MP4</a>}
+    {(onOpenSaved || job.status === 'accepted' && onCreateAdvertising) && <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+      {onOpenSaved && <Button variant="outline" disabled={busy} onClick={onOpenSaved}>Ver en Vídeos guardados</Button>}
+      {job.status === 'accepted' && onCreateAdvertising && <Button variant="outline" disabled={busy} onClick={onCreateAdvertising}>Preparar publicidad con un vídeo guardado</Button>}
+    </div>}
     {(error || job.error) && <p role="alert" className="text-sm text-danger">{error || job.error}</p>}
     <p className="text-xs text-ink-soft">Tarifa orientativa de KIE del 01/10/2026, sin reintentos ni auditorías de pago. No se inicia otra generación al consultar ni al rechazar. La devolución de una tarea fallida depende del proveedor.</p>
   </section>;

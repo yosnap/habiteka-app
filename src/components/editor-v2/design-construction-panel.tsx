@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { EditorScope } from '@/server/editor/authority';
 import { loadDesignVideoReferences, prepareDesignConstruction, prepareDesignVisit } from '@/server/walkthrough/design-video-actions';
-import { defaultDesignVideoReferenceIds, designVideoEstimate, designVideoLayoutReference, designVideoReferenceRole, type DesignVideoJob, type DesignVideoReference } from '@/lib/editor-document/design-video';
+import { defaultDesignVideoReferenceIds, designVideoEstimate, designVideoReferenceRole, type DesignVideoJob, type DesignVideoReference } from '@/lib/editor-document/design-video';
 import { DEFAULT_VIDEO_PRESENTATION } from '@/lib/editor-document/video-presentation';
 import { VideoDurationControls } from './video-duration-controls';
 import { DesignVideoTask } from './design-video-task';
@@ -12,15 +12,21 @@ import Link from 'next/link';
 import { continueRenderBatchHref } from './auto-generate-request';
 import { RenderCleanupCardActions, RenderCleanupToolbar, useRenderCleanup } from '@/components/deliverables/render-cleanup';
 import { VideoNameField } from '@/components/deliverables/video-name';
-import { defaultDesignVisitReferenceIds, designVisitSelectionIssue } from '@/lib/editor-document/design-visit';
+import { defaultDesignVisitReferenceIds } from '@/lib/editor-document/design-visit';
+import { designVideoPreparationIssue } from '@/lib/editor-document/design-video-readiness';
 
-export function DesignConstructionPanel({ scope, approved, approvalDisabled = false, onReviewApproval, onBusyChange, portalContainer, goal = 'construction' }: {
+export function DesignConstructionPanel({ scope, approved, approvalDisabled = false, onReviewApproval, onBusyChange, onOpenSaved, onCreateAdvertising, portalContainer, goal = 'construction' }: {
   scope: EditorScope; approved: boolean; approvalDisabled?: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void; portalContainer?: HTMLElement | null;
   goal?: 'construction' | 'visit';
+  onOpenSaved?: () => void; onCreateAdvertising?: () => void;
 }) {
   const visit = goal === 'visit';
   const [media, setMedia] = useState<Awaited<ReturnType<typeof loadDesignVideoReferences>> | null>(null);
   const [ids, setIds] = useState<string[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState(''), [refreshing, setRefreshing] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<boolean | null>(null);
+  const loading = refreshing || loadedFor !== approved;
+  const readinessId = useId();
   const [presentation, setPresentation] = useState({ ...DEFAULT_VIDEO_PRESENTATION });
   const [resolution, setResolution] = useState<'768P' | '2K'>('768P');
   const [task, setTask] = useState<{ id: string; job: DesignVideoJob } | null>(null);
@@ -33,9 +39,10 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
   useEffect(() => {
     let active = true;
     void loadDesignVideoReferences(scope).then(value => {
-      if (!active) return; setMedia(value);
+      if (!active) return; setMedia(value); setLoadError('');
       setIds(visit ? defaultDesignVisitReferenceIds(value.references) : defaultDesignVideoReferenceIds(value.references));
-    }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los diseños.'); });
+    }).catch(cause => { if (active) setLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los diseños.'); })
+      .finally(() => { if (active) setLoadedFor(approved); });
     return () => { active = false; };
   }, [scope, approved, visit]);
   const selected = useMemo(() => ids.flatMap(id => {
@@ -52,13 +59,24 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
   }, [media, visit, showOtherImages, cleanup.selecting]);
   const estimate = designVideoEstimate({ presentation, resolution }, selected.length);
   const included = [...new Set(selected.flatMap(reference => reference.zones))];
-  const hasFinishedExterior = selected.some(reference => reference.closedRoof);
-  const layoutReference = designVideoLayoutReference(selected);
-  const visitIssue = visit ? designVisitSelectionIssue(selected) : null;
-  const referenceIssue = (reference: DesignVideoReference) => reference.issue || (visit ? reference.visitIssue : undefined);
+  const readinessIssue = designVideoPreparationIssue({ goal, approved, loading, loadError, approvalId: media?.approvalId ?? null,
+    providerReady: media?.providerReady ?? false, references: selected });
+  const referenceIssue = (reference: DesignVideoReference) => reference.issue || (visit ? reference.visitIssue || (!reference.interiorRoomId ? 'Falta la estancia interior verificada.' : undefined) : undefined);
+  const unavailableCount = media?.references.filter(reference => referenceIssue(reference)).length ?? 0;
   const role = (reference: DesignVideoReference) => visit ? `${reference.interiorRoomName ?? 'Interior sin verificar'} · ${selected[0]?.id === reference.id ? 'Vista principal' : 'Apoyo del mismo interior'}` : designVideoReferenceRole(reference, selected);
+  async function refresh() {
+    setRefreshing(true); setLoadError(''); setError('');
+    try {
+      const value = await loadDesignVideoReferences(scope); setMedia(value);
+      setIds(current => {
+        const kept = current.filter(id => value.references.some(reference => reference.id === id && !referenceIssue(reference)));
+        return kept.length ? kept : visit ? defaultDesignVisitReferenceIds(value.references) : defaultDesignVideoReferenceIds(value.references);
+      });
+    } catch (cause) { setLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los diseños.'); }
+    finally { setRefreshing(false); }
+  }
   async function prepare() {
-    if (!media?.approvalId) return;
+    if (!media?.approvalId || readinessIssue || busy || cleanup.busy) return;
     setBusy(true); onBusyChange(true); setError('');
     try { setTask(await (visit ? prepareDesignVisit : prepareDesignConstruction)(scope, media.approvalId, ids, { presentation, resolution }, title)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo preparar la prueba.'); }
@@ -68,20 +86,21 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
     <header><h2 className="text-xl font-semibold">{visit ? 'Primera persona desde mis diseños' : 'Construcción desde mis diseños'}</h2>
       <p className="mt-2 max-w-3xl text-sm text-ink-soft">{visit ? 'Una toma a altura de ojos dentro de una habitación, conservando sus muebles y acabados.' : 'De la parcela vacía al diseño terminado: distribución, fachadas, tejado y mobiliario de tus imágenes.'}</p></header>
     {!approved && <div className="flex flex-wrap items-center gap-3 rounded-control border border-line p-3"><p className="text-sm">Confirma la versión del proyecto y su luz antes de preparar el vídeo.</p><Button variant="outline" disabled={approvalDisabled} onClick={onReviewApproval}>Revisar versión del proyecto</Button></div>}
-    {!media && !error && <p role="status">Cargando las tandas del diseño aprobado…</p>}
+    {loading && <p role="status">Cargando las tandas del diseño aprobado…</p>}
     {!task && <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 className="font-semibold">1. Elige los diseños <span className="ml-2 text-sm font-normal text-ink-soft">{ids.length} seleccionados</span></h3>
-      <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={`/projects/${scope.projectId}/deliverables${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>{visit ? 'Revisar y aceptar diseños interiores' : 'Revisar y aceptar diseños'}</Link>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={loading || busy || cleanup.busy} onClick={() => void refresh()}>Actualizar diseños</Button>
+        <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={`/projects/${scope.projectId}/deliverables${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>{visit ? 'Revisar y aceptar diseños interiores' : 'Revisar y aceptar diseños'}</Link></div>
     </div>}
     {!task && <p className="text-sm text-ink-soft">{visit ? 'Elige un interior aceptado, con paredes y techo completos. La visita continua entre habitaciones aún está pendiente.' : 'Elige una cenital y un exterior terminado con tejado de la misma tanda. Añade otras vistas si necesitas más detalle.'}</p>}
     {!task && <details className="rounded-control border border-line px-4 py-3 text-sm">
-      <summary className="cursor-pointer text-ink-soft">Gestionar imágenes y ver las no disponibles</summary>
+      <summary className="cursor-pointer text-ink-soft">Gestionar imágenes y ver las no disponibles{unavailableCount ? ` · ${unavailableCount} no disponibles` : ''}</summary>
       <div className="mt-3 space-y-3"><Button variant="outline" size="sm" disabled={busy || cleanup.busy} aria-pressed={showOtherImages} onClick={() => setShowOtherImages(!showOtherImages)}>{showOtherImages ? 'Mostrar solo imágenes utilizables' : 'Mostrar todas las imágenes'}</Button>
       <RenderCleanupToolbar cleanup={cleanup} images={media?.references ?? []} disabled={busy} /></div>
     </details>}
     {!task && <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-5">{media && !groups.length && <div role="status" className="rounded-card border border-dashed border-line bg-surface-muted p-8 text-center"><h4 className="font-semibold">{visit ? 'Falta un interior aceptado' : 'Tus diseños todavía no están listos'}</h4><p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">Abre Mis diseños, revisa las imágenes y acepta las que quieras usar. Después vuelve a Vídeos. Revisarlas no consume IA.</p></div>}
-      {groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy || cleanup.busy} className="space-y-3 rounded-card border border-line p-4">
+      <div className="space-y-5">{media && !loading && !loadError && !groups.length && <div role="status" className="rounded-card border border-dashed border-line bg-surface-muted p-8 text-center"><h4 className="font-semibold">{!approved ? 'Primero revisa la versión del proyecto' : visit ? 'Falta un interior aceptado compatible' : 'Faltan diseños aceptados compatibles'}</h4><p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">{!approved ? 'Confirma la versión y su luz con el botón de arriba para comprobar qué imágenes corresponden a ella.' : 'Abre Mis diseños y revisa sus imágenes. Deben estar aceptadas y corresponder a esta versión y modalidad; aceptar una imagen antigua no la hace compatible. Puedes consultar los motivos en las imágenes no disponibles.'}</p></div>}
+      {groups.map((group, index) => <fieldset key={group[0]!.id} disabled={busy || cleanup.busy || loading} className="space-y-3 rounded-card border border-line p-4">
         <legend className="px-1 text-sm font-semibold">Tanda {index + 1} · revisión {group[0]!.revision}</legend>
         <details className="text-xs text-ink-soft"><summary className="cursor-pointer">Zonas incluidas y más vistas</summary><p className="my-2">{[...new Set(group.flatMap(reference => reference.zones))].join(', ') || group[0]!.name}</p>
         {group[0]!.batchId && <Link className="underline" href={continueRenderBatchHref(scope.projectId, scope.zoneId ?? null, group[0]!.batchId)}>Completar vistas de la tanda {index + 1}</Link>}</details>
@@ -111,19 +130,16 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
       </fieldset>
       <details className="text-sm"><summary className="cursor-pointer text-ink-soft">Qué incluye la selección</summary><p className="mt-2">{visit ? selected[0]?.interiorRoomName ?? 'La estancia de la referencia interior elegida.' : included.join(', ') || 'El ámbito visible de las imágenes elegidas.'}</p></details>
       <div className="border-t border-line pt-4"><h3 className="font-semibold">3. Revisa antes de generar</h3><p className="mt-2 text-sm">Coste previsto <strong>${estimate.usd.toFixed(2)}</strong> · {ids.length} imágenes</p><p className="mt-1 text-xs text-ink-soft">El siguiente paso no consume IA. Verás las referencias y confirmarás el coste antes de generar con MiniMax H3.</p></div>
-      {!visit && media && ids.length > 0 && !hasFinishedExterior && <p role="status" className="text-sm">Añade un exterior terminado con tejado de la misma tanda.</p>}
-      {!visit && media && ids.length > 0 && !layoutReference && <p role="status" className="text-sm">Añade una cenital, isométrica o dron del conjunto de la misma tanda.</p>}
-      {visit && visitIssue && <p role="status" className="text-sm">{visitIssue}</p>}
-      <Button className="w-full" disabled={busy || cleanup.busy || !approved || !media?.providerReady || !ids.length || ids.length > 9 || (visit ? Boolean(visitIssue) : !hasFinishedExterior || !layoutReference)} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Revisar vídeo antes de generar'}</Button>
-      {ids.length > 9 && <p role="status" className="text-sm">H3 admite hasta nueve imágenes. Elige referencias de la misma tanda que cubran todo el diseño.</p>}
-      {media && !media.providerReady && <p role="status" className="text-sm">KIE debe estar configurado y activo en los ajustes de IA.</p>}
+      <p id={readinessId} role="status" className="text-sm">{readinessIssue ?? 'Selección lista para preparar. Antes del envío se volverán a comprobar las referencias.'}</p>
+      <Button className="w-full" aria-describedby={readinessId} disabled={busy || cleanup.busy || Boolean(readinessIssue)} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Revisar vídeo antes de generar'}</Button>
       </aside>
     </div>}
     {task && <><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{selected.map(reference => <figure key={reference.id} className="overflow-hidden rounded-control border border-line">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={reference.url} alt={`${reference.name} · ${reference.view}`} className="aspect-video w-full object-cover" />
       <figcaption className="p-2 text-xs">Referencia {selected.indexOf(reference) + 1} · {reference.view} · {role(reference)}</figcaption>
-    </figure>)}</div><DesignVideoTask key={task.id} scope={scope} id={task.id} initial={task.job} onBusyChange={onBusyChange} onEdit={() => setTask(null)} /></>}
+    </figure>)}</div><DesignVideoTask key={task.id} scope={scope} id={task.id} initial={task.job} onBusyChange={onBusyChange} onEdit={() => setTask(null)} onOpenSaved={onOpenSaved} onCreateAdvertising={onCreateAdvertising} /></>}
+    {loadError && <p role="alert" className="text-sm text-danger">{loadError}</p>}
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
   </section>;
 }

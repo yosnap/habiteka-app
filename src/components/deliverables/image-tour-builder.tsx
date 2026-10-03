@@ -26,11 +26,12 @@ interface Props {
   onCreated?: () => void | Promise<void>;
   onBusyChange?: (busy: boolean) => void;
   onReviewApproval?: () => void;
+  onOpenSaved?: () => void;
   portalContainer?: HTMLElement | null;
 }
 
 /** Montaje del vídeo sobre las imágenes generadas: una selección por ámbito que se puede ajustar antes de crearlo. */
-export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevision, images, ambients, validRevisions, approvalOutdated, onCreated, onBusyChange, onReviewApproval, portalContainer }: Props) {
+export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevision, images, ambients, validRevisions, approvalOutdated, onCreated, onBusyChange, onReviewApproval, onOpenSaved, portalContainer }: Props) {
   const router = useRouter();
   // Sin diseño aprobado no hay revisión de referencia con la que comparar.
   const valid = useMemo(() => approvalId ? new Set(validRevisions) : null, [approvalId, validRevisions]);
@@ -119,9 +120,8 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     <p className="text-ink-soft text-sm">Recorre las imágenes de cada ambiente con movimiento de cámara y fundidos. Sin consumo de IA.
       {approvedRevision !== null ? ` Se vincula al diseño aprobado · revisión ${approvedRevision}.` : ''}</p>
     <p className="text-ink-soft text-xs">Muestra tus renders terminados. El paseo continuo fotorrealista entre estancias todavía no está disponible.</p>
-    <VideoNameField value={title} onChange={setTitle} disabled={recording || cleanup.busy || preview?.saved} />
+    <h3 className="mt-2 font-semibold">1. Elige los diseños <span className="text-sm font-normal text-ink-soft">· {ordered.length} seleccionados</span></h3>
     <RenderCleanupToolbar cleanup={cleanup} images={images.map(image => ({ id: image.id, issue: valid && !valid.has(image.revision) ? 'Otra revisión' : undefined }))} disabled={recording || assessing} />
-    <AdvertisingControls value={options} disabled={recording || cleanup.busy || assessing} portalContainer={portalContainer} onChange={value => { setOptions(value); setPreview(null); }} />
     {approvalOutdated && <p role="alert" className="rounded-control border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
       El diseño del editor ha cambiado desde esta aprobación. Revisa y aprueba los cambios, incluido el tejado, y genera imágenes de esa versión.
       {' '}{onReviewApproval ? <button type="button" className="font-semibold underline" onClick={onReviewApproval}>Revisar y aprobar aquí</button>
@@ -147,7 +147,7 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
       {groups.map(([key, list]) => <fieldset key={key} disabled={recording || cleanup.busy} className="flex flex-col gap-2">
         <legend className="text-ink text-sm font-medium">{list[0]!.ambient}</legend>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {list.map((image) => <div key={image.id} className={`group relative overflow-hidden rounded-control border ${selected.includes(image.id) ? 'border-emerald-700 ring-2 ring-emerald-700' : 'border-line'}`}>
+          {list.map((image) => <div key={image.id} className={`group relative overflow-hidden rounded-control border focus-within:ring-2 focus-within:ring-brand-500 ${selected.includes(image.id) ? 'border-emerald-700 ring-2 ring-emerald-700' : 'border-line'}`}>
             <RenderCleanupCardActions cleanup={cleanup} id={image.id} label={`${image.ambient} · ${image.view}`} disabled={recording || assessing} />
             <label className="cursor-pointer"><input type="checkbox" aria-label={`Usar ${image.ambient} · ${image.view}`} className="sr-only" disabled={!!valid && !valid.has(image.revision)} checked={selected.includes(image.id)} onChange={() => toggle(image.id)} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -157,6 +157,11 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
         </div>
       </fieldset>)}
     </div>
+    <h3 className="mt-2 font-semibold">2. Ajusta el anuncio</h3>
+    <VideoNameField value={title} onChange={setTitle} disabled={recording || cleanup.busy || preview?.saved} />
+    <AdvertisingControls value={options} disabled={recording || cleanup.busy || assessing} portalContainer={portalContainer} onChange={value => { setOptions(value); setPreview(null); }} />
+    <h3 className="mt-2 font-semibold">3. Revisa y guarda</h3>
+    <p className="text-xs text-ink-soft">Prepara la vista previa sin generar imágenes nuevas. El archivo solo se guarda cuando pulsas Guardar en Vídeos.</p>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" className="rounded border border-emerald-800 px-3 py-2 font-semibold text-emerald-900 disabled:opacity-50"
         disabled={recording || assessing || cleanup.busy || !ordered.length || !approvalId || approvalOutdated || incompatible} onClick={() => void create()}>Preparar montaje con {ordered.length} imágenes · {Math.round(tourDurationMs(ordered.length) / 1000)} s</button>
@@ -165,7 +170,8 @@ export function ImageTourBuilder({ projectId, zoneId, approvalId, approvedRevisi
     </div>
     {preview && <div className="space-y-3"><video src={preview.url} controls playsInline className="max-h-[55vh] w-full rounded-control bg-black" />
       <div className="flex flex-wrap gap-3"><button type="button" disabled={recording || assessing || cleanup.busy || approvalOutdated || preview.saved} className="rounded-control border border-line px-3 py-2 text-sm disabled:opacity-50" onClick={() => void save()}>{preview.saved ? 'Montaje guardado' : 'Guardar en Vídeos'}</button>
-        <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a></div></div>}
+        <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a>
+        {preview.saved && onOpenSaved && <button type="button" disabled={recording} onClick={onOpenSaved} className="rounded-control border border-line px-3 py-2 text-sm">Ver en Vídeos guardados</button>}</div></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;
 }

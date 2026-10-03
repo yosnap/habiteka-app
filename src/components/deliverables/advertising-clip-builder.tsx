@@ -11,11 +11,11 @@ import { callAction } from '@/lib/action-result';
 import { VideoNameField } from './video-name';
 
 interface Clip { id: string; mode: string; durationMs: number; title?: string | null }
-const LABELS: Record<string, string> = { 'walkthrough-ai': 'Primera persona H3', 'construction-ai': 'Construcción H3', construction: 'Construcción 3D',
-  images: 'Montaje de diseños', promotion: 'Parcela 3D', walkthrough: 'Primera persona 3D', showcase: 'Construcción + visita 3D' };
-export function AdvertisingClipBuilder({ scope, approvalId, clips, disabled, portalContainer, onBusyChange, onCreated }: {
+const LABELS: Record<string, string> = { 'walkthrough-ai': 'Primera persona H3', 'construction-ai': 'Construcción H3', images: 'Montaje de diseños' };
+export function AdvertisingClipBuilder({ scope, approvalId, clips, disabled, portalContainer, onBusyChange, onCreated, onChooseImages, onOpenSaved }: {
   scope: EditorScope; approvalId: string | null; clips: Clip[]; disabled: boolean; portalContainer?: HTMLElement | null;
   onBusyChange?: (busy: boolean) => void; onCreated: () => void;
+  onChooseImages?: () => void; onOpenSaved?: () => void;
 }) {
   const [sourceId, setSourceId] = useState(clips[0]?.id ?? '');
   const [options, setOptions] = useState<AdvertisingVideoOptions>({ ...DEFAULT_ADVERTISING_VIDEO, format: 'vertical' });
@@ -58,21 +58,24 @@ export function AdvertisingClipBuilder({ scope, approvalId, clips, disabled, por
     <VideoNameField value={title} onChange={setTitle} disabled={busy || disabled || preview?.saved} />
     <p className="text-sm text-ink-soft">Usa el clip existente, conserva su sonido y prepara el anuncio sin generar otro vídeo con IA. La revisión de fidelidad del original sigue siendo necesaria.</p>
     <p className="text-xs text-ink-soft">Las cotas que ya incluya el original se conservan. Elige Sin medidas para evitar añadir otro panel.</p>
-    {!clips.length ? <p role="status" className="text-sm">No hay clips de esta aprobación disponibles. Guarda un montaje o un vídeo 3D, o revisa y acepta una prueba H3 para utilizarla aquí.</p> : <>
+    {disabled && <p role="status" className="text-sm">Revisa la versión del proyecto y su luz con el botón de arriba antes de preparar publicidad.</p>}
+    {!clips.length ? <div className="space-y-3 rounded-control border border-dashed border-line bg-surface-muted p-4"><p role="status" className="text-sm">Falta un vídeo compatible con esta aprobación. Crea un montaje de diseños aceptados o revisa y acepta una prueba H3. Los vídeos del plano 3D no sirven como original.</p>
+      <div className="flex flex-wrap gap-2">{onChooseImages && <Button variant="outline" onClick={onChooseImages}>Crear montaje con mis diseños</Button>}
+        {onOpenSaved && <Button variant="outline" onClick={onOpenSaved}>Revisar vídeos guardados</Button>}</div></div> : <>
       <label className="block text-sm">Vídeo original<ModernSelect aria-label="Vídeo original del anuncio" value={selected?.id ?? ''} disabled={busy || disabled} portalContainer={portalContainer} popoverZIndex={150}
         onChange={event => { setSourceId(event.target.value); setPreview(null); setMessage(''); }} className="mt-1 w-full">
         {clips.map((clip, index) => <option key={clip.id} value={clip.id}>{clip.title || LABELS[clip.mode] || 'Vídeo'} · {Math.round(clip.durationMs / 1000)} s · {index + 1}</option>)}
       </ModernSelect></label>
       <AdvertisingControls value={options} disabled={busy || disabled} portalContainer={portalContainer}
         onChange={value => { setOptions(value); setPreview(null); setMessage(''); }} />
-      {disabled && <p role="status" className="text-sm">Revisa la aprobación actual antes de preparar publicidad.</p>}
       {busy ? <div className="space-y-2"><p role="status">Preparando anuncio · {Math.round((progress ?? 0) * 100)} %</p><progress max={1} value={progress ?? 0} className="w-full" />
         {!saving && <Button variant="outline" onClick={() => abort.current?.abort()}>Cancelar</Button>}</div>
         : <Button disabled={disabled || !approvalId || !selected} onClick={() => void create()}>Preparar vista previa del anuncio</Button>}
     </>}
     {preview && <div className="space-y-3"><video src={preview.url} controls playsInline className="max-h-[55vh] w-full rounded-control bg-black" />
       <div className="flex flex-wrap gap-3"><Button disabled={busy || disabled || preview.saved} onClick={() => void save()}>{preview.saved ? 'Anuncio guardado' : 'Guardar en Vídeos'}</Button>
-        <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a></div></div>}
+        <a href={preview.url} download={`habiteka-publicidad-${preview.options.format}.mp4`} className="self-center text-sm underline">Descargar MP4</a>
+        {preview.saved && onOpenSaved && <Button variant="outline" disabled={busy} onClick={onOpenSaved}>Ver en Vídeos guardados</Button>}</div></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
   </section>;
 }

@@ -53,7 +53,13 @@ Desde **Vídeos → Primera persona → Revisar y aceptar diseños interiores**,
 
 ## Revisar antes de aceptar
 
-Abre una imagen en **Diseños** y pulsa **Aceptar este diseño** solo después de comprobar su arquitectura, mobiliario, acabados e hiperrealismo. Se registra tu decisión de forma independiente de la auditoría automática. **Retirar aceptación** impide nuevos vídeos y anuncios desde esa imagen; no elimina archivos ya guardados. Una variante nueva requiere otra aceptación. Las imágenes antiguas sin aceptación registrada deben revisarse: no se aceptan automáticamente ni se cobran por aceptarlas.
+En **Diseñar con IA**, el teclado permanece dentro de la ventana abierta. **Tab** y **Mayús+Tab** recorren sus controles; al cerrar, el foco vuelve al control que la abrió. Las vistas ampliadas de referencia tienen un botón **Cerrar vista ampliada**. **Escape** cierra primero la vista ampliada o el desplegable activo y permite seguir en el estudio. El cierre del estudio permanece bloqueado mientras prepara o genera; durante una tanda puedes usar **Parar tras actual**.
+
+Abre una imagen en **Diseños** o en **Diseños de esta tanda**, durante la generación, y pulsa **Aceptar este diseño** solo después de comprobar su arquitectura, mobiliario, acabados e hiperrealismo. Se registra tu decisión de forma independiente de la auditoría automática; el panel muestra la fecha y hora de aceptación en UTC. **Retirar aceptación** impide nuevos vídeos y anuncios desde esa imagen; no elimina archivos ya guardados. Una variante nueva requiere otra aceptación. Las imágenes antiguas sin aceptación registrada deben revisarse: no se aceptan automáticamente ni se cobran por aceptarlas.
+
+Las miniaturas indican **Pendiente de revisar**, **Aceptado**, **Descartado** o **Solo referencia**. Cada tanda resume esos estados y muestra la revisión del plano con la que se generó. **Aceptado** registra tu decisión; para vídeo se comprueba además que las referencias sean compatibles. Una imagen descartada conserva su motivo y no puede aceptarse. Las imágenes nativas o sin origen IA registrado se muestran como **Solo referencia** y no sirven como diseño final.
+
+Un diseño aceptado ofrece **Preparar vídeo con mis diseños** para abrir Vídeos en la misma zona del proyecto. Allí eliges modalidad y referencias compatibles; este enlace no inicia una generación.
 
 Comprueba muros, distribución, puertas, ventanas, suelos, muebles relevantes y pérgolas. Rechaza pérdida o deformación de elementos aunque la imagen resulte atractiva. La vista debe mantener la identidad completa de la casa.
 
@@ -75,7 +81,7 @@ La revisión visual con IA tiene coste, pero no solicita otra imagen al generado
 
 ### Completar una tanda
 
-Desde **Crear vídeo → Construcción → Mis diseños**, pulsa **Completar vistas de la tanda** para recuperar una tanda de ángulos generales después de cerrar el panel. Se conservan las imágenes válidas y se preparan solo las vistas ausentes o descartadas, con el mismo ámbito, luz y permisos. Preparar no consume IA; generar las pendientes sí.
+Desde **Vídeos → Construcción**, despliega **Zonas incluidas y más vistas** y pulsa **Completar vistas de la tanda** para recuperar una tanda de ángulos generales después de cerrar el panel. Se conservan las imágenes válidas y se preparan solo las vistas ausentes o descartadas, con el mismo ámbito, luz y permisos. Preparar no consume IA; generar las pendientes sí.
 
 Guardar una imagen actualiza las galerías y mantiene abierto el panel con sus capturas y ajustes mientras termina la tanda. Si vuelves a abrir **Diseñar con IA** desde su botón normal, comienza una preparación nueva.
 
@@ -83,9 +89,11 @@ Puedes desmarcar cámaras para completar la tanda por partes y ajustar el gasto 
 
 Las instrucciones libres anteriores no se recuperan: revísalas antes de generar. Cambiar otros ajustes además de los ángulos prepara una nueva tanda; si el diseño ya no coincide, la aplicación pide una nueva. Las cámaras interiores y la vista actual deben prepararse de nuevo.
 
-Cada tanda aparece en **un único bloque de galería**, tanto al terminar la generación como en **Diseños**. El título identifica la zona o estancia; cada miniatura indica **Frontal**, **Trasera**, **Izquierda**, **Derecha**, **Cenital**, **Isométrica**, **Dron** o cámara interior. Los resultados antiguos sin ángulo registrado se identifican como **Vista sin registrar**.
+Cada tanda aparece en **un único bloque de galería**, tanto durante la generación como en **Diseños**. El título identifica la zona, estancia o ámbito, distinguiendo **Solo la casa** de **Toda la planta**. Cada miniatura indica **Frontal**, **Trasera**, **Izquierda**, **Derecha**, **Cenital**, **Isométrica**, **Dron**, **Exterior terminado** o cámara interior. Los resultados antiguos sin esos datos se identifican como **Vista sin registrar** o **Ámbito sin registrar**.
 
-Pulsa una imagen para abrirla en grande. Solo dentro de ese modal aparecen las acciones: **Usar como fondo del plano**, **Descargar imagen**, **Pedir cambios** y **Generar variante**. Usa las flechas para revisar la tanda. Pedir cambios y generar variantes pueden consumir créditos según la operación.
+Pulsa una imagen para abrirla en grande. En escritorio, la imagen queda junto al panel **Revisar diseño** y **Acciones de imagen**; en pantallas estrechas, el panel aparece debajo y puedes desplazarte por él. Solo dentro de ese modal aparecen **Aceptar este diseño**, **Usar como fondo del plano**, **Descargar imagen**, **Pedir cambios** y **Generar variante**. Pedir cambios y generar variantes pueden consumir créditos según la operación.
+
+Usa los botones de imagen anterior/siguiente o las flechas izquierda/derecha del teclado para recorrer la tanda. Mientras escribes una petición de cambios, las flechas conservan su función de edición. **Escape** cierra la imagen y devuelve el foco a su miniatura; si la abriste desde el generador, este permanece abierto.
 
 El fondo es una referencia auxiliar del plano 2D: no sustituye los muros ni incorpora la decoración al modelo 3D. Se conserva con el plano y su imagen se vuelve a cargar con una URL vigente.
 

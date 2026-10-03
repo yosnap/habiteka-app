@@ -5,6 +5,8 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## En desarrollo — Constructor y navegación visual
 
+- **Teclado y ventanas:** el estudio de diseño y las vistas ampliadas retienen el foco, incluyen un cierre visible y devuelven el foco al control de origen. Escape cierra el nivel activo. Las pestañas Crear vídeo/Vídeos guardados se recorren con flechas y los accesos internos enfocan la pestaña de destino.
+- **Diseños y generación:** miniaturas con estado de revisión, resumen por tanda y revisión del plano. El visor reúne imagen, aceptación con fecha y acciones en un panel lateral en escritorio, debajo en pantalla estrecha. Escape cierra solo la imagen y las flechas recorren la tanda sin interferir al escribir cambios. Los ámbitos distinguen Solo la casa, Toda la planta y zonas o estancias concretas.
 - **Lienzo y vistas:** paneles junto al lienzo o debajo en pantalla estrecha; controles de cámara accesibles. Cambiar de vista conserva la selección y Propiedades. Amueblado incorpora zoom, encuadre y Mano; editar medidas ya no reinicia la cámara 3D.
 - **Colocación continua:** Mano conserva la tarea activa, los objetos pendientes pueden pasar entre Plano 2D y Amueblado y cuentan con Cancelar colocación. Escape cancela el objeto sin cerrar el catálogo. Las vistas incompatibles con la herramienta actual se deshabilitan hasta finalizarla.
 - **Propiedades y selección:** panel persistente con Medidas, Acabados y Notas según el elemento. Dimensiones antes que posición y giro; acciones de pared, hueco y mueble reunidas. La barra inferior muestra un resumen y el menú del lienzo se oculta al abrir Propiedades. Buscar un elemento ya no cierra el panel.
@@ -17,6 +19,7 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## En desarrollo — Publicidad y primera persona desde diseños
 
+- **Continuidad del estudio:** acceso a Vídeos desde una imagen aceptada, actualización de diseños y tareas, y salidas directas a Vídeos guardados y al selector de publicidad. La preparación explica su bloqueo y detecta mezclas de tandas antes de continuar. El montaje se ordena en selección, ajustes y revisión; los estados vacíos distinguen aprobación pendiente y fuentes incompatibles, sin proponer vídeos del plano 3D.
 - **Vídeos como página independiente**: conserva las pestañas del proyecto y ofrece **Volver al editor** y **Mis diseños**. Entrar o aprobar en el editor ya no cambia automáticamente a la guía aprobada.
 - **Preparación más clara**: construcción y primera persona se ordenan en elegir diseños, ajustar el vídeo y revisar antes de generar. Las imágenes incompatibles, la limpieza y los ajustes de calidad/sonido se despliegan cuando hacen falta. La pieza combinada aparece como pendiente.
 - **Revisión del plano**: muestra **Plano 2D**, **Modelo 3D** y un regreso explícito al editor. Los detalles de objetos aproximados y techos se agrupan en un apartado desplegable; los recorridos se activan por elección del usuario.
