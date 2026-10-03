@@ -28,7 +28,7 @@ export function Toolbar({ store, constructionOpen, exteriorOpen, catalogOpen, on
       <Sofa size={22} aria-hidden="true" /><span>Amueblar</span></button>
     <button type="button" aria-pressed={exteriorOpen} aria-expanded={exteriorOpen} onClick={onExterior} title="Terreno, jardín y elementos exteriores">
       <Trees size={22} aria-hidden="true" /><span>Exterior</span></button>
-    <button type="button" disabled={readOnly} aria-pressed={tool === 'measure'} onClick={() => { onSelectTool(); store.getState().setTool('measure'); }} data-tooltip={shortcutHint('Medir', 'measure')}>
+    <button type="button" disabled={readOnly} aria-pressed={tool === 'measure'} onClick={() => { onSelectTool(); store.getState().setTool('measure'); }} data-tooltip={shortcutHint('Crear una cota: arrastra entre dos puntos', 'measure')}>
       <Ruler size={22} aria-hidden="true" /><span>Medir</span></button>
     <button type="button" aria-pressed={snap} onClick={() => store.getState().setSnap(!snap)} data-tooltip={shortcutHint(snap ? 'Desactivar ajuste' : 'Activar ajuste', 'snap')}>
       <Magnet size={20} aria-hidden="true" /><span>Ajuste {snap ? 'activo' : 'libre'}</span></button>

@@ -79,6 +79,11 @@ export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, sca
   return result;
 }
 
+/** El identificador nuevo permite validar la copia contra el hueco original durante el arrastre. */
+export function openingForDrag(opening: Opening, duplicate: boolean): Opening {
+  return duplicate ? { ...structuredClone(opening), id: crypto.randomUUID() } : opening;
+}
+
 export function placeOpening(doc: EditorDocument, opening: Opening,
   placement: Pick<OpeningPlacement, 'wallId' | 'position'>): EditorDocument {
   assertOpeningClearance(doc, { ...opening, ...placement });

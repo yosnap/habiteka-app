@@ -49,6 +49,7 @@ import {
   startNewStudioPlan,
   uploadStudio,
   applyPlanImportStudio,
+  refitPlanImportStudio,
 } from '@/app/(app)/projects/[id]/_actions/studio-actions';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { makeOrg, makeUser, resetDb } from '../helpers/db';
@@ -62,6 +63,38 @@ beforeEach(async () => {
 });
 
 describe('historial de acciones del estudio', () => {
+  it('guarda la revisión manual, la recupera y aplica su ancho al Editor sin generar imágenes', async () => {
+    const ctx = fixture.ctx!;
+    const project = await prisma.project.create({ data: { organizationId: ctx.organizationId, title: 'Revisión aislada' } });
+    const raw = { anchoMetros: 4, altoMetros: 3, escalaFiable: true,
+      muros: [{ x1: 0, y1: 0, x2: 1, y2: 0 }, { x1: 1, y1: 0, x2: 1, y2: 1 },
+        { x1: 1, y1: 1, x2: 0, y2: 1 }, { x1: 0, y1: 1, x2: 0, y2: 0 }],
+      habitaciones: [{ nombre: 'Sala', poligono: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }] }],
+      aberturas: [{ tipo: 'puerta' as const, muro: 0, posicion: .5, anchoSobreMuro: .2 }], mobiliario: [] };
+    const initial = buildPlanImport(raw), door = initial.plano.zones.flatMap(zone => zone.apertures)[0]!;
+    await saveStudio(ctx, project.id, { planImport: { raw, detected: null, image: { assetUrl: 'data:image/png;base64,YQ==' } },
+      planImportRevision: 'inicial', quality: { score: 20, decision: 'block', reasons: ['Pendiente'], failOpen: false } });
+    const saved = await refitPlanImportStudio(project.id, initial.writtenDimensions, {
+      revision: 'inicial', saveOnly: true, doorOverrides: [{ apertureId: door.id, widthMm: 1000 }] });
+    if ('actionError' in saved) throw new Error(saved.actionError);
+    expect(saved.quality).toMatchObject({ score: null, decision: 'block', failOpen: false });
+    const savedAgain = await refitPlanImportStudio(project.id, saved.writtenDimensions, { revision: saved.revision, saveOnly: true });
+    if ('actionError' in savedAgain) throw new Error(savedAgain.actionError);
+    expect(savedAgain.quality.reasons).toEqual(saved.quality.reasons);
+    expect(new Set(savedAgain.quality.reasons).size).toBe(savedAgain.quality.reasons.length);
+    const reloaded = await loadStudio(ctx, project.id);
+    expect(reloaded.planImport?.doorOverrides?.[0]?.widthMm).toBe(1000);
+    expect(buildPlanImport(raw, { doorOverrides: reloaded.planImport?.doorOverrides }).plano).toEqual(saved.plano);
+    const stale = await refitPlanImportStudio(project.id, [], { revision: 'inicial', saveOnly: true });
+    expect(stale).toHaveProperty('actionError');
+    const applied = await applyPlanImportStudio(project.id, saved);
+    if ('actionError' in applied) throw new Error(applied.actionError);
+    const editor = await withEditorDocuments(ctx).load({ projectId: project.id });
+    if (editor.authority !== 'v2') throw new Error('Falta Editor v2');
+    expect(editor.document.openings.some(opening => opening.widthMm === 1000)).toBe(true);
+    expect((await loadStudio(ctx, project.id)).planImportApplied).toBe(true);
+    expect(fixture.generated).toBe(0);
+  });
   it('guarda el boceto como importación revisable y lo recupera sin visión IA', async () => {
     const ctx = fixture.ctx!;
     const project = await prisma.project.create({

@@ -1,7 +1,7 @@
 'use client';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 
-import { snapSpatialDrag } from './magnetic-drag';
+import { snapSpatialDrag, snapPointDrag } from './magnetic-drag';
 import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Line, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
@@ -110,9 +110,10 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active || !pointer) return;
         // La esquina opuesta queda fija; con Alt el elemento crece por ambos lados alrededor de su centro.
+        const point = snapPointDrag(store, pointer, scale, [active.item.id]);
         const resized = 'riseMm' in active.item
-          ? resizeRampFromCorner(active.item, i, pointer)
-          : resizeFromCorner(active.item, i, pointer, e.evt.altKey);
+          ? resizeRampFromCorner(active.item, i, point)
+          : resizeFromCorner(active.item, i, point, e.evt.altKey);
         update(resized);
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(p); end(); }} />)}
     <Text x={center.x - 160 / scale} y={Math.max(...footprint(current).map((p) => p.y)) + 20 / scale} width={320 / scale} align="center"

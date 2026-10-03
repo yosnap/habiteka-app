@@ -42,10 +42,15 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
     const studio = await loadStudio(ctx, projectId);
     const imported = studio.planImport;
     const image = imported?.image ?? studio.source;
-    if (studio.planImportApplied && imported && image?.assetUrl) {
+    // Guardar otra revisión no elimina la imagen de referencia del proyecto.
+    // Mostrarla no aplica la importación ni sustituye el documento del Editor.
+    if (imported && image?.assetUrl) {
       try {
         const frame = buildPlanImport(imported.raw, {
           generalWidthMm: imported.generalWidthMm,
+          roomOverrides: imported.roomOverrides,
+          doorOverrides: imported.doorOverrides,
+          wallOverrides: imported.wallOverrides,
           includeFurniture: false,
           normalize: imported.detected ? {
             wallsOverride: imported.detected.walls,

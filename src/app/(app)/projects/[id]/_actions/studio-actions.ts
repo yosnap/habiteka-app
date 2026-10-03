@@ -17,7 +17,7 @@ import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-editor-document';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
-import type { Estilo, PlanDoorOverride, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
+import type { Estilo, PlanDoorOverride, PlanWallOverride, PlanImportReviewOptions, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
 import type { StudioQuality } from '@/lib/studio-state';
 import {
   importPlanFromImage,
@@ -339,7 +339,7 @@ export async function startNewStudioPlan(projectId: string) {
 export async function refitPlanImportStudio(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
-  options: { includeFurniture?: boolean; generalWidthMm?: number | null; doorOverrides?: PlanDoorOverride[] } = {},
+  options: PlanImportReviewOptions = {},
 ) {
   return runAction(() => refitPlanImportStudioImpl(projectId, roomOverrides, options));
 }
@@ -347,10 +347,12 @@ export async function refitPlanImportStudio(
 async function refitPlanImportStudioImpl(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
-  options: { includeFurniture?: boolean; generalWidthMm?: number | null; doorOverrides?: PlanDoorOverride[] } = {},
-): Promise<PlanImportResult & { quality: StudioQuality }> {
+  options: PlanImportReviewOptions = {},
+): Promise<PlanImportResult & { quality: StudioQuality; revision: string; wallOverrides: PlanWallOverride[] }> {
   const { ctx, state } = await context(projectId);
   if (!state.planImport) fail('Importa un plano primero.');
+  if (options.revision && options.revision !== state.planImportRevision)
+    fail('La revisión cambió. Recarga antes de guardar tus cambios.');
   const { raw, detected } = state.planImport;
   const width = options.generalWidthMm === undefined
     ? state.planImport.generalWidthMm : options.generalWidthMm;
@@ -358,26 +360,34 @@ async function refitPlanImportStudioImpl(
     typeof width === 'number' && Number.isFinite(width) && width >= 1000 && width <= 100000 ? Math.round(width) : undefined;
   const safeOverrides = sanitizeOverrides(roomOverrides);
   const doorOverrides = sanitizeDoorOverrides(options.doorOverrides ?? state.planImport.doorOverrides);
+  const wallOverrides = options.wallOverrides ?? state.planImport.wallOverrides ?? [];
   const includeFurniture = options.includeFurniture ?? state.planImport.includeFurniture ?? true;
   const result = buildPlanImport(raw, {
     roomOverrides: safeOverrides,
     doorOverrides,
+    wallOverrides,
     includeFurniture,
     ...(generalWidthMm !== undefined ? { generalWidthMm } : {}),
     normalize: importNormalizeOptions(detected),
   });
-  // La geometría ha cambiado: se reevalúa la fiabilidad (Jev no ve la imagen y
-  // cuesta céntimos, así que reevaluar es más barato que decidir con un dato viejo).
-  const quality = await evaluatePlanQuality(ctx, projectId, state.planImport.image, {
+  // Guardar la revisión no genera gasto IA ni convierte un bloqueo en aprobación.
+  // Las llamadas que solicitan evaluación mantienen la puerta de fiabilidad.
+  const quality: StudioQuality = options.saveOnly ? {
+    score: null, decision: blockingPlanImportWarning(result.warnings) || state.quality?.decision === 'block' ? 'block' : 'confirm',
+    reasons: [...new Set([...(state.quality?.decision === 'block' ? state.quality.reasons : []),
+      'Revisión manual guardada. Comprueba la geometría y las medidas antes de continuar.'])], failOpen: false,
+  } : await evaluatePlanQuality(ctx, projectId, state.planImport.image, {
     raw,
     detected,
     result,
   });
+  const revision = crypto.randomUUID();
   await saveStudio(ctx, projectId, {
     ...state,
     planImport: {
       ...state.planImport, roomOverrides: safeOverrides,
       doorOverrides,
+      wallOverrides,
       includeFurniture,
       generalWidthMm,
     },
@@ -385,9 +395,9 @@ async function refitPlanImportStudioImpl(
     escalaEstimada: result.escalaEstimada,
     quality,
     planImportApplied: false,
-    planImportRevision: crypto.randomUUID(),
-  });
-  return { ...result, quality };
+    planImportRevision: revision,
+  }, { expectedImportRevision: state.planImportRevision });
+  return { ...result, quality, revision, wallOverrides };
 }
 
 /**
@@ -414,6 +424,7 @@ async function applyPlanImportStudioImpl(
     normalize: importNormalizeOptions(state.planImport.detected),
     roomOverrides: state.planImport.roomOverrides,
     doorOverrides: state.planImport.doorOverrides,
+    wallOverrides: state.planImport.wallOverrides,
     generalWidthMm: state.planImport.generalWidthMm,
     includeFurniture: state.planImport.includeFurniture,
   });
@@ -482,6 +493,7 @@ function sanitizeDoorOverrides(items: PlanDoorOverride[] | undefined): PlanDoorO
       ? [{ apertureId: item.apertureId,
         ...(item.swing ? { swing: item.swing } : {}), ...(item.hinge ? { hinge: item.hinge } : {}),
         ...(typeof item.position === 'number' && Number.isFinite(item.position) && item.position >= 0 && item.position <= 1
-          ? { position: item.position } : {}) }]
+          ? { position: item.position } : {}),
+        ...(item.widthMm !== undefined ? { widthMm: item.widthMm } : {}) }]
       : []);
 }

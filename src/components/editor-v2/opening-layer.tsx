@@ -6,7 +6,7 @@ import type Konva from 'konva';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Opening, Point } from '@/lib/editor-document/schema';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
-import { placeOpening, resolveOpeningPlacement, type OpeningPlacement } from '@/canvas/editor-v2/opening-placement';
+import { openingForDrag, placeOpening, resolveOpeningPlacement, type OpeningPlacement } from '@/canvas/editor-v2/opening-placement';
 import { newId } from '@/canvas/editor-v2/editing-operations';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { entranceLocalPoints, landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
@@ -43,7 +43,8 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
   const entrances = landingEntranceSurfaces(doc);
   const selected = useStore(store, (s) => s.selection), readOnly = useStore(store, (s) => s.readOnly);
   const pending = useStore(store, (s) => s.pendingOpening);
-  const group = useRef<Konva.Group>(null), dragged = useRef<{ node: Konva.Group; origin: Point; offset: number } | null>(null);
+  const group = useRef<Konva.Group>(null), dragged = useRef<{ node: Konva.Group; origin: Point; offset: number; opening: Opening } | null>(null);
+  const duplicatePointer = useRef(false);
   const candidateHost = useRef<string | undefined>(undefined);
   const grabPointer = useRef<Point | null>(null);
   const [preview, setPreview] = useState<{ opening: Opening; placement: OpeningPlacement | null; pointer: Point } | null>(null);
@@ -102,9 +103,9 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     {doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
       const wall = doc.walls.find((w) => w.id === opening.wallId)!, path = wallPath(doc, wall), direction = path.tangent(opening.position);
       const center = path.at(opening.position), angle = Math.atan2(direction.y, direction.x) * 180 / Math.PI;
-      return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id ? .35 : 1}
+      return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id && preview?.opening.id === opening.id ? .35 : 1}
         draggable={!disabled && !readOnly && tool === 'select'}
-        onPointerDown={(event) => { grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
+        onPointerDown={(event) => { duplicatePointer.current = event.evt.altKey; grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
         onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt); } }}
         onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt as unknown as MouseEvent); } }}
         onDragStart={(event) => {
@@ -112,26 +113,29 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
           const pointer = grabPointer.current ?? event.target.getStage()?.getRelativePointerPosition();
           const radians = angle * Math.PI / 180;
           dragged.current = { node: event.target as Konva.Group, origin: center,
+            opening: openingForDrag(opening, duplicatePointer.current || event.evt.altKey),
             offset: pointer ? (pointer.x - center.x) * Math.cos(radians) + (pointer.y - center.y) * Math.sin(radians) : 0 };
           setDragId(opening.id); store.getState().select([]);
         }} onDragMove={(event) => {
           const pointer = event.target.getStage()?.getRelativePointerPosition(); if (!pointer) return;
           event.target.position(center);
-          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, opening, candidateHost.current, dragged.current?.offset, store.getState().snap);
-          store.getState().setMagneticGuides(placement?.guides ?? []); candidateHost.current = placement?.wallId; setPreview({ opening, placement, pointer });
+          const prototype = dragged.current?.opening ?? opening;
+          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, prototype, candidateHost.current, dragged.current?.offset, store.getState().snap);
+          store.getState().setMagneticGuides(placement?.guides ?? []); candidateHost.current = placement?.wallId; setPreview({ opening: prototype, placement, pointer });
         }} onDragEnd={(event) => {
           event.target.position(center);
           if (!dragged.current) return;
-          const offset = dragged.current.offset; dragged.current = null;
+          const offset = dragged.current.offset, prototype = dragged.current.opening; dragged.current = null;
           const pointer = event.target.getStage()?.getRelativePointerPosition();
           const state = store.getState(), current = state.document.openings.find((o) => o.id === opening.id);
-          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, current, candidateHost.current, offset, state.snap);
+          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, prototype, candidateHost.current, offset, state.snap);
+          let selectedId = opening.id;
           try {
             if (!placement?.valid || !current) throw new Error(placement?.reason ?? 'No hay una pared válida. Se conserva la ubicación anterior.');
-            state.apply(placeOpening(state.document, current, placement));
+            state.apply(placeOpening(state.document, prototype, placement)); selectedId = prototype.id;
           } catch (error) { state.setError(error instanceof Error ? error.message : 'Ubicación inválida'); }
           candidateHost.current = undefined;
-          setDragId(null); setPreview(null); state.select([opening.id]);
+          setDragId(null); setPreview(null); state.select([selectedId]);
         }}>
         <Symbol opening={opening} thickness={wall.thicknessMm} scale={scale} active={selected.includes(opening.id)}
           continuous={entrances.some((entrance) => entrance.openingId === opening.id)} />

@@ -9,6 +9,12 @@ Las pestañas **Asistente, Plano, Editor, Diseños, Vídeos e Historial** se man
 
 Abre **Herramientas** para visibilidad, selección por tipo, recorrido del plano, contexto IA, techo y luces, tejado, parcela real, exportación y aprobación. Solo aparecen las acciones disponibles para ese proyecto. Los botones, enlaces, tarjetas que abren opciones y desplegables muestran el cursor de mano; los controles deshabilitados se distinguen visualmente.
 
+### Restablecer una muestra local
+
+Las muestras de desarrollo `/dev/editor-v2` son lienzos independientes, disponibles solo en desarrollo. **Restablecer muestra** recupera el documento original de esa muestra, cancela trazos y colocaciones pendientes, cierra paneles y vuelve a **Plano 2D** encuadrado. La cámara 3D se reinicia al volver a abrir esa vista. Aparece **Muestra restablecida** como confirmación, incluso si el documento ya era el original.
+
+Puedes pulsar **Deshacer** para recuperar el documento anterior al restablecimiento. Se conservan tus preferencias generales de visibilidad y atajos. La copia sigue limitada a esa pestaña y el estado de guardado indica si puede conservarse al recargar. Esta acción no modifica proyectos guardados.
+
 ## Cocina y pilares
 
 Los pilares recortan el fondo del mueble de cocina, conservando la parte frontal cuando cabe, y eliminan los módulos altos que los atraviesan. Si dos pilares se solapan, se utiliza el recorte más profundo para carcasa, zócalo y encimera. Los aparatos no pueden colocarse ni desplazarse sobre el hueco de un pilar; la colocación automática busca otro hueco libre.
@@ -22,6 +28,8 @@ Los pilares recortan el fondo del mueble de cocina, conservando la parte frontal
 | Modelo 3D | Revisar volumen, acabados y circulación de la guía. |
 | Seleccionar | Seleccionar elementos o arrastrar un marco de selección. |
 | Propiedades | Cambiar parámetros del elemento seleccionado. |
+| Medir | Arrastrar entre dos puntos para dejar una cota con su distancia. |
+| Texto | Añadir etiquetas al plano. |
 
 Cambiar entre **Plano 2D**, **Amueblado** y **Modelo 3D** conserva la selección, el panel abierto y la sección de Propiedades. El selector de cámaras de Modelo 3D también conserva la selección. Al entrar en Amueblado se prepara la vista cenital; al entrar en Modelo 3D, la isométrica. El encuadre manual de esas dos vistas no se recuerda al salir de ellas.
 
@@ -34,14 +42,20 @@ Los paneles tienen espacio propio junto al lienzo. En pantallas estrechas aparec
 Puedes llevar un objeto pendiente entre Plano 2D y Amueblado. **Modelo 3D** queda deshabilitado hasta colocarlo o pulsar **Cancelar colocación**. Escape cancela primero el objeto y conserva el catálogo; un segundo Escape cierra el panel. Pegar una copia desde Modelo 3D abre Amueblado para colocarla.
 
 Elegir una herramienta de trazado desde una vista visual abre Plano 2D. Con esa herramienta activa, termina con **Finalizar** o Escape antes de abrir Amueblado o Modelo 3D. Los tramos de pared ya confirmados se conservan; el segmento pendiente se descarta. El zoom, el encuadre y Mano siguen disponibles durante el dibujo.
-| Medir | Comprobar distancias. |
-| Texto | Añadir etiquetas al plano. |
+
+### Medir una distancia
+
+Activa **Medir** o pulsa **M**. En Plano 2D, arrastra desde el primer punto hasta el segundo: la distancia aparece durante el gesto. Al soltar se guarda una **cota**, queda seleccionada y vuelves a Seleccionar. Los trazos menores de 5 cm se descartan. **Escape** cancela el trazo pendiente.
+
+Con **Ajuste** activo (**A**), los puntos se alinean con referencias del plano. La medida se consulta también en **Propiedades** y en el buscador de elementos, dentro de **Medidas**. Puedes mover la cota arrastrándola, eliminarla o deshacer su creación; no cambia las dimensiones de paredes ni muebles.
+
+La cota seleccionada y las cotas manuales mientras usas Medir se muestran aunque **Herramientas → Vista → Medidas** esté en **Ocultas** o **Solo exteriores**. Al dejar de seleccionarla se vuelve a aplicar ese filtro; puedes recuperarla desde el buscador de Propiedades.
 
 ## Propiedades de la selección
 
 Al seleccionar un elemento, la barra inferior muestra su nombre y el acceso a **Propiedades**. El panel permanece abierto al elegir otro elemento o pulsar en una zona vacía del lienzo; puedes cerrarlo con su X o con Escape fuera de un campo de texto. El menú de acciones junto al elemento se oculta mientras Propiedades está abierto.
 
-**Buscar o cambiar de elemento** permite localizarlo por nombre o con el desplegable. Elegir un resultado lo selecciona y centra el plano sin cerrar el panel. Sin selección, el buscador permanece disponible.
+**Buscar o cambiar de elemento** ofrece dos controles separados: **Buscar en el plano**, un único campo con lupa para escribir un nombre, y **Elemento del plano**, un desplegable para elegirlo de la lista. Elegir un resultado lo selecciona y centra el plano sin cerrar el panel. Sin selección, el buscador permanece disponible.
 
 El panel reúne **Medidas**, **Acabados** y **Notas**, según lo que admite el elemento:
 
@@ -60,7 +74,7 @@ Si mezclas tipos distintos o seleccionas varios elementos sin edición conjunta,
 
 ## Construir
 
-Abre **Construir** y elige una tarjeta de categoría: paredes, habitaciones, puertas, ventanas y huecos; también columnas, escaleras, rampas y otras formas disponibles. **Todas las categorías** vuelve al inicio del panel. Los huecos se vinculan a una pared.
+Abre **Construir** y elige una tarjeta de categoría: paredes, habitaciones, puertas, ventanas y huecos; también columnas, escaleras, rampas y otras formas disponibles. Las tarjetas incorporan imágenes realistas orientativas; las funciones pendientes siguen identificadas dentro de su categoría. **Todas las categorías** vuelve al inicio del panel. Los huecos se vinculan a una pared.
 
 Para cadenas de paredes, pulsa para fijar inicio y extremos. Cerrar el contorno termina la cadena; Escape termina un trazo abierto conservando los tramos confirmados. Una habitación rectangular se dibuja arrastrando sus esquinas.
 
@@ -68,11 +82,11 @@ Con ajuste activo, las guías ayudan a unir extremos y cerrar recintos. Comprueb
 
 ## Amueblar y propiedades
 
-Abre **Amueblar** y explora **Habitaciones** o **Categorías** mediante tarjetas ilustradas. También puedes buscar por nombre o abrir **Ver todos los muebles**. Dentro de los resultados, despliega **Filtrar por estancia y estilo** si lo necesitas; **Todas las habitaciones y categorías** limpia los filtros y vuelve al inicio.
+Abre **Amueblar** y explora **Habitaciones** o **Categorías** mediante miniaturas realistas. También puedes buscar por nombre o abrir **Ver todos los muebles**. Dentro de los resultados, despliega **Filtrar por estancia y estilo** si lo necesitas; **Todas las habitaciones y categorías** limpia los filtros y vuelve al inicio.
 
-Elige la variante, pulsa **Añadir al plano** y coloca el objeto. El catálogo permanece abierto al pulsar sobre el lienzo; puedes cerrarlo con su X o Escape. En **Propiedades**, revisa dimensiones, giro, elevación y acabados disponibles. Las ilustraciones ayudan a navegar: revisa las dimensiones y el modelo de cada producto.
+Elige la variante, pulsa **Añadir al plano** y coloca el objeto. El catálogo permanece abierto al pulsar sobre el lienzo; puedes cerrarlo con su X o Escape. En **Propiedades**, revisa dimensiones, giro, elevación y acabados disponibles. Las imágenes de habitaciones y categorías son ilustraciones genéricas generadas con IA para orientarte: no representan el modelo exacto de un producto ni un diseño aceptado de tu inmueble. Cada ficha conserva sus dimensiones, variantes y representación propia.
 
-Los tiradores de esquina cambian el tamaño manteniendo la esquina opuesta. Alt permite crecer alrededor del centro. Las medidas de los tiradores del lienzo se muestran en centímetros; el panel Propiedades usa metros. Elevación cambia la posición vertical, no el tamaño.
+En Plano 2D, los tiradores de esquina cambian el tamaño manteniendo la esquina opuesta y usan referencias magnéticas cuando Ajuste está activo. Alt permite crecer alrededor del centro. Las medidas de los tiradores de objetos se muestran en centímetros; el panel Propiedades usa metros. Elevación cambia la posición vertical, no el tamaño.
 
 ## Suelos, paredes y exterior
 
@@ -80,7 +94,17 @@ Los tiradores de esquina cambian el tamaño manteniendo la esquina opuesta. Alt 
 - Selecciona una pared y abre **Propiedades → Acabados** para elegir su cara interior o exterior. **Pintar**, en el menú del lienzo, abre esa misma sección.
 - **Construir → Patio / terraza** permite superficies exteriores abiertas.
 - **Exterior**, en la barra lateral, abre vegetación, cerramientos, pérgolas y equipamiento. También puedes entrar desde **Construir → Exterior y jardín**.
-- **Añadir terreno** y **Añadir pavimento**, dentro de Exterior, añaden superficies con distinta finalidad; un pavimento visual no habilita por sí mismo un recorrido.
+- **Añadir terreno** y **Añadir pavimento**, dentro de Exterior, muestran miniaturas de césped y pavimento para distinguir ambas superficies; un pavimento visual no habilita por sí mismo un recorrido.
+
+En **Elementos de exterior**, **Buscar elemento** y **Categoría** aparecen en filas separadas, antes de las tarjetas de resultados. Puedes combinar texto y categoría; **Todas** elimina el filtro de categoría. Las miniaturas de Construir, terreno y pavimento son ilustraciones genéricas generadas con IA para navegar, no diseños aceptados ni fotografías exactas de los elementos que se añaden al plano.
+
+### Ajustar terreno y pavimento
+
+Al añadir terreno o pavimento se abre **Amueblado**, con la superficie seleccionada, Propiedades y el plano encuadrado. Puedes ajustarla en **Plano 2D** o **Amueblado**. Sus ocho tiradores permiten cambiar ancho y fondo: las esquinas cambian ambos y los puntos intermedios solo un lado, manteniendo fijo el borde opuesto. El control central mueve la superficie. También puedes arrastrar una zona libre de la superficie seleccionada.
+
+**Ajuste** activa los imanes hacia bordes, centros y referencias de otras superficies y elementos; las guías aparecen durante el gesto. Desactívalo para colocar libremente. También puedes mover la selección con flechas: 1 cm, o 10 cm con Mayús. En Plano 2D puedes seleccionar superficies con un marco. **Ctrl/Cmd + Z** deshace cada movimiento o cambio de tamaño.
+
+**Propiedades** permite escribir ancho, fondo y posición exactos, consultar la superficie en m² y cambiar el acabado. Los tiradores admiten de 5 cm a 200 m por lado. **Giro de textura** cambia la orientación del material; la superficie conserva su forma rectangular alineada con los ejes del plano. Escape cancela un ajuste pendiente desde los tiradores.
 
 ## Plantas, techos y recorrido
 
@@ -95,3 +119,9 @@ Utiliza los botones de acercar, alejar y encuadrar; el selector **Vistas** cambi
 Editar una medida o abrir un panel conserva la posición de cámara. Buscar y elegir un elemento desde Propiedades centra la vista activa en él sin cambiar el zoom, también en Amueblado y Modelo 3D. **0**, **+** y **−** funcionan en las tres vistas cuando los atajos están activos. Cambiar de planta o de plantas apiladas vuelve a encuadrar; una cámara situada dentro de una estancia conserva su tratamiento específico.
 
 Consulta [Atajos](/editor/atajos/) para trabajar con teclado.
+
+Haz **doble clic en un elemento** para abrir Propiedades en Plano 2D, Amueblado o Modelo 3D, con Seleccionar activo y Mano desactivada. Las luces conservan su panel específico. Un clic normal selecciona sin abrir el panel. Pulsar el lienzo devuelve el foco desde los campos para usar los atajos sobre la selección.
+
+El menú de acciones de la selección permanece disponible en Plano 2D aunque Propiedades esté abierto. Para duplicar una pared o un objeto, mantén **⌥ Option en Mac / Alt** al comenzar a arrastrarlo y suelta en la nueva posición. El original se conserva y la copia queda seleccionada; una pared copia también sus huecos con identificadores independientes. En Amueblado, Option/Alt + arrastrar copia objetos y superficies de terreno o pavimento.
+
+En **Plano 2D**, Option/Alt + arrastrar el cuerpo de una **puerta, ventana o hueco** crea una copia sobre el muro de destino al soltar. La vista previa indica si cabe; si invade otra abertura o no hay un muro válido, no se crea la copia y se conserva el original. Los tiradores de los bordes siguen ajustando el ancho: con Option/Alt, redimensionan alrededor del centro.

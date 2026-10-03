@@ -27,6 +27,7 @@ import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import { SketchPad } from './sketch-pad';
 import { PlanImportPanel, type ImportedPlan, type PlanImportActions } from './plan-import-panel';
 import { PlanImageViewer } from './plan-image-viewer';
+import { PlanImportCanvas, type PlanReviewSelection } from './plan-import-canvas';
 import { StudioStageNav } from './studio-stage-nav';
 import { StudioResultsPanel, type StudioDeliverableView } from './studio-results-panel';
 import { StudioNextStep } from './studio-next-step';
@@ -122,6 +123,8 @@ export function PlanoStudio({
   // Importar un plano dibujado/CAD/PDF es un flujo propio (tabla de cotas, mobiliario).
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(initialImport ?? null);
+  const [reviewSelection, setReviewSelection] = useState<PlanReviewSelection>(null);
+  const [vectorOverlay, setVectorOverlay] = useState(true);
   const [importApplied, setImportApplied] = useState(initialState.planImportApplied === true);
   // Enviar al editor reemplaza el plano existente: se pide confirmación en dos pasos.
   const [confirmSend, setConfirmSend] = useState(false);
@@ -472,9 +475,11 @@ export function PlanoStudio({
         refitAction={refitAction}
         applyAction={applyAction}
         initialResult={importResult}
+        initialSelection={reviewSelection}
+        onSaved={saved => { setImportResult(saved); setPlano(saved.plano); setQuality(saved.quality); setEscalaEstimada(saved.escalaEstimada); setImportApplied(false); }}
         initialGeneralWidthMm={importResult === initialImport ? initialGeneralWidthMm : undefined}
         initialIncludeFurniture={importResult === initialImport ? initialIncludeFurniture : false}
-        onBack={() => { setImporting(false); router.refresh(); }}
+        onBack={() => { setImporting(false); setReviewSelection(null); router.refresh(); }}
       />
     );
   }
@@ -566,6 +571,8 @@ export function PlanoStudio({
           </TabButton>
         </div>
         <div className="flex items-center gap-1">
+          {tab === 'vector' && importResult?.sourceFrameMm ? <label className="mr-3 flex items-center gap-2 text-xs">
+            <input type="checkbox" checked={vectorOverlay} onChange={event => setVectorOverlay(event.target.checked)} />Superponer sobre el original</label> : null}
           <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmNew(true)} disabled={busy !== null}>
             ← Nuevo plano
           </Button>
@@ -613,7 +620,9 @@ export function PlanoStudio({
             />
           ) : null}
           {tab === 'vector' && svgUrl && !comparing ? (
-            <PlanImageViewer key={svgUrl} src={svgUrl} alt="Vista vectorizada del plano extraído" caption="Vista de lectura: la edición se realiza en el Editor v2." />
+            importResult && plano ? <PlanImportCanvas plano={plano} sourceFrame={importResult.sourceFrameMm}
+              imageUrl={importResult.imageUrl} overlay={vectorOverlay} onSelect={next => { setReviewSelection(next); openImport(); }} />
+              : <PlanImageViewer key={svgUrl} src={svgUrl} alt="Vista vectorizada del plano extraído" caption="Vista de lectura: la edición se realiza en el Editor v2." />
           ) : null}
           {tab === 'vector' && !svgUrl ? (
             <div className="grid h-full place-content-center gap-3 p-6 text-center">

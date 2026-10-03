@@ -5,7 +5,8 @@
  * la tabla de estancias y que, tras corregir el usuario, se materializa en el
  * editor. Sin red ni BD: testeable con fixtures.
  */
-import type { PlanDoorOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
+import type { PlanDoorOverride, PlanWallOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
+import { applyReviewedDoors, applyReviewedWalls } from '@/lib/plan-review-geometry';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
 import {
   normalizeSketchDetailed,
@@ -26,6 +27,7 @@ export interface BuildPlanImportOptions {
   roomOverrides?: WrittenRoomDimensions[];
   /** Correcciones de giro/bisagra confirmadas sobre la vista revisada. */
   doorOverrides?: PlanDoorOverride[];
+  wallOverrides?: PlanWallOverride[];
   /** false = no colocar mobiliario (toggle de la UI). */
   includeFurniture?: boolean;
   /**
@@ -104,7 +106,7 @@ export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOption
   const fitted = {
     ...fit,
     corrections: keepMeasuredWalls ? [] : fit.corrections,
-    plano: applyDoorOverrides(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.doorOverrides),
+    plano: applyReviewedDoors(applyReviewedWalls(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.wallOverrides), options.doorOverrides),
   };
 
   const interiorRooms = raw.habitaciones.filter((room) => room.exterior !== true).length;
@@ -144,31 +146,6 @@ export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOption
     exteriors: exterior.exteriors,
     furniture,
     warnings,
-  };
-}
-
-function applyDoorOverrides(plano: PlanImportResult['plano'], overrides: PlanDoorOverride[] | undefined): PlanImportResult['plano'] {
-  if (!overrides?.length) return plano;
-  const byId = new Map(overrides.map((item) => [item.apertureId, item]));
-  const walls = new Map(plano.zones.flatMap((zone) => zone.walls.map((wall) => [wall.id, wall] as const)));
-  return {
-    ...plano,
-    zones: plano.zones.map((zone) => ({
-      ...zone,
-      apertures: zone.apertures.map((aperture) => {
-        const override = byId.get(aperture.id);
-        const wall = walls.get(aperture.wallId);
-        const length = wall ? Math.hypot(wall.to.x - wall.from.x, wall.to.y - wall.from.y) : 0;
-        const half = length > 0 ? aperture.widthMm / length / 2 : 0.5;
-        return aperture.kind === 'puerta' && override
-          ? { ...aperture,
-            ...(override.swing ? { swing: override.swing } : {}),
-            ...(override.hinge ? { hinge: override.hinge } : {}),
-            ...(override.position !== undefined && Number.isFinite(override.position) && half <= 0.5
-              ? { position: Math.min(1 - half, Math.max(half, override.position)) } : {}) }
-          : aperture;
-      }),
-    })),
   };
 }
 

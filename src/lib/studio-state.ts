@@ -59,6 +59,7 @@ export interface StudioState {
     /** Ajustes manuales necesarios para reconstruir la misma revisión tras recargar. */
     roomOverrides?: WrittenRoomDimensions[];
     doorOverrides?: import('@/lib/contracts').PlanDoorOverride[];
+    wallOverrides?: import('@/lib/contracts').PlanWallOverride[];
     generalWidthMm?: number;
     includeFurniture?: boolean;
     /** Imagen de la que se extrajo (subida o redibujado): la superposición del panel la usa. */

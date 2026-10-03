@@ -48,6 +48,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const ramp = doc.ramps?.find((item) => item.id === id);
   const column = doc.columns?.find((item) => item.id === id);
   const terrain = doc.terrainSurfaces?.find((item) => item.id === id);
+  const dimension = doc.dimensions.find(item => item.id === id);
   // Las estancias no son entidades: su nombre es la etiqueta de texto situada dentro del contorno.
   const rooms = useMemo(() => { try { return deriveRooms(doc); } catch { return []; } }, [doc]);
   const facadeIds = useMemo(() => new Set(exteriorWallIds(doc)), [doc]);
@@ -87,6 +88,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
     <details key={id ? 'selected' : 'empty'} open={!id || undefined} className={properties.searchToggle}>
       <summary>{id ? 'Buscar o cambiar de elemento' : 'Buscar en el plano'}</summary>
+    <div className={properties.searchFields}>
     <label className={`${styles.field} ${styles.search}`}>Buscar en el plano
       <span><Search size={14} aria-hidden="true" /><input type="search" value={query} placeholder="Pared, patio, sofá…" aria-label="Buscar elemento del plano"
         onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && matches[0]) goTo(matches[0].id); if (event.key === 'Escape') setQuery(''); }} /></span>
@@ -100,6 +102,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       <option value="">Selecciona un elemento</option>
       {index.map((entry) => <option key={entry.id} value={entry.id}>{entry.label} · {entry.group}</option>)}
     </ModernSelect></label>
+    </div>
     </details>
     {!id ? <div className={properties.empty}>
       <MousePointer2 size={28} aria-hidden="true" />
@@ -108,7 +111,7 @@ export function Inspector({ store }: { store: EditorStore }) {
       <p>Mayús, Ctrl o Cmd añaden elementos a la selección. Las medidas del panel se expresan en metros.</p>
     </div> : <>
       <div className={properties.identity}>
-        <h2>{multiple ? `${selection.length} elementos seleccionados` : title}</h2>
+        <h2>{multiple ? `${selection.length} elementos seleccionados` : terrain ? 'Superficie exterior' : dimension ? 'Medida' : title}</h2>
         {(multiple || index.find((entry) => entry.id === id)?.label !== title) && <span>{multiple ? 'Selección múltiple' : index.find((entry) => entry.id === id)?.label ?? selectedEntity?.name ?? title}</span>}
       </div>
       {multiple && <>
@@ -148,6 +151,10 @@ export function Inspector({ store }: { store: EditorStore }) {
       <p>La superficie depende de las paredes que delimitan la habitación. Selecciona una pared para cambiar su tamaño.</p>
     </PropertySection>}
     {terrain && <TerrainFields surface={terrain} edit={apply} />}
+    {dimension && <PropertySection title="Medida del plano">
+      <p className={styles.field}>Distancia: <strong>{(Math.hypot(dimension.to.x - dimension.from.x, dimension.to.y - dimension.from.y) / 1000).toFixed(2)} m</strong></p>
+      <p>Esta cota marca la distancia entre dos puntos. Puedes arrastrarla para moverla, eliminarla aquí o deshacer su creación. No modifica paredes ni muebles.</p>
+    </PropertySection>}
     {wall && <WallProperties key={wall.id} wall={wall} document={doc} store={store} multiple={multiple} edit={apply} />}
     {furniture?.kind === 'carpa' && !partOwner && !multiple && <CarpaSidesField className={styles.field} value={furniture.rolledSides}
       onChange={(rolledSides) => apply((document) => updateFurniture(document, furniture.id, { rolledSides }))} />}

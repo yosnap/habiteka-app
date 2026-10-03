@@ -5,6 +5,8 @@ description: Referencia de teclado y gestos del editor.
 
 Los atajos de letra actúan con el foco fuera de un campo de texto. Puedes desactivarlos en el menú de visibilidad del editor.
 
+Para copiar un objeto o hueco, selecciónalo en el lienzo, pulsa **⌘/Ctrl+C**, después **⌘/Ctrl+V** y haz clic para colocar la copia. Las puertas y ventanas se colocan sobre un muro. Pulsar el lienzo recupera el foco después de escribir en Propiedades; dentro de un campo, copiar y pegar siguen actuando sobre su texto. Solo se copia un elemento cada vez.
+
 ## Herramientas
 
 | Tecla | Acción |
@@ -30,7 +32,7 @@ Los atajos de letra actúan con el foco fuera de un campo de texto. Puedes desac
 | Rueda | Zoom del plano sobre el puntero |
 | ⌘/Ctrl + Z | Deshacer |
 | Mayús + ⌘/Ctrl + Z | Rehacer |
-| ⌘/Ctrl + C | Copiar una selección espacial |
+| ⌘/Ctrl + C | Copiar un objeto espacial, puerta, ventana o hueco seleccionado |
 | ⌘/Ctrl + V | Iniciar colocación de la copia |
 | ⌘/Ctrl + A | Seleccionar todo |
 | Supr / Retroceso | Eliminar la selección |

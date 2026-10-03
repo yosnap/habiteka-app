@@ -40,6 +40,9 @@
 .searchToggle { margin-bottom: 16px; }
 .searchToggle summary { cursor: pointer; padding: 8px 0; color: var(--brand); font-weight: 600; }
 .searchToggle summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.searchFields { display: grid; gap: 16px; padding: 8px 0 4px; }
+.searchFields > label { gap: 8px; margin: 0; min-width: 0; }
+.searchFields > ul { margin: 0; }
 .empty { padding-block: 8px; }
 .empty svg { color: var(--brand); margin-bottom: 8px; }
 .empty p { font-size: .8125rem; }

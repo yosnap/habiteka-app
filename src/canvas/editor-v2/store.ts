@@ -84,6 +84,7 @@ export interface EditorState {
   copyOpening: (id: string) => void;
   copyStair: (id: string) => void;
   clipboardSpatial: SpatialClipboardItem | null;
+  clipboardOpening: Opening | null;
   pendingSpatial: SpatialClipboardItem | null;
   copySpatial: (id: string) => void;
   beginPasteSpatial: () => void;
@@ -141,7 +142,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     readOnly: options.readOnly ?? false,
     // Al cargar se sanea sin contar como edición: no se guarda hasta que el usuario cambie algo.
     document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(initial), { onLoad: true })), past: [], future: [], selection: [],
-    tool: 'select', pendingOpening: null, pendingSplitWallId: null, clipboardSpatial: null, pendingSpatial: null, snap: true, sequence: 0, error: null,
+    tool: 'select', pendingOpening: null, pendingSplitWallId: null, clipboardSpatial: null, clipboardOpening: null, pendingSpatial: null, snap: true, sequence: 0, error: null,
     beginWallSplit: (id) => {
       const state = get(); if (state.readOnly || !state.document.walls.some((w) => w.id === id)) return;
       set({ pendingSplitWallId: id, pendingOpening: null, tool: 'split-wall', selection: [id], error: null });
@@ -175,12 +176,22 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     },
     copySpatial: (id) => {
       const state = get(), item = findSpatialItem(state.document, id);
-      if (state.readOnly || !item) return;
-      set({ clipboardSpatial: structuredClone(item), error: null });
+      if (state.readOnly) return;
+      const opening = state.document.openings.find(entry => entry.id === id);
+      if (opening) { set({ clipboardOpening: structuredClone(opening), clipboardSpatial: null, error: null }); return; }
+      if (!item) return;
+      set({ clipboardSpatial: structuredClone(item), clipboardOpening: null, error: null });
     },
     beginPasteSpatial: () => {
       const state = get();
-      if (state.readOnly || !state.clipboardSpatial) return;
+      if (state.readOnly) return;
+      if (state.clipboardOpening) {
+        const opening = { ...structuredClone(state.clipboardOpening), id: crypto.randomUUID() };
+        set({ pendingOpening: opening, pendingSpatial: null, pendingSplitWallId: null, selection: [], pan: false,
+          tool: opening.kind === 'puerta' ? 'door' : opening.kind === 'ventana' ? 'window' : 'passage', error: null });
+        return;
+      }
+      if (!state.clipboardSpatial) return;
       state.beginPlaceSpatial(duplicateSpatialItem(state.clipboardSpatial));
     },
     beginPlaceSpatial: (item) => {

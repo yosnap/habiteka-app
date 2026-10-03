@@ -27,12 +27,15 @@ export async function loadStudio(ctx: OrgContext, projectId: string): Promise<St
   return state;
 }
 
-export async function saveStudio(ctx: OrgContext, projectId: string, state: StudioState) {
+export async function saveStudio(ctx: OrgContext, projectId: string, state: StudioState, options: { expectedImportRevision?: string } = {}) {
   const result = await prisma.project.updateMany({
-    where: { id: projectId, organizationId: ctx.organizationId, deletedAt: null },
+    where: { id: projectId, organizationId: ctx.organizationId, deletedAt: null,
+      ...(options.expectedImportRevision ? { studioState: { path: ['planImportRevision'], equals: options.expectedImportRevision } } : {}),
+    },
     data: { studioState: state as Prisma.InputJsonValue },
   });
-  if (!result.count) throw new Error('Proyecto no encontrado en tu organización');
+  if (!result.count) throw new Error(options.expectedImportRevision
+    ? 'La revisión cambió en otra pestaña. Recarga antes de guardar tus cambios.' : 'Proyecto no encontrado en tu organización');
 }
 
 /** Hidrata la galería con URLs nuevas sin persistirlas en el historial. */

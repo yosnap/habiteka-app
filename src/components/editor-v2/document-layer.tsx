@@ -6,7 +6,8 @@ import { elementName } from '@/lib/editor-document/element-classification';
 
 import { snapSpatialDrag, snapPointDrag } from './magnetic-drag';
 import { alignRoom, alignPoints } from '@/canvas/editor-v2/magnetic-alignment';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { duplicatePlanElement } from '@/canvas/editor-v2/duplicate-plan-element';
 import { useStore } from 'zustand';
 import { Group, Line, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -49,6 +50,8 @@ import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
 import { CurveHandle } from './curve-handle';
 import { ColumnLayer } from './column-layer';
 import { snapWallMove, type WallMoveSnap } from '@/canvas/editor-v2/wall-move-snap';
+import { snapTerrainMove } from '@/canvas/editor-v2/terrain-transform';
+import { TerrainTransformControls } from './terrain-transform-controls';
 
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
 export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', presentation = 'technical', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; presentation?: 'technical' | 'visual'; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
@@ -56,6 +59,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
   const [wallMoveSnap, setWallMoveSnap] = useState<WallMoveSnap | null>(null);
+  const duplicateDrag = useRef(false);
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
@@ -91,15 +95,21 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     const group = groupOf(id), at = target.position();
     // Un arrastre de un par de píxeles es un clic: se selecciona sin mover nada.
     if (Math.hypot(at.x - origin.x, at.y - origin.y) < 4 / scale) { target.position(origin); setWallMoveSnap(null); state.select(group ?? [id]); return; }
-    if (group) { target.position(origin); return dragGroup(group, { x: at.x - origin.x, y: at.y - origin.y }); }
+    const duplicating = duplicateDrag.current || (e.evt as MouseEvent).altKey;
+    duplicateDrag.current = false;
+    if (group && !duplicating) { target.position(origin); return dragGroup(group, { x: at.x - origin.x, y: at.y - origin.y }); }
     const wall = state.document.walls.find((item) => item.id === id);
     const object = planObjects(state.document).find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
       : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap, { preserveRotation: true })
         : target.position();
     target.position(origin);
+    if (wall && duplicating) {
+      run(() => { const copy = duplicatePlanElement(state.document, id, to); state.apply(copy.document); store.getState().select([copy.id]); });
+      setWallMoveSnap(null); return;
+    }
     // Alt + arrastrar: el original se queda y se coloca una copia donde se suelta.
-    if (object && (e.evt as MouseEvent).altKey) {
+    if (object && duplicating) {
       const copy = { ...duplicateSpatialItem(object), x: to.x, y: to.y };
       run(() => { state.apply(insertSpatialItem(state.document, copy)); store.getState().select([copy.id]); });
       return;
@@ -117,9 +127,14 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
         { x: surface.x + surface.widthMm, y: surface.y + surface.depthMm }, { x: surface.x, y: surface.y + surface.depthMm }]}
       finish={{ roomId: surface.id, color: surface.color, texture: surface.texture, tileSizeMm: surface.tileSizeMm, rotation: surface.rotation }}
       scale={scale} selected={selected.includes(surface.id)} presentation={presentation} referenceVisible={referenceVisible}
-      onSelect={tool === 'select' ? (event) => clickSelect(store, surface.id, event) : undefined}
-      onMove={!readOnly && tool === 'select' && selected.includes(surface.id) ? (delta) => run(() =>
-        store.getState().apply(updateTerrainSurface(source, surface.id, { x: surface.x + delta.x, y: surface.y + delta.y }))) : undefined} />)}
+      onSelect={tool === 'select' ? (event) => { if (!event && groupOf(surface.id)) return; clickSelect(store, surface.id, event); } : undefined}
+      onSnapMove={delta => { if (groupOf(surface.id)) return delta;
+        const state = store.getState(), result = snapTerrainMove(source, surface, delta, scale, state.snap);
+        state.setMagneticGuides(result.guides); return result.delta; }}
+      onMove={!readOnly && tool === 'select' && selected.includes(surface.id) ? (delta, duplicate) => run(() =>
+        { if (duplicate) { const copy = duplicatePlanElement(source, surface.id, delta); store.getState().apply(copy.document); store.getState().select([copy.id]); return; }
+          const group = groupOf(surface.id); if (group) return dragGroup(group, delta);
+          store.getState().apply(updateTerrainSurface(source, surface.id, { x: surface.x + delta.x, y: surface.y + delta.y })); }) : undefined} />)}
     {rooms.value.map((room) => {
       const points = room.boundary;
       return <FloorSurface key={room.id} points={points} finish={floorFinish(doc, room.id)} scale={scale}
@@ -154,7 +169,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       const [a, b] = wallPoints(doc, wall), active = selected.includes(wall.id);
       const miter = wallMiterPolygon(doc, wall);
       return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && tool === 'select'}
-        onDragStart={() => { if (!groupOf(wall.id)) store.getState().select([wall.id]); }}
+        onDragStart={(event) => { duplicateDrag.current = event.evt.altKey; if (!groupOf(wall.id)) store.getState().select([wall.id]); }}
         onDragMove={(event) => {
           if (groupOf(wall.id)) return;
           const snap = snapWallMove(source, wall, event.target.position(), scale, store.getState().snap);
@@ -184,7 +199,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {planObjects(doc).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
-      draggable={!readOnly && tool === 'select' && (!selected.includes(f.id) || selected.length > 1)} onDragStart={(e) => {
+      draggable={!readOnly && tool === 'select'} onDragStart={(e) => {
+        duplicateDrag.current = e.evt.altKey;
         if (groupOf(f.id)) return;
         // Con Mayús/⌘/Ctrl un clic con un leve arrastre (trackpad) no rompe la selección múltiple: el objeto se suma a ella.
         const evt = e.evt as MouseEvent, current = store.getState().selection;
@@ -208,7 +224,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           width={Math.max(32 / scale, f.widthMm - 8 / scale)} height={13 / scale} align="center" fontSize={11 / scale}
           wrap="none" ellipsis fill={INK} listening={false} />}
     </Group>)}
-    {dimensions !== 'none' && dimensions !== 'external' && doc.dimensions.map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
+    {doc.dimensions.filter(d => tool === 'measure' || selected.includes(d.id) || (dimensions !== 'none' && dimensions !== 'external')).map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
       layout={{ from: d.from, to: d.to, sourceFrom: d.from, sourceTo: d.to }}
       onSnapMove={(raw) => { const state = store.getState(), result = alignPoints(source, [d.from, d.to].map((p) => ({ x: p.x + raw.x, y: p.y + raw.y })), scale, state.snap, [d.id]); state.setMagneticGuides(result.guides); return { x: raw.x + result.delta.x, y: raw.y + result.delta.y }; }}
       onMove={!readOnly && tool === 'select' ? (delta) => run(() => store.getState().apply(nudgeSpatialEntities(source, [d.id], delta))) : undefined}
@@ -230,6 +246,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       <CurveHandle key={wall.id} doc={doc} wall={wall} store={store} scale={scale} onPreview={setObjectPreview} />)}
     {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <ObjectTransformControls
       key={selected[0]} store={store} source={source} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
+    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && source.terrainSurfaces?.filter(surface => surface.id === selected[0]).map(surface =>
+      <TerrainTransformControls key={surface.id} store={store} source={source} surface={surface} scale={scale} onPreview={setObjectPreview} />)}
     {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     <WalkthroughLayer store={store} scale={scale} disabled={disabled} />

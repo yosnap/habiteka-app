@@ -5,6 +5,8 @@
 
 ## 1. Visión técnica
 
+La revisión de importaciones persiste `roomOverrides`, `doorOverrides` (incluido `widthMm`) y `wallOverrides` en el estudio. `buildPlanImport` aplica la geometría manual tras normalizar y ajustar la extracción; la misma reconstrucción alimenta la reapertura, la puerta de calidad y el envío canónico al Editor. `planImportRevision` permite rechazar revisiones obsoletas y `saveStudio` realiza una escritura condicional por revisión y organización. `saveOnly` recalcula sin evaluación IA, mantiene los bloqueos existentes y deja la revisión pendiente de confirmación. La imagen original permanece vinculada a la importación aplicada para mostrarla detrás del plano en el Editor.
+
 Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas web donde el usuario aporta una imagen de origen; un agente IA orquestado en 5 fases (Ingesta → Cualificación → Entrega → Feedback → Add-ons) produce entregables profesionales (plano 2D acotado, render 3D, memoria de materiales). La extensibilidad (add-ons de votación y marketplace) se resuelve con un **registry de módulos** e interfaces de extensión claras, sin micro-frontends en el MVP (YAGNI).
 
 ## 2. Stack tecnológico (cerrado, jun 2026)
@@ -35,6 +37,7 @@ Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas 
 ### Acceso y muestras de desarrollo
 
 - El layout de servidor `src/app/dev/layout.tsx` bloquea todas las páginas `/dev/*` con 404 salvo cuando `NODE_ENV=development`. Incluye `/dev/3d` y `/dev/editor-v2`; `ENABLE_DEV_LOGIN` no permite abrirlas en producción. Las muestras locales no requieren sesión, pero no exponen proyectos privados.
+- Restablecer una muestra de `/dev/editor-v2` crea un store nuevo con la misma normalización que la carga inicial y remonta el editor para reiniciar cámara, paneles y gestos locales. Transfiere el historial anterior para poder deshacer el cambio de documento; vuelve a suscribir la persistencia de `sessionStorage` a la instancia nueva. No cambia el flujo ni el guardado de proyectos reales. Las copias ilegibles siguen protegidas contra sobrescritura automática.
 - `/api/dev/login` exige entorno distinto de producción y `ENABLE_DEV_LOGIN=true`; el Docker de producción establece `NODE_ENV=production`.
 - El área de proyectos valida sesión y pertenencia a la organización mediante `requireOrgContext`; la administración valida el rol global `admin` mediante `requireAdmin`. Las acciones del servidor revalidan su acceso.
 - Antes de desplegar, comprobar que la base de datos de producción no contiene la cuenta de pruebas ni credenciales conocidas de desarrollo. Bloquear la ruta de login de prueba no invalida una cuenta que ya exista. Esta revisión de código no acredita la configuración ni los usuarios del despliegue real.

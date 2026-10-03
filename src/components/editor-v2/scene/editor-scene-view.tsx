@@ -62,8 +62,10 @@ import { planObjects } from '@/lib/editor-document/boundary-types';
 import { placeOnHost } from '@/lib/editor-document/object-host-rest';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { ScenePlanContextMenu } from './scene-plan-context-menu';
+import { SceneTerrainControls } from './scene-terrain-controls';
+import type { TerrainSurface } from '@/lib/editor-document/schema';
 import {
-  beginPlanDrag, finishPlanDrag, planDragPosition, positionedPending, sceneEntityId, scenePlanPoint,
+  beginPlanDrag, finishPlanDrag, planDragPosition, positionedPending, sceneEntityId, scenePlanPoint, scenePlanScale,
   type PlanDrag, type PlanMovePreview,
 } from './scene-plan-interaction';
 
@@ -133,6 +135,9 @@ function SceneView({
   readOnlyLabel?: string;
 }) {
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
+  const [terrainPreview, setTerrainPreview] = useState<TerrainSurface | null>(null);
+  const sceneDocument = useMemo(() => terrainPreview ? { ...document,
+    terrainSurfaces: document.terrainSurfaces?.map(surface => surface.id === terrainPreview.id ? terrainPreview : surface) } : document, [document, terrainPreview]);
   const studioRegions = useMemo(() => {
     if (!videoStudio) return [];
     try { return videoScopeRegions(document, videoStudio.contentScope ?? 'all'); } catch { return []; }
@@ -147,8 +152,8 @@ function SceneView({
   // Durante una captura aérea se quitan pérgolas, carpas, toldos y sombrillas: taparían lo que hay debajo.
   const [captureHideCovers, setCaptureHideCovers] = useState(false);
   const stairLinks = useMemo(() => buildingStairLinks(document), [document]);
-  const scene = useMemo(() => editorDocumentToScene(document,
-    stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [document, stairLinks]);
+  const scene = useMemo(() => editorDocumentToScene(sceneDocument,
+    stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [sceneDocument, document.activeLevelId, stairLinks]);
   const openingHosts = useMemo(() => viewCutawayHosts(document), [document]);
   const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
   const [request, setRequest] = useState<CameraRequest>(() => presentation === 'plan'
@@ -453,7 +458,7 @@ function SceneView({
     if (pendingSpatial) setPlanHover(point);
     const drag = planDrag.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const item = planDragPosition(drag, point, store);
+    const item = planDragPosition(drag, point, store, scenePlanScale(root, planElevationM));
     const previousHeight = 'elevationMm' in drag.item ? drag.item.elevationMm ?? 0 : 0;
     const nextHeight = 'elevationMm' in item ? item.elevationMm ?? 0 : 0;
     setPlanPreview({ id: drag.id, dxMm: item.x - drag.item.x, dyMm: item.y - drag.item.y,
@@ -467,6 +472,7 @@ function SceneView({
     planDrag.current = null;
     setPlanPreview(null);
     finishPlanDrag(event, drag, store, root, planElevationM);
+    store.getState().setMagneticGuides([]);
   };
   const onPlanPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = planDrag.current;
@@ -475,6 +481,7 @@ function SceneView({
     if (canvas?.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     planDrag.current = null;
     setPlanPreview(null);
+    store.getState().setMagneticGuides([]);
   };
   const onPlanClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (presentation !== 'plan' || !(event.target instanceof HTMLCanvasElement)) return;
@@ -613,6 +620,11 @@ function SceneView({
     <button type="button" onClick={() => setContextLost(false)}>Reintentar vista 3D</button>
   </div>;
   return <div ref={sceneContainer} style={{ height: '100%', minHeight: 320, position: 'relative', background: '#eeede8' }} aria-label={presentation === 'plan' ? 'Plano visual cenital editable' : 'Vista 3D del plano'}
+    onDoubleClick={(event) => {
+      const state = store.getState();
+      if (event.target instanceof HTMLCanvasElement && state.tool === 'select' && !state.pan && state.selection.length)
+        state.openSidePanel(state.sidePanel === 'ceiling' ? 'ceiling' : 'inspector');
+    }}
     onContextMenuCapture={presentation === 'plan' ? (event) => event.preventDefault() : undefined}
     onPointerDownCapture={(event) => { suppressPlanClick.current = false; if (!(event.target as HTMLElement).closest('[data-plan-menu]')) setPlanMenu(null); }}
     onClickCapture={(event) => {
@@ -739,6 +751,8 @@ function SceneView({
         <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording} plan={presentation === 'plan'} pan={pan}
           onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
+      {presentation === 'plan' && <SceneTerrainControls store={store} source={document} preview={terrainPreview}
+        movePreview={planPreview} elevation={planElevationM} onPreview={setTerrainPreview} />}
       {presentation === 'plan' && document.labels.map((label) => <Html key={label.id}
         position={[label.x / 1000, planElevationM + .04, label.y / 1000]} center
         style={{ pointerEvents: 'none', whiteSpace: 'nowrap', color: '#263630', fontSize: 15,

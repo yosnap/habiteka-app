@@ -6,7 +6,10 @@ El usuario quiere continuar en una nueva sesión. La primera adaptación visual 
 
 - Repositorio: Habiteka, rama `feat/publicidad-vertical-cotas`.
 - Commit base: `c11fcf6` (`feat(editor): unify builder UX and video navigation`), creado a petición del usuario. Incluye página independiente de Vídeos, constructor visual, propiedades/selección y lienzo/vistas; sin push ni despliegue.
-- Las rondas posteriores de Diseños/generación, flujo de Vídeos y consistencia/accesibilidad están implementadas y verificadas. Se incluyen juntas en el commit autorizado del 3 de octubre; consultar `git log` para su identificador.
+- Las rondas posteriores de Diseños/generación, flujo de Vídeos y consistencia/accesibilidad están en `0533319` (`feat(editor): improve design review and video workflow accessibility`). Sin push ni despliegue.
+- La ronda de superficies, Medir y catálogo realista solicitada después de ese commit está implementada localmente; ver `ux-261003-0752-superficies-medicion-catalogo-report.md`. No incluir material privado al preparar su commit.
+- La ampliación de imágenes a Construir/terreno/pavimento y la corrección de filtros y buscador también están en local, sin commit; ver `ux-261003-0855-construir-exterior-buscadores-report.md`.
+- Restablecer muestra ahora reinicia el editor local completo, confirma la acción y conserva Deshacer; ver `fix-261003-0938-restablecer-muestra-report.md`. También sin commit.
 - Preservar todos los cambios existentes. No hacer reset ni sobrescribirlos.
 - Informes: `plans/reports/ux-261002-estudio-video.md` y `plans/reports/ux-261002-1934-constructor-visual-report.md`.
 - Hay imágenes e informes privados sin seguimiento en `plans/reports/`; no incluirlos en commits o documentación pública por defecto.
@@ -23,7 +26,7 @@ El usuario quiere continuar en una nueva sesión. La primera adaptación visual 
 
 - Página Vídeos independiente con navegación del proyecto, Volver al editor y Mis diseños. Preparación en pasos; funciones pendientes identificadas.
 - Editor permanece en edición al entrar o aprobar. Revisión aprobada explícita.
-- Catálogo por Habitaciones y Categorías con ilustraciones SVG propias, búsqueda, filtros y variantes; permanece abierto al interactuar con el lienzo.
+- Catálogo por Habitaciones y Categorías con miniaturas realistas propias (SVG de respaldo), búsqueda, filtros y variantes; permanece abierto al interactuar con el lienzo.
 - Construir con tarjetas; acceso directo Exterior para jardín, terreno y pavimento.
 - Cabecera con planta, deshacer/rehacer, guardar, Vídeos y Diseñar con IA. Herramientas agrupa preparación, tejado, parcela y aprobación.
 - Vistas renombradas a Plano 2D, Amueblado y Modelo 3D.
@@ -38,6 +41,8 @@ El usuario quiere continuar en una nueva sesión. La primera adaptación visual 
 3. **Diseños y generación — implementado el 3 de octubre**: estados y recuentos de revisión en la galería, ámbitos diferenciados, fecha de aceptación, visor con panel lateral y manejo de teclado aislado del generador. Ver `ux-261003-0139-disenos-generacion-report.md`. Las rondas siguientes verificaron el modal en escritorio y al 250 %, flechas, formulario, cierre y foco; la ronda de accesibilidad añade Escape desde el campo de cambios y anidamiento de la previsualización local.
 4. **Flujo de Vídeos — implementado el 3 de octubre**: requisitos antes de preparar, bloqueo de mezclas de tandas, actualización de fuentes/tareas, salidas a resultados y publicidad, estados vacíos y guía corregidos. Ver `ux-261003-0206-flujo-videos-report.md`. Verificados navegación y bloqueos sin generar medios ni aceptar referencias. La pieza combinada y el paseo continuo siguen pendientes funcionales.
 5. **Consistencia y accesibilidad — implementado el 3 de octubre**: marco modal con trampa y retorno de foco, cierre explícito, Escape anidado, pestañas de Vídeos con flechas y estados accesibles. Ver `ux-261003-0709-accesibilidad-consistencia-report.md`: 65 pruebas, tipos, lint, documentación, build y CUA a 390 × 740. Móvil real y lector de pantalla siguen pendientes.
+6. **Superficies, Medir y miniaturas — implementado el 3 de octubre tras el feedback**: terreno/pavimento con ocho tiradores, movimiento, imanes y guías en Plano 2D y Amueblado; selección por marco y flechas; cotas con instrucciones, distancia durante el gesto, selección final y búsqueda. Nueve habitaciones y doce categorías con imágenes genéricas generadas con IA. Ver `ux-261003-0752-superficies-medicion-catalogo-report.md`: 39 pruebas, tipos, lint, documentación, build aislado y CUA sobre muestras independientes. Valoración visual del usuario pendiente.
+7. **Construir, Exterior y buscadores — implementado el 3 de octubre tras nuevas capturas**: catorce imágenes genéricas para categorías y acciones de superficies; filtros de Exterior en filas separadas y margen antes de las fichas; búsqueda de Propiedades con un único borde y separación del selector. Ver `ux-261003-0855-construir-exterior-buscadores-report.md`: cinco pruebas, tipos, lint, documentación, build aislado y CUA; regresión visual de Amueblar revisada. Pendiente valoración visual del usuario.
 
 Primero observar cada flujo actual y fijar el problema concreto. Mantener las mejoras de la primera ronda. No prometer fidelidad audiovisual ni funciones pendientes por cambiar etiquetas o estilos.
 

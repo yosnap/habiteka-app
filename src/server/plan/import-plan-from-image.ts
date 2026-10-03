@@ -24,6 +24,8 @@ import { blockingPlanImportWarning } from '@/lib/plan-quality';
 export type PlanImportStudioResult = PlanImportResult & {
   imageUrl: string;
   quality: StudioQuality;
+  revision?: string;
+  includeFurniture?: boolean;
 };
 
 /** Extracción (visión + raster) → importación; guarda la extracción cruda para recalcular sin IA. */
@@ -46,16 +48,17 @@ export async function importPlanFromImage(
     normalize: importNormalizeOptions(detected),
   });
   const quality = await evaluatePlanQuality(ctx, projectId, imageRef, { raw, detected, result });
+  const revision = crypto.randomUUID();
   await saveStudio(ctx, projectId, {
     ...nextState,
     plano: result.plano,
     escalaEstimada: result.escalaEstimada,
     planImport: { raw, detected, image: imageRef, includeFurniture: options.includeFurniture !== false },
     planImportApplied: false,
-    planImportRevision: crypto.randomUUID(),
+    planImportRevision: revision,
     quality,
   });
-  return { ...result, imageUrl: imageRef.assetUrl, quality };
+  return { ...result, imageUrl: imageRef.assetUrl, quality, revision, includeFurniture: options.includeFurniture };
 }
 
 /**

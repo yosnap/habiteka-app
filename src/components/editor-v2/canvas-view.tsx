@@ -205,6 +205,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     if (!p || !start || distance(start, p) < 50) { setGesture(null); setPointer(null); setWallDraw(idleWallDraw()); return; }
     try {
       const state = store.getState();
+      let measurementId: string | undefined;
       if (tool === 'wall' || tool === 'guard-wall') {
         const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start).extension : undefined;
         const draw = { anchor: start, preview: p };
@@ -215,9 +216,12 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       if (tool === 'patio') state.apply(addOutdoorArea(state.document, start, p));
       if (tool === 'rectangle') state.apply(addWallPath(state.document,
         [start, { x: p.x, y: start.y }, p, { x: start.x, y: p.y }], true));
-      if (tool === 'measure') state.apply(editDocument(state.document,
-        (next) => next.dimensions.push({ id: newId(), from: start, to: p })));
+      if (tool === 'measure') {
+        measurementId = newId();
+        state.apply(editDocument(state.document, next => next.dimensions.push({ id: measurementId!, from: start, to: p })));
+      }
       state.setTool('select');
+      if (measurementId) state.select([measurementId]);
     } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Trazo inválido'); }
     setGesture(null); setPointer(null); setWallDraw(idleWallDraw());
   };
@@ -362,7 +366,12 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         if (p && (tool === 'wall' || tool === 'guard-wall')) setWallDraw((current) => moveWallDraw(current, p));
         else if (start) setPointer(p);
       }} onPointerUp={() => { if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
-      onDblClick={() => { if (!pan && zoneTool.active) zoneTool.close(); }} >
+      onDblClick={(event) => {
+        if (!pan && zoneTool.active) { zoneTool.close(); return; }
+        const state = store.getState();
+        if (!pan && tool === 'select' && event.target !== stage.current && state.selection.length)
+          state.openSidePanel(state.sidePanel === 'ceiling' ? 'ceiling' : 'inspector');
+      }} >
 
       {showReference && reference && referenceImage && <Layer listening={false}>
         <KonvaImage image={referenceImage} x={reference.xMm ?? 0} y={reference.yMm ?? 0} width={reference.widthMm} height={reference.heightMm}
@@ -372,7 +381,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}:${presentation}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
-      <>{start && pointer && <Line points={(tool === 'rectangle')
+      <>{start && pointer && tool !== 'measure' && <Line points={(tool === 'rectangle')
         ? [start.x, start.y, pointer.x, start.y, pointer.x, pointer.y, start.x, pointer.y, start.x, start.y]
         : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</>
       <>{wallPreview.anchor && wallPreview.preview && wallLength >= 50 && <>
@@ -393,6 +402,8 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         {draftDimension && <DimensionMark scale={view.scale} layout={draftDimension} />}
       </>}</>
       <>{boundaryDimension && <DimensionMark layout={boundaryDimension} scale={view.scale} />}</>
+      {tool === 'measure' && start && pointer && <DimensionMark scale={view.scale}
+        layout={{ from: start, to: pointer, sourceFrom: start, sourceTo: pointer }} />}
       <>{zoneTool.active && <LightZoneDrawLayer draft={zoneTool.draft} cursor={zoneTool.cursor}
         hovered={zoneTool.hovered} rectangle={zoneTool.rectangle} scale={view.scale} />}</>
       <>{zoneDimension && <DimensionMark layout={zoneDimension} scale={view.scale} />}</>
@@ -435,6 +446,10 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     </div>}
     {!pan && splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}
+    </div>}
+    {!pan && tool === 'measure' && <div role="status" className={styles.measureHint}>
+      <strong>{start && pointer ? `${(distance(start, pointer) / 1000).toFixed(2)} m · suelta para dejar la cota` : 'Medir: arrastra entre dos puntos del plano'}</strong>
+      <span>La medida queda en el plano. {snapEnabled ? 'Ajuste magnético activo.' : 'Ajuste libre.'} Esc cancela.</span>
     </div>}
     {placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {pan ? 'Mano activa · desactívala para colocar el objeto' : 'Mueve el objeto y haz clic para colocarlo · Esc para cancelar'}

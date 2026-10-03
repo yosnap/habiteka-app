@@ -5,13 +5,30 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## En desarrollo — Constructor y navegación visual
 
+- **Duplicar huecos al arrastrar:** Option/Alt + arrastrar puertas, ventanas y huecos en Plano 2D coloca una copia en el muro de destino conservando el original. Se valida la holgura y se rechazan los solapamientos.
+
+- **Menú y duplicación por arrastre:** el menú de selección del plano 2D permanece visible con Propiedades abierto. Option/Alt + arrastrar duplica paredes y objetos conservando el original; en Amueblado también admite terreno y pavimento.
+
+- **Doble clic y portapapeles:** doble clic sobre un elemento abre Propiedades en las tres vistas. Pulsar el lienzo recupera el foco de teclado desde los campos; ⌘/Ctrl+C y ⌘/Ctrl+V también copian y colocan puertas, ventanas y huecos sobre un muro.
+
+- **Original en el Editor:** guardar una nueva revisión de la importación ya no oculta Mostrar/Ocultar original. La referencia puede consultarse sin reenviar el plano ni sustituir las ediciones del Editor del proyecto.
+
+- **Propiedades de puerta en la revisión:** deslizadores de ancho y posición junto a los campos numéricos; se elimina el listado duplicado de puertas y arcos. Los motivos de fiabilidad repetidos se muestran una sola vez, incluso en revisiones guardadas anteriormente.
+
+- **Revisión del plano importado:** original de fondo también en Muros y medidas; selección de puertas y muros con propiedades, ancho del hueco, extremos de muro arrastrables y deshacer de geometría. Guardar revisión conserva las correcciones en el proyecto sin evaluación IA de pago. La revisión aplicada continúa en el Editor con el original como referencia.
+
+- **Restablecer muestra:** reinicia el documento y la sesión de la muestra local, cancela tareas pendientes, cierra paneles y vuelve a Plano 2D encuadrado. Confirma la acción y permite recuperar el documento anterior con Deshacer.
+- **Construir y Exterior:** miniaturas realistas en las doce categorías de construcción y en Añadir terreno/Añadir pavimento. Los filtros de Exterior se separan en filas, con espacio antes de los resultados; el buscador de Propiedades elimina el doble borde y se distingue del selector de elementos.
+- **Terreno y pavimento:** ocho tiradores para redimensionar, control central de movimiento y ajuste magnético con guías en Plano 2D y Amueblado. Las superficies también admiten marco de selección y movimiento con flechas en Plano 2D. Los tiradores de otros objetos del plano incorporan ajuste magnético.
+- **Medir:** instrucciones del gesto, distancia durante el arrastre y cota seleccionada al terminar. La distancia se consulta en Propiedades y las cotas aparecen en el buscador de elementos, incluso si un filtro las oculta al quitar la selección.
+- **Imágenes del catálogo:** miniaturas realistas propias para nueve habitaciones y doce categorías. Son imágenes genéricas de navegación, con las fichas y dimensiones de los modelos conservadas.
 - **Teclado y ventanas:** el estudio de diseño y las vistas ampliadas retienen el foco, incluyen un cierre visible y devuelven el foco al control de origen. Escape cierra el nivel activo. Las pestañas Crear vídeo/Vídeos guardados se recorren con flechas y los accesos internos enfocan la pestaña de destino.
 - **Diseños y generación:** miniaturas con estado de revisión, resumen por tanda y revisión del plano. El visor reúne imagen, aceptación con fecha y acciones en un panel lateral en escritorio, debajo en pantalla estrecha. Escape cierra solo la imagen y las flechas recorren la tanda sin interferir al escribir cambios. Los ámbitos distinguen Solo la casa, Toda la planta y zonas o estancias concretas.
 - **Lienzo y vistas:** paneles junto al lienzo o debajo en pantalla estrecha; controles de cámara accesibles. Cambiar de vista conserva la selección y Propiedades. Amueblado incorpora zoom, encuadre y Mano; editar medidas ya no reinicia la cámara 3D.
 - **Colocación continua:** Mano conserva la tarea activa, los objetos pendientes pueden pasar entre Plano 2D y Amueblado y cuentan con Cancelar colocación. Escape cancela el objeto sin cerrar el catálogo. Las vistas incompatibles con la herramienta actual se deshabilitan hasta finalizarla.
 - **Propiedades y selección:** panel persistente con Medidas, Acabados y Notas según el elemento. Dimensiones antes que posición y giro; acciones de pared, hueco y mueble reunidas. La barra inferior muestra un resumen y el menú del lienzo se oculta al abrir Propiedades. Buscar un elemento ya no cierra el panel.
 - **Selección múltiple más clara:** campos comunes con alcance explícito, aviso de valores del primer elemento y acceso a cada elemento de una selección mixta. Se conservan la validación de medidas y deshacer.
-- Catálogo **Amueblar** con tarjetas ilustradas por habitaciones y categorías, búsqueda, variantes y filtros de estancia/estilo. Permanece abierto al trabajar sobre el lienzo.
+- Catálogo **Amueblar** por habitaciones y categorías, búsqueda, variantes y filtros de estancia/estilo. Permanece abierto al trabajar sobre el lienzo.
 - **Construir** organiza la estructura por tarjetas con iconos; **Exterior** ofrece acceso directo a jardín, terreno y pavimento.
 - Cabecera con planta, historial de edición, guardado, **Vídeos** y **Diseñar con IA**. **Herramientas** reúne preparación, parcela, tejado y aprobación. Vistas: **Plano 2D**, **Amueblado** y **Modelo 3D**.
 - Asistente y entrada del plano con tarjetas visuales y pasos diferenciados. Navegación del proyecto con iconos y sección activa visible.

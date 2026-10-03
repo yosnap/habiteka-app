@@ -24,7 +24,7 @@ export function nudgeElements(source: EditorDocument, ids: string[], delta: Poin
   }
   for (const v of doc.vertices) if (vertices.has(v.id) || selected.has(v.id))
     Object.assign(v, constrainExteriorVertex(source, v.id, { x: v.x + delta.x, y: v.y + delta.y }));
-  for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.luminaires ?? []), ...doc.labels])
+  for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.terrainSurfaces ?? []), ...(doc.luminaires ?? []), ...doc.labels])
     if (selected.has(item.id)) { item.x += delta.x; item.y += delta.y; }
   doc = followFurnitureOnMovedWalls(source, doc, ids);
   for (const boundary of doc.boundaries ?? []) if (!selected.has(boundary.id)) {

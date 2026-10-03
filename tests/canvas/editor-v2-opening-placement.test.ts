@@ -1,13 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument, type Opening } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
-import { placeOpening, resolveOpeningPlacement } from '@/canvas/editor-v2/opening-placement';
+import { openingForDrag, placeOpening, resolveOpeningPlacement } from '@/canvas/editor-v2/opening-placement';
 
 const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 },
   { x: 6000, y: 5000 }, { x: 0, y: 5000 }], true);
 const opening: Opening = { id: 'door', wallId: doc.walls[0]!.id, kind: 'puerta', position: .5,
   widthMm: 900, dimensionalOrigin: 'physical' };
 describe('wall-bound opening placement', () => {
+  it.each(['puerta', 'ventana', 'hueco'] as const)('Option + arrastrar %s coloca una copia en el destino y conserva el original', (kind) => {
+    const initial = placeOpening(doc, { ...opening, kind }, opening);
+    const original = initial.openings[0]!, prototype = openingForDrag(original, true);
+    const destination = resolveOpeningPlacement(initial, { x: 4800, y: 0 }, .1, prototype)!;
+    expect(destination.valid).toBe(true);
+    const result = placeOpening(initial, prototype, destination);
+    expect(result.openings).toHaveLength(2);
+    expect(result.openings.find(item => item.id === original.id)).toEqual(original);
+    expect(result.openings.find(item => item.id === prototype.id)).toMatchObject({ kind, position: .8, widthMm: original.widthMm });
+    expect(initial.openings).toHaveLength(1);
+    const overlapping = resolveOpeningPlacement(initial, { x: 3000, y: 0 }, .1, prototype)!;
+    expect(overlapping.valid).toBe(false);
+    expect(() => placeOpening(initial, prototype, overlapping)).toThrow();
+  });
+  it('sin Option el arrastre conserva el ID y mueve el hueco existente', () => {
+    const initial = placeOpening(doc, opening, opening), original = initial.openings[0]!;
+    const prototype = openingForDrag(original, false);
+    const destination = resolveOpeningPlacement(initial, { x: 4800, y: 0 }, .1, prototype)!;
+    const result = placeOpening(initial, prototype, destination);
+    expect(result.openings).toHaveLength(1); expect(result.openings[0]!.id).toBe(original.id);
+  });
   it('conserva el agarre al desplazar y girar hacia otro anfitrión', () => {
     const same = resolveOpeningPlacement(doc, { x: 3400, y: 0 }, .1, opening, undefined, 400)!;
     expect(same.center).toEqual({ x: 3000, y: 0 });

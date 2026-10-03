@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Columns2, CookingPot, DoorOpen, Grid3X3, Import, MoveUpRight, RectangleHorizontal, ScanLine, Shapes, Slash, Sprout, X } from 'lucide-react';
 import { ConstructionCatalog, type ConstructionCategory, type ConstructionCatalogProps } from './construction-catalog';
+import { ConstructionNavigationImage } from './construction-navigation-image';
 import styles from './editor.module.css';
 import ui from './construction-menu.module.css';
 
@@ -42,8 +43,10 @@ export function ConstructionMenu({ onClose, onImport, initialCategory = null, on
       {category ? <>
         <button type="button" className={ui.back} onClick={() => setCategory(null)}><ArrowLeft size={16} />Todas las categorías</button>
         {category === 'outdoor' && <div className={ui.surfaceActions}>
-          {onTerrain && <button type="button" disabled={catalogProps.readOnly} onClick={onTerrain}><Sprout size={22} />Añadir terreno</button>}
-          {onPaving && <button type="button" disabled={catalogProps.readOnly} onClick={onPaving}><Grid3X3 size={22} />Añadir pavimento</button>}
+          {onTerrain && <button type="button" disabled={catalogProps.readOnly} onClick={onTerrain}>
+            <ConstructionNavigationImage category="terrain" fallback={<Sprout size={32} />} /><span>Añadir terreno</span></button>}
+          {onPaving && <button type="button" disabled={catalogProps.readOnly} onClick={onPaving}>
+            <ConstructionNavigationImage category="paving" fallback={<Grid3X3 size={32} />} /><span>Añadir pavimento</span></button>}
         </div>}
         <ConstructionCatalog {...catalogProps} category={category} />
       </> : <><p className={ui.intro}>Da forma a tu espacio. Elige qué quieres añadir.</p><nav className={ui.categories} aria-label="Categorías de construcción">
@@ -51,7 +54,7 @@ export function ConstructionMenu({ onClose, onImport, initialCategory = null, on
           <Import size={18} aria-hidden="true" /><span>Importar plano</span>
         </button>}
         {categories.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setCategory(id)}>
-            <span className={ui.art}><Icon size={44} strokeWidth={1.5} aria-hidden="true" /></span><span>{label}</span>
+            <ConstructionNavigationImage category={id} fallback={<Icon size={44} strokeWidth={1.5} />} /><span>{label}</span>
         </button>)}
       </nav></>}
     </div>

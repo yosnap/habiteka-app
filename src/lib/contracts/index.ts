@@ -37,6 +37,8 @@ export type {
   PlanImportResult,
   PlanImportWarning,
   PlanDoorOverride,
+  PlanWallOverride,
+  PlanImportReviewOptions,
   WrittenRoomDimensions,
 } from './plan-import-result';
 export type { DesignElementKind, DesignElement } from './design-element';

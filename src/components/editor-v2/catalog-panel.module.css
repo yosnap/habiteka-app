@@ -33,7 +33,7 @@
 .roomGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .catalog .roomCard { padding: 5px 5px 12px; min-width: 0; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border-radius: 14px; text-align: left; }
 .roomCard svg { width: 100%; height: auto; }
-.roomCard span { padding-inline: 6px; font-size: .8125rem; font-weight: 600; }
+.roomLabel { padding-inline: 6px; font-size: .8125rem; font-weight: 600; }
 .catalog .all { margin-top: 16px; width: 100%; font-size: .8125rem; }
 .card[data-room='salon'] .thumbnail { background: #e9eee6; }
 .card[data-room='dormitorio'] .thumbnail { background: #eee8f2; }

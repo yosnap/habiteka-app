@@ -482,7 +482,7 @@ export function EditorShell({
     door: 'Colocar puerta',
     window: 'Colocar ventana',
     passage: 'Colocar hueco',
-    measure: 'Medir distancia',
+    measure: 'Medir · arrastra entre dos puntos para dejar una cota',
     'split-wall': 'Añadir esquina',
     'place-object': 'Colocar objeto · clic para colocar · Esc para cancelar',
     'light-strip': 'Dibujar tira LED · clics por tramos · Esc para terminar',
@@ -590,8 +590,12 @@ export function EditorShell({
     return () => window.removeEventListener('keydown', onShortcut);
   }, [construction, constructionCategory, mode, readOnly, shortcutsEnabled, store]);
   return (
-    <section className={styles.shell} data-mode={mode} onPointerDownCapture={(event) => {
-      if (event.target instanceof HTMLCanvasElement) store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
+    <section className={styles.shell} data-mode={mode} tabIndex={-1} onPointerDownCapture={(event) => {
+      if (event.target instanceof HTMLCanvasElement) {
+        // El lienzo devuelve el foco desde los campos: ⌘C/⌘V actúan sobre la selección.
+        event.currentTarget.focus({ preventScroll: true });
+        store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
+      }
     }} aria-label={`Editor de ${projectName}`}>
       <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus}
         onSave={onSave} saveEnabled={saveEnabled} onGenerate={() => openGenerate()}
@@ -739,6 +743,7 @@ export function EditorShell({
             state.apply(addTerrainSurface(state.document, surface));
             state.setTool('select'); state.select([surface.id]);
             setMode('visual'); openPanel('inspector');
+            state.requestView('fit');
           })}
           onPaving={() => run(() => {
             const state = store.getState();
@@ -747,6 +752,7 @@ export function EditorShell({
             state.apply(addTerrainSurface(state.document, surface));
             state.setTool('select'); state.select([surface.id]);
             setMode('visual'); openPanel('inspector');
+            state.requestView('fit');
           })}
             readOnly={readOnly}
             onClose={closeConstruction}

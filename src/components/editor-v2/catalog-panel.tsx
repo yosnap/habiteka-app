@@ -2,7 +2,7 @@
 import { constructionGroup } from '@/lib/editor-document/element-classification';
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Search, SlidersHorizontal } from 'lucide-react';
-import { CatalogRoomArt } from './catalog-room-art';
+import { CatalogNavigationImage } from './catalog-navigation-image';
 import { CATALOG_CATEGORIES, matchesCatalogCategory } from './catalog-navigation';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { FURNITURE_CATALOG, FURNITURE_ROOMS, searchFurnitureCatalog,
@@ -112,9 +112,9 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
       </div>
       <div className={styles.roomGrid}>
         {browse === 'rooms' ? Object.entries(FURNITURE_ROOMS).map(([id, label]) => <button type="button" key={id} className={styles.roomCard} onClick={() => setRoom(id)}>
-          <CatalogRoomArt room={id as FurnitureRoom} /><span>{label}</span>
+          <CatalogNavigationImage room={id as FurnitureRoom} /><span className={styles.roomLabel}>{label}</span>
         </button>) : CATALOG_CATEGORIES.map(item => <button type="button" key={item.id} className={styles.roomCard} onClick={() => setCategory(item.id)}>
-          <CatalogRoomArt room={item.room} /><span>{item.label}</span>
+          <CatalogNavigationImage room={item.room} categoryId={item.id} /><span className={styles.roomLabel}>{item.label}</span>
         </button>)}
       </div><button type="button" className={styles.all} onClick={() => setAll(true)}>Ver todos los muebles</button>
     </> : <div className={styles.items}>{groups.map((variants) => <CatalogCard key={variants[0]!.productId} variants={variants} onAdd={onAdd} readOnly={readOnly} />)}</div>}

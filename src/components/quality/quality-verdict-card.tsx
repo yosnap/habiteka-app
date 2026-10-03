@@ -33,7 +33,8 @@ interface Props {
 
 export function QualityVerdictCard({ quality, blockedNote, compact = false }: Props) {
   const band = BANDS[quality.decision];
-  const reasons = compact ? quality.reasons.slice(0, 2) : quality.reasons;
+  const uniqueReasons = [...new Set(quality.reasons)];
+  const reasons = compact ? uniqueReasons.slice(0, 2) : uniqueReasons;
   return (
     <div
       role="status"
