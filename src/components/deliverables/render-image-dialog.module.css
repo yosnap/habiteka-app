@@ -4,7 +4,8 @@
   z-index: 151;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* El foco de un desplegable no debe desplazar el contenedor del visor. */
+  overflow: clip;
   border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-ink);
@@ -38,6 +39,25 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.regionSurface {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+  background: transparent;
+}
+.regionSurface:focus-visible { outline: 3px solid var(--color-brand-500); outline-offset: -3px; }
+.regionSurface:disabled { cursor: wait; }
+.regionBox {
+  position: absolute;
+  border: 2px solid var(--color-brand-500);
+  background: color-mix(in srgb, var(--color-brand-500) 12%, transparent);
+  box-shadow: 0 0 0 9999px #0004;
+  pointer-events: none;
 }
 
 .actions {

@@ -16,6 +16,8 @@ import { isDrawablePlanZone } from '@/lib/contracts/plano2d-validation';
 import { fail } from '@/server/errors/run-action';
 import type { DebitService, ImageAdapter, InpaintRequest, PlanZone } from '@/lib/contracts';
 import type { FeedbackDeps } from './feedback-orchestrator';
+import { loadDesignPlanContext } from './design-plan-context';
+import { prisma } from '@/server/db/prisma';
 
 /** Coste reservado por iteración fuera del cupo gratuito. */
 export const ITERATION_CREDITS = 500;
@@ -44,9 +46,14 @@ export async function buildFeedbackDeps(
   const plano2d = deliverable.type === 'PLANO_2D' ? await getChatVisionAdapter(org, 'plano2d') : null;
   const memoria = deliverable.type === 'MEMORIA' ? await getChatVisionAdapter(org, 'memoria') : null;
   const free = await isNextIterationFree(deliverable.id);
+  const row = deliverable.type === 'RENDER_3D' ? await prisma.deliverable.findFirst({
+    where: { id: deliverable.id, deletedAt: null, project: { organizationId } }, select: { projectId: true },
+  }) : null;
+  const designContext = row ? await loadDesignPlanContext(organizationId, row.projectId, deliverable.id) : null;
   return {
+    designContext,
     // Los retoques de imagen usan la sección «inpaint» del perfil de IA.
-    image: deliverable.type === 'RENDER_3D' ? await getImageAdapterForAction(org, 'inpaint') : NO_IMAGE,
+    image: deliverable.type === 'RENDER_3D' ? await getImageAdapterForAction({ ...org, projectId: row?.projectId }, 'inpaint') : NO_IMAGE,
     debit: free ? FREE_DEBIT : createDebitService(organizationId),
     loadRenderBase,
     regenerateZone: async (change, _zoneId, current) => {

@@ -24,6 +24,8 @@ import { loadState, saveState } from '@/server/agent/persistence/state-repo';
 import { assertInstructionQuality, instructionQuality } from '@/server/quality/instruction-gate';
 import { instructionTargetOf } from '@/server/quality/evidence/instruction-evidence';
 import type { QualityVerdict } from '@/lib/quality-verdict';
+import type { CanvasZone } from '@/lib/contracts';
+import { resolveZone } from '@/server/agent/feedback/zone-resolver';
 
 const MIN_INSTRUCTION = 3;
 const MAX_INSTRUCTION = 500;
@@ -43,9 +45,10 @@ export async function requestDeliverableChange(
   instruction: string,
   planZoneId?: string,
   qualityAck = false,
+  imageZone?: CanvasZone,
 ) {
   return runAction(() =>
-    requestDeliverableChangeImpl(projectId, deliverableId, instruction, planZoneId, qualityAck),
+    requestDeliverableChangeImpl(projectId, deliverableId, instruction, planZoneId, qualityAck, imageZone),
   );
 }
 
@@ -55,6 +58,7 @@ async function requestDeliverableChangeImpl(
   instruction: string,
   planZoneId?: string,
   qualityAck = false,
+  imageZone?: CanvasZone,
 ): Promise<{ newDeliverableId: string; version: number }> {
   const text = typeof instruction === 'string' ? instruction.trim() : '';
   if (text.length < MIN_INSTRUCTION) fail('Describe el cambio que quieres (al menos unas palabras).');
@@ -64,13 +68,14 @@ async function requestDeliverableChangeImpl(
   await assertProjectInOrg(ctx, projectId);
   const deliverable = await loadDeliverable(ctx.organizationId, deliverableId);
   if (deliverable.projectId !== projectId) fail('El diseño no pertenece a este proyecto.');
+  if (imageZone) resolveZone(imageZone);
   await assertConsent(ctx.userId, 'IMAGE_PROCESSING');
   await assertTosAccepted(ctx.userId);
   // Puerta de calidad de la instrucción: ANTES de reservar créditos y de llamar a
   // la IA de imagen. Una petición que no se entiende no cuesta dinero.
   await assertInstructionQuality(
     ctx,
-    { projectId, refId: deliverableId },
+    { projectId, refId: deliverableId, imageZone },
     instructionTargetOf(deliverable.type),
     text,
     qualityAck === true,
@@ -81,8 +86,7 @@ async function requestDeliverableChangeImpl(
     {
       organizationId: ctx.organizationId,
       deliverableId,
-      // El cambio por texto es global: la "zona" es la imagen completa.
-      zone: { id: 'global', bbox: { x: 0, y: 0, width: 1, height: 1 } },
+      zone: imageZone ?? { id: 'global', bbox: { x: 0, y: 0, width: 1, height: 1 } },
       instruction: text,
       ...(deliverable.type === 'PLANO_2D' ? { planZoneId: planZoneId ?? firstPlanZoneId(deliverable.payload) } : {}),
       estimateCredits: ITERATION_CREDITS,
@@ -133,6 +137,7 @@ export async function evaluateChangeInstruction(
   projectId: string,
   deliverableId: string,
   instruction: string,
+  imageZone?: CanvasZone,
 ) {
   return runAction(async (): Promise<QualityVerdict> => {
     const text = typeof instruction === 'string' ? instruction.trim() : '';
@@ -142,9 +147,10 @@ export async function evaluateChangeInstruction(
     await assertProjectInOrg(ctx, projectId);
     const deliverable = await loadDeliverable(ctx.organizationId, deliverableId);
     if (deliverable.projectId !== projectId) fail('El diseño no pertenece a este proyecto.');
+    if (imageZone) resolveZone(imageZone);
     return instructionQuality(
       ctx,
-      { projectId, refId: deliverableId },
+      { projectId, refId: deliverableId, imageZone },
       instructionTargetOf(deliverable.type),
       text,
     );

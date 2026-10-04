@@ -6,6 +6,7 @@
  * ese fichero ya es grande y esta lista tiene su propia lógica de selección.
  */
 import type { RoomInteriorCamera } from '@/lib/editor-document/room-interior-cameras';
+import { CheckToggle } from '@/components/ui/check-toggle';
 
 interface Props {
   cameras: RoomInteriorCamera[];
@@ -33,20 +34,16 @@ export function InteriorRoomsPicker({ cameras, selected, disabled, onChange }: P
   return (
     <div className="mt-2 grid gap-1 sm:grid-cols-2">
       {cameras.map((camera) => (
-        <label key={camera.roomId} className="text-ink-soft flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
+        <CheckToggle key={camera.roomId}
             checked={selected.includes(camera.roomId)}
             disabled={disabled}
             onChange={() => toggle(camera.roomId)}
-          />
-          <span>
+          label={<span>
             {camera.name}{' '}
             <span className="text-muted-foreground">
               · {camera.areaM2.toFixed(1)} m²{camera.habitable ? '' : ' · paso o hueco'}
             </span>
-          </span>
-        </label>
+          </span>} />
       ))}
     </div>
   );

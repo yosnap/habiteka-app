@@ -145,7 +145,7 @@ export interface EditorShellProps {
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado que ve el diálogo al abrirse. */
-  onEvaluateQuality?: () => Promise<QualityVerdict | null>;
+  onEvaluateQuality?: (acknowledgeImport?: boolean) => Promise<QualityVerdict | null>;
   generateEnabled?: boolean;
   generateDisabledReason?: string;
   /** Arranque pedido por la URL: abre el diálogo de generación ya preparado. */
@@ -223,8 +223,12 @@ export function EditorShell({
     }
   }), [mode, store]);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateIntent, setGenerateIntent] = useState<'editable' | 'image'>('image');
   const [generateSetup, setGenerateSetup] = useState(autoGenerate);
-  const planIssueGate = usePlanIssueGate(store, { close: () => setGenerateOpen(false), show2d: () => setMode('2d') });
+  const { originalVisible, originalOpacity } = preferences;
+  const setOriginalVisible = (next: boolean) => setPreferences((current) => { const value = { ...current, originalVisible: next }; saveEditorPreferences(value); return value; });
+  const setOriginalOpacity = (next: number) => setPreferences((current) => { const value = { ...current, originalOpacity: next }; saveEditorPreferences(value); return value; });
+  const planIssueGate = usePlanIssueGate(store, { close: () => setGenerateOpen(false), show2d: () => { setMode('2d'); setVisibility({ ...visibility, walls: true }); } });
   const [renderCapture, setRenderCapture] = useState<RenderCapture | undefined>();
   // La escena 3D se carga en diferido y tarda segundos: lo que dependa de ella
   // se espera, se informa y vence; nunca se queda colgado sin explicación.
@@ -295,13 +299,18 @@ export function EditorShell({
    * Que el diálogo espere en vez de bloquearse es lo que impide el «Preparando…»
    * eterno: toda espera pasa por `awaitScene`, que tiene plazo y mensaje.
    */
-  const openGenerate = (setup: AutoGenerateRequest | null = null) => {
+  const openGenerate = (setup: AutoGenerateRequest | null = null, intent?: 'editable' | 'image') => {
+    // «Diseñar con IA» abre el paso de la vista actual: en la planta, diseñarla; en amueblado y 3D, crear imágenes.
+    // Diseñar el plano trabaja sobre la planta: no necesita el 3D ni capturas. Las imágenes sí.
+    const target = intent ?? (!setup && mode === '2d' ? 'editable' : 'image');
+    setGenerateIntent(target);
     setGenerateSetup(setup);
     keyframeCamera.current = null;
     keyframeTarget.current = null;
     setRenderCapture(undefined);
-    setMode('3d');
     setGenerateOpen(true);
+    if (target === 'editable') return;
+    setMode('3d');
     void (async () => {
       try {
         const capture = await awaitScene();
@@ -633,6 +642,13 @@ export function EditorShell({
       </EditorProjectBar>
       <div className={styles.secondary}>
         <EditorViewSwitch store={store} mode={mode} onChange={(next) => { setConstruction(false); setMode(next); }} />
+        {mode === '2d' && reference && <>
+          <button type="button" aria-pressed={originalVisible} onClick={() => setOriginalVisible(!originalVisible)}>
+            {originalVisible ? 'Ocultar original' : 'Mostrar original'}
+          </button>
+          {originalVisible && <input type="range" min={20} max={100} value={Math.round(originalOpacity * 100)}
+            aria-label="Opacidad del plano original" onChange={(event) => setOriginalOpacity(Number(event.target.value) / 100)} />}
+        </>}
         <span className={styles.currentTool} role="status">
           {readOnly ? 'Solo lectura' : toolLabel[tool]}
         </span>
@@ -717,7 +733,7 @@ export function EditorShell({
           <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} fitOnMount
             presentation="technical" dimensions={visibility.dimensions}
             showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting}
-            reference={reference} />
+            reference={reference} originalVisible={originalVisible} originalOpacity={originalOpacity} />
         </div>
         {mode !== '2d' && (
           <div
@@ -908,6 +924,7 @@ export function EditorShell({
           spaceKind={designSpaceKind}
           onSpaceKindChange={setSpaceKind}
           {...(generateSetup ? { initialSetup: generateSetup } : {})}
+          initialIntent={generateIntent}
           onClose={() => setGenerateOpen(false)}
         />
       )}

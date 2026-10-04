@@ -17,6 +17,7 @@ import {
   planRegionRooms,
   rectanglePolygon,
   roomAtPoint,
+  samePolygon,
   uniqueRegionName,
 } from '@/lib/editor-document/render-region-draw';
 import { renderDesignOptionsSchema } from '@/lib/editor-document/render-design-options';
@@ -135,5 +136,13 @@ describe('zonas por estancia sobre un plano real', () => {
     const inside = { x: camera.camera.position[0] * 1000, y: camera.camera.position[2] * 1000 };
     expect(roomAtPoint(rooms, inside)?.name).toBe('Salón - Cocina');
     expect(roomAtPoint(rooms, { x: -50_000, y: -50_000 })).toBeNull();
+  });
+
+  it('reconoce una estancia ya marcada para no duplicarla al pulsarla otra vez', () => {
+    const square = [{ x: 0, y: 0 }, { x: 4000, y: 0 }, { x: 4000, y: 3000 }, { x: 0, y: 3000 }];
+    expect(samePolygon(square, [...square.slice(2), ...square.slice(0, 2)])).toBe(true);
+    expect(samePolygon(square, square.map((point) => ({ x: point.x + 0.5, y: point.y })))).toBe(true);
+    expect(samePolygon(square, [...square.slice(0, 3), { x: 0, y: 2000 }])).toBe(false);
+    expect(samePolygon(square, square.slice(0, 3))).toBe(false);
   });
 });

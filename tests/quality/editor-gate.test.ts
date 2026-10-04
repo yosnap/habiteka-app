@@ -13,7 +13,7 @@ vi.mock('server-only', () => ({}));
 import { addOpening, addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { emptyEditorDocument, type EditorDocument } from '@/lib/editor-document/schema';
 import { editorGeometryFingerprint } from '@/server/quality/editor-geometry-fingerprint';
-import { assertEditorQuality, EDITOR_STRUCTURE_CHECKPOINT } from '@/server/quality/editor-gate';
+import { assertEditorQuality, editorDocumentQuality, EDITOR_STRUCTURE_CHECKPOINT } from '@/server/quality/editor-gate';
 import { QUALITY_THRESHOLDS_KEY } from '@/server/quality/evaluate';
 import { prisma } from '@/server/db/prisma';
 import { sealSecret } from '@/server/security/secret-box';
@@ -113,7 +113,25 @@ describe('assertEditorQuality', () => {
     };
     await expect(generateWithGate(corrected)).rejects.toThrow(/Entiendo las dudas/);
     await expect(generateWithGate(corrected, true)).resolves.toBeDefined();
+    const verdict = await editorDocumentQuality(CTX, SCOPE, corrected);
+    expect(verdict.decision).toBe('confirm');
+    expect(verdict.reasons.join(' ')).toContain('no son una nueva medición');
+    expect(verdict.reasons.join(' ')).not.toContain('Las estancias del origen se solapan');
+    expect(verdict.failOpen).toBe(true);
+    const reviewed = await editorDocumentQuality(CTX, SCOPE, corrected, undefined, true);
+    expect(reviewed.decision).toBe('proceed');
+    expect((await editorDocumentQuality(CTX, SCOPE, corrected)).decision).toBe('proceed');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((await editorDocumentQuality(CTX, { ...SCOPE, zoneId: 'other-zone' }, corrected)).decision).toBe('confirm');
+    const recalibrated = { ...corrected, calibration: { mmPerPixel: 10 } };
+    expect((await editorDocumentQuality(CTX, SCOPE, recalibrated)).decision).toBe('confirm');
+    const changed = { ...corrected, vertices: corrected.vertices.map((vertex) => ({ ...vertex, x: vertex.x * 1.1 })) };
+    expect((await editorDocumentQuality(CTX, SCOPE, changed)).decision).toBe('confirm');
+    const audit = await prisma.aiQualityEvaluation.findFirstOrThrow({ where: { checkpoint: 'editor_import_manual_review' } });
+    expect(audit.answers).toEqual({ manualReview: true });
+    expect(Number(audit.costUsd)).toBe(0);
+    expect(audit.userId).toBe(CTX.userId);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('bloquea un boceto sin escala confirmada aunque Jev diera una nota alta y el usuario aceptase', async () => {

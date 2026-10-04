@@ -192,7 +192,7 @@ function generalDimensionsMismatch(raw: RawSketch, scale: { mmPerUnitX: number; 
   const metres = (mm: number) => (mm / 1000).toFixed(2).replace('.', ',');
   return {
     code: 'cotas-generales-discordantes',
-    message: `Las cotas generales indican ${metres(widthMm)} × ${metres(heightMm)} m, pero el perímetro leído mide ${metres(best.drawnWidthMm)} × ${metres(best.drawnHeightMm)} m. Comprueba la escala y los límites antes de generar.`,
+    message: `Las dimensiones globales extraídas de la imagen son ${metres(widthMm)} × ${metres(heightMm)} m, pero el perímetro leído mide ${metres(best.drawnWidthMm)} × ${metres(best.drawnHeightMm)} m. Son datos de la extracción, no cotas verificadas por el usuario. Comprueba la escala y los límites antes de generar.`,
   };
 }
 

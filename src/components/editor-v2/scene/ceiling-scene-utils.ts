@@ -31,6 +31,9 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
   forDesign?: boolean;
 }): CeilingView {
   if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
+  // Los alzados con corte se capturan desde encima de la casa: con la cubierta la IA recibía una losa que tapaba las
+  // estancias. El aspecto acabado con tejado corresponde a «Exterior terminado».
+  if (custom?.forDesign && (view === 'front' || view === 'back' || view === 'left' || view === 'right')) return 'hidden';
   if ((!view || view === 'current' || view === 'custom') && (custom?.cutaway || custom?.forDesign) &&
     custom.highestCeilingM !== null && custom.cameraHeightM > custom.highestCeilingM) return 'hidden';
   return 'solid';

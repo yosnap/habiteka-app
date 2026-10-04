@@ -7,11 +7,14 @@ it('las preferencias de vista se guardan y se recuperan; los valores corruptos v
   Object.assign(globalThis, { window: fakeWindow });
   try {
     expect(loadEditorPreferences()).toEqual(DEFAULT_EDITOR_PREFERENCES);
-    saveEditorPreferences({ visibility: { dimensions: 'external', furniture: false, walls: true, lighting: false }, shortcutsEnabled: false });
-    expect(loadEditorPreferences()).toEqual({ visibility: { dimensions: 'external', furniture: false, walls: true, lighting: false }, shortcutsEnabled: false });
+    const saved = { visibility: { dimensions: 'external' as const, furniture: false, walls: true, lighting: false }, shortcutsEnabled: false, originalVisible: false, originalOpacity: .5 };
+    saveEditorPreferences(saved);
+    // El original oculto sigue oculto al recargar.
+    expect(loadEditorPreferences()).toEqual(saved);
     // Preferencias guardadas antes de existir la opción: la iluminación se sigue mostrando.
     storage.set('habiteka:editor:preferences:v1', JSON.stringify({ visibility: { dimensions: 'all', furniture: true, walls: true } }));
     expect(loadEditorPreferences().visibility.lighting).toBe(true);
+    expect(loadEditorPreferences()).toMatchObject({ originalVisible: true, originalOpacity: .75 });
     storage.set('habiteka:editor:preferences:v1', JSON.stringify({ visibility: { dimensions: 'rara' } }));
     expect(loadEditorPreferences().visibility.dimensions).toBe('all');
     storage.set('habiteka:editor:preferences:v1', '{no es json');

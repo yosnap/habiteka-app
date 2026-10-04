@@ -10,6 +10,7 @@ import { RenderStatusBadge } from './render-status-badge';
 export function RenderAcceptance({ item, projectId, saved, onChanged }: { item: DeliverableView; projectId: string;
   saved?: RenderAcceptanceSnapshot; onChanged: (value: RenderAcceptanceSnapshot) => void }) {
   const { accepted, acceptedAt, version, issue, sourceIsAI, status } = renderGalleryState(item, saved);
+  const visualReview = item.payload.type === 'render3d' && item.payload.generation?.review?.source === 'visual-inspection';
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   if (!sourceIsAI) return <div className="space-y-2"><RenderStatusBadge status="reference" />
     <p className="text-xs text-ink-soft">No consta un origen IA válido. Esta imagen no se admite como diseño para vídeos o visitas.</p></div>;
@@ -30,7 +31,9 @@ export function RenderAcceptance({ item, projectId, saved, onChanged }: { item: 
     <Button type="button" className="w-full" variant={accepted ? 'outline' : 'default'} disabled={busy || (!accepted && Boolean(issue))} onClick={() => void change()}>{busy ? 'Guardando…' : accepted ? 'Retirar aceptación' : 'Aceptar este diseño'}</Button>
     {!accepted && !issue && <p className="text-xs text-ink-soft">Aceptar no genera imágenes ni consume créditos.</p>}
     {accepted && !issue && <Link className="inline-block text-sm font-medium text-brand-700 underline" href={`/projects/${encodeURIComponent(projectId)}/videos${item.zoneId ? `?zona=${encodeURIComponent(item.zoneId)}` : ''}`}>Preparar vídeo con mis diseños</Link>}
-    {issue && <p className="text-xs text-ink-soft">{issue}</p>}
+    {issue && (visualReview || !(item.payload.type === 'render3d' && item.payload.generation?.fidelity?.criteria?.length)) && <p className="text-xs text-ink-soft">
+      {visualReview && <strong>Comprobación visual adicional: </strong>}{issue}
+    </p>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
   </div>;
 }

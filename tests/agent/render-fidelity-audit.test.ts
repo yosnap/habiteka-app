@@ -3,11 +3,18 @@ import type { ChatRequest, ChatVisionAdapter } from '@/lib/contracts';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import { assertRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-audit';
 import sharp from 'sharp';
+import type { RenderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
+import { RENDER_FIDELITY_CRITERIA } from '@/lib/editor-document/render-fidelity';
+import { reviewRenderFidelity } from '@/server/agent/editor-v2/review-render-fidelity';
 
 const image = { base64: (await sharp({ create: { width: 12, height: 8, channels: 3,
   background: '#888' } }).png().toBuffer()).toString('base64'), mimeType: 'image/png' };
 const view = { preset: 'front' } as RenderView;
-const adapter = (structured: unknown) => {
+const adapter = (verdict: Record<string, unknown>) => {
+  const structured = { redesignApplied: true, roomUsesPreserved: true, doorsPhysicallyCoherent: true,
+    circulationPreserved: true, photorealistic: true, roomChecks: [], openingChecks: [],
+    openAreaChecks: [], constructionCheck: { status: 'pass', observation: 'Sin construcciones nuevas respecto a la captura' },
+    criteria: Object.keys(RENDER_FIDELITY_CRITERIA).map(id => ({ id, status: 'pass', observation: 'Detalle visible en la imagen de prueba' })), ...verdict };
   const chat = vi.fn(async (request: ChatRequest) => {
     void request;
     return { structured, content: '', usage: { inputTokens: 0, outputTokens: 0 } };
@@ -25,6 +32,46 @@ describe('auditoría de fidelidad del diseño', () => {
     expect(content[0]).toMatchObject({ text: expect.stringContaining('CORTE DE FACHADA') });
     expect(content[0]).toMatchObject({ text: expect.stringContaining('cortina-frontal') });
   });
+  it('compara los laterales con el interiorismo de la cenital aceptada', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, view, undefined, 0, false, { identity: image, lateral: true });
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    const text = (content[0] as { text: string }).text;
+    expect(text).toContain('CENITAL ACEPTADA');
+    expect(text).toContain('objectIdentityPreserved=fail');
+    expect(text).toContain('debe verse por detrás');
+    expect(text).toContain('Los muebles no pueden sustituirse');
+    expect(text).not.toContain('Los muebles móviles pueden sustituirse');
+    expect(text).not.toContain('La casa está aislada');
+    expect(content.filter(part => part.type === 'image_url')).toHaveLength(3);
+  });
+  it('identifica el plano 2D como referencia de la cenital', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, { ...view, preset: 'top' }, undefined, 0, false, undefined, false, false,
+      undefined, { reference: 'plan' });
+    const text = (vision.chat.mock.calls[0]![0].messages[0]!.content[0] as { text: string }).text;
+    expect(text).toContain('Imagen 1: plano 2D del proyecto en vista cenital');
+    expect(text).not.toContain('captura original del 3D');
+  });
+  it('identifica la sección 2D y admite las personas pedidas', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    await assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, false, false, undefined,
+      { reference: 'section', people: true, sectionRooms: [{ id: 'L1-R1', name: 'Comedor' }, { id: 'L1-R2', name: 'Salón' }] });
+    const text = (vision.chat.mock.calls[0]![0].messages[0]!.content[0] as { text: string }).text;
+    expect(text).toContain('Imagen 1: sección 2D del proyecto');
+    expect(text).toContain('de izquierda a derecha: L1-R1 Comedor, L1-R2 Salón');
+    expect(text).toContain('roomChecks sigue incluyendo todas las estancias del plano');
+    expect(text).toContain('El usuario pidió personas');
+  });
+  it('indica cómo se ve girado el mapa de estancias desde la trasera', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    const context: RenderSpatialContext = { units: 'mm', levels: [] };
+    await assertRenderFidelity(vision, image, image, { ...view, preset: 'back' }, undefined, 0, false, undefined, false, false,
+      { context, image });
+    const text = (vision.chat.mock.calls[0]![0].messages[0]!.content[0] as { text: string }).text;
+    expect(text).toContain('ORIENTACIÓN DEL MAPA EN ESTA CÁMARA');
+    expect(text).toContain('la izquierda de la imagen corresponde a la derecha del mapa');
+  });
   it('solo relaja fijos cuando existe permiso explícito, manteniendo geometría protegida', async () => {
     const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, redesignApplied: true, violations: [] });
     await assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, true);
@@ -41,14 +88,14 @@ describe('auditoría de fidelidad del diseño', () => {
     expect(content[0]).toMatchObject({ text: expect.stringContaining('REDISEÑO REAL') });
   });
   it('falla cerrado si no se pudo evaluar el rediseño solicitado', async () => {
-    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, redesignApplied: undefined, violations: [] });
     await expect(assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, true))
-      .rejects.toThrow('no se aplicó el rediseño solicitado');
+      .rejects.toThrow('No se pudo verificar la fidelidad');
   });
   it('acepta un resultado fiel y adjunta la máscara después de las dos imágenes', async () => {
     const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true,
       objectIdentityPreserved: true, violations: [] });
-    await expect(assertRenderFidelity(vision, image, image, view, image, 3)).resolves.toBeUndefined();
+    await expect(assertRenderFidelity(vision, image, image, view, image, 3)).resolves.toMatchObject({ status: 'passed' });
     const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
     expect(content.filter((part) => part.type === 'image_url')).toHaveLength(3);
     expect(content[0]).toMatchObject({ type: 'text', text: expect.stringContaining('front') });
@@ -90,5 +137,102 @@ describe('auditoría de fidelidad del diseño', () => {
     expect(content.filter((part) => part.type === 'image_url')).toHaveLength(4);
     expect(content[0]).toMatchObject({ text: expect.stringContaining('pérgolas') });
     expect(content[0]).toMatchObject({ text: expect.stringContaining('ortofoto real') });
+  });
+
+  it.each([
+    ['roomUsesPreserved', 'uso de las estancias'], ['doorsPhysicallyCoherent', 'puertas o huecos'],
+    ['circulationPreserved', 'pasos estrechados'], ['photorealistic', 'realismo suficiente'],
+  ])('rechaza %s aunque la evaluación global sea favorable', async (field, reason) => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [], [field]: false });
+    await expect(assertRenderFidelity(vision, image, image, view)).rejects.toThrow(reason);
+  });
+
+  const context: RenderSpatialContext = { units: 'mm', levels: [{ id: 'ground', name: 'Planta',
+    rooms: [{ id: 'R1', name: 'Comedor', anchor: { x: 2000, y: 1000 } }],
+    openings: [{ id: 'O1', kind: 'puerta', center: { x: 1000, y: 0 }, widthMm: 800, leafWidthMm: 710, heightMm: 2100 }] }] };
+  const checks = { roomChecks: [{ id: 'R1', status: 'pass', observation: 'Mesa con sillas dentro del comedor' }],
+    openingChecks: [{ id: 'O1', status: 'pass', observation: 'Hoja proporcionada al vano', observedKind: 'puerta', swingClear: 'clear' }] };
+  const approved = { accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] };
+  const audit = (vision: ChatVisionAdapter) => assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, false, false, { context, image });
+
+  it('envía la misma guía y medidas, y exige observaciones por estancia y hueco', async () => {
+    const vision = adapter({ ...approved, ...checks });
+    await expect(audit(vision)).resolves.toMatchObject({ status: 'passed', ...checks });
+    const content = vision.chat.mock.calls[0]![0].messages[0]!.content;
+    expect(content.filter(part => part.type === 'image_url')).toHaveLength(3);
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('Comedor') });
+    expect(content[0]).toMatchObject({ text: expect.stringContaining('"leafWidthMm":710') });
+  });
+  it('rechaza una cama en Comedor aunque todos los indicadores globales digan sí', async () => {
+    await expect(audit(adapter({ ...approved, ...checks,
+      roomChecks: [{ id: 'R1', status: 'fail', observation: 'Cama donde el plano sitúa el Comedor' }] })))
+      .rejects.toThrow('Cama donde el plano sitúa el Comedor');
+  });
+  it.each([
+    { ...checks, roomChecks: [] }, { ...checks, openingChecks: [] },
+    { ...checks, roomChecks: [checks.roomChecks[0], checks.roomChecks[0]] },
+    { ...checks, openingChecks: [{ ...checks.openingChecks[0], id: 'otro' }] },
+  ])('no guarda una revisión incompleta o con identificadores ajenos', async (incomplete) => {
+    await expect(audit(adapter({ ...approved, ...incomplete }))).rejects.toThrow('no comprobó todas las estancias');
+  });
+  it('no admite un informe antiguo que no evalúa realismo', async () => {
+    await expect(audit(adapter({ ...approved, ...checks, photorealistic: undefined })))
+      .rejects.toThrow('No se pudo verificar la fidelidad');
+  });
+  it('conserva la evidencia de un descarte y no lo convierte en aceptación', async () => {
+    const vision = adapter({ ...approved, photorealistic: false, violations: ['Hoja partida en el acceso al salón'] });
+    const result = await reviewRenderFidelity(vision, image, image, view);
+    expect(result).toMatchObject({ review: { status: 'rejected' }, fidelity: { status: 'rejected',
+      criteria: expect.arrayContaining([{ id: 'photorealistic', status: 'fail', observation: expect.any(String) }]),
+      violations: expect.arrayContaining(['Hoja partida en el acceso al salón']) } });
+  });
+  it.each(['uncertain', 'fail'])('una evidencia %s no se oculta con un aprobado global', async status => {
+    const criteria = Object.keys(RENDER_FIDELITY_CRITERIA).map(id => ({ id, status: id === 'photorealistic' ? status : 'pass', observation: 'Sillas fundidas con la mesa del comedor' }));
+    await expect(assertRenderFidelity(adapter({ ...approved, criteria }), image, image, view)).rejects.toThrow('Sillas fundidas');
+  });
+  it('exige criterios completos, sin repetidos', async () => {
+    const criteria = Object.keys(RENDER_FIDELITY_CRITERIA).map(() => ({ id: 'photorealistic', status: 'pass', observation: 'Nítida' }));
+    await expect(assertRenderFidelity(adapter({ ...approved, criteria }), image, image, view)).rejects.toThrow('todos los criterios');
+  });
+  it('no oculta una auditoría incompleta al guardar descartes', async () => {
+    await expect(reviewRenderFidelity(adapter({ ...approved, criteria: undefined }), image, image, view)).rejects.toThrow('No se pudo verificar');
+  });
+
+  it('rechaza la hoja inventada en un paso sin puerta aunque el auditor marque pass', async () => {
+    const withoutDoor = structuredClone(context);
+    withoutDoor.levels[0]!.openings[0]!.kind = 'hueco';
+    const result = await reviewRenderFidelity(adapter({ ...approved, ...checks }), image, image, view,
+      undefined, 0, false, undefined, false, false, { context: withoutDoor, image });
+    expect(result.fidelity).toMatchObject({ status: 'rejected', openingChecks: [{ status: 'fail' }],
+      criteria: expect.arrayContaining([expect.objectContaining({ id: 'doorsPhysicallyCoherent', status: 'fail' })]) });
+    expect(result.fidelity.openingChecks[0]!.observation).toContain('un paso sin puerta');
+  });
+  it.each(['blocked', 'uncertain', 'not-applicable'])('rechaza el giro %s aunque el paso frontal esté libre', async swingClear => {
+    const vision = adapter({ ...approved, ...checks,
+      openingChecks: [{ ...checks.openingChecks[0], swingClear, observation: 'Escritorio detrás de la hoja' }] });
+    await expect(audit(vision)).rejects.toThrow('barrido');
+  });
+  it('admite un paso sin hoja y sin giro de puerta', async () => {
+    const withoutDoor = structuredClone(context);
+    withoutDoor.levels[0]!.openings[0]!.kind = 'hueco';
+    const vision = adapter({ ...approved, ...checks, openingChecks: [{ ...checks.openingChecks[0],
+      observedKind: 'hueco', swingClear: 'not-applicable', observation: 'Vano vacío sin hoja' }] });
+    await expect(assertRenderFidelity(vision, image, image, view, undefined, 0, false, undefined, false, false,
+      { context: withoutDoor, image })).resolves.toMatchObject({ status: 'passed' });
+  });
+  it('exige revisar el espacio compartido sin opening y rechaza la puerta inventada', async () => {
+    const shared = structuredClone(context);
+    shared.levels[0]!.openAreas = [{ id: 'A1', roomIds: ['R1', 'R2'], names: ['Pasillo', 'Lavadero'] }];
+    const run = (extra: Record<string, unknown>) => assertRenderFidelity(adapter({ ...approved, ...checks, ...extra }),
+      image, image, view, undefined, 0, false, undefined, false, false, { context: shared, image });
+    await expect(run({})).rejects.toThrow('no comprobó todas');
+    await expect(run({ openAreaChecks: [{ id: 'A1', status: 'fail', observation: 'Hoja nueva al entrar al lavadero' }] }))
+      .rejects.toThrow('lavadero');
+  });
+  it.each(['fail', 'uncertain'])('una piscina añadida con estado %s impide aprobar la arquitectura', async status => {
+    const result = await reviewRenderFidelity(adapter({ ...approved,
+      constructionCheck: { status, observation: 'Piscina en una terraza que no la contiene en la referencia' } }), image, image, view);
+    expect(result.fidelity).toMatchObject({ status: 'rejected', constructionCheck: { status },
+      criteria: expect.arrayContaining([expect.objectContaining({ id: 'cameraAndGeometryPreserved', status: 'fail' })]) });
   });
 });

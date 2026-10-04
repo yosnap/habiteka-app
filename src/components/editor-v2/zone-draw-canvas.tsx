@@ -12,6 +12,7 @@ import {
   planRegionAreas,
   rectanglePolygon,
   roomAtPoint,
+  samePolygon,
   type RegionMode,
 } from '@/lib/editor-document/render-region-draw';
 import { snapWallPoint } from '@/canvas/editor-v2/snap-candidates';
@@ -36,6 +37,8 @@ interface Props {
    * modo estancia manda el nombre de la estancia; en los otros dos, el escrito.
    */
   onPolygon: (polygon: Point[], name: string) => void;
+  /** Qué hacer al pulsar una estancia que ya es una de las zonas, en vez de duplicarla, y cómo se explica. */
+  onExistingRoom?: { hint: string; select: (id: string) => void };
   disabled?: boolean;
   /** Las subdivisiones de una estancia abierta necesitan vértices libres, sin imán a sus muros. */
   snapToWalls?: boolean;
@@ -59,6 +62,7 @@ export function ZoneDrawCanvas({
   name,
   onNameChange,
   onPolygon,
+  onExistingRoom,
   disabled,
   snapToWalls = true,
   full = false,
@@ -113,18 +117,22 @@ export function ZoneDrawCanvas({
   };
 
   const pointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (disabled || full) return;
+    if (disabled) return;
     const point = pointFromEvent(event);
     if (!point) return;
+    if (mode === 'room') {
+      const room = roomAtPoint(rooms, point);
+      const existing = room && zones.find((zone) => samePolygon(zone.polygon, room.polygon));
+      // Una estancia ya marcada no se duplica; quitarla o elegirla sigue permitido aunque no quepan más zonas.
+      if (existing) { setError(null); onExistingRoom?.select(existing.id); }
+      else if (room) emit(room.polygon, room.name);
+      else if (!full) setError('Pulsa dentro de una estancia cerrada, una escalera o una rampa del plano.');
+      return;
+    }
+    if (full) return;
     if (mode === 'rectangle') {
       event.currentTarget.setPointerCapture(event.pointerId);
       setRectangle({ start: point, end: point });
-      return;
-    }
-    if (mode === 'room') {
-      const room = roomAtPoint(rooms, point);
-      if (room) emit(room.polygon, room.name);
-      else setError('Pulsa dentro de una estancia cerrada, una escalera o una rampa del plano.');
       return;
     }
     const vertex = snapped(point);
@@ -202,7 +210,7 @@ export function ZoneDrawCanvas({
         />
       )}
       <p className="text-muted-foreground text-[11px]">
-        {full ? fullMessage : REGION_MODE_HINTS[mode]}
+        {full ? fullMessage : mode === 'room' && onExistingRoom ? `${REGION_MODE_HINTS.room}; ${onExistingRoom.hint}` : REGION_MODE_HINTS[mode]}
       </p>
       {error && <p className="text-destructive text-[11px]">{error}</p>}
       <svg

@@ -1,4 +1,5 @@
 'use client';
+import { planDrawOrder } from '@/lib/editor-document/plan-draw-order';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { linearPartOwner } from '@/lib/editor-document/linear-part-owner';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
@@ -90,7 +91,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   // Arrastrar un elemento que forma parte de una selección múltiple desplaza toda la selección de una vez.
   const groupOf = (id: string) => { const ids = store.getState().selection; return ids.length > 1 && ids.includes(id) ? ids : null; };
   const dragGroup = (ids: string[], delta: Point) => run(() => { store.getState().apply(nudgeSpatialEntities(source, ids, delta)); store.getState().select(ids); });
-  const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>) => {
+  const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>, previewRotation?: number) => {
     const target = e.target, state = store.getState();
     const group = groupOf(id), at = target.position();
     // Un arrastre de un par de píxeles es un clic: se selecciona sin mover nada.
@@ -101,7 +102,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     const wall = state.document.walls.find((item) => item.id === id);
     const object = planObjects(state.document).find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
-      : object ? snapObject(state.document, { ...object, ...target.position() }, scale, state.snap, { preserveRotation: true })
+      // Se suelta con el giro que mostraba la vista previa al acercarse a un muro.
+      : object ? snapObject(state.document, { ...object, ...target.position(), rotation: previewRotation ?? object.rotation }, scale, state.snap, { preserveRotation: true, orientToWall: true })
         : target.position();
     target.position(origin);
     if (wall && duplicating) {
@@ -110,7 +112,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     }
     // Alt + arrastrar: el original se queda y se coloca una copia donde se suelta.
     if (object && duplicating) {
-      const copy = { ...duplicateSpatialItem(object), x: to.x, y: to.y };
+      const copy = { ...duplicateSpatialItem(object), x: to.x, y: to.y, ...('rotation' in to && typeof to.rotation === 'number' ? { rotation: to.rotation } : {}) };
       run(() => { state.apply(insertSpatialItem(state.document, copy)); store.getState().select([copy.id]); });
       return;
     }
@@ -198,7 +200,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {showWalls && <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />}
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
-    {planObjects(doc).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
+    {planDrawOrder(planObjects(doc)).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select'} onDragStart={(e) => {
         duplicateDrag.current = e.evt.altKey;
         if (groupOf(f.id)) return;
@@ -206,8 +208,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
         const evt = e.evt as MouseEvent, current = store.getState().selection;
         store.getState().select((evt.shiftKey || evt.metaKey || evt.ctrlKey) && current.length ? [...current.filter((id) => id !== f.id), f.id] : []);
       }}
-      onDragMove={(e) => { if (groupOf(f.id)) return; const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale); e.target.position(snapped); e.target.rotation(snapped.rotation); }}
-      onDragEnd={(e) => { e.target.rotation(f.rotation); drag(f.id, f, e); }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
+      onDragMove={(e) => { if (groupOf(f.id)) return; const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale, e.target.rotation()); e.target.position(snapped); e.target.rotation(snapped.rotation); }}
+      onDragEnd={(e) => { const turned = e.target.rotation(); e.target.rotation(f.rotation); drag(f.id, f, e, turned); }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
       {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol visual={presentation === 'visual'} onPartSnap={(id, delta) => {
         const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
         const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });

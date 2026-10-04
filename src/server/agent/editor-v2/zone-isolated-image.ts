@@ -1,37 +1,20 @@
 import sharp from 'sharp';
+import { fitRenderReferenceAspect, type RenderReferenceImage } from './render-reference-frame';
 
-type Image = { base64: string; mimeType: 'image/png'; width: number; height: number };
-
-// Relaciones admitidas por el modelo principal de render a 4K.
-const OUTPUT_RATIOS = [
-  ['1:1', 1], ['4:3', 4 / 3], ['3:4', 3 / 4], ['3:2', 3 / 2],
-  ['2:3', 2 / 3], ['16:9', 16 / 9], ['9:16', 9 / 16], ['21:9', 21 / 9],
-] as const;
+type Image = RenderReferenceImage;
 
 /** Añade solo margen vacío: el proveedor recibe una relación explícita sin estirar la zona. */
 export async function fitZoneReferenceAspect(image: Image, mask: Image): Promise<{
   image: Image; mask: Image; aspectRatio: string;
 }> {
-  if (image.width !== mask.width || image.height !== mask.height)
-    throw new Error('La máscara no coincide con la captura. Vuelve a preparar esta vista.');
-  const sourceRatio = image.width / image.height;
-  const [aspectRatio, ratio] = OUTPUT_RATIOS.reduce((best, item) =>
-    Math.abs(Math.log(item[1] / sourceRatio)) < Math.abs(Math.log(best[1] / sourceRatio)) ? item : best);
-  const width = sourceRatio < ratio ? Math.ceil(image.height * ratio) : image.width;
-  const height = sourceRatio > ratio ? Math.ceil(image.width / ratio) : image.height;
-  if (width === image.width && height === image.height) return { image, mask, aspectRatio };
-  const left = Math.floor((width - image.width) / 2), top = Math.floor((height - image.height) / 2);
-  const padding = { left, right: width - image.width - left, top, bottom: height - image.height - top };
-  const extend = async (source: Image, background: string): Promise<Image> => ({
-    base64: (await sharp(Buffer.from(source.base64, 'base64'))
-      .extend({ ...padding, background }).png().toBuffer()).toString('base64'),
-    mimeType: 'image/png', width, height,
-  });
-  return { image: await extend(image, '#d8d8d8'), mask: await extend(mask, '#000000'), aspectRatio };
+  const framed = await fitRenderReferenceAspect(image, mask);
+  return { ...framed, mask: framed.mask! };
 }
 
 /** Oculta todo lo que queda fuera de la zona y encuadra solo su parte visible. */
-export async function isolateZoneReference(reference: Image, mask: Image): Promise<{ image: Image; mask: Image }> {
+export async function isolateZoneReference(reference: Image, mask: Image): Promise<{
+  image: Image; mask: Image; crop: { left: number; top: number; width: number; height: number };
+}> {
   if (reference.width !== mask.width || reference.height !== mask.height)
     throw new Error('La máscara no coincide con la captura. Vuelve a preparar esta vista.');
   const source = await sharp(Buffer.from(reference.base64, 'base64')).removeAlpha().raw().toBuffer();
@@ -56,7 +39,7 @@ export async function isolateZoneReference(reference: Image, mask: Image): Promi
   const isolatedPng = await sharp(isolated, { raw: { width, height, channels: 3 } }).extract(extract).png().toBuffer();
   const maskPng = await sharp(area, { raw: { width, height, channels: 1 } }).extract(extract).png().toBuffer();
   const result = (bytes: Buffer): Image => ({ base64: bytes.toString('base64'), mimeType: 'image/png', width: extract.width, height: extract.height });
-  return { image: result(isolatedPng), mask: result(maskPng) };
+  return { image: result(isolatedPng), mask: result(maskPng), crop: extract };
 }
 
 /** La imagen final conserva únicamente los píxeles de la zona autorizada. */

@@ -28,6 +28,8 @@ export type DeliverablePayload =
        * entregables creados antes de guardar la key.
        */
       assetKey?: string;
+      /** Conservación exterior de un retoque; no acredita fidelidad dentro de la zona. */
+      imageEdit?: NonNullable<import('./image-adapter').ImageResult['regionEdit']> & { sourceDeliverableId: string };
       camera?: import('./walkthrough-keyframe').CameraPose;
       generation?: {
         provider?: string; model?: string; fallbackIndex?: number;
@@ -37,6 +39,7 @@ export type DeliverablePayload =
         batchId?: string;
         referenceDesignId?: string;
         review?: import('@/lib/editor-document/render-review').RenderReview;
+        fidelity?: import('@/lib/editor-document/render-fidelity').RenderFidelityReport;
         acceptance?: { acceptedAt: string; userId: string };
         /** Metadatos de composiciones anteriores; los nuevos diseños usan una sola imagen auditada. */
         zoneComposite?: { mode: string; coverage: number };

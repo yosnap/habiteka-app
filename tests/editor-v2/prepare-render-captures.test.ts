@@ -25,6 +25,12 @@ describe('preparación de referencias cercanas antes de vistas lejanas', () => {
       capture, document: emptyEditorDocument(), snapshot: 'same', currentSnapshot: () => 'same' });
     expect(capture.mock.calls.map(([options]) => options?.view)).toEqual(['top', 'isometric', 'drone']);
   });
+  it('prepara la cenital antes de frontal, trasera y laterales', async () => {
+    const capture = vi.fn(async (options?: Parameters<CaptureRenderView>[0]) => ({ view: { preset: options?.view } } as RenderCapture));
+    await prepareRenderCaptures({ options: { ...defaultRenderDesignOptions(), views: ['front', 'right', 'top', 'left', 'back'] },
+      capture, document: emptyEditorDocument(), snapshot: 'same', currentSnapshot: () => 'same' });
+    expect(capture.mock.calls.map(([options]) => options?.view)).toEqual(['top', 'front', 'right', 'left', 'back']);
+  });
   it('ordena también la vista actual si corresponde a una cámara lejana', async () => {
     const capture = vi.fn(async (options?: Parameters<CaptureRenderView>[0]) => ({
       view: { preset: options?.view === 'current' ? 'isometric' : options?.view } } as RenderCapture));

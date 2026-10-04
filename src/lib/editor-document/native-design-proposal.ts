@@ -4,7 +4,7 @@ import { newId } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from './rooms';
 import { floorFinish } from './floor-finishes';
 import { surfaceMaterial } from './surface-materials';
-import { finishColor, localToWorld, upgradeSpatialDocument } from './spatial-properties';
+import { finishColor, localToWorld, objectCenter, upgradeSpatialDocument } from './spatial-properties';
 import { parseEditorDocument } from './validation';
 import type { EditorDocument, FloorFinish, Furniture, Point } from './schema';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
@@ -19,6 +19,10 @@ import { canFitOnHost, canRestOnHost, hostSurfaceTop, isSurfaceHost, restOnHost 
 import { sameDesignContent } from './approved-design';
 import { assertSpatialPlacement } from '@/canvas/editor-v2/spatial-placement';
 import { applyFixedFinishes, type FixedDesignFinish } from './fixed-design-finishes';
+import { isKitchenRun } from './kitchen-run-types';
+import { upgradeKitchenDocument } from './kitchen-run-commands';
+import { floorElevationAt } from './floor-level';
+import { fitKitchenSlots, KITCHEN_DEPTH_MM, MIN_KITCHEN_MM, proposalKitchenRun, type NativeDesignKitchen } from './native-design-kitchen';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -28,13 +32,25 @@ export interface NativeDesignFurniture {
   reason: string;
 }
 
+/** Suelo y paredes de una estancia: el baño no lleva el mismo pavimento ni el mismo acabado que un dormitorio. */
+export interface RoomFinish {
+  roomId: string;
+  name: string;
+  floor: FloorFinish['texture'];
+  walls: string;
+}
+
 export interface NativeDesignProposal {
   style: Estilo;
   summary: string;
+  /** Acabados por estancia; las estancias sin entrada usan `materials.walls` y `materials.floors`. */
+  roomFinishes?: RoomFinish[];
   scope?: DesignScope;
   sourceRevision?: number;
   materials: {
     walls: string;
+    /** Caras de muro que dan al exterior (fachada); sin valor, las mismas que `walls`. */
+    exteriorWalls?: string;
     floors: FloorFinish['texture'];
     slabUndersides?: FloorFinish['undersideTexture'];
     stairBodies?: FloorFinish['undersideTexture'];
@@ -45,6 +61,8 @@ export interface NativeDesignProposal {
     columns: string;
   };
   furniture: NativeDesignFurniture[];
+  /** Tramos del mueble de cocina modular; se colocan antes que los muebles sueltos. */
+  kitchens?: NativeDesignKitchen[];
   fixedFinishes?: FixedDesignFinish[];
 }
 
@@ -55,6 +73,7 @@ export interface NativeDesignSelection {
   ramps: boolean;
   columns: boolean;
   furniture: number[];
+  kitchens?: number[];
   fixedFinishes?: number[];
 }
 
@@ -72,7 +91,8 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
     throw new Error('El plano cambió desde que se generó la propuesta. Vuelve a generar el diseño sobre la versión actual.');
   const scope = proposal.scope ?? wholeDesignScope();
   assertCompatibleDesignStyle(source, proposal.style, scope);
-  const doc = upgradeSpatialDocument(source);
+  const kitchens = (selection.kitchens ?? []).flatMap((index) => proposal.kitchens?.[index] ?? []);
+  const doc = upgradeSpatialDocument(kitchens.length ? upgradeKitchenDocument(source) : source);
   const rooms = deriveRooms(doc), selectedRooms = designScopeRooms(doc, scope);
   const zone = scope.kind === 'zone' ? designScopeZone(doc, scope) : null;
   const selectedStructures = designScopeStructureIds(doc, scope);
@@ -83,6 +103,13 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   doc.floorFinishes ??= [];
   const material = (id: string) => surfaceMaterial(id) ? id : 'plaster-white';
   const walls = material(proposal.materials.walls);
+  const exterior = proposal.materials.exteriorWalls ? material(proposal.materials.exteriorWalls) : walls;
+  const finishByRoom = new Map((proposal.roomFinishes ?? []).map((finish) => [finish.roomId, finish]));
+  const indoor = new Set(eligibleCeilingRooms(doc).map((room) => room.id));
+  const sideRoom = (wall: EditorDocument['walls'][number], side: 'left' | 'right') => rooms.find((room) => {
+    const edge = room.wallIds.indexOf(wall.id);
+    return edge >= 0 && (room.vertexIds[edge] === wall.startVertexId ? 'left' : 'right') === side;
+  });
   const stairs = material(proposal.materials.stairs);
   const ramps = material(proposal.materials.ramps);
   const columns = material(proposal.materials.columns);
@@ -99,13 +126,16 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
         : exteriorWallSides(wall, selectedRooms, indoorRooms);
     if (!sides.length) return;
     const previous = wallConstruction(wall).materials;
+    // Cada cara toma el acabado de la estancia a la que da; la que da al exterior, el de fachada.
+    const faces = Object.fromEntries(sides.map((side) => [side, sideRoom(wall, side)]));
     wall.materials ??= previous;
     wall.colors ??= {
       left: surfaceMaterial(previous.left) ? '#ffffff' : finishColor(previous.left),
       right: surfaceMaterial(previous.right) ? '#ffffff' : finishColor(previous.right),
     };
     for (const side of sides) {
-      wall.materials[side] = walls;
+      const room = faces[side];
+      wall.materials[side] = room && indoor.has(room.id) ? material(finishByRoom.get(room.id)?.walls ?? walls) : exterior;
       wall.colors[side] = '#ffffff';
     }
   });
@@ -136,10 +166,12 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
   } else if (selection.floors) for (const room of selectedRooms) {
     const current = floorFinish(doc, room.id);
     doc.floorFinishes = doc.floorFinishes.filter((finish) => finish.roomId !== room.id);
-    doc.floorFinishes.push({ ...current, roomId: room.id, texture: floorTexture, color: '#ffffff',
+    const roomFloor = finishByRoom.get(room.id)?.floor;
+    doc.floorFinishes.push({ ...current, roomId: room.id, texture: roomFloor && isFloorTexture(roomFloor) ? roomFloor : floorTexture, color: '#ffffff',
       ...((current.elevationMm ?? 0) > 0 && slabUnderside && surfaceMaterial(slabUnderside)
         ? { undersideTexture: slabUnderside, undersideColor: '#ffffff' } : {}) });
   }
+  addSuggestedKitchens(doc, kitchens, rooms, allowedRooms);
   for (const index of selection.furniture) {
     const item = proposal.furniture[index];
     if (item) addSuggestedFurniture(doc, item, rooms, allowedRooms, zone?.polygon);
@@ -152,7 +184,8 @@ export function applyNativeDesignProposal(source: EditorDocument, proposal: Nati
 
 function everything(proposal: NativeDesignProposal): NativeDesignSelection {
   return { walls: true, floors: true, stairs: true, ramps: true, columns: true,
-    furniture: proposal.furniture.map((_, index) => index), fixedFinishes: proposal.fixedFinishes?.map((_, index) => index) };
+    furniture: proposal.furniture.map((_, index) => index), kitchens: proposal.kitchens?.map((_, index) => index),
+    fixedFinishes: proposal.fixedFinishes?.map((_, index) => index) };
 }
 
 function exteriorWallSides(wall: EditorDocument['walls'][number], selected: ReturnType<typeof deriveRooms>, indoors: ReturnType<typeof deriveRooms>): ('left' | 'right')[] {
@@ -178,6 +211,55 @@ export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFur
     elevationMm: hostSurfaceTop(placement.host) }) : furniture);
 }
 
+/** Tramos de cocina de la propuesta; cada uno encaja sus aparatos dejando libre la esquina que comparte con otro. */
+export function addSuggestedKitchens(doc: EditorDocument, kitchens: readonly NativeDesignKitchen[], rooms: ReturnType<typeof deriveRooms>, allowedRooms?: ReadonlySet<string>) {
+  if (!kitchens.length) return;
+  doc.kitchenRuns ??= [];
+  const added = kitchens.flatMap((kitchen) => {
+    if (kitchenPlacementIssue(doc, kitchen, rooms, allowedRooms)) return [];
+    const run = kitchenRun(doc, kitchen);
+    doc.kitchenRuns!.push(run);
+    return [{ run, appliances: kitchen.appliances }];
+  });
+  for (const { run, appliances } of added) fitKitchenSlots(run, appliances, doc.kitchenRuns);
+}
+
+function kitchenRun(doc: EditorDocument, kitchen: NativeDesignKitchen) {
+  const run = proposalKitchenRun(kitchen);
+  run.elevationMm = floorElevationAt(doc, localToWorld(run, { x: run.widthMm / 2, y: run.depthMm / 2 }));
+  return run;
+}
+
+/** Un tramo de cocina cabe si queda dentro de una estancia elegida, deja libres puertas y escaleras y no atraviesa nada. */
+export function kitchenPlacementIssue(doc: EditorDocument, kitchen: NativeDesignKitchen, rooms = deriveRooms(doc),
+  allowedRooms?: ReadonlySet<string>): NativeFurniturePlacementIssue | null {
+  if (!(kitchen.lengthMm >= MIN_KITCHEN_MM) || ![kitchen.xMm, kitchen.yMm, kitchen.rotation].every(Number.isFinite)) return 'catalog';
+  const candidate = { x: kitchen.xMm, y: kitchen.yMm, widthMm: kitchen.lengthMm, depthMm: KITCHEN_DEPTH_MM, rotation: kitchen.rotation };
+  const footprint = corners(candidate);
+  const room = rooms.filter((item) => footprint.every((point) => contains(item.boundary, point))).sort((a, b) => a.areaMm2 - b.areaMm2)[0];
+  if (!room || (allowedRooms && !allowedRooms.has(room.id))) return 'room';
+  if ([...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((target) => intersects(candidate, target, CIRCULATION_MM))
+    || doc.openings.some((opening) => { const zone = opening.kind !== 'ventana' ? doorKeepOut(doc, opening) : null; return !!zone && intersects(candidate, zone, DOOR_CLEARANCE_MM); }))
+    return 'circulation';
+  try { assertSpatialPlacement(doc, { ...doc, kitchenRuns: [...(doc.kitchenRuns ?? []), kitchenRun(doc, kitchen)] }); }
+  catch (error) { return error instanceof Error && /la pared/.test(error.message) ? 'wall' : 'collision'; }
+  return null;
+}
+
+/** Como una pieza de pared, el tramo se acorta por un extremo o por los dos hasta que cabe, sin despegarse del muro. */
+export function settleNativeDesignKitchen(doc: EditorDocument, kitchen: NativeDesignKitchen, rooms = deriveRooms(doc),
+  allowedRooms?: ReadonlySet<string>): { kitchen: NativeDesignKitchen; issue: NativeFurniturePlacementIssue | null } {
+  const issue = kitchenPlacementIssue(doc, kitchen, rooms, allowedRooms);
+  if (!issue || issue === 'catalog') return { kitchen, issue };
+  const angle = kitchen.rotation * Math.PI / 180, direction = { x: Math.cos(angle), y: Math.sin(angle) };
+  for (let trim = SETTLE_STEP_MM; kitchen.lengthMm - trim >= MIN_KITCHEN_MM && trim <= SLIDE_REACH_MM; trim += SETTLE_STEP_MM)
+    for (const start of [0, trim, trim / 2]) {
+      const moved = { ...kitchen, lengthMm: kitchen.lengthMm - trim, xMm: kitchen.xMm + direction.x * start, yMm: kitchen.yMm + direction.y * start };
+      if (!kitchenPlacementIssue(doc, moved, rooms, allowedRooms)) return { kitchen: moved, issue: null };
+    }
+  return { kitchen, issue };
+}
+
 /** Rejects AI furniture that would block construction or cannot physically fit a room. */
 export function canPlaceNativeDesignFurniture(
   doc: EditorDocument,
@@ -192,11 +274,36 @@ export function canPlaceNativeDesignFurniture(
 export type NativeFurniturePlacementIssue = 'catalog' | 'room' | 'zone' | 'support' | 'wall' | 'collision' | 'shelter'
   | 'environment' | 'circulation' | 'edge';
 
-/** Holgura que deja libre el paso a escaleras y rampas, y a ambos lados de una puerta. */
-const CIRCULATION_MM = 1000, DOOR_CLEARANCE_MM = 800;
+/** Paso libre alrededor de escaleras y rampas; delante de una puerta, lo que su hoja necesita más este margen. */
+const CIRCULATION_MM = 1000, DOOR_APPROACH_MM = 200, DOOR_CLEARANCE_MM = 100;
 /** Plantas, jardineras y lámparas de suelo van junto a un borde: a más de esta distancia de todo límite estorban en mitad del espacio. */
 export const EDGE_REACH_MM = 900;
-const EDGE_PROFILES = new Set(['plant', 'outdoor', 'lamp']);
+const EDGE_PROFILES = new Set(['plant', 'outdoor', 'lamp', 'toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance']);
+/** Piezas que en una vivienda van juntas: módulos y aparatos de cocina, sanitarios, armarios, mesillas y camas pueden tocarse sin solaparse. */
+const FITTED_PROFILES = new Set(['toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance', 'cabinet', 'bed']);
+/** Sillas y bancos se arriman a su mesa y entre sí; el banco, a los pies de la cama. Con 250 mm no cabía ninguna silla. */
+const PAIRED_PROFILES: readonly (readonly [string, string])[] = [['chair', 'table'], ['chair', 'chair'], ['bench', 'table'], ['bench', 'bed']];
+function tucked(profile: string, item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number },
+  otherProfile: string, other: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }): boolean {
+  const [chair, table] = profile === 'chair' && otherProfile === 'table' ? [item, other] : profile === 'table' && otherProfile === 'chair' ? [other, item] : [];
+  if (!chair || !table) return false;
+  const centre = localToWorld(chair, { x: chair.widthMm / 2, y: chair.depthMm / 2 }), box = bounds(corners(table));
+  return !(centre.x > box.minX && centre.x < box.maxX && centre.y > box.minY && centre.y < box.maxY);
+}
+function canTouch(a: string, b: string): boolean {
+  return (FITTED_PROFILES.has(a) && FITTED_PROFILES.has(b)) || PAIRED_PROFILES.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+}
+/**
+ * Lo que la IA apoya sobre otro mueble es pequeño (una lámpara de mesa, un jarrón) y va sobre un tablero bajo: mesilla,
+ * mesa, aparador o encimera. El editor deja apoyar una planta en una cama; en una propuesta salía una planta encima de
+ * la cama o de un armario.
+ */
+const HOSTED_MAX_MM = 600, HOST_TOP_MAX_MM = 1100;
+const PROPOSAL_HOST_PROFILES = new Set(['cabinet', 'table', 'shelf', 'kitchen']);
+function proposalHost(target: Furniture, floorMm: number): boolean {
+  const profile = getFurnitureCatalogEntry(target.catalogId ?? '')?.profile ?? '';
+  return (isKitchenRun(target) || PROPOSAL_HOST_PROFILES.has(profile)) && hostSurfaceTop(target) - floorMm <= HOST_TOP_MAX_MM;
+}
 /** Iluminación y decoración de interior (lámpara de pie, planta de salón…) no se proponen al aire libre. */
 const INDOOR_ONLY_ROOMS = new Set(['iluminacion', 'decoracion']);
 
@@ -211,12 +318,79 @@ export function distanceToBoundary(boundary: readonly Point[], point: Point): nu
   return best;
 }
 
-/** Huella cuadrada centrada en una puerta, para reservar el paso delante de ella. */
+/**
+ * Zona que una puerta necesita libre: el ancho del hueco y, a cada lado del muro, la profundidad de su hoja más un paso.
+ * Antes era un cuadrado con 800 mm de margen en todas direcciones; en un dormitorio de 3 m no dejaba sitio a la cama.
+ */
 function doorKeepOut(doc: EditorDocument, opening: EditorDocument['openings'][number]) {
   const wall = doc.walls.find((item) => item.id === opening.wallId);
   if (!wall) return null;
-  const centre = wallPath(doc, wall).at(opening.position), size = opening.widthMm;
-  return { x: centre.x - size / 2, y: centre.y - size / 2, widthMm: size, depthMm: size, rotation: 0 };
+  const path = wallPath(doc, wall), centre = path.at(opening.position), tangent = path.tangent(opening.position);
+  // Un paso sin puerta no tiene hoja que abrir: basta un metro de paso a cada lado, aunque sea muy ancho.
+  const normal = { x: -tangent.y, y: tangent.x }, width = opening.widthMm;
+  const depth = (opening.kind === 'puerta' ? opening.widthMm : Math.min(opening.widthMm, CIRCULATION_MM - DOOR_APPROACH_MM)) + DOOR_APPROACH_MM;
+  return { x: centre.x - tangent.x * width / 2 - normal.x * depth, y: centre.y - tangent.y * width / 2 - normal.y * depth,
+    widthMm: width, depthMm: depth * 2, rotation: Math.atan2(tangent.y, tangent.x) * 180 / Math.PI };
+}
+
+/** Rectángulos que cada puerta necesita libres, con el margen con que los comprueba la validación: se le dan a la IA. */
+export function doorClearZones(doc: EditorDocument): { minX: number; minY: number; maxX: number; maxY: number }[] {
+  return doc.openings.flatMap((opening) => {
+    const zone = opening.kind !== 'ventana' ? doorKeepOut(doc, opening) : null;
+    if (!zone) return [];
+    const box = bounds(corners(zone));
+    return [{ minX: box.minX - DOOR_CLEARANCE_MM, minY: box.minY - DOOR_CLEARANCE_MM, maxX: box.maxX + DOOR_CLEARANCE_MM, maxY: box.maxY + DOOR_CLEARANCE_MM }];
+  });
+}
+
+/**
+ * La IA coloca como un interiorista, no al milímetro: una cama arrimada al muro le entra unos centímetros en la pared y
+ * una silla queda a un dedo de la mesa. Antes de rechazar una pieza se busca el sitio válido más cercano, como haría
+ * quien la arrastra en el editor; lo que no cabe a esta distancia sigue rechazado y la IA lo corrige.
+ */
+const SETTLE_REACH_MM = 400, SETTLE_STEP_MM = 50;
+const SETTLE_OFFSETS = (() => {
+  const steps = Math.round(SETTLE_REACH_MM / SETTLE_STEP_MM), offsets: Point[] = [];
+  for (let i = -steps; i <= steps; i++) for (let j = -steps; j <= steps; j++)
+    if ((i || j) && Math.hypot(i, j) <= steps) offsets.push({ x: i * SETTLE_STEP_MM, y: j * SETTLE_STEP_MM });
+  return offsets.sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y));
+})();
+/** Fallos que un desplazamiento corto no arregla: otra ficha u otro ambiente. */
+const UNSETTLED_ISSUES = new Set<NativeFurniturePlacementIssue>(['catalog', 'environment']);
+/** Una lámpara de mesa sin mueble debajo se pone en la mesilla, mesa o aparador libre más cercano de su estancia. */
+const SUPPORT_REACH_MM = 2500;
+
+/** Una pieza arrimada a una pared se desliza primero a lo largo de ella, para no despegarla del muro. */
+const SLIDE_REACH_MM = 1500;
+
+export function settleNativeDesignFurniture(
+  doc: EditorDocument, item: NativeDesignFurniture, rooms = deriveRooms(doc),
+  allowedRooms?: ReadonlySet<string>, zonePolygon?: Point[], along?: Point,
+): { item: NativeDesignFurniture; issue: NativeFurniturePlacementIssue | null } {
+  const issue = assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon).issue;
+  if (!issue || UNSETTLED_ISSUES.has(issue)) return { item, issue };
+  if (issue === 'support') {
+    const catalog = getFurnitureCatalogEntry(item.catalogId)!, size = { widthMm: catalog.widthMm, depthMm: catalog.depthMm };
+    const centre = objectCenter({ x: item.xMm, y: item.yMm, rotation: item.rotation, ...size });
+    const hosts = planObjects(doc).filter(isSurfaceHost).map((host) => ({ host, centre: objectCenter(host) }))
+      .map((entry) => ({ ...entry, distance: Math.hypot(entry.centre.x - centre.x, entry.centre.y - centre.y) }))
+      .filter(({ distance }) => distance <= SUPPORT_REACH_MM).sort((a, b) => a.distance - b.distance);
+    for (const { host, centre: target } of hosts) {
+      const offset = objectCenter({ x: 0, y: 0, rotation: host.rotation, ...size });
+      const moved = { ...item, rotation: host.rotation, xMm: target.x - offset.x, yMm: target.y - offset.y };
+      if (!assessFurniturePlacement(doc, moved, rooms, allowedRooms, zonePolygon).issue) return { item: moved, issue: null };
+    }
+    return { item, issue };
+  }
+  const slides = along ? Array.from({ length: 2 * SLIDE_REACH_MM / SETTLE_STEP_MM }, (_, index) => {
+    const distance = SETTLE_STEP_MM * Math.ceil((index + 1) / 2) * (index % 2 ? -1 : 1);
+    return { x: along.x * distance, y: along.y * distance };
+  }) : [];
+  for (const offset of [...slides, ...SETTLE_OFFSETS]) {
+    const moved = { ...item, xMm: item.xMm + offset.x, yMm: item.yMm + offset.y };
+    if (!assessFurniturePlacement(doc, moved, rooms, allowedRooms, zonePolygon).issue) return { item: moved, issue: null };
+  }
+  return { item, issue };
 }
 
 export function nativeFurniturePlacementIssue(
@@ -240,10 +414,10 @@ function assessFurniturePlacement(
   // Un objeto de interior (lámpara de pie, planta de salón…) no se coloca al aire libre.
   const indoor = eligibleCeilingRooms(doc).some((item) => item.id === room.id);
   if (!indoor && INDOOR_ONLY_ROOMS.has(catalog.room) && !/exterior|outdoor|jardin/.test(catalog.id)) return { issue: 'environment' };
-  // El paso a escaleras, rampas y puertas queda libre, no solo sin solapes.
+  // El paso a escaleras, rampas y puertas queda libre, no solo sin solapes. Una alfombra no estorba a la hoja de una puerta.
   const passages = [...(doc.stairs ?? []), ...(doc.ramps ?? [])].some((target) => intersects(candidate, target, CIRCULATION_MM))
-    || doc.openings.some((opening) => {
-      if (opening.kind !== 'puerta') return false;
+    || catalog.profile !== 'rug' && doc.openings.some((opening) => {
+      if (opening.kind === 'ventana') return false;
       const zone = doorKeepOut(doc, opening);
       return !!zone && intersects(candidate, zone, DOOR_CLEARANCE_MM);
     });
@@ -251,17 +425,18 @@ function assessFurniturePlacement(
   const candidateItem: Furniture = { id: '__design_candidate', kind: catalog.kind, catalogId: catalog.id,
     ...candidate, heightMm: catalog.heightMm, elevationMm: 0, color: catalog.color,
     dimensionalOrigin: 'physical' };
-  const host = canRestOnHost(candidateItem) ? planObjects(doc)
-    .filter((target) => isSurfaceHost(target) && canFitOnHost(candidateItem, target)
+  const floor = floorFinish(doc, room.id).elevationMm ?? 0;
+  const host = canRestOnHost(candidateItem) && catalog.heightMm <= HOSTED_MAX_MM ? planObjects(doc)
+    .filter((target) => isSurfaceHost(target) && proposalHost(target, floor) && canFitOnHost(candidateItem, target)
       && polygonContainsFootprint(corners(target), corners(candidate)))
     .sort((a, b) => hostSurfaceTop(b) - hostSurfaceTop(a))[0] : undefined;
   if (catalog.profile === 'lamp' && catalog.elevationMm > 0 && !host) return { issue: 'support' };
   // Plantas y lámparas de suelo, pegadas a un muro o al borde de la zona; en mitad del espacio estorban.
-  if (!host && EDGE_PROFILES.has(catalog.profile) && !catalog.id.includes('tira-led')) {
+  if (!host && EDGE_PROFILES.has(catalog.profile) && !catalog.id.includes('tira-led') && !catalog.id.includes('isla')) {
     const boundary = zonePolygon ?? room.boundary;
     if (corners(candidate).every((point) => distanceToBoundary(boundary, point) > EDGE_REACH_MM)) return { issue: 'edge' };
   }
-  const bottom = host ? hostSurfaceTop(host) : (floorFinish(doc, room.id).elevationMm ?? 0) + catalog.elevationMm;
+  const bottom = host ? hostSurfaceTop(host) : floor + catalog.elevationMm;
   const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
   // Una alfombra va bajo el mobiliario: solo otra alfombra le estorba, y ella no estorba a nadie.
@@ -269,7 +444,11 @@ function assessFurniturePlacement(
   const blockedByObject = planObjects(doc).filter((target) => !shelterIds.has(target.id)
     && (catalog.profile === 'rug' ? isRug(target) : !isRug(target))).some((target) => {
     if (host && (target.id === host.id || (target.elevationMm ?? 0) + (target.heightMm ?? 0) <= bottom)) return false;
-    return intersects(candidate, target, 250);
+    const targetProfile = getFurnitureCatalogEntry(target.catalogId ?? '')?.profile ?? '';
+    // Una silla se mete en parte bajo su mesa, como en cualquier comedor; nunca con el asiento entero debajo.
+    if (tucked(catalog.profile, candidate, targetProfile, target)) return false;
+    // Lo apoyado en un tablero solo tiene que caber en él: la lámpara de la mesilla queda a un palmo del cabecero.
+    return intersects(candidate, target, host || canTouch(catalog.profile, targetProfile) ? 0 : 250);
   });
   if (blockedByObject || [...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])]
     .some((target) => intersects(candidate, target, 250))) return { issue: 'collision' };

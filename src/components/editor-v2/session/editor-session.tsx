@@ -331,12 +331,12 @@ export function EditorSession({
         onEstimateRender={(viewCount) =>
           callAction(estimateConceptRenderFromEditor(scope.projectId, viewCount))
         }
-        onEvaluateQuality={() =>
+        onEvaluateQuality={(acknowledgeImport) =>
           // El documento EN PANTALLA, no el guardado: es el que juzgará la
           // puerta al generar, así que el veredicto del diálogo y el del
           // servidor hablan del mismo plano (y comparten caché).
           callAction(
-            evaluateEditorQuality(scope.projectId, store.getState().document, scope.zoneId),
+            evaluateEditorQuality(scope.projectId, store.getState().document, scope.zoneId, acknowledgeImport),
           )
         }
         generateEnabled={!status.closed && !status.conflict}

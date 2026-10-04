@@ -9,7 +9,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
-const mocks = vi.hoisted(() => ({ evaluate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ evaluate: vi.fn(), loadPlan: vi.fn() }));
+vi.mock('@/server/agent/feedback/design-plan-context', () => ({ loadDesignPlanContext: mocks.loadPlan }));
 vi.mock('@/server/quality/evaluate', () => ({
   evaluateCheckpointCached: mocks.evaluate,
   evaluateCheckpoint: mocks.evaluate,
@@ -40,7 +41,7 @@ describe('ámbito de la instrucción libre', () => {
     await assertFreePromptQuality(CTX, SCOPE, 'cambia el sofá por uno gris', 'propuesta', 'propuesta_editable');
 
     const [, , evidence, , gate] = mocks.evaluate.mock.calls[0]!;
-    expect(evidence).toMatchObject({ deliverableType: 'propuesta' });
+    expect(evidence).toMatchObject({ deliverableType: 'propuesta', purpose: 'generate-design' });
     expect(evidence.deliverableScope).toContain('furniture');
     expect(gate).toEqual({ action: 'propuesta_editable' });
   });
@@ -48,6 +49,14 @@ describe('ámbito de la instrucción libre', () => {
   it('un render mantiene el ámbito restrictivo (la geometría no cambia)', async () => {
     await assertFreePromptQuality(CTX, SCOPE, 'más luz cálida', 'render3d', 'render_concepto');
     expect(mocks.evaluate.mock.calls[0]![2]).toMatchObject({ deliverableType: 'render3d' });
+  });
+
+  it('la zona de proyecto no se busca como si fuera un entregable que editar', async () => {
+    await assertFreePromptQuality(CTX, { ...SCOPE, refId: 'project-zone' }, 'Conserva los pasos despejados');
+    expect(mocks.loadPlan).not.toHaveBeenCalled();
+    expect(mocks.evaluate.mock.calls[0]![2]).toMatchObject({
+      purpose: 'generate-design', evidenceVersion: 'design-guidance-v1',
+    });
   });
 
   it('sin texto no gasta una evaluación', async () => {

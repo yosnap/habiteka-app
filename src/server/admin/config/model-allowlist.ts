@@ -75,10 +75,10 @@ const kieImageModels: AllowedModel[] = [
     priceUsdPerUnit: 0.15,
   },
   {
-    // Variante Flare: fidelidad a la referencia y refinado más preciso (planos).
+    // Variante orientada a rapidez; la calidad debe comprobarse en cada resultado.
     id: 'gpt-image-2-5-flare-image-to-image',
     provider: 'kie',
-    label: 'GPT Image 2.5 Flare · fidelidad a la referencia',
+    label: 'GPT Image 2.5 Flare · generación rápida',
     status: 'current',
     priceUsdPerUnit: 0.08,
   },
@@ -147,7 +147,8 @@ const ALLOWED: Record<ModelAction, AllowedModel[]> = {
       provider: 'openrouter',
       label: 'Claude Sonnet 5',
       status: 'current',
-      priceUsdPerUnit: 5,
+      // Precio de entrada publicado por OpenRouter; la salida se contabiliza por uso.
+      priceUsdPerUnit: 2,
     },
     {
       id: 'google/gemini-2.5-flash',

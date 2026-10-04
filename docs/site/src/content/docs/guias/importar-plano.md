@@ -5,6 +5,8 @@ description: De una foto o PDF al plano editable con medidas revisadas.
 
 ## Preparar la fuente
 
+Las dimensiones globales extraídas de una imagen son datos de la extracción, no cotas verificadas por el usuario. Compáralas con medidas reales. Tras editar la geometría, la evaluación del Editor analiza la estructura actual: los avisos iniciales no se presentan como mediciones nuevas. Si la estructura permite continuar pero queda pendiente la comparación con el original, se mantiene una confirmación explícita antes de generar. Una puntuación alta no verifica que el plano coincida con la imagen original.
+
 En **Plano**, las tarjetas iniciales permiten **Subir una foto del plano**, **Dibujar un boceto**, **Importar CAD o PDF** o **Usar mi plano del editor**. Si ya existe una importación, puedes continuarla desde esa tarjeta.
 
 Si la imagen necesita limpieza, utiliza el redibujado técnico para estructura o el decorado para mobiliario. Selecciona la imagen que quieras importar. Las pestañas **Imagen del plano**, **Muros y medidas** y **Vista generada** separan el material de referencia de su interpretación. La franja de etapas muestra el estado de Original, Plano editable, Diseños y Vídeos.

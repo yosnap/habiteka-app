@@ -35,6 +35,11 @@ describe('aceptación explícita de diseño', () => {
     await expect(setRenderAcceptance({ projectId }, native.id, native.version, true)).rejects.toThrow('generados con IA');
     await expect(setRenderAcceptance({ projectId }, rejected.id, rejected.version, true)).rejects.toThrow('Cambió paredes');
   });
+  it('bloquea una auditoría rechazada aunque no haya review', async () => {
+    const row = await image('kie', { fidelity: { status: 'rejected' } });
+    await expect(setRenderAcceptance({ projectId }, row.id, row.version, true)).rejects.toThrow('revisión visual');
+    expect((await prisma.deliverable.findUniqueOrThrow({ where: { id: row.id } })).version).toBe(row.version);
+  });
   it('bloquea versión antigua, zona ajena y organización ajena sin modificar la aceptación', async () => {
     const row = await image();
     await expect(setRenderAcceptance({ projectId }, row.id, row.version + 1, true)).rejects.toThrow('ha cambiado');

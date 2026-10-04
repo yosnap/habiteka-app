@@ -3,6 +3,7 @@ import type { ImageGenRequest, InpaintRequest, ImageResult } from '@/lib/contrac
 import type { StorageAdapter } from '@/server/storage/storage-adapter';
 import type { ImageProvider } from './image-provider';
 import { imageCost } from '../../cost/usage-to-cost';
+import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { AiError, aiError } from '../../errors';
 import { MAX_OWN_RENDER_BYTES } from '../input-sanitizer';
 
@@ -10,6 +11,8 @@ const CREATE_TASK_URL = 'https://api.kie.ai/api/v1/jobs/createTask';
 const TASK_URL = 'https://api.kie.ai/api/v1/jobs/recordInfo';
 const BASE64_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload';
 const POLL_INTERVAL_MS = 3_000;
+/** KIE descuenta créditos por tarea; 1 crédito ≈ 0,005 USD (200 créditos por dólar). */
+const KIE_USD_PER_CREDIT = 0.005;
 const TIMEOUT_MS = 120_000;
 const FLUX_TIMEOUT_MS = 600_000;
 // Los PNG 4K de gpt-image pasan de 12 MB: el tope es el mismo que admite el lector de renders propios.
@@ -36,6 +39,8 @@ interface TaskResponse {
     successFlag?: number;
     errorMessage?: string;
     response?: { result_urls?: string[] };
+    /** Créditos descontados realmente por la tarea. */
+    creditsConsumed?: number | string;
   };
 }
 interface UploadResponse {
@@ -97,8 +102,10 @@ export class KieImageProvider implements ImageProvider {
 
   async inpaint(req: InpaintRequest): Promise<ImageResult> {
     const prompt = this.validatedPrompt(req.prompt);
-    const source = await this.toPublicUrl(req.baseImage);
-    return this.createAndWait(prompt, undefined, [source]);
+    const source = await this.toKieReference(req.baseImage);
+    if (!source) throw aiError('provider_down', 'El retoque necesita una imagen de referencia.');
+    const mask = req.editMask ? await this.toKieReference(req.editMask) : undefined;
+    return this.createAndWait(prompt, undefined, mask ? [source, mask] : [source]);
   }
 
   private validatedPrompt(full: string, compact?: string): string {
@@ -187,8 +194,8 @@ export class KieImageProvider implements ImageProvider {
         'provider_down',
         `KIE no aceptó la tarea: ${response.msg ?? 'sin identificador'}`,
       );
-    let resultUrl: string;
-    try { resultUrl = await this.waitForImage(taskId); }
+    let result: { url: string; credits?: number };
+    try { result = await this.waitForImage(taskId); }
     catch (error) {
       if ((error as { code?: string }).code === 'kie_task_failed') throw error;
       // Una tarea aceptada puede seguir consumiendo créditos: nunca relanzarla
@@ -196,11 +203,21 @@ export class KieImageProvider implements ImageProvider {
       throw Object.assign(aiError('timeout', `KIE aceptó la tarea ${taskId}, pero no se ha podido recuperar el resultado. No se ha lanzado otra generación.`, error),
         { code: 'kie_task_pending', providerTaskId: taskId });
     }
-    const persisted = await this.persistResult(resultUrl);
-    return { ...persisted, cost: imageCost(0.04) };
+    const persisted = await this.persistResult(result.url);
+    const cost = imageCost(this.costUsd(result.credits));
+    return { ...persisted, cost: result.credits !== undefined ? { ...cost, confirmedUsd: cost.amountUsd } : cost };
   }
 
-  private async waitForImage(taskId: string): Promise<string> {
+  /**
+   * Coste real de la tarea según los créditos que descontó KIE. Si no los informa, se usa el precio orientativo del
+   * modelo en la allowlist: el importe fijo anterior subestimaba las imágenes 4K de GPT Image 2.5.
+   */
+  private costUsd(credits?: number): number {
+    if (credits !== undefined) return Math.round(credits * KIE_USD_PER_CREDIT * 10_000) / 10_000;
+    return allowedModel('render3d', this.model, 'kie')?.priceUsdPerUnit ?? 0.04;
+  }
+
+  private async waitForImage(taskId: string): Promise<{ url: string; credits?: number }> {
     // Los modelos GPT 2.5 entregan imágenes 4K y pueden superar dos minutos;
     // cortar antes deja la tarea cobrada sin imagen ni auditoría de fidelidad.
     const slowModel = KIE_FLUX_2_IMAGE_MODELS.has(this.model) || KIE_GPT_IMAGE_2_5_MODELS.has(this.model);
@@ -218,11 +235,12 @@ export class KieImageProvider implements ImageProvider {
         const urls = result && typeof result === 'object' && 'resultUrls' in result ? result.resultUrls : null;
         const url = Array.isArray(urls) ? urls[0] : null;
         if (typeof url !== 'string' || !url.startsWith('https://')) throw aiError('provider_down', 'KIE completó la tarea sin una URL de imagen válida.');
-        return url;
+        const credits = Number(task.creditsConsumed);
+        return { url, ...(task.creditsConsumed !== undefined && Number.isFinite(credits) && credits >= 0 ? { credits } : {}) };
       }
       const status = response.data?.successFlag;
       const resultUrl = response.data?.response?.result_urls?.[0];
-      if (status === 1 && resultUrl) return resultUrl;
+      if (status === 1 && resultUrl) return { url: resultUrl };
       if (status === 2)
         throw Object.assign(aiError(
           'provider_down',

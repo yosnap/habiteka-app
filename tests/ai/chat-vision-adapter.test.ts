@@ -43,12 +43,14 @@ describe('OpenRouterChatVisionAdapter', () => {
     const result = await adapter.chat({
       ...baseReq,
       responseSchema: { type: 'object', properties: { objetivo: { type: 'string' } } },
+      reasoning: { effort: 'low' },
     });
 
     const rf = captured.response_format as { type: string; json_schema: { strict: boolean } };
     expect(rf.type).toBe('json_schema');
     expect(rf.json_schema.strict).toBe(true);
     expect(captured.max_tokens).toBeGreaterThan(0); // call-limit aplicado
+    expect(captured.reasoning).toEqual({ effort: 'low' });
     expect(result.structured).toEqual({ objetivo: 'reforma' });
     expect(result.usage).toEqual({ promptTokens: 5, completionTokens: 7 });
   });
@@ -99,6 +101,15 @@ describe('OpenRouterChatVisionAdapter', () => {
   it('explica cuando el modelo agota la salida sin devolver JSON', async () => {
     const f = setClientFactory(() => ({ chat: { completions: { create: () => Promise.resolve({
       choices: [{ finish_reason: 'length', message: { content: null } }], usage: {},
+    }) } } }) as never);
+    restoreFn = () => setClientFactory(f);
+    await expect(new OpenRouterChatVisionAdapter().chat({ ...baseReq, responseSchema: { type: 'object' } }))
+      .rejects.toMatchObject({ kind: 'schema', message: expect.stringContaining('agotó el límite') });
+  });
+
+  it('explica el límite también cuando el JSON llega cortado a medias', async () => {
+    const f = setClientFactory(() => ({ chat: { completions: { create: () => Promise.resolve({
+      choices: [{ finish_reason: 'length', message: { content: '{"summary":"Casa","furniture":[{"catalogId":' } }], usage: {},
     }) } } }) as never);
     restoreFn = () => setClientFactory(f);
     await expect(new OpenRouterChatVisionAdapter().chat({ ...baseReq, responseSchema: { type: 'object' } }))

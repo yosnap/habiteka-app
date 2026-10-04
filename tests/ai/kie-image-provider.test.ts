@@ -5,6 +5,38 @@ import { canFailover } from '@/server/ai/errors';
 afterEach(() => vi.restoreAllMocks());
 
 describe('KieImageProvider', () => {
+  it('envía la imagen completa y su máscara como dos referencias del mismo retoque', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { downloadUrl: 'https://files.kie.ai/mask.png' } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 200, data: { taskId: 'masked' } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 200, data: { state: 'success',
+        resultJson: JSON.stringify({ resultUrls: ['https://kie.test/edited.png'] }) } }) });
+    vi.stubGlobal('fetch', fetcher);
+    await new KieImageProvider('test', undefined, 'gpt-image-2-5-sunburst-image-to-image', { pollIntervalMs: 0 }).inpaint({
+      prompt: 'Corrige solo la zona blanca', baseImage: { url: 'https://files.kie.ai/base.png' },
+      editMask: { base64: 'bWFzaw==', mimeType: 'image/png' }, zone: { id: 'z', bbox: { x: .2, y: .2, width: .1, height: .1 } },
+    });
+    expect(JSON.parse(fetcher.mock.calls[1]![1].body).input.input_urls).toEqual(['https://files.kie.ai/base.png', 'https://files.kie.ai/mask.png']);
+    expect(fetcher.mock.calls.filter(([url]) => String(url).includes('createTask'))).toHaveLength(1);
+  });
+  it('retoca una imagen local subiéndola a KIE, sin exigir storage público ni generar otra tarea', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, data: { downloadUrl: 'https://files.kie.ai/base.png' } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: { taskId: 'edit' } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: {
+        state: 'success', resultJson: JSON.stringify({ resultUrls: ['https://kie.test/edited.png'] }),
+      } }) });
+    vi.stubGlobal('fetch', fetcher);
+    const result = await new KieImageProvider('test', undefined, 'gpt-image-2-5-sunburst-image-to-image', { pollIntervalMs: 0 })
+      .inpaint({ prompt: 'Quita solo la hoja inventada', baseImage: { base64: 'cGxhbg==', mimeType: 'image/png' },
+        zone: { id: 'all', bbox: { x: 0, y: 0, width: 1, height: 1 } } });
+    expect(result.assetUrl).toBe('https://kie.test/edited.png');
+    expect(fetcher.mock.calls[0]![0]).toContain('file-base64-upload');
+    expect(JSON.parse(fetcher.mock.calls[1]![1].body)).toMatchObject({
+      input: { input_urls: ['https://files.kie.ai/base.png'], resolution: '4K' },
+    });
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
   it('Gemini Pro de KIE usa contexto compacto al superar 10000 caracteres', async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: { taskId: 'gemini' } }) })
@@ -112,12 +144,22 @@ describe('KieImageProvider', () => {
     const result = await provider.generate({ prompt: 'salón', aspectRatio: '16:9' });
 
     expect(result.assetUrl).toBe('https://kie.test/image.png');
-    expect(result.cost.unit).toBe('image');
+    expect(result.cost).toEqual({ amountUsd: 0.03, unit: 'image' });
     const request = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body));
     expect(request).toMatchObject({
       model: 'nano-banana-2-lite',
       input: { prompt: 'salón', aspect_ratio: '16:9' },
     });
+  });
+
+  it('registra el coste con los créditos que KIE descuenta en la tarea', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: { taskId: 'task-2' } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ code: 200, data: { state: 'success',
+        resultJson: JSON.stringify({ resultUrls: ['https://kie.test/4k.png'] }), creditsConsumed: 16 } }) }));
+    const provider = new KieImageProvider('test-key', undefined, 'gpt-image-2-5-sunburst-image-to-image', { pollIntervalMs: 0 });
+    const result = await provider.generate({ prompt: 'alzado', aspectRatio: '16:9' });
+    expect(result.cost).toEqual({ amountUsd: 0.08, unit: 'image', confirmedUsd: 0.08 });
   });
 
   it('rechaza modelos KIE que no usan la API unificada implementada', () => {

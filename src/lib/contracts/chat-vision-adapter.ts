@@ -71,6 +71,11 @@ export interface ChatRequest {
    * truncar el JSON (los modelos con razonamiento gastan parte del presupuesto).
    */
   maxTokens?: number;
+  /**
+   * Control explícito para no agotar el presupuesto en razonamiento sin devolver JSON. Sonnet 5 solo admite razonamiento
+   * adaptativo e ignora un tope de tokens: `enabled: false` lo apaga cuando el código ya resuelve la parte exacta.
+   */
+  reasoning?: { effort: 'low' | 'medium' | 'high' } | { enabled: false };
 }
 
 /** Invocación de herramienta emitida por el modelo. */
@@ -83,6 +88,8 @@ export interface ToolCall {
 
 export interface ChatResult {
   content: string;
+  /** Ruta efectiva, incluida cualquier conmutación; nunca inferida del modelo solicitado. */
+  execution?: { provider: string; model: string };
   toolCalls?: ToolCall[];
   /** Objeto validado contra `responseSchema` cuando se pidió salida estructurada. */
   structured?: unknown;

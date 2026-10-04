@@ -5,10 +5,17 @@ import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { isSurfaceHost } from '@/lib/editor-document/object-host-rest';
 import { allowedProposalCatalog, allowedProposalFurniture } from '@/lib/editor-document/proposal-permissions';
+import { toModelFurniture } from '@/lib/editor-document/proposal-coordinates';
 import { deriveRooms, type DerivedRoom } from '@/lib/editor-document/rooms';
 import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+
+/** Las sugerencias se dan como la IA escribe sus objetos: centro de la huella y giro. */
+function placement(item: NativeDesignFurniture) {
+  const { catalogId, cxMm, cyMm, rotation } = toModelFurniture(item);
+  return { catalogId, cxMm, cyMm, rotation };
+}
 
 /** Posiciones reales de luz que la propuesta puede usar sin inventar espacio ni soportes. */
 export function lightPlacementHints(doc: EditorDocument, selectedRooms: DerivedRoom[], zone: Point[] | undefined,
@@ -52,7 +59,7 @@ export function lightPlacementHints(doc: EditorDocument, selectedRooms: DerivedR
     }
   }
   return suggestions.length
-    ? `Ubicaciones de luminarias ya comprobadas en este plano (catalogId, xMm, yMm, rotation): ${JSON.stringify(suggestions.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Si propones iluminación, prioriza una de ellas; son posiciones de objetos editables, no luces inventadas.`
+    ? `Ubicaciones de luminarias ya comprobadas en este plano (catalogId, cxMm, cyMm, rotation): ${JSON.stringify(suggestions.map(placement))}. Si propones iluminación, prioriza una de ellas; son posiciones de objetos editables, no luces inventadas.`
     : 'No hay ubicación de lámpara decorativa validada en este ámbito. No prometas iluminación nueva en el resumen.';
 }
 
@@ -93,7 +100,7 @@ export function plantPlacementHints(doc: EditorDocument, selectedRooms: DerivedR
     }
   }
   return chosen.length
-    ? `Ubicaciones de vegetación ya comprobadas (catalogId, xMm, yMm, rotation): ${JSON.stringify(chosen.map(({ catalogId, xMm, yMm, rotation }) => ({ catalogId, xMm, yMm, rotation })))}. Son sugerencias que sabemos válidas; puedes proponer otras posiciones si el diseño lo pide, siempre junto a un borde y sin tapar accesos. Las que no cumplan las reglas se rechazarán y tendrás que corregirlas.`
+    ? `Ubicaciones de vegetación ya comprobadas (catalogId, cxMm, cyMm, rotation): ${JSON.stringify(chosen.map(placement))}. Son sugerencias que sabemos válidas; puedes proponer otras posiciones si el diseño lo pide, siempre junto a un borde y sin tapar accesos. Las que no cumplan las reglas se rechazarán y tendrás que corregirlas.`
     : 'No encontramos una ubicación de plantas ya validada en este ámbito; propón vegetación solo si hallas un sitio junto a un borde que no tape accesos.';
 }
 
@@ -124,7 +131,7 @@ export function rugPlacementHints(doc: EditorDocument, selectedRooms: DerivedRoo
       yMm: Math.round(clamp(centre.y - rug.depthMm / 2, box.minY + 150, box.maxY - rug.depthMm - 150)), rotation: 0,
       reason: 'Alfombra que agrupa la zona de estar' };
     if (allowedProposalFurniture(item, options, zone) && canPlaceNativeDesignFurniture(doc, item, rooms, allowed, zone))
-      return `Alfombra ya comprobada bajo la zona de estar (catalogId, xMm, yMm, rotation): ${JSON.stringify([{ catalogId: item.catalogId, xMm: item.xMm, yMm: item.yMm, rotation: item.rotation }])}. Las alfombras pueden ir bajo sofás y mesas: proponla si la categoría de decoración está permitida.`;
+      return `Alfombra ya comprobada bajo la zona de estar (catalogId, cxMm, cyMm, rotation): ${JSON.stringify([placement(item)])}. Las alfombras pueden ir bajo sofás y mesas: proponla si la categoría de decoración está permitida.`;
   }
   return '';
 }

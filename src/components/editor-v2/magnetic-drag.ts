@@ -3,8 +3,8 @@ import type { Column, Furniture, Ramp, Stair, Point } from '@/lib/editor-documen
 import { alignPoint, alignPoints, footprintAnchors } from '@/canvas/editor-v2/magnetic-alignment';
 import { snapObject } from '@/canvas/editor-v2/spatial-placement';
 import { wallPath } from '@/lib/editor-document/wall-path';
-export function snapSpatialDrag(store: EditorStore, item: Furniture | Stair | Ramp | Column, scale: number) {
-  const state = store.getState(), snapped = snapObject(state.document, item, scale, state.snap, { preserveRotation: true });
+export function snapSpatialDrag(store: EditorStore, item: Furniture | Stair | Ramp | Column, scale: number, previewRotation?: number) {
+  const state = store.getState(), snapped = snapObject(state.document, item, scale, state.snap, { preserveRotation: true, orientToWall: true, preferredRotation: previewRotation });
   const points = footprintAnchors(snapped), guides = alignPoints(state.document, points, 100, state.snap, [item.id]).guides;
   if (state.snap) for (const wall of state.document.walls.filter((w) => !w.hidden)) {
     const path = wallPath(state.document, wall);

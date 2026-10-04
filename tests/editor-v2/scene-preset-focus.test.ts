@@ -15,9 +15,13 @@ describe('encuadre de vistas arquitectónicas', () => {
     ];
     const frontal = scenePresetFocus(document, 'front');
     expect(frontal?.center).toEqual([5, 1.6, 4]);
-    expect(frontal?.size[0]).toBeCloseTo(15.5);
-    expect(frontal?.size[1]).toBeCloseTo(4.96);
-    expect(frontal?.size[2]).toBeCloseTo(12.4);
+    expect(frontal?.size[0]).toBeCloseTo(11);
+    expect(frontal?.size[1]).toBeCloseTo(3.52);
+    // El fondo no ocupa ancho en pantalla: ampliarlo solo alejaba la cámara de la fachada.
+    expect(frontal?.size[2]).toBeCloseTo(8);
+    const lateral = scenePresetFocus(document, 'left');
+    expect(lateral?.size[0]).toBeCloseTo(10);
+    expect(lateral?.size[2]).toBeCloseTo(8.8);
     expect(scenePresetFocus(document, 'drone')?.size[0]).toBeCloseTo(17);
     expect(scenePresetFocus(document, 'isometric')?.size[0]).toBeCloseTo(12);
     expect(scenePresetFocus(document, 'top')).toBeUndefined();

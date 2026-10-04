@@ -1,5 +1,6 @@
 'use client';
 import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/lib/editor-document/boundary-types';
+import { danglingEnds } from '@/lib/editor-document/plan-issues';
 
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
@@ -51,7 +52,10 @@ function placementLabel(item: SpatialClipboardItem): string {
   return elementName(item);
 }
 
-export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null }) {
+/** Espera máxima a la imagen del plano original antes de enseñar el plano sin ella. */
+const REFERENCE_WAIT_MS = 2500;
+
+export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -68,34 +72,42 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
   const initialFitDone = useRef(false);
+  // Hasta el primer encuadre el lienzo no se enseña: pintaba con la vista por defecto y saltaba al encuadrar.
+  const [fitted, setFitted] = useState(!fitOnMount);
   useEffect(() => {
     if (!fitOnMount || initialFitDone.current || size.width <= 100 || size.height <= 100) return;
     const frame = requestAnimationFrame(() => {
       if (initialFitDone.current) return;
       initialFitDone.current = true;
       if (!store.getState().focusPoint) setView(fittedView(doc, size));
+      setFitted(true);
     });
     return () => cancelAnimationFrame(frame);
   }, [fitOnMount, doc, size, store]);
   const [loadedReference, setLoadedReference] = useState<{ url: string; image: HTMLImageElement } | null>(null);
-  const [referenceVisible, setReferenceVisible] = useState(Boolean(reference));
-  const [referenceOpacity, setReferenceOpacity] = useState(0.75);
+  // Imagen original que ya no se espera: falló o tardó demasiado. El plano se enseña sin ella.
+  const [abandonedReference, setAbandonedReference] = useState<string | null>(null);
   useEffect(() => {
     if (!reference?.imageUrl) return;
     let active = true;
-    const image = new window.Image();
-    image.onload = () => { if (active) setLoadedReference({ url: reference.imageUrl, image }); };
-    image.onerror = () => { if (active) setLoadedReference(null); };
-    image.src = reference.imageUrl;
-    return () => { active = false; };
+    const url = reference.imageUrl, image = new window.Image();
+    const timeout = window.setTimeout(() => { if (active) setAbandonedReference(url); }, REFERENCE_WAIT_MS);
+    image.onload = () => { if (active) setLoadedReference({ url, image }); };
+    image.onerror = () => { if (active) { setLoadedReference(null); setAbandonedReference(url); } };
+    image.src = url;
+    return () => { active = false; window.clearTimeout(timeout); };
   }, [reference?.imageUrl]);
   const referenceImage = loadedReference && loadedReference.url === reference?.imageUrl
     ? loadedReference.image : null;
-  const showReference = Boolean(reference && referenceVisible && referenceImage);
+  const showReference = Boolean(reference && originalVisible && referenceImage);
+  // Con el original visible, el plano se pinta ya comparado con él: sin un primer pintado normal que luego cambia.
+  const ready = fitted && (!reference?.imageUrl || !originalVisible || Boolean(referenceImage) || abandonedReference === reference.imageUrl);
+  const selected = useStore(store, (s) => s.selection);
+  const looseEnds = useMemo(() => danglingEnds(doc).points.filter((point) => selected.includes(point.wallId)), [doc, selected]);
   // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
   const focusPoint = useStore(store, (s) => s.focusPoint);
   const [handledFocus, setHandledFocus] = useState(focusPoint);
-  if (focusPoint !== handledFocus) {
+  if (focusPoint !== handledFocus && active && size.width > 100 && size.height > 100) {
     setHandledFocus(focusPoint);
     if (active && focusPoint && size.width > 100 && size.height > 100) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
   }
@@ -266,7 +278,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
+    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
   }, [doc, pendingSpatial, pointer, snapEnabled, view.scale]);
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
@@ -283,6 +295,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       else if (e.key === 'Backspace') { e.preventDefault(); zoneTool.undoVertex(); }
     }} onPointerCancel={cancel}>
     {size.width > 0 && size.height > 0 && <Stage ref={stage} width={size.width} height={size.height} x={view.x} y={view.y}
+      style={ready ? undefined : { visibility: 'hidden' }}
       scaleX={view.scale} scaleY={view.scale} draggable={pan}
       onDragEnd={(e) => { if (e.target === stage.current) updateView({ ...view, ...e.target.position() }); }}
       onWheel={(e) => { e.evt.preventDefault(); zoom(e.evt.deltaY > 0 ? .9 : 1.1, stage.current?.getPointerPosition() ?? undefined); }}
@@ -331,7 +344,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
             setPointer(null); return;
           }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
+          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
           store.getState().placePendingSpatial(item); setPointer(null); return;
         }
         if (splitting) {
@@ -375,12 +388,17 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
 
       {showReference && reference && referenceImage && <Layer listening={false}>
         <KonvaImage image={referenceImage} x={reference.xMm ?? 0} y={reference.yMm ?? 0} width={reference.widthMm} height={reference.heightMm}
-          opacity={referenceOpacity} listening={false} />
+          opacity={originalOpacity} listening={false} />
       </Layer>}
       {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}
       <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}:${presentation}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
+      {looseEnds.map((point, index) => <Group key={`loose-end-${point.wallId}-${index}`} x={point.x} y={point.y}>
+        <Circle radius={12 / view.scale} fill="#fff" stroke="#dc2626" strokeWidth={3 / view.scale} />
+        <Circle radius={4 / view.scale} fill="#dc2626" />
+        <Text x={16 / view.scale} y={-10 / view.scale} text="Extremo sin unir" fontSize={14 / view.scale} fill="#dc2626" />
+      </Group>)}
       <>{start && pointer && tool !== 'measure' && <Line points={(tool === 'rectangle')
         ? [start.x, start.y, pointer.x, start.y, pointer.x, pointer.y, start.x, pointer.y, start.x, start.y]
         : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</>
@@ -465,13 +483,6 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">
-      {reference && <>
-        <button type="button" aria-pressed={showReference} onClick={() => setReferenceVisible((value) => !value)}>
-          {showReference ? 'Ocultar original' : 'Mostrar original'}
-        </button>
-        {showReference && <input type="range" min={20} max={100} value={Math.round(referenceOpacity * 100)}
-          aria-label="Opacidad del plano original" onChange={(event) => setReferenceOpacity(Number(event.target.value) / 100)} />}
-      </>}
       <button onClick={() => zoom(.8)} aria-label="Alejar" data-tooltip={shortcutHint('Alejar', 'zoomOut')}><ZoomOut size={18} aria-hidden="true" /></button>
       <span>{Math.round(view.scale * 1000)}%</span>
       <button onClick={() => zoom(1.25)} aria-label="Acercar" data-tooltip={shortcutHint('Acercar', 'zoomIn')}><ZoomIn size={18} aria-hidden="true" /></button>

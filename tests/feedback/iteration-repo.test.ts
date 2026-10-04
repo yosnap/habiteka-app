@@ -153,6 +153,41 @@ describe('runFeedback — cambios por texto desde «Diseños»', () => {
   beforeEach(resetDb);
   const noZone = async () => { throw new Error('no se usa'); };
 
+  it('rechaza zonas inválidas antes de reservar créditos o llamar a imagen', async () => {
+    const { orgId, deliverableId } = await makeRender();
+    const calls: string[] = [];
+    const inpaint = vi.fn();
+    await expect(runFeedback({ image: { ...okImage, inpaint }, debit: trackedDebit(calls), regenerateZone: noZone }, {
+      organizationId: orgId, deliverableId, instruction: 'Retoca la puerta', estimateCredits: 500,
+      zone: { id: 'bad', bbox: { x: Infinity, y: 0, width: .2, height: .2 } },
+    })).rejects.toThrow('coordenadas');
+    expect(calls).toEqual([]);
+    expect(inpaint).not.toHaveBeenCalled();
+  });
+
+  it('conserva el polígono y los metadatos de protección sin heredar aceptación ni auditoría', async () => {
+    const { orgId, deliverableId } = await makeRender();
+    await prisma.deliverable.update({ where: { id: deliverableId }, data: { payload: {
+      type: 'render3d', assetUrl: 'old', generation: { documentRevision: 16, promptVersion: 'old', model: 'old-model',
+        acceptance: { acceptedAt: 'yesterday', userId: 'u' }, fidelity: { status: 'passed' } },
+    } } });
+    const polygon: CanvasZone = { id: 'triangle', polygon: [{ x: .1, y: .1 }, { x: .6, y: .1 }, { x: .1, y: .6 }] };
+    const inpaint = vi.fn(async () => ({ assetUrl: 'protected', cost: { amountUsd: .15, unit: 'image' as const },
+      regionEdit: { mode: 'original-pixels-v1' as const, zone: polygon, protectedPixels: 88, totalPixels: 100,
+        contextCrop: { x: 120, y: 80, width: 512, height: 512 } },
+      generation: { provider: 'test', model: 'edited-model', fallbackIndex: 0 } }));
+    const out = await runFeedback({ image: { ...okImage, inpaint }, debit: trackedDebit([]), regenerateZone: noZone }, {
+      organizationId: orgId, deliverableId, instruction: 'Retoca la puerta', estimateCredits: 500, zone: polygon,
+    });
+    expect(inpaint).toHaveBeenCalledWith(expect.objectContaining({ zone: polygon }));
+    const row = await prisma.deliverable.findUniqueOrThrow({ where: { id: out.newDeliverableId } });
+    expect(row.payload).toMatchObject({ imageEdit: { sourceDeliverableId: deliverableId, zone: polygon, protectedPixels: 88,
+      contextCrop: { x: 120, y: 80, width: 512, height: 512 } },
+      generation: { model: 'edited-model', promptVersion: 'habiteka-directed-inpaint-v3', documentRevision: 16 } });
+    expect((row.payload as { generation: object }).generation).not.toHaveProperty('acceptance');
+    expect((row.payload as { generation: object }).generation).not.toHaveProperty('fidelity');
+  });
+
   it('el render se retoca sobre la imagen base aportada y la versión hereda zona y origen', async () => {
     const { orgId, deliverableId, projectId } = await makeRender();
     const zoneRow = await prisma.projectZone.create({ data: { organizationId: orgId, projectId, name: 'Salón' } });

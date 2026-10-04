@@ -32,8 +32,10 @@ export async function prepareRenderCaptures(input: {
     }
     return captures;
   }
-  // Las referencias cercanas se generan antes de las vistas que las requieren.
-  const rank = (view: string) => view === 'isometric' || view === 'exterior' ? 1 : view === 'drone' ? 2 : 0;
+  // Las referencias se generan antes de las vistas que las requieren: la cenital antes que laterales, isométrica y
+  // exterior; la isométrica antes que el dron.
+  const rank = (view: string) => ['front', 'back', 'left', 'right', 'isometric', 'exterior'].includes(view) ? 1
+    : view === 'drone' ? 2 : 0;
   for (const view of [...options.views].sort((a, b) => rank(a) - rank(b))) {
     assertUnchanged();
     captures.push(await input.capture({ view, lighting: options.lighting, fit: view !== 'current' || masked, ...zoneMask,

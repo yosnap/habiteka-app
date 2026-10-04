@@ -11,7 +11,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
-import { planIssues, type PlanIssueFix } from '@/lib/editor-document/plan-issues';
+import { danglingEnds, planIssues, type PlanIssueFix } from '@/lib/editor-document/plan-issues';
 import {
   collapseDegenerateWalls,
   pruneOrphanFloorFinishes,
@@ -116,9 +116,11 @@ export function usePlanIssueGate(
     const state = store.getState();
     // El cambio de herramienta vacía la selección: primero la herramienta, luego los ids.
     state.setTool('select');
+    state.setPan(false);
     state.select(ids);
     const index = planElementIndex(state.document, deriveRoomsSafe(state.document));
-    const points = index.filter((entry) => ids.includes(entry.id)).map((entry) => entry.point);
+    const ends = danglingEnds(state.document).points.filter((point) => ids.includes(point.wallId));
+    const points = ends.length ? ends : index.filter((entry) => ids.includes(entry.id)).map((entry) => entry.point);
     if (points.length)
       state.focusOn({
         x: points.reduce((sum, point) => sum + point.x, 0) / points.length,

@@ -44,7 +44,7 @@ export function QualityVerdictCard({ quality, blockedNote, compact = false }: Pr
         {band.label}
         {quality.score !== null ? `: ${quality.score} %` : ''}
       </p>
-      {quality.failOpen === false && !compact ? (
+      {quality.score === null && quality.failOpen === false && quality.decision === 'confirm' && !compact ? (
         <p className="mt-1">
           No se pudo evaluar la fiabilidad automáticamente, así que hace falta que revises el
           plano y confirmes antes de seguir.

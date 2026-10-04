@@ -6,7 +6,7 @@ vi.mock('@/server/db/prisma', () => ({ prisma: { deliverable: { findMany: mocks.
 vi.mock('@/server/walkthrough/tour-images', () => ({ sameContentRevisions: mocks.revisions }));
 vi.mock('@/server/agent/editor-v2/render-asset-reader', () => ({ readRenderReference: mocks.read }));
 vi.mock('@/server/ai/image/input-sanitizer', () => ({ sanitizeImageBuffer: mocks.sanitize }));
-import { droneReferences } from '@/server/agent/editor-v2/drone-references';
+import { droneReferences, lateralDesignReference } from '@/server/agent/editor-v2/drone-references';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { OrgContext } from '@/server/auth/org-context';
@@ -91,5 +91,37 @@ describe('referencias obligatorias del dron', () => {
   it('no usa una referencia de todas las plantas para una sola planta', async () => {
     await expect(droneReferences(ctx, scope, emptyEditorDocument(), { ...view, allLevels: true }, options, ortho))
       .rejects.toThrow('Falta una isométrica');
+  });
+});
+
+const acceptance = { userId: 'u', acceptedAt: '2026-10-03T19:17:37.974Z' };
+const topRow = (id: string, extra: Record<string, unknown> = {}) => ({ id, payload: { assetKey: `${id}.png`, generation: {
+  provider: 'kie', documentRevision: 144, view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' }, ...extra } } });
+
+describe('cenital aceptada como diseño de los laterales', () => {
+  it('solo utiliza una cenital aceptada por el usuario', async () => {
+    mocks.rows.mockResolvedValue([topRow('audited')]);
+    const front = { ...view, preset: 'front' as const };
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options)).rejects.toThrow('Falta una cenital aceptada');
+    expect(mocks.read).not.toHaveBeenCalled();
+    mocks.rows.mockResolvedValue([topRow('audited'), topRow('accepted', { acceptance })]);
+    expect(await lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options))
+      .toEqual({ identity: image, deliverableId: 'accepted' });
+    expect(mocks.rows.mock.calls[1]![0].where.OR).toEqual([{ payload: { path: ['generation', 'view', 'preset'], equals: 'top' } }]);
+  });
+  it('no mezcla una cenital aceptada con otra luz', async () => {
+    mocks.rows.mockResolvedValue([topRow('warm', { acceptance, view: { lighting: 'warm' } })]);
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), { ...view, preset: 'front' }, options)).rejects.toThrow('luz');
+  });
+  it('no se aplica a otras vistas ni a cámaras interiores', async () => {
+    expect(await lateralDesignReference(ctx, scope, emptyEditorDocument(), { ...view, preset: 'top' }, options)).toBeNull();
+    expect(await lateralDesignReference(ctx, scope, emptyEditorDocument(), { ...view, preset: 'back' },
+      { ...options, designScope: 'interior', interiorRoomIds: ['room:a'] })).toBeNull();
+    expect(mocks.rows).not.toHaveBeenCalled();
+  });
+  it('prefiere la cenital aceptada como identidad del exterior terminado', async () => {
+    mocks.rows.mockResolvedValue([topRow('recent'), topRow('accepted', { acceptance })]);
+    expect(await droneReferences(ctx, scope, emptyEditorDocument(), { ...view, preset: 'exterior' }, options, ortho))
+      .toMatchObject({ deliverableId: 'accepted' });
   });
 });

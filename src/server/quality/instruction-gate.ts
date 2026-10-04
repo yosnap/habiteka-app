@@ -14,6 +14,8 @@ import 'server-only';
  * mismo texto no vuelve a pagar una llamada a Jev.
  */
 import type { QualityVerdict } from '@/lib/quality-verdict';
+import type { CanvasZone } from '@/lib/contracts';
+import { loadDesignPlanContext } from '@/server/agent/feedback/design-plan-context';
 import { CONFIRM_CHANGE_HINT } from '@/lib/quality-messages';
 import { fail } from '@/server/errors/run-action';
 import { CHANGE_INSTRUCTION_CHECKPOINT } from './checkpoints-instruction';
@@ -21,8 +23,10 @@ import { evaluateCheckpointCached, type QualityContext } from './evaluate';
 import type { GateContext } from './gate-mark';
 import {
   buildInstructionEvidence,
+  buildDesignInstructionEvidence,
   type InstructionTargetType,
 } from './evidence/instruction-evidence';
+import type { EditorInstructionContext } from './evidence/editor-instruction-context';
 
 export { CHANGE_INSTRUCTION_CHECKPOINT };
 
@@ -30,6 +34,11 @@ export interface InstructionScope {
   projectId: string;
   /** Entregable sobre el que se pide el cambio, si lo hay. */
   refId?: string | null;
+  /** Selección validada sobre la imagen; también forma parte de la clave de caché. */
+  imageZone?: CanvasZone;
+  /** Se fija en servidor: las indicaciones para generar no son una edición de un entregable. */
+  purpose?: 'generate-design';
+  generationContext?: EditorInstructionContext;
 }
 
 /**
@@ -43,10 +52,16 @@ export async function instructionQuality(
   instruction: string,
   gate?: GateContext,
 ): Promise<QualityVerdict> {
+  const generation = scope.purpose === 'generate-design';
+  const context = !generation && scope.refId && deliverableType === 'render3d'
+    ? await loadDesignPlanContext(ctx.organizationId, scope.projectId, scope.refId) : null;
   const evaluation = await evaluateCheckpointCached(
     ctx,
     CHANGE_INSTRUCTION_CHECKPOINT,
-    buildInstructionEvidence(deliverableType, instruction),
+    generation ? buildDesignInstructionEvidence(deliverableType, instruction, scope.generationContext)
+      : buildInstructionEvidence(deliverableType, instruction,
+      context ? { ...context.plan, source: context.source, documentRevision: context.documentRevision } : undefined,
+      scope.imageZone),
     { projectId: scope.projectId, refId: scope.refId ?? null },
     gate,
   );
@@ -98,16 +113,18 @@ export async function assertFreePromptQuality(
 ): Promise<QualityVerdict | null> {
   const text = instruction.trim();
   if (!text) return null;
-  const quality = await instructionQuality(ctx, scope, target, text, { action });
-  if (quality.decision === 'block') fail(blockedMessage(quality.reasons));
+  const quality = await instructionQuality(ctx, { ...scope, purpose: 'generate-design' }, target, text, { action });
+  if (quality.decision === 'block') fail(blockedMessage(quality.reasons, true));
   return quality;
 }
 
-function blockedMessage(reasons: string[]): string {
+function blockedMessage(reasons: string[], generation = false): string {
   return [
-    'No hemos gastado nada: hace falta que reformules la instrucción.',
+    'La generación no ha comenzado: hace falta que reformules la instrucción.',
     ...bullets(reasons),
-    'Di qué elemento cambiar y dónde (p. ej. «suelo de madera clara en el salón»).',
+    generation
+      ? 'Puedes indicar el acabado, la iluminación o qué debe conservarse en el ámbito elegido (p. ej. «materiales naturales y pasos despejados»).'
+      : 'Di qué elemento cambiar y dónde (p. ej. «suelo de madera clara en el salón»).',
   ].join('\n');
 }
 

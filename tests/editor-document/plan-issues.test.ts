@@ -12,7 +12,7 @@ import { emptyEditorDocument, type EditorDocument, type Ramp } from '@/lib/edito
 import { RAMP_LANDING_CATALOG_ID } from '@/lib/editor-document/ramp-kind';
 import { upgradeRampDocument } from '@/lib/editor-document/spatial-properties';
 import { setFloorFinish } from '@/lib/editor-document/floor-finishes';
-import { planDefects, planIssueMessage, planIssues } from '@/lib/editor-document/plan-issues';
+import { danglingEnds, planDefects, planIssueMessage, planIssues } from '@/lib/editor-document/plan-issues';
 import {
   collapseDegenerateWalls,
   pruneOrphanFloorFinishes,
@@ -26,6 +26,17 @@ const CORNERS = [
   { x: 4000, y: 3000 },
   { x: 0, y: 3000 },
 ];
+
+it('localiza los extremos exactos sin marcar las esquinas compartidas de una sala cerrada', () => {
+  const closed = room();
+  expect(danglingEnds(closed).points).toEqual([]);
+  const extended = addWallPath(closed, [{ x: 10000, y: 10000 }, { x: 14000, y: 10000 }], false);
+  const wallId = extended.walls.at(-1)!.id;
+  expect(danglingEnds(extended).points).toEqual([
+    { x: 10000, y: 10000, wallId }, { x: 14000, y: 10000, wallId },
+  ]);
+  expect(planIssues(extended).find((issue) => issue.kind === 'extremos-sueltos')?.ids).toEqual([wallId]);
+});
 
 /** Sala cerrada al día en esquema, con colecciones de rampas y acabados. */
 function room(): EditorDocument {
@@ -71,6 +82,20 @@ describe('planIssues: rampas y descansillos', () => {
 });
 
 describe('planIssues', () => {
+  it('señala puertas estrechas con la medida real del hueco, sin modificarlo ni incluir ventanas', () => {
+    const doc = room(), wallId = doc.walls[0]!.id;
+    doc.openings = [
+      { id: 'estrecha', wallId, kind: 'puerta', position: .2, widthMm: 530, dimensionalOrigin: 'physical' },
+      { id: 'limite', wallId, kind: 'puerta', position: .5, widthMm: 650, dimensionalOrigin: 'physical' },
+      { id: 'ventana', wallId, kind: 'ventana', position: .8, widthMm: 530, dimensionalOrigin: 'physical' },
+    ];
+    const before = structuredClone(doc);
+    expect(planIssues(doc).find(issue => issue.kind === 'puertas-estrechas')).toMatchObject({ ids: ['estrecha'] });
+    expect(buildEditorEvidence(doc).puertasEstrechas).toBe(1);
+    expect(explainEditorEvidence(buildEditorEvidence(doc))).toContain(planIssueMessage('puertas-estrechas', 1));
+    expect(doc).toEqual(before);
+  });
+
   it('un plano sano no tiene ninguna incidencia', () => {
     expect(planIssues(room())).toEqual([]);
   });

@@ -66,9 +66,10 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     if (choice.finish_reason === 'content_filter') {
       throw aiError('refusal', 'El modelo rechazó la petición');
     }
-    if (req.responseSchema && !choice.message.content?.trim()) {
+    // Un JSON cortado por el límite nunca es válido: se dice que faltó espacio, no que el formato estaba mal.
+    if (req.responseSchema && (choice.finish_reason === 'length' || !choice.message.content?.trim())) {
       throw aiError('schema', choice.finish_reason === 'length'
-        ? 'El modelo agotó el límite de respuesta sin devolver el diseño. Inténtalo con una zona más pequeña o cambia el modelo de visión.'
+        ? 'El modelo agotó el límite de respuesta sin devolver el diseño completo. Inténtalo con un ámbito más pequeño (estancias o una zona) o cambia el modelo de visión.'
         : 'El modelo no devolvió datos estructurados para el diseño.');
     }
 
@@ -111,6 +112,7 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
       stream,
     };
     if (req.temperature !== undefined) body.temperature = req.temperature;
+    if (req.reasoning) body.reasoning = req.reasoning;
     if (req.tools) {
       body.tools = req.tools.map((t) => ({
         type: 'function',
@@ -243,6 +245,7 @@ interface RawRequestBody {
   max_tokens: number;
   stream: boolean;
   temperature?: number;
+  reasoning?: { effort: 'low' | 'medium' | 'high' } | { enabled: false };
   tools?: unknown[];
   response_format?: unknown;
   models?: string[];

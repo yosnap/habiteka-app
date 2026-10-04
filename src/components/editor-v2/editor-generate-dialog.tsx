@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Camera, Sofa } from 'lucide-react';
+import { CheckToggle } from '@/components/ui/check-toggle';
 import { ExistingRenderReview } from './existing-render-review';
 import { captureFileName } from '@/lib/editor-document/capture-file-name';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
@@ -32,14 +33,14 @@ import type {
   NativeDesignProposal,
   NativeDesignSelection,
 } from '@/lib/editor-document/native-design-proposal';
-import { surfaceMaterial, SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
-import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { EditorQualityGate, type EditorQualityState } from './editor-quality-gate';
 import type { QualityVerdict } from '@/lib/quality-verdict';
 import { needsQualityConfirmation } from '@/lib/quality-messages';
 import RenderOptionsControls from './render-options-controls';
 import { renderBatchFailureMessage, runRenderBatch } from './render-batch';
 import { RenderLivePreview, type PreviewRender } from './render-live-preview';
+import { PlanPreview2d } from './plan-preview-2d';
+import { ProposalPreview } from './proposal-preview';
 import { RenderInstructionField } from './render-instruction-field';
 import { useMountEffect } from '@/lib/use-mount-effect';
 import { ZoneOverlayImage } from './zone-overlay-image';
@@ -69,7 +70,7 @@ interface EditorGenerateDialogProps {
   sceneReady?: boolean;
   onEstimate?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado; sin coste de imagen. */
-  onEvaluateQuality?: () => Promise<QualityVerdict | null>;
+  onEvaluateQuality?: (acknowledgeImport?: boolean) => Promise<QualityVerdict | null>;
   /** Incidencias localizables bajo la tarjeta de calidad; las pinta el editor. */
   renderPlanIssues?: (onRepaired: () => void) => ReactNode;
   onGenerate: (input: {
@@ -103,6 +104,8 @@ interface EditorGenerateDialogProps {
    * elegido y vistas interiores de todas las estancias habitables marcadas.
    */
   initialSetup?: Partial<AutoGenerateRequest>;
+  /** Paso con el que se abre el estudio: diseñar el plano (desde la planta) o crear imágenes (desde amueblado y 3D). */
+  initialIntent?: 'image' | 'editable';
   onClose: () => void;
 }
 
@@ -130,6 +133,7 @@ export function EditorGenerateDialog({
   spaceKind,
   onSpaceKindChange,
   initialSetup,
+  initialIntent,
   onClose,
 }: EditorGenerateDialogProps) {
   const establishedStyle = document ? buildingDesignStyle(document) : undefined;
@@ -203,7 +207,9 @@ export function EditorGenerateDialog({
   };
   const downloadAll = () => prepared.forEach((item, index) => setTimeout(() => downloadCapture(item, index), index * 250));
   const [applied, setApplied] = useState(false);
-  const [intent, setIntent] = useState<'image' | 'editable'>('image');
+  // Un plano sin muebles empieza por diseñarlo; las imágenes llegan después, sobre ese diseño.
+  const [intent, setIntent] = useState<'image' | 'editable'>(() => initialIntent
+    ?? (document && !hasDesign && !initialSetup?.continuation && !initialSetup?.interiorRooms ? 'editable' : 'image'));
   const [quality, setQuality] = useState<EditorQualityState>({
     quality: null,
     ack: false,
@@ -369,6 +375,7 @@ export function EditorGenerateDialog({
         ramps: true,
         columns: true,
         furniture: next.furniture.map((_, index) => index),
+        kitchens: next.kitchens?.map((_, index) => index),
         fixedFinishes: next.fixedFinishes?.map((_, index) => index),
       });
       setMode('proposal');
@@ -389,19 +396,23 @@ export function EditorGenerateDialog({
               : 'Propuesta lista. El plano aún no ha cambiado: revisa los acabados y pulsa «Aplicar al plano».'}
           </p><fieldset disabled={applied || busy}><ProposalPreview proposal={proposal} selection={selection!} palette={materialPalette}
             onChange={setSelection} onMaterialChange={(key, value) => setProposal((current) => current
-              ? { ...current, materials: { ...current.materials, [key]: value } } : current)} /></fieldset></>
+              ? { ...current, materials: { ...current.materials, [key]: value } } : current)}
+            onRoomFinishChange={(roomId, key, value) => setProposal((current) => current
+              ? { ...current, roomFinishes: current.roomFinishes?.map((finish) => finish.roomId === roomId ? { ...finish, [key]: value } : finish) }
+              : current)} /></fieldset></>
         ) : (
           <>
             {onEvaluateQuality ? (
               <EditorQualityGate
                 evaluate={onEvaluateQuality}
-                onChange={setQuality}
+                onChange={(state) => { setQuality(state); if (state.quality?.decision === 'proceed') setServerConfirm(null); }}
                 serverConfirmMessage={serverConfirm}
                 renderPlanIssues={renderPlanIssues}
               />
             ) : null}
             <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Qué quieres crear">
-              {([['image', 'Crear imágenes', 'Render del diseño, sin modificar el plano.', Camera], ['editable', 'Cambiar acabados y muebles', 'Revisa una propuesta y aplícala al plano.', Sofa]] as const).map(([value, label, hint, Icon]) => (
+              {/* Primero se diseña el plano con IA (sin imágenes) y después se crean las imágenes de ese diseño. */}
+              {([['editable', '1. Diseñar el plano', 'La IA coloca muebles, baños, cocina y acabados en el 2D y el 3D. No crea imágenes.', Sofa], ['image', '2. Crear imágenes', 'Render del plano ya diseñado, sin modificarlo.', Camera]] as const).map(([value, label, hint, Icon]) => (
                 <button key={value} type="button" disabled={busy} aria-pressed={intent === value}
                   className={`rounded-lg border px-3 py-2 text-left ${intent === value ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700' : 'border-line bg-surface text-ink'}`}
                   onClick={() => {
@@ -409,8 +420,8 @@ export function EditorGenerateDialog({
                     optionsByIntent.current[intent] = options;
                     const next = optionsByIntent.current[value] ?? { ...options,
                       placement: 'all', regions: [], designScope: 'all', designZoneId: '',
-                      // La propuesta editable parte sin objetos; la decoración por defecto es solo para las imágenes.
-                      ...(value === 'editable' ? { freedom: 'strict' as const, additions: [] } : {}) };
+                      // Diseñar el plano parte de «Amueblar»: la propuesta equipa la vivienda entera.
+                      ...(value === 'editable' ? { freedom: 'free' as const, additions: [] } : {}) };
                     setOptions(value === 'image' && hasDesign && !optionsByIntent.current.image ? { ...next, ...DRESSED_IMAGE_OPTIONS } : next);
                     setIntent(value);
                     if (value === 'editable' && next.designScope !== 'all' && establishedStyle)
@@ -425,7 +436,7 @@ export function EditorGenerateDialog({
             <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
               <div>
                 <p className="text-ink-soft text-sm">
-                  {intent === 'image' ? '1. Configura el aspecto. 2. Revisa las vistas de referencia (sin IA). 3. Genera las imágenes con IA. El plano no cambia.' : 'La IA propondrá acabados y objetos permitidos del catálogo. No crea una imagen: revisa el resultado y pulsa Aplicar al plano. Consultar la IA puede consumir créditos; no garantiza que haya objetos que encajen.'}
+                  {intent === 'image' ? '1. Configura el aspecto. 2. Revisa las vistas de referencia (sin IA). 3. Genera las imágenes con IA. El plano no cambia. Con las imágenes que aceptes podrás crear después los vídeos.' : 'La IA propondrá acabados y objetos permitidos del catálogo. No crea una imagen: revisa el resultado y pulsa Aplicar al plano. Consultar la IA puede consumir créditos; no garantiza que haya objetos que encajen.'}
                 </p>
                 {initialSetup?.continuation && batchId === initialSetup.continuation.batchId && <p role="status" className="mt-3 rounded-control border border-line bg-surface-soft p-3 text-sm">
                   Completar tanda: se conservan {initialSetup.continuation.completedViews.length} vistas guardadas. Preparar y generar solo procesa las {options.views.length} pendientes. Revisa las instrucciones antes de generar: el texto libre anterior no se recupera.
@@ -494,18 +505,16 @@ export function EditorGenerateDialog({
                   <div className="text-ink-soft mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span>Estas vistas son capturas del 3D editable: no consumen créditos y coinciden entre sí.</span>
                     {prepared.length > 1 && (
-                      <label className="flex w-full items-start gap-2">
-                        <input type="checkbox" checked={styleAnchor} disabled={busy}
-                          onChange={(event) => setStyleAnchor(event.target.checked)} />
-                        <span>Usar la primera imagen generada como referencia de estilo en las siguientes. Experimental: puede arrastrar geometría de otra cámara y hacer que se descarte una vista.</span>
-                      </label>
+                      <CheckToggle className="w-full" checked={styleAnchor} disabled={busy} onChange={setStyleAnchor}
+                        label="Usar la primera imagen generada como referencia de estilo en las siguientes. Experimental: puede arrastrar geometría de otra cámara y hacer que se descarte una vista." />
                     )}
                     <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={downloadAll}>
                       Descargar {prepared.length > 1 ? `las ${prepared.length} vistas` : 'la vista'} (sin IA)
                     </Button>
                   </div>
                 )}
-                {(capture || onPreview) && !prepared.length && (
+                {intent === 'editable' && !prepared.length && <PlanPreview2d document={document} />}
+                {intent === 'image' && (capture || onPreview) && !prepared.length && (
                   <RenderLivePreview capture={capture} lighting={options.lighting} view={options.views[0] ?? 'current'}
                     options={options} onPreview={onPreview}
                     onExpand={(src, label, maskSrc) => setLargePreview({ src, label, ...(maskSrc ? { maskSrc } : {}) })} />
@@ -571,12 +580,12 @@ export function EditorGenerateDialog({
                       : options.lighting === 'afternoon' ? 'Tarde' : options.lighting === 'warm'
                         ? 'Atardecer'
                         : 'Noche'} · </>}
-                    Libertad{' '}
+                    {intent === 'editable' ? 'Modo' : 'Libertad'}{' '}
                     {options.freedom === 'strict'
-                      ? 'estricta, sin añadir objetos'
+                      ? intent === 'editable' ? 'acabados, sin añadir objetos' : 'estricta, sin añadir objetos'
                       : options.freedom === 'controlled'
-                        ? `controlada (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
-                        : 'libre, solo decoración sin construcción'}{' '}
+                        ? `${intent === 'editable' ? 'solo categorías' : 'controlada'} (${options.additions.length ? options.additions.map((addition) => RENDER_ADDITION_LABELS[addition]).join(', ') : 'sin categorías'})`
+                        : intent === 'editable' ? 'amueblar: muebles, baños, cocina y decoración' : 'libre, solo decoración sin construcción'}{' '}
                     ·{' '}
                     {intent === 'editable' && <>Ámbito {options.designScope === 'house' ? 'solo la casa de esta planta' : options.designScope === 'all' ? 'toda esta planta' : options.designScope === 'interior' ? 'interior' : options.designScope === 'exterior' ? 'exterior' : options.designScope === 'zone' ? document?.designZones?.find((zone) => zone.id === options.designZoneId)?.name ?? 'zona sin elegir' : `${options.designRoomIds.length} estancia(s) y ${options.designStructureIds.length} pieza(s) exteriores`} · </>}
                     {options.freedom === 'strict' && intent === 'editable'
@@ -719,6 +728,9 @@ export function EditorGenerateDialog({
               )}
               {intent === 'image' && preparedReady && (
                 <>
+                  {qualityBlocked && <p role="status" className="self-center text-xs text-amber-900">
+                    {quality.blocked ? 'Corrige los problemas indicados arriba antes de generar.' : 'Marca arriba «He revisado el plano y quiero generar con estos avisos» para continuar.'}
+                  </p>}
                   <Button
                     type="button"
                     size="sm"
@@ -750,138 +762,6 @@ export function EditorGenerateDialog({
         </div>
         {largePreview && <DesignPreviewDialog preview={largePreview} onClose={() => setLargePreview(null)} />}
     </EditorDesignDialogFrame>
-  );
-}
-
-function ProposalPreview({
-  proposal,
-  selection,
-  palette,
-  onChange,
-  onMaterialChange,
-}: {
-  proposal: NativeDesignProposal;
-  selection: NativeDesignSelection;
-  palette?: ReturnType<typeof designMaterialPalette>;
-  onChange: (selection: NativeDesignSelection) => void;
-  onMaterialChange: (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>, value: string) => void;
-}) {
-  const materialLabel = (id: string) => surfaceMaterial(id)?.label ?? id;
-  const materialChoices = (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>) => {
-    const ids = key === 'floors' ? ['none', 'wood', 'tile'] : [];
-    return [...new Set([...ids, ...(palette?.[key] ?? []), ...SURFACE_MATERIALS.map((material) => material.id)])];
-  };
-  const toggle = (key: Exclude<keyof NativeDesignSelection, 'furniture' | 'fixedFinishes'>) =>
-    onChange({ ...selection, [key]: !selection[key] });
-  const toggleFurniture = (index: number) =>
-    onChange({
-      ...selection,
-      furniture: selection.furniture.includes(index)
-        ? selection.furniture.filter((value) => value !== index)
-        : [...selection.furniture, index],
-    });
-  return (
-    <div className="text-ink mt-5 space-y-3 text-sm">
-      <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
-      {proposal.fixedFinishes?.map((finish, index) => <label key={finish.id} className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={selection.fixedFinishes?.includes(index) ?? false} onChange={(event) => onChange({ ...selection,
-          fixedFinishes: event.target.checked ? [...(selection.fixedFinishes ?? []), index] : selection.fixedFinishes?.filter((value) => value !== index) })} />
-        {finish.label ?? `Fijo ${index + 1}`}: {finish.color}{finish.baseMaterialId ? ` · frentes ${materialLabel(finish.baseMaterialId)}` : ''}
-        {finish.worktopMaterialId ? ` · encimera ${materialLabel(finish.worktopMaterialId)}` : ''}
-        {finish.worktopColor ? ` · encimera ${finish.worktopColor}` : ''}
-        {finish.uppersColor ? ` · altos ${finish.uppersColor}` : ''}{finish.plinthColor ? ` · zócalo ${finish.plinthColor}` : ''}
-      </label>)}
-      <p className="text-ink-soft text-xs">Se aplicará a {proposal.scope?.kind === 'house' ? 'solo la casa de esta planta'
-        : proposal.scope?.kind === 'interior' ? 'las estancias interiores'
-        : proposal.scope?.kind === 'exterior' ? 'las zonas exteriores'
-        : proposal.scope?.kind === 'rooms' ? `${proposal.scope.roomIds.length} estancia(s) y ${proposal.scope.structureIds?.length ?? 0} pieza(s) elegida(s)`
-          : proposal.scope?.kind === 'zone' ? 'la zona dibujada' : 'toda esta planta'}.
-        Los demás acabados se conservarán.</p>
-      {proposal.scope?.kind === 'zone' && <p className="text-ink-soft text-xs">El pavimento queda recortado al contorno. Solo cambia un muro si cabe completo dentro de la zona; los muros que cruzan a otra zona conservan su material.</p>}
-      <div className="grid grid-cols-2 gap-2 rounded-control border border-line p-3 text-xs">
-        {(['walls', 'floors', 'stairs', 'ramps', 'columns'] as const).map((key) => (
-          <div key={key} className={`space-y-1 ${selection[key] ? '' : 'opacity-50'}`}>
-            <label className="block font-medium"><input type="checkbox" checked={selection[key]} onChange={() => toggle(key)} className="mr-1 align-middle" />
-              {key === 'walls'
-              ? 'Muros'
-              : key === 'floors'
-                ? 'Suelos'
-                : key === 'stairs'
-                  ? 'Escaleras'
-                  : key === 'ramps'
-                  ? 'Rampas'
-                    : 'Columnas'}</label>
-            <ModernSelect compact value={proposal.materials[key]} disabled={!selection[key]}
-              aria-label={`Material de ${key === 'walls' ? 'muros' : key === 'floors' ? 'suelos' : key === 'stairs' ? 'escaleras' : key === 'ramps' ? 'rampas' : 'columnas'}`}
-              onChange={(event) => onMaterialChange(key, event.target.value)}>
-              {materialChoices(key).map((id) => <option key={id} value={id}>{materialLabel(id)}{palette?.[key].includes(id) ? ' · usado' : ''}</option>)}
-            </ModernSelect>
-          </div>
-        ))}
-        {proposal.scope?.kind !== 'zone' && proposal.materials.slabUndersides && <p className="text-ink-soft col-span-2 text-xs">
-          Con suelos: canto y cara inferior de los forjados elevados · {materialLabel(proposal.materials.slabUndersides)}
-          {palette && !palette.slabUndersides.includes(proposal.materials.slabUndersides)
-            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
-        </p>}
-        {proposal.materials.stairBodies && <p className="text-ink-soft col-span-2 text-xs">
-          Con escaleras: contrahuellas, laterales y cara inferior · {materialLabel(proposal.materials.stairBodies)}
-          {palette && !palette.stairBodies.includes(proposal.materials.stairBodies)
-            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
-        </p>}
-        {proposal.materials.rampBodies && <p className="text-ink-soft col-span-2 text-xs">
-          Con rampas: laterales y cara inferior · {materialLabel(proposal.materials.rampBodies)}
-          {palette && !palette.rampBodies.includes(proposal.materials.rampBodies)
-            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
-        </p>}
-        {proposal.materials.landingBodies && <p className="text-ink-soft col-span-2 text-xs">
-          Con rampas: canto y cara inferior de los descansillos · {materialLabel(proposal.materials.landingBodies)}
-          {palette && !palette.landingBodies.includes(proposal.materials.landingBodies)
-            ? <span className="text-amber-700"> · nuevo para el inmueble</span> : null}
-        </p>}
-      </div>
-      <div>
-        <p className="font-medium">Mobiliario e iluminación</p>
-        {proposal.furniture.length ? (
-          <ul className="text-ink-soft mt-1 space-y-1">
-            {proposal.furniture.map((item, index) => (
-              <li key={`${item.catalogId}-${index}`}>
-                <Choice
-                  checked={selection.furniture.includes(index)}
-                  onChange={() => toggleFurniture(index)}
-                >
-                  {getFurnitureCatalogEntry(item.catalogId)?.label ?? item.catalogId}
-                  {item.reason ? ` · ${item.reason}` : ''}
-                </Choice>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-ink-soft mt-1">
-            La propuesta se concentra en acabados; no añade objetos al plano.
-          </p>
-        )}
-      </div>
-      <p className="text-ink-soft text-xs">
-        Al aplicar solo se cambian acabados y se añaden los objetos listados. La geometría se
-        conserva intacta.
-      </p>
-    </div>
-  );
-}
-function Choice({
-  checked,
-  onChange,
-  children,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className={checked ? '' : 'opacity-50'}>
-      <input type="checkbox" checked={checked} onChange={onChange} className="mr-1 align-middle" />
-      {children}
-    </label>
   );
 }
 

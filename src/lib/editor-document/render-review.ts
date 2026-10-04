@@ -3,9 +3,12 @@ export interface RenderReview {
   status: 'rejected';
   reason: string;
   reviewedAt: string;
+  /** Distingue una inspección adicional del informe automático guardado. */
+  source?: 'automatic' | 'visual-inspection';
 }
 
-export function renderReviewIssue(generation?: { review?: RenderReview }): string | null {
+export function renderReviewIssue(generation?: { review?: RenderReview; fidelity?: { status: string } }): string | null {
+  if (generation?.fidelity?.status === 'rejected') return generation.review?.reason || 'La imagen no ha superado la revisión visual y no puede usarse como diseño aceptado.';
   return generation?.review?.status === 'rejected'
     ? (typeof generation.review.reason === 'string' && generation.review.reason.trim())
       || 'Imagen descartada tras revisar su fidelidad.'
@@ -13,7 +16,7 @@ export function renderReviewIssue(generation?: { review?: RenderReview }): strin
 }
 
 /** La auditoría automática no sustituye la decisión del usuario sobre el diseño. */
-export function acceptedRenderIssue(generation?: { provider?: string; review?: RenderReview; acceptance?: { acceptedAt: string; userId: string } }): string | null {
+export function acceptedRenderIssue(generation?: { provider?: string; review?: RenderReview; fidelity?: { status: string }; acceptance?: { acceptedAt: string; userId: string } }): string | null {
   if (!generation?.provider || generation.provider === 'native') return 'Solo se admiten diseños generados con IA; el 3D del plano es una guía.';
   const rejected = renderReviewIssue(generation);
   if (rejected) return rejected;

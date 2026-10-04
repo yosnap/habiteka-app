@@ -49,6 +49,10 @@ describe('estado de revisión de la galería', () => {
   it('una aceptación local nunca tapa un descarte del servidor', () => {
     expect(renderGalleryState(render('updated', { review: rejection }), { accepted: true, acceptedAt, version: 2 }).status).toBe('rejected');
   });
+  it('una auditoría fallida bloquea aunque falte review o quede una aceptación antigua', () => {
+    expect(renderGalleryState(render('failed', { acceptance, fidelity: { version: 'spatial-fidelity-v2', status: 'rejected',
+      checkedAt: acceptedAt, roomChecks: [], openingChecks: [] } })).status).toBe('rejected');
+  });
   it('resume cada imagen una vez, excluyendo descartadas del recuento de aceptadas', () => {
     const items = [render('a', { acceptance }), render('b'), render('c', { acceptance, review: rejection }), render('d', { provider: 'native' }), render('e')];
     expect(renderBatchCounts(items, { e: { accepted: true, acceptedAt, version: 2 } }))

@@ -9,8 +9,11 @@ import { aiError } from './errors';
 
 /** Tope de tokens de salida por llamada de chat si quien llama no fija uno menor. */
 export const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
-/** Límite duro absoluto de tokens de salida; ninguna llamada lo supera. */
-export const HARD_MAX_OUTPUT_TOKENS = 8192;
+/**
+ * Límite duro absoluto de tokens de salida; ninguna llamada lo supera. Amueblar una vivienda entera devuelve decenas de
+ * piezas y el razonamiento cuenta dentro del límite: con 8192 la propuesta se cortaba a medias.
+ */
+export const HARD_MAX_OUTPUT_TOKENS = 16384;
 
 /** Lado máximo (px) de una imagen generada/inpaintada. */
 export const MAX_IMAGE_DIMENSION = 2048;

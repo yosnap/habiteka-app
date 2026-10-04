@@ -5,7 +5,11 @@ import type { RenderDesignOptions } from './render-design-options';
 import { localToWorld } from './spatial-properties';
 import type { Point } from './schema';
 
-export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptions['additions'][number] | null {
+/** Sanitarios, cocina y electrodomésticos: equipan una vivienda vacía; solo los coloca el modo que amuebla todo. */
+const FIXTURE_PROFILES = new Set(['toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance']);
+export type ProposalCategory = RenderDesignOptions['additions'][number] | 'fixtures';
+
+export function proposalCategory(item: FurnitureCatalogEntry): ProposalCategory | null {
   if (item.id === 'habiteka:outdoor:tira-led') return 'lights';
   if (item.id === 'habiteka:outdoor:puf-exterior') return 'furniture';
   if (item.profile === 'plant') return 'plants';
@@ -15,13 +19,14 @@ export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptio
   if (item.kind.includes('espejo')) return 'mirrors';
   if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';
   if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile)) return 'furniture';
-  return null; // No instalaciones, electrodomésticos ni construcción implícita.
+  if (FIXTURE_PROFILES.has(item.profile)) return 'fixtures';
+  return null; // Construcción implícita: pérgolas, carpas, piscinas.
 }
 
 export function allowedProposalCatalog(item: FurnitureCatalogEntry, options: RenderDesignOptions) {
   const category = proposalCategory(item);
   return options.freedom !== 'strict' && category !== null
-    && (options.freedom === 'free' || options.additions.includes(category));
+    && (options.freedom === 'free' || (category !== 'fixtures' && options.additions.includes(category)));
 }
 
 export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions, zonePolygon?: Point[]) {

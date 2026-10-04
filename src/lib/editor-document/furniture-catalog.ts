@@ -42,6 +42,7 @@ const essentials = [
   entry('comoda', 'Cómoda', 'dormitorio', 'cabinet', [1000, 450, 850], 'Roble', '#b79164', 'Organizar ropa doblada'),
   entry('banco-pie-cama', 'Banco de dormitorio', 'dormitorio', 'bench', [1200, 400, 450], 'Tela y madera', '#a39a8e', 'Sentarse al vestirse'),
   entry('mesa-comedor', 'Mesa de comedor', 'comedor', 'table', [1600, 900, 750], 'Roble', '#b89364', 'Comer y reunirse', 'Nórdico'),
+  entry('mesa-cocina', 'Mesa de cocina', 'comedor', 'table', [1200, 800, 750], 'Roble', '#c2a27a', 'Comer a diario en la cocina, cuatro plazas', 'Nórdico'),
   entry('silla-comedor', 'Silla de comedor', 'comedor', 'chair', [480, 520, 850], 'Madera', '#b89364', 'Sentarse a la mesa', 'Nórdico'),
   entry('aparador', 'Aparador', 'comedor', 'cabinet', [1500, 450, 850], 'Nogal', '#85684f', 'Guardar vajilla', 'Clásico'),
   entry('vitrina', 'Vitrina', 'comedor', 'shelf', [900, 400, 1800], 'Metal y vidrio', '#6d7775', 'Exponer vajilla'),

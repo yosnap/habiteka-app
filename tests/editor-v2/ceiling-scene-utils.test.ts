@@ -106,6 +106,14 @@ describe('representación de techos e iluminación', () => {
     for (const view of ['top', 'isometric', 'drone']) expect(captureCeilingView(view)).toBe('hidden');
     for (const view of ['front', 'back', 'left', 'right', null]) expect(captureCeilingView(view)).toBe('solid');
   });
+  it('retira techo y tejado de los alzados que se capturan para diseñar', () => {
+    const context = { cutaway: true, cameraHeightM: 6, highestCeilingM: 2.7, forDesign: true };
+    for (const view of ['front', 'back', 'left', 'right']) {
+      expect(captureCeilingView(view, context)).toBe('hidden');
+      expect(captureCeilingView(view, { ...context, forDesign: false })).toBe('solid');
+    }
+    expect(captureCeilingView('exterior', context)).toBe('solid');
+  });
   it('mantiene fachada y cubierta en Exterior terminado aunque la vista viva esté seccionada', () => {
     expect(captureCutaway('exterior', true)).toBe(false);
     expect(captureCeilingView('exterior', { cutaway: true, cameraHeightM: 9, highestCeilingM: 3, forDesign: true })).toBe('solid');

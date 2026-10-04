@@ -73,6 +73,7 @@ export class NanoBananaImageProvider implements ImageProvider {
     }
     const content: ContentPart[] = [
       { type: 'image_url', image_url: { url: toDataUrl(req.baseImage) } },
+      ...(req.editMask ? [{ type: 'image_url' as const, image_url: { url: toDataUrl(req.editMask) } }] : []),
       { type: 'text', text: req.prompt },
     ];
     return this.call(content);

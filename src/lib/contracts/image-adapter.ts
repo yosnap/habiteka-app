@@ -27,6 +27,8 @@ export interface InpaintRequest {
   baseImage: { url?: string; base64?: string; mimeType?: string };
   /** Zona a regenerar; su máscara delimita la región afectada. */
   zone: CanvasZone;
+  /** Guía binaria generada por el servidor: blanco editable, negro protegido. */
+  editMask?: { base64: string; mimeType: 'image/png' };
   prompt: string;
   seed?: number;
 }
@@ -42,6 +44,12 @@ export interface ImageResult {
    */
   assetKey?: string;
   cost: ProviderCost;
+  /** Protección comprobable, independiente de la valoración visual de la IA. */
+  regionEdit?: {
+    mode: 'original-pixels-v1'; zone: CanvasZone; protectedPixels: number; totalPixels: number;
+    /** Ventana de contexto enviada al modelo, en píxeles del original. No amplía la zona editable. */
+    contextCrop?: { x: number; y: number; width: number; height: number };
+  };
 }
 
 export interface ImageAdapter {

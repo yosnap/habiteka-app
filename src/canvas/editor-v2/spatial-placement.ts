@@ -13,7 +13,7 @@ import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { placeStairAtRampArrival, stairRampGap } from '@/lib/editor-document/stair-landing-placement';
 import { snapToAlignmentGuides } from './alignment-guides';
 import { placeLandingAtHosts } from '@/lib/editor-document/landing-hosts';
-import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isFloorCovering, isWindowCovering } from './wall-back-alignment';
+import { alignBackToWall, alignKitchenRunToWall, dockToWindow, isFloorCovering, isWindowCovering, orientToNearestWall } from './wall-back-alignment';
 import { elementName } from '@/lib/editor-document/element-classification';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { isBoundary } from '@/lib/editor-document/boundary-types';
@@ -275,7 +275,7 @@ export function placeNewObject(previous: EditorDocument, candidate: EditorDocume
 }
 /** Translate to the closest wall face using the complete oriented footprint. */
 export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp | Column, scale: number, enabled: boolean,
-  options: { preserveRotation?: boolean } = {}) {
+  options: { preserveRotation?: boolean; orientToWall?: boolean; preferredRotation?: number } = {}) {
   if (!enabled) return item;
   // El imán manda: la rejilla de 10 cm solo actúa en el eje sin referencia, y después el objeto puede afinar a una cara.
   const magnet = alignPoints(doc, footprintAnchors(item), scale, enabled, [item.id]);
@@ -319,7 +319,9 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   const furniture = 'kind' in result && !('stepCount' in result) && !isBoundary(result) && !isKitchenRun(result);
   // Durante un arrastre la orientación elegida por el usuario tiene prioridad sobre el giro automático al muro.
   if (furniture) {
-    const positioned = options.preserveRotation ? result as Furniture : alignBackToWall(doc, result as Furniture, faceTolerance);
+    // Al arrastrar o colocar, una pieza de pared se orienta al muro al que se acerca su centro.
+    const oriented = options.orientToWall ? orientToNearestWall(doc, result as Furniture, faceTolerance, options.preferredRotation) : result as Furniture;
+    const positioned = options.preserveRotation ? oriented : alignBackToWall(doc, oriented, faceTolerance);
     result = restOnHost(doc, dockToWindow(doc, positioned, faceTolerance), { alignRotation: !options.preserveRotation });
   }
   // Un tramo de cocina se endereza contra un muro inclinado para no dejar una cuña de holgura entre trasera y pared.

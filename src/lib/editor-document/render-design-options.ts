@@ -29,6 +29,8 @@ export const renderDesignOptionsSchema = z.object({
   designZoneId: z.string().max(128).default(''),
   redesignFixed: z.boolean().default(false),
   redesignInterior: z.boolean().default(false),
+  /** Personas haciendo vida en las estancias; no forman parte del diseño ni del plano. */
+  people: z.boolean().default(false),
 }).superRefine((value, ctx) => {
   if (new Set(value.interiorRoomIds).size !== value.interiorRoomIds.length)
     ctx.addIssue({ code: 'custom', path: ['interiorRoomIds'], message: 'No repitas estancias.' });
@@ -75,5 +77,7 @@ export interface RenderGeneratedResult {
   id?: string;
   assetUrl: string;
   generation?: { provider?: string; model?: string; fallbackIndex?: number;
+    fidelity?: import('./render-fidelity').RenderFidelityReport;
+    review?: import('./render-review').RenderReview;
     view?: import('./render-view').RenderView; options?: RenderDesignOptions; documentRevision?: number; promptVersion?: string };
 }

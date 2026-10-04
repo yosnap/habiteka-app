@@ -10,6 +10,8 @@ import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { designMaterialPalette } from '@/lib/editor-document/design-material-palette';
 import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { FURNITURE_USE_RULE } from '@/lib/editor-document/render-review';
+import { includeSpatialImageInGeneration, renderSpatialRule, type RenderSpatialContext } from './render-spatial-context';
+import type { CameraRoomGuide } from './render-camera-room-guide';
 import {
   isInteriorRenderMode,
   RENDER_ADDITION_LABELS,
@@ -20,7 +22,10 @@ import {
 /** La decoración añadida tiene que ser la de una casa habitada de verdad: sin objetos en sitios imposibles. */
 const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, fregaderos, inodoros, duchas ni escaleras; las plantas van en el suelo, en mesas, estanterías o jardineras, nunca sobre sillas, camas ni electrodomésticos; ningún mueble flota, atraviesa muros ni tapa puertas o ventanas. Si un objeto no tiene un sitio lógico, no lo añadas.';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v16';
+/** Personas pedidas por el usuario: dan vida a la imagen sin cambiar el diseño ni bloquear pasos. */
+export const PEOPLE_RULE = 'Añade algunas personas haciendo vida cotidiana en las estancias, a escala real y sin tapar puertas ni pasos.';
+
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v23';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -39,6 +44,9 @@ export function designContractRule(document: EditorDocument): string | undefined
 /** La ancla es una vista ya aceptada del mismo diseño desde otra cámara: da materiales y ambiente, nunca encuadre. */
 const ANCHOR_RULE = (position: number) => `La imagen ${position} es otra vista ya aceptada del MISMO diseño, tomada desde otra cámara. Úsala SOLO como referencia de materiales, colores, acabados, identidad del mobiliario y ambiente. Cuando se ve el mismo mueble, conserva su diseño aceptado; no inventes otro interiorismo para cada cámara. La cámara, la perspectiva y la geometría son las de la imagen 1: no copies el encuadre ni la composición de la imagen ${position}.`;
 
+/** Los laterales enseñan el interiorismo aceptado en la cenital; la captura solo fija cámara y arquitectura. */
+const ACCEPTED_DESIGN_RULE = (position: number) => `La imagen ${position} es la CENITAL ACEPTADA de este mismo diseño, vista desde arriba: fija el interiorismo. Cada estancia visible debe mostrar los mismos muebles que esa estancia en la cenital (tipo, número, forma, color y posición relativa) y los mismos acabados de suelo, paredes, cocina y baños. Si la maqueta de la imagen 1 tiene otros muebles, manda la cenital: la imagen 1 solo fija cámara, corte, muros, huecos y escala. Esa cenital está girada para coincidir con esta cámara y puede mostrar solo la parte del inmueble que ve: su borde inferior es la fachada cortada más cercana y su izquierda y derecha son las de la imagen 1. No añadas al encuadre las estancias que no aparecen en la imagen 1. Representa esos muebles con la perspectiva lateral de la imagen 1; no copies la vista desde arriba, el encuadre ni la composición de la imagen ${position}.`;
+
 function kitchenJointRule(document: EditorDocument, options: RenderDesignOptions): string | undefined {
   if (options.placement !== 'selected') return undefined;
   const regions = options.regions.map((region) => region.polygon);
@@ -49,6 +57,12 @@ function kitchenJointRule(document: EditorDocument, options: RenderDesignOptions
   if (!pair) return undefined;
   const [a, b] = pair;
   return `La cocina en L tiene una unión continua, sin huecos ni separación entre tramos. Conserva los colores de los frentes. Las dos encimeras tienen ${a.kitchen.worktopColor === b.kitchen.worktopColor ? `el mismo color ${a.kitchen.worktopColor}` : `los colores ${a.kitchen.worktopColor} y ${b.kitchen.worktopColor}`}; mantén cada tono sin reinterpretarlo.`;
+}
+
+export function lightingPhrase(options: Pick<RenderDesignOptions, 'lighting'>): string {
+  return options.lighting === 'daylight' ? 'luz natural de día'
+    : options.lighting === 'afternoon' ? 'luz natural de tarde, sol bajo y sombras largas, todavía de día'
+    : options.lighting === 'warm' ? 'luz cálida de atardecer' : 'escena nocturna';
 }
 
 export function projectVehicleCount(document: EditorDocument): number {
@@ -66,6 +80,9 @@ export function selectedViewImagePrompt(
   hasMask: boolean,
   hasAnchor = false,
   hasEnvironment = false,
+  spatial?: RenderSpatialContext,
+  cameraGuide?: CameraRoomGuide,
+  acceptedDesign = false,
 ): string {
   if (!document.designSpaceKind) throw new Error('Define el tipo de espacio antes de generar esta vista.');
   if ((options.placement === 'selected' || options.designScope === 'house') && !hasMask)
@@ -82,9 +99,7 @@ export function selectedViewImagePrompt(
   const placement = hasMask
     ? 'La imagen 1 ya muestra ÚNICAMENTE la zona elegida, aislada sobre fondo gris claro. La imagen 2 es su máscara: conserva solo la arquitectura y los muebles visibles dentro del blanco. Fuera del blanco deja fondo gris claro vacío; no recrees otras estancias, jardín, coches, fachadas ni objetos. No pintes la máscara en el resultado.'
     : 'Los objetos permitidos pueden colocarse en las zonas visibles sin tapar accesos.';
-  const light = options.lighting === 'daylight' ? 'luz natural de día'
-    : options.lighting === 'afternoon' ? 'luz natural de tarde, sol bajo y sombras largas, todavía de día'
-    : options.lighting === 'warm' ? 'luz cálida de atardecer' : 'escena nocturna';
+  const light = lightingPhrase(options);
   const vehicleCount = projectVehicleCount(document);
   const interiorMode = isInteriorRenderMode(options);
   const aerialView = ['top', 'isometric', 'drone'].includes(view.preset);
@@ -96,29 +111,47 @@ export function selectedViewImagePrompt(
       ? 'VISTA EXTERIOR TERMINADA: conserva la cubierta y las fachadas visibles como partes cerradas del inmueble. No retires el techo, no abras muros ni conviertas la vivienda en una maqueta seccionada.'
       : aerialView
         ? 'VISTA AÉREA O CENITAL: conserva TODOS los muros exteriores e interiores tal como se ven. Solo el techo puede estar oculto para enseñar el interior; no retires paredes ni cierres los huecos.'
-      : 'Respeta los cortes de la maqueta que dejan ver su interior; no extiendas el suelo o los muros más allá de sus bordes ni cierres el corte.';
+      : ['front', 'back', 'left', 'right'].includes(view.preset)
+        ? `VISTA FRONTAL O LATERAL CON CORTE: mantén la altura e inclinación de la cámara de la imagen 1 y el solapamiento de los muros. ${view.ceilingView === 'hidden' ? 'Techo y tejado están retirados para enseñar el interior: no los reconstruyas.' : 'Conserva las superficies de cubierta visibles.'} Muestra únicamente las estancias que deja ver la imagen 1; no eleves la cámara, no la conviertas en cenital ni destapes el resto del inmueble. Los tabiques vistos de canto siguen siendo muros macizos hasta la altura de la captura; no los conviertas en listones, mamparas o separadores decorativos. El frente retirado para mostrar el corte permanece abierto: no añadas ahí marcos ni hojas de puerta.`
+        : 'Respeta los cortes de la maqueta que dejan ver su interior; no extiendas el suelo o los muros más allá de sus bordes ni cierres el corte.';
   const strictOutside = !hasEnvironment && options.freedom === 'strict' && !interiorMode &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length));
   const jointRule = options.redesignFixed ? undefined : kitchenJointRule(document, options);
   const redesign = requestedRenderRedesign(options, objective, instruction);
   const contractRule = redesign ? undefined : designContractRule(document);
+  const visibleRoomIds = new Set(cameraGuide?.rooms.map(room => room.id));
+  const spatialForCamera = cameraGuide && spatial ? { ...spatial, levels: spatial.levels.map(level => ({ ...level,
+    rooms: level.rooms.filter(room => visibleRoomIds.has(room.id)),
+    openAreas: level.openAreas?.filter(area => area.roomIds.every(id => visibleRoomIds.has(id))),
+  })) } : spatial;
 
   return [
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
     `Produce UNA imagen arquitectónica realista del MISMO proyecto y MISMA cámara (${viewName}). Estilo: ${estiloLabel(style)}; ${light}.`,
     'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina y accesos visibles.',
     ...(redesign ? [RENDER_REDESIGN_RULE] : []),
-    options.redesignFixed
+    options.redesignFixed && acceptedDesign
+      ? 'FIJOS DEL DISEÑO ACEPTADO: cocina, isla, sanitarios y armarios empotrados son los de la cenital aceptada, con su forma, posición y acabados, aunque difieran de la maqueta. No inventes otros. Conserva el uso de cada estancia, instalaciones, muros, huecos y accesos.'
+      : options.redesignFixed
       ? 'REDISEÑO DE FIJOS AUTORIZADO: puedes sustituir cocina, isla, sanitarios y armarios empotrados y sus acabados dentro de la zona permitida. Conserva el uso de cada estancia, instalaciones, muros, huecos y accesos; este permiso no autoriza obras de geometría.'
       : 'FIJOS PROTEGIDOS: conserva cocina, isla, sanitarios y armarios empotrados, incluidos su forma, posición y acabados. Las instrucciones estéticas no autorizan sustituirlos.',
-    'Puedes sustituir muebles móviles (sofás, mesas, sillas, lámparas, alfombras y cortinas) dentro del ámbito; respeta la escala, el uso y todos los pasos.',
+    acceptedDesign
+      ? 'MOBILIARIO DEL DISEÑO ACEPTADO: no sustituyas ni añadas muebles respecto de la cenital aceptada; la decoración menor permitida debe ser coherente con ella. Respeta la escala, el uso y todos los pasos.'
+      : 'Puedes sustituir muebles móviles (sofás, mesas, sillas, lámparas, alfombras y cortinas) dentro del ámbito; respeta la escala, el uso y todos los pasos.',
     FURNITURE_USE_RULE,
+    ...(spatialForCamera ? [renderSpatialRule(spatialForCamera, includeSpatialImageInGeneration(view))] : []),
+    ...(cameraGuide ? [
+      'USOS LOCALIZADOS EN ESTA CÁMARA: las posiciones siguientes son puntos interiores visibles de las estancias en la imagen 1 (x desde la izquierda, y desde arriba, entre 0 y 1). Amuebla cada espacio según SU nombre en esa posición, no según el orden de una lista de habitaciones del plano. Los nombres ocultos no se trasladan al primer plano. Un punto no visible no implica que falte su estancia.',
+      `Estancias localizadas: ${JSON.stringify(cameraGuide.rooms)}.`,
+      'visibility=direct identifica un punto visible directamente. visibility=through-opening y el rótulo «al fondo» indican un punto visible únicamente a través de un hueco existente: esa estancia permanece DETRÁS de las paredes y puertas intermedias. No la adelantes al corte ni crees otro espacio en primera línea por tener un nombre adicional.',
+      ...(cameraGuide.image ? ['La última referencia es una COPIA ANOTADA de la imagen 1 con la MISMA cámara y geometría. Sus nombres y puntos indican el uso en ese lugar. No copies texto, puntos ni líneas al resultado. No es otro encuadre ni un diseño.'] : []),
+    ] : []),
     ...(document.designSpaceKind === 'casa' ? ['CASA COMPLETA significa solo la vivienda y sus fachadas. Conserva el terreno y jardín sin rediseñarlos; no añadas paisaje ni mobiliario exterior por instrucciones para la casa.'] : []),
     `Mejora materiales, texturas, sombras y luz. ${sceneRule} ${hasMask ? 'Mantén gris claro y vacío el fondo exterior a la zona aislada.' : 'Mantén el fondo y la relación entre edificio y exterior.'}`,
     renderViewVisibilityRule(view),
     'Conserva las hojas de puerta con la apertura que muestra la captura. Exposición equilibrada: los vanos no son manchas de luz blanca; materiales y contornos nítidos, sin velo luminoso ni desenfoque artificial.',
     ...(contractRule ? [contractRule] : []),
-    ...(hasAnchor ? [ANCHOR_RULE(hasMask ? 3 : 2)] : []),
+    ...(hasAnchor ? [(acceptedDesign ? ACCEPTED_DESIGN_RULE : ANCHOR_RULE)(hasMask ? 3 : 2)] : []),
     ...(hasAnchor && ['drone', 'isometric', 'exterior'].includes(view.preset) ? ['VISTA LEJANA CON IDENTIDAD COMPLETA: conserva volumen, plantas, cubierta, huecos, terrazas, pérgolas y todos los elementos arquitectónicos de la referencia aceptada. No simplifiques detalles; la imagen 1 fija la cámara.'] : []),
     ...(hasEnvironment ? [
       `La imagen ${hasMask ? 4 : 3} es la ortofoto real de la parcela: úsala exclusivamente como entorno, conservando límites, caminos y vegetación. No copies edificios de la ortofoto sobre la casa del proyecto.`,
@@ -132,6 +165,7 @@ export function selectedViewImagePrompt(
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),
     `${additions} ${placement} Mantén libres puertas, pasos, rampas y escaleras.`,
     ...(options.freedom !== 'strict' ? [DECOR_SENSE_RULE] : []),
+    ...(options.people ? [PEOPLE_RULE] : []),
     'Prohibido: añadir otra vivienda, repetir o superponer el modelo, insertar la captura dentro de otra escena, collage, paneles, marcos, etiquetas, texto o cotas.',
     `Preferencias estéticas subordinadas a la fidelidad: ${JSON.stringify({ objective: objective.slice(0, 200), instruction: instruction.slice(0, 500) })}.`,
   ].join('\n');

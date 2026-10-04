@@ -31,6 +31,7 @@ import { randomUUID } from 'node:crypto';
 import { aiErrorCode, recordAiAttempt, type AiCostScope } from '@/server/analytics/ai-cost-recorder';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { chatAttemptCost } from './cost/chat-attempt-cost';
+import { protectedInpaint } from './image/protected-inpaint';
 
 // Estimaciones de coste por llamada para el guardia (USD). Conservadoras: el
 // coste real medido lo aporta la respuesta y lo concilia la facturación.
@@ -43,9 +44,10 @@ export type AiCallContext = AiCostScope;
 export async function getChatVisionAdapter(
   ctx: AiCallContext,
   action: ModelAction,
-  options: { preferredProvider?: ResolvedRoute['provider'] } = {},
+  options: { preferredProvider?: ResolvedRoute['provider']; requiredProvider?: ResolvedRoute['provider'] } = {},
 ): Promise<ChatVisionAdapter> {
-  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' && route.provider !== 'openai');
+  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' && route.provider !== 'openai'
+    && (!options.requiredProvider || route.provider === options.requiredProvider));
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de chat compatible para ${action}`);
   if (options.preferredProvider && routes.some((route) => route.provider === options.preferredProvider))
     routes.sort((a, b) => Number(b.provider === options.preferredProvider) - Number(a.provider === options.preferredProvider));
@@ -114,7 +116,9 @@ function wrapImageAdapter(ctx: AiCallContext, _action: ModelAction, inner: Image
     async inpaint(req: InpaintRequest): Promise<ImageResult> {
       assertCanSpend(ctx.organizationId, IMAGE_ESTIMATE_USD);
       try {
-        const result = await inner.inpaint(req);
+        let storage;
+        try { storage = getStorageAdapter(); } catch { storage = undefined; }
+        const result = await protectedInpaint(inner, req, storage);
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
@@ -158,7 +162,7 @@ async function withChatFailover<T extends ChatResult>(
       const result = await invoke(adapter, { ...req, model, fallbackModels: undefined });
       const usage = result.usage;
       await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units: usage ? { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } : undefined, ...chatAttemptCost(usage) });
-      return result;
+      return { ...result, execution: { provider: route.provider, model } };
     } catch (error) {
       lastError = error;
       await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'error', latencyMs: elapsed(started), costType: 'unknown', errorCode: aiErrorCode(error) });
@@ -221,9 +225,10 @@ class FailoverImageAdapter implements ImageAdapter {
       const started = performance.now();
       try {
         const result = await operation(await createImageAdapter(route));
-        // Misma tarifa estimada que la previsualización; nunca importe facturado.
-        const costUsd = allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
-        await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'success', latencyMs: elapsed(started), units: { images: 1, unit: result.cost.unit }, costUsd, costType: 'estimated' });
+        // El importe que confirma el proveedor manda; sin él, la misma tarifa estimada que la previsualización.
+        const confirmed = result.cost.confirmedUsd;
+        const costUsd = confirmed ?? allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
+        await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'success', latencyMs: elapsed(started), units: { images: 1, unit: result.cost.unit }, costUsd, costType: confirmed !== undefined ? 'confirmed' : 'estimated' });
         return { ...result, generation: { provider: route.provider, model: route.model, fallbackIndex: attempt } };
       }
       catch (error) {

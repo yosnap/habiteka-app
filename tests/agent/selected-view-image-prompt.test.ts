@@ -24,6 +24,24 @@ describe('instrucción de imagen basada en la captura', () => {
     expect(prompt).toContain('FIJOS PROTEGIDOS');
     expect(prompt).toContain('No entregues una copia');
   });
+  it('fija el mobiliario de la cenital aceptada en los laterales sin copiar su perspectiva', () => {
+    const lateral = { ...view, preset: 'left' as const, cutaway: true, ceilingView: 'solid' as const };
+    const locked = selectedViewImagePrompt(document, lateral, 'moderno', defaultRenderDesignOptions(), '', '', false, true,
+      false, undefined, undefined, true);
+    expect(locked).toContain('La imagen 2 es la CENITAL ACEPTADA');
+    expect(locked).toContain('no copies la vista desde arriba');
+    expect(locked).toContain('no sustituyas ni añadas muebles');
+    expect(locked).not.toContain('Puedes sustituir muebles móviles');
+    expect(locked).toContain('no los conviertas en listones');
+    expect(locked).toContain('no añadas ahí marcos ni hojas de puerta');
+    const fixed = selectedViewImagePrompt(document, lateral, 'moderno', { ...defaultRenderDesignOptions(), redesignFixed: true },
+      '', '', false, true, false, undefined, undefined, true);
+    expect(fixed).toContain('FIJOS DEL DISEÑO ACEPTADO');
+    expect(fixed).not.toContain('REDISEÑO DE FIJOS AUTORIZADO');
+    const batch = selectedViewImagePrompt(document, lateral, 'moderno', defaultRenderDesignOptions(), '', '', false, true);
+    expect(batch).toContain('otra vista ya aceptada');
+    expect(batch).toContain('Puedes sustituir muebles móviles');
+  });
   it('respeta el corte de fachada y no reconstruye las cubiertas aéreas ocultas', () => {
     const base = defaultRenderDesignOptions();
     const front = selectedViewImagePrompt(document, { ...view, preset: 'front', cutaway: true,

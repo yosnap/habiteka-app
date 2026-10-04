@@ -35,12 +35,12 @@ import { DeliverableNotFoundError } from '@/server/agent/feedback/iteration-repo
 import { UserFacingError } from '@/server/errors/user-facing-error';
 import { POST } from '@/app/api/iterations/route';
 
-function request() {
+function request(zone = { id: 'global', bbox: { x: 0, y: 0, width: 1, height: 1 } }) {
   return new Request('https://app.test/api/iterations', {
     method: 'POST',
     body: JSON.stringify({
       deliverableId: 'd1',
-      zone: { id: 'global', bbox: { x: 0, y: 0, width: 1, height: 1 } },
+      zone,
       instruction: 'suelo de madera clara en el salón',
     }),
   });
@@ -90,5 +90,20 @@ describe('POST /api/iterations', () => {
   it('entrega la iteración cuando todo va bien', async () => {
     const response = await POST(request());
     expect(response.status).toBe(201);
+  });
+
+  it('la selección de la API también llega a la evaluación y al retoque', async () => {
+    const zone = { id: 'selected', bbox: { x: .2, y: .3, width: .2, height: .3 } };
+    expect((await POST(request(zone))).status).toBe(201);
+    expect(mocks.quality).toHaveBeenCalledWith(expect.anything(),
+      { projectId: 'p1', refId: 'd1', imageZone: zone }, 'render3d',
+      'suelo de madera clara en el salón', false, 'iteracion_zona');
+    expect(mocks.runFeedback).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ zone }));
+  });
+
+  it('una selección inválida no llega a Jev ni al proveedor', async () => {
+    expect((await POST(request({ id: 'bad', bbox: { x: -1, y: 0, width: .2, height: .2 } }))).status).toBe(422);
+    expect(mocks.quality).not.toHaveBeenCalled();
+    expect(mocks.runFeedback).not.toHaveBeenCalled();
   });
 });
