@@ -1,0 +1,37 @@
+{
+  "esquema": 1,
+  "proyecto": "habiteka",
+  "nombre": "presentacion",
+  "formato": { "ancho": 1920, "alto": 1080, "fps": 30 },
+  "duracion": { "min": 45, "max": 70 },
+  "idioma": "es",
+  "marca": {
+    "nombre": "Habiteka",
+    "colores": { "primario": "#171717", "fondo": "#ffffff", "texto": "#0a0a0a", "acento": "#d35d31" },
+    "tipografias": { "titulos": "Geist", "texto": "Geist" }
+  },
+  "app": {
+    "urlBase": "http://localhost:3040",
+    "origenesPermitidos": ["http://localhost:3040"],
+    "inicioSesion": {
+      "ruta": "/acceder",
+      "pasos": [
+        { "accion": "clic", "selector": "text=Entrar como admin (modo desarrollo)" },
+        { "accion": "esperar", "selector": "text=Imagina tu reforma antes de empezarla" }
+      ]
+    },
+    "sustituirTextos": {
+      "http://localhost:3040": "https://habiteka.app",
+      "http://localhost:3000": "https://habiteka.app",
+      "localhost:3040": "habiteka.app"
+    },
+    "datosPermitidos": ["admin@habiteka.dev"],
+    "fecha": "2026-10-06T10:00:00",
+    "zonaHoraria": "Europe/Madrid"
+  },
+  "voz": { "proveedor": "elevenlabs", "vozId": "SDVJaMLoJa7wc3s2sn7d", "modelo": "eleven_multilingual_v2" },
+  "musica": { "caracter": "energica", "bpm": 116, "tonalidad": "Mi mayor" },
+  "direccion": "navegador-limpio",
+  "semilla": 4,
+  "terminos": ["Habiteka"]
+}
