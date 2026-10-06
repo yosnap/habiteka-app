@@ -19,10 +19,12 @@ El editor permite material de la cara superior, acabado del canto y espesor de l
 2. Pulsa **Añadir tejado a las estancias interiores**. La cubierta inicial es plana.
 3. Elige **Plana**, **Una agua**, **Dos aguas** o **Cuatro aguas**. Ajusta pendiente y orientación si es inclinada.
 4. Ajusta alero, espesor, color y material. Los controles muestran su valor y unidad; puedes usar el slider o −/+.
-5. Revisa las **Habitaciones que cubre**. Patios y terrazas etiquetados se excluyen automáticamente; desmarca cualquier parte que deba seguir abierta.
+5. Revisa las **Habitaciones que cubre** y **Patios y huecos interiores del tejado**: **Cerrar con el tejado**, **Dejar abiertos** o **Cerrar con cristal**. Los tejados nuevos cierran los vacíos rodeados por la cubierta; el cristal solo aparece si lo eliges. Los tejados anteriores conservan sus huecos hasta que cambies esta opción. Patios y terrazas exteriores no se añaden como habitaciones cubiertas automáticamente.
 6. Pulsa **Ver tejado en 3D**. Guarda y aprueba esa revisión antes de generar nuevas imágenes o exportar el vídeo aprobado.
 
-La huella conserva retranqueos y patios abiertos. La altura arranca sobre los muros de las habitaciones seleccionadas; el acabado y la geometría llegan a las referencias y al contexto de las imágenes. Las imágenes antiguas no se actualizan al añadir un tejado.
+La huella conserva retranqueos, sin extenderse a terrazas fuera de su contorno. La opción de huecos afecta solo a vacíos completamente rodeados por el tejado, incluidos patios interiores o pasos excluidos de sus habitaciones. El cristal sigue las pendientes de la cubierta y es un material real, distinto de la transparencia de edición. La IA no decide abrir, cerrar o acristalar estos huecos. La altura arranca sobre los muros seleccionados; el acabado y la geometría llegan a las referencias y al contexto de las imágenes. Las imágenes antiguas no se actualizan al cambiar un tejado.
+
+Esta opción se aplica a todos los vacíos interiores de la cubierta; todavía no permite elegir uno por separado ni dibujar una franja de vidrio. El tejado exterior tampoco se dibuja como un elemento seleccionable en Plano 2D. Configúralo desde su panel y comprueba el resultado con **Ver tejado en 3D**; las opciones de **Vista** controlan la visualización, no editan la cubierta.
 
 Los muros seleccionados se prolongan automáticamente hasta la cara inferior del tejado inclinado, incluidos los hastiales. El cierre mantiene los acabados de cada cara del muro y no añade ventanas. No necesitas elevar manualmente todos los muros hasta la cumbrera: la parte superior sigue la pendiente. Compruébalo en vistas Frontal, Trasera, Izquierda y Derecha con **Techo: Sólido**.
 

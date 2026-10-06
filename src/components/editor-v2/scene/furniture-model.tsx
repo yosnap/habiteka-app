@@ -3,11 +3,12 @@ import { Component, Suspense, useEffect, useMemo, type ReactNode } from 'react';
 import { Edges, Html, useGLTF } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import type { Furniture } from '@/lib/editor-document/schema';
-import { furnitureAsset, ORIGINAL_ASSET_COLOR } from '@/lib/editor-document/furniture-assets';
+import { furnitureModel, modelTint } from '@/lib/editor-document/furniture-models';
 import { furnitureSpatial, objectCenter } from '@/lib/editor-document/spatial-properties';
 import { prepareFurnitureModel } from '@/canvas/editor-v2/scene/furniture-model-transform';
 import type { SceneBox } from '@/canvas/editor-v2/scene/types';
 import { BoxMesh } from './scene-meshes';
+import { isPorchAddon } from '@/lib/editor-document/porch-volumes';
 
 class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -15,12 +16,11 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: boolean; onSelect: (id: string) => void }) {
-  const asset = furnitureAsset(item)!, { scene } = useGLTF(asset.url, false, true);
+  const asset = furnitureModel(item)!, { scene } = useGLTF(asset.url, false, true), tint = modelTint(item);
   const spatial = furnitureSpatial(item), center = objectCenter(item);
   const anisotropy = useThree((state) => Math.min(8, state.gl.capabilities.getMaxAnisotropy()));
-  const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation,
-    spatial.color === ORIGINAL_ASSET_COLOR ? undefined : spatial.color, anisotropy, asset.tintMaterialNames),
-    [scene, asset.frontRotation, spatial.color, anisotropy, asset.tintMaterialNames]);
+  const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames),
+    [scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames]);
   useEffect(() => () => prepared.dispose(), [prepared]);
   return <group position={[center.x / 1000, spatial.elevationMm / 1000, center.y / 1000]}
     rotation={[0, -item.rotation * Math.PI / 180, 0]} onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
@@ -39,7 +39,7 @@ function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: 
 export function FurnitureModel({ item, boxes, selected, onSelect }: {
   item: Furniture; boxes: SceneBox[]; selected: boolean; onSelect: (id: string) => void;
 }) {
-  const asset = furnitureAsset(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
+  const asset = furnitureModel(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
   const fallback = (failed: boolean) => <group userData={{ modelLoadState: failed ? 'failed' : 'loading' }}>
     {boxes.map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
     <Html center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
@@ -49,6 +49,8 @@ export function FurnitureModel({ item, boxes, selected, onSelect }: {
     </Html>
   </group>;
   return <ModelBoundary key={asset.url} fallback={fallback(true)}>
-    <Suspense fallback={fallback(false)}><LoadedModel item={item} selected={selected} onSelect={onSelect} /></Suspense>
+    <Suspense fallback={fallback(false)}><LoadedModel item={item} selected={selected} onSelect={onSelect} />
+      {boxes.filter((box) => isPorchAddon(box.boundaryPart)).map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
+    </Suspense>
   </ModelBoundary>;
 }

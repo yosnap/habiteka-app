@@ -276,6 +276,20 @@
   background: var(--paper);
   border-radius: var(--radius);
 }
+.hints {
+  position: absolute;
+  bottom: 64px;
+  left: 16px;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
 .navigation span {
   min-width: 48px;
   text-align: center;
@@ -636,6 +650,13 @@
 .constructionCatalog p {
   font-size: 0.8125rem;
 }
+/* Apartados de puertas (Interior, Entrada, Correderas, Exterior y garaje). */
+.constructionCatalog h4 {
+  font-weight: 650;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 16px 0 8px;
+}
 .constructionCards {
   display: grid;
   gap: 12px;
@@ -649,9 +670,6 @@
   gap: 12px;
   padding: 16px 8px;
   text-align: center;
-}
-.constructionCards button > svg {
-  color: var(--muted);
 }
 .constructionCards strong {
   font-size: 0.875rem;
@@ -667,22 +685,6 @@
   gap: 8px;
   width: 100%;
   margin-top: 16px;
-}
-.shapePreview {
-  display: block;
-  width: 80px;
-  height: 64px;
-  background: var(--selected);
-  color: transparent;
-}
-.shapePreview[data-shape='L'] {
-  clip-path: polygon(0 0, 45% 0, 45% 55%, 100% 55%, 100% 100%, 0 100%);
-}
-.shapePreview[data-shape='U'] {
-  clip-path: polygon(0 0, 30% 0, 30% 65%, 70% 65%, 70% 0, 100% 0, 100% 100%, 0 100%);
-}
-.shapePreview[data-shape='T'] {
-  clip-path: polygon(0 0, 100% 0, 100% 35%, 65% 35%, 65% 100%, 35% 100%, 35% 35%, 0 35%);
 }
 .contextMenu {
   position: absolute;

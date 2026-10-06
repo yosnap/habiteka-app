@@ -1,7 +1,7 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
-import type { EditorDocument, FloorFinish, Point } from '@/lib/editor-document/schema';
+import type { EditorDocument, FloorFinish, Furniture, Point } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from './types';
+import { meters, type EditorScene, type SceneBox, type ScenePolygon, type ExteriorWall } from './types';
 import { wallMeshes, junctionMeshes } from './wall-meshes';
 import { openingMeshes } from './opening-meshes';
 import { stairMeshes } from './stair-meshes';
@@ -67,17 +67,22 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
       position: [meters(column.x + column.widthMm / 2), meters(column.elevationMm + column.heightMm / 2), meters(column.y + column.depthMm / 2)] as [number, number, number],
       size: [meters(column.widthMm), meters(column.heightMm), meters(column.depthMm)] as [number, number, number],
       rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0', materialId: column.materialId })),
-    ...planObjects(doc).flatMap((f) => furnitureVolumes(f, doc).map((volume, index) => {
-      const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
-      const p = localToWorld(f, center);
-      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? volume.slotId ?? f.id, role: 'furniture' as const,
-        position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
-        size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
-        ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
-        shape: volume.shape, materialId: volume.materialId, useColorMap: volume.useColorMap,
-        boundaryPart: volume.part, opacity: volume.opacity,
-        appearance: volume.appearance,
-        rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
-    })),
+    ...planObjects(doc).flatMap((f) => furnitureSceneBoxes(f, doc)),
   ] };
+}
+
+/** Sólidos con que la escena 3D pinta un objeto del plano sin modelo GLB; sin documento, los de la pieza suelta. */
+export function furnitureSceneBoxes(f: Furniture, doc?: EditorDocument): SceneBox[] {
+  return furnitureVolumes(f, doc).map((volume, index) => {
+    const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
+    const p = localToWorld(f, center);
+    return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? volume.slotId ?? f.id, role: 'furniture' as const,
+      position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
+      size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
+      ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
+      shape: volume.shape, materialId: volume.materialId, useColorMap: volume.useColorMap,
+      boundaryPart: volume.part, opacity: volume.opacity,
+      appearance: volume.appearance,
+      rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
+  });
 }

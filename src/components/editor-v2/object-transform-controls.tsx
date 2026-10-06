@@ -25,8 +25,11 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
   const item = planObjects(source).find((f) => f.id === id) ?? source.stairs?.find((s) => s.id === id) ?? source.ramps?.find((r) => r.id === id) ?? source.columns?.find((c) => c.id === id);
   const group = useRef<Konva.Group>(null);
   // `duplicate` marca un arrastre con Alt: el original no se mueve y la copia se coloca donde se suelta.
-  const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null; duplicate?: SpatialClipboardItem } | null>(null);
+  // `turn`: giro desde una esquina, relativo al ángulo y al giro con que empezó el arrastre.
+  const gesture = useRef<{ node: Konva.Node; doc: EditorDocument; item: ObjectItem; candidate: EditorDocument | null; error: string | null;
+    duplicate?: SpatialClipboardItem; turn?: { angle: number; rotation: number } } | null>(null);
   const [shown, setShown] = useState<{ item: ObjectItem; error: string | null } | null>(null);
+  const [hoverCorner, setHoverCorner] = useState<number | null>(null);
   useEffect(() => {
     const cancel = () => { const active = gesture.current; gesture.current = null; active?.node.stopDrag();
       setShown(null); onPreview(null); };
@@ -105,7 +108,25 @@ export function ObjectTransformControls({ store, source, id, scale, onPreview }:
         if (e.evt.shiftKey) rotation = Math.round(rotation / 15) * 15;
         update(transformAroundCenter(active.item, { rotation }));
       }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(rotate); end(); }} />
-    <Text x={rotate.x + 12 / scale} y={rotate.y - 7 / scale} text="Girar · Mayús: 15° · Esquinas: Alt simétrico" fontSize={10 / scale} fill={color} listening={false} />
+    <Text x={rotate.x + 12 / scale} y={rotate.y - 7 / scale} text="Girar (también desde fuera de cada esquina) · Mayús: 15° · Esquinas: Alt desde el centro" fontSize={10 / scale} fill={color} listening={false} />
+    {footprint(current).map((p, i) => {
+      // Zona de giro justo por fuera de cada esquina, como en Figma: se resalta al pasar el ratón.
+      const dx = p.x - center.x, dy = p.y - center.y, length = Math.hypot(dx, dy) || 1;
+      const zone = { x: p.x + dx / length * 24 / scale, y: p.y + dy / length * 24 / scale };
+      const cursor = (e: Konva.KonvaEventObject<MouseEvent>, value: string) => { const box = e.target.getStage()?.container(); if (box) box.style.cursor = value; };
+      return <Circle key={`turn-${i}`} x={zone.x} y={zone.y} radius={11 / scale} fill="rgba(255,255,255,0.001)" stroke={color}
+        strokeWidth={1.5 / scale} dash={[3 / scale, 3 / scale]} opacity={hoverCorner === i ? 1 : 0.3} draggable
+        onMouseEnter={(e) => { setHoverCorner(i); cursor(e, 'grab'); }} onMouseLeave={(e) => { setHoverCorner(null); cursor(e, ''); }}
+        onDragStart={(e) => { e.cancelBubble = true; begin(e.target); const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition();
+          if (active && pointer) { const c = objectCenter(active.item); active.turn = { angle: Math.atan2(pointer.y - c.y, pointer.x - c.x), rotation: active.item.rotation }; } }}
+        onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active?.turn || !pointer) return;
+          const c = objectCenter(active.item);
+          let rotation = active.turn.rotation + (Math.atan2(pointer.y - c.y, pointer.x - c.x) - active.turn.angle) * 180 / Math.PI;
+          rotation = ((rotation % 360) + 360) % 360;
+          if (e.evt.shiftKey) rotation = Math.round(rotation / 15) * 15 % 360;
+          update(transformAroundCenter(active.item, { rotation }));
+        }} onDragEnd={(e) => { e.cancelBubble = true; e.target.position(zone); end(); }} />;
+    })}
     {footprint(current).map((p, i) => <Circle key={i} x={p.x} y={p.y} radius={6 / scale} fill="white" stroke={color} strokeWidth={2 / scale} draggable
       onDragStart={(e) => { e.cancelBubble = true; begin(e.target); }}
       onDragMove={(e) => { e.cancelBubble = true; const active = gesture.current, pointer = e.target.getStage()?.getRelativePointerPosition(); if (!active || !pointer) return;

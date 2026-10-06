@@ -25,7 +25,7 @@ it('guarda el cuerpo de la escalera sin alterar huellas ni medidas y lo comparte
   expect(steps.length).toBeGreaterThan(1);
   expect(steps.every((box) => box.topMaterialId === 'polyhaven:brushed_concrete'
     && box.bodyMaterialId === 'polyhaven:white_plaster_02')).toBe(true);
-  expect(render.attributes?.['acabado de contrahuellas, laterales y cara inferior']).toBe('White Plaster 02');
+  expect(render.attributes?.['acabado de contrahuellas, laterales y cara inferior']).toBe('Pintura blanca lisa');
   expect(editorDesignContext(saved).existingMaterialPalette.stairBodies).toContain('polyhaven:white_plaster_02');
   expect(updateStair(saved, stair.id, { bodyMaterialId: undefined }).stairs![0]!.bodyMaterialId).toBeUndefined();
 });

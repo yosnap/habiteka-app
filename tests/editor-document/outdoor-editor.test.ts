@@ -46,7 +46,8 @@ describe('catálogo y texturas exteriores', () => {
     const doc = addFurniture(emptyEditorDocument(), item, { x: 1000, y: 1000 });
     const object = doc.furniture[0]!;
     const volumes = furnitureVolumes(object);
-    expect(volumes.length).toBeGreaterThan(1);
+    // Un camino liso sin bordillo puede ser una sola losa; la geometría debe existir y persistir.
+    expect(volumes.length).toBeGreaterThan(0);
     expect(volumes.every((v) => v.widthMm > 0 && v.depthMm > 0 && v.top > v.bottom)).toBe(true);
     expect(parseEditorDocument(JSON.parse(JSON.stringify(doc)))).toEqual(doc);
     expect(editorDocumentToScene(doc).boxes.filter((box) => box.sourceEntityId === object.id)).toHaveLength(volumes.length);

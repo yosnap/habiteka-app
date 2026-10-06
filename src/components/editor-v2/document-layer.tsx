@@ -6,6 +6,7 @@ import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { elementName } from '@/lib/editor-document/element-classification';
 
 import { snapSpatialDrag, snapPointDrag } from './magnetic-drag';
+import { constrainSeatingDrag } from '@/canvas/editor-v2/seating-drag';
 import { alignRoom, alignPoints } from '@/canvas/editor-v2/magnetic-alignment';
 import { useMemo, useRef, useState } from 'react';
 import { duplicatePlanElement } from '@/canvas/editor-v2/duplicate-plan-element';
@@ -61,6 +62,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
   const [wallMoveSnap, setWallMoveSnap] = useState<WallMoveSnap | null>(null);
   const duplicateDrag = useRef(false);
+  const seatingPreview = useRef<Furniture | null>(null);
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
@@ -87,6 +89,14 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     if (tool !== 'select') return;
     e.cancelBubble = true;
     clickSelect(store, id, e.evt as MouseEvent);
+  };
+  // Alt + doble clic sobre una pared: esquina nueva en ese punto, lista para arrastrarla y quebrar la pared. El doble
+  // clic sin Alt sigue abriendo Propiedades.
+  const addCorner = (id: string, e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+    if (tool !== 'select' || readOnly || !(e.evt as MouseEvent).altKey) return;
+    e.cancelBubble = true;
+    const point = e.target.getStage()?.getRelativePointerPosition();
+    if (point) store.getState().addCornerAt(id, point, scale);
   };
   // Arrastrar un elemento que forma parte de una selección múltiple desplaza toda la selección de una vez.
   const groupOf = (id: string) => { const ids = store.getState().selection; return ids.length > 1 && ids.includes(id) ? ids : null; };
@@ -117,7 +127,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       return;
     }
     if (object) {
-      const placed = to as Furniture;
+      const placed = constrainSeatingDrag(state.document, seatingPreview.current ?? object, to as Furniture);
       run(() => state.apply(updateFurniture(state.document, id, { x: placed.x, y: placed.y, rotation: placed.rotation, elevationMm: placed.elevationMm, hostId: placed.hostId })));
     } else run(() => state.apply(moveEntity(state.document, id, wall ? to : { x: to.x - origin.x, y: to.y - origin.y })));
     setWallMoveSnap(null);
@@ -178,7 +188,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           event.target.position(snap.delta); setWallMoveSnap(snap);
         }}
         onDragEnd={(e) => drag(wall.id, { x: 0, y: 0 }, e)}
-        onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)}>
+        onClick={(e) => choose(wall.id, e)} onTap={(e) => choose(wall.id, e)}
+        onDblClick={(e) => addCorner(wall.id, e)}>
         {wall.curveHeightMm ? <Line points={wallStrip(doc, wall).flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : wallInk} />
           : miter ? <Line points={miter.flatMap((p) => [p.x, p.y])} closed fill={active ? ACCENT : wallInk}
             hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />
@@ -202,14 +213,20 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {planDrawOrder(planObjects(doc)).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
       draggable={!readOnly && tool === 'select'} onDragStart={(e) => {
+        seatingPreview.current = f;
         duplicateDrag.current = e.evt.altKey;
         if (groupOf(f.id)) return;
         // Con Mayús/⌘/Ctrl un clic con un leve arrastre (trackpad) no rompe la selección múltiple: el objeto se suma a ella.
         const evt = e.evt as MouseEvent, current = store.getState().selection;
         store.getState().select((evt.shiftKey || evt.metaKey || evt.ctrlKey) && current.length ? [...current.filter((id) => id !== f.id), f.id] : []);
       }}
-      onDragMove={(e) => { if (groupOf(f.id)) return; const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale, e.target.rotation()); e.target.position(snapped); e.target.rotation(snapped.rotation); }}
-      onDragEnd={(e) => { const turned = e.target.rotation(); e.target.rotation(f.rotation); drag(f.id, f, e, turned); }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
+      onDragMove={(e) => {
+        if (groupOf(f.id)) return;
+        const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale, e.target.rotation());
+        const placed = duplicateDrag.current ? snapped : constrainSeatingDrag(store.getState().document, seatingPreview.current ?? f, snapped as Furniture);
+        seatingPreview.current = placed as Furniture; e.target.position(placed); e.target.rotation(placed.rotation);
+      }}
+      onDragEnd={(e) => { const turned = e.target.rotation(); e.target.rotation(f.rotation); drag(f.id, f, e, turned); seatingPreview.current = null; }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
       {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol visual={presentation === 'visual'} onPartSnap={(id, delta) => {
         const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
         const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });

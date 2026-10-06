@@ -20,11 +20,17 @@ interface Props {
   onCompare: (result: StudioResultView) => void;
   onContinue: (result: StudioResultView) => void;
   onReviewImport: () => void;
+  /** Imagen que es ahora el fondo del editor. */
+  backgroundKey?: string | null;
+  /** Solo con un plano en el editor: usa el boceto o un redibujado como su fondo. */
+  onBackground?: (result: StudioResultView) => void;
 }
 
 const label = (item: StudioResultView) =>
   item.kind === 'source'
     ? 'Original'
+    : item.kind === 'canvas'
+      ? 'Captura del editor'
     : item.kind === 'redraw'
       ? `Redibujado ${item.mode === 'decorado' ? 'decorado' : 'técnico'}`
       : item.vista === 'maqueta'
@@ -52,6 +58,8 @@ export function StudioResultsPanel({
   onCompare,
   onContinue,
   onReviewImport,
+  backgroundKey,
+  onBackground,
 }: Props) {
   const newest = [...results].reverse();
   return (
@@ -115,6 +123,9 @@ export function StudioResultsPanel({
                   {activeKey !== item.assetKey ? (
                     <p className="text-ink-soft text-[11px]">Guardado</p>
                   ) : null}
+                  {backgroundKey === item.assetKey ? (
+                    <p className="text-brand-700 text-[11px]">Fondo del editor</p>
+                  ) : null}
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
@@ -131,7 +142,12 @@ export function StudioResultsPanel({
                     Comparar
                   </Button>
                 ) : null}
-                {(item.kind === 'source' || (item.kind === 'redraw' && source)) &&
+                {onBackground && (item.kind === 'source' || item.kind === 'redraw') && backgroundKey !== item.assetKey ? (
+                  <Button size="xs" variant="outline" onClick={() => onBackground(item)}>
+                    Usar de fondo en el editor
+                  </Button>
+                ) : null}
+                {(item.kind === 'source' || item.kind === 'canvas' || (item.kind === 'redraw' && source)) &&
                 activeKey !== item.assetKey ? (
                   <Button size="xs" variant="ghost" onClick={() => onContinue(item)}>
                     Usar este plano

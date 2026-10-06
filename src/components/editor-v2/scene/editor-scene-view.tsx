@@ -20,8 +20,9 @@ import { CutawayWall, cutawaySupportHeights, hideWallsByIds, hideWallsFacingCame
 import { zoneOccludingWallIds } from './zone-occluding-walls';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
 import { buildingStairLinks } from '@/lib/editor-document/building-stair-links';
-import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
+import { furnitureModel } from '@/lib/editor-document/furniture-models';
 import { FurnitureModel } from './furniture-model';
+import { HedgeModel } from './hedge-model';
 import { OutdoorLighting } from './outdoor-lighting';
 import { WalkCamera } from './walk-camera';
 import { FreeWalkCamera } from './free-walk-camera';
@@ -155,7 +156,8 @@ function SceneView({
   const scene = useMemo(() => editorDocumentToScene(sceneDocument,
     stairLinks.filter((link) => link.upperLevelId === document.activeLevelId).map((link) => link.outline)), [sceneDocument, document.activeLevelId, stairLinks]);
   const openingHosts = useMemo(() => viewCutawayHosts(document), [document]);
-  const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureAsset(item)).map((item) => item.id)), [document]);
+  const modeled = useMemo(() => new Set(document.furniture.filter((item) => furnitureModel(item)).map((item) => item.id)), [document]);
+  const modeledHedges = useMemo(() => (document.boundaries ?? []).filter((item) => item.construction.infill === 'hedge' && furnitureModel(item)), [document]);
   const [request, setRequest] = useState<CameraRequest>(() => presentation === 'plan'
     ? { sequence: 0, action: 'top' }
     : { sequence: 0, action: 'isometric', focus: scenePresetFocus(document, 'isometric') });
@@ -691,7 +693,7 @@ function SceneView({
             exterior={scene.exteriorWalls.find((w) => w.sourceEntityId === polygon.sourceEntityId)} selected={selection.includes(polygon.sourceEntityId)}>
             <PolygonMesh polygon={polygon} selected={selection.includes(polygon.sourceEntityId)} onSelect={select} />
           </CutawayWall></group>)}
-          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId) && !(hideCovers && coverIds.has(box.sourceEntityId))).map((box) => {
+          {scene.boxes.filter((box) => !modeled.has(box.sourceEntityId) && !(box.boundaryPart === 'foliage' && modeledHedges.some((b) => b.id === box.sourceEntityId)) && !(hideCovers && coverIds.has(box.sourceEntityId))).map((box) => {
             // Marco, hoja y cristal de un hueco se recortan con su muro: si no, quedan flotando.
             const hostWallId = openingHosts.get(box.sourceEntityId), cuttable = box.role === 'wall' || hostWallId !== undefined;
             return <group key={box.id} position={planPreview?.id === box.sourceEntityId ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
@@ -703,6 +705,9 @@ function SceneView({
           </CutawayWall></group>;
           })}
           {scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1, buildKey: ramp.sourceEntityId }}><RampMesh ramp={ramp} selected={selection.includes(ramp.sourceEntityId)} onSelect={select} /></group>)}
+          {modeledHedges.map((boundary) => <group key={boundary.id}
+            position={planPreview?.id === boundary.id ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}>
+            <HedgeModel boundary={boundary} selected={selection.includes(boundary.id)} onSelect={select} /></group>)}
           {document.furniture.filter((item) => modeled.has(item.id)).map((item) => <group key={item.id}
             position={planPreview?.id === item.id ? [planPreview.dxMm / 1000, planPreview.dzMm / 1000, planPreview.dyMm / 1000] : [0, 0, 0]}
             userData={{ videoStage: 3, cutawayWallId: openingHosts.get(item.id) }}><CutawayWall exterior={scene.exteriorWalls.find(wall => wall.sourceEntityId === openingHosts.get(item.id))}
@@ -732,7 +737,9 @@ function SceneView({
             <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === polygon.sourceEntityId)} cuttable={polygon.role !== 'floor'}
               enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway && polygon.role !== 'floor'} selected={false}>
               <PolygonMesh polygon={polygon} selected={false} onSelect={() => {}} /></CutawayWall></group>)}
-          {level.scene.boxes.filter((box) => !level.document.furniture.some((item) => item.id === box.sourceEntityId && (furnitureAsset(item) || (hideCovers && viewCoverIds(level.document).has(item.id)))))
+          {(level.document.boundaries ?? []).filter((item) => item.construction.infill === 'hedge' && furnitureModel(item)).map((boundary) =>
+            <HedgeModel key={boundary.id} boundary={boundary} selected={false} onSelect={() => {}} />)}
+          {level.scene.boxes.filter((box) => !(box.boundaryPart === 'foliage' && level.document.boundaries?.some((item) => item.id === box.sourceEntityId && furnitureModel(item))) && !level.document.furniture.some((item) => item.id === box.sourceEntityId && (furnitureModel(item) || (hideCovers && viewCoverIds(level.document).has(item.id)))))
             .map((box) => <group key={box.id} userData={{ buildKey: box.sourceEntityId, buildBaseM: box.role === 'wall' ? (level.document.walls.find(w => w.id === box.sourceEntityId)?.baseElevationMm ?? 0) / 1000 : Math.max(0, box.position[1] - box.size[1] / 2), videoStage: box.role === 'furniture' ? 3 : box.role === 'wall' ? 1 : 2,
               cutawayWallId: box.role === 'wall' ? box.sourceEntityId : level.cutawayHosts.get(box.sourceEntityId), cutawayStructural: box.role === 'wall' }}>
               <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === (level.cutawayHosts.get(box.sourceEntityId) ?? box.sourceEntityId))}
@@ -740,7 +747,7 @@ function SceneView({
                 <BoxMesh box={box} selected={false} onSelect={() => {}} /></CutawayWall></group>)}
           {level.scene.ramps.map((ramp) => <group key={ramp.id} userData={{ videoStage: 1, buildKey: ramp.sourceEntityId }}>
             <RampMesh ramp={ramp} selected={false} onSelect={() => {}} /></group>)}
-          {level.document.furniture.filter((item) => furnitureAsset(item) && !(hideCovers && viewCoverIds(level.document).has(item.id))).map((item) => <group key={item.id} userData={{ videoStage: 3, cutawayWallId: level.cutawayHosts.get(item.id) }}>
+          {level.document.furniture.filter((item) => furnitureModel(item) && !(hideCovers && viewCoverIds(level.document).has(item.id))).map((item) => <group key={item.id} userData={{ videoStage: 3, cutawayWallId: level.cutawayHosts.get(item.id) }}>
             <CutawayWall exterior={level.scene.exteriorWalls.find(wall => wall.sourceEntityId === level.cutawayHosts.get(item.id))}
               enabled={!walking && !freeWalk && !recording && !capturingPose && wallCutaway} selected={false}>
               <FurnitureModel item={item} boxes={level.scene.boxes.filter((box) => box.sourceEntityId === item.id)} selected={false} onSelect={() => {}} /></CutawayWall></group>)}

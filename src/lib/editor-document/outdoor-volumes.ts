@@ -1,9 +1,12 @@
 import type { Furniture } from './schema';
 import type { FurnitureVolume } from './furniture-profiles';
 import { furnitureSpatial } from './spatial-properties';
+import { gardenPathVolumes } from './garden-path-volumes';
+import { isPorch, porchVolumes } from './porch-volumes';
 
 /** Geometría paramétrica compartida por la vista 3D y las colisiones, en mm. */
 export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
+  if (isPorch(item)) return porchVolumes(item);
   const { heightMm: h, elevationMm: e, color } = furnitureSpatial(item), w = item.widthMm, d = item.depthMm;
   const parts: FurnitureVolume[] = [];
   const box = (x: number, y: number, z: number, a: number, b: number, c: number, tint = color, extra: Partial<FurnitureVolume> = {}) => {
@@ -74,8 +77,8 @@ export function outdoorVolumes(item: Furniture): FurnitureVolume[] {
     case 'maceta-exterior': basin(); break;
     case 'huerto': case 'jardinera-exterior': basin(); box(.06, .06, .1, .88, .88, .25, '#624530');
       for (let i = 0; i < 4; i++) box(.13 + i * .2, .16, .35, .12, .68, .65, '#5e883e'); break;
-    case 'camino': for (let i = 0; i < 5; i++) box(.03, i / 5, 0, .94, .18, 1); break;
-    case 'parking': box(0, 0, 0, 1, 1, .7); for (const x of [.03, .95]) box(x, 0, .7, .02, 1, .3, '#f3efda');
+    case 'camino': return gardenPathVolumes(item);
+    case 'parking': box(0, 0, 0, 1, 1, .7, '#ffffff', { materialId: 'polyhaven:asphalt_02' }); for (const x of [.03, .95]) box(x, 0, .7, .02, 1, .3, '#f3efda');
       box(.03, 0, .7, .94, .02, .3, '#f3efda'); break;
     case 'coche':
       box(.06, .04, .22, .88, .92, .3); box(.15, .3, .52, .7, .42, .43, '#53646b'); box(.18, .32, .95, .64, .38, .05);

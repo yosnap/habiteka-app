@@ -12,6 +12,7 @@ import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { FURNITURE_USE_RULE } from '@/lib/editor-document/render-review';
 import { includeSpatialImageInGeneration, renderSpatialRule, type RenderSpatialContext } from './render-spatial-context';
 import type { CameraRoomGuide } from './render-camera-room-guide';
+import { exteriorDesignContext, exteriorPlanRule, isVehicle } from '@/lib/editor-document/exterior-design-context';
 import {
   isInteriorRenderMode,
   RENDER_ADDITION_LABELS,
@@ -25,7 +26,7 @@ const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, 
 /** Personas pedidas por el usuario: dan vida a la imagen sin cambiar el diseño ni bloquear pasos. */
 export const PEOPLE_RULE = 'Añade algunas personas haciendo vida cotidiana en las estancias, a escala real y sin tapar puertas ni pasos.';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v23';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v25';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -66,7 +67,7 @@ export function lightingPhrase(options: Pick<RenderDesignOptions, 'lighting'>): 
 }
 
 export function projectVehicleCount(document: EditorDocument): number {
-  return document.furniture.filter((item) => /^(coche|auto|autom[oó]vil|veh[ií]culo)$/i.test(item.kind)).length;
+  return document.furniture.filter(isVehicle).length;
 }
 
 /** Texto breve para imagen-a-imagen: la captura contiene la geometría exacta. */
@@ -140,6 +141,7 @@ export function selectedViewImagePrompt(
       : 'Puedes sustituir muebles móviles (sofás, mesas, sillas, lámparas, alfombras y cortinas) dentro del ámbito; respeta la escala, el uso y todos los pasos.',
     FURNITURE_USE_RULE,
     ...(spatialForCamera ? [renderSpatialRule(spatialForCamera, includeSpatialImageInGeneration(view))] : []),
+    ...(!spatialForCamera && !acceptedDesign ? exteriorPlanRule(exteriorDesignContext(document)) : []),
     ...(cameraGuide ? [
       'USOS LOCALIZADOS EN ESTA CÁMARA: las posiciones siguientes son puntos interiores visibles de las estancias en la imagen 1 (x desde la izquierda, y desde arriba, entre 0 y 1). Amuebla cada espacio según SU nombre en esa posición, no según el orden de una lista de habitaciones del plano. Los nombres ocultos no se trasladan al primer plano. Un punto no visible no implica que falte su estancia.',
       `Estancias localizadas: ${JSON.stringify(cameraGuide.rooms)}.`,

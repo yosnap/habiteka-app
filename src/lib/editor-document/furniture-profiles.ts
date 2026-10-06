@@ -7,7 +7,7 @@ import { isKitchenRun } from './kitchen-run-types';
 export interface FurnitureVolume {
   x: number; y: number; widthMm: number; depthMm: number;
   bottom: number; top: number; color?: string;
-  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof'; part?: 'post' | 'gate' | 'slot'; gateId?: string; slotId?: string; materialId?: string;
+  rotation?: number; shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof'; part?: 'post' | 'gate' | 'slot' | 'foliage' | 'porch-floor' | 'porch-step'; gateId?: string; slotId?: string; materialId?: string;
   /** Permite conservar el color pintado y usar solo el relieve y la rugosidad del material. */
   useColorMap?: boolean;
   /** Transparencia del sólido (lona transparente, vidrio); por defecto opaco. */

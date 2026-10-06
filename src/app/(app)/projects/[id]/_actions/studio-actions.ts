@@ -18,7 +18,8 @@ import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-edit
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
 import type { Estilo, PlanDoorOverride, PlanWallOverride, PlanImportReviewOptions, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
-import type { StudioQuality } from '@/lib/studio-state';
+import type { EditorBackground, StudioQuality, StudioState } from '@/lib/studio-state';
+import { fitBackgroundFrame } from '@/server/plan/editor-background';
 import {
   importPlanFromImage,
   importNormalizeOptions,
@@ -113,7 +114,7 @@ async function uploadStudioImpl(projectId: string, base64: string) {
   const results = appendStudioResult(state, source, { kind: 'source' });
   await saveStudio(ctx, projectId, {
     source, plan: source, sourceKind: 'upload', results,
-    estilo: state.estilo, detalles: state.detalles,
+    estilo: state.estilo, detalles: state.detalles, editorReference: state.editorReference,
   });
   return { imageUrl: source.assetUrl, assetKey: source.assetKey, studioResult: results.find((item) => item.assetKey === source.assetKey) };
 }
@@ -137,7 +138,7 @@ async function drawingStudioImpl(projectId: string, base64: string) {
   const results = appendStudioResult(state, source, { kind: 'source' });
   await saveStudio(ctx, projectId, {
     source, plan: source, sourceKind: 'drawing', results,
-    estilo: state.estilo, detalles: state.detalles,
+    estilo: state.estilo, detalles: state.detalles, editorReference: state.editorReference,
     plano: result.plano, escalaEstimada: result.escalaEstimada,
     planImport: { raw, detected, image: source, includeFurniture: false },
     planImportApplied: false, planImportRevision: crypto.randomUUID(), quality,
@@ -226,13 +227,17 @@ async function importCanvasStudioImpl(projectId: string) {
     base64 = (await rasterizeCanvasDoc(doc)).base64;
     canvasDescription = serializeDocToPrompt(doc) ?? undefined;
   }
-  const source = await persistStudioSource(base64);
-  const results = appendStudioResult(state, source, { kind: 'source' });
+  const capture = await persistStudioSource(base64);
+  const results = appendStudioResult(state, capture, { kind: 'canvas' });
+  // La captura es solo el plano de trabajo para generar vistas: el original (boceto o imagen subida), la extracción y
+  // el fondo del editor siguen siendo los de antes. Sin original previo, la captura hace también de origen.
+  const original = state.sourceKind !== 'canvas' && state.source ? state.source : capture;
   await saveStudio(ctx, projectId, {
-    source, plan: source, sourceKind: 'canvas', canvasDescription, results,
-    estilo: state.estilo, detalles: state.detalles,
+    ...state, source: original, plan: capture, sourceKind: 'canvas', canvasDescription, results,
+    redraws: undefined, redrawMode: undefined, cenital: undefined,
   });
-  return { imageUrl: source.assetUrl, assetKey: source.assetKey, studioResult: results.find((item) => item.assetKey === source.assetKey) };
+  return { imageUrl: capture.assetUrl, assetKey: capture.assetKey, sourceUrl: original.assetUrl, sourceKey: original.assetKey,
+    studioResult: results.find((item) => item.assetKey === capture.assetKey) };
 }
 
 // ── Importar plano dibujado o creado (F1 plano importado) ─────────────────────
@@ -285,6 +290,9 @@ async function importStudioPlanStudioImpl(
 ): Promise<PlanImportStudioResult> {
   const { ctx, state } = await context(projectId);
   if (!state.plan) fail('Sube o redibuja un plano primero.');
+  // Extraer una captura del editor solo pierde información (puertas sin arco): ese plano ya es editable.
+  if (isEditorCapture(state, state.plan.assetKey))
+    fail('Este plano es una captura del editor y ya es editable: ábrelo en el Editor. Para revisar medidas, usa el boceto original o un redibujado.');
   return importPlanFromImage(ctx, projectId, state.plan, options, state);
 }
 
@@ -298,6 +306,14 @@ async function selectStudioResultImpl(projectId: string, assetKey: string) {
   const results = studioResults(state);
   const selected = results.find((item) => item.assetKey === assetKey);
   if (!selected || selected.kind === 'render') fail('Este resultado no es un plano de trabajo.');
+  if (selected.kind === 'canvas') {
+    // Una captura vuelve como plano de trabajo para generar vistas; el original no cambia.
+    const planUrl = await resolveRenderUrl({ assetKey: selected.assetKey });
+    if (!planUrl) fail('No se pudo recuperar el plano guardado.');
+    await saveStudio(ctx, projectId, { ...state, results, plan: { assetKey: selected.assetKey, assetUrl: planUrl }, sourceKind: 'canvas',
+      redraws: undefined, redrawMode: undefined, cenital: undefined });
+    return { imageUrl: planUrl, sourceUrl: state.source?.assetUrl ?? planUrl, assetKey: selected.assetKey };
+  }
   const sourceKey = selected.kind === 'source' ? selected.assetKey : selected.sourceKey;
   if (!sourceKey || !results.some((item) => item.kind === 'source' && item.assetKey === sourceKey)) {
     fail('No se encuentra el original de este redibujado.');
@@ -321,12 +337,45 @@ async function selectStudioResultImpl(projectId: string, assetKey: string) {
   return { imageUrl: planUrl, sourceUrl, assetKey: selected.assetKey };
 }
 
+/** Una captura del editor guardada en el estudio (de esta versión o, en datos anteriores, con el estudio en modo editor). */
+function isEditorCapture(state: StudioState, assetKey: string | undefined): boolean {
+  if (!assetKey) return false;
+  const result = studioResults(state).find((item) => item.assetKey === assetKey);
+  return result?.kind === 'canvas' || (state.sourceKind === 'canvas' && state.plan?.assetKey === assetKey);
+}
+
+/**
+ * Elige el fondo del editor («Mostrar original») entre el boceto y los redibujados guardados. Se alinea con los muros del
+ * plano del editor (sin IA); una captura del editor o un render no valen como fondo.
+ */
+export async function setEditorBackgroundStudio(projectId: string, assetKey: string) {
+  return runAction(async () => {
+    const { ctx, state } = await context(projectId);
+    const selected = studioResults(state).find((item) => item.assetKey === assetKey);
+    if (!selected || (selected.kind !== 'source' && selected.kind !== 'redraw') || isEditorCapture(state, assetKey))
+      fail('Solo el boceto original o un redibujado pueden ser el fondo del editor.');
+    const editor = await withEditorDocuments(ctx).load({ projectId });
+    if (editor.authority !== 'v2' || editor.document.walls.length === 0) fail('Envía primero un plano al editor.');
+    const assetUrl = await resolveRenderUrl({ assetKey });
+    if (!assetUrl) fail('No se pudo recuperar la imagen guardada.');
+    const image = { assetKey, assetUrl };
+    let frame: EditorBackground['frame'];
+    try {
+      frame = await fitBackgroundFrame(Buffer.from((await readStudioImage(image)).base64, 'base64'), editor.document);
+    } catch (error) {
+      fail(error instanceof Error ? error.message : 'No se pudo alinear la imagen con el plano.');
+    }
+    await saveStudio(ctx, projectId, { ...state, editorReference: { image, frame } });
+    return { ok: true };
+  });
+}
+
 /** Prepara otro plano conservando el historial y las preferencias no geométricas. */
 export async function startNewStudioPlan(projectId: string) {
   return runAction(async () => {
     const { ctx, state } = await context(projectId);
     await saveStudio(ctx, projectId, {
-      results: studioResults(state), estilo: state.estilo, detalles: state.detalles,
+      results: studioResults(state), estilo: state.estilo, detalles: state.detalles, editorReference: state.editorReference,
     });
     return { ok: true };
   });
@@ -457,9 +506,13 @@ async function applyPlanImportStudioImpl(
     : state.quality;
   assertPlanoRasterizable(canonical.plano);
   const { issues } = await importPlanToEditor(ctx, projectId, canonical, quality);
+  // El fondo del editor pasa a ser la imagen de la que sale este plano, alineada con su encuadre.
+  const frame = canonical.sourceFrameMm;
   await saveStudio(ctx, projectId, {
     ...state, plano: canonical.plano, escalaEstimada: canonical.escalaEstimada,
     quality, planImportApplied: true, planImportRevision: crypto.randomUUID(),
+    editorReference: state.planImport.image && frame
+      ? { image: state.planImport.image, frame: { x: 0, y: 0, width: frame.width, height: frame.height } } : state.editorReference,
   });
   // El plano se lleva al editor para corregirlo. Un bloqueo de calidad o una
   // escala aún estimada impiden generar hasta revisar el documento.

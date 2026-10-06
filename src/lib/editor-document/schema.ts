@@ -2,6 +2,7 @@ import type { DesignSpaceKind } from '@/lib/design-space-kind';
 import type { Boundary } from './boundary-types';
 import type { KitchenRun } from './kitchen-run-types';
 import type { WalkthroughPath } from './walkthrough';
+import type { DoorHandle, FrameFinish, LeafDesign, LeafFinish } from './opening-look-options';
 import type { Estilo } from '@/lib/contracts';
 export type DimensionalOrigin = 'raster' | 'physical';
 export interface Point {
@@ -48,6 +49,14 @@ export interface Opening {
   colors?: { frame: string; leaf: string };
   /** Opening generated when a ramp is connected to a raised floor. */
   sourceRampId?: string;
+  /** Diseño de la hoja de puerta; sin él, la hoja histórica del tipo (lisa o vidriera). */
+  leafDesign?: LeafDesign;
+  /** Acabado de hoja, marco y tapajuntas de la puerta; sin él, `colors.leaf` y `colors.frame` como siempre. */
+  leafFinish?: LeafFinish;
+  /** Tirador de la puerta; sin él, el del tipo (ninguno en los tipos históricos). */
+  handle?: DoorHandle;
+  /** Acabado del marco de una ventana o de una corredera de vidrio; sin él, `colors.frame`. */
+  frameFinish?: FrameFinish;
 }
 export interface Stair extends Point {
   id: string;
@@ -126,6 +135,8 @@ export interface Furniture extends Point {
   hostId?: string;
   /** Fracción de la ventana que cubre una cortina, estor o persiana (0 abierta, 1 tapada del todo). */
   coverage?: number;
+  /** Peldaños de acceso al porche, calculados desde su cota de suelo; a ras no se generan. */
+  porchSteps?: boolean;
   /** Laterales de la carpa recogidos bajo la cubierta; sin valor equivale a ambos desplegados. */
   rolledSides?: 'none' | 'left' | 'right' | 'both';
 }

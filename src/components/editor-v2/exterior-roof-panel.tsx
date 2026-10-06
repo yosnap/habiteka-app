@@ -58,8 +58,15 @@ export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; on
               </div>
               <div className="space-y-3 text-sm">
                 <h3 className="font-semibold">Habitaciones que cubre</h3>
+                <label className="block space-y-1"><span>Patios y huecos interiores del tejado</span>
+                  <ModernSelect portalContainer={menuContainer} popoverZIndex={200} value={roof.voidCover ?? 'open'}
+                    onChange={event => update({ voidCover: event.target.value as ExteriorRoof['voidCover'] })}>
+                    <option value="solid">Cerrar con el tejado</option><option value="open">Dejar abiertos</option><option value="glass">Cerrar con cristal</option>
+                  </ModernSelect>
+                </label>
+                <p className="text-xs text-ink-soft">Solo afecta a los vacíos rodeados por la cubierta. El cristal se coloca únicamente si lo eliges; no cubre terrazas fuera del contorno.</p>
                 {roof.roomIds.some(id => !geometry.rooms.some(room => room.id === id)) && <button type="button" className="underline" onClick={() => update({ roomIds: geometry.rooms.map(room => room.id) })}>Actualizar selección con las habitaciones actuales</button>}
-                <p className="text-xs text-ink-soft">Se unen sus huellas; se respetan retranqueos y huecos. Desmarca las partes que deban quedar abiertas.</p>
+                <p className="text-xs text-ink-soft">Se unen sus huellas y se respetan retranqueos. Los vacíos centrales se cierran o quedan abiertos según la opción anterior.</p>
                 {geometry.rooms.map((room, index) => <label key={room.id} className="flex items-start gap-2 rounded-lg border p-2">
                   <input type="checkbox" className="mt-1" checked={roof.roomIds.includes(room.id)} onChange={event => update({ roomIds: event.target.checked ? [...roof.roomIds, room.id] : roof.roomIds.filter(id => id !== room.id) })} />
                   <span>{doc.labels.find(label => insideRoom(label, room.boundary))?.text ?? `Estancia ${index + 1}`} · {(room.areaMm2 / 1e6).toFixed(1)} m²</span>

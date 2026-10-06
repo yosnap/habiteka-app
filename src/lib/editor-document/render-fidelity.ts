@@ -28,5 +28,9 @@ export interface RenderFidelityReport {
   openingChecks: RenderFidelityCheck[];
   /** Controles explícitos desde v3; ausentes en informes anteriores. */
   openAreaChecks?: RenderFidelityCheck[];
+  /** Inventario exterior desde v4; no disponible en informes históricos. */
+  exteriorChecks?: RenderFidelityCheck[];
+  /** Cantidades y función de sanitarios y placas desde v5. */
+  fixtureChecks?: RenderFidelityCheck[];
   constructionCheck?: { status: 'pass' | 'fail' | 'uncertain'; observation: string };
 }

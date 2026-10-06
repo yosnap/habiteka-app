@@ -187,6 +187,7 @@ export function EditorSession({
     styleAnchor?: boolean;
     orthophotoDataUrl?: string;
     existingImageDataUrl?: string;
+    designReferenceId?: string;
   }) => {
     const geometry = JSON.stringify({ ...store.getState().document, revision: 0 });
     await Promise.resolve();
@@ -212,6 +213,7 @@ export function EditorSession({
           ...(input.styleAnchor ? { styleAnchor: true } : {}),
           orthophotoDataUrl: input.orthophotoDataUrl,
           existingImageDataUrl: input.existingImageDataUrl,
+          designReferenceId: input.designReferenceId,
         },
       ),
     );

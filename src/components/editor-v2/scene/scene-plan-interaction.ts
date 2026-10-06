@@ -11,8 +11,10 @@ import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { snapTerrainMove } from '@/canvas/editor-v2/terrain-transform';
+import { constrainSeatingDrag } from '@/canvas/editor-v2/seating-drag';
 
 export interface PlanDrag {
+  last?: Furniture;
   id: string;
   start: Point;
   item: Furniture | TerrainSurface;
@@ -82,7 +84,12 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
 
 export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStore, scale = .05): Furniture | TerrainSurface {
   const moved = { ...drag.item, x: drag.item.x + point.x - drag.start.x, y: drag.item.y + point.y - drag.start.y };
-  if (!drag.terrain) return settlePlanItem(moved as Furniture, store);
+  if (!drag.terrain) {
+    const target = settlePlanItem(moved as Furniture, store);
+    if (drag.duplicate) return target;
+    const placed = constrainSeatingDrag(store.getState().document, drag.last ?? drag.item as Furniture, target);
+    drag.last = placed; return placed;
+  }
   const state = store.getState();
   const result = snapTerrainMove(state.document, drag.item as TerrainSurface,
     { x: moved.x - drag.item.x, y: moved.y - drag.item.y }, scale, state.snap);

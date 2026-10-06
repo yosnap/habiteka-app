@@ -20,6 +20,10 @@ export async function loadStudio(ctx: OrgContext, projectId: string): Promise<St
   if (importImage) {
     state.planImport!.image = { ...importImage, assetUrl: (await resolveRenderUrl(importImage)) ?? importImage.assetUrl };
   }
+  const background = state.editorReference?.image;
+  if (background) {
+    state.editorReference = { ...state.editorReference!, image: { ...background, assetUrl: (await resolveRenderUrl(background)) ?? background.assetUrl } };
+  }
   for (const mode of ['tecnico', 'decorado'] as const) {
     const ref = state.redraws?.[mode];
     if (ref) state.redraws![mode] = { ...ref, assetUrl: (await resolveRenderUrl(ref)) ?? ref.assetUrl };

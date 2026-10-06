@@ -37,6 +37,7 @@ import { assignMeasuredThickness, classifyWallThickness } from './wall-thickness
 import { zonesFromRooms, type RoomBox } from './zones-from-rooms';
 import { reliableScale } from './reliable-scale';
 import { credibleDoorArc, observedDoorArc } from './door-arc-geometry';
+import { apertureCatalogId, apertureWidthLimits, leafWithoutArc, type ApertureVariant } from './aperture-types';
 
 export interface NormalizeOptions {
   /** Ancho real del plano en metros si el boceto no lo indica. */
@@ -89,13 +90,6 @@ export const DEFAULT_NORMALIZE_OPTIONS: NormalizeOptions = {
   minDiagonalLength: 0.07,
 };
 
-// Ancho por defecto de cada abertura (mm) cuando el boceto no lo insinúa.
-const DEFAULT_APERTURE_WIDTH_MM: Record<PlanAperture['kind'], number> = {
-  puerta: 900,
-  ventana: 1200,
-  hueco: 900,
-};
-
 // Una abertura nunca ocupa más que esta fracción de su muro.
 const MAX_APERTURE_WALL_RATIO = 0.8;
 // Mínimo de muros detectados por píxeles para fiarse de ellos (menos = la
@@ -109,13 +103,6 @@ const MAX_BRIDGE_GAP = 0.24;
 // Para DETECTAR HABITACIONES se sella aún más: un boquete residual en el
 // perímetro fugaría el flood fill y colapsaría todo a una sola estancia.
 const SEAL_BRIDGE_GAP = 0.35;
-// Ancho máximo plausible de cada abertura (mm): un hueco mayor viene de una
-// banda mal partida, no de una puerta de 2,5 m — se acota centrado.
-const MAX_APERTURE_WIDTH_MM: Record<PlanAperture['kind'], number> = {
-  puerta: 1100,
-  ventana: 2600,
-  hueco: 2000,
-};
 // Dos aberturas del mismo muro a menos de esta distancia son la misma (duplicado del modelo).
 const MIN_APERTURE_GAP_MM = 400;
 
@@ -163,8 +150,10 @@ export function prepareSketch(raw: RawSketch, options: Partial<NormalizeOptions>
 
   // Semillas de abertura con geometría ABSOLUTA antes de tocar los muros: los
   // índices del modelo dejan de valer tras filtrar/fusionar segmentos.
+  // Una corredera, una plegable o una de dos hojas se reconocen por su hoja: no se les exigen los puntos del arco.
   const seeds = raw.aberturas
-    .filter((a) => a.tipo !== 'puerta' || raw.habitaciones.length < 4 || credibleDoorArc(a, raw.aberturas, raw.muros, opts.imageHeightOverWidth))
+    .filter((a) => a.tipo !== 'puerta' || raw.habitaciones.length < 4 || leafWithoutArc(a.variante) ||
+      credibleDoorArc(a, raw.aberturas, raw.muros, opts.imageHeightOverWidth))
     .map((a) => apertureSeed(a, raw.muros, opts.imageHeightOverWidth))
     .filter((s): s is ApertureSeed => s !== null);
 
@@ -507,6 +496,8 @@ export interface ApertureSeed {
   arcVisible?: boolean;
   observedArc?: boolean;
   sourceDirection?: SketchPoint;
+  /** Carpintería leída en el símbolo (entrada, doble hoja, corredera…). */
+  variante?: ApertureVariant;
 }
 
 /** Geometría absoluta de una abertura a partir del muro crudo que referencia. */
@@ -527,6 +518,7 @@ function apertureSeed(a: SketchAperture, rawWalls: SketchWall[], imageHeightOver
       a.tipo === 'puerta' ? { ...(a.swing ? { swing: a.swing } : {}), ...(a.hinge ? { hinge: a.hinge } : {}) } : {}),
     ...(a.tipo === 'puerta' && a.arcVisible ? { arcVisible: true } : {}),
     ...(observed ? { observedArc: true } : {}),
+    ...(a.variante ? { variante: a.variante } : {}),
     sourceDirection: observed?.sourceDirection ?? { x: (w.x2 - w.x1) / len, y: (w.y2 - w.y1) / len },
   };
 }
@@ -575,13 +567,14 @@ export function anchorApertures(
     if (lengthMm <= 0) continue;
     // Ancho en mm: la semilla trae el ancho en unidades de imagen; se proyecta
     // con la escala media (las aberturas viven sobre muros casi axis-aligned).
+    const limits = apertureWidthLimits(seed.tipo, seed.variante);
     const requested = seed.widthUnit
       ? seed.widthUnit * ((scale.mmPerUnitX + scale.mmPerUnitY) / 2)
-      : DEFAULT_APERTURE_WIDTH_MM[seed.tipo];
+      : limits.defaultMm;
     // Acotado por plausibilidad del tipo: un "hueco" de 2,5 m es una banda mal
     // partida, no una puerta — la abertura se centra con un ancho creíble.
     const widthMm = Math.round(
-      Math.min(requested, MAX_APERTURE_WIDTH_MM[seed.tipo], lengthMm * MAX_APERTURE_WALL_RATIO),
+      Math.min(requested, limits.maxMm, lengthMm * MAX_APERTURE_WALL_RATIO),
     );
     if (widthMm <= 0) continue;
 
@@ -600,10 +593,12 @@ export function anchorApertures(
     const reversed = seed.sourceDirection &&
       seed.sourceDirection.x * best.dx + seed.sourceDirection.y * best.dy < 0;
     const flip = (side: 'left' | 'right') => side === 'left' ? 'right' : 'left';
+    const catalogId = apertureCatalogId(seed.tipo, seed.variante, widthMm);
     out.push({
       id: `a${out.length}`, kind: seed.tipo, wallId: best.wall.id, position, widthMm,
       ...(seed.swing ? { swing: reversed ? flip(seed.swing) : seed.swing } : {}),
       ...(seed.hinge ? { hinge: reversed ? flip(seed.hinge) : seed.hinge } : {}),
+      ...(catalogId ? { catalogId } : {}),
     });
   }
   return out;
@@ -645,6 +640,7 @@ export function seedsFromGaps(
       widthUnit: gap.width,
       ...(aligned && near?.swing ? { swing: near.swing } : {}),
       ...(aligned && near?.hinge ? { hinge: near.hinge } : {}),
+      ...(aligned && near?.variante ? { variante: near.variante } : {}),
       ...(gap.direction ? { sourceDirection: gap.direction } : near?.sourceDirection ? { sourceDirection: near.sourceDirection } : {}),
     };
   });

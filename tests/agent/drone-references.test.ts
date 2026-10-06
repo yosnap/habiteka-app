@@ -18,11 +18,12 @@ const view = { preset: 'drone', levelId: null } as RenderView;
 const options = defaultRenderDesignOptions();
 const image = { base64: 'aGVsbG8=', mimeType: 'image/png' };
 const ortho = 'data:image/png;base64,aGVsbG8=';
+const acceptance = { userId: 'u', acceptedAt: '2026-10-03T19:17:37.974Z' };
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.rows.mockResolvedValue([{ id: 'anchor', payload: { assetKey: 'own.png', generation: {
-    documentRevision: 144, view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' } } } }]);
+    provider: 'kie', acceptance, documentRevision: 144, view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' } } } }]);
   mocks.revisions.mockResolvedValue([144]); mocks.read.mockResolvedValue(image); mocks.sanitize.mockResolvedValue(image);
 });
 describe('referencias obligatorias del dron', () => {
@@ -30,7 +31,7 @@ describe('referencias obligatorias del dron', () => {
     mocks.rows.mockResolvedValue([{ id: 'anchor', payload: { assetKey: 'own.png', generation: {
       documentRevision: 144, review: { status: 'rejected', reason: 'Cocina alterada', reviewedAt: '2026-10-01T21:00:00Z' },
       view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' } } } }]);
-    await expect(droneReferences(ctx, scope, emptyEditorDocument(), view, options, ortho)).rejects.toThrow('auditada');
+    await expect(droneReferences(ctx, scope, emptyEditorDocument(), view, options, ortho)).rejects.toThrow('aceptada');
     expect(mocks.read).not.toHaveBeenCalled();
   });
   it('exige una cenital compatible para fijar la identidad del exterior terminado', async () => {
@@ -71,7 +72,7 @@ describe('referencias obligatorias del dron', () => {
       project: { organizationId: 'org' }, deletedAt: null });
   });
   it('conserva el fondo neutro en Solo la casa y exige una referencia del mismo ámbito', async () => {
-    const row = { id: 'house', payload: { generation: { documentRevision: 144,
+    const row = { id: 'house', payload: { generation: { provider: 'kie', acceptance, documentRevision: 144,
       view: { lighting: 'daylight' }, options: { freedom: 'strict', designScope: 'house' } } } };
     mocks.rows.mockResolvedValue([row]);
     const result = await droneReferences(ctx, scope, emptyEditorDocument(), view, { ...options, designScope: 'house' });
@@ -94,11 +95,34 @@ describe('referencias obligatorias del dron', () => {
   });
 });
 
-const acceptance = { userId: 'u', acceptedAt: '2026-10-03T19:17:37.974Z' };
 const topRow = (id: string, extra: Record<string, unknown> = {}) => ({ id, payload: { assetKey: `${id}.png`, generation: {
   provider: 'kie', documentRevision: 144, view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' }, ...extra } } });
 
 describe('cenital aceptada como diseño de los laterales', () => {
+  it('usa la selección explícita aunque exista otra más reciente y la busca por ID', async () => {
+    mocks.rows.mockResolvedValue([topRow('recent', { acceptance }), topRow('chosen', { acceptance })]);
+    expect(await lateralDesignReference(ctx, scope, emptyEditorDocument(), { ...view, preset: 'front' }, options, 'chosen'))
+      .toMatchObject({ deliverableId: 'chosen' });
+    expect(mocks.rows.mock.calls[0]![0].where).toMatchObject({ id: 'chosen', projectId: 'p', zoneId: null });
+    expect(mocks.read).toHaveBeenCalledWith(expect.objectContaining({ assetKey: 'chosen.png' }));
+  });
+  it('no sustituye una selección ausente, pendiente o incompatible por otro diseño', async () => {
+    const front = { ...view, preset: 'front' as const };
+    mocks.rows.mockResolvedValue([topRow('other', { acceptance })]);
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options, 'foreign')).rejects.toThrow('no está disponible');
+    mocks.rows.mockResolvedValue([topRow('pending'), topRow('other', { acceptance })]);
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options, 'pending')).rejects.toThrow('Aceptar este diseño');
+    mocks.rows.mockResolvedValue([topRow('warm', { acceptance, view: { lighting: 'warm' } }), topRow('other', { acceptance })]);
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options, 'warm')).rejects.toThrow('La luz');
+    mocks.rows.mockResolvedValue([topRow('changed', { acceptance })]); mocks.revisions.mockResolvedValue([]);
+    await expect(lateralDesignReference(ctx, scope, emptyEditorDocument(), front, options, 'changed')).rejects.toThrow('plano ha cambiado');
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it('la auditoría del dron no sustituye una aceptación explícita', async () => {
+    mocks.rows.mockResolvedValue([topRow('pending')]);
+    await expect(droneReferences(ctx, scope, emptyEditorDocument(), view, options, ortho)).rejects.toThrow('aceptada');
+    expect(mocks.read).not.toHaveBeenCalled();
+  });
   it('solo utiliza una cenital aceptada por el usuario', async () => {
     mocks.rows.mockResolvedValue([topRow('audited')]);
     const front = { ...view, preset: 'front' as const };

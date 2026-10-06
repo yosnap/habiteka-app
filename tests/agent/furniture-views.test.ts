@@ -48,20 +48,22 @@ describe('orientación de los muebles del plano', () => {
     const back = (await rasterizeEditorElevation(doc, 'back', { cut: true }))!.base64;
     const front = (await rasterizeEditorElevation(doc, 'front', { cut: true }))!.base64;
     expect(await pixels(back, '#b2a189')).toBeGreaterThan(20_000);
-    expect(await pixels(front, '#b2a189')).toBe(0);
+    // El cambio de encuadre puede mezclar unos píxeles de borde; no debe aparecer un panel de cabecero de espaldas.
+    expect(await pixels(front, '#b2a189')).toBeLessThan(20);
     expect(await pixels(front, '#f7f3ec')).toBeGreaterThan(await pixels(back, '#f7f3ec') * 3);
   });
   it('marca en el plano 2D las almohadas en el lado del cabecero', async () => {
     const plan = await rasterizeEditorDocument(bedroom());
     expect(await pixels(plan.base64, '#f8f5ee')).toBeGreaterThan(100);
   });
-  it('pide respetar los muebles dibujados en la cenital y en la sección', () => {
+  it('usa muebles del plano para la cenital inicial y del diseño aceptado para la sección', () => {
     const options = defaultRenderDesignOptions();
     const plan = simplePlanPrompt('moderno', options, '', '', { units: 'mm', levels: [{ id: 'l', name: 'Planta', openings: [],
       rooms: [{ id: 'R1', name: 'Dormitorio', anchor: { x: 0, y: 0 } }] }] }, ['Dormitorio: cama doble (cabecero arriba)']);
     expect(plan).toContain('Respeta los muebles dibujados, con su posición, tamaño y orientación: Dormitorio: cama doble (cabecero arriba).');
     expect(plan).toContain('Completa la decoración según su uso.');
-    const section = simpleSectionPrompt('back', 'moderno', options, '', '', ['Dormitorio'], ['Dormitorio: cama doble vista de espaldas'], true);
-    expect(section).toContain('Los muebles dibujados en la imagen 1 van en esa posición');
+    const section = simpleSectionPrompt('back', 'moderno', options, '', '', ['Dormitorio'], ['Dormitorio: cama doble vista de espaldas']);
+    expect(section).toContain('leído del diseño aceptado de la imagen 2: Dormitorio: cama doble vista de espaldas');
+    expect(section).not.toContain('Los muebles dibujados en la imagen 1');
   });
 });

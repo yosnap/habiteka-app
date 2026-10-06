@@ -3,13 +3,15 @@ import { estiloLabel } from '@/lib/design-options';
 import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderSpatialContext } from './render-spatial-context';
 import { lightingPhrase, PEOPLE_RULE } from './selected-view-image-prompt';
+import { exteriorPlanRule, type ExteriorDesignElement } from '@/lib/editor-document/exterior-design-context';
+import { criticalFixtureRule, type CriticalFixtureGroup } from '@/lib/editor-document/critical-fixtures';
 
 /**
  * Cenital desde el plano 2D con un prompt corto. La prueba con el mismo generador mostró que la captura 3D en
  * perspectiva y un prompt de miles de caracteres empeoraban nitidez y realismo; las comprobaciones de fidelidad se
  * quedan en la auditoría posterior.
  */
-export const SIMPLE_PLAN_PROMPT_VERSION = 'habiteka-plan-simple-v2';
+export const SIMPLE_PLAN_PROMPT_VERSION = 'habiteka-plan-simple-v4';
 
 const ROWS = ['arriba', '', 'abajo'], COLUMNS = ['izquierda', 'centro', 'derecha'];
 
@@ -30,7 +32,7 @@ function roomPlacement(spatial: RenderSpatialContext): string {
 }
 
 export function simplePlanPrompt(style: Estilo, options: RenderDesignOptions, objective: string, instruction: string,
-  spatial: RenderSpatialContext, furniture: string[] = []): string {
+  spatial: RenderSpatialContext, furniture: string[] = [], exterior: ExteriorDesignElement[] = [], fixtures: CriticalFixtureGroup[] = []): string {
   const rooms = roomPlacement(spatial);
   const preferences = [objective, instruction].map((text) => text.trim()).filter(Boolean).join('. ').slice(0, 600);
   return [
@@ -39,6 +41,8 @@ export function simplePlanPrompt(style: Estilo, options: RenderDesignOptions, ob
     ...(rooms ? [`Estancias: ${rooms}. ${furniture.length ? 'Completa la decoración según su uso.' : 'Amuebla cada una según su uso.'}`] : []),
     // Los muebles del editor son el diseño base: el plano los dibuja con almohadas y respaldos para fijar su orientación.
     ...(furniture.length ? [`Respeta los muebles dibujados, con su posición, tamaño y orientación: ${furniture.join('; ')}.`] : []),
+    ...exteriorPlanRule(exterior),
+    ...criticalFixtureRule(fixtures),
     `Iluminación: ${lightingPhrase(options)}.`,
     ...(options.freedom === 'strict' ? ['Conserva solo el mobiliario dibujado en el plano, sin añadir otros muebles.'] : []),
     ...(options.people ? [PEOPLE_RULE] : []),
@@ -47,7 +51,7 @@ export function simplePlanPrompt(style: Estilo, options: RenderDesignOptions, ob
   ].join('\n');
 }
 
-export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v5';
+export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v7';
 
 const SIDE: Record<string, string> = { front: 'el frente', back: 'la trasera', left: 'la izquierda', right: 'la derecha' };
 
@@ -56,14 +60,17 @@ const SIDE: Record<string, string> = { front: 'el frente', back: 'la trasera', l
  * técnico con la misma perspectiva que el resultado). La imagen 2 es la cenital aceptada recortada y girada.
  */
 export function simpleSectionPrompt(side: string, style: Estilo, options: RenderDesignOptions, objective: string,
-  instruction: string, rooms: string[], furniture: string[] = [], drawn = false): string {
+  instruction: string, rooms: string[], furniture: string[] = [], visibilityHints: string[] = []): string {
   const preferences = [objective, instruction].map((text) => text.trim()).filter(Boolean).join('. ').slice(0, 400);
   return [
     `Crea una vista fotorrealista ${estiloLabel(style)} de este inmueble como una maqueta abierta vista desde ${SIDE[side] ?? 'un lateral'}, a la altura de los ojos, a partir de la sección técnica de la imagen 1: se ha retirado esa fachada con sus ventanas, puertas, cortinas y todo lo que estaba pegado a ella, y se ve el interior de cada estancia.`,
-    'Importante: mantén exactamente la sección: suelo, techo, tabiques cortados (bandas oscuras) y paredes del fondo con sus puertas, ventanas y pasos, en su posición y con su tamaño. No cierres el frente, no añadas muros, puertas ni ventanas, ni pisos o altillos.',
+    'Importante: mantén exactamente la sección: suelo, tabiques cortados (bandas oscuras) y paredes del fondo con sus puertas, ventanas y pasos, en su posición y con su tamaño. No cierres el frente, no añadas muros, puertas ni ventanas, ni pisos o altillos.',
+    'La maqueta está abierta por arriba, sin techo ni tejado. No añadas losas, vigas continuas, bloques ni bandas horizontales que cierren su parte superior. Conserva únicamente la coronación de cada muro real.',
     `La imagen 2 es el diseño interior aceptado visto desde arriba; su borde inferior es este frente. Cada estancia tiene sus mismos muebles, colores y acabados, con la misma orientación.${rooms.length ? ` Estancias de izquierda a derecha: ${rooms.join(', ')}.` : ''}`,
+    'Conserva exactamente los sanitarios y placas de cocción visibles del diseño aceptado: mismo número y función, sin duplicar inodoros ni omitir la vitrocerámica. No añadas elementos ocultos para mostrarlos en este corte.',
+    ...rooms.flatMap((name, index) => visibilityHints[index] ? [`Visibilidad de ${name}: ${visibilityHints[index]}`] : []),
     // La lectura previa de la cenital dice cómo se ve cada mueble; sin ella queda la regla general de las camas.
-    ...(furniture.length ? [`${drawn ? 'Los muebles dibujados en la imagen 1 van en esa posición, con ese tamaño y esa orientación. ' : ''}Mobiliario visto desde esta cámara: ${furniture.join('; ')}.`]
+    ...(furniture.length ? [`Mobiliario visto desde esta cámara, leído del diseño aceptado de la imagen 2: ${furniture.join('; ')}.`]
       : ['Una cama con el cabecero junto a la fachada retirada se ve de espaldas, con el cabecero delante y los pies hacia el fondo; con el cabecero en un tabique lateral se ve de perfil.']),
     'Encuadre: el de la imagen 1, de frente y a la altura de los ojos; nunca una vista aérea ni una planta.',
     ...(options.people ? [PEOPLE_RULE] : []),

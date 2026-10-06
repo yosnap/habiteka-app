@@ -21,6 +21,20 @@ const windowPixels = async (base64: string) => {
 };
 
 describe('alzado ortogonal de una fachada', () => {
+  it('la sección sin techo no inventa una losa continua por encima de los muros', async () => {
+    const section = (await rasterizeEditorElevation(room(), 'front', { cut: true, furniture: false }))!;
+    const { data, info } = await sharp(Buffer.from(section.base64, 'base64')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    let maximum = 0;
+    for (let y = 0; y < info.height / 2; y++) {
+      let run = 0;
+      for (let x = 0; x < info.width; x++) {
+        const at = (y * info.width + x) * info.channels;
+        const dark = [0x2d, 0x34, 0x36].every((channel, i) => Math.abs(data[at + i]! - channel) < 5);
+        run = dark ? run + 1 : 0; maximum = Math.max(maximum, run);
+      }
+    }
+    expect(maximum).toBeLessThan(info.width / 4);
+  });
   it('dibuja solo los huecos de la fachada orientada a la cámara', async () => {
     const front = (await rasterizeEditorElevation(room(), 'front'))!;
     const back = (await rasterizeEditorElevation(room(), 'back'))!;

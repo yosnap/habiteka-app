@@ -46,6 +46,9 @@ export function ProposalPreview({
   return (
     <div className="text-ink mt-5 space-y-3 text-sm">
       <p className="bg-canvas rounded-control border border-line p-3">{proposal.summary}</p>
+      {proposal.sketchMissing?.length ? <p className="rounded-control border border-amber-300 bg-amber-50 p-3 text-amber-900">
+        En tu boceto hay objetos que aún no están en el catálogo y no se han colocado: {proposal.sketchMissing.join(', ')}.
+      </p> : null}
       {proposal.fixedFinishes?.map((finish, index) => <CheckToggle key={finish.id}
         checked={selection.fixedFinishes?.includes(index) ?? false} onChange={(checked) => onChange({ ...selection,
           fixedFinishes: checked ? [...(selection.fixedFinishes ?? []), index] : selection.fixedFinishes?.filter((value) => value !== index) })} label={<span>

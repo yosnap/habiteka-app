@@ -16,7 +16,7 @@ export function RenderFidelityCard({ report, model }: { report?: RenderFidelityR
         <p className={`text-xs ${item.status === 'pass' ? 'text-brand-700' : 'text-destructive'}`}>{statusLabel[item.status]}</p>
         <p className="text-xs text-ink-soft">{item.observation}</p>
       </div>)}
-      {([['Estancias', report.roomChecks], ['Puertas y ventanas', report.openingChecks], ['Zonas comunicadas sin puerta', report.openAreaChecks ?? []]] as const).map(([label, checks]) => checks.length > 0 &&
+      {([['Estancias', report.roomChecks], ['Puertas y ventanas', report.openingChecks], ['Zonas comunicadas sin puerta', report.openAreaChecks ?? []], ['Terreno, cerramientos y objetos exteriores', report.exteriorChecks ?? []], ['Sanitarios y placas por estancia', report.fixtureChecks ?? []]] as const).map(([label, checks]) => checks.length > 0 &&
         <details key={label} className="border-t border-line pt-2">
           <summary className="cursor-pointer text-sm font-medium">{label} ({checks.length})</summary>
           <ul className="mt-3 space-y-3">{checks.map(item => <li key={item.id} className="text-xs">

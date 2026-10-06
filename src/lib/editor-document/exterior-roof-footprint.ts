@@ -2,7 +2,7 @@ import polygonClipping, { type Pair, type Polygon } from 'polygon-clipping';
 import type { EditorDocument, Point } from './schema';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 
-export interface RoofFootprint { rings: Point[][]; baseMm: number; }
+export interface RoofFootprint { rings: Point[][]; baseMm: number; glazing?: boolean; slopeBoundary?: Point[]; }
 /** Desplaza las aristas exteriores. Los huecos de patios se conservan abiertos. */
 function overhang(points: Point[], amount: number): Pair[] {
   const ring = points.length > 1 && points[0]!.x === points.at(-1)!.x && points[0]!.y === points.at(-1)!.y ? points.slice(0, -1) : points;
@@ -30,11 +30,16 @@ export function exteriorRoofFootprints(doc: EditorDocument): RoofFootprint[] {
   const wallIds = new Set(rooms.flatMap(room => room.wallIds));
   const walls = doc.walls.filter(wall => wallIds.has(wall.id) && !wall.hidden);
   const baseMm = walls.length ? Math.max(...walls.map(wall => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2700))) : 2700;
-  return merged.map(polygon => {
+  return merged.flatMap(polygon => {
     const rings = polygon.map(ring => ring.map(([x, y]) => ({ x, y })));
     const expanded = overhang(rings[0]!, roof.eavesMm + Math.max(0, ...walls.map(w => w.thicknessMm / 2)));
     const normalized = polygonClipping.union([expanded, ...polygon.slice(1)]);
     if (normalized.length !== 1) throw new Error('Reduce el alero: esa distancia genera una cubierta fragmentada.');
-    return { rings: normalized[0]!.map(ring => ring.map(([x, y]) => ({ x, y }))), baseMm };
+    const outline = normalized[0]!.map(ring => ring.map(([x, y]) => ({ x, y })));
+    if (roof.voidCover === 'solid') return [{ rings: [outline[0]!], baseMm }];
+    const opaque: RoofFootprint = { rings: outline, baseMm };
+    return roof.voidCover === 'glass' ? [opaque, ...outline.slice(1).map(ring => ({
+      rings: [ring], baseMm, glazing: true, slopeBoundary: outline[0]!,
+    }))] : [opaque];
   });
 }

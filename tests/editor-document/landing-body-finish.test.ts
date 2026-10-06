@@ -23,7 +23,7 @@ describe('acabado del cuerpo del descansillo', () => {
 
     expect(ramp).toMatchObject({ materialId: 'concrete-grey', bodyMaterialId: 'polyhaven:white_plaster_02', elevationMm: 1000 });
     expect(mesh).toMatchObject({ baseHeight: 1, bodyMaterialId: 'polyhaven:white_plaster_02', floorFinish: { texture: 'none' } });
-    expect(render.attributes?.['acabado del canto y cara inferior']).toBe('White Plaster 02');
+    expect(render.attributes?.['acabado del canto y cara inferior']).toBe('Pintura blanca lisa');
     expect(editorDesignContext(saved).existingMaterialPalette.landingBodies).toContain('polyhaven:white_plaster_02');
     expect(render.dimensions?.elevation).toBe(1);
     expect(updateRamp(saved, landing.id, { bodyMaterialId: undefined }).ramps![0]!.bodyMaterialId).toBeUndefined();

@@ -11,7 +11,46 @@ import { sameDesignContent } from '@/lib/editor-document/approved-design';
 import { scenePresetFocus } from '@/components/editor-v2/scene/scene-preset-focus';
 import { showcaseFrame } from '@/components/editor-v2/scene/showcase-timeline';
 const room = () => addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
+const courtyard = () => {
+  let doc = addWallPath(room(), [{ x: 2000, y: 1000 }, { x: 4000, y: 1000 }, { x: 4000, y: 3000 }, { x: 2000, y: 3000 }], true);
+  for (const [a, b] of [[{ x: 0, y: 0 }, { x: 2000, y: 1000 }], [{ x: 6000, y: 0 }, { x: 4000, y: 1000 }],
+    [{ x: 6000, y: 4000 }, { x: 4000, y: 3000 }], [{ x: 0, y: 4000 }, { x: 2000, y: 3000 }]]) doc = addWallPath(doc, [a!, b!]);
+  doc.labels.push({ id: 'patio', x: 3000, y: 2000, text: 'Patio' });
+  return doc;
+};
 describe('tejado exterior', () => {
+  it('cierra los huecos centrales de un tejado nuevo y conserva la opción abierta antigua al editarlo', () => {
+    const doc = setExteriorRoof(courtyard(), {});
+    expect(doc.exteriorRoof?.voidCover).toBe('solid');
+    expect(exteriorRoofFootprints(doc)[0]!.rings).toHaveLength(1);
+    delete doc.exteriorRoof!.voidCover;
+    const legacy = setExteriorRoof(doc, { pitchDeg: 20 });
+    expect(legacy.exteriorRoof?.voidCover).toBe('open');
+    expect(exteriorRoofFootprints(legacy)[0]!.rings).toHaveLength(2);
+    expect(exteriorRoofFootprints(setExteriorRoof(legacy, { voidCover: 'solid' }))[0]!.rings).toHaveLength(1);
+  });
+
+  it.each(['flat', 'mono', 'gable', 'hip'] as const)('el cristal manual cierra el vacío siguiendo la pendiente %s y persiste en el contexto', kind => {
+    const doc = setExteriorRoof(courtyard(), { kind, voidCover: 'glass', orientationDeg: 37, eavesMm: 200 });
+    const parts = exteriorRoofGeometry(doc), glass = parts.find(part => part.glazing)!;
+    expect(parts).toHaveLength(2);
+    expect(glass.wallClosures).toHaveLength(0);
+    expect([...glass.positions].every(Number.isFinite)).toBe(true);
+    expect(glass.indices.length).toBeGreaterThan(0);
+    const angle = 37 * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle);
+    const ring = exteriorRoofFootprints(doc)[0]!.rings[0]!;
+    const u = ring.map(p => (p.x * c + p.y * s) / 1000), v = ring.map(p => (-p.x * s + p.y * c) / 1000);
+    const minU = Math.min(...u), maxU = Math.max(...u), minV = Math.min(...v), maxV = Math.max(...v);
+    for (let i = 0; i < glass.positions.length; i += 3) {
+      const x = glass.positions[i]!, z = glass.positions[i + 2]!, a = x * c + z * s, b = -x * s + z * c;
+      const rise = kind === 'flat' ? 0 : kind === 'mono' ? b - minV : kind === 'gable' ? Math.min(b - minV, maxV - b)
+        : Math.min(a - minU, maxU - a, b - minV, maxV - b);
+      const top = glass.baseM + .16 + rise * Math.tan(25 * Math.PI / 180);
+      expect(Math.min(Math.abs(glass.positions[i + 1]! - top), Math.abs(glass.positions[i + 1]! - top + .02))).toBeLessThan(.00001);
+    }
+    expect(ceilingDesignContext(doc).exteriorRoof?.footprints.some(part => 'glazing' in part && part.glazing)).toBe(true);
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(doc))).exteriorRoof?.voidCover).toBe('glass');
+  });
   it('persiste sin mutar el plano y participa en la aprobación y el contexto de imagen', () => {
     const original = room(), roof = setExteriorRoof(original, {});
     expect(original.exteriorRoof).toBeUndefined();
@@ -36,7 +75,7 @@ describe('tejado exterior', () => {
     for (const [a, b] of [[{ x: 0, y: 0 }, { x: 2000, y: 1000 }], [{ x: 6000, y: 0 }, { x: 4000, y: 1000 }],
       [{ x: 6000, y: 4000 }, { x: 4000, y: 3000 }], [{ x: 0, y: 4000 }, { x: 2000, y: 3000 }]]) doc = addWallPath(doc, [a!, b!]);
     doc.labels.push({ id: 'patio', x: 3000, y: 2000, text: 'Patio' });
-    doc = setExteriorRoof(doc, {});
+    doc = setExteriorRoof(doc, { voidCover: 'open' });
     expect(exteriorRoofFootprints(doc)[0]!.rings).toHaveLength(2);
     doc.walls = [];
     expect(() => exteriorRoofGeometry(doc)).toThrow(/estancias/);

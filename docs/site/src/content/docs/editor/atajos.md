@@ -5,7 +5,7 @@ description: Referencia de teclado y gestos del editor.
 
 Los atajos de letra actúan con el foco fuera de un campo de texto. Puedes desactivarlos en el menú de visibilidad del editor.
 
-Para copiar un objeto o hueco, selecciónalo en el lienzo, pulsa **⌘/Ctrl+C**, después **⌘/Ctrl+V** y haz clic para colocar la copia. Las puertas y ventanas se colocan sobre un muro. Pulsar el lienzo recupera el foco después de escribir en Propiedades; dentro de un campo, copiar y pegar siguen actuando sobre su texto. Solo se copia un elemento cada vez.
+Para copiar un objeto o hueco, selecciónalo en el lienzo, pulsa **⌘/Ctrl+C**, después **⌘/Ctrl+V** y haz clic para colocar la copia. Las puertas y ventanas se colocan sobre un muro y conservan su tipo (corredera, doble, balconera…) y su aspecto (diseño, acabado, tirador y marco). Pulsar el lienzo recupera el foco después de escribir en Propiedades; dentro de un campo, copiar y pegar siguen actuando sobre su texto. Solo se copia un elemento cada vez.
 
 ## Herramientas
 
@@ -51,6 +51,20 @@ En macOS utiliza ⌘; en otros sistemas, Ctrl para los comandos de edición.
 | Alt/⌥ al seleccionar | Restar elementos a la selección |
 | Arrastrar tirador de esquina | Redimensionar manteniendo la esquina opuesta |
 | Alt al redimensionar | Redimensionar alrededor del centro |
+| Arrastrar el círculo de fuera de una esquina | Girar el mueble sobre su centro (Mayús: saltos de 15°) |
+
+## Paredes y esquinas
+
+| Gesto | Acción |
+|---|---|
+| Doble clic sobre un elemento | Abrir Propiedades |
+| Alt + doble clic sobre una pared | Añadir una esquina en ese punto, lista para arrastrarla |
+| Arrastrar el extremo de una pared | Mover la esquina con todas las paredes que llegan a ella |
+| ⌘/Ctrl al arrastrar un extremo | Mover solo las paredes seleccionadas, sin unirlas a esquinas ni paredes; si la pared prolongada pasa por la esquina que dejó, queda unida en T |
+| ⌘/Ctrl al dibujar una pared | No unir el tramo a esquinas ni paredes; se mantiene el trazo ortogonal y las guías |
+| Cifras y Enter al dibujar o al arrastrar un extremo | Fijar la longitud del tramo en metros (por ejemplo, 3,25) en la dirección del ratón; Retroceso borra y Esc vacía la medida |
+
+Las pistas de abajo a la izquierda del lienzo muestran estas teclas según lo que tengas seleccionado o la herramienta activa.
 
 ## Controles de parcela
 

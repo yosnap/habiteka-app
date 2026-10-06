@@ -32,11 +32,14 @@ import {
   newId,
   nudgeSpatialEntities,
   repairLandingProtectionWalls,
+  hasLandingWallsToRepair,
   shapePoints,
 } from '@/canvas/editor-v2/editing-operations';
 import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
 import { Toolbar } from './toolbar';
 import { addTerrainSurface, suggestedPavingSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
+import { addMixedGarden } from '@/lib/editor-document/garden-compositions';
+import { applySurfacePreset } from '@/lib/editor-document/outdoor-surface-presets';
 import { Inspector } from './inspector';
 import { CatalogPanel } from './catalog-panel';
 import { ConstructionMenu } from './construction-menu';
@@ -142,6 +145,7 @@ export interface EditorShellProps {
     styleAnchor?: boolean;
     orthophotoDataUrl?: string;
     existingImageDataUrl?: string;
+    designReferenceId?: string;
   }) => Promise<RenderGeneratedResult>;
   onEstimateRender?: (viewCount: number) => Promise<{ estimatedUsd: number; model: string }>;
   /** Evaluación de calidad del plano guardado que ve el diálogo al abrirse. */
@@ -358,9 +362,10 @@ export function EditorShell({
     setConstruction(false);
     constructionButton.current?.focus();
   };
-  const chooseTool = (next: EditorTool) => {
+  const chooseTool = (next: EditorTool, openingTypeId?: string) => {
     if (store.getState().readOnly && next !== 'select') return;
-    store.getState().setTool(next);
+    if (openingTypeId) store.getState().beginOpeningType(openingTypeId);
+    else store.getState().setTool(next);
     setConstruction(false);
     closePanel();
     canvasHost.current?.querySelector<HTMLElement>('[aria-label="Lienzo del plano"]')?.focus();
@@ -496,6 +501,7 @@ export function EditorShell({
     'place-object': 'Colocar objeto · clic para colocar · Esc para cancelar',
     'light-strip': 'Dibujar tira LED · clics por tramos · Esc para terminar',
     'light-zone': 'Dibujar zona de luces sobre el plano · Esc para salir',
+    'garden-path': 'Camino: clics para añadir tramos · Esc para terminar',
   } satisfies Record<EditorTool, string>;
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -697,7 +703,8 @@ export function EditorShell({
           <span>{error}</span>
           {(error === 'Intersección de muros sin vértice compartido' ||
             error ===
-              'El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.') && (
+              'El elemento atraviesa una pared u otro objeto. Ajusta posición, tamaño o elevación.') &&
+            hasLandingWallsToRepair(store.getState().document) && (
             <button onClick={repairLandingWalls}>Reparar muretes del descansillo</button>
           )}
           <button onClick={() => store.getState().setError(null)}>Cerrar aviso</button>
@@ -752,6 +759,13 @@ export function EditorShell({
           <ConstructionMenu
             key={constructionCategory ?? 'all'}
             initialCategory={constructionCategory}
+            onPath={(options) => { if (store.getState().readOnly) return; chooseTool('garden-path'); store.setState({ gardenPathOptions: options }); }}
+            onMixedGarden={() => run(() => {
+              const state = store.getState(); if (state.readOnly) return;
+              const garden = addMixedGarden(state.document);
+              state.apply(garden.document); state.setTool('select'); state.select(garden.ids);
+              setMode('visual'); closeConstruction(); state.requestView('fit');
+            })}
           onTerrain={() => run(() => {
             const state = store.getState();
             if (state.readOnly) return;
@@ -761,10 +775,10 @@ export function EditorShell({
             setMode('visual'); openPanel('inspector');
             state.requestView('fit');
           })}
-          onPaving={() => run(() => {
+          onPaving={(preset) => run(() => {
             const state = store.getState();
             if (state.readOnly) return;
-            const surface = suggestedPavingSurface(state.document, newId());
+            const surface = applySurfacePreset(suggestedPavingSurface(state.document, newId()), preset);
             state.apply(addTerrainSurface(state.document, surface));
             state.setTool('select'); state.select([surface.id]);
             setMode('visual'); openPanel('inspector');
@@ -789,7 +803,7 @@ export function EditorShell({
             onAddColumn={insertColumn}
             onAddOutdoor={(item) => run(() => {
               if (store.getState().readOnly) return;
-              if (isBoundaryKind(item.kind)) { chooseTool(item.kind); return; }
+              if (isBoundaryKind(item.kind)) { chooseTool(item.kind); store.setState({ boundaryCatalogId: item.id }); return; }
               // El elemento nuevo sigue al ratón y se coloca con un clic, igual que al pegar.
               const source = store.getState().document, next = upgradeSpatialDocument(addFurniture(source, item, center));
               store.getState().beginPlaceSpatial(next.furniture.at(-1)!);

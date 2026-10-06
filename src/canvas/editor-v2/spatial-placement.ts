@@ -5,6 +5,7 @@ import { alignPoints, footprintAnchors } from './magnetic-alignment';
 import type { Column, EditorDocument, Point, Furniture, Ramp, Stair } from '@/lib/editor-document/schema';
 import { footprint, localToWorld, objectCenter } from '@/lib/editor-document/spatial-properties';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
+import { furnitureCollisionVolumes } from '@/lib/editor-document/furniture-collision-volumes';
 import { wallMeshes } from './scene/wall-meshes';
 import { stairMeshes } from './scene/stair-meshes';
 import { wallPath } from '@/lib/editor-document/wall-path';
@@ -20,8 +21,9 @@ import { isBoundary } from '@/lib/editor-document/boundary-types';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
 import { landingHugsWallEnd } from '@/lib/editor-document/landing-wall-corner';
 import { doorSweepSolids } from './door-sweep-solids';
+import { openingType } from '@/lib/editor-document/opening-types';
 
-interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
+export interface Solid { gate?: boolean; id: string; polygon: Point[]; bottom: number; top: number }
 // Imported geometries often retain sub-millimetre rotations; their coplanar contacts are not collisions.
 const CONTACT_EPSILON_MM = 1;
 const boundsCache = new WeakMap<Solid, { minX: number; maxX: number; minY: number; maxY: number }>();
@@ -41,7 +43,7 @@ function isStair(item: Furniture | Stair | Ramp | Column): item is Stair {
   return 'stepCount' in item;
 }
 /** Separating-axis test: contact is allowed, positive penetration is not. */
-function penetration(a: Solid, b: Solid): number {
+export function penetration(a: Solid, b: Solid): number {
   let depth = Math.min(a.top, b.top) - Math.max(a.bottom, b.bottom);
   if (depth <= CONTACT_EPSILON_MM) return 0;
   const ab = bounds(a), bb = bounds(b);
@@ -59,7 +61,7 @@ function penetration(a: Solid, b: Solid): number {
   }
   return depth;
 }
-function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
+export function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
   if ('stepCount' in item) return stairMeshes(item).filter((b) => b.role !== 'rail').map((box) => {
     const widthMm = box.size[0] * 1000, depthMm = box.size[2] * 1000, rotation = -box.rotation * 180 / Math.PI;
     const offset = objectCenter({ x: 0, y: 0, widthMm, depthMm, rotation });
@@ -78,7 +80,7 @@ function objectSolids(item: Furniture | Stair | Ramp | Column): Solid[] {
   // Surface markings and grates can share the ground with cars and furnishings.
   if (/^habiteka:outdoor:(parking|camino|drenaje|sumidero|riego-goteo)$/.test(furniture.catalogId ?? '') &&
     furnitureVolumes(furniture).every((v) => v.top <= 100)) return [];
-  return furnitureVolumes(furniture).map((volume) => ({ id: furniture.id, gate: volume.part === 'gate', bottom: volume.bottom, top: volume.top,
+  return furnitureCollisionVolumes(furniture).map((volume) => ({ id: furniture.id, gate: volume.part === 'gate', bottom: volume.bottom, top: volume.top,
     polygon: volume.shape === 'cylinder' ? Array.from({ length: 24 }, (_, i) => localToWorld(furniture, {
       x: volume.x + volume.widthMm / 2 * (1 + Math.cos(i * Math.PI / 12)),
       y: volume.y + volume.depthMm / 2 * (1 + Math.sin(i * Math.PI / 12)),
@@ -171,19 +173,34 @@ export function collisions(doc: EditorDocument): Map<string, number> {
   const planIds = new Set(planObjects(doc).map((item) => item.id));
   const rugIds = new Set(planObjects(doc).filter(isFloorCovering).map((item) => item.id));
   const baseId = (id: string) => id.split(':')[0]!;
-  objects.forEach((a, index) => {
-    for (const b of [...objects.slice(index + 1), ...wallSolids]) {
-      if (a.id === b.id) continue;
-      const first = boundaryItems.get(a.id), second = boundaryItems.get(b.id);
-      if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
+  // Primero las envolventes por entidad: evita comparar miles de piezas que están lejos o son del mismo modelo.
+  const groups = new Map<string, Solid[]>();
+  for (const solid of [...objects, ...wallSolids]) groups.set(solid.id, [...(groups.get(solid.id) ?? []), solid]);
+  const grouped = [...groups].map(([id, parts]) => {
+    const boxes = parts.map(bounds);
+    const minX = Math.min(...boxes.map((b) => b.minX)), minY = Math.min(...boxes.map((b) => b.minY));
+    const maxX = Math.max(...boxes.map((b) => b.maxX)), maxY = Math.max(...boxes.map((b) => b.maxY));
+    const envelope: Solid = { id, bottom: Math.min(...parts.map((p) => p.bottom)), top: Math.max(...parts.map((p) => p.top)),
+      polygon: [{ x: minX, y: minY }, { x: maxX, y: minY }, { x: maxX, y: maxY }, { x: minX, y: maxY }] };
+    return { id, parts, envelope };
+  });
+  grouped.forEach((group, index) => {
+    for (const other of grouped.slice(index + 1)) {
+      if (!planIds.has(group.id) && !planIds.has(other.id) && !objects.some((a) => a.id === group.id || a.id === other.id)) continue;
+      if (!penetration(group.envelope, other.envelope)) continue;
+      const first = boundaryItems.get(group.id), second = boundaryItems.get(other.id);
       if (first && second && (first.hostId === second.id || second.hostId === first.id)) continue;
       // Las alfombras cubren el suelo bajo sofás, mesas y sillas: no se cuentan como choque con el mobiliario. Un mueble
       // compuesto aporta varios sólidos con id derivado («id:n»), por eso se compara por id base.
-      if ((rugIds.has(baseId(a.id)) && planIds.has(baseId(b.id))) || (rugIds.has(baseId(b.id)) && planIds.has(baseId(a.id)))) continue;
+      if ((rugIds.has(baseId(group.id)) && planIds.has(baseId(other.id))) || (rugIds.has(baseId(other.id)) && planIds.has(baseId(group.id)))) continue;
       // El grifo o los aparatos de un tramo de cocina pueden asomar delante de un estor colgado de la ventana: no es choque.
       if (first && second && ((isKitchenRun(first) && isWindowCovering(second)) || (isWindowCovering(first) && isKitchenRun(second)))) continue;
-      const depth = penetration(a, b);
-      if (depth > .1) { const key = JSON.stringify([a.id, b.id].sort()); result.set(key, Math.max(depth, result.get(key) ?? 0)); }
+      let maximum = 0;
+      for (const a of group.parts) for (const b of other.parts) {
+        if (!a.gate && !b.gate && first && second && (isBoundaryJoint(first, second) || isKitchenJoint(first, second))) continue;
+        maximum = Math.max(maximum, penetration(a, b));
+      }
+      if (maximum > .1) result.set(JSON.stringify([group.id, other.id].sort()), maximum);
     }
   });
   return result;
@@ -245,10 +262,13 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     // Los muretes de protección pueden llegar a 1,50 m y apoyarse en descansillos/escaleras.
     if ((guardWallIds.has(first) && structuralIds.has(second)) || (guardWallIds.has(second) && structuralIds.has(first))) continue;
     if (depth > (before.get(key) ?? 0) + .1) {
-      const doorId = candidate.openings.find((opening) => opening.kind === 'puerta' &&
-        (opening.id === first || opening.id === second))?.id;
-      if (doorId) {
-        const obstacleId = doorId === first ? second : first;
+      const door = candidate.openings.find((opening) => opening.kind === 'puerta' &&
+        (opening.id === first || opening.id === second));
+      if (door) {
+        const doorId = door.id, obstacleId = doorId === first ? second : first;
+        // Una corredera o plegable no gira: lo que choca es el recorrido de su hoja junto al muro.
+        if (!openingType(door)?.swings)
+          throw new Error(`El recorrido de ${collisionLabel(candidate, doorId)} choca con ${collisionLabel(candidate, obstacleId)}. Cambia el lado de apertura o mueve el obstáculo.`);
         throw new Error(`El giro de ${collisionLabel(candidate, doorId)} choca con ${collisionLabel(candidate, obstacleId)}. Cambia el giro o mueve el obstáculo.`);
       }
       throw new Error(`${collisionLabel(candidate, first)} atraviesa ${collisionLabel(candidate, second)} (${Math.max(1, Math.round(depth / 10))} cm). Ajusta posición, tamaño o elevación.`);

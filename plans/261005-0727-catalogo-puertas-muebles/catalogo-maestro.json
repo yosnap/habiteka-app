@@ -1,0 +1,1309 @@
+{
+  "version": 1,
+  "date": "2026-10-05",
+  "units": "mm",
+  "description": "Catálogo maestro de Habiteka ordenado por oleadas de fabricación. Especificación de entrada para la fábrica (scripts/furniture-factory) y para las familias por código.",
+  "conventions": {
+    "dimensions": "widthMm × depthMm × heightMm de la caja exterior; elevationMm = cota de apoyo sobre el suelo acabado (0 si apoya en el suelo).",
+    "priority": {
+      "P1": "imprescindible para amueblar una vivienda típica",
+      "P2": "habitual",
+      "P3": "complementario"
+    },
+    "method": {
+      "blender": "mueble u objeto generado con scripts/blender",
+      "codigo": "carpintería, cocina modular o construcción paramétrica en src/lib/editor-document",
+      "cc0": "modelo CC0 de Poly Haven por importar (sourceId = id de la API)"
+    },
+    "materials": "En blender y código, claves de acabado de scripts/furniture-factory/finishes.mjs; ver newFinishes para las que faltan. En cc0, descripción del material del modelo.",
+    "styles": [
+      "Nórdico",
+      "Contemporáneo",
+      "Industrial",
+      "Clásico",
+      "Mediterráneo",
+      "Rústico"
+    ],
+    "status": "'existe', 'parcial: …' o 'falta' respecto al catálogo actual (furniture-catalog.ts, furniture-assets.ts, outdoor-catalog.ts, opening-types.ts, schema.ts).",
+    "catalogRoom": "Estancia del enum FurnitureRoom actual a la que se asigna mientras no se amplíe.",
+    "profile": "FurnitureProfile sugerido; stair y railing no son muebles, sino familias de construcción."
+  },
+  "rooms": {
+    "salon": "Salón",
+    "comedor": "Comedor",
+    "cocina": "Cocina",
+    "dormitorio": "Dormitorio",
+    "infantil": "Infantil y juvenil",
+    "bano": "Baño y aseo",
+    "aseo": "Aseo",
+    "despacho": "Despacho",
+    "recibidor": "Recibidor",
+    "lavadero": "Lavadero",
+    "exterior": "Terraza y jardín",
+    "garaje": "Garaje",
+    "vivienda": "Toda la vivienda: iluminación, climatización, construcción y decoración"
+  },
+  "newFinishes": [
+    "acero-galvanizado",
+    "acero-inox",
+    "acrilico-blanco",
+    "ceramica-blanca",
+    "espejo",
+    "estuco-blanco",
+    "granito-negro",
+    "gresite-azul",
+    "lacado-gris",
+    "lacado-negro",
+    "ladrillo-refractario",
+    "lona-acrilica",
+    "piedra-natural",
+    "pino",
+    "plastico-blanco",
+    "vidrio-opal"
+  ],
+  "inProgress": [
+    {
+      "family": "sofas",
+      "label": "Sofás de 2/3/4 plazas, chaise longue, rinconera, sofá cama, modular, butacas y puf",
+      "room": "salon"
+    },
+    {
+      "family": "camas",
+      "label": "Camas con cabecero",
+      "room": "dormitorio"
+    },
+    {
+      "family": "comedor",
+      "label": "Mesas de comedor, sillas, taburetes y bancos",
+      "room": "comedor"
+    },
+    {
+      "family": "exterior",
+      "label": "Sofás, sillas, tumbonas, mesas y chill-out de exterior",
+      "room": "exterior"
+    },
+    {
+      "family": "aberturas",
+      "label": "Más tipos de puerta, de puerta de garaje (seccional, enrollable, basculante) y de ventana",
+      "room": "vivienda"
+    },
+    {
+      "family": "bano",
+      "label": "Lavabos, inodoros, bidés, duchas con mampara, bañeras y muebles de baño",
+      "room": "bano"
+    },
+    {
+      "family": "alfombras",
+      "label": "Alfombras",
+      "room": "vivienda"
+    }
+  ],
+  "waves": [
+    {
+      "wave": 2,
+      "priority": "P1",
+      "goal": "Imprescindible que falta para amueblar una vivienda típica",
+      "pieces": 91,
+      "families": [
+        {
+          "family": "mueble_tv",
+          "label": "Mueble de TV y composición de salón",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: aparador_bajo_moderno (CC0) y mueble-tv procedural",
+          "rangeMm": "1200–2400 × 350–450 × 400–600; suspendido 250–350 de alto a 300–450 del suelo; composición 2400–3200 × 350–450 × 1800–2200",
+          "variants": [
+            {"id": "mueble_tv_bajo_roble_160", "label": "Bajo de roble con patas · 160 cm", "widthMm": 1600, "depthMm": 420, "heightMm": 520, "materials": ["roble", "lacado-blanco"], "style": "Nórdico"},
+            {"id": "mueble_tv_bajo_nogal_200", "label": "Bajo de nogal con frentes ranurados · 200 cm", "widthMm": 2000, "depthMm": 450, "heightMm": 500, "materials": ["nogal", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "mueble_tv_suspendido_180", "label": "Suspendido lacado · 180 cm", "widthMm": 1800, "depthMm": 350, "heightMm": 300, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 350},
+            {"id": "mueble_tv_industrial_180", "label": "Industrial de madera y acero · 180 cm", "widthMm": 1800, "depthMm": 400, "heightMm": 550, "materials": ["roble", "metal-negro"], "style": "Industrial"},
+            {"id": "mueble_tv_rejilla_150", "label": "Con puertas de rejilla de ratán · 150 cm", "widthMm": 1500, "depthMm": 400, "heightMm": 550, "materials": ["roble", "ratan-natural"], "style": "Mediterráneo"},
+            {"id": "composicion_salon_300", "label": "Composición con bajo, altos y estantes · 300 cm", "widthMm": 3000, "depthMm": 400, "heightMm": 2000, "materials": ["lacado-blanco", "roble"], "style": "Contemporáneo"}
+          ],
+          "notes": "Hueco para TV de 55–75″. Patas o zócalo por parámetro. Comparte el cuerpo de puertas y cajones con cómodas y aparadores."
+        },
+        {
+          "family": "estanterias",
+          "label": "Librerías y estanterías",
+          "room": "salon",
+          "alsoIn": [
+            "despacho",
+            "dormitorio",
+            "infantil"
+          ],
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "shelf",
+          "status": "parcial: estanteria_cubos y estanteria_acero_madera (CC0), estantería low-poly y librería procedural",
+          "rangeMm": "400–1200 × 250–400 × 800–2020; cubos 770/1470 × 390 × 770/1470; estante de pared 600–1200 × 200–250 × 30–50",
+          "variants": [
+            {"id": "libreria_alta_lacada_80", "label": "Librería alta lacada · 80 cm", "widthMm": 800, "depthMm": 280, "heightMm": 2020, "materials": ["lacado-blanco"], "style": "Nórdico"},
+            {"id": "libreria_alta_roble_80", "label": "Librería alta de roble · 80 cm", "widthMm": 800, "depthMm": 280, "heightMm": 2020, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "estanteria_cubos_2x4", "label": "Estantería de cubos 2 × 4", "widthMm": 770, "depthMm": 390, "heightMm": 1470, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "estanteria_cubos_4x4", "label": "Estantería de cubos 4 × 4", "widthMm": 1470, "depthMm": 390, "heightMm": 1470, "materials": ["roble"], "style": "Contemporáneo"},
+            {"id": "estanteria_escalera", "label": "Estantería escalera", "widthMm": 600, "depthMm": 350, "heightMm": 1800, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "libreria_baja_120", "label": "Librería baja · 120 cm", "widthMm": 1200, "depthMm": 300, "heightMm": 800, "materials": ["nogal"], "style": "Contemporáneo"},
+            {"id": "estante_pared_80", "label": "Estante de pared flotante · 80 cm", "widthMm": 800, "depthMm": 200, "heightMm": 40, "materials": ["roble"], "style": "Nórdico", "elevationMm": 1500},
+            {"id": "estante_pared_escuadras_120", "label": "Estante de pared con escuadras · 120 cm", "widthMm": 1200, "depthMm": 250, "heightMm": 200, "materials": ["roble", "metal-negro"], "style": "Industrial", "elevationMm": 1400}
+          ],
+          "notes": "Relleno opcional de libros y objetos (parámetro) reutilizando decorative_book_set_01 (CC0)."
+        },
+        {
+          "family": "mesas_centro",
+          "label": "Mesas de centro",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "table",
+          "status": "parcial: 3 CC0 (moderna, redonda, cuadrada) y procedural",
+          "rangeMm": "900–1300 × 500–700 × 350–450; redonda Ø 700–1000",
+          "variants": [
+            {"id": "mesa_centro_roble_120", "label": "Rectangular de roble · 120 × 60", "widthMm": 1200, "depthMm": 600, "heightMm": 400, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "mesa_centro_marmol_90", "label": "Redonda de mármol con pie de latón · Ø 90", "widthMm": 900, "depthMm": 900, "heightMm": 350, "materials": ["marmol-blanco", "laton"], "style": "Contemporáneo"},
+            {"id": "mesas_nido_redondas", "label": "Mesas nido redondas · Ø 80 + Ø 50", "widthMm": 800, "depthMm": 800, "heightMm": 450, "materials": ["metal-negro", "roble"], "style": "Industrial"},
+            {"id": "mesa_centro_elevable", "label": "Con tapa elevable · 110 × 55", "widthMm": 1100, "depthMm": 550, "heightMm": 420, "materials": ["lacado-blanco", "roble"], "style": "Contemporáneo"},
+            {"id": "mesa_centro_ratan_80", "label": "Redonda de ratán · Ø 80", "widthMm": 800, "depthMm": 800, "heightMm": 400, "materials": ["ratan-natural"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "mesas_auxiliares",
+          "label": "Mesas auxiliares",
+          "room": "salon",
+          "alsoIn": [
+            "dormitorio"
+          ],
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "table",
+          "status": "parcial: velador_alto (CC0) y mesa-auxiliar procedural",
+          "rangeMm": "Ø 350–500 × 450–600; en C 450 × 300 × 600",
+          "variants": [
+            {"id": "auxiliar_marmol_45", "label": "Redonda de mármol y metal · Ø 45", "widthMm": 450, "depthMm": 450, "heightMm": 550, "materials": ["marmol-negro", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "auxiliar_pedestal_40", "label": "De roble con pie central · Ø 40", "widthMm": 400, "depthMm": 400, "heightMm": 550, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "auxiliar_c_metal", "label": "En C para el sofá", "widthMm": 450, "depthMm": 300, "heightMm": 600, "materials": ["metal-negro", "roble"], "style": "Industrial"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "electro_libres",
+          "label": "Electrodomésticos de libre instalación",
+          "room": "cocina",
+          "alsoIn": [
+            "lavadero"
+          ],
+          "catalogRoom": "cocina",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "parcial: low-poly (Kenney/Quaternius) y procedurales; sustituir por realistas",
+          "rangeMm": "Combi 595–600 × 650–680 × 1850–2030; americano 900–920 × 700–750 × 1780–1800; lavavajillas 450/600 × 600 × 850; lavadora y secadora 595–600 × 550–650 × 845–850; microondas 450–520 × 350–420 × 260–310",
+          "variants": [
+            {"id": "frigo_combi_inox_186", "label": "Frigorífico combi inox · 186 cm", "widthMm": 595, "depthMm": 650, "heightMm": 1860, "materials": ["acero-inox"], "style": "Contemporáneo"},
+            {"id": "frigo_combi_blanco_203", "label": "Frigorífico combi blanco · 203 cm", "widthMm": 595, "depthMm": 650, "heightMm": 2030, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "frigo_americano_inox", "label": "Frigorífico americano de dos puertas", "widthMm": 910, "depthMm": 720, "heightMm": 1790, "materials": ["acero-inox"], "style": "Contemporáneo"},
+            {"id": "lavavajillas_libre_60", "label": "Lavavajillas de libre instalación · 60 cm", "widthMm": 600, "depthMm": 600, "heightMm": 850, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "microondas_sobremesa", "label": "Microondas de sobremesa", "widthMm": 480, "depthMm": 380, "heightMm": 280, "materials": ["acero-inox", "cristal"], "style": "Contemporáneo", "elevationMm": 900},
+            {"id": "lavadora_frontal", "label": "Lavadora de carga frontal", "widthMm": 600, "depthMm": 600, "heightMm": 850, "materials": ["lacado-blanco", "cristal"], "style": "Contemporáneo"},
+            {"id": "secadora_bomba_calor", "label": "Secadora de bomba de calor", "widthMm": 600, "depthMm": 640, "heightMm": 850, "materials": ["lacado-blanco", "cristal"], "style": "Contemporáneo"}
+          ],
+          "notes": "Sustituyen a nevera, nevera_americana, nevera_mini, microondas, lavadora y secadora actuales. Lavadora y secadora sirven también al lavadero."
+        },
+        {
+          "family": "electro_integrables",
+          "label": "Aparatos integrables, fregaderos y grifo de cocina",
+          "room": "cocina",
+          "catalogRoom": "cocina",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "parcial: los huecos del tramo de cocina se dibujan como cajas por código; vitrocerámica low-poly",
+          "rangeMm": "Horno 595 × 550–570 × 595; microondas 595 × 350–400 × 380–460; placa 590–800 × 510–520 × 45–60; campana de pared 600/900 × 450–500 × 640–1000; fregadero 780–1160 × 435–500; grifo con caño de 200–250 y 300–450 de alto",
+          "variants": [
+            {"id": "horno_integrable_60", "label": "Horno integrable · 60 cm", "widthMm": 595, "depthMm": 560, "heightMm": 595, "materials": ["cristal", "acero-inox"], "style": "Contemporáneo"},
+            {"id": "microondas_integrable_60", "label": "Microondas integrable · 60 cm", "widthMm": 595, "depthMm": 400, "heightMm": 390, "materials": ["cristal", "acero-inox"], "style": "Contemporáneo"},
+            {"id": "placa_induccion_60", "label": "Placa de inducción · 60 cm", "widthMm": 590, "depthMm": 520, "heightMm": 50, "materials": ["cristal"], "style": "Contemporáneo"},
+            {"id": "campana_pared_90", "label": "Campana decorativa de pared · 90 cm", "widthMm": 900, "depthMm": 500, "heightMm": 1000, "materials": ["acero-inox", "cristal"], "style": "Contemporáneo", "elevationMm": 1550},
+            {"id": "campana_integrada_60", "label": "Campana integrada bajo mueble alto · 60 cm", "widthMm": 600, "depthMm": 280, "heightMm": 200, "materials": ["acero-inox"], "style": "Contemporáneo", "elevationMm": 1500},
+            {"id": "fregadero_1seno_inox", "label": "Fregadero de un seno con escurridor · inox", "widthMm": 800, "depthMm": 500, "heightMm": 200, "materials": ["acero-inox"], "style": "Contemporáneo"},
+            {"id": "fregadero_2senos_granito", "label": "Fregadero de dos senos · granito", "widthMm": 860, "depthMm": 500, "heightMm": 200, "materials": ["granito-negro"], "style": "Contemporáneo"},
+            {"id": "grifo_cocina_monomando", "label": "Grifo de cocina monomando de caño alto", "widthMm": 60, "depthMm": 220, "heightMm": 350, "materials": ["cromo"], "style": "Contemporáneo"}
+          ],
+          "notes": "Un único GLB por aparato: lo usan el catálogo suelto y el hueco del tramo de cocina (KitchenSlot), sin duplicar geometría."
+        },
+        {
+          "family": "cocina_modular",
+          "label": "Cocina modular: columnas, isla, península y frentes",
+          "room": "cocina",
+          "catalogRoom": "cocina",
+          "priority": "P1",
+          "method": "codigo",
+          "profile": "kitchen",
+          "status": "parcial: tramo lineal con huecos y módulos altos; cocina en L desde Amueblar",
+          "rangeMm": "Bajos 600 × 900 (zócalo 100, encimera 30); altos 300–370 de fondo × 600–900 a 1450–1500; columnas 600 × 600 × 2000–2200; isla 1800–2400 × 900–1200 × 900 con voladizo de barra 250–350",
+          "variants": [
+            {"id": "columna_horno_micro", "label": "Columna de horno y microondas", "widthMm": 600, "depthMm": 600, "heightMm": 2140, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "columna_despensa", "label": "Columna despensa", "widthMm": 600, "depthMm": 600, "heightMm": 2140, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "isla_con_barra", "label": "Isla con voladizo de barra", "widthMm": 2400, "depthMm": 1000, "heightMm": 900, "materials": ["lacado-blanco", "marmol-blanco"], "style": "Contemporáneo"},
+            {"id": "peninsula_barra", "label": "Península con barra", "widthMm": 1800, "depthMm": 900, "heightMm": 900, "materials": ["roble", "marmol-blanco"], "style": "Nórdico"},
+            {"id": "frente_gola", "label": "Frentes sin tirador con gola", "widthMm": 600, "depthMm": 600, "heightMm": 900, "materials": ["lacado-gris"], "style": "Contemporáneo"},
+            {"id": "frente_shaker", "label": "Frentes enmarcados (shaker) con pomo", "widthMm": 600, "depthMm": 600, "heightMm": 900, "materials": ["lacado-verde", "laton"], "style": "Clásico"}
+          ],
+          "notes": "Amplía KitchenComposition (tipo de columna, isla/península con voladizo, estilo de frente y tirador); no genera GLB."
+        },
+        {
+          "family": "armarios_libres",
+          "label": "Armarios de libre instalación",
+          "room": "dormitorio",
+          "catalogRoom": "dormitorio",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: armario low-poly (Quaternius) y procedural",
+          "rangeMm": "1000–2000 × 550–650 × 2000–2360 (módulos de 500/750/1000)",
+          "variants": [
+            {"id": "armario_2p_100", "label": "Dos puertas lacado · 100 cm", "widthMm": 1000, "depthMm": 580, "heightMm": 2010, "materials": ["lacado-blanco"], "style": "Nórdico"},
+            {"id": "armario_3p_150", "label": "Tres puertas de roble · 150 cm", "widthMm": 1500, "depthMm": 580, "heightMm": 2360, "materials": ["roble", "lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "armario_corredero_180", "label": "Dos puertas correderas · 180 cm", "widthMm": 1800, "depthMm": 650, "heightMm": 2360, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "armario_corredero_espejo_200", "label": "Correderas con espejo · 200 cm", "widthMm": 2000, "depthMm": 650, "heightMm": 2360, "materials": ["roble", "espejo"], "style": "Contemporáneo"},
+            {"id": "armario_rejilla_100", "label": "Dos puertas de rejilla de ratán · 100 cm", "widthMm": 1000, "depthMm": 580, "heightMm": 2000, "materials": ["roble", "ratan-natural"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "armarios_empotrados",
+          "label": "Armarios empotrados",
+          "room": "dormitorio",
+          "alsoIn": [
+            "recibidor",
+            "infantil"
+          ],
+          "catalogRoom": "dormitorio",
+          "priority": "P1",
+          "method": "codigo",
+          "profile": "cabinet",
+          "status": "falta",
+          "rangeMm": "Hueco de 800–3600 entre muros, módulos de 400–1000; fondo 600–650; a techo 2400–2700 o 2200 + altillo 400–600",
+          "variants": [
+            {"id": "empotrado_batiente", "label": "Frente de puertas batientes", "widthMm": 1800, "depthMm": 620, "heightMm": 2500, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "empotrado_corredero_2h", "label": "Frente corredero de dos hojas", "widthMm": 1800, "depthMm": 650, "heightMm": 2500, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "empotrado_corredero_3h_espejo", "label": "Frente corredero de tres hojas con espejo", "widthMm": 2700, "depthMm": 650, "heightMm": 2500, "materials": ["lacado-blanco", "espejo"], "style": "Contemporáneo"},
+            {"id": "empotrado_con_altillo", "label": "Puertas batientes con altillo", "widthMm": 1500, "depthMm": 620, "heightMm": 2600, "materials": ["lacado-blanco"], "style": "Clásico"}
+          ],
+          "notes": "Se traza entre muros como el tramo de cocina (mismo patrón que KitchenRun): ancho = hueco, alto = techo. Frente liso, enmarcado o con espejo y tirador elegible; interior con barra, baldas y cajonera."
+        },
+        {
+          "family": "mesillas",
+          "label": "Mesillas de noche",
+          "room": "dormitorio",
+          "catalogRoom": "dormitorio",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: 2 CC0 (con cajón, con estantes), mesilla low-poly y procedural",
+          "rangeMm": "400–550 × 350–450 × 450–600; suspendida de 150–200 de alto a 400–450",
+          "variants": [
+            {"id": "mesilla_2c_roble", "label": "Dos cajones de roble", "widthMm": 450, "depthMm": 400, "heightMm": 550, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "mesilla_suspendida", "label": "Suspendida de un cajón", "widthMm": 450, "depthMm": 300, "heightMm": 170, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 420},
+            {"id": "mesilla_nogal_patas", "label": "Nogal con patas de latón", "widthMm": 500, "depthMm": 400, "heightMm": 550, "materials": ["nogal", "laton"], "style": "Contemporáneo"},
+            {"id": "mesilla_ratan", "label": "De ratán con balda", "widthMm": 450, "depthMm": 400, "heightMm": 550, "materials": ["ratan-natural", "roble"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "comodas",
+          "label": "Cómodas y sinfonieres",
+          "room": "dormitorio",
+          "catalogRoom": "dormitorio",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: comoda_clasica y cajonera_baja (CC0) y procedural",
+          "rangeMm": "Cómoda 800–1600 × 450–500 × 750–950; sinfonier 450–600 × 400–480 × 1100–1300",
+          "variants": [
+            {"id": "comoda_6c_roble_160", "label": "Seis cajones de roble · 160 cm", "widthMm": 1600, "depthMm": 480, "heightMm": 780, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "comoda_3c_lacada_80", "label": "Tres cajones lacada · 80 cm", "widthMm": 800, "depthMm": 480, "heightMm": 780, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "sinfonier_6c", "label": "Sinfonier de seis cajones", "widthMm": 500, "depthMm": 450, "heightMm": 1200, "materials": ["lacado-blanco", "roble"], "style": "Nórdico"},
+            {"id": "comoda_nogal_120", "label": "Nogal con patas altas · 120 cm", "widthMm": 1200, "depthMm": 450, "heightMm": 850, "materials": ["nogal", "laton"], "style": "Clásico"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "infantil_descanso",
+          "label": "Cunas, camas nido, literas y cambiador",
+          "room": "infantil",
+          "catalogRoom": "dormitorio",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "bed",
+          "status": "falta",
+          "rangeMm": "Cuna 60 × 120 → 640–670 × 1240–1260 × 850–950; 70 × 140 → 760 × 1460 × 900; nido 90 × 190 → 970–1000 × 1960–2000 × 550–800; litera 980–1010 × 1960–2050 × 1500–1700; cambiador 800–900 × 500–800 × 900–1000",
+          "variants": [
+            {"id": "cuna_60x120", "label": "Cuna de barrotes · 60 × 120", "widthMm": 660, "depthMm": 1250, "heightMm": 900, "materials": ["lacado-blanco"], "style": "Nórdico"},
+            {"id": "cuna_convertible_70x140", "label": "Cuna convertible · 70 × 140", "widthMm": 760, "depthMm": 1460, "heightMm": 900, "materials": ["roble", "lacado-blanco"], "style": "Nórdico"},
+            {"id": "cama_nido_90", "label": "Cama nido · 90 × 190", "widthMm": 990, "depthMm": 2000, "heightMm": 750, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "litera_90", "label": "Litera con escalera · 90 × 190", "widthMm": 1000, "depthMm": 2030, "heightMm": 1600, "materials": ["pino"], "style": "Nórdico"},
+            {"id": "comoda_cambiador", "label": "Cómoda con cambiador", "widthMm": 900, "depthMm": 780, "heightMm": 950, "materials": ["lacado-blanco"], "style": "Nórdico", "profile": "cabinet"}
+          ],
+          "notes": "Cunas según UNE-EN 716: separación de barrotes 45–65 mm. Ropa de cama con el paño de fam_beds (drape)."
+        },
+        {
+          "family": "griferia",
+          "label": "Grifería visible",
+          "room": "bano",
+          "alsoIn": [
+            "aseo",
+            "cocina"
+          ],
+          "catalogRoom": "bano",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Lavabo 50 × 130–180 × 150–200 (caño alto 280–320); columna termostática 300–350 × 450 × 1000–1200 con rociador Ø 200–300 a 2000–2100; mural de baño-ducha 300 × 150 × 150 a 700–800",
+          "variants": [
+            {"id": "grifo_lavabo_monomando", "label": "Grifo de lavabo monomando", "widthMm": 50, "depthMm": 150, "heightMm": 170, "materials": ["cromo"], "style": "Contemporáneo"},
+            {"id": "grifo_lavabo_cano_alto_negro", "label": "Grifo de lavabo de caño alto · negro", "widthMm": 50, "depthMm": 180, "heightMm": 300, "materials": ["metal-negro"], "style": "Industrial"},
+            {"id": "columna_ducha_termostatica", "label": "Columna de ducha termostática", "widthMm": 300, "depthMm": 450, "heightMm": 1150, "materials": ["cromo"], "style": "Contemporáneo", "elevationMm": 950},
+            {"id": "grifo_mural_bano_ducha", "label": "Grifo mural de baño-ducha", "widthMm": 300, "depthMm": 150, "heightMm": 150, "materials": ["cromo"], "style": "Clásico", "elevationMm": 750}
+          ],
+          "notes": "Si la fábrica de baño (oleada 1) ya trae grifo en lavabos y duchas, usar estas piezas como subpiezas en vez de duplicarlas."
+        },
+        {
+          "family": "espejos_bano",
+          "label": "Espejos de baño",
+          "room": "bano",
+          "alsoIn": [
+            "aseo"
+          ],
+          "catalogRoom": "bano",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "600–1200 × 20–50 × 600–900; borde inferior a 1100–1200",
+          "variants": [
+            {"id": "espejo_bano_rect_80", "label": "Rectangular · 80 × 70", "widthMm": 800, "depthMm": 25, "heightMm": 700, "materials": ["espejo"], "style": "Contemporáneo", "elevationMm": 1150},
+            {"id": "espejo_bano_redondo_60", "label": "Redondo con marco negro · Ø 60", "widthMm": 600, "depthMm": 30, "heightMm": 600, "materials": ["espejo", "metal-negro"], "style": "Industrial", "elevationMm": 1150},
+            {"id": "espejo_bano_led_100", "label": "Retroiluminado LED · 100 × 70", "widthMm": 1000, "depthMm": 40, "heightMm": 700, "materials": ["espejo"], "style": "Contemporáneo", "elevationMm": 1150}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "despacho",
+          "label": "Escritorios y sillas de trabajo",
+          "room": "despacho",
+          "catalogRoom": "oficina",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "table",
+          "status": "parcial: escritorio y silla procedurales, escritorio_metalico (CC0)",
+          "rangeMm": "Escritorio 1000–1600 × 500–800 × 740–760 (elevable 650–1250); en L 1400–1600 × 1400–1600; silla 600–700 × 600–700 × 950–1250",
+          "variants": [
+            {"id": "escritorio_roble_120", "label": "Escritorio de roble · 120 × 60", "widthMm": 1200, "depthMm": 600, "heightMm": 750, "materials": ["roble", "metal-negro"], "style": "Nórdico"},
+            {"id": "escritorio_cajonera_140", "label": "Escritorio con cajonera · 140 × 70", "widthMm": 1400, "depthMm": 700, "heightMm": 750, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "escritorio_elevable_140", "label": "Escritorio elevable · 140 × 70", "widthMm": 1400, "depthMm": 700, "heightMm": 750, "materials": ["roble", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "escritorio_esquina_l", "label": "Escritorio en L · 150 × 150", "widthMm": 1500, "depthMm": 1500, "heightMm": 750, "materials": ["roble", "lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "silla_oficina_malla", "label": "Silla de oficina ergonómica de malla", "widthMm": 650, "depthMm": 650, "heightMm": 1100, "materials": ["tejido-antracita", "metal-negro"], "style": "Contemporáneo", "profile": "chair"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "luz_techo",
+          "label": "Lámparas de techo: colgantes y plafones",
+          "room": "vivienda",
+          "catalogRoom": "iluminacion",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "lamp",
+          "status": "parcial: luminarias funcionales (colgante, plafón, empotrado, foco) sin modelo de producto",
+          "rangeMm": "Colgante Ø 250–600 × 150–450 (bajo a 650–750 sobre la mesa); lineal 1000–1500 × 50–80; plafón Ø 300–500 × 60–120",
+          "variants": [
+            {"id": "colgante_campana_metal_35", "label": "Colgante de campana metálica · Ø 35", "widthMm": 350, "depthMm": 350, "heightMm": 300, "materials": ["metal-negro"], "style": "Industrial"},
+            {"id": "colgante_ratan_45", "label": "Colgante de ratán · Ø 45", "widthMm": 450, "depthMm": 450, "heightMm": 350, "materials": ["ratan-natural"], "style": "Mediterráneo"},
+            {"id": "colgante_tambor_lino_50", "label": "Colgante de tambor de lino · Ø 50", "widthMm": 500, "depthMm": 500, "heightMm": 250, "materials": ["lino-blanco"], "style": "Nórdico"},
+            {"id": "colgante_lineal_led_120", "label": "Lineal LED para mesa de comedor · 120 cm", "widthMm": 1200, "depthMm": 60, "heightMm": 50, "materials": ["metal-negro"], "style": "Contemporáneo"},
+            {"id": "plafon_led_40", "label": "Plafón LED redondo · Ø 40", "widthMm": 400, "depthMm": 400, "heightMm": 80, "materials": ["vidrio-opal", "lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "plafon_madera_45", "label": "Plafón de madera y opal · Ø 45", "widthMm": 450, "depthMm": 450, "heightMm": 120, "materials": ["roble", "vidrio-opal"], "style": "Nórdico"}
+          ],
+          "notes": "Luminaire solo guarda kind: hace falta un catalogId opcional para enlazar el modelo. El kind sigue gobernando la luz."
+        },
+        {
+          "family": "techo_cc0",
+          "label": "Colgante y ventilador de techo (Poly Haven)",
+          "room": "vivienda",
+          "catalogRoom": "iluminacion",
+          "priority": "P1",
+          "method": "cc0",
+          "profile": "lamp",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "colgante_globo_opal", "label": "Colgante de globo opal", "widthMm": 432, "depthMm": 432, "heightMm": 952, "materials": ["vidrio esmerilado", "metal cepillado"], "style": "Contemporáneo", "sourceId": "modern_ceiling_lamp_01"},
+            {"id": "ventilador_techo_negro", "label": "Ventilador de techo negro con luz", "widthMm": 1463, "depthMm": 1463, "heightMm": 516, "materials": ["metal negro mate"], "style": "Contemporáneo", "sourceId": "ceiling_fan", "profile": "appliance"}
+          ],
+          "notes": "Estado clean en Poly Haven. Importar con scripts/import-polyhaven-models.mjs (GLB con texturas de 1k)."
+        },
+        {
+          "family": "radiadores",
+          "label": "Radiadores",
+          "room": "vivienda",
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Aluminio: elemento de 80 de ancho × 80–100 × 600–800 (4–14 elementos); panel de acero 400–2000 × 60–100 × 300–900; a 100–150 del suelo",
+          "variants": [
+            {"id": "radiador_aluminio_6", "label": "Aluminio de 6 elementos", "widthMm": 480, "depthMm": 95, "heightMm": 680, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 120},
+            {"id": "radiador_aluminio_10", "label": "Aluminio de 10 elementos", "widthMm": 800, "depthMm": 95, "heightMm": 680, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 120},
+            {"id": "radiador_aluminio_14", "label": "Aluminio de 14 elementos", "widthMm": 1120, "depthMm": 95, "heightMm": 680, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 120},
+            {"id": "radiador_panel_100", "label": "Panel de acero · 100 × 60", "widthMm": 1000, "depthMm": 100, "heightMm": 600, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 150}
+          ],
+          "notes": "Parámetros: número de elementos (ancho = n × 80) y alto 600/700/800; válvula y detentor visibles."
+        },
+        {
+          "family": "aire_acondicionado",
+          "label": "Aire acondicionado split",
+          "room": "vivienda",
+          "catalogRoom": "salon",
+          "priority": "P1",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Interior 700–1000 × 190–250 × 250–320, a 2000–2200 del suelo; exterior 650–900 × 250–350 × 450–700",
+          "variants": [
+            {"id": "split_interior_2500", "label": "Split de pared · 2.500 frigorías", "widthMm": 800, "depthMm": 220, "heightMm": 290, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 2050},
+            {"id": "split_interior_4500", "label": "Split de pared · 4.500 frigorías", "widthMm": 1000, "depthMm": 240, "heightMm": 320, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 2000}
+          ],
+          "notes": "La unidad exterior va en la oleada 3."
+        }
+      ]
+    },
+    {
+      "wave": 3,
+      "priority": "P2",
+      "goal": "Habitual: completa estancias, instalaciones y exterior",
+      "pieces": 82,
+      "families": [
+        {
+          "family": "aparadores",
+          "label": "Aparadores y vitrinas",
+          "room": "comedor",
+          "alsoIn": [
+            "salon"
+          ],
+          "catalogRoom": "comedor",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: 4 CC0 (bajo moderno, vitrina clásica, industrial, cajonera alta) y procedurales",
+          "rangeMm": "Aparador 1500–2200 × 400–500 × 700–850; vitrina 800–1000 × 350–450 × 1600–2000",
+          "variants": [
+            {"id": "aparador_roble_180", "label": "Aparador de roble de tres puertas · 180", "widthMm": 1800, "depthMm": 450, "heightMm": 780, "materials": ["roble"], "style": "Nórdico"},
+            {"id": "aparador_rejilla_150", "label": "Aparador con rejilla de ratán · 150", "widthMm": 1500, "depthMm": 450, "heightMm": 800, "materials": ["roble", "ratan-natural"], "style": "Mediterráneo"},
+            {"id": "aparador_lacado_200", "label": "Aparador lacado sin tiradores · 200", "widthMm": 2000, "depthMm": 450, "heightMm": 750, "materials": ["lacado-gris"], "style": "Contemporáneo"},
+            {"id": "vitrina_metal_vidrio", "label": "Vitrina de metal y vidrio", "widthMm": 900, "depthMm": 400, "heightMm": 1800, "materials": ["metal-negro", "cristal"], "style": "Industrial", "profile": "shelf"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "chimenea_obra",
+          "label": "Chimenea de obra",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "cabinet",
+          "status": "parcial: chimenea low-poly (Quaternius)",
+          "rangeMm": "Frente 1000–1600 × 400–600 × 1000–1200 con hogar de 700–1000 y campana hasta el techo",
+          "variants": [
+            {"id": "chimenea_obra_frontal", "label": "Chimenea de obra frontal con campana a techo", "widthMm": 1400, "depthMm": 500, "heightMm": 1100, "materials": ["estuco-blanco", "piedra-natural"], "style": "Mediterráneo"}
+          ],
+          "notes": "Construcción adosada al muro: alto de la campana = altura libre de la estancia."
+        },
+        {
+          "family": "estufas",
+          "label": "Estufas de leña y de pellet",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Leña 450–700 × 400–600 × 700–1200 con tubo Ø 150; pellet 450–600 × 450–600 × 900–1250",
+          "variants": [
+            {"id": "estufa_lena", "label": "Estufa de leña con tubo", "widthMm": 550, "depthMm": 450, "heightMm": 850, "materials": ["metal-negro"], "style": "Nórdico"},
+            {"id": "estufa_pellet", "label": "Estufa de pellet", "widthMm": 500, "depthMm": 530, "heightMm": 1000, "materials": ["metal-negro", "ceramica-blanca"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "cocina_aparatos_2",
+          "label": "Más aparatos y grifo de cocina",
+          "room": "cocina",
+          "catalogRoom": "cocina",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Placa de gas 580–600 × 500–520 × 90–110; inducción 800 × 520 × 50; campana de isla 900 × 600 × 700–1000; vinoteca 595 × 570 × 820",
+          "variants": [
+            {"id": "placa_gas_60", "label": "Placa de gas de cuatro fuegos · 60", "widthMm": 580, "depthMm": 500, "heightMm": 100, "materials": ["cristal", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "placa_induccion_80", "label": "Placa de inducción · 80", "widthMm": 800, "depthMm": 520, "heightMm": 50, "materials": ["cristal"], "style": "Contemporáneo"},
+            {"id": "campana_isla_90", "label": "Campana de isla · 90", "widthMm": 900, "depthMm": 600, "heightMm": 1000, "materials": ["acero-inox"], "style": "Contemporáneo", "elevationMm": 1550},
+            {"id": "grifo_cocina_extraible", "label": "Grifo de cocina con ducha extraíble", "widthMm": 70, "depthMm": 230, "heightMm": 450, "materials": ["acero-inox"], "style": "Contemporáneo"},
+            {"id": "vinoteca_integrable", "label": "Vinoteca bajo encimera · 60", "widthMm": 595, "depthMm": 570, "heightMm": 820, "materials": ["cristal", "acero-inox"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "cocina_modular_2",
+          "label": "Cocina modular: rinconero y altos a techo",
+          "room": "cocina",
+          "catalogRoom": "cocina",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "kitchen",
+          "status": "falta",
+          "rangeMm": "Rinconero 900 × 900 × 900; altos a techo 300–370 de fondo hasta 2400–2700",
+          "variants": [
+            {"id": "modulo_rinconero", "label": "Módulo rinconero con carrusel", "widthMm": 900, "depthMm": 900, "heightMm": 900, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "altos_a_techo", "label": "Altos hasta el techo con altillo", "widthMm": 600, "depthMm": 370, "heightMm": 1100, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 1450}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "vestidores",
+          "label": "Vestidores",
+          "room": "dormitorio",
+          "catalogRoom": "dormitorio",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "cabinet",
+          "status": "falta",
+          "rangeMm": "Fondo 350–600; pasillo ≥ 700 (cómodo 900–1000); módulos 500–1000; alto 2000–2400",
+          "variants": [
+            {"id": "vestidor_lineal", "label": "Vestidor lineal abierto", "widthMm": 2400, "depthMm": 500, "heightMm": 2200, "materials": ["roble", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "vestidor_l", "label": "Vestidor en L", "widthMm": 2000, "depthMm": 1800, "heightMm": 2200, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "vestidor_u", "label": "Vestidor en U", "widthMm": 2400, "depthMm": 2400, "heightMm": 2200, "materials": ["roble"], "style": "Clásico"}
+          ],
+          "notes": "Mismo trazado por tramos que el armario empotrado; añade barras, cajoneras, zapateros y baldas a la vista."
+        },
+        {
+          "family": "espejos",
+          "label": "Espejos decorativos",
+          "room": "dormitorio",
+          "alsoIn": [
+            "salon",
+            "recibidor"
+          ],
+          "catalogRoom": "decoracion",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Pared Ø 500–900 o 500–900 × 800–1800; de pie 400–800 × 30–400 × 1500–1800",
+          "variants": [
+            {"id": "espejo_pie_roble", "label": "Espejo de pie con marco de roble", "widthMm": 500, "depthMm": 350, "heightMm": 1700, "materials": ["espejo", "roble"], "style": "Nórdico"},
+            {"id": "espejo_redondo_laton_70", "label": "Espejo redondo con marco de latón · Ø 70", "widthMm": 700, "depthMm": 30, "heightMm": 700, "materials": ["espejo", "laton"], "style": "Contemporáneo", "elevationMm": 1200},
+            {"id": "espejo_arco_negro", "label": "Espejo de arco de pared", "widthMm": 600, "depthMm": 30, "heightMm": 1200, "materials": ["espejo", "metal-negro"], "style": "Contemporáneo", "elevationMm": 900}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "infantil_estudio",
+          "label": "Estudio y juego infantil",
+          "room": "infantil",
+          "catalogRoom": "dormitorio",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "table",
+          "status": "falta",
+          "rangeMm": "Escritorio 1000–1200 × 500–600 × 730–760; organizador 600–1000 × 300–450 × 600–950; silla 500–550 × 500–550 × 800–950",
+          "variants": [
+            {"id": "escritorio_juvenil_110", "label": "Escritorio juvenil con estante · 110", "widthMm": 1100, "depthMm": 550, "heightMm": 750, "materials": ["lacado-blanco", "roble"], "style": "Nórdico"},
+            {"id": "organizador_juguetes", "label": "Organizador de juguetes con cajas", "widthMm": 940, "depthMm": 440, "heightMm": 910, "materials": ["pino", "polipropileno-blanco"], "style": "Nórdico", "profile": "shelf"},
+            {"id": "silla_escritorio_juvenil", "label": "Silla de escritorio giratoria juvenil", "widthMm": 550, "depthMm": 550, "heightMm": 900, "materials": ["polipropileno-salvia", "metal-negro"], "style": "Contemporáneo", "profile": "chair"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "accesorios_bano",
+          "label": "Toalleros y accesorios de baño",
+          "room": "bano",
+          "alsoIn": [
+            "aseo"
+          ],
+          "catalogRoom": "bano",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Toallero de barra 400–800 × 70–100 × 30 a 1000–1200; radiador toallero 450–600 × 80–120 × 700–1800 a 150; portarrollos 150 × 80 × 120 a 700",
+          "variants": [
+            {"id": "toallero_barra_60", "label": "Toallero de barra · 60 cm", "widthMm": 600, "depthMm": 80, "heightMm": 30, "materials": ["cromo"], "style": "Contemporáneo", "elevationMm": 1100},
+            {"id": "toallero_aro", "label": "Toallero de aro", "widthMm": 180, "depthMm": 90, "heightMm": 180, "materials": ["metal-negro"], "style": "Industrial", "elevationMm": 1100},
+            {"id": "portarrollos", "label": "Portarrollos", "widthMm": 150, "depthMm": 80, "heightMm": 120, "materials": ["cromo"], "style": "Contemporáneo", "elevationMm": 700},
+            {"id": "radiador_toallero", "label": "Radiador toallero · 50 × 120", "widthMm": 500, "depthMm": 100, "heightMm": 1200, "materials": ["cromo"], "style": "Contemporáneo", "elevationMm": 150, "profile": "appliance"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "recibidor",
+          "label": "Consolas, zapateros y percheros",
+          "room": "recibidor",
+          "catalogRoom": "salon",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "parcial: zapatero procedural",
+          "rangeMm": "Consola 800–1200 × 250–400 × 750–850; zapatero 600–1000 × 170–350 × 800–1500; perchero de pie Ø 400–500 × 1700–1900; banco 800–1200 × 300–400 × 450–500",
+          "variants": [
+            {"id": "consola_roble_100", "label": "Consola de roble · 100 cm", "widthMm": 1000, "depthMm": 350, "heightMm": 800, "materials": ["roble"], "style": "Nórdico", "profile": "table"},
+            {"id": "consola_metal_marmol_120", "label": "Consola de metal y mármol · 120 cm", "widthMm": 1200, "depthMm": 350, "heightMm": 800, "materials": ["metal-negro", "marmol-blanco"], "style": "Contemporáneo", "profile": "table"},
+            {"id": "consola_estrecha_80", "label": "Consola estrecha · 80 × 25", "widthMm": 800, "depthMm": 250, "heightMm": 800, "materials": ["nogal"], "style": "Clásico", "profile": "table"},
+            {"id": "zapatero_abatible", "label": "Zapatero de dos compartimentos abatibles", "widthMm": 800, "depthMm": 240, "heightMm": 1050, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "banco_zapatero", "label": "Banco zapatero con cojín", "widthMm": 1000, "depthMm": 350, "heightMm": 480, "materials": ["roble", "lino-gris"], "style": "Nórdico", "profile": "bench"},
+            {"id": "perchero_pie", "label": "Perchero de pie", "widthMm": 450, "depthMm": 450, "heightMm": 1800, "materials": ["roble"], "style": "Nórdico", "profile": "decor"},
+            {"id": "perchero_pared", "label": "Perchero de pared con estante", "widthMm": 800, "depthMm": 250, "heightMm": 300, "materials": ["roble", "metal-negro"], "style": "Industrial", "elevationMm": 1600, "profile": "shelf"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "lavadero",
+          "label": "Lavadero e instalaciones de agua",
+          "room": "lavadero",
+          "alsoIn": [
+            "cocina",
+            "bano"
+          ],
+          "catalogRoom": "bano",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "parcial: pila de lavadero y cesto procedurales",
+          "rangeMm": "Columna lavadora-secadora 600 × 600 × 1700–1750; armario para lavadora 650–700 × 600–670 × 1800–2100; tendedero de alas 1600–1800 × 550–600 × 900–1050; termo Ø 360–460 × 500–1200 (50–100 L) a 1200–1800; caldera mural 400–450 × 250–350 × 600–750 a 1300–1500",
+          "variants": [
+            {"id": "columna_lavado", "label": "Lavadora y secadora apiladas", "widthMm": 600, "depthMm": 640, "heightMm": 1720, "materials": ["lacado-blanco", "cristal"], "style": "Contemporáneo"},
+            {"id": "armario_lavadora", "label": "Armario para lavadora con altillo", "widthMm": 700, "depthMm": 670, "heightMm": 2000, "materials": ["lacado-blanco"], "style": "Contemporáneo", "profile": "cabinet"},
+            {"id": "tendedero_alas", "label": "Tendedero plegable de alas", "widthMm": 1750, "depthMm": 580, "heightMm": 1000, "materials": ["aluminio-blanco"], "style": "Contemporáneo", "profile": "decor"},
+            {"id": "termo_80", "label": "Termo eléctrico · 80 L", "widthMm": 450, "depthMm": 450, "heightMm": 800, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 1500},
+            {"id": "caldera_mural", "label": "Caldera mural de condensación", "widthMm": 420, "depthMm": 300, "heightMm": 720, "materials": ["lacado-blanco"], "style": "Contemporáneo", "elevationMm": 1400}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "clima_2",
+          "label": "Unidad exterior y rejilla de conductos",
+          "room": "vivienda",
+          "alsoIn": [
+            "exterior"
+          ],
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Unidad exterior 650–900 × 250–350 × 450–700; rejilla lineal 600–1500 × 100–150 × 30",
+          "variants": [
+            {"id": "split_unidad_exterior", "label": "Unidad exterior de split", "widthMm": 800, "depthMm": 300, "heightMm": 550, "materials": ["lacado-blanco"], "style": "Contemporáneo"},
+            {"id": "rejilla_conductos_lineal", "label": "Rejilla lineal de conductos", "widthMm": 1000, "depthMm": 120, "heightMm": 30, "materials": ["aluminio-blanco"], "style": "Contemporáneo"}
+          ],
+          "notes": "La unidad exterior se coloca en terraza, fachada o cubierta."
+        },
+        {
+          "family": "luz_pared_pie_mesa",
+          "label": "Apliques, lámparas de pie y de mesa",
+          "room": "vivienda",
+          "catalogRoom": "iluminacion",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "lamp",
+          "status": "parcial: lámparas de pie y de mesa procedurales, low-poly y 2 CC0",
+          "rangeMm": "Aplique 120–300 × 100–450 × 150–400 a 1600–1800 (cabecero 1100–1200); pie 1500–1900 (arco con vuelo de 1000–1800); mesa Ø 200–400 × 300–600; carril 1000–2000",
+          "variants": [
+            {"id": "aplique_brazo_laton", "label": "Aplique de brazo articulado", "widthMm": 150, "depthMm": 450, "heightMm": 300, "materials": ["laton"], "style": "Clásico", "elevationMm": 1650},
+            {"id": "aplique_cupula_opal", "label": "Aplique de cúpula opal", "widthMm": 250, "depthMm": 120, "heightMm": 250, "materials": ["vidrio-opal", "laton"], "style": "Contemporáneo", "elevationMm": 1700},
+            {"id": "aplique_lectura_cabecero", "label": "Aplique de lectura para cabecero", "widthMm": 120, "depthMm": 300, "heightMm": 200, "materials": ["metal-negro"], "style": "Industrial", "elevationMm": 1150},
+            {"id": "lampara_pie_arco", "label": "Lámpara de pie de arco", "widthMm": 1000, "depthMm": 400, "heightMm": 1900, "materials": ["acero-inox", "marmol-blanco"], "style": "Contemporáneo"},
+            {"id": "lampara_pie_tripode", "label": "Lámpara de pie trípode", "widthMm": 500, "depthMm": 500, "heightMm": 1550, "materials": ["roble", "lino-blanco"], "style": "Nórdico"},
+            {"id": "lampara_mesa_ceramica", "label": "Lámpara de mesa de cerámica", "widthMm": 300, "depthMm": 300, "heightMm": 500, "materials": ["ceramica-blanca", "lino-blanco"], "style": "Mediterráneo", "elevationMm": 550},
+            {"id": "lampara_mesa_seta", "label": "Lámpara de mesa seta", "widthMm": 250, "depthMm": 250, "heightMm": 300, "materials": ["vidrio-opal"], "style": "Contemporáneo", "elevationMm": 550},
+            {"id": "carril_focos_3", "label": "Carril de techo con tres focos", "widthMm": 1000, "depthMm": 60, "heightMm": 150, "materials": ["metal-negro"], "style": "Industrial"}
+          ],
+          "notes": "El carril se cuelga del techo como luminaria (mismo enlace por catalogId que los colgantes)."
+        },
+        {
+          "family": "techo_clasico_cc0",
+          "label": "Lámpara de araña (Poly Haven)",
+          "room": "vivienda",
+          "catalogRoom": "iluminacion",
+          "priority": "P2",
+          "method": "cc0",
+          "profile": "lamp",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "arana_cristal", "label": "Lámpara de araña de latón y cristal", "widthMm": 780, "depthMm": 785, "heightMm": 1041, "materials": ["latón", "cristal"], "style": "Clásico", "sourceId": "Chandelier_03"}
+          ],
+          "notes": "Estado clean."
+        },
+        {
+          "family": "textiles_ventana",
+          "label": "Cortinas y estores (nuevos tipos)",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "curtain",
+          "status": "existe: cortina, cortina abierta, estor enrollable, veneciana, vertical y persiana exterior",
+          "rangeMm": "Ancho del hueco + 150–300 por lado; estor plegable 600–2000 × 60–100 × 1000–2500",
+          "variants": [
+            {"id": "estor_plegable", "label": "Estor plegable (paqueto)", "widthMm": 1200, "depthMm": 80, "heightMm": 1600, "materials": ["lino-arena"], "style": "Mediterráneo", "elevationMm": 900, "profile": "roller"},
+            {"id": "cortina_doble_visillo", "label": "Cortina doble: visillo y opaca", "widthMm": 1800, "depthMm": 200, "heightMm": 2500, "materials": ["lino-blanco", "lino-gris"], "style": "Clásico"}
+          ],
+          "notes": "Nuevas variantes de los perfiles por código ya existentes."
+        },
+        {
+          "family": "escalera_caracol",
+          "label": "Escalera de caracol",
+          "room": "vivienda",
+          "catalogRoom": "salon",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "stair",
+          "status": "existe: recta, en L y en U; falta caracol",
+          "rangeMm": "Ø 1200–1800; contrahuella 130–185 y 540 ≤ 2C + H ≤ 700 (CTE DB-SUA 1); 12–16 peldaños por planta",
+          "variants": [
+            {"id": "escalera_caracol_140", "label": "De caracol · Ø 140", "widthMm": 1400, "depthMm": 1400, "heightMm": 2800, "materials": ["metal-negro", "roble"], "style": "Industrial"}
+          ],
+          "notes": "Nuevo kind de Stair ('spiral') con su recorrido y su enlace entre plantas."
+        },
+        {
+          "family": "barandillas",
+          "label": "Barandillas de balcón, terraza y hueco",
+          "room": "vivienda",
+          "alsoIn": [
+            "exterior"
+          ],
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "railing",
+          "status": "parcial: solo pasamanos de escalera y rampa",
+          "rangeMm": "Altura ≥ 900 (desnivel ≤ 6 m) o ≥ 1100; huecos que no dejen pasar una esfera de 100 (CTE DB-SUA 1); tramos de hasta 3000",
+          "variants": [
+            {"id": "barandilla_vidrio", "label": "De vidrio laminado con pinzas", "widthMm": 2000, "depthMm": 50, "heightMm": 1100, "materials": ["cristal", "acero-inox"], "style": "Contemporáneo"},
+            {"id": "barandilla_barrotes", "label": "De barrotes verticales de acero", "widthMm": 2000, "depthMm": 50, "heightMm": 1000, "materials": ["metal-negro"], "style": "Contemporáneo"},
+            {"id": "barandilla_forja", "label": "De forja clásica", "widthMm": 2000, "depthMm": 50, "heightMm": 1000, "materials": ["forja-negra"], "style": "Clásico"},
+            {"id": "barandilla_cables", "label": "De madera y cables de acero", "widthMm": 2000, "depthMm": 60, "heightMm": 1000, "materials": ["roble", "acero-inox"], "style": "Nórdico"}
+          ],
+          "notes": "Se traza por tramos como un muro bajo. El mismo diseño sirve de pasamanos de escalera y rampa."
+        },
+        {
+          "family": "piscinas",
+          "label": "Piscina enterrada",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "outdoor",
+          "status": "parcial: piscina elevada",
+          "rangeMm": "6 × 3 a 10 × 5 m (la más común, 8 × 4); profundidad 1200–1500 y fosa de hasta 2000; coronación de 300–400",
+          "variants": [
+            {"id": "piscina_enterrada_8x4", "label": "Enterrada rectangular · 8 × 4 m", "widthMm": 8000, "depthMm": 4000, "heightMm": 1500, "materials": ["gresite-azul", "piedra-natural"], "style": "Mediterráneo"}
+          ],
+          "notes": "Vaso hundido en la superficie exterior con coronación y lámina de agua."
+        },
+        {
+          "family": "barbacoa_obra",
+          "label": "Barbacoa de obra",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "outdoor",
+          "status": "parcial: barbacoa con parrilla",
+          "rangeMm": "1500–2500 × 600–800 × 1800–2400 con chimenea",
+          "variants": [
+            {"id": "barbacoa_obra_chimenea", "label": "Barbacoa de obra con chimenea", "widthMm": 1800, "depthMm": 700, "heightMm": 2200, "materials": ["ladrillo-refractario", "piedra-natural"], "style": "Rústico"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "barbacoa_gas",
+          "label": "Barbacoa de gas",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "1200–1500 × 550–650 × 1100–1200",
+          "variants": [
+            {"id": "barbacoa_gas_3q", "label": "Barbacoa de gas de tres quemadores", "widthMm": 1300, "depthMm": 580, "heightMm": 1150, "materials": ["acero-inox", "metal-negro"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "pergolas_toldos",
+          "label": "Pérgola bioclimática y toldos",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "outdoor",
+          "status": "existe: pérgolas de madera, aluminio y acero, toldo, sombrilla y carpa",
+          "rangeMm": "Bioclimática 3000–6000 × 3000–4500 × 2500–2800; toldo de brazo: línea 2500–6000 × salida 1500–3500, cofre 150–200; toldo vela de 3600–5000 de lado",
+          "variants": [
+            {"id": "pergola_bioclimatica", "label": "Pérgola bioclimática de lamas orientables", "widthMm": 4000, "depthMm": 3000, "heightMm": 2600, "materials": ["aluminio-antracita"], "style": "Contemporáneo"},
+            {"id": "toldo_cofre", "label": "Toldo de brazo extensible con cofre", "widthMm": 4000, "depthMm": 3000, "heightMm": 200, "materials": ["lona-acrilica", "aluminio-blanco"], "style": "Contemporáneo", "elevationMm": 2400},
+            {"id": "toldo_vela", "label": "Toldo vela triangular", "widthMm": 5000, "depthMm": 4330, "heightMm": 2800, "materials": ["lona-acrilica"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "cerramientos",
+          "label": "Cancelas y vallas",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "codigo",
+          "profile": "outdoor",
+          "status": "existe: valla de madera, cerca metálica y seto",
+          "rangeMm": "Cancela peatonal 900–1200 × 50 × 1800–2000; corredera de vehículos 3000–5000 × 60 × 2000; valla de lamas en módulos de 1800–2000 × 1000–2000",
+          "variants": [
+            {"id": "cancela_peatonal", "label": "Cancela peatonal batiente", "widthMm": 1000, "depthMm": 50, "heightMm": 2000, "materials": ["metal-negro"], "style": "Contemporáneo"},
+            {"id": "cancela_corredera", "label": "Cancela corredera de vehículos", "widthMm": 4000, "depthMm": 60, "heightMm": 2000, "materials": ["metal-negro"], "style": "Contemporáneo"},
+            {"id": "valla_lamas_aluminio", "label": "Valla de lamas de aluminio", "widthMm": 2000, "depthMm": 50, "heightMm": 1500, "materials": ["aluminio-antracita"], "style": "Contemporáneo"}
+          ],
+          "notes": "Las cancelas son aberturas en la valla (barren como una puerta abatible o recorren como una corredera)."
+        },
+        {
+          "family": "iluminacion_exterior",
+          "label": "Iluminación exterior",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "lamp",
+          "status": "falta",
+          "rangeMm": "Aplique 100–200 × 100–200 × 200–350 a 1800–2200; baliza Ø 150 × 400–800; farola Ø 200–400 × 1800–2400",
+          "variants": [
+            {"id": "aplique_exterior", "label": "Aplique de fachada", "widthMm": 120, "depthMm": 150, "heightMm": 280, "materials": ["aluminio-antracita", "cristal"], "style": "Contemporáneo", "elevationMm": 2000},
+            {"id": "baliza_jardin", "label": "Baliza de jardín", "widthMm": 150, "depthMm": 150, "heightMm": 600, "materials": ["aluminio-antracita"], "style": "Contemporáneo"},
+            {"id": "farola_jardin", "label": "Farola de jardín", "widthMm": 300, "depthMm": 300, "heightMm": 2200, "materials": ["metal-negro", "vidrio-opal"], "style": "Clásico"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "exterior_cc0",
+          "label": "Conjunto de balcón (Poly Haven)",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "cc0",
+          "profile": "table",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo (mesa y dos sillas juntas)",
+          "variants": [
+            {"id": "conjunto_balcon_plegable", "label": "Mesa y dos sillas plegables de balcón", "widthMm": 776, "depthMm": 1831, "heightMm": 859, "materials": ["madera", "metal"], "style": "Contemporáneo", "sourceId": "outdoor_table_chair_set_01"}
+          ],
+          "notes": "Estado clean."
+        },
+        {
+          "family": "garaje_cc0",
+          "label": "Estanterías metálicas (Poly Haven)",
+          "room": "garaje",
+          "catalogRoom": "exterior",
+          "priority": "P2",
+          "method": "cc0",
+          "profile": "shelf",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "estanteria_metalica_110", "label": "Estantería de acero y madera · 110", "widthMm": 1097, "depthMm": 502, "heightMm": 2141, "materials": ["acero", "madera"], "style": "Industrial", "sourceId": "steel_frame_shelves_01"},
+            {"id": "estanteria_metalica_60", "label": "Estantería de acero y madera · 60", "widthMm": 593, "depthMm": 502, "heightMm": 2142, "materials": ["acero", "madera"], "style": "Industrial", "sourceId": "steel_frame_shelves_02"}
+          ],
+          "notes": "Estado clean. Sirven también para trastero y despensa."
+        },
+        {
+          "family": "cuadros",
+          "label": "Cuadros y láminas",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "300 × 400 a 1000 × 1400; fondo 20–40; centro a 1500–1600",
+          "variants": [
+            {"id": "cuadro_marco_negro_50x70", "label": "Lámina con marco negro · 50 × 70", "widthMm": 500, "depthMm": 25, "heightMm": 700, "materials": ["metal-negro"], "style": "Contemporáneo", "elevationMm": 1250},
+            {"id": "cuadro_marco_roble_70x100", "label": "Lámina con marco de roble · 70 × 100", "widthMm": 700, "depthMm": 30, "heightMm": 1000, "materials": ["roble"], "style": "Nórdico", "elevationMm": 1100},
+            {"id": "lienzo_100x70", "label": "Lienzo sin marco · 100 × 70", "widthMm": 1000, "depthMm": 40, "heightMm": 700, "materials": ["algodon-blanco"], "style": "Contemporáneo", "elevationMm": 1250}
+          ],
+          "notes": "Imagen intercambiable por parámetro: solo láminas CC0 o propias autorizadas, nunca obra con derechos."
+        },
+        {
+          "family": "textiles_decor",
+          "label": "Cojines",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P2",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Cuadrado 450 × 450 × 150; rectangular 500 × 300 × 120",
+          "variants": [
+            {"id": "cojines_cuadrados", "label": "Pareja de cojines cuadrados", "widthMm": 450, "depthMm": 150, "heightMm": 450, "materials": ["lino-arena", "terciopelo-verde"], "style": "Nórdico"},
+            {"id": "cojin_rectangular", "label": "Cojín rectangular", "widthMm": 500, "depthMm": 120, "heightMm": 300, "materials": ["punto-mostaza"], "style": "Mediterráneo"}
+          ],
+          "notes": "Reutiliza las telas CC0 de la fábrica de sofás."
+        },
+        {
+          "family": "decor_cc0",
+          "label": "Jarrones, libros y planta (Poly Haven)",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P2",
+          "method": "cc0",
+          "profile": "decor",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "jarron_blanco_estriado", "label": "Jarrón blanco de boca estriada", "widthMm": 205, "depthMm": 206, "heightMm": 401, "materials": ["cerámica esmaltada"], "style": "Contemporáneo", "sourceId": "ceramic_vase_01"},
+            {"id": "jarron_alto_rectangular", "label": "Jarrón alto rectangular de barro", "widthMm": 112, "depthMm": 112, "heightMm": 414, "materials": ["barro pintado"], "style": "Mediterráneo", "sourceId": "ceramic_vase_03"},
+            {"id": "jarra_ceramica_asa", "label": "Jarra de cerámica con asa", "widthMm": 183, "depthMm": 182, "heightMm": 342, "materials": ["barro pintado"], "style": "Mediterráneo", "sourceId": "ceramic_vase_04"},
+            {"id": "libros_decorativos", "label": "Hilera de libros decorativos", "widthMm": 2505, "depthMm": 321, "heightMm": 286, "materials": ["papel", "cartón"], "style": "Contemporáneo", "sourceId": "decorative_book_set_01"},
+            {"id": "planta_mediana_terracota", "label": "Planta mediana en maceta de terracota", "widthMm": 589, "depthMm": 637, "heightMm": 1351, "materials": ["vegetación", "terracota"], "style": "Mediterráneo", "sourceId": "potted_plant_01", "profile": "plant"}
+          ],
+          "notes": "Estado clean, salvo potted_plant_01 (sin dato). Los libros vienen en hilera: separar en grupos al importar."
+        }
+      ]
+    },
+    {
+      "wave": 4,
+      "priority": "P3",
+      "goal": "Complementario: estilos, detalle y nichos",
+      "pieces": 63,
+      "families": [
+        {
+          "family": "salon_3",
+          "label": "Mueble bar, piano y carrito",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "falta",
+          "rangeMm": "Mueble bar 800–1000 × 400–500 × 1100–1800; piano vertical 1450–1550 × 580–650 × 1150–1300; carrito 700–800 × 400–500 × 800–900",
+          "variants": [
+            {"id": "mueble_bar", "label": "Mueble bar con botellero", "widthMm": 900, "depthMm": 450, "heightMm": 1400, "materials": ["nogal", "laton"], "style": "Clásico"},
+            {"id": "piano_vertical", "label": "Piano vertical", "widthMm": 1500, "depthMm": 600, "heightMm": 1250, "materials": ["lacado-negro"], "style": "Clásico", "profile": "decor"},
+            {"id": "carrito_camarero", "label": "Carrito camarero", "widthMm": 750, "depthMm": 450, "heightMm": 850, "materials": ["metal-negro", "cristal"], "style": "Industrial", "profile": "table"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "chimeneas_3",
+          "label": "Chimeneas de bioetanol y eléctricas",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Bioetanol de pared 600–1200 × 120–200 × 300–500; insert eléctrico 800–1200 × 250–350 × 500–700",
+          "variants": [
+            {"id": "chimenea_bioetanol_pared", "label": "Chimenea de bioetanol de pared", "widthMm": 900, "depthMm": 150, "heightMm": 400, "materials": ["metal-negro", "cristal"], "style": "Contemporáneo", "elevationMm": 1000},
+            {"id": "chimenea_electrica_insert", "label": "Chimenea eléctrica empotrable", "widthMm": 1000, "depthMm": 300, "heightMm": 600, "materials": ["metal-negro", "cristal"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "chimenea_esquina",
+          "label": "Chimenea de obra en esquina",
+          "room": "salon",
+          "catalogRoom": "salon",
+          "priority": "P3",
+          "method": "codigo",
+          "profile": "cabinet",
+          "status": "falta",
+          "rangeMm": "900–1200 por lado × 1000–1200 con campana a techo",
+          "variants": [
+            {"id": "chimenea_obra_esquina", "label": "Chimenea de obra en esquina", "widthMm": 1100, "depthMm": 1100, "heightMm": 1100, "materials": ["estuco-blanco", "piedra-natural"], "style": "Rústico"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "cocina_pequeno_electro",
+          "label": "Pequeño electrodoméstico",
+          "room": "cocina",
+          "catalogRoom": "cocina",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Cafetera 250–350 × 300–400 × 300–400; tostadora 300 × 180 × 200; hervidor 220 × 160 × 250 (sobre encimera)",
+          "variants": [
+            {"id": "cafetera_espresso", "label": "Cafetera espresso", "widthMm": 300, "depthMm": 350, "heightMm": 350, "materials": ["acero-inox"], "style": "Contemporáneo", "elevationMm": 900},
+            {"id": "tostadora", "label": "Tostadora de dos ranuras", "widthMm": 300, "depthMm": 180, "heightMm": 200, "materials": ["lacado-blanco"], "style": "Nórdico", "elevationMm": 900},
+            {"id": "hervidor", "label": "Hervidor eléctrico", "widthMm": 220, "depthMm": 160, "heightMm": 250, "materials": ["acero-inox"], "style": "Contemporáneo", "elevationMm": 900}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "dormitorio_3",
+          "label": "Tocador, galán y baúl",
+          "room": "dormitorio",
+          "catalogRoom": "dormitorio",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "cabinet",
+          "status": "falta",
+          "rangeMm": "Tocador 900–1200 × 400–500 × 750 (con espejo 1300–1500); galán 450 × 350 × 1050–1150; baúl 900–1200 × 400–500 × 400–500",
+          "variants": [
+            {"id": "tocador_espejo", "label": "Tocador con espejo", "widthMm": 1000, "depthMm": 450, "heightMm": 1350, "materials": ["lacado-blanco", "espejo"], "style": "Clásico", "profile": "table"},
+            {"id": "galan_noche", "label": "Galán de noche", "widthMm": 450, "depthMm": 350, "heightMm": 1100, "materials": ["roble"], "style": "Nórdico", "profile": "decor"},
+            {"id": "baul_pie_cama", "label": "Baúl de pie de cama", "widthMm": 1000, "depthMm": 450, "heightMm": 450, "materials": ["roble", "lino-gris"], "style": "Rústico", "profile": "bench"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "infantil_3",
+          "label": "Cama casita, mesa infantil y baúl",
+          "room": "infantil",
+          "catalogRoom": "dormitorio",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "bed",
+          "status": "falta",
+          "rangeMm": "Cama casita 90 × 190 → 980 × 2000 × 1500–1800; mesa 600–800 × 500–600 × 450–520; baúl 700–1000 × 400–500 × 400–500",
+          "variants": [
+            {"id": "cama_casita_90", "label": "Cama casita Montessori · 90 × 190", "widthMm": 980, "depthMm": 2000, "heightMm": 1650, "materials": ["pino"], "style": "Nórdico"},
+            {"id": "mesa_sillas_infantil", "label": "Mesa infantil con dos sillas", "widthMm": 600, "depthMm": 600, "heightMm": 500, "materials": ["pino", "lacado-blanco"], "style": "Nórdico", "profile": "table"},
+            {"id": "baul_juguetes", "label": "Baúl de juguetes", "widthMm": 800, "depthMm": 400, "heightMm": 450, "materials": ["lacado-blanco"], "style": "Nórdico", "profile": "cabinet"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "lavadero_3",
+          "label": "Plancha y lavadora de carga superior",
+          "room": "lavadero",
+          "catalogRoom": "bano",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Tabla 1100–1300 × 330–450 × 700–950; lavadora de carga superior 400 × 600 × 850–900",
+          "variants": [
+            {"id": "tabla_planchar", "label": "Tabla de planchar", "widthMm": 1200, "depthMm": 380, "heightMm": 900, "materials": ["aluminio-blanco", "algodon-gris"], "style": "Contemporáneo", "profile": "decor"},
+            {"id": "lavadora_carga_superior", "label": "Lavadora de carga superior", "widthMm": 400, "depthMm": 600, "heightMm": 880, "materials": ["lacado-blanco"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "garaje_3",
+          "label": "Vehículos ligeros y equipamiento de garaje",
+          "room": "garaje",
+          "catalogRoom": "exterior",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "decor",
+          "status": "parcial: coche (3dassets, generado con IA)",
+          "rangeMm": "Bicicleta 1700–1800 × 600 × 1000–1100; scooter 1800–2000 × 700 × 1100–1200; banco de trabajo 1200–2000 × 600–750 × 900; cargador 200–300 × 100–150 × 300–400 a 1000–1200; armario 900–1000 × 450–500 × 1800–1950",
+          "variants": [
+            {"id": "bicicleta", "label": "Bicicleta urbana", "widthMm": 1750, "depthMm": 600, "heightMm": 1050, "materials": ["aluminio-antracita"], "style": "Contemporáneo"},
+            {"id": "moto_scooter", "label": "Moto scooter", "widthMm": 1900, "depthMm": 700, "heightMm": 1150, "materials": ["lacado-blanco", "metal-negro"], "style": "Contemporáneo"},
+            {"id": "banco_trabajo", "label": "Banco de trabajo con panel de herramientas", "widthMm": 1500, "depthMm": 650, "heightMm": 900, "materials": ["pino", "metal-negro"], "style": "Industrial", "profile": "table"},
+            {"id": "cargador_ve", "label": "Cargador de vehículo eléctrico", "widthMm": 250, "depthMm": 120, "heightMm": 350, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 1100, "profile": "appliance"},
+            {"id": "armario_garaje", "label": "Armario metálico de garaje", "widthMm": 900, "depthMm": 450, "heightMm": 1900, "materials": ["acero-galvanizado"], "style": "Industrial", "profile": "cabinet"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "exterior_3",
+          "label": "Spa, ducha, columpio, hamaca, leñero y kamado",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Spa 1800–2300 × 1800–2300 × 800–950; ducha 150–250 × 150–400 × 2100–2300; columpio 2400–3000 × 1500–1800 × 2000–2200; hamaca 2800–3200 × 900–1200 × 1000–1200; leñero 1000–2000 × 500–700 × 1200–1800; kamado 600–1300 × 600–750 × 1100–1200",
+          "variants": [
+            {"id": "spa_exterior", "label": "Spa de exterior", "widthMm": 2000, "depthMm": 2000, "heightMm": 900, "materials": ["teca", "acrilico-blanco"], "style": "Contemporáneo", "profile": "bath"},
+            {"id": "ducha_exterior", "label": "Ducha de exterior", "widthMm": 250, "depthMm": 400, "heightMm": 2200, "materials": ["acero-inox", "teca"], "style": "Contemporáneo", "profile": "shower"},
+            {"id": "columpio_doble", "label": "Columpio doble", "widthMm": 2600, "depthMm": 1600, "heightMm": 2100, "materials": ["pino"], "style": "Rústico"},
+            {"id": "hamaca_soporte", "label": "Hamaca con soporte", "widthMm": 3000, "depthMm": 1000, "heightMm": 1100, "materials": ["cuerda-beige", "teca"], "style": "Mediterráneo"},
+            {"id": "lenero", "label": "Leñero", "widthMm": 1500, "depthMm": 600, "heightMm": 1600, "materials": ["metal-negro", "roble"], "style": "Rústico", "profile": "shelf"},
+            {"id": "kamado", "label": "Barbacoa kamado con mesa", "widthMm": 700, "depthMm": 700, "heightMm": 1150, "materials": ["ceramica-blanca", "metal-negro"], "style": "Contemporáneo", "profile": "appliance"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "exterior_obra_3",
+          "label": "Caseta de jardín y piscina con escalera romana",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P3",
+          "method": "codigo",
+          "profile": "outdoor",
+          "status": "falta",
+          "rangeMm": "Caseta 1500–3000 × 1500–2500 × 2000–2400; piscina como la enterrada con escalera romana de 1500–2000 de cuerda",
+          "variants": [
+            {"id": "caseta_jardin", "label": "Caseta de jardín de madera", "widthMm": 2000, "depthMm": 2000, "heightMm": 2200, "materials": ["pino"], "style": "Rústico"},
+            {"id": "piscina_escalera_romana", "label": "Piscina con escalera romana · 8 × 4 m", "widthMm": 8000, "depthMm": 4000, "heightMm": 1500, "materials": ["gresite-azul", "piedra-natural"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "clima_3",
+          "label": "Cassette y ventilador de pie",
+          "room": "vivienda",
+          "catalogRoom": "salon",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "appliance",
+          "status": "falta",
+          "rangeMm": "Cassette: panel visto de 570–620 × 570–620 × 30; ventilador de pie Ø 400–450 × 1100–1350",
+          "variants": [
+            {"id": "cassette_ac", "label": "Cassette de techo (panel visto)", "widthMm": 620, "depthMm": 620, "heightMm": 30, "materials": ["plastico-blanco"], "style": "Contemporáneo"},
+            {"id": "ventilador_pie", "label": "Ventilador de pie", "widthMm": 450, "depthMm": 450, "heightMm": 1300, "materials": ["plastico-blanco", "metal-negro"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "mecanismos",
+          "label": "Enchufes, interruptores y mandos",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Placa 80–90 × 80–90 × 10–40; enchufe a 300 (1100 sobre encimera); interruptor a 1100; termostato y videoportero a 1500",
+          "variants": [
+            {"id": "enchufe_schuko", "label": "Enchufe", "widthMm": 86, "depthMm": 10, "heightMm": 86, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 300},
+            {"id": "enchufe_doble", "label": "Enchufe doble sobre encimera", "widthMm": 156, "depthMm": 10, "heightMm": 86, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 1100},
+            {"id": "interruptor", "label": "Interruptor", "widthMm": 86, "depthMm": 10, "heightMm": 86, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 1100},
+            {"id": "toma_tv_datos", "label": "Toma de TV y datos", "widthMm": 86, "depthMm": 10, "heightMm": 86, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 300},
+            {"id": "termostato", "label": "Termostato de pared", "widthMm": 90, "depthMm": 25, "heightMm": 90, "materials": ["plastico-blanco"], "style": "Contemporáneo", "elevationMm": 1500},
+            {"id": "videoportero", "label": "Videoportero", "widthMm": 110, "depthMm": 30, "heightMm": 200, "materials": ["metal-negro"], "style": "Contemporáneo", "elevationMm": 1500}
+          ],
+          "notes": "Útiles solo para planos de detalle y renders de cocina; variante negra y latón por acabado."
+        },
+        {
+          "family": "escaleras_3",
+          "label": "Escaleras compensada, volada y escamoteable",
+          "room": "vivienda",
+          "catalogRoom": "salon",
+          "priority": "P3",
+          "method": "codigo",
+          "profile": "stair",
+          "status": "falta",
+          "rangeMm": "Escamoteable: hueco 600–700 × 1000–1400, altura 2500–2900; compensada y volada con ancho de 800–1000",
+          "variants": [
+            {"id": "escalera_escamoteable", "label": "Escalera escamoteable de altillo", "widthMm": 700, "depthMm": 1200, "heightMm": 2700, "materials": ["pino"], "style": "Nórdico"},
+            {"id": "escalera_compensada", "label": "Escalera compensada", "widthMm": 1000, "depthMm": 2500, "heightMm": 2800, "materials": ["roble"], "style": "Clásico"},
+            {"id": "escalera_volada", "label": "Peldaños volados empotrados en muro", "widthMm": 900, "depthMm": 3500, "heightMm": 2800, "materials": ["roble"], "style": "Contemporáneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "textiles_ventana_3",
+          "label": "Panel japonés, mosquitera y persiana alicantina",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P3",
+          "method": "codigo",
+          "profile": "curtain",
+          "status": "falta",
+          "rangeMm": "Panel japonés 450–600 × 20 × 2500 por panel; mosquitera enrollable del ancho del hueco × 50; alicantina 600–2000 × 30 × 1000–2500",
+          "variants": [
+            {"id": "panel_japones", "label": "Panel japonés de cuatro paneles", "widthMm": 1800, "depthMm": 60, "heightMm": 2500, "materials": ["lino-blanco"], "style": "Nórdico"},
+            {"id": "mosquitera_enrollable", "label": "Mosquitera enrollable", "widthMm": 1200, "depthMm": 50, "heightMm": 1400, "materials": ["aluminio-blanco"], "style": "Contemporáneo", "elevationMm": 900},
+            {"id": "persiana_alicantina", "label": "Persiana alicantina", "widthMm": 1200, "depthMm": 30, "heightMm": 1600, "materials": ["ratan-natural"], "style": "Mediterráneo", "elevationMm": 900, "profile": "shutter"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "decor_blender_3",
+          "label": "Espejo sol, cestas, jarrón de suelo, velas, escultura y biombo",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P3",
+          "method": "blender",
+          "profile": "decor",
+          "status": "falta",
+          "rangeMm": "Espejo sol Ø 600–900; cesta Ø 300–450; jarrón de suelo Ø 250–400 × 500–1000; biombo 1200–1800 × 30–50 × 1700–1800",
+          "variants": [
+            {"id": "espejo_sol_ratan", "label": "Espejo sol de ratán · Ø 60", "widthMm": 600, "depthMm": 30, "heightMm": 600, "materials": ["ratan-natural", "espejo"], "style": "Mediterráneo", "elevationMm": 1250},
+            {"id": "cesta_seagrass_35", "label": "Cesta de fibra natural · Ø 35", "widthMm": 350, "depthMm": 350, "heightMm": 350, "materials": ["ratan-trenzado"], "style": "Mediterráneo"},
+            {"id": "cesta_seagrass_45", "label": "Cesta de fibra natural · Ø 45", "widthMm": 450, "depthMm": 450, "heightMm": 450, "materials": ["ratan-trenzado"], "style": "Mediterráneo"},
+            {"id": "jarron_suelo", "label": "Jarrón de suelo con ramas secas", "widthMm": 300, "depthMm": 300, "heightMm": 800, "materials": ["ceramica-blanca"], "style": "Nórdico"},
+            {"id": "portavelas_set", "label": "Juego de portavelas", "widthMm": 300, "depthMm": 120, "heightMm": 250, "materials": ["laton"], "style": "Clásico"},
+            {"id": "escultura_abstracta", "label": "Escultura abstracta", "widthMm": 250, "depthMm": 150, "heightMm": 400, "materials": ["ceramica-blanca"], "style": "Contemporáneo"},
+            {"id": "biombo_ratan", "label": "Biombo de ratán de tres hojas", "widthMm": 1500, "depthMm": 40, "heightMm": 1750, "materials": ["ratan-natural", "roble"], "style": "Mediterráneo"}
+          ],
+          "notes": ""
+        },
+        {
+          "family": "decor_cc0_3",
+          "label": "Decoración clásica y rústica (Poly Haven)",
+          "room": "vivienda",
+          "catalogRoom": "decoracion",
+          "priority": "P3",
+          "method": "cc0",
+          "profile": "decor",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "reloj_pared", "label": "Reloj de pared", "widthMm": 320, "depthMm": 47, "heightMm": 320, "materials": ["metal", "vidrio"], "style": "Contemporáneo", "elevationMm": 1600, "sourceId": "wall_clock"},
+            {"id": "arana_laton_pantallas", "label": "Lámpara de araña de latón con pantallas", "widthMm": 746, "depthMm": 816, "heightMm": 798, "materials": ["latón", "tela"], "style": "Clásico", "sourceId": "Chandelier_01", "profile": "lamp"},
+            {"id": "arana_seis_brazos", "label": "Lámpara de araña de seis brazos", "widthMm": 679, "depthMm": 619, "heightMm": 848, "materials": ["latón", "tela plisada"], "style": "Clásico", "sourceId": "Chandelier_02", "profile": "lamp"},
+            {"id": "espejo_victoriano", "label": "Espejo victoriano dorado", "widthMm": 486, "depthMm": 26, "heightMm": 744, "materials": ["madera dorada", "espejo"], "style": "Clásico", "elevationMm": 1200, "sourceId": "ornate_mirror_01"},
+            {"id": "marco_minimalista", "label": "Lámina con marco negro fino", "widthMm": 594, "depthMm": 16, "heightMm": 841, "materials": ["metal negro", "lámina"], "style": "Contemporáneo", "elevationMm": 1150, "sourceId": "hanging_picture_frame_01"},
+            {"id": "cesta_mimbre_tapa", "label": "Cesta de mimbre con tapa", "widthMm": 375, "depthMm": 271, "heightMm": 218, "materials": ["mimbre"], "style": "Rústico", "sourceId": "wicker_basket_02"},
+            {"id": "maceta_barro", "label": "Maceta de barro", "widthMm": 266, "depthMm": 263, "heightMm": 222, "materials": ["terracota"], "style": "Mediterráneo", "sourceId": "planter_pot_clay"},
+            {"id": "jarron_azul_antiguo", "label": "Jarrón antiguo de loza azul", "widthMm": 255, "depthMm": 255, "heightMm": 440, "materials": ["loza"], "style": "Clásico", "sourceId": "antique_ceramic_vase_01"},
+            {"id": "mecedora_madera", "label": "Mecedora de madera", "widthMm": 708, "depthMm": 833, "heightMm": 995, "materials": ["madera envejecida"], "style": "Rústico", "sourceId": "Rockingchair_01", "profile": "chair"},
+            {"id": "cojines_estampados", "label": "Pareja de cojines estampados", "widthMm": 1022, "depthMm": 627, "heightMm": 450, "materials": ["tejido"], "style": "Mediterráneo", "sourceId": "throw_pillows_01"},
+            {"id": "farol_madera", "label": "Farol de madera y vidrio", "widthMm": 221, "depthMm": 235, "heightMm": 530, "materials": ["madera", "vidrio"], "style": "Rústico", "sourceId": "wooden_lantern_01", "profile": "lamp"}
+          ],
+          "notes": "Estado worn o weathered (salvo el marco, clean): válidos para estilos Clásico y Rústico, no como opción por defecto."
+        },
+        {
+          "family": "exterior_cc0_3",
+          "label": "Hoguera de piedra (Poly Haven)",
+          "room": "exterior",
+          "catalogRoom": "exterior",
+          "priority": "P3",
+          "method": "cc0",
+          "profile": "decor",
+          "status": "falta: CC0 no importado",
+          "rangeMm": "Medidas de la caja del modelo",
+          "variants": [
+            {"id": "hoguera_piedra", "label": "Hoguera de piedra", "widthMm": 1448, "depthMm": 1433, "heightMm": 388, "materials": ["piedra"], "style": "Rústico", "sourceId": "stone_fire_pit"}
+          ],
+          "notes": "Estado weathered."
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "pieces": 236,
+    "byWave": {
+      "2": 91,
+      "3": 82,
+      "4": 63
+    }
+  }
+}

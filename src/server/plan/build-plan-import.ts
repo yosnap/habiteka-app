@@ -20,6 +20,7 @@ import { placeFurniture } from '@/server/ai/sketch/place-furniture';
 import { cleanupApertures } from '@/server/ai/sketch/aperture-cleanup';
 import { planarizePlano } from '@/server/ai/sketch/planarize-plano';
 import { inferMissingRooms } from '@/server/ai/sketch/infer-missing-rooms';
+import { markGarageDoors } from '@/server/ai/sketch/garage-apertures';
 
 export interface BuildPlanImportOptions {
   normalize?: Partial<NormalizeOptions>;
@@ -44,12 +45,16 @@ const ROOMS_MAX_RELATIVE_CORRECTION = 0.6;
 const MAX_RASTER_FIT_SHIFT_MM = 150;
 
 export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOptions = {}): PlanImportResult {
-  const raw = normalizeEnclosedRooms(withConfirmedWidth(rawIn, options.generalWidthMm));
+  const read = normalizeEnclosedRooms(withConfirmedWidth(rawIn, options.generalWidthMm));
   const warnings: PlanImportWarning[] = [];
   // Con muros medidos y estancias leídas, las estancias SON el plano
   // (reconstrucción cerrada por construcción); si falta alguna de las dos
   // fuentes, se cae a la normalización clásica por regiones.
-  const prepared = prepareSketch(raw, options.normalize ?? {});
+  let prepared = prepareSketch(read, options.normalize ?? {});
+  // El hueco ancho en la fachada de la cochera es la puerta del coche: se marca
+  // con la escala ya medida y se prepara de nuevo para no recortar su ancho.
+  const raw = markGarageDoors(read, prepared.scale);
+  if (raw !== read) prepared = prepareSketch(raw, options.normalize ?? {});
   const scale = prepared.scale;
   const generalMismatch = generalDimensionsMismatch(raw, scale);
   if (generalMismatch) warnings.push(generalMismatch);

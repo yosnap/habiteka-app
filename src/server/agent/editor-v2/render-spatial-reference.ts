@@ -3,7 +3,7 @@ import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { wallPath } from '@/lib/editor-document/wall-path';
-import { openingMeshes } from '@/canvas/editor-v2/scene/opening-meshes';
+import { leafEnds, worldOpeningLeaves } from '@/lib/editor-document/opening-leaves';
 import { renderSpatialContext, spatialLevels, type RenderSpatialContext } from './render-spatial-context';
 
 const escape = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[char]!);
@@ -43,19 +43,16 @@ export function spatialReferenceSvg(document: EditorDocument, view: RenderView, 
       return `<path d="${path(geometry.samples())}" fill="none" stroke="#343c38" stroke-width="${number(width)}"/>${gaps}`;
     }).join('');
     const knownWalls = new Set(doc.walls.filter(wall => !wall.hidden).map(wall => wall.id));
-    const swings = data.openings.flatMap(opening => opening.swingClearance
-      ? [`<path d="${path(opening.swingClearance.polygon)} Z" fill="#fff1ce" fill-opacity="0.7" stroke="#a86618" stroke-width="1" stroke-dasharray="3 3"/>`] : []).join('');
-    const leaves = doc.openings.filter(opening => opening.kind === 'puerta' && knownWalls.has(opening.wallId)).map(opening => {
-      const leaf = openingMeshes(doc, opening).find(box => box.role === 'leaf');
-      if (!leaf) return '';
-      const half = leaf.size[0] * 500, angle = -leaf.rotation, x = leaf.position[0] * 1000, y = leaf.position[2] * 1000;
-      return `<path d="${path([{ x: x - Math.cos(angle) * half, y: y - Math.sin(angle) * half },
-        { x: x + Math.cos(angle) * half, y: y + Math.sin(angle) * half }])}" stroke="#a86618" stroke-width="3"/>`;
-    }).join('');
+    // Abanico de cada hoja abatible y franja de las correderas vistas y plegables: todo debe quedar libre de muebles.
+    const swings = data.openings.flatMap(opening => [opening.swingClearance, opening.secondSwingClearance, opening.slideClearance]
+      .flatMap(zone => zone ? [`<path d="${path(zone.polygon)} Z" fill="#fff1ce" fill-opacity="0.7" stroke="#a86618" stroke-width="1" stroke-dasharray="3 3"/>`] : [])).join('');
+    const leaves = doc.openings.filter(opening => opening.kind === 'puerta' && knownWalls.has(opening.wallId))
+      .flatMap(opening => worldOpeningLeaves(doc, opening)?.leaves ?? [])
+      .map(leaf => `<path d="${path(leafEnds(leaf))}" stroke="#a86618" stroke-width="3"/>`).join('');
     const shortId = (id: string) => id.replace(/^L\d+-/, '');
     const labels = data.rooms.map(room => tag(room.anchor, `${shortId(room.id)}: ${room.name}`, '#075c46', 16)).join('');
     const dimensions = data.openings.map(opening => [shortId(opening.id),
-      opening.kind === 'hueco' ? 'SIN PUERTA' : opening.kind, `${opening.widthMm} mm`]
+      opening.kind === 'hueco' ? 'SIN PUERTA' : opening.type ?? opening.kind, `${opening.widthMm} mm`]
       .map((line, index) => tag({ x: opening.center.x, y: opening.center.y + (index - 1) * 12 / scale }, line, '#254eb4', 11)).join('')).join('');
     return `<g transform="translate(${index % columns * size},${Math.floor(index / columns) * size})"><rect width="${size}" height="${size}" fill="#fff"/><text x="35" y="30" font-family="sans-serif" font-size="20" fill="#222">L${index + 1} · ${escape(data.name)} · mapa de usos y huecos</text>${roomShapes}${swings}${walls}${leaves}${labels}${dimensions}</g>`;
   }).join('');

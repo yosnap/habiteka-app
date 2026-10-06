@@ -18,6 +18,7 @@ export async function renderDrawingReferences(document: EditorDocument, view: Re
     return { plan: await sanitizeImageBuffer(Buffer.from(raster.base64, 'base64')) };
   }
   if (!acceptedTop || !['front', 'back', 'left', 'right'].includes(view.preset)) return {};
-  const side = view.preset as ElevationSide, image = await rasterizeEditorElevation(document, side, { cut: true });
+  // La arquitectura viene del plano; el mobiliario procede de la imagen aceptada, que puede haber sido rediseñada.
+  const side = view.preset as ElevationSide, image = await rasterizeEditorElevation(document, side, { cut: true, furniture: false });
   return image ? { section: { image: await sanitizeImageBuffer(Buffer.from(image.base64, 'base64')), rooms: sectionRooms(document, side) } } : {};
 }

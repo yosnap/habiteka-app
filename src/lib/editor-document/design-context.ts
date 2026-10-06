@@ -9,6 +9,7 @@ import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-co
 import { wallConstruction } from './construction-properties';
 import { designMaterialPalette } from './design-material-palette';
 import { buildingDesignStyle } from './design-scope';
+import { exteriorDesignContext } from './exterior-design-context';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -86,6 +87,7 @@ export function editorDesignContext(doc: EditorDocument) {
           } : null,
         })),
         boundaries: boundaryDesignContext(source),
+        exterior: exteriorDesignContext(source),
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);

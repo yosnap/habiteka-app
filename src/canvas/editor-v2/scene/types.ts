@@ -5,7 +5,7 @@ export interface SceneBox {
   position: Vector3Tuple; size: Vector3Tuple; rotation: number; color: string;
   emissive?: string;
   shape?: 'box' | 'cylinder' | 'rounded-box' | 'ellipsoid' | 'hip-roof';
-  boundaryPart?: 'post' | 'gate' | 'slot';
+  boundaryPart?: 'post' | 'gate' | 'slot' | 'foliage' | 'porch-floor' | 'porch-step';
   /** Transparencia del sólido; por defecto opaco (el vidrio de aberturas usa su propio rol). */
   opacity?: number;
   appearance?: 'water' | 'powder-coated-metal';

@@ -4,8 +4,9 @@
  * Parte de la conversión congelada `fromPlano2d` (muros, huecos, etiquetas y
  * cotas) y añade lo que un plano importado trae de más: los límites ocultos de
  * las zonas exteriores como muros `hidden` (recinto lógico sin muro físico),
- * un acabado de suelo exterior para esas estancias y el mobiliario del
- * catálogo colocado. Cliente-safe y puro.
+ * un acabado de suelo exterior para esas estancias, el tipo de carpintería de
+ * cada puerta y ventana y el mobiliario del catálogo colocado. Cliente-safe y
+ * puro.
  */
 import type { PlanImportResult } from '@/lib/contracts';
 import { doorSwing } from '@/lib/plan-svg/door-swing';
@@ -14,6 +15,8 @@ import { vertexId } from './shared';
 import { planarizeWalls } from './planarize-walls';
 import { deriveRooms } from '../rooms';
 import { upgradeConstructionDocument } from '../migrations';
+import { importedOpeningTypes } from '../imported-opening-types';
+import { openingTypeLookPatch } from '../opening-look';
 import { objectCenter, upgradeRampDocument } from '../spatial-properties';
 import { assertEditorDocument } from '../validation';
 import type { EditorDocument, FloorFinish, Point } from '../schema';
@@ -74,20 +77,31 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
     return { document: null, issues: [...issues, error instanceof Error ? error.message : 'Topología inválida'] };
   }
 
-  // El sentido de apertura pertenece al esquema de construcción (v3+).
-  // Migrar antes de escribirlo evita invalidar el documento v2 de fromPlano2d.
-  if (doc.openings.some((opening) => opening.kind === 'puerta')) {
+  // Tipo de carpintería: el que distinguió la lectura y, si no, las reglas de
+  // fachada (puerta de entrada) y de patio (corredera de vidrio).
+  const read = new Map(result.plano.zones.flatMap((zone) => zone.apertures)
+    .flatMap((aperture) => aperture.catalogId ? [[aperture.id, aperture.catalogId] as const] : []));
+  const types = importedOpeningTypes(doc, read);
+  // El sentido de apertura y el tipo pertenecen al esquema de construcción (v3+).
+  // Migrar antes de escribirlos evita invalidar el documento v2 de fromPlano2d.
+  if (types.size || doc.openings.some((opening) => opening.kind === 'puerta')) {
     doc = upgradeConstructionDocument(doc);
+  }
+  for (const opening of doc.openings) {
+    const type = types.get(opening.id);
+    // Altura, cota y aspecto, los del tipo (una balconera llega al suelo); el ancho, el leído en el plano.
+    if (type) Object.assign(opening, { kind: type.kind, catalogId: type.id, heightMm: type.heightMm, elevationMm: type.elevationMm,
+      ...openingTypeLookPatch(type) });
   }
   // Sentido de apertura de cada puerta según las estancias (hacia la estancia,
   // no hacia el pasillo; las exteriores hacia dentro).
   const wallsById = new Map(result.plano.zones.flatMap((z) => z.walls).map((w) => [w.id, w]));
   for (const zone of result.plano.zones) {
     for (const aperture of zone.apertures) {
-      if (aperture.kind !== 'puerta') continue;
       const wall = wallsById.get(aperture.wallId);
       const opening = doc.openings.find((o) => o.id === aperture.id);
-      if (wall && opening) {
+      // Un paso ancho al patio puede haberse convertido en puerta corredera.
+      if (wall && opening?.kind === 'puerta') {
         opening.swing = doorSwing(aperture, wall, result.plano.zones);
         opening.hinge = aperture.hinge ?? 'left';
       }

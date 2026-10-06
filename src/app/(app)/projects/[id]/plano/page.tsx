@@ -13,6 +13,7 @@ import {
   importCanvasStudio,
   drawingStudio,
   uploadStudio,
+  setEditorBackgroundStudio,
   importPlanStudio,
   importStudioPlanStudio,
   refitPlanImportStudio,
@@ -114,6 +115,7 @@ export default async function PlanoStudioPage({ params }: Props) {
         uploadAction={uploadStudio}
         cenitalAction={cenitalStudio}
         importCanvasAction={importCanvasStudio}
+        editorBackgroundAction={setEditorBackgroundStudio}
         sendToEditorAction={sendPlanoToEditor}
         importAction={importPlanStudio}
         importCurrentAction={importStudioPlanStudio}

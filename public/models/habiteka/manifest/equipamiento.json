@@ -1,0 +1,1042 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia equipamiento) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "equipamiento",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "aspersor_emergente_exterior": {
+   "file": "aspersor_emergente_exterior.glb",
+   "thumbnail": "thumbs/aspersor_emergente_exterior.webp",
+   "sha256": "831385db0fc3cac8016d0289349edc2bf1e05ac36f9723f743911be16153016d",
+   "bytes": 10192,
+   "triangles": 764,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    100,
+    100,
+    100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    100,
+    100,
+    100
+   ],
+   "family": "equipamiento",
+   "type": "sprinkler",
+   "params": {
+    "popup": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2d60ac7da47db75ff76300a407fb05e9fa3efae06ed5fad649d956cbdc7d0a36",
+   "builtAt": "2026-10-05"
+  },
+  "aspersor_riego_exterior": {
+   "file": "aspersor_riego_exterior.glb",
+   "thumbnail": "thumbs/aspersor_riego_exterior.webp",
+   "sha256": "ecaa0b450352a62b75356e53606f9f3e8df866a620cde7d9bab1dd7b2b42ad4e",
+   "bytes": 10828,
+   "triangles": 660,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    154,
+    154,
+    150
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    160,
+    160,
+    150
+   ],
+   "family": "equipamiento",
+   "type": "sprinkler",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cacddad04a85173d33df80b688e0db40fa05eb3c657dc4af6bec74e0d77fe165",
+   "builtAt": "2026-10-05"
+  },
+  "barbacoa_gas_exterior": {
+   "file": "barbacoa_gas_exterior.glb",
+   "thumbnail": "thumbs/barbacoa_gas_exterior.webp",
+   "sha256": "b596e9315af55ba9842d76c67e27a1c84d39607448180de31d3f948f183c2ca3",
+   "bytes": 26936,
+   "triangles": 2316,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1400,
+    714,
+    1097
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    700,
+    1150
+   ],
+   "family": "equipamiento",
+   "type": "grill",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "24deb8a0ca1308735161ede970ef29027f703df0131443c34cac9bc738802982",
+   "builtAt": "2026-10-05"
+  },
+  "barbacoa_obra_exterior": {
+   "file": "barbacoa_obra_exterior.glb",
+   "thumbnail": "thumbs/barbacoa_obra_exterior.webp",
+   "sha256": "ab1f3b8e0adb6b9fa765b12e8ee68681ed8a83cdb3383dadbeed539de4567c60",
+   "bytes": 511472,
+   "triangles": 1772,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1400,
+    700,
+    1600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    700,
+    1600
+   ],
+   "family": "equipamiento",
+   "type": "grill",
+   "params": {
+    "masonry": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "308e376bb3e682b51ace246f9886dc79f4424357f1d4a581dae587f3e74afb98",
+   "builtAt": "2026-10-05"
+  },
+  "carpa_both_exterior": {
+   "file": "carpa_both_exterior.glb",
+   "thumbnail": "thumbs/carpa_both_exterior.webp",
+   "sha256": "2fc743fa3994e3936674e7912eba8eb675cddfbf5c75e06e4fe1e4a9a4d41ae7",
+   "bytes": 340716,
+   "triangles": 2324,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3080,
+    3017,
+    2812
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2800
+   ],
+   "family": "equipamiento",
+   "type": "tent",
+   "params": {
+    "rolled": "both"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "09fbee3ed660004821d67637ff81a48acf46f0a47f27e5b17ccc4430b7cc7be5",
+   "builtAt": "2026-10-05"
+  },
+  "carpa_jardin_exterior": {
+   "file": "carpa_jardin_exterior.glb",
+   "thumbnail": "thumbs/carpa_jardin_exterior.webp",
+   "sha256": "4a2d46a7fbc544feda84b32f12af017032127ef2f5cfa598eb7672b8d9b0afae",
+   "bytes": 343152,
+   "triangles": 2580,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3017,
+    3017,
+    2811
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2800
+   ],
+   "family": "equipamiento",
+   "type": "tent",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "50ea0dcd513349c24be11591e3aee49c51d9aa5c4b08fcb4cbbc808565a635e6",
+   "builtAt": "2026-10-05"
+  },
+  "carpa_left_exterior": {
+   "file": "carpa_left_exterior.glb",
+   "thumbnail": "thumbs/carpa_left_exterior.webp",
+   "sha256": "488dfca43ecd79ef4da59a1eb9ba17cd9cfb5ebd00be2a5a4ef03d312a1fb9b5",
+   "bytes": 341924,
+   "triangles": 2452,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3048,
+    3017,
+    2811
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2800
+   ],
+   "family": "equipamiento",
+   "type": "tent",
+   "params": {
+    "rolled": "left"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "39adf2b98caaeb4c0cca7bed31434d0b4d31d553b19c1db4f47e41c647aaffaa",
+   "builtAt": "2026-10-05"
+  },
+  "carpa_right_exterior": {
+   "file": "carpa_right_exterior.glb",
+   "thumbnail": "thumbs/carpa_right_exterior.webp",
+   "sha256": "a469b8a999b2f227ae5f3ea4595ce8542705b8d3e6a9c5b9b7e6b8625b2bb414",
+   "bytes": 341928,
+   "triangles": 2452,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3048,
+    3017,
+    2811
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2800
+   ],
+   "family": "equipamiento",
+   "type": "tent",
+   "params": {
+    "rolled": "right"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2af99f5b02638b63a469e00be224125fa6c58772b95b1893850aa53ee7546af0",
+   "builtAt": "2026-10-05"
+  },
+  "estanque_jardin_exterior": {
+   "file": "estanque_jardin_exterior.glb",
+   "thumbnail": "thumbs/estanque_jardin_exterior.webp",
+   "sha256": "b4c52a59043968fe123ceaa0550146968972eade788fd0cdaa29432c320718ba",
+   "bytes": 766044,
+   "triangles": 5872,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2612,
+    1847,
+    412
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2500,
+    1800,
+    350
+   ],
+   "family": "equipamiento",
+   "type": "pond",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "94532285840473adc4047f6435659fed57e3c350668ed1ae6133a4aa160bcaf1",
+   "builtAt": "2026-10-05"
+  },
+  "fuente_jardin_exterior": {
+   "file": "fuente_jardin_exterior.glb",
+   "thumbnail": "thumbs/fuente_jardin_exterior.webp",
+   "sha256": "9b5f301931dcdfef3ec75dba7f3ad447a6245a6692ae3e8bc9f8f214a9997cc1",
+   "bytes": 522656,
+   "triangles": 2648,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1400,
+    1400,
+    1300
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    1400,
+    1300
+   ],
+   "family": "equipamiento",
+   "type": "fountain",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "69cbd4d6b4d2a2af6dc47d0d6a193104009cd8681786553d24835a7416115581",
+   "builtAt": "2026-10-05"
+  },
+  "furgoneta_exterior": {
+   "file": "furgoneta_exterior.glb",
+   "thumbnail": "thumbs/furgoneta_exterior.webp",
+   "sha256": "27eb8767a58af0b9a85e0cae4dc62e6e3f48204b52bf458756bd3855de8f0432",
+   "bytes": 302336,
+   "triangles": 33308,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1990,
+    5236,
+    2303
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    5200,
+    2300
+   ],
+   "family": "equipamiento",
+   "type": "car",
+   "params": {
+    "vehicle": "van"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "veh-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "veh-cristal",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "veh-blanco",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco",
+    "freno": "veh-freno",
+    "espejo": "veh-espejo",
+    "led": "veh-led",
+    "led-rojo": "veh-led-rojo"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "642a6e8905b93335e66b0f7cc9a9d240c7dd2f5a6e2476dc4ca3a73d7b318f67",
+   "builtAt": "2026-10-05"
+  },
+  "pergola_aluminio_exterior": {
+   "file": "pergola_aluminio_exterior.glb",
+   "thumbnail": "thumbs/pergola_aluminio_exterior.webp",
+   "sha256": "285764ec0ec1b8d8bc2a83362578d56dc3734df5823e5234345d17a84c120dfb",
+   "bytes": 54924,
+   "triangles": 5836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3010,
+    3010,
+    2500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2500
+   ],
+   "family": "equipamiento",
+   "type": "pergola",
+   "params": {
+    "metal": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5111e1638763c08fcea5f3d4bf0bb6a271d054d6e9a44157e6ae747726c97d8e",
+   "builtAt": "2026-10-05"
+  },
+  "pergola_madera_exterior": {
+   "file": "pergola_madera_exterior.glb",
+   "thumbnail": "thumbs/pergola_madera_exterior.webp",
+   "sha256": "dd684854589139fc2ddb4a065b6c95f2bb79a7e7826c1490cb2c5f9180e350bb",
+   "bytes": 364220,
+   "triangles": 5836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3010,
+    3010,
+    2500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    3000,
+    2500
+   ],
+   "family": "equipamiento",
+   "type": "pergola",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "769cfdd6d1f99dc5f1db35e84976d16ad101dbb8a7b5cbbe7c6ab262ef90f272",
+   "builtAt": "2026-10-05"
+  },
+  "piscina_elevada_exterior": {
+   "file": "piscina_elevada_exterior.glb",
+   "thumbnail": "thumbs/piscina_elevada_exterior.webp",
+   "sha256": "fb57e3ae4583f201fb5c341577a54af4cda479f02a97b66afb9e1b0051841c36",
+   "bytes": 589604,
+   "triangles": 12188,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    6070,
+    3237,
+    1521
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    6000,
+    3000,
+    1500
+   ],
+   "family": "equipamiento",
+   "type": "pool",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5d88c45c65c395e0f5d0627d405626e4c1b6ce8d1b6eb9b14e8bb3b2f4b106fb",
+   "builtAt": "2026-10-05"
+  },
+  "porche_entrada_exterior": {
+   "file": "porche_entrada_exterior.glb",
+   "thumbnail": "thumbs/porche_entrada_exterior.webp",
+   "sha256": "f36034b0dd9c157eac7bb4ff2772b875eb5c0484e2c54edf0afb37ec3003f5f2",
+   "bytes": 33840,
+   "triangles": 3384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3000,
+    2000,
+    2700
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    2000,
+    2700
+   ],
+   "family": "equipamiento",
+   "type": "porch",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "edcf831a7c967fce66fededf3f1959fa872fd630ba807aabc763b3d276dac5b3",
+   "builtAt": "2026-10-05"
+  },
+  "sombrilla_jardin_exterior": {
+   "file": "sombrilla_jardin_exterior.glb",
+   "thumbnail": "thumbs/sombrilla_jardin_exterior.webp",
+   "sha256": "0925c57dc8933b325b60e7059c855b537a49c7292765f111493811ee70bc2640",
+   "bytes": 1115028,
+   "triangles": 1724,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2505,
+    2505,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2500,
+    2500,
+    2400
+   ],
+   "family": "equipamiento",
+   "type": "umbrella",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "58090e203ad9e720b47bb78edf2b3fb108cfa8b5015795f039ef1525b3a0b91c",
+   "builtAt": "2026-10-05"
+  },
+  "toldo_terraza_exterior": {
+   "file": "toldo_terraza_exterior.glb",
+   "thumbnail": "thumbs/toldo_terraza_exterior.webp",
+   "sha256": "bb47c525c57450a7239de47034152f345ec8b53ff4859fe39a6c72474056d287",
+   "bytes": 334432,
+   "triangles": 1640,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3500,
+    2526,
+    620
+   ],
+   "elevationMm": 1980,
+   "specDimensionsMm": [
+    3500,
+    2500,
+    2600
+   ],
+   "family": "equipamiento",
+   "type": "awning",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "ext-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "ext-vidrio",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "ext-pintura",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "eda5c3a1477bd4dd6f5fdb1caa7ba342057f8929e69290587a8dadc1f7395736",
+   "builtAt": "2026-10-05"
+  },
+  "turismo_berlina_exterior": {
+   "file": "turismo_berlina_exterior.glb",
+   "thumbnail": "thumbs/turismo_berlina_exterior.webp",
+   "sha256": "bc91a4a394a2e1e950c256c31877674dd8759e8c8fe2a4401401b1ec7fc8f96f",
+   "bytes": 321528,
+   "triangles": 36024,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1791,
+    4637,
+    1517
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    4600,
+    1500
+   ],
+   "family": "equipamiento",
+   "type": "car",
+   "params": {
+    "vehicle": "saloon"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "veh-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "veh-cristal",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "veh-azul",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco",
+    "freno": "veh-freno",
+    "espejo": "veh-espejo",
+    "led": "veh-led",
+    "led-rojo": "veh-led-rojo"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "afd679e5e7f6eb838a55d8db7ff66608be5c9c4ae1c912885d3838fc57eea0bf",
+   "builtAt": "2026-10-05"
+  },
+  "turismo_compacto_exterior": {
+   "file": "turismo_compacto_exterior.glb",
+   "thumbnail": "thumbs/turismo_compacto_exterior.webp",
+   "sha256": "fa2282071275808ad11ee685bf5ad6f9620d908f017c31db51a6b4b290417150",
+   "bytes": 321724,
+   "triangles": 36024,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1741,
+    4040,
+    1485
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1750,
+    4000,
+    1450
+   ],
+   "family": "equipamiento",
+   "type": "car",
+   "params": {
+    "vehicle": "compact"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "veh-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "veh-cristal",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "veh-plata",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco",
+    "freno": "veh-freno",
+    "espejo": "veh-espejo",
+    "led": "veh-led",
+    "led-rojo": "veh-led-rojo"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cfe48d5e4d6793ac9f670f023bc3f163347ed672d5ac99770778aa5103b3f69f",
+   "builtAt": "2026-10-05"
+  },
+  "vehiculo_suv_exterior": {
+   "file": "vehiculo_suv_exterior.glb",
+   "thumbnail": "thumbs/vehiculo_suv_exterior.webp",
+   "sha256": "c758ae8672ef66810b41386292a0adc9f7252b64f14f5d2e1638bd59eeb72102",
+   "bytes": 333716,
+   "triangles": 37700,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1890,
+    4737,
+    1731
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1900,
+    4700,
+    1750
+   ],
+   "family": "equipamiento",
+   "type": "car",
+   "params": {
+    "vehicle": "suv"
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "goma": "veh-goma",
+    "tela": "tejido-exterior-crudo",
+    "vidrio": "veh-cristal",
+    "agua": "ext-agua",
+    "piedra": "jar-piedra-clara",
+    "pintura": "veh-gris",
+    "faro": "ext-faro",
+    "piloto": "ext-piloto",
+    "blanco": "ext-blanco",
+    "freno": "veh-freno",
+    "espejo": "veh-espejo",
+    "led": "veh-led",
+    "led-rojo": "veh-led-rojo"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bd49fb90da65462221fc61b37410f7fed63d3b8272ba416a555df955cc918438",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "jar_piedra_clara": {
+   "source": "polyhaven",
+   "id": "worn_rock_natural_01",
+   "title": "Worn Rock Natural 01",
+   "authors": [
+    "Rob Tuytel",
+    "Dimitrios Savva"
+   ],
+   "pageUrl": "https://polyhaven.com/a/worn_rock_natural_01",
+   "license": "CC0-1.0",
+   "sizeMm": 2000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_diff_1k.jpg",
+     "bytes": 854615,
+     "md5": "f410522eec19eb12e2b96ad4386b8493"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_nor_gl_1k.jpg",
+     "bytes": 910654,
+     "md5": "8645b86f5cb360b626086a4dc286340a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_rough_1k.jpg",
+     "bytes": 541768,
+     "md5": "d8f4508262dcf919d3fe6ce97ae30f98"
+    }
+   ]
+  },
+  "teca": {
+   "source": "polyhaven",
+   "id": "teak_veneer",
+   "title": "Teak Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/teak_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_diff_1k.jpg",
+     "bytes": 612194,
+     "md5": "0ca1914271448bcec9989ccaf46ea6b8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_nor_gl_1k.jpg",
+     "bytes": 410625,
+     "md5": "7c7d3c362775233d89523b44e5771c73"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_rough_1k.jpg",
+     "bytes": 731629,
+     "md5": "bc875070660548e52189959794f23f1b"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  }
+ }
+}

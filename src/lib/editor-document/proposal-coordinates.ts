@@ -1,4 +1,4 @@
-import { getFurnitureCatalogEntry } from './furniture-catalog';
+import { getFurnitureCatalogEntry, type FurnitureCatalogEntry } from './furniture-catalog';
 import type { NativeDesignFurniture } from './native-design-proposal';
 import { objectCenter } from './spatial-properties';
 import type { Point } from './schema';
@@ -19,6 +19,37 @@ export interface ModelFurniture {
   cyMm: number;
   rotation: number;
   reason: string;
+  /** Medida propia (ancho × fondo con su giro): solo la de una alfombra dibujada en el boceto. */
+  widthMm?: number;
+  depthMm?: number;
+}
+
+/** Lado de una alfombra a medida: menos es un felpudo y más no cabe en una vivienda. */
+const RUG_SIDE_MM = { min: 400, max: 6000 } as const;
+const rugSide = (value: number | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= RUG_SIDE_MM.min && value <= RUG_SIDE_MM.max;
+
+/**
+ * Ancho y fondo de una pieza de la propuesta: los del catálogo, salvo una alfombra con medida propia (la dibujada en
+ * el boceto), que se fabrica a medida. Cualquier otra pieza ignora una medida propia.
+ */
+export function proposalSize(item: { widthMm?: number; depthMm?: number }, catalog: FurnitureCatalogEntry): { widthMm: number; depthMm: number } {
+  return catalog.profile === 'rug' && rugSide(item.widthMm) && rugSide(item.depthMm)
+    ? { widthMm: Math.round(item.widthMm), depthMm: Math.round(item.depthMm) } : { widthMm: catalog.widthMm, depthMm: catalog.depthMm };
+}
+
+/** Medida propia de la pieza en los ejes del plano (x, y), o nada si usa la del catálogo. */
+export function proposalSizeOnPlan(item: { catalogId: string; rotation: number; widthMm?: number; depthMm?: number }): { x: number; y: number } | undefined {
+  const catalog = getFurnitureCatalogEntry(item.catalogId);
+  if (!catalog || item.widthMm === undefined || item.depthMm === undefined) return undefined;
+  const size = proposalSize(item, catalog);
+  if (size.widthMm === catalog.widthMm && size.depthMm === catalog.depthMm) return undefined;
+  return snapRotation(item.rotation) % 180 ? { x: size.depthMm, y: size.widthMm } : { x: size.widthMm, y: size.depthMm };
+}
+
+/** Medida propia para un giro dado a partir de la medida en los ejes del plano. */
+export function sizeForRotation(sizeMm: { x: number; y: number }, rotation: number): { widthMm: number; depthMm: number } {
+  return snapRotation(rotation) % 180 ? { widthMm: sizeMm.y, depthMm: sizeMm.x } : { widthMm: sizeMm.x, depthMm: sizeMm.y };
 }
 
 export const PROPOSAL_ROTATIONS = [0, 90, 180, 270] as const;
@@ -37,15 +68,19 @@ export function originFromCentre(cxMm: number, cyMm: number, rotation: number, w
 export function fromModelFurniture(item: ModelFurniture): NativeDesignFurniture | null {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog) return null;
-  const rotation = snapRotation(item.rotation), origin = originFromCentre(item.cxMm, item.cyMm, rotation, catalog.widthMm, catalog.depthMm);
-  return { catalogId: item.catalogId, rotation, reason: item.reason, xMm: origin.x, yMm: origin.y };
+  const rotation = snapRotation(item.rotation), size = proposalSize(item, catalog);
+  const origin = originFromCentre(item.cxMm, item.cyMm, rotation, size.widthMm, size.depthMm);
+  const custom = size.widthMm !== catalog.widthMm || size.depthMm !== catalog.depthMm;
+  return { catalogId: item.catalogId, rotation, reason: item.reason, xMm: origin.x, yMm: origin.y, ...(custom ? size : {}) };
 }
 
 export function toModelFurniture(item: NativeDesignFurniture): ModelFurniture {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
-  const centre = objectCenter({ x: item.xMm, y: item.yMm, rotation: item.rotation,
-    widthMm: catalog?.widthMm ?? 0, depthMm: catalog?.depthMm ?? 0 });
-  return { catalogId: item.catalogId, wall: '', alongMm: 0, cxMm: Math.round(centre.x), cyMm: Math.round(centre.y), rotation: item.rotation, reason: item.reason };
+  const size = catalog ? proposalSize(item, catalog) : { widthMm: 0, depthMm: 0 };
+  const centre = objectCenter({ x: item.xMm, y: item.yMm, rotation: item.rotation, ...size });
+  const custom = !!catalog && (size.widthMm !== catalog.widthMm || size.depthMm !== catalog.depthMm);
+  return { catalogId: item.catalogId, wall: '', alongMm: 0, cxMm: Math.round(centre.x), cyMm: Math.round(centre.y), rotation: item.rotation, reason: item.reason,
+    ...(custom ? size : {}) };
 }
 
 const horizontalFace = (face: RoomWallFace) => face.side === 'arriba' || face.side === 'abajo';

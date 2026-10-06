@@ -13,16 +13,21 @@ import { assertCompatibleDesignStyle, designScopeRooms, designScopeStructureIds,
 import { polygonContainsFootprint } from './proposal-permissions';
 import { wallPath } from './wall-path';
 import { eligibleCeilingRooms } from './ceiling-geometry';
-import { wallConstruction } from './construction-properties';
+import { openingConstruction, wallConstruction } from './construction-properties';
+import { leafReachMm, slideParkingMm } from './opening-types';
 import { isRampLanding } from './ramp-kind';
 import { canFitOnHost, canRestOnHost, hostSurfaceTop, isSurfaceHost, restOnHost } from './object-host-rest';
 import { sameDesignContent } from './approved-design';
 import { assertSpatialPlacement } from '@/canvas/editor-v2/spatial-placement';
 import { applyFixedFinishes, type FixedDesignFinish } from './fixed-design-finishes';
+import { planParts } from './l-sofa-shape';
+import { isTelevision } from './native-design-seating';
+import { hasRoomTelevision } from './proposal-existing-television';
 import { isKitchenRun } from './kitchen-run-types';
 import { upgradeKitchenDocument } from './kitchen-run-commands';
 import { floorElevationAt } from './floor-level';
 import { fitKitchenSlots, KITCHEN_DEPTH_MM, MIN_KITCHEN_MM, proposalKitchenRun, type NativeDesignKitchen } from './native-design-kitchen';
+import { proposalSize } from './proposal-coordinates';
 
 export interface NativeDesignFurniture {
   catalogId: string;
@@ -30,6 +35,9 @@ export interface NativeDesignFurniture {
   yMm: number;
   rotation: number;
   reason: string;
+  /** Medida propia (ancho × fondo con su giro): solo una alfombra dibujada en el boceto, que se hace a su medida. */
+  widthMm?: number;
+  depthMm?: number;
 }
 
 /** Suelo y paredes de una estancia: el baño no lleva el mismo pavimento ni el mismo acabado que un dormitorio. */
@@ -63,6 +71,8 @@ export interface NativeDesignProposal {
   furniture: NativeDesignFurniture[];
   /** Tramos del mueble de cocina modular; se colocan antes que los muebles sueltos. */
   kitchens?: NativeDesignKitchen[];
+  /** Objetos dibujados en el boceto del cliente que el catálogo aún no tiene, con su estancia. */
+  sketchMissing?: string[];
   fixedFinishes?: FixedDesignFinish[];
 }
 
@@ -201,10 +211,11 @@ export function addSuggestedFurniture(doc: EditorDocument, item: NativeDesignFur
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation)) return;
   const placement = assessFurniturePlacement(doc, item, rooms, allowedRooms, zonePolygon);
   if (placement.issue || !placement.room) return;
+  if (isTelevision(catalog) && hasRoomTelevision(doc, placement.room.id, rooms)) return;
   const elevationMm = (floorFinish(doc, placement.room.id).elevationMm ?? 0) + catalog.elevationMm;
   const furniture: Furniture = {
     id: newId(), kind: catalog.kind, catalogId: catalog.id, x: item.xMm, y: item.yMm,
-    widthMm: catalog.widthMm, depthMm: catalog.depthMm, heightMm: catalog.heightMm,
+    ...proposalSize(item, catalog), heightMm: catalog.heightMm,
     elevationMm, rotation: item.rotation, dimensionalOrigin: 'physical', color: catalog.color,
   };
   doc.furniture.push(placement.host ? restOnHost(doc, { ...furniture, hostId: placement.host.id,
@@ -281,8 +292,11 @@ export const EDGE_REACH_MM = 900;
 const EDGE_PROFILES = new Set(['plant', 'outdoor', 'lamp', 'toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance']);
 /** Piezas que en una vivienda van juntas: módulos y aparatos de cocina, sanitarios, armarios, mesillas y camas pueden tocarse sin solaparse. */
 const FITTED_PROFILES = new Set(['toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance', 'cabinet', 'bed']);
-/** Sillas y bancos se arriman a su mesa y entre sí; el banco, a los pies de la cama. Con 250 mm no cabía ninguna silla. */
-const PAIRED_PROFILES: readonly (readonly [string, string])[] = [['chair', 'table'], ['chair', 'chair'], ['bench', 'table'], ['bench', 'bed']];
+/**
+ * Sillas y bancos se arriman a su mesa y entre sí; el banco, a los pies de la cama; los taburetes, a la isla o la
+ * península de la cocina. Con 250 mm no cabía ninguna silla.
+ */
+const PAIRED_PROFILES: readonly (readonly [string, string])[] = [['chair', 'table'], ['chair', 'chair'], ['chair', 'kitchen'], ['bench', 'table'], ['bench', 'bed']];
 function tucked(profile: string, item: { x: number; y: number; widthMm: number; depthMm: number; rotation: number },
   otherProfile: string, other: { x: number; y: number; widthMm: number; depthMm: number; rotation: number }): boolean {
   const [chair, table] = profile === 'chair' && otherProfile === 'table' ? [item, other] : profile === 'table' && otherProfile === 'chair' ? [other, item] : [];
@@ -321,15 +335,17 @@ export function distanceToBoundary(boundary: readonly Point[], point: Point): nu
 /**
  * Zona que una puerta necesita libre: el ancho del hueco y, a cada lado del muro, la profundidad de su hoja más un paso.
  * Antes era un cuadrado con 800 mm de margen en todas direcciones; en un dormitorio de 3 m no dejaba sitio a la cama.
+ * Una corredera vista reserva además el tramo de pared donde se recoge su hoja (a los dos lados si son dos hojas al centro).
  */
 function doorKeepOut(doc: EditorDocument, opening: EditorDocument['openings'][number]) {
   const wall = doc.walls.find((item) => item.id === opening.wallId);
   if (!wall) return null;
   const path = wallPath(doc, wall), centre = path.at(opening.position), tangent = path.tangent(opening.position);
   // Un paso sin puerta no tiene hoja que abrir: basta un metro de paso a cada lado, aunque sea muy ancho.
-  const normal = { x: -tangent.y, y: tangent.x }, width = opening.widthMm;
-  const depth = (opening.kind === 'puerta' ? opening.widthMm : Math.min(opening.widthMm, CIRCULATION_MM - DOOR_APPROACH_MM)) + DOOR_APPROACH_MM;
-  return { x: centre.x - tangent.x * width / 2 - normal.x * depth, y: centre.y - tangent.y * width / 2 - normal.y * depth,
+  const normal = { x: -tangent.y, y: tangent.x }, parking = slideParkingMm({ ...opening, hinge: openingConstruction(opening).hinge });
+  const width = opening.widthMm + parking.start + parking.end, start = opening.widthMm / 2 + parking.start;
+  const depth = (opening.kind === 'puerta' ? leafReachMm(opening) : Math.min(opening.widthMm, CIRCULATION_MM - DOOR_APPROACH_MM)) + DOOR_APPROACH_MM;
+  return { x: centre.x - tangent.x * start - normal.x * depth, y: centre.y - tangent.y * start - normal.y * depth,
     widthMm: width, depthMm: depth * 2, rotation: Math.atan2(tangent.y, tangent.x) * 180 / Math.PI };
 }
 
@@ -407,7 +423,7 @@ function assessFurniturePlacement(
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !Number.isFinite(item.xMm) || !Number.isFinite(item.yMm) || !Number.isFinite(item.rotation))
     return { issue: 'catalog' };
-  const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
+  const candidate = { x: item.xMm, y: item.yMm, ...proposalSize(item, catalog), rotation: item.rotation };
   const room = suggestedFurnitureRoom(item, rooms);
   if (!room || (allowedRooms && !allowedRooms.has(room.id))) return { issue: 'room' };
   if (zonePolygon && !polygonContainsFootprint(zonePolygon, corners(candidate))) return { issue: 'zone' };
@@ -426,7 +442,8 @@ function assessFurniturePlacement(
     ...candidate, heightMm: catalog.heightMm, elevationMm: 0, color: catalog.color,
     dimensionalOrigin: 'physical' };
   const floor = floorFinish(doc, room.id).elevationMm ?? 0;
-  const host = canRestOnHost(candidateItem) && catalog.heightMm <= HOSTED_MAX_MM ? planObjects(doc)
+  // Lo pequeño se apoya; una pantalla también, aunque mida más: la tele va sobre su mueble.
+  const host = canRestOnHost(candidateItem) && (catalog.heightMm <= HOSTED_MAX_MM || catalog.profile === 'screen') ? planObjects(doc)
     .filter((target) => isSurfaceHost(target) && proposalHost(target, floor) && canFitOnHost(candidateItem, target)
       && polygonContainsFootprint(corners(target), corners(candidate)))
     .sort((a, b) => hostSurfaceTop(b) - hostSurfaceTop(a))[0] : undefined;
@@ -437,7 +454,7 @@ function assessFurniturePlacement(
     if (corners(candidate).every((point) => distanceToBoundary(boundary, point) > EDGE_REACH_MM)) return { issue: 'edge' };
   }
   const bottom = host ? hostSurfaceTop(host) : floor + catalog.elevationMm;
-  const shelters = doc.furniture.filter((target) => ['carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
+  const shelters = doc.furniture.filter((target) => ['porche-entrada', 'carpa', 'pergola', 'pergola-aluminio', 'pergola-metal'].includes(target.kind));
   const shelterIds = new Set(shelters.map((target) => target.id));
   // Una alfombra va bajo el mobiliario: solo otra alfombra le estorba, y ella no estorba a nadie.
   const isRug = (target: { catalogId?: string }) => getFurnitureCatalogEntry(target.catalogId ?? '')?.profile === 'rug';
@@ -448,7 +465,13 @@ function assessFurniturePlacement(
     // Una silla se mete en parte bajo su mesa, como en cualquier comedor; nunca con el asiento entero debajo.
     if (tucked(catalog.profile, candidate, targetProfile, target)) return false;
     // Lo apoyado en un tablero solo tiene que caber en él: la lámpara de la mesilla queda a un palmo del cabecero.
-    return intersects(candidate, target, host || canTouch(catalog.profile, targetProfile) ? 0 : 250);
+    // Un sofá en L choca por sus dos tramos, no por el rectángulo que los envuelve: su hueco es para la mesa de centro.
+    // Una planta se arrima a un mueble sin el paso de 25 cm: en un rincón junto al sofá o la TV no cabía ninguna.
+    const clearance = host || canTouch(catalog.profile, targetProfile) ? 0 : catalog.profile === 'plant' || targetProfile === 'plant' ? 50 : 250;
+    return planParts(targetProfile, target.widthMm, target.depthMm).some((part) => {
+      const origin = localToWorld(target, { x: part.x, y: part.y });
+      return intersects(candidate, { x: origin.x, y: origin.y, widthMm: part.widthMm, depthMm: part.depthMm, rotation: target.rotation }, clearance);
+    });
   });
   if (blockedByObject || [...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])]
     .some((target) => intersects(candidate, target, 250))) return { issue: 'collision' };
@@ -468,7 +491,7 @@ function assessFurniturePlacement(
 function suggestedFurnitureRoom(item: NativeDesignFurniture, rooms: ReturnType<typeof deriveRooms>) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog) return undefined;
-  const candidate = { x: item.xMm, y: item.yMm, widthMm: catalog.widthMm, depthMm: catalog.depthMm, rotation: item.rotation };
+  const candidate = { x: item.xMm, y: item.yMm, ...proposalSize(item, catalog), rotation: item.rotation };
   const footprint = corners(candidate);
   return rooms.filter((room) => footprint.every((point) => contains(room.boundary, point)))
     .sort((a, b) => a.areaMm2 - b.areaMm2)[0];

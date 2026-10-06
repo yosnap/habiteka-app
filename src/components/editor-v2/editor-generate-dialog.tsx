@@ -4,6 +4,8 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Camera, Sofa } from 'lucide-react';
 import { CheckToggle } from '@/components/ui/check-toggle';
 import { ExistingRenderReview } from './existing-render-review';
+import { RenderReferenceLibrary } from './render-reference-library';
+import { requiredReferencePreset, type ReferencePreset } from '@/lib/editor-document/render-reference-compatibility';
 import { captureFileName } from '@/lib/editor-document/capture-file-name';
 import type { RenderCapture } from '@/lib/editor-document/render-view';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
@@ -91,6 +93,7 @@ interface EditorGenerateDialogProps {
     styleAnchor?: boolean;
     orthophotoDataUrl?: string;
     existingImageDataUrl?: string;
+    designReferenceId?: string;
   }) => Promise<RenderGeneratedResult>;
   onApply: (proposal: NativeDesignProposal, selection: NativeDesignSelection) => void | Promise<void>;
   onCreateDesignZone?: (name: string, polygon: Point[]) => string;
@@ -176,6 +179,8 @@ export function EditorGenerateDialog({
   // Apagada por defecto: la ancla da coherencia de estilo, pero en pruebas puede arrastrar geometría de otra cámara.
   const [styleAnchor, setStyleAnchor] = useState(false);
   const [orthophotoDataUrl, setOrthophotoDataUrl] = useState('');
+  const [referenceIds, setReferenceIds] = useState<Partial<Record<ReferencePreset, string>>>({});
+  const [referenceNotice, setReferenceNotice] = useState('');
   const [results, setResults] = useState<Array<RenderGeneratedResult | undefined>>([]);
   const completedCount = results.filter(Boolean).length;
   const [busy, setBusy] = useState(false);
@@ -275,6 +280,8 @@ export function EditorGenerateDialog({
     setError(null);
   };
   const changeOptions = (next: RenderDesignOptions) => {
+    setReferenceIds({});
+    setReferenceNotice('');
     setOptions(intent === 'editable' && (next.freedom === 'strict' || next.designScope === 'zone')
       ? { ...next, placement: 'all', regions: [] } : next);
     if (intent === 'editable' && next.designScope !== 'all' && establishedStyle)
@@ -302,6 +309,7 @@ export function EditorGenerateDialog({
       const captures = await onPrepare(options);
       if (!captures.length) throw new Error('No se pudo preparar ninguna vista 2D/3D.');
       setPrepared(captures);
+      setReferenceNotice('');
       setMode('renders');
     } catch (cause) {
       showFailure(cause instanceof Error ? cause.message : 'No se pudieron preparar las vistas.');
@@ -329,6 +337,7 @@ export function EditorGenerateDialog({
           options,
           batchId: stableBatchId,
           qualityAck: quality.ack,
+          designReferenceId: referenceIds[requiredReferencePreset(capture.view, options) ?? 'top'],
           ...(['drone', 'isometric', 'exterior'].includes(capture.view.preset) ? { orthophotoDataUrl } : {}),
           ...((styleAnchor || options.redesignInterior || options.redesignFixed) && renderableCaptures.length > 1 ? { styleAnchor: true } : {}),
         }),
@@ -351,6 +360,7 @@ export function EditorGenerateDialog({
     try {
       const result = await onRender({ estilo, objetivo: objetivo.trim(), promptLibre: promptLibre.trim(), capture,
         options, batchId: stableBatchId, qualityAck: quality.ack, existingImageDataUrl,
+        designReferenceId: referenceIds[requiredReferencePreset(capture.view, options) ?? 'top'],
         ...(['drone', 'isometric', 'exterior'].includes(capture.view.preset) ? { orthophotoDataUrl } : {}) });
       setResults(previous => { const next = [...previous]; next[index] = result; return next; });
     } finally { setBusy(false); }
@@ -604,6 +614,18 @@ export function EditorGenerateDialog({
                 </div>
               </div>
             </div>
+            {referenceNotice && <p role="status" className="mt-4 text-sm">{referenceNotice}</p>}
+            {mode === 'renders' && projectId && document && renderableCaptures.filter((capture, index, all) => {
+              const preset = requiredReferencePreset(capture.view, options);
+              return preset && all.findIndex(other => requiredReferencePreset(other.view, options) === preset) === index;
+            }).map(capture => {
+              const preset = requiredReferencePreset(capture.view, options)!;
+              return <RenderReferenceLibrary key={`${preset}-${renderBatchSettingsKey(options)}`} projectId={projectId} zoneId={zoneId}
+                document={document} view={capture.view} options={options} disabled={busy || qualityBlocked} selectedId={referenceIds[preset]}
+                onAdopt={(next, id) => { changeOptions(next); setReferenceIds({ [preset]: id }); setMode('choose');
+                  setReferenceNotice('Se han recuperado los ajustes de la referencia. Pulsa Ver vistas de referencia para preparar de nuevo las cámaras; la imagen elegida se conserva.'); }}
+                onSelect={id => { setReferenceIds(previous => ({ ...previous, [preset]: id })); setError(null); }} />;
+            })}
             {mode === 'renders' && <ExistingRenderReview captures={renderableCaptures} disabled={busy || qualityBlocked} labelAt={labelAt} onReview={reviewExisting} />}
             {mode === 'renders' && completedCount > 0 && (
               <div className="mt-5 border-t border-line pt-4">

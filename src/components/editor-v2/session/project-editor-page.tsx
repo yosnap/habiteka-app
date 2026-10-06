@@ -42,9 +42,15 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
     const studio = await loadStudio(ctx, projectId);
     const imported = studio.planImport;
     const image = imported?.image ?? studio.source;
+    const background = studio.editorReference;
+    // El fondo elegido o fijado al enviar al editor manda; otra extracción o una captura del editor no lo cambian.
+    if (background?.image.assetUrl) {
+      reference = { imageUrl: background.image.assetUrl, widthMm: background.frame.width, heightMm: background.frame.height,
+        xMm: background.frame.x, yMm: background.frame.y };
+    // Proyectos anteriores: la imagen de la última extracción, salvo que sea una captura del propio editor.
     // Guardar otra revisión no elimina la imagen de referencia del proyecto.
     // Mostrarla no aplica la importación ni sustituye el documento del Editor.
-    if (imported && image?.assetUrl) {
+    } else if (imported && image?.assetUrl && !(studio.sourceKind === 'canvas' && image.assetKey === studio.plan?.assetKey)) {
       try {
         const frame = buildPlanImport(imported.raw, {
           generalWidthMm: imported.generalWidthMm,

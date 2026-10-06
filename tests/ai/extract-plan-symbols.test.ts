@@ -89,6 +89,8 @@ describe('segunda lectura de símbolos del plano', () => {
     const result = await extractPlanSource(chat, [], 'plano');
     expect(requests).toHaveLength(2);
     expect(result.raw.aberturas.some((item) => item.arcGeometry?.hinge.x === 0.5)).toBe(true);
+    // Sin tope de razonamiento, Sonnet 5 gastaba los 16000 tokens pensando y no escribía el plano.
+    expect(requests.map((request) => [request.maxTokens, request.reasoning])).toEqual([[16000, { effort: 'low' }], [4096, { effort: 'low' }]]);
   });
 
   it('amplía la zona central, recoloca sus símbolos y sustituye una ventana demasiado larga', async () => {

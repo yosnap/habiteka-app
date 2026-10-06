@@ -1,0 +1,833 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia taburetes) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "taburetes",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "taburete_bajo_madera": {
+   "file": "taburete_bajo_madera.glb",
+   "thumbnail": "thumbs/taburete_bajo_madera.webp",
+   "sha256": "124766398fd66a3f9e6ce61127d9e4944cba51201ee7d9d8dd88a481203a3bbb",
+   "bytes": 105860,
+   "triangles": 880,
+   "texturePx": 512,
+   "dimensionsMm": [
+    320,
+    320,
+    457
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    340,
+    340,
+    450
+   ],
+   "family": "taburetes",
+   "type": "stool_wood",
+   "params": {
+    "seat_h": 450
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ad721c97fca420a0e359a588a76f1bec4d8a15d455fa8d27de8dcf02a16bc166",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_bajo_metal": {
+   "file": "taburete_bajo_metal.glb",
+   "thumbnail": "thumbs/taburete_bajo_metal.webp",
+   "sha256": "6ec4e54a82af85f5cfaad093796974a7cc2bfdfeb2a63337dfcdd32a5cd2ffce",
+   "bytes": 13700,
+   "triangles": 1184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    324,
+    324,
+    455
+   ],
+   "specDimensionsMm": [
+    340,
+    340,
+    450
+   ],
+   "family": "taburetes",
+   "type": "stool_metal",
+   "params": {
+    "seat_h": 450
+   },
+   "finishes": {
+    "estructura": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dd59bfb5d1ecc214db245be28148b4bd1098e8c6b23876384cc655937f108cce",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_giratorio_65": {
+   "file": "taburete_giratorio_65.glb",
+   "thumbnail": "thumbs/taburete_giratorio_65.webp",
+   "sha256": "45af3d2a9fedbb6044a1087180f7ccaedfb6b64bcd5174349d006c0ef4e11028",
+   "bytes": 206180,
+   "triangles": 3140,
+   "texturePx": 512,
+   "dimensionsMm": [
+    410,
+    410,
+    672
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    420,
+    650
+   ],
+   "family": "taburetes",
+   "type": "stool_swivel",
+   "params": {
+    "seat_h": 650
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "base": "cromo"
+   },
+   "textures": [
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "55f8f6ce1c064b9b437e62bcebbff02097b730c9a9419f6411c106a93db0850b",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_giratorio_75": {
+   "file": "taburete_giratorio_75.glb",
+   "thumbnail": "thumbs/taburete_giratorio_75.webp",
+   "sha256": "240b2801d883a582a1aac5cea5147ad08861d408396e5a06e821e684e70daed9",
+   "bytes": 205880,
+   "triangles": 3140,
+   "texturePx": 512,
+   "dimensionsMm": [
+    410,
+    410,
+    772
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    420,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_swivel",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "base": "cromo"
+   },
+   "textures": [
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dd80427a13cdb963b8e2e8acde48767a4a13193fbd4a5accad3ed62ef80937d6",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_giratorio_respaldo_65": {
+   "file": "taburete_giratorio_respaldo_65.glb",
+   "thumbnail": "thumbs/taburete_giratorio_respaldo_65.webp",
+   "sha256": "e8f63557e61aa7707419cb33b25091811bd7b01c319f8a692844b0e3acd8d8b9",
+   "bytes": 72696,
+   "triangles": 4064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    429,
+    420,
+    910
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    420,
+    920
+   ],
+   "family": "taburetes",
+   "type": "stool_swivel",
+   "params": {
+    "back": true,
+    "seat_h": 650
+   },
+   "finishes": {
+    "tapiceria": "piel-negra",
+    "base": "cromo"
+   },
+   "textures": [
+    "piel"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ac0fe1818b9d079f5d6456caf6e87ba67eb5b471fd3ae723f8061609a7870bef",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_giratorio_respaldo_75": {
+   "file": "taburete_giratorio_respaldo_75.glb",
+   "thumbnail": "thumbs/taburete_giratorio_respaldo_75.webp",
+   "sha256": "d280ed5a1512aa1f4ce4dd4e508b5569d2b7590cbb73ec5cfbe831171342bc59",
+   "bytes": 72476,
+   "triangles": 4064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    429,
+    420,
+    1010
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    420,
+    1020
+   ],
+   "family": "taburetes",
+   "type": "stool_swivel",
+   "params": {
+    "back": true,
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "piel-negra",
+    "base": "cromo"
+   },
+   "textures": [
+    "piel"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "386486ab5f484872a1ded1d98ef5757cb449f6f4e29a66b5a112e706b29b2ae7",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_giratorio_respaldo_75_gris": {
+   "file": "taburete_giratorio_respaldo_75_gris.glb",
+   "thumbnail": "thumbs/taburete_giratorio_respaldo_75_gris.webp",
+   "sha256": "7f8afb7e0d1aee86899a13e068e9997dbd2643bfa7f903e05585390cddcfb8ad",
+   "bytes": 162932,
+   "triangles": 4064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    429,
+    420,
+    1010
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    420,
+    1020
+   ],
+   "family": "taburetes",
+   "type": "stool_swivel",
+   "params": {
+    "back": true,
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "base": "metal-negro"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "644452095d0461b050787a0a4ee878830023c4bf7ad70b4754eec5fef98471d9",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_madera_65": {
+   "file": "taburete_madera_65.glb",
+   "thumbnail": "thumbs/taburete_madera_65.webp",
+   "sha256": "d35927682bf62e5fde41e63f9a2bf3e7a4e7382debddae77772292db6a20df6e",
+   "bytes": 105648,
+   "triangles": 880,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    360,
+    657
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    380,
+    380,
+    650
+   ],
+   "family": "taburetes",
+   "type": "stool_wood",
+   "params": {
+    "seat_h": 650
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d2a040b6b6a2d885d4a6aa4c7161c0bbed856cbb88bf35aa9e0428593bf19374",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_madera_75": {
+   "file": "taburete_madera_75.glb",
+   "thumbnail": "thumbs/taburete_madera_75.webp",
+   "sha256": "b4133d5c06ce48d0baa8388a95e0aed59f7da18391914ebd059ca14b51617bc5",
+   "bytes": 105568,
+   "triangles": 880,
+   "texturePx": 512,
+   "dimensionsMm": [
+    380,
+    380,
+    757
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    400,
+    400,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_wood",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7f0973c30dc57c8bf12376169b2069c281d0150d6d9ce584750483e18a02873f",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_madera_75_nogal": {
+   "file": "taburete_madera_75_nogal.glb",
+   "thumbnail": "thumbs/taburete_madera_75_nogal.webp",
+   "sha256": "3fb5d10a2534f9734fd51cb0bd70cb56756d8366e85aa1e33a86da47a8ad4d38",
+   "bytes": 70468,
+   "triangles": 880,
+   "texturePx": 512,
+   "dimensionsMm": [
+    380,
+    380,
+    757
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    400,
+    400,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_wood",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "madera": "nogal"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9619e18f3edadebdd3f52da73cbb822a7d81928e154206170ce6f7b52a439d50",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_metal_65": {
+   "file": "taburete_metal_65.glb",
+   "thumbnail": "thumbs/taburete_metal_65.webp",
+   "sha256": "7463aecfc8e105047ff2bd1dde70fbd6e8856357bbc1f503fe71cee76020a8d3",
+   "bytes": 13484,
+   "triangles": 1184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    364,
+    364,
+    655
+   ],
+   "specDimensionsMm": [
+    380,
+    380,
+    650
+   ],
+   "family": "taburetes",
+   "type": "stool_metal",
+   "params": {
+    "seat_h": 650
+   },
+   "finishes": {
+    "estructura": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "96fee4f3dbdafec38a9f860f9f307d023d0369e39ab00bbac36240fec11123c9",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_metal_75": {
+   "file": "taburete_metal_75.glb",
+   "thumbnail": "thumbs/taburete_metal_75.webp",
+   "sha256": "fc82038f0fc82f6f3f0d83eae7e60c02983190b5cbb61ff00b5f9b0886da9dfe",
+   "bytes": 13384,
+   "triangles": 1184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    395,
+    395,
+    755
+   ],
+   "specDimensionsMm": [
+    400,
+    400,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_metal",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "estructura": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3ef53cf7063fd1317992fbf977bfe03646316f5150c75390c19cd289e67eac64",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_metal_75_blanco": {
+   "file": "taburete_metal_75_blanco.glb",
+   "thumbnail": "thumbs/taburete_metal_75_blanco.webp",
+   "sha256": "93fad83a7ca9742f1f7710e4a345a177adc1e3f4d9291dc36081b02a3a5c3314",
+   "bytes": 13376,
+   "triangles": 1184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    395,
+    395,
+    755
+   ],
+   "specDimensionsMm": [
+    400,
+    400,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_metal",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "estructura": "aluminio-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8c3cf63b0cce77a5899e17ef46c312c4dc2a5322a520e06aabff4a3ec8bd0009",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_tapizado_65": {
+   "file": "taburete_tapizado_65.glb",
+   "thumbnail": "thumbs/taburete_tapizado_65.webp",
+   "sha256": "aab50b59601079b31a5a81d775d02bb247d5a0b169d61043b5c37f4609e9f51d",
+   "bytes": 208400,
+   "triangles": 3608,
+   "texturePx": 512,
+   "dimensionsMm": [
+    448,
+    499,
+    923
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    440,
+    450,
+    920
+   ],
+   "family": "taburetes",
+   "type": "stool_upholstered",
+   "params": {
+    "back": true,
+    "seat_h": 650
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7fd375cfac13119de8ee5312398d8e1fbcde00f508c439c4b3675fac82ce3483",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_tapizado_75": {
+   "file": "taburete_tapizado_75.glb",
+   "thumbnail": "thumbs/taburete_tapizado_75.webp",
+   "sha256": "c801ef272c9c633b8328599b28a147e3c13b8afae5fa2d85de1bd3e98692820b",
+   "bytes": 208316,
+   "triangles": 3608,
+   "texturePx": 512,
+   "dimensionsMm": [
+    448,
+    499,
+    1023
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    440,
+    450,
+    1020
+   ],
+   "family": "taburetes",
+   "type": "stool_upholstered",
+   "params": {
+    "back": true,
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "59c96bdbb5f7b33af527ffa1219520ea5dae59ba80c56b319356cacbcf244cdb",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_tapizado_75_verde": {
+   "file": "taburete_tapizado_75_verde.glb",
+   "thumbnail": "thumbs/taburete_tapizado_75_verde.webp",
+   "sha256": "686f9c26f417b01ec62fc9c2018e1086ba8b60bb4bdc55b774091e2f2debb977",
+   "bytes": 139040,
+   "triangles": 3608,
+   "texturePx": 512,
+   "dimensionsMm": [
+    448,
+    499,
+    1023
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    440,
+    450,
+    1020
+   ],
+   "family": "taburetes",
+   "type": "stool_upholstered",
+   "params": {
+    "back": true,
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "estructura": "laton"
+   },
+   "textures": [
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9ee820fd77205385b222c4d5d5b106c01a6c83cdf5881ebadaed777743d2de31",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_tapizado_sin_respaldo_65": {
+   "file": "taburete_tapizado_sin_respaldo_65.glb",
+   "thumbnail": "thumbs/taburete_tapizado_sin_respaldo_65.webp",
+   "sha256": "68f6ddac3d3bd91982e8fed71bd14ddf1893064220de4372dcf2d12f046d60db",
+   "bytes": 202308,
+   "triangles": 2288,
+   "texturePx": 512,
+   "dimensionsMm": [
+    408,
+    409,
+    662
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    400,
+    400,
+    650
+   ],
+   "family": "taburetes",
+   "type": "stool_upholstered",
+   "params": {
+    "seat_h": 650
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6e01f306c25cf86f62ad2ea072c786d81b7ba757c0c55353bfc5adab8b1a8bf9",
+   "builtAt": "2026-10-05"
+  },
+  "taburete_tapizado_sin_respaldo_75": {
+   "file": "taburete_tapizado_sin_respaldo_75.glb",
+   "thumbnail": "thumbs/taburete_tapizado_sin_respaldo_75.webp",
+   "sha256": "8fabbb2d59d5baf45044489176ea62082cfe3cce25641bc84dcb89cbd69e6ce8",
+   "bytes": 202196,
+   "triangles": 2288,
+   "texturePx": 512,
+   "dimensionsMm": [
+    408,
+    409,
+    762
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    400,
+    400,
+    750
+   ],
+   "family": "taburetes",
+   "type": "stool_upholstered",
+   "params": {
+    "seat_h": 750
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "42253018add7cfed8622f376c2bbbee635a34662f46c82fbe40b211e6e29f899",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "boucle": {
+   "source": "polyhaven",
+   "id": "curly_teddy_natural",
+   "title": "Curly Teddy Natural",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/curly_teddy_natural",
+   "license": "CC0-1.0",
+   "sizeMm": 336,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg",
+     "bytes": 673494,
+     "md5": "82060ba3b45dfdbfab202b616a251b94"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg",
+     "bytes": 576152,
+     "md5": "6496bc0ee48ee2ec2cac68ef82c9fe67"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_rough_1k.jpg",
+     "bytes": 812202,
+     "md5": "ea8d25d0290626e294b8d2242333d790"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "piel": {
+   "source": "polyhaven",
+   "id": "leather_white",
+   "title": "Leather White",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/leather_white",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_diff_1k.jpg",
+     "bytes": 728363,
+     "md5": "a580e1c45d806a56d89331f9a549ecb2"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_nor_gl_1k.jpg",
+     "bytes": 670610,
+     "md5": "4226eb91e17693722f3368cd41a3b1c9"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_rough_1k.jpg",
+     "bytes": 675426,
+     "md5": "db1052bac557bb6b03fdde325a853af4"
+    }
+   ]
+  },
+  "piel_conac": {
+   "source": "polyhaven",
+   "id": "fabric_leather_02",
+   "title": "Fabric Leather 02",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/fabric_leather_02",
+   "license": "CC0-1.0",
+   "sizeMm": 500,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_diff_1k.jpg",
+     "bytes": 663390,
+     "md5": "35256026fcf2734d558ee2aa8f939c10"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_nor_gl_1k.jpg",
+     "bytes": 170918,
+     "md5": "1600b3fed674702eaa350cd627278a0f"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_rough_1k.jpg",
+     "bytes": 636469,
+     "md5": "a1582ea1adc9bd4fa1608f8374ab90b8"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  },
+  "terciopelo": {
+   "source": "polyhaven",
+   "id": "velour_velvet",
+   "title": "Velour Velvet",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/velour_velvet",
+   "license": "CC0-1.0",
+   "sizeMm": 284,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_diff_1k.jpg",
+     "bytes": 735556,
+     "md5": "fa3a7ef3606bf7591b8f8577992e7228"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_nor_gl_1k.jpg",
+     "bytes": 695985,
+     "md5": "41009a399cb4d45e44636a515cd4c8c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_rough_1k.jpg",
+     "bytes": 943960,
+     "md5": "fac679bf7a69501a7402d832667fbc06"
+    }
+   ]
+  }
+ }
+}

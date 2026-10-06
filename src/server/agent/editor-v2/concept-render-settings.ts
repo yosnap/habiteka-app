@@ -7,6 +7,7 @@ export const conceptRenderSettingsSchema = z.object({
   batchId: z.string().uuid().optional(),
   qualityAck: z.boolean().optional(),
   styleAnchor: z.boolean().optional(),
+  designReferenceId: z.string().min(1).max(128).optional(),
   orthophotoDataUrl: z.string().max(14_000_000).optional(),
   existingImageDataUrl: z.string().max(14_000_000).regex(NATIVE_RENDER_DATA_URL).optional(),
 }).strict();

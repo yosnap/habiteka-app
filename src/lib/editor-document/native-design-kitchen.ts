@@ -141,7 +141,8 @@ export function planKitchen(faces: readonly RoomWallFace[], extent: { x: number;
   const wanted = Math.min(preferred.length, 2);
   const rank = (option: typeof options[number]) => {
     const covered = option.arms.filter((arm) => preferred.includes(arm.face.id)).length, missing = wanted - covered;
-    if (strict) return [missing, option.arms.length - covered, Number(option.capacity < needed), -option.capacity];
+    // La encimera dibujada manda; si en ella no caben los aparatos, se añade el brazo de la L antes que quitarlos.
+    if (strict) return option.capacity >= needed ? [missing, 0, option.arms.length - covered, -option.capacity] : [missing, 1, -option.capacity, option.arms.length - covered];
     const other = Number(!covered);
     return option.capacity >= needed ? [0, other, option.arms.length, -option.capacity] : [1, -option.capacity, other, option.arms.length];
   };

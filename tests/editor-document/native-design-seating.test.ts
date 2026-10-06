@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { footprint } from '@/lib/editor-document/spatial-properties';
-import { bedsideTables, coffeeTable, diningChairs } from '@/lib/editor-document/native-design-seating';
+import { barStools, bedsideTables, coffeeTable, COMPANION_RULES, diningChairs, rugBefore } from '@/lib/editor-document/native-design-seating';
 import type { NativeDesignFurniture } from '@/lib/editor-document/native-design-proposal';
 
 const box = (item: NativeDesignFurniture) => {
@@ -42,5 +42,34 @@ describe('conjuntos de la propuesta', () => {
     const [table] = coffeeTable({ catalogId: sofa.id, xMm: 1000, yMm: 75, rotation: 0, reason: '' }, 'habiteka:furniture:mesa-centro').map(box);
     expect(table![1]).toBe(75 + sofa.depthMm + 400);
     expect((table![0]! + table![2]!) / 2).toBe(1000 + sofa.widthMm / 2);
+  });
+
+  it('pone los taburetes en el frente de la isla y a los dos lados de una mesa alta', () => {
+    // Isla de 1800 × 900 en (1000, 1000): tres taburetes bajo su canto inferior (y = 1900), de cara a ella.
+    const island = barStools({ catalogId: 'habiteka:furniture:isla-cocina', xMm: 1000, yMm: 1000, rotation: 0, reason: '' }, 'habiteka:furniture:taburete');
+    expect(island.map(box).map(([, minY]) => minY)).toEqual([1900, 1900, 1900]);
+    expect(island.every((stool) => stool.rotation === 180)).toBe(true);
+    const high = barStools({ catalogId: 'habiteka:asset:mesa_alta_redonda', xMm: 0, yMm: 0, rotation: 0, reason: '' }, 'habiteka:furniture:taburete');
+    expect(high.map((stool) => stool.rotation).sort()).toEqual([0, 0, 180, 180]);
+  });
+
+  it('prueba primero la alfombra a la medida dibujada y después la del catálogo', () => {
+    const sofa = { catalogId: 'habiteka:furniture:sofa-3', xMm: 1000, yMm: 75, rotation: 90, reason: '' };
+    // Dibujada 1700 (x) × 2400 (y) junto a un sofá girado 90: a lo largo del sofá van 2400.
+    const [custom, catalog] = rugBefore(sofa, 'habiteka:furniture:alfombra', { x: 1700, y: 2400 });
+    expect(custom).toMatchObject({ widthMm: 2400, depthMm: 1700, rotation: 90 });
+    expect(catalog).not.toHaveProperty('widthMm');
+    expect(rugBefore(sofa, 'habiteka:furniture:alfombra')).toHaveLength(1);
+  });
+
+  it('una lámpara de mesa acompaña a cualquier mesilla, también a las de Poly Haven; el felpudo no es alfombra de salón', () => {
+    const lamp = COMPANION_RULES.find((rule) => rule.name === 'lámpara')!;
+    for (const id of ['habiteka:furniture:mesita', 'habiteka:asset:mesilla_madera_cajon']) expect(lamp.anchor(getFurnitureCatalogEntry(id))).toBe(true);
+    expect(lamp.companion(getFurnitureCatalogEntry('habiteka:asset:lampara_mesa_industrial'))).toBe(true);
+    expect(lamp.companion(getFurnitureCatalogEntry('habiteka:furniture:lampara-escritorio'))).toBe(false);
+    const [table] = lamp.place({ catalogId: 'habiteka:furniture:mesita', xMm: 0, yMm: 0, rotation: 0, reason: '' }, 'habiteka:furniture:lampara-mesa');
+    expect(box(table!)).toEqual([75, 50, 375, 350]);
+    const rug = COMPANION_RULES.find((rule) => rule.name === 'alfombra')!;
+    expect(rug.companion(getFurnitureCatalogEntry('habiteka:furniture:felpudo'))).toBe(false);
   });
 });

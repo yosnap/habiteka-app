@@ -87,18 +87,28 @@ export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
 }
 
 /** Repairs legacy protection walls drawn before landing-edge support existed. */
-export function repairLandingProtectionWalls(doc: EditorDocument): EditorDocument {
-  // This is deliberately tolerant of the old invalid geometry it repairs.
-  // `upgradeConstructionDocument` parses first and would reject intersecting legacy muretes.
-  const source = structuredClone(doc);
+/** Muretes de descansillo que se pueden recolocar; sin ninguno, la reparación no cambiaría nada. */
+function landingWallRepairs(source: EditorDocument) {
   const candidates = source.walls.flatMap((wall) => {
     if (wallConstruction(wall).heightMm > 1500) return [];
     const [from, to] = wallPoints(source, wall), placement = landingWallPlacement(source, [from, to]);
     return placement && distance(...placement.points) > .01 ? [{ wall, placement }] : [];
   });
   const candidateIds = new Set(candidates.map(({ wall }) => wall.id));
-  const movable = candidates.filter(({ wall }) => [wall.startVertexId, wall.endVertexId].every((vertexId) =>
+  return candidates.filter(({ wall }) => [wall.startVertexId, wall.endVertexId].every((vertexId) =>
     source.walls.filter((item) => item.startVertexId === vertexId || item.endVertexId === vertexId).every((item) => candidateIds.has(item.id))));
+}
+
+/** Solo entonces tiene sentido ofrecer «Reparar muretes del descansillo» ante un cruce de muros. */
+export function hasLandingWallsToRepair(doc: EditorDocument): boolean {
+  try { return landingWallRepairs(doc).length > 0; } catch { return false; }
+}
+
+export function repairLandingProtectionWalls(doc: EditorDocument): EditorDocument {
+  // This is deliberately tolerant of the old invalid geometry it repairs.
+  // `upgradeConstructionDocument` parses first and would reject intersecting legacy muretes.
+  const source = structuredClone(doc);
+  const movable = landingWallRepairs(source);
   if (!movable.length) return source;
   return editDocument(source, (next) => {
     const expected = new Map<string, Point>();

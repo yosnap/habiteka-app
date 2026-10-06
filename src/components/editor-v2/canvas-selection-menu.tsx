@@ -14,6 +14,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { Point } from '@/lib/editor-document/schema';
 import { deleteEntities } from '@/canvas/editor-v2/editing-operations';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
+import { openingControls, openingType } from '@/lib/editor-document/opening-types';
 import { setOpeningConstruction, setWallVisibility, updateStair } from '@/lib/editor-document/construction-commands';
 import { SelectionContextMenu, type SelectionContextAction } from './selection-context-menu';
 import { wallPath } from '@/lib/editor-document/wall-path';
@@ -74,13 +75,14 @@ export function CanvasSelectionMenu({ store, view, size }: {
     onSelect: () => state.copyOpening(id) },
   { id: 'fill-wall', label: 'Ocupar todo el muro', icon: MoveHorizontal,
     onSelect: () => run(() => state.apply(fillWallWithOpening(doc, id))) });
-  if (opening?.kind === 'puerta') {
-    const props = openingConstruction(opening);
-    actions.push({ id: 'hinge', label: 'Cambiar bisagra', icon: FlipHorizontal,
-      onSelect: () => run(() => state.apply(setOpeningConstruction(doc, id, { hinge: props.hinge === 'left' ? 'right' : 'left' }))) },
-    { id: 'swing', label: 'Cambiar apertura', icon: FlipVertical,
-      onSelect: () => run(() => state.apply(setOpeningConstruction(doc, id, { swing: props.swing === 'left' ? 'right' : 'left' }))) },
-    { id: 'open', label: props.openAngleDeg ? 'Cerrar puerta' : 'Abrir puerta', icon: DoorOpen,
+  if (opening) {
+    // Cada tipo ofrece solo lo que tiene sentido: una corredera cambia de lado, no de bisagra, y no tiene ángulo.
+    const props = openingConstruction(opening), controls = openingControls(openingType(opening));
+    if (controls.hinge) actions.push({ id: 'hinge', label: controls.hinge, icon: FlipHorizontal,
+      onSelect: () => run(() => state.apply(setOpeningConstruction(doc, id, { hinge: props.hinge === 'left' ? 'right' : 'left' }))) });
+    if (controls.swing) actions.push({ id: 'swing', label: controls.swing, icon: FlipVertical,
+      onSelect: () => run(() => state.apply(setOpeningConstruction(doc, id, { swing: props.swing === 'left' ? 'right' : 'left' }))) });
+    if (controls.toggle) actions.push({ id: 'open', label: props.openAngleDeg ? 'Cerrar puerta' : 'Abrir puerta', icon: DoorOpen,
       onSelect: () => run(() => state.apply(setOpeningConstruction(doc, id, { openAngleDeg: props.openAngleDeg ? 0 : 90 }))) });
   }
   if (stair) actions.push({ id: 'rotate', label: 'Girar 90°', icon: RotateCw,

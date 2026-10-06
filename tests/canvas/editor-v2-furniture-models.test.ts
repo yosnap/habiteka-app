@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Box3, BoxGeometry, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { prepareFurnitureModel } from '@/canvas/editor-v2/scene/furniture-model-transform';
+import { furnitureModel } from '@/lib/editor-document/furniture-models';
 
 describe('independent normalized GLB instances', () => {
   it.each([0, Math.PI / 2, Math.PI, -Math.PI / 2])('orients then normalizes a displaced model at %s', (angle) => {
@@ -35,16 +36,17 @@ describe('independent normalized GLB instances', () => {
     const copy = model.object.children[0]!.children[0] as Mesh;
     expect((copy.material as MeshStandardMaterial).color).toEqual(new Color('#abcdef')); model.dispose();
   });
-  it('recolorea solo la pintura del coche y conserva cristales, ruedas y luces', () => {
+  it.each(['coche', 'coche:turismo-3d', 'coche:suv', 'coche:furgoneta'])('recolorea solo pintura de %s y conserva cristales, ruedas y luces', (key) => {
     const source = new Group();
-    for (const name of ['paintB', 'trim', 'glass']) {
+    for (const name of ['pintura', 'goma', 'vidrio', 'inox', 'faro']) {
       const material = new MeshStandardMaterial({ name, color: '#abcdef' });
       source.add(new Mesh(new BoxGeometry(), material));
     }
-    const prepared = prepareFurnitureModel(source, Math.PI, '#ff0000', 1, ['paintB']);
+    const asset = furnitureModel({ catalogId: `habiteka:outdoor:${key}` })!;
+    const prepared = prepareFurnitureModel(source, asset.frontRotation, '#ff0000', 1, asset.tintMaterialNames);
     const materials: MeshStandardMaterial[] = [];
     prepared.object.traverse((object) => { if (object instanceof Mesh) materials.push(object.material as MeshStandardMaterial); });
-    expect(materials.map((material) => material.color.getHexString())).toEqual(['ff0000', 'abcdef', 'abcdef']);
+    expect(materials.map((material) => material.color.getHexString())).toEqual(['ff0000', 'abcdef', 'abcdef', 'abcdef', 'abcdef']);
     prepared.dispose();
   });
 });

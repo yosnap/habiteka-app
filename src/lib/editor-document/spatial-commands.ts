@@ -1,4 +1,5 @@
 import { updateBoundary } from './boundary-commands';
+import { LEAF_FINISH_APPEARANCE } from './opening-look';
 import { planObjects, isBoundary } from './boundary-types';
 import { isKitchenRun } from './kitchen-run-types';
 import { updateKitchenRun } from './kitchen-run-commands';
@@ -34,7 +35,16 @@ export function paintElement(input: EditorDocument, id: string, part: string, co
   const wall = doc.walls.find((w) => w.id === id), opening = doc.openings.find((o) => o.id === id);
   const object = planObjects(doc).find((f) => f.id === id) ?? doc.stairs?.find((s) => s.id === id) ?? doc.ramps?.find((r) => r.id === id);
   if (wall && (part === 'left' || part === 'right')) wall.colors![part] = color;
-  else if (opening && (part === 'frame' || part === 'leaf')) opening.colors![part] = color;
+  else if (opening && (part === 'frame' || part === 'leaf')) {
+    // Lo pintado manda sobre el acabado elegido. El marco de una puerta va a juego con su acabado: al pintarlo, la hoja
+    // conserva el tono de ese acabado como color liso.
+    if (opening.leafFinish && (part === 'leaf' || opening.kind === 'puerta')) {
+      if (part === 'frame') opening.colors!.leaf = LEAF_FINISH_APPEARANCE[opening.leafFinish].swatch;
+      delete opening.leafFinish;
+    }
+    if (part === 'frame') delete opening.frameFinish;
+    opening.colors![part] = color;
+  }
   else if (object && 'kind' in object && !('stepCount' in object) && isBoundary(object) && part === 'base') object.construction.baseColor = color;
   else if (object && 'kind' in object && !('stepCount' in object) && isBoundary(object) && part === 'posts') object.construction.postColor = color;
   else if (object && 'kind' in object && !('stepCount' in object) && isKitchenRun(object) && part === 'worktop') object.kitchen.worktopColor = color;

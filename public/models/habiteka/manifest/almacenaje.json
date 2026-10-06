@@ -1,0 +1,2652 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia almacenaje) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "almacenaje",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "aparador_lacado_200": {
+   "file": "aparador_lacado_200.glb",
+   "thumbnail": "thumbs/aparador_lacado_200.webp",
+   "sha256": "fc1e8f46e953107def8b48b0bbfdc6b6da41dbda3705630dd670cd1879b96649",
+   "bytes": 14428,
+   "triangles": 748,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    450,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    450,
+    750
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "P",
+     "P",
+     "P"
+    ],
+    "base": "zocalo",
+    "base_h": 80,
+    "fronts": "sobre",
+    "handle": "ranura"
+   },
+   "finishes": {
+    "cuerpo": "alm-lacado-gris",
+    "frente": "alm-lacado-gris",
+    "perfil": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "09742e181ece5a02d53d798905ed14b473e881e799263865acdcf9b3b6bdab1b",
+   "builtAt": "2026-10-05"
+  },
+  "aparador_nogal_150": {
+   "file": "aparador_nogal_150.glb",
+   "thumbnail": "thumbs/aparador_nogal_150.webp",
+   "sha256": "310be08649aacc2e7a83ac948bcc6a02d252ec09134f80f578c536224fbaff2e",
+   "bytes": 257104,
+   "triangles": 3376,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    448,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    450,
+    850
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "C C",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 160,
+    "leg": "torneada",
+    "leg_size": 0.8,
+    "fronts": "inset",
+    "front": "marco",
+    "handle": "pomo",
+    "top_th": 25,
+    "top_over": 12
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "sobre": "nogal",
+    "patas": "nogal",
+    "tirador": "laton"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9ce9a09758123d0d664a67034b130985757f418039a370e9251487c38cf17182",
+   "builtAt": "2026-10-05"
+  },
+  "aparador_rejilla_150": {
+   "file": "aparador_rejilla_150.glb",
+   "thumbnail": "thumbs/aparador_rejilla_150.webp",
+   "sha256": "377e50e27631d25109cc6a5f13991bfec7030d22667694b925aeb606f26fccf2",
+   "bytes": 663552,
+   "triangles": 2308,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    448,
+    801
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    450,
+    800
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "C C",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "inset",
+    "front": "rejilla",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "rejilla": "alm-rejilla"
+   },
+   "textures": [
+    "alm_rejilla",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "50f09b909f0fcc707e5c5e3eda5a907aaa03334bc2e22b025ed6c00e1a59d784",
+   "builtAt": "2026-10-05"
+  },
+  "aparador_roble_150": {
+   "file": "aparador_roble_150.glb",
+   "thumbnail": "thumbs/aparador_roble_150.webp",
+   "sha256": "c30db7b2be0f514690f7f8a91d848ff56fbc6c26ac10c4eb46ff7f159bb55a6c",
+   "bytes": 507792,
+   "triangles": 2932,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    450,
+    781
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    450,
+    780
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "P",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "sobre",
+    "front": "lamas",
+    "handle": "ninguno",
+    "top_th": 20,
+    "top_over": 8
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "sobre": "roble",
+    "fondo": "alm-fondo-oscuro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5ffecc6a5be5a92fc1c52b3f1cf06e4c0292c9e3d0f75d6d2ac9314c8cbba5d4",
+   "builtAt": "2026-10-05"
+  },
+  "aparador_roble_180": {
+   "file": "aparador_roble_180.glb",
+   "thumbnail": "thumbs/aparador_roble_180.webp",
+   "sha256": "8f7619855b9e0aa684c89f6eacd39ca8767ebf8a3245dd61e0873fcaf46e933a",
+   "bytes": 521076,
+   "triangles": 3584,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    450,
+    781
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    450,
+    780
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "P",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "sobre",
+    "front": "lamas",
+    "handle": "ninguno",
+    "top_th": 20,
+    "top_over": 8
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "sobre": "roble",
+    "fondo": "alm-fondo-oscuro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8162f35e1e901cca63b7cde72cc4bf1043a992036b073cf7c23b6bf5e29854d0",
+   "builtAt": "2026-10-05"
+  },
+  "armario_corredero_180": {
+   "file": "armario_corredero_180.glb",
+   "thumbnail": "thumbs/armario_corredero_180.webp",
+   "sha256": "70eabe72dd2555cd11e4f767b32d2782e7ca05b50998120d80d04a0e104fdde4",
+   "bytes": 17788,
+   "triangles": 968,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    650,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    650,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "wardrobe_sliding",
+   "params": {
+    "panels": 2,
+    "sections": [
+     [
+      "liso",
+      1
+     ],
+     [
+      "liso",
+      1
+     ],
+     [
+      "liso",
+      1
+     ]
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "66b5866adf3cd6965d3c4822d1219bd45529a7fe4596eb842780a0d7bef2a584",
+   "builtAt": "2026-10-05"
+  },
+  "armario_corredero_200": {
+   "file": "armario_corredero_200.glb",
+   "thumbnail": "thumbs/armario_corredero_200.webp",
+   "sha256": "553e2a81413974cfcf2d9947d6e86935e6871c4741466f279c5e03bfc5215e58",
+   "bytes": 17852,
+   "triangles": 968,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    650,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    650,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "wardrobe_sliding",
+   "params": {
+    "panels": 2,
+    "sections": [
+     [
+      "liso",
+      1
+     ],
+     [
+      "liso",
+      1
+     ],
+     [
+      "liso",
+      1
+     ]
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "093b9e446796e8bca8f0a79576ee4c0a4c045feac74b55476f24cd3a0405eb94",
+   "builtAt": "2026-10-05"
+  },
+  "armario_corredero_espejo_150": {
+   "file": "armario_corredero_espejo_150.glb",
+   "thumbnail": "thumbs/armario_corredero_espejo_150.webp",
+   "sha256": "a12b1029ae4e5de8ade89845aa38085b54cd1f27b5346fd2ef0f688b7f1eff33",
+   "bytes": 462700,
+   "triangles": 1056,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    650,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    650,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "wardrobe_sliding",
+   "params": {
+    "panels": 2,
+    "sections": [
+     [
+      "liso",
+      1
+     ],
+     [
+      "espejo",
+      3
+     ],
+     [
+      "liso",
+      1
+     ]
+    ]
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "espejo": "alm-espejo",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2e32e5464df355bf2e524ef684e04574a0ed172c0f593c7c69846d1c18ca12bf",
+   "builtAt": "2026-10-05"
+  },
+  "armario_corredero_espejo_200": {
+   "file": "armario_corredero_espejo_200.glb",
+   "thumbnail": "thumbs/armario_corredero_espejo_200.webp",
+   "sha256": "6e602d5057bf8b2c510d1f49f4b5ceb91503e4b383028fc3220111238760195e",
+   "bytes": 462764,
+   "triangles": 1056,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    650,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    650,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "wardrobe_sliding",
+   "params": {
+    "panels": 2,
+    "sections": [
+     [
+      "liso",
+      1
+     ],
+     [
+      "espejo",
+      3
+     ],
+     [
+      "liso",
+      1
+     ]
+    ]
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "espejo": "alm-espejo",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "937291054c8336831685f4400ea27abb7d89cfd975e186258e49cd3ba60585db",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_1p_50": {
+   "file": "armario_nordico_1p_50.glb",
+   "thumbnail": "thumbs/armario_nordico_1p_50.webp",
+   "sha256": "6dec512078b86bec54513cbd824fcfd04e575c2a2e755c1f8bee7dee1694e224",
+   "bytes": 454288,
+   "triangles": 1016,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    578,
+    2011
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    580,
+    2010
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "P"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "aebd53f3576a0825524268b339f0a310566d4c4ef6bafc76cf7c2aa27034cdcb",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_2p_100": {
+   "file": "armario_nordico_2p_100.glb",
+   "thumbnail": "thumbs/armario_nordico_2p_100.webp",
+   "sha256": "4b0158f1d95e8e3296b108a350b984cd6eb9367de9fb5002a79cd7b0db7974c2",
+   "bytes": 458704,
+   "triangles": 1300,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    578,
+    2011
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    580,
+    2010
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "465fb4b459f6a0bc16e6a50175af63330cfdcae941bf62a750c90a491b77eba3",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_2p_120": {
+   "file": "armario_nordico_2p_120.glb",
+   "thumbnail": "thumbs/armario_nordico_2p_120.webp",
+   "sha256": "3eeb8b621c16ea954f0ea1e08b28ba802db88296c27af06d222171e175a79c32",
+   "bytes": 458612,
+   "triangles": 1300,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    598,
+    2201
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    600,
+    2200
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cce7678784fc665092ecd60ca83a7c99e5c37efe81b8161c3f80d5a2f8dde8de",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_2p_120x200": {
+   "file": "armario_nordico_2p_120x200.glb",
+   "thumbnail": "thumbs/armario_nordico_2p_120x200.webp",
+   "sha256": "33d79aca4b25d7111b64e6943e960c0a8c01bb187cf9707c4e6270bb68b60da7",
+   "bytes": 458708,
+   "triangles": 1300,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    598,
+    2001
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    600,
+    2000
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1ba3ce88b10753ad59182c280e94264403bb233419ba3b1102ce3265fa4197a2",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_3p_150": {
+   "file": "armario_nordico_3p_150.glb",
+   "thumbnail": "thumbs/armario_nordico_3p_150.webp",
+   "sha256": "cb7721dd7179feb87274b2b510f45b46c6576af4c799be5e07f064b10583e115",
+   "bytes": 463368,
+   "triangles": 1628,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    578,
+    2011
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    580,
+    2010
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "P",
+     "2:PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "35b73f6adbd9a8048aae719c98d2f85c1f423183a8be8bbb6d11df7514e5b849",
+   "builtAt": "2026-10-05"
+  },
+  "armario_nordico_columna_50": {
+   "file": "armario_nordico_columna_50.glb",
+   "thumbnail": "thumbs/armario_nordico_columna_50.webp",
+   "sha256": "8a29b5940f534325a4144263508a118f3e3822cbb2662717f7521e4345e284a7",
+   "bytes": 454344,
+   "triangles": 1016,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    398,
+    1901
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    400,
+    1900
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "grid": [
+     "P"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2621112e4d35a5dc1480e9fc01ce8a223dc04e20891b1594a75beae718bcff54",
+   "builtAt": "2026-10-05"
+  },
+  "armario_rejilla_100": {
+   "file": "armario_rejilla_100.glb",
+   "thumbnail": "thumbs/armario_rejilla_100.webp",
+   "sha256": "d0af1f5dea3324d121be8d6e711f3ab4ffb19bf820cdcc5fa2c08cdb32ad6d2b",
+   "bytes": 652232,
+   "triangles": 1652,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    578,
+    2001
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    580,
+    2000
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "PP"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "inset",
+    "front": "rejilla",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "rejilla": "alm-rejilla"
+   },
+   "textures": [
+    "alm_rejilla",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e797fa4700b69f2e9c7ebfee3d148c427bc0474026ae30b6515b5802c9b3ef62",
+   "builtAt": "2026-10-05"
+  },
+  "armario_roble_2p_100": {
+   "file": "armario_roble_2p_100.glb",
+   "thumbnail": "thumbs/armario_roble_2p_100.webp",
+   "sha256": "472bec6b698c806856386c34585b8659d5ac343d7fe9ca5a2521b77d90f40fda",
+   "bytes": 450656,
+   "triangles": 616,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    580,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    580,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 80,
+    "fronts": "sobre",
+    "handle": "unero",
+    "grid": [
+     "PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "roble",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "37fd0740450d550cdba300d1ffef66373f4005732750fc79f6a1ec3c0d874535",
+   "builtAt": "2026-10-05"
+  },
+  "armario_roble_3p_150": {
+   "file": "armario_roble_3p_150.glb",
+   "thumbnail": "thumbs/armario_roble_3p_150.webp",
+   "sha256": "df70d10cc8ef9c1b114cbb713c04ac892f048be25aa536c9ef3d50013dec3ff3",
+   "bytes": 454460,
+   "triangles": 836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    580,
+    2360
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    580,
+    2360
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 80,
+    "fronts": "sobre",
+    "handle": "unero",
+    "grid": [
+     "P",
+     "2:PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "roble",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "adc08c899f14dc0125a5f031d9a3567ff84d558cd5eb9e08c5e0c350d0ecf383",
+   "builtAt": "2026-10-05"
+  },
+  "armario_roble_3p_180": {
+   "file": "armario_roble_3p_180.glb",
+   "thumbnail": "thumbs/armario_roble_3p_180.webp",
+   "sha256": "8842078a8ba65d5b0307122b09fb0c9f13403b519598262165ccad44d3389968",
+   "bytes": 454504,
+   "triangles": 836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    600,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    600,
+    2200
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 80,
+    "fronts": "sobre",
+    "handle": "unero",
+    "grid": [
+     "P",
+     "2:PP"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "roble",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "77de6c2e63835cbce9cc91081044902f6aa79da7714920dc9d48244c7d132ddc",
+   "builtAt": "2026-10-05"
+  },
+  "banco_zapatero_100": {
+   "file": "banco_zapatero_100.glb",
+   "thumbnail": "thumbs/banco_zapatero_100.webp",
+   "sha256": "9a7bb97a471380d4db50767bbb10659aa45cb2da871e5f499ea28d82ceb7fff3",
+   "bytes": 233412,
+   "triangles": 2300,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    350,
+    480
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    350,
+    480
+   ],
+   "family": "almacenaje",
+   "type": "shoe_bench",
+   "params": {},
+   "finishes": {
+    "cuerpo": "roble",
+    "tapiceria": "lino-gris"
+   },
+   "textures": [
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "05a20d474f7a1df7a9385a4af4a3a43b00681b9a5748740b057e8c9c5a6619b6",
+   "builtAt": "2026-10-05"
+  },
+  "comoda_lacada_80": {
+   "file": "comoda_lacada_80.glb",
+   "thumbnail": "thumbs/comoda_lacada_80.webp",
+   "sha256": "580232964e715b6d8afa7432337a00dbbd7b60e444336cbe7c9133467908a480",
+   "bytes": 14656,
+   "triangles": 792,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    480,
+    780
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    480,
+    780
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C"
+    ],
+    "base": "zocalo",
+    "base_h": 70,
+    "fronts": "sobre",
+    "handle": "unero"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0b3c0dfc30be4726463de4e81f1edbe5961b12c7b1f68eeefd3151ed3eb40bf1",
+   "builtAt": "2026-10-05"
+  },
+  "comoda_nogal_120": {
+   "file": "comoda_nogal_120.glb",
+   "thumbnail": "thumbs/comoda_nogal_120.webp",
+   "sha256": "6e477be3729258eb3c0fe2ddba6537c8f6f962041412187a9ba1664900569fe3",
+   "bytes": 222812,
+   "triangles": 1324,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    450,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    450,
+    850
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C"
+    ],
+    "base": "patas",
+    "base_h": 260,
+    "leg": "laton",
+    "fronts": "inset",
+    "handle": "barra_larga"
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "patas": "laton",
+    "tirador": "laton"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e3e95f238d2b644e93bf8d2e8887840a8e4c7bc983389644dbf263db60632d74",
+   "builtAt": "2026-10-05"
+  },
+  "comoda_roble_100": {
+   "file": "comoda_roble_100.glb",
+   "thumbnail": "thumbs/comoda_roble_100.webp",
+   "sha256": "1d0f127ffb35119c253b32b7ec562618b5d2825b3d0baaa1207e3d100807c0d1",
+   "bytes": 481260,
+   "triangles": 2480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    448,
+    851
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    450,
+    850
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C",
+     "C C C"
+    ],
+    "base": "patas",
+    "base_h": 140,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "784db71f8f694aebe2123aeb818da76f4eff57cee450a4018526c1335c0dc177",
+   "builtAt": "2026-10-05"
+  },
+  "comoda_roble_120": {
+   "file": "comoda_roble_120.glb",
+   "thumbnail": "thumbs/comoda_roble_120.webp",
+   "sha256": "96542789eb3897bfa031b22f1e3406a2527cc297631cb3e6a727bca2d5dad66c",
+   "bytes": 481156,
+   "triangles": 2480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    478,
+    781
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    480,
+    780
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C",
+     "C C C"
+    ],
+    "base": "patas",
+    "base_h": 140,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c1ccb5b4621d3c88da00b6b0fc94240e1015b7ff92d9b6ff86397c20d50df264",
+   "builtAt": "2026-10-05"
+  },
+  "comoda_roble_160": {
+   "file": "comoda_roble_160.glb",
+   "thumbnail": "thumbs/comoda_roble_160.webp",
+   "sha256": "95602bc217bd44f9243beabd28dc18476c5a12cd983c3a877671fec269d19459",
+   "bytes": 505916,
+   "triangles": 4176,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    478,
+    781
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    480,
+    780
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C",
+     "C C C"
+    ],
+    "base": "patas",
+    "base_h": 140,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f4c555a3be5bc46c9efd705e2b67816aab4d467075066f676017e8bd7f4fde35",
+   "builtAt": "2026-10-05"
+  },
+  "composicion_salon_300": {
+   "file": "composicion_salon_300.glb",
+   "thumbnail": "thumbs/composicion_salon_300.webp",
+   "sha256": "5738537ad0a27c180a83ea9da0aff35cdd331cafeb6923876ca8711b6aa6f5cd",
+   "bytes": 474524,
+   "triangles": 2244,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3000,
+    400,
+    2000
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3000,
+    400,
+    2000
+   ],
+   "family": "almacenaje",
+   "type": "tv_wall",
+   "params": {
+    "column_w": 450,
+    "low_h": 450,
+    "bridge_h": 350,
+    "handle": "ninguno"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "sobre": "roble",
+    "vidrio": "cristal"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "230e34a0b404c7d7569e144be8559256580f3e27ed091fa657a5cc0f8cc16158",
+   "builtAt": "2026-10-05"
+  },
+  "consola_estrecha_80": {
+   "file": "consola_estrecha_80.glb",
+   "thumbnail": "thumbs/consola_estrecha_80.webp",
+   "sha256": "6edc9df0aefcc6ddf62ed1b0e9446318b3f31e19e83464250c67c0049cef0105",
+   "bytes": 90176,
+   "triangles": 2260,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    250,
+    800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    250,
+    800
+   ],
+   "family": "almacenaje",
+   "type": "console",
+   "params": {
+    "style": "clasica"
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "sobre": "nogal",
+    "patas": "nogal",
+    "tirador": "laton"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3cd4c10811c5f16931c883148926062858f2a575e7995464f085d7eeb3a60f44",
+   "builtAt": "2026-10-05"
+  },
+  "consola_marmol_120": {
+   "file": "consola_marmol_120.glb",
+   "thumbnail": "thumbs/consola_marmol_120.webp",
+   "sha256": "ae1506531d1f3266b42868930ea38d3d1081c8f3eb2a44877df4f5fe4a0da4ac",
+   "bytes": 47264,
+   "triangles": 560,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    350,
+    800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    350,
+    800
+   ],
+   "family": "almacenaje",
+   "type": "console",
+   "params": {
+    "style": "metal_marmol"
+   },
+   "finishes": {
+    "sobre": "marmol-blanco",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c34a0153beed0e7ca2ef32e0192f3b93e36fc34c256e271822402259a54b9045",
+   "builtAt": "2026-10-05"
+  },
+  "consola_roble_100": {
+   "file": "consola_roble_100.glb",
+   "thumbnail": "thumbs/consola_roble_100.webp",
+   "sha256": "f369ca5d153c6afafb0c7ab1e9d73753b74971201f1192fb13d19f8a19b974ad",
+   "bytes": 115044,
+   "triangles": 1344,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    350,
+    800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    350,
+    800
+   ],
+   "family": "almacenaje",
+   "type": "console",
+   "params": {
+    "style": "nordica"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "sobre": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "84252c1570cade6cf359f8481dd56cbe5aa6cebb44f92fd8fa28dcc664ee19e2",
+   "builtAt": "2026-10-05"
+  },
+  "estante_escuadras_120": {
+   "file": "estante_escuadras_120.glb",
+   "thumbnail": "thumbs/estante_escuadras_120.webp",
+   "sha256": "a97c0b6e1b0626ed9f8fc79b33fa945cb335b5ef85ffff616c5b4df1c7281b4a",
+   "bytes": 97400,
+   "triangles": 276,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    251,
+    200
+   ],
+   "elevationMm": 1400,
+   "specDimensionsMm": [
+    1200,
+    250,
+    200
+   ],
+   "family": "almacenaje",
+   "type": "wall_shelf",
+   "params": {
+    "style": "escuadras",
+    "elev": 1400
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e25d3abe0d496fe1470f725300583bc2161891847e18963e26d0cb852cf0a334",
+   "builtAt": "2026-10-05"
+  },
+  "estante_pared_120": {
+   "file": "estante_pared_120.glb",
+   "thumbnail": "thumbs/estante_pared_120.webp",
+   "sha256": "1d8e0e48694f67e8fa4df66a8c7a32bab666581f95246730c127da60d7c0bfc2",
+   "bytes": 92880,
+   "triangles": 44,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    200,
+    40
+   ],
+   "elevationMm": 1500,
+   "specDimensionsMm": [
+    1200,
+    200,
+    40
+   ],
+   "family": "almacenaje",
+   "type": "wall_shelf",
+   "params": {
+    "style": "flotante",
+    "elev": 1500
+   },
+   "finishes": {
+    "cuerpo": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9cbb3d08af14ee7b6818be3bcbbc90efa6e4e6d61740abb441a170b14a575e8f",
+   "builtAt": "2026-10-05"
+  },
+  "estante_pared_80": {
+   "file": "estante_pared_80.glb",
+   "thumbnail": "thumbs/estante_pared_80.webp",
+   "sha256": "d0def94f322725f3605b146e6f5e6d799c9a404a0b87061067acbac7c10dfdd1",
+   "bytes": 92880,
+   "triangles": 44,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    200,
+    40
+   ],
+   "elevationMm": 1500,
+   "specDimensionsMm": [
+    800,
+    200,
+    40
+   ],
+   "family": "almacenaje",
+   "type": "wall_shelf",
+   "params": {
+    "style": "flotante",
+    "elev": 1500
+   },
+   "finishes": {
+    "cuerpo": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "baa9a7375e9c1ca3ac8037587437fec78e5bd952616af79da83d4ec17e1eb9c8",
+   "builtAt": "2026-10-05"
+  },
+  "estanteria_cubos_2x4": {
+   "file": "estanteria_cubos_2x4.glb",
+   "thumbnail": "thumbs/estanteria_cubos_2x4.webp",
+   "sha256": "1640504557cd92b45d77c18b78b6cabbbfd75fa4d0ef0a29fae4755074df1d35",
+   "bytes": 9556,
+   "triangles": 484,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    770,
+    390,
+    1470
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    770,
+    390,
+    1470
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "ninguno",
+    "fronts": "inset",
+    "panel": 38,
+    "divider": 16,
+    "back": false,
+    "grid": [
+     "A A A A",
+     "A A A A"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4dc0cfc8b0cc7181fbf5b88e13e96cc9b221bd6906254a0f01ac895ac7de38f5",
+   "builtAt": "2026-10-05"
+  },
+  "estanteria_cubos_4x4": {
+   "file": "estanteria_cubos_4x4.glb",
+   "thumbnail": "thumbs/estanteria_cubos_4x4.webp",
+   "sha256": "a7453b1f3f45d9a4c2a564ff99292f88c4e316dfda866512853806a7763c47e3",
+   "bytes": 460976,
+   "triangles": 836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1470,
+    390,
+    1470
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1470,
+    390,
+    1470
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "ninguno",
+    "fronts": "inset",
+    "panel": 38,
+    "divider": 16,
+    "back": false,
+    "grid": [
+     "A A A A",
+     "A A A A",
+     "A A A A",
+     "A A A A"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b44e6d9a73bf4a645157fa0eca7017c58ab1fdefd77e25e0e5128612839d48c0",
+   "builtAt": "2026-10-05"
+  },
+  "estanteria_escalera_60": {
+   "file": "estanteria_escalera_60.glb",
+   "thumbnail": "thumbs/estanteria_escalera_60.webp",
+   "sha256": "d8e0adaba94c558f84eed982ac70b4f757228537417e1d9d54752f27dc4bc5f8",
+   "bytes": 101892,
+   "triangles": 396,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    345,
+    1806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    350,
+    1800
+   ],
+   "family": "almacenaje",
+   "type": "ladder_shelf",
+   "params": {
+    "shelves": 5
+   },
+   "finishes": {
+    "cuerpo": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "097ed3e24250e5d2904ee64d8b5001f67df8f6dea2ae8ac182ea359f5c50d32a",
+   "builtAt": "2026-10-05"
+  },
+  "libreria_alta_lacada": {
+   "file": "libreria_alta_lacada.glb",
+   "thumbnail": "thumbs/libreria_alta_lacada.webp",
+   "sha256": "f1433f24ec9f126b74a50bc9af5daa7ec8f16c26d6628910402f30844e2189ae",
+   "bytes": 8880,
+   "triangles": 440,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    280,
+    2020
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    280,
+    2020
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 60,
+    "fronts": "inset",
+    "panel": 20,
+    "grid": [
+     "A A A A A"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "31d9b60bef776fb6820db00402708b1f393d7a7e49dbb836acece4044df69da8",
+   "builtAt": "2026-10-05"
+  },
+  "libreria_alta_roble": {
+   "file": "libreria_alta_roble.glb",
+   "thumbnail": "thumbs/libreria_alta_roble.webp",
+   "sha256": "47f1166adec0561af0489bb8ddd79244d23c1ccc8f3c1fb338770b1cb7119538",
+   "bytes": 512268,
+   "triangles": 4176,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    278,
+    2020
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    280,
+    2020
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 60,
+    "fronts": "inset",
+    "panel": 20,
+    "grid": [
+     "A A A A PP*1.2"
+    ],
+    "handle": "pomo",
+    "relleno": true
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "libro1": "alm-libro-terracota",
+    "libro2": "alm-libro-salvia",
+    "libro3": "alm-libro-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c80a0a4cad39557c3850b577c5e44d6c4e56be1505baee5ea1e3d0b08da2d6b5",
+   "builtAt": "2026-10-05"
+  },
+  "libreria_alta_roble_100": {
+   "file": "libreria_alta_roble_100.glb",
+   "thumbnail": "thumbs/libreria_alta_roble_100.webp",
+   "sha256": "c0779023e92acd4435507a1ea52c9abee0ed225ede0b864c458572754af6d508",
+   "bytes": 527008,
+   "triangles": 5144,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    348,
+    1900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    350,
+    1900
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "zocalo",
+    "base_h": 60,
+    "fronts": "inset",
+    "panel": 20,
+    "grid": [
+     "A A A A PP*1.2"
+    ],
+    "handle": "pomo",
+    "relleno": true
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "libro1": "alm-libro-terracota",
+    "libro2": "alm-libro-salvia",
+    "libro3": "alm-libro-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8b0030b5bc3f7662b1a662f32af22ac4b5defbe7ed5a0cf053fac5e5f6081e74",
+   "builtAt": "2026-10-05"
+  },
+  "libreria_baja_120": {
+   "file": "libreria_baja_120.glb",
+   "thumbnail": "thumbs/libreria_baja_120.webp",
+   "sha256": "ee012c3ecdf3948e000b878e41edab3caaa9a8142e7c815a5a1597b98db35715",
+   "bytes": 254144,
+   "triangles": 3332,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    300,
+    800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    300,
+    800
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "A A",
+     "A A",
+     "A A"
+    ],
+    "base": "patas",
+    "base_h": 80,
+    "leg": "metal",
+    "fronts": "inset",
+    "relleno": true
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "patas": "metal-negro",
+    "libro1": "alm-libro-terracota",
+    "libro2": "alm-libro-salvia",
+    "libro3": "alm-libro-crema"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2106d6f909a3275f30b91540517918ecc83d5559a3f3c1fff8fc77010beb6285",
+   "builtAt": "2026-10-05"
+  },
+  "mesilla_nogal_50": {
+   "file": "mesilla_nogal_50.glb",
+   "thumbnail": "thumbs/mesilla_nogal_50.webp",
+   "sha256": "1d655e079e714c0f7cf0a893b93fa9c126b1d88bfa9a37908739cd422c38437c",
+   "bytes": 72368,
+   "triangles": 888,
+   "texturePx": 512,
+   "dimensionsMm": [
+    500,
+    400,
+    550
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    400,
+    550
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C A"
+    ],
+    "base": "patas",
+    "base_h": 220,
+    "leg": "laton",
+    "fronts": "inset",
+    "handle": "barra"
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "patas": "laton",
+    "tirador": "laton"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "943dd2dbec7e38d0741933a0af2af4aa3d3474858bb3e812131179852b90639d",
+   "builtAt": "2026-10-05"
+  },
+  "mesilla_ratan_45": {
+   "file": "mesilla_ratan_45.glb",
+   "thumbnail": "thumbs/mesilla_ratan_45.webp",
+   "sha256": "01db55d63a43786ce0a70a06840f186be104110d882d233983fa521aa4114e59",
+   "bytes": 213804,
+   "triangles": 1236,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    398,
+    551
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    400,
+    550
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C A"
+    ],
+    "base": "patas",
+    "base_h": 160,
+    "leg": "conica",
+    "fronts": "inset",
+    "drawer_front": "rejilla",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "rejilla": "alm-rejilla"
+   },
+   "textures": [
+    "alm_rejilla",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5bd8365f6bb274c56255f63e2a337381f530d6bfd97d9806a5778518a1e6fd18",
+   "builtAt": "2026-10-05"
+  },
+  "mesilla_roble_45": {
+   "file": "mesilla_roble_45.glb",
+   "thumbnail": "thumbs/mesilla_roble_45.webp",
+   "sha256": "65b91054bb27ca98017d268cb328d60304da80e259c7757a3c797f7de5fb01d7",
+   "bytes": 115404,
+   "triangles": 1300,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    398,
+    551
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    400,
+    550
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "inset",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cbd212158e0df26e26abeaea17fe4812c8a4e2145eb1634cffef9724a3045202",
+   "builtAt": "2026-10-05"
+  },
+  "mesilla_suspendida_45": {
+   "file": "mesilla_suspendida_45.glb",
+   "thumbnail": "thumbs/mesilla_suspendida_45.webp",
+   "sha256": "d713cca5c912d995dc97308abbaa82662c85118b4b2d7ae3f037386d253ee7e1",
+   "bytes": 9232,
+   "triangles": 396,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    300,
+    170
+   ],
+   "elevationMm": 420,
+   "specDimensionsMm": [
+    450,
+    300,
+    170
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C"
+    ],
+    "base": "suspendido",
+    "elev": 420,
+    "fronts": "sobre",
+    "handle": "unero"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "alm-aluminio"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "961e4b6a4f6c29d277b2269fded065324fe4d7fde0b8d88a80ea6c95f13be57c",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_recibidor_90": {
+   "file": "mueble_recibidor_90.glb",
+   "thumbnail": "thumbs/mueble_recibidor_90.webp",
+   "sha256": "b775956a129797de5c62ce782f03e3df4d0a5d620552dca6e5006dd6b10c642c",
+   "bytes": 127448,
+   "triangles": 2000,
+   "texturePx": 512,
+   "dimensionsMm": [
+    900,
+    348,
+    851
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    350,
+    850
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C P*3",
+     "C P*3"
+    ],
+    "base": "patas",
+    "base_h": 140,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "alm-lacado-gris",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "223fa8d2555a0c86377d50a333d0d9cc9b5fa558941de43f3b02296e1e395c6a",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_industrial_180": {
+   "file": "mueble_tv_industrial_180.glb",
+   "thumbnail": "thumbs/mueble_tv_industrial_180.webp",
+   "sha256": "6e971a36612ead09e821a3590396070b5c507b8744a529f5c8627a1da46117cf",
+   "bytes": 464052,
+   "triangles": 1360,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    400,
+    550
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    400,
+    550
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C A",
+     "A A",
+     "C A"
+    ],
+    "base": "bastidor",
+    "base_h": 120,
+    "fronts": "inset",
+    "handle": "barra"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "estructura": "metal-negro",
+    "tirador": "metal-negro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e883203cea7e752085e7394699b46d073c04156593dbb47a53832d28389fa8f5",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_nogal_160": {
+   "file": "mueble_tv_nogal_160.glb",
+   "thumbnail": "thumbs/mueble_tv_nogal_160.webp",
+   "sha256": "2e21e41baab7d12c03bfc4b96513054bdec9e557f1ca71f0ffac561cb04a7655",
+   "bytes": 244552,
+   "triangles": 2680,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    450,
+    500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    450,
+    500
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 100,
+    "leg": "metal",
+    "fronts": "sobre",
+    "front": "ranurado",
+    "handle": "ninguno",
+    "top_th": 20,
+    "grid": [
+     "P",
+     "P",
+     "P"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "sobre": "nogal",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "50c8447d1dfdbf6b0ad8aab838a6d2bb799988f6619d3406681e599f80afc158",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_nogal_200": {
+   "file": "mueble_tv_nogal_200.glb",
+   "thumbnail": "thumbs/mueble_tv_nogal_200.webp",
+   "sha256": "4a8c79fcb02a8f2c3a3f2491b5bd9a3b8f95c53d585059264f9515a88a859fbf",
+   "bytes": 252288,
+   "triangles": 3164,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    450,
+    500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    450,
+    500
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "base": "patas",
+    "base_h": 100,
+    "leg": "metal",
+    "fronts": "sobre",
+    "front": "ranurado",
+    "handle": "ninguno",
+    "top_th": 20,
+    "grid": [
+     "P",
+     "P",
+     "P",
+     "P"
+    ]
+   },
+   "finishes": {
+    "cuerpo": "nogal",
+    "frente": "nogal",
+    "sobre": "nogal",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "74433034135e1e3a08946cac31ff9ad44b8fd58681570bd414e823c9cba003e4",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_rejilla_150": {
+   "file": "mueble_tv_rejilla_150.glb",
+   "thumbnail": "thumbs/mueble_tv_rejilla_150.webp",
+   "sha256": "b7450d504a7348c952c1f26ca7e74507d19fc00604a463d99cc052f5e4edcb91",
+   "bytes": 663200,
+   "triangles": 2200,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    398,
+    551
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    400,
+    550
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "P",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 150,
+    "leg": "conica",
+    "fronts": "inset",
+    "front": "rejilla",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "patas": "roble",
+    "tirador": "roble",
+    "rejilla": "alm-rejilla"
+   },
+   "textures": [
+    "alm_rejilla",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6bdecbbcdf63f056e28edc3ac6f6ffffa4504939cba884047bf6fadc7db0b6ca",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_roble_160": {
+   "file": "mueble_tv_roble_160.glb",
+   "thumbnail": "thumbs/mueble_tv_roble_160.webp",
+   "sha256": "6efbdc84eb6b9bb43a88f08f9e262efd1711574214e6ca5a56317a79edd78fcc",
+   "bytes": 472624,
+   "triangles": 1972,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    418,
+    521
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    420,
+    520
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "P",
+     "A C",
+     "P"
+    ],
+    "base": "patas",
+    "base_h": 140,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "lacado-blanco",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0150a9010ed92dcd0bf8c0d8a08687b90b14faf81f1c918d64ccb6163b8934c0",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_suspendido_140": {
+   "file": "mueble_tv_suspendido_140.glb",
+   "thumbnail": "thumbs/mueble_tv_suspendido_140.webp",
+   "sha256": "4bcdcf6978891f85a064137288db5e4c79b72e3e6667b96f683bbe9c570afa41",
+   "bytes": 10524,
+   "triangles": 484,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1400,
+    350,
+    300
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1400,
+    350,
+    300
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "B",
+     "2:A",
+     "B"
+    ],
+    "base": "suspendido",
+    "elev": 350,
+    "fronts": "sobre",
+    "handle": "ranura"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "19886012425e708b4f4fa8e22fc8d84cf10beda12603bdfaa526a4baa16f3d35",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_tv_suspendido_180": {
+   "file": "mueble_tv_suspendido_180.glb",
+   "thumbnail": "thumbs/mueble_tv_suspendido_180.webp",
+   "sha256": "96e0fb2fc50fdeac79e80b719c0372aff7343789f1a96bd1162bf37ac4cae2ba",
+   "bytes": 10540,
+   "triangles": 484,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    350,
+    300
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1800,
+    350,
+    300
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "B",
+     "2:A",
+     "B"
+    ],
+    "base": "suspendido",
+    "elev": 350,
+    "fronts": "sobre",
+    "handle": "ranura"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "perfil": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "930cd60c81cab9d2c5b936a72723fe6c6255ba9d22447746fae8b4a0ee6e6bf2",
+   "builtAt": "2026-10-05"
+  },
+  "perchero_pared_80": {
+   "file": "perchero_pared_80.glb",
+   "thumbnail": "thumbs/perchero_pared_80.webp",
+   "sha256": "ec7f177577107bdbca6783c656aa3ca10d8ad690fa5698badefa989884e853a3",
+   "bytes": 109380,
+   "triangles": 1404,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    250,
+    300
+   ],
+   "elevationMm": 1600,
+   "specDimensionsMm": [
+    800,
+    250,
+    300
+   ],
+   "family": "almacenaje",
+   "type": "coat_rack_wall",
+   "params": {
+    "elev": 1600
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6eb7115a87d299390bc114e5cf1b33ec564a8a3e1cfaef451076404060a2bce5",
+   "builtAt": "2026-10-05"
+  },
+  "perchero_pie_45": {
+   "file": "perchero_pie_45.glb",
+   "thumbnail": "thumbs/perchero_pie_45.webp",
+   "sha256": "fa4b976ae18c9a840163be094bc5dd4488cdea2c8ea4725f07d3c4055c83b865",
+   "bytes": 122184,
+   "triangles": 2000,
+   "texturePx": 512,
+   "dimensionsMm": [
+    447,
+    447,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    450,
+    1800
+   ],
+   "family": "almacenaje",
+   "type": "coat_stand",
+   "params": {},
+   "finishes": {
+    "cuerpo": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a369a8392420c59b448eb39fae90bbfc421181f699594c1b08f33b5f44738c24",
+   "builtAt": "2026-10-05"
+  },
+  "sinfonier_50": {
+   "file": "sinfonier_50.glb",
+   "thumbnail": "thumbs/sinfonier_50.webp",
+   "sha256": "fb0c51974b8924959d9be2be3973d3ca94035e19c793d167260dee58e1c051d9",
+   "bytes": 131484,
+   "triangles": 2480,
+   "texturePx": 512,
+   "dimensionsMm": [
+    500,
+    448,
+    1201
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    450,
+    1200
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C C C C C C"
+    ],
+    "base": "patas",
+    "base_h": 120,
+    "leg": "conica",
+    "fronts": "sobre",
+    "handle": "pomo",
+    "top_th": 22,
+    "top_over": 10
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "sobre": "roble",
+    "patas": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4fee1e29f986e3d3e74cd154fb8eacac27b01fa279aa650afeba9cb651d1d482",
+   "builtAt": "2026-10-05"
+  },
+  "vitrina_metal_90": {
+   "file": "vitrina_metal_90.glb",
+   "thumbnail": "thumbs/vitrina_metal_90.webp",
+   "sha256": "eb37e68577821021953508df7388f77076bbc11b53aee7f598ffd8aca099d6e6",
+   "bytes": 25012,
+   "triangles": 1576,
+   "texturePx": 512,
+   "dimensionsMm": [
+    900,
+    400,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    400,
+    1800
+   ],
+   "family": "almacenaje",
+   "type": "glass_cabinet",
+   "params": {},
+   "finishes": {
+    "estructura": "metal-negro",
+    "vidrio": "cristal"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4c14db7253483f5a31373f30058b1a84d2026faa1eea62a719ae6bca400dfbf8",
+   "builtAt": "2026-10-05"
+  },
+  "zapatero_abatible_80": {
+   "file": "zapatero_abatible_80.glb",
+   "thumbnail": "thumbs/zapatero_abatible_80.webp",
+   "sha256": "7435c8d007baae33080d022cdcf3912d797625fc296ff1b587304a542dbadc15",
+   "bytes": 122300,
+   "triangles": 1924,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    238,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    240,
+    1050
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C*0.4 B B"
+    ],
+    "base": "zocalo",
+    "base_h": 40,
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "lacado-blanco",
+    "frente": "lacado-blanco",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9ae13b3f483111a256c034aaf6468edb9767fc5941b7b4f0f3beb5dea8bef25a",
+   "builtAt": "2026-10-05"
+  },
+  "zapatero_abatible_roble_80": {
+   "file": "zapatero_abatible_roble_80.glb",
+   "thumbnail": "thumbs/zapatero_abatible_roble_80.webp",
+   "sha256": "50fff1eaff62da89c1027661ff56f78a77873f37313e3e89f727821a99a0c7c2",
+   "bytes": 126792,
+   "triangles": 1924,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    348,
+    1000
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    350,
+    1000
+   ],
+   "family": "almacenaje",
+   "type": "casework",
+   "params": {
+    "grid": [
+     "C*0.4 B B"
+    ],
+    "base": "zocalo",
+    "base_h": 40,
+    "fronts": "sobre",
+    "handle": "pomo"
+   },
+   "finishes": {
+    "cuerpo": "roble",
+    "frente": "roble",
+    "tirador": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "358a7a145dc16509fce96521170d9fefa13aee3280a32a278fce487eded061cd",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "alm_rejilla": {
+   "source": "ambientcg",
+   "id": "Wicker008A",
+   "title": "Wicker 008 A",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker008A",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker008A_1K-JPG.zip",
+     "bytes": 7023292,
+     "sha256": "ba00f63d135390ddeeca71d79c2de9414cd48b49066cb33a829ce9b3cedddf9e"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "marmol_blanco": {
+   "source": "ambientcg",
+   "id": "Marble021",
+   "title": "Marble 021",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Marble021",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Marble021_1K-JPG.zip",
+     "bytes": 4141632,
+     "sha256": "7e75982560079476f6051666985553deb3eb77b07d2923a12d0665733b8f043e"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  }
+ }
+}

@@ -4,6 +4,7 @@ import type { NativeDesignFurniture } from './native-design-proposal';
 import type { RenderDesignOptions } from './render-design-options';
 import { localToWorld } from './spatial-properties';
 import type { Point } from './schema';
+import { proposalSize } from './proposal-coordinates';
 
 /** Sanitarios, cocina y electrodomésticos: equipan una vivienda vacía; solo los coloca el modo que amuebla todo. */
 const FIXTURE_PROFILES = new Set(['toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance']);
@@ -18,7 +19,8 @@ export function proposalCategory(item: FurnitureCatalogEntry): ProposalCategory 
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';
   if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';
-  if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile)) return 'furniture';
+  // Los sofás de esquina, con chaise, modulares o cama también son muebles: la rinconera dibujada en un boceto se descartaba.
+  if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile) || item.profile.startsWith('sofa')) return 'furniture';
   if (FIXTURE_PROFILES.has(item.profile)) return 'fixtures';
   return null; // Construcción implícita: pérgolas, carpas, piscinas.
 }
@@ -32,8 +34,9 @@ export function allowedProposalCatalog(item: FurnitureCatalogEntry, options: Ren
 export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !allowedProposalCatalog(catalog, options)) return false;
-  const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, widthMm: catalog.widthMm, depthMm: catalog.depthMm };
-  const footprint = [[0, 0], [catalog.widthMm, 0], [catalog.widthMm, catalog.depthMm], [0, catalog.depthMm]]
+  const size = proposalSize(item, catalog);
+  const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, ...size };
+  const footprint = [[0, 0], [size.widthMm, 0], [size.widthMm, size.depthMm], [0, size.depthMm]]
     .map(([x, y]) => localToWorld(transform, { x: x!, y: y! }));
   if (zonePolygon && !polygonContainsFootprint(zonePolygon, footprint)) return false;
   if (options.placement === 'all') return true;

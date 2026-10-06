@@ -1,6 +1,7 @@
 import { surfaceMaterial } from './surface-materials';
 import type { Boundary } from './boundary-types';
 import { isBoundaryKind } from './boundary-types';
+import { OUTDOOR_CATALOG } from './outdoor-catalog';
 const fail = (message: string): never => { throw new Error(message); };
 function fields(value: unknown, allowed: string): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('Cerramiento inválido');
@@ -18,7 +19,7 @@ export function assertBoundaryFields(value: Record<string, unknown>, ids: Set<st
     fields(raw, 'id name kind catalogId x y widthMm depthMm rotation dimensionalOrigin heightMm elevationMm color construction');
     const b = raw as unknown as Boundary;
     unique(b.id);
-    if (!isBoundaryKind(b.kind) || b.catalogId !== `habiteka:outdoor:${b.kind}`) fail('Tipo de cerramiento inválido');
+    if (!isBoundaryKind(b.kind) || !OUTDOOR_CATALOG.some((entry) => entry.kind === b.kind && entry.id === b.catalogId)) fail('Tipo de cerramiento inválido');
     if (b.name !== undefined && (typeof b.name !== 'string' || !b.name.trim() || b.name.length > 100)) fail('Nombre de cerramiento inválido');
     if (!['physical', 'raster'].includes(b.dimensionalOrigin)) fail('Procedencia de cerramiento inválida');
     number(b.x, -1e8, 1e8); number(b.y, -1e8, 1e8); number(b.rotation, -1e6, 1e6);

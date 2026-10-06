@@ -50,6 +50,9 @@ import {
   uploadStudio,
   applyPlanImportStudio,
   refitPlanImportStudio,
+  importCanvasStudio,
+  importStudioPlanStudio,
+  setEditorBackgroundStudio,
 } from '@/app/(app)/projects/[id]/_actions/studio-actions';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { makeOrg, makeUser, resetDb } from '../helpers/db';
@@ -121,6 +124,41 @@ describe('historial de acciones del estudio', () => {
         imageHeightOverWidth: saved.detected!.heightOverWidth,
       },
     }).plano).toEqual(drawn.importResult.plano);
+  });
+
+  it('el fondo del editor se fija al enviarlo, no lo cambia una captura del editor y se puede elegir otra imagen', async () => {
+    const ctx = fixture.ctx!;
+    const project = await prisma.project.create({ data: { organizationId: ctx.organizationId, title: 'Fondo del editor' } });
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="white"/><path d="M140 120H700V450H140Z M380 120V450" fill="none" stroke="black" stroke-width="7"/></svg>';
+    const drawn = await drawingStudio(project.id, (await sharp(Buffer.from(svg)).png().toBuffer()).toString('base64'));
+    if ('actionError' in drawn) throw new Error(drawn.actionError);
+    const applied = await applyPlanImportStudio(project.id, drawn.importResult);
+    if ('actionError' in applied) throw new Error(applied.actionError);
+    const sent = await loadStudio(ctx, project.id);
+    expect(sent.editorReference?.image.assetKey).toBe(drawn.assetKey);
+    expect(sent.editorReference?.frame.width).toBeGreaterThan(0);
+
+    // «Traer el plano del editor»: la captura es el plano de trabajo, pero no sustituye el original ni el fondo.
+    const capture = await importCanvasStudio(project.id);
+    if ('actionError' in capture) throw new Error(capture.actionError);
+    const captured = await loadStudio(ctx, project.id);
+    expect(captured.source?.assetKey).toBe(drawn.assetKey);
+    expect(captured.plan?.assetKey).toBe(capture.assetKey);
+    expect(captured.results?.find((item) => item.assetKey === capture.assetKey)?.kind).toBe('canvas');
+    expect(captured.editorReference).toEqual(sent.editorReference);
+    expect(captured.planImport?.image?.assetKey).toBe(drawn.assetKey);
+    // Extraerla solo perdería información, y no vale como fondo.
+    expect(await importStudioPlanStudio(project.id)).toHaveProperty('actionError', expect.stringMatching(/captura del editor/));
+    expect(await setEditorBackgroundStudio(project.id, capture.assetKey!)).toHaveProperty('actionError', expect.stringMatching(/boceto original o un redibujado/));
+
+    // El boceto elegido como fondo se alinea con los muros del plano del editor.
+    const chosen = await setEditorBackgroundStudio(project.id, drawn.assetKey!);
+    if ('actionError' in chosen) throw new Error(chosen.actionError);
+    const background = (await loadStudio(ctx, project.id)).editorReference!;
+    expect(background.image.assetKey).toBe(drawn.assetKey);
+    // El plano sale de esta misma imagen: el fondo conserva su proporción (900 × 600) sin deformarse.
+    expect(background.frame.width / background.frame.height).toBeCloseTo(1.5, 1);
+    expect(fixture.generated).toBe(0);
   });
 
   it('rechaza una importación alterada por el cliente y aplica la revisión guardada', async () => {

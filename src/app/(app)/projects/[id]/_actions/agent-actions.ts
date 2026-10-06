@@ -439,16 +439,10 @@ async function proposeNativeDesignFromEditorImpl(
   // La propuesta coloca muebles en planta: basta la cenital del plano con el giro de las puertas, sin alzados ni capturas.
   const plan = await rasterizeEditorDocument(document, designZone?.polygon, { doorLeaves: true });
   const referenceParts: MessagePart[] = [{ type: 'image_url', base64: plan.base64, mimeType: 'image/png' }];
-  // La propuesta necesita JSON estructurado con materiales y posiciones. El
-  // modelo local de visión agota su límite de salida con este contexto y
-  // devuelve contenido vacío; priorizamos la ruta que ya entrega el esquema.
-  const chat = await getChatVisionAdapter(
-    { organizationId: ctx.organizationId, userId: ctx.userId, projectId },
-    'vision',
-    { preferredProvider: 'openrouter' },
-  );
+  // Modelos de «Análisis visual» en su orden: si uno agota la salida sin devolver el JSON, responde el respaldo.
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision');
   // Amueblar reproduce la distribución que el cliente dibujó en el boceto con el que importó el plano.
-  const sketch = options.freedom === 'free' && options.designScope !== 'zone' ? await loadSketchGuide(ctx, projectId, proposalZoneId) : null;
+  const sketch = options.freedom === 'free' && options.designScope !== 'zone' ? await loadSketchGuide(ctx, projectId, proposalZoneId, chat, document) : null;
   return proposeNativeDesign(
     chat, document, estilo, String(objetivo).slice(0, 200), String(promptLibre).slice(0, 500), referenceParts,
     options, sketch,
@@ -473,6 +467,7 @@ export async function generateConceptRenderFromEditor(
     qualityAck?: boolean;
     orthophotoDataUrl?: string;
     existingImageDataUrl?: string;
+    designReferenceId?: string;
   },
 ) {
   return runAction(() =>
@@ -504,6 +499,7 @@ async function generateConceptRenderFromEditorImpl(
     styleAnchor?: boolean;
     orthophotoDataUrl?: string;
     existingImageDataUrl?: string;
+    designReferenceId?: string;
   },
 ): Promise<import('@/lib/editor-document/render-design-options').RenderGeneratedResult & { id: string }> {
   const ctx = await requireOrgContext();
@@ -569,8 +565,8 @@ async function generateConceptRenderFromEditorImpl(
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
   // Las vistas lejanas y los laterales parten de una vista del mismo diseño. La ancla del lote solo se usa si el usuario
   // la pide: da estilo, pero puede arrastrar geometría de otra cámara a la nueva vista.
-  const drone = await droneReferences(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.orthophotoDataUrl);
-  const lateral = drone ? null : await lateralDesignReference(ctx, { projectId, zoneId: zid }, document, view, options);
+  const drone = await droneReferences(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.orthophotoDataUrl, parsedSettings.designReferenceId);
+  const lateral = drone ? null : await lateralDesignReference(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.designReferenceId);
   const designReference = drone ?? lateral;
   const redesignRequested = requestedRenderRedesign(options, objetivo, promptLibre);
   const styleAnchor = designReference?.identity ?? (parsedSettings.styleAnchor === true || redesignRequested
@@ -579,14 +575,14 @@ async function generateConceptRenderFromEditorImpl(
   await assertRenderBatchCompatible(ctx, { projectId, zoneId: zid }, document, parsedSettings.batchId, generatedOptions);
   const spatial = await renderSpatialReference(document, view, options);
   const { plan, section } = await renderDrawingReferences(document, view, options, Boolean(lateral), Boolean(parsedSettings.existingImageDataUrl));
+  // La revisión usa los modelos de «Análisis visual» en su orden, como el resto de funciones.
   const vision = await getChatVisionAdapter(
     { organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: parsedSettings.batchId }, 'vision',
-    { requiredProvider: 'openrouter' },
   );
   const prepared = await prepareRenderImageRequest({ document, view, style: estilo, options,
     objective: String(objetivo), instruction: String(promptLibre), reference, zoneMask,
-    styleAnchor, acceptedDesign: Boolean(lateral), environment: drone?.environment, spatial, plan,
-    section: section && { ...section, describe: (top, names) => sectionFurnitureBrief(vision, top, names) } });
+    styleAnchor, acceptedDesign: Boolean(designReference), environment: drone?.environment, spatial, plan,
+    section: section && { ...section, describe: (top, names, hints) => sectionFurnitureBrief(vision, top, names, hints) } });
   const { request } = prepared;
   reference = prepared.reference;
   zoneMask = prepared.zoneMask;

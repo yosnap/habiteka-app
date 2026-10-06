@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { previewVertex } from '@/canvas/editor-v2/vertex-preview';
+import { previewVertex, previewWallAngles } from '@/canvas/editor-v2/vertex-preview';
 import { addLinearBoundary } from '@/lib/editor-document/linear-boundary';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { addColumn } from '@/lib/editor-document/construction-commands';
@@ -30,6 +30,21 @@ it('soltar el vértice de un muro suelto sobre otro muro lo une en T', () => {
   const closed = previewVertex(preview.document, other.id, { x: 6000, y: 2995 }, 1, true);
   expect(closed.error).toBeNull();
   expect(deriveRooms(closed.document)).toHaveLength(2);
+});
+
+it('arrastrar un vértice sobre otro para unir tres muros muestra sus ángulos sin romper el editor', () => {
+  // Un tabique suelto cuyo extremo se suelta sobre la esquina (0, 3000), donde ya se unen dos muros de la casa.
+  const doc = addWallPath(house(), [{ x: 1500, y: 4500 }, { x: 300, y: 3300 }], false);
+  const loose = doc.vertices.find((v) => v.x === 300 && v.y === 3300)!, wall = doc.walls.at(-1)!;
+  const preview = previewVertex(doc, loose.id, { x: 5, y: 3004 }, 1, true);
+  expect(preview.error).toBeNull();
+  // El vértice arrastrado se fusiona con la esquina: el muro original ya no sirve para pintar la vista previa.
+  expect(preview.document.vertices.some((v) => v.id === loose.id)).toBe(false);
+  const corner = doc.vertices.find((v) => v.x === 0 && v.y === 3000)!;
+  expect(preview.document.walls.filter((w) => w.startVertexId === corner.id || w.endVertexId === corner.id)).toHaveLength(3);
+  const selected = [wall.id, doc.walls[0]!.id];
+  expect(() => previewWallAngles(preview, selected)).not.toThrow();
+  expect(previewWallAngles(preview, selected).find((label) => label.id === wall.id)?.degrees).toBeCloseTo(-135, 0);
 });
 
 it('una valla puede pasar por una columna, como un muro', () => {

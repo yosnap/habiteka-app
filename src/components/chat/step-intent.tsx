@@ -9,7 +9,7 @@
  */
 import type { AssistantIntent } from '@/lib/contracts';
 import { ArrowRight, ScanLine } from 'lucide-react';
-import { CatalogRoomArt } from '@/components/editor-v2/catalog-room-art';
+import { CatalogNavigationImage } from '@/components/editor-v2/catalog-navigation-image';
 
 interface Props {
   /** Ruta ya elegida (al volver a cambiarla), para marcarla como seleccionada. */
@@ -76,7 +76,7 @@ export function StepIntent({ intent, pending, onPick }: Props) {
               } ${pending ? 'cursor-default opacity-60' : 'cursor-pointer'}`}
             >
               <div className="mb-4 grid h-40 place-items-center overflow-hidden rounded-xl bg-sky-50" aria-hidden="true">
-                {option.intent === 'design' ? <div className="w-full max-w-64"><CatalogRoomArt room="salon" /></div> : <div className="rotate-[-6deg] rounded-2xl border-2 border-sky-200 bg-white p-5 shadow-sm"><ScanLine size={84} className="text-sky-600" strokeWidth={1} /></div>}
+                {option.intent === 'design' ? <div className="w-full max-w-64"><CatalogNavigationImage room="salon" /></div> : <div className="rotate-[-6deg] rounded-2xl border-2 border-sky-200 bg-white p-5 shadow-sm"><ScanLine size={84} className="text-sky-600" strokeWidth={1} /></div>}
               </div>
               <div className="px-3 pb-3"><h3 className="text-ink text-base font-semibold">{option.title}</h3>
               <p className="text-ink-soft mt-2 text-sm leading-relaxed">{option.summary}</p>

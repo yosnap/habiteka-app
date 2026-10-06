@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import { PerspectiveCamera } from 'three';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
@@ -68,11 +68,25 @@ describe('referencias de generación por cámara', () => {
     expect('sectionRooms' in prepared && prepared.sectionRooms).toEqual([{ id: 'R1', name: 'Comedor' }]);
     expect(request.prompt).toContain('maqueta abierta vista desde el frente');
     expect(request.prompt).toContain('Estancias de izquierda a derecha: Comedor');
-    expect(request.prompt).toContain('Mobiliario visto desde esta cámara: Comedor: mesa al fondo.');
+    expect(request.prompt).toContain('leído del diseño aceptado de la imagen 2: Comedor: mesa al fondo.');
     expect(request.prompt).not.toContain('se ve de espaldas');
     expect(request.prompt).toContain('nunca una vista aérea');
+    expect(request.prompt).toContain('sin techo ni tejado');
+    expect(request.prompt).not.toContain('suelo, techo');
     expect(request.prompt).toContain('personas haciendo vida cotidiana');
     expect(request.prompt).not.toContain('EDICIÓN DE LA IMAGEN 1');
+  });
+  it('lee el mobiliario aceptado aunque el plano contenga otros muebles', async () => {
+    const document = { ...base.document, furniture: [{ id: 'old-bed', kind: 'cama', x: 200, y: 200,
+      widthMm: 400, depthMm: 600, rotation: 0, dimensionalOrigin: 'physical' as const }] };
+    const read = vi.fn(async () => ['Comedor: mesa del diseño aceptado, sin cama']);
+    const section = { image: await image(400, 150, '#e8e3d9'), rooms: [{ name: 'Comedor', boundary: [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }, { x: 0, y: 1000 }] }], describe: read };
+    const input = { ...base, document, view: viewFor('front'), styleAnchor: await image(200, 100, '#a07850'), acceptedDesign: true, section };
+    const prepared = await prepareRenderImageRequest(input);
+    expect(read).toHaveBeenCalledOnce();
+    expect(prepared.request.prompt).toContain('mesa del diseño aceptado');
+    expect(prepared.request.prompt).not.toContain('Los muebles dibujados en la imagen 1');
+    await expect(prepareRenderImageRequest({ ...input, section: { ...section, describe: async () => [] } })).rejects.toThrow('antes de generar');
   });
 
   it('conserva la guía visual para la cenital que ya respetaba las estancias', async () => {

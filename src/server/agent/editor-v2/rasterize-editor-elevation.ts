@@ -2,13 +2,15 @@ import sharp from 'sharp';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
+import { isBasicOpeningType, openingType, type OpeningType } from '@/lib/editor-document/opening-types';
+import { openingLook } from '@/lib/editor-document/opening-look';
 import { exteriorRoofGeometry } from '@/lib/editor-document/exterior-roof-geometry';
 import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
-import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import type { Point } from '@/lib/editor-document/schema';
 import { footprint, objectCenter } from '@/lib/editor-document/spatial-properties';
 import { furnitureElevation, furnitureFacing, furnitureFront, furnitureHeight, isBed, isSofa, sectionFurnitureLines } from './furniture-views';
+import { SECTION_AXES as AXES, sectionVisibility, sectionPointVisible, sectionWallSegments, sectionRoomHint } from './section-visibility';
 
 export type ElevationSide = 'front' | 'back' | 'left' | 'right';
 type Pt = { h: number; v: number };
@@ -20,17 +22,6 @@ const WALL = '#e8e3d9', ROOF = '#4b4845', WINDOW = '#8fc3dd', FRAME = '#f4f1e9',
 // La trasera del cabecero va tapizada y en otro tono que las puertas del fondo, para no confundirlas.
 const WOOD = '#7a5c3e', HEADBOARD_BACK = '#b2a189', MATTRESS = '#f7f3ec', SOFA = '#a79c8c', SOFA_BACK = '#8f8476', FURNITURE = '#cdbb9f', FURNITURE_EDGE = '#8a7656';
 
-/**
- * Cada fachada vista de frente, en proyección ortogonal: eje horizontal de izquierda a derecha según la cámara y
- * profundidad creciente hacia el fondo. Coincide con la orientación de los alzados del 3D.
- */
-const AXES: Record<ElevationSide, { h: (x: number, y: number) => number; depth: (x: number, y: number) => number; toward: [number, number] }> = {
-  front: { h: (x) => x, depth: (_x, y) => -y, toward: [0, 1] },
-  back: { h: (x) => -x, depth: (_x, y) => y, toward: [0, -1] },
-  left: { h: (_x, y) => y, depth: (x) => x, toward: [-1, 0] },
-  right: { h: (_x, y) => -y, depth: (x) => -x, toward: [1, 0] },
-};
-
 const points = (list: Pt[], map: (p: Pt) => string) => list.map(map).join(' ');
 
 function cameraFacingWalls(doc: EditorDocument, side: ElevationSide): Set<string> {
@@ -39,36 +30,70 @@ function cameraFacingWalls(doc: EditorDocument, side: ElevationSide): Set<string
     .filter((wall) => wall.normalX * axis.toward[0] + wall.normalZ * axis.toward[1] > .3).map((wall) => wall.sourceEntityId));
 }
 
-function distanceToSegment(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x, dy = b.y - a.y, length = dx * dx + dy * dy;
-  const t = length ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / length)) : 0;
-  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-}
 
 /**
- * Estancias que quedan abiertas al retirar la fachada del lado de cámara, de izquierda a derecha. Son las que tocan esos
- * muros; una franja por profundidad colaba estancias de la segunda fila y el generador las apilaba como altillos. Se
- * ordenan por los vértices de su contorno sobre esa fachada, no por su extremo: un paso abierto une a veces lavadero y
- * pasillo en un polígono que cruza la casa, y el lavadero se adelantaba en el orden que reciben el generador y Jev.
+ * Estancias abiertas de izquierda a derecha, solo por las franjas en que su fachada es visible. El contorno completo
+ * sirve para identificar la estancia; la indicación de franja evita traer su mobiliario oculto al primer plano.
  */
-export function sectionRooms(doc: EditorDocument, side: ElevationSide): { name: string; boundary: Point[] }[] {
-  const axis = AXES[side], removed = cameraFacingWalls(doc, side);
-  const facade = doc.walls.filter((wall) => removed.has(wall.id)).map((wall) => {
-    const path = wallPath(doc, wall);
-    return { samples: Array.from({ length: 11 }, (_, index) => path.at(index / 10)), reach: Math.max(wall.thicknessMm, 50) };
-  });
-  const onFacade = (p: Point) => facade.some(({ samples, reach }) =>
-    samples.slice(1).some((point, index) => distanceToSegment(p, samples[index]!, point) <= reach));
-  return deriveRoomsSafe(doc).filter((room) => room.wallIds.some((id) => removed.has(id))).map((room) => {
-    const along = (room.boundary.some(onFacade) ? room.boundary.filter(onFacade) : room.boundary).map((p) => axis.h(p.x, p.y));
-    return { boundary: room.boundary, position: along.reduce((sum, h) => sum + h, 0) / along.length,
-      name: doc.labels.find((label) => pointInPolygon(label, room.boundary))?.text.trim() || 'Estancia' };
-  }).sort((a, b) => a.position - b.position).map(({ name, boundary }) => ({ name, boundary }));
+export function sectionRooms(doc: EditorDocument, side: ElevationSide): { name: string; boundary: Point[]; visibilityHint: string }[] {
+  const layout = sectionVisibility(doc, side);
+  const rooms = [...new Map(layout.strips.filter(strip => strip.opened).map(strip => [strip.room.id, strip.room])).values()];
+  return rooms.map(room => ({ boundary: room.boundary,
+    visibilityHint: sectionRoomHint(layout, room),
+    name: doc.labels.find(label => pointInPolygon(label, room.boundary))?.text.trim() || 'Estancia' }));
 }
 
 /** Muebles del plano en cada estancia de la sección, descritos como los ve esta cámara. */
 export function sectionFurnitureDescription(doc: EditorDocument, side: ElevationSide, rooms: { name: string; boundary: Point[] }[]) {
-  return sectionFurnitureLines(doc, rooms, AXES[side].toward, AXES[side].h);
+  const layout = sectionVisibility(doc, side);
+  return sectionFurnitureLines({ ...doc, furniture: doc.furniture.filter(item => sectionPointVisible(layout, objectCenter(item))) }, rooms, AXES[side].toward, AXES[side].h);
+}
+
+/**
+ * Detalle de cada tipo sobre su rectángulo, como en un alzado de carpintería: montantes de las hojas, triángulo de
+ * apertura de las abatibles (el vértice señala el lado de la bisagra; el de la oscilobatiente, además, abajo), flecha
+ * doble de las correderas, paneles de la plegable y de la seccional, travesaño de la guillotina y montante del fijo
+ * superior. Los tipos básicos conservan su rectángulo liso de siempre.
+ */
+function openingDetails(type: OpeningType, left: number, right: number, bottom: number, upper: number,
+  hingeLeft: boolean): ((map: (p: Pt) => string) => string)[] {
+  const line = (list: Pt[], width = 30) => (map: (p: Pt) => string) =>
+    `<polyline points="${points(list, map)}" fill="none" stroke="${FRAME}" stroke-width="${width}"/>`;
+  const width = right - left, middle = (left + right) / 2, mid = (bottom + upper) / 2;
+  const mullions = (count: number) => Array.from({ length: count - 1 }, (_, index) =>
+    line([{ h: left + width * (index + 1) / count, v: bottom }, { h: left + width * (index + 1) / count, v: upper }], 40));
+  const opening = (from: number, to: number) => line([{ h: to, v: upper }, { h: from, v: mid }, { h: to, v: bottom }], 18);
+  const arrow = () => { const a = left + width * .3, b = right - width * .3, head = Math.min(120, width * .08);
+    return line([{ h: a + head, v: mid + head }, { h: a, v: mid }, { h: a + head, v: mid - head }, { h: a, v: mid }, { h: b, v: mid },
+      { h: b - head, v: mid + head }, { h: b, v: mid }, { h: b - head, v: mid - head }], 24); };
+  const at = (fraction: number) => left + width * fraction;
+  const transom = type.transomMm ? Math.min(type.transomMm, (upper - bottom) / 2) : 0;
+  const rails = (count: number) => Array.from({ length: count - 1 }, (_, index) =>
+    line([{ h: left, v: bottom + (upper - bottom) * (index + 1) / count }, { h: right, v: bottom + (upper - bottom) * (index + 1) / count }], 30));
+  switch (type.operation) {
+    case 'abatible': {
+      if (transom) return [line([{ h: left, v: upper - transom }, { h: right, v: upper - transom }], 40),
+        ...openingDetails({ ...type, transomMm: undefined }, left, right, bottom, upper - transom, hingeLeft)];
+      if (type.mainLeafRatio) {
+        const split = hingeLeft ? at(type.mainLeafRatio) : at(1 - type.mainLeafRatio);
+        return [line([{ h: split, v: bottom }, { h: split, v: upper }], 40), hingeLeft ? opening(left, split) : opening(right, split)];
+      }
+      if (type.leaves >= 3) return [...mullions(3), opening(left, at(1 / 3)), opening(at(1 / 3), at(2 / 3)), opening(right, at(2 / 3))];
+      const tilt = type.tilt ? [line([{ h: left, v: upper }, { h: middle, v: bottom }, { h: right, v: upper }], 18)] : [];
+      return type.leaves >= 2 ? [...mullions(2), opening(left, middle), opening(right, middle)]
+        : [hingeLeft ? opening(left, right) : opening(right, left), ...tilt];
+    }
+    case 'corredera-marco': return [...mullions(Math.min(4, Math.max(2, type.leaves))), arrow()];
+    case 'corredera': return type.leaves >= 2 ? [...mullions(2), arrow()] : [arrow()];
+    case 'corredera-empotrada': return [arrow()];
+    case 'plegable': return mullions(Math.max(2, type.leaves));
+    case 'seccional': return rails(Math.max(3, Math.round((upper - bottom) / 530)));
+    case 'enrollable': return rails(Math.max(6, Math.round((upper - bottom) / 220)));
+    case 'basculante': return Array.from({ length: 7 }, (_, index) => line([{ h: at((index + 1) / 8), v: bottom }, { h: at((index + 1) / 8), v: upper }], 18));
+    case 'guillotina': return [line([{ h: left, v: mid }, { h: right, v: mid }], 40),
+      line([{ h: middle - 60, v: mid - 200 }, { h: middle, v: mid - 320 }, { h: middle + 60, v: mid - 200 }], 24)];
+    default: return [];
+  }
 }
 
 /** Puertas y ventanas de un muro con su tamaño y su cota reales. */
@@ -79,12 +104,22 @@ function openingShapes(doc: EditorDocument, wall: EditorDocument['walls'][number
     const half = Math.abs(axis.h(tangent.x, tangent.y)) * opening.widthMm / 2, h = axis.h(center.x, center.y);
     const props = openingConstruction(opening), bottom = base + props.elevationMm, upper = bottom + props.heightMm;
     const rect = [{ h: h - half, v: bottom }, { h: h + half, v: bottom }, { h: h + half, v: upper }, { h: h - half, v: upper }];
-    return opening.kind === 'ventana'
-      ? (map: (p: Pt) => string) => `<polygon points="${points(rect, map)}" fill="${WINDOW}" stroke="${FRAME}" stroke-width="60"/>`
-      : opening.kind === 'puerta'
-        ? (map: (p: Pt) => string) => `<polygon points="${points(rect, map)}" fill="${DOOR}" stroke="${FRAME}" stroke-width="50"/>`
-        // Un paso sin hoja deja ver el fondo: tono claro, no un panel oscuro.
-        : (map: (p: Pt) => string) => `<polygon points="${points(rect, map)}" fill="${PASSAGE}"/>`;
+    const type = openingType(opening);
+    // Un paso sin hoja deja ver el fondo: tono claro, no un panel oscuro.
+    if (!type) return (map: (p: Pt) => string) => `<polygon points="${points(rect, map)}" fill="${PASSAGE}"/>`;
+    // La bisagra «left» está en el inicio del muro: queda a la izquierda del alzado si el muro avanza hacia la derecha.
+    const hingeLeft = (props.hinge === 'left') === (axis.h(tangent.x, tangent.y) >= 0);
+    const details = isBasicOpeningType(type) ? [] : openingDetails(type, h - half, h + half, bottom, upper, hingeLeft);
+    // La corredera de vidrio se ve como una ventana hasta el suelo; la vidriera, vidrio en su bastidor con zócalo macizo.
+    const design = openingLook(opening).design;
+    const asWindow = type.kind === 'ventana' || type.operation === 'corredera-marco';
+    const glazedDoor = !asWindow && (type.glazed || design === 'vidrio' || design === 'vidrio-cuadriculado');
+    const stile = Math.min(110, half / 3), glass = [{ h: h - half + stile, v: bottom + stile * 2 }, { h: h + half - stile, v: bottom + stile * 2 },
+      { h: h + half - stile, v: upper - stile }, { h: h - half + stile, v: upper - stile }];
+    return (map: (p: Pt) => string) => (asWindow
+      ? `<polygon points="${points(rect, map)}" fill="${WINDOW}" stroke="${FRAME}" stroke-width="60"/>`
+      : `<polygon points="${points(rect, map)}" fill="${DOOR}" stroke="${FRAME}" stroke-width="${type.frameMm > 45 ? 80 : 50}"/>${glazedDoor
+        ? `<polygon points="${points(glass, map)}" fill="${WINDOW}"/>` : ''}`) + details.map((draw) => draw(map)).join('');
   });
 }
 
@@ -93,9 +128,11 @@ function openingShapes(doc: EditorDocument, wall: EditorDocument['walls'][number
  * ven las paredes interiores de frente y los tabiques cortados en oscuro, como en una maqueta abierta a la altura de los ojos.
  */
 function wallShapes(doc: EditorDocument, side: ElevationSide, cut: boolean): Shape[] {
-  const axis = AXES[side], facing = cameraFacingWalls(doc, side);
-  return doc.walls.filter((wall) => !wall.hidden && facing.has(wall.id) !== cut).map((wall) => {
-    const path = wallPath(doc, wall), start = path.at(0), end = path.at(1), tangent = path.tangent(.5);
+  const axis = AXES[side], facing = cameraFacingWalls(doc, side), layout = cut ? sectionVisibility(doc, side) : null;
+  return doc.walls.filter((wall) => !wall.hidden && facing.has(wall.id) !== cut).flatMap((wall, wallIndex) => {
+    const path = wallPath(doc, wall), tangent = path.tangent(.5);
+    const segments: [Point, Point][] = layout ? sectionWallSegments(layout, path.at(0), path.at(1), wall.thicknessMm) : [[path.at(0), path.at(1)]];
+    return segments.map(([start, end], segmentIndex) => {
     const base = wall.baseElevationMm ?? 0, top = base + (wall.heightMm ?? 2800);
     const depths = [axis.depth(start.x, start.y), axis.depth(end.x, end.y)];
     // Un tabique perpendicular a la cámara se ve de canto: en la sección es una banda oscura con su grosor.
@@ -108,8 +145,10 @@ function wallShapes(doc: EditorDocument, side: ElevationSide, cut: boolean): Sha
     const body = [{ h: h1, v: base }, { h: h2, v: base }, { h: h2, v: top }, { h: h1, v: top }];
     const openings = openingShapes(doc, wall, side);
     // Sin trazo: el muro y su prolongación hasta el tejado deben leerse como una sola fachada.
+    const clip = `wall-${wallIndex}-${segmentIndex}`;
     return { depth: (depths[0]! + depths[1]!) / 2,
-      svg: (map) => `<polygon points="${points(body, map)}" fill="${WALL}" stroke="${WALL}" stroke-width="12"/>${openings.map((draw) => draw(map)).join('')}` };
+      svg: (map) => `<defs><clipPath id="${clip}"><polygon points="${points(body, map)}"/></clipPath></defs><g clip-path="url(#${clip})"><polygon points="${points(body, map)}" fill="${WALL}" stroke="${WALL}" stroke-width="12"/>${openings.map((draw) => draw(map)).join('')}</g>` };
+    });
   });
 }
 
@@ -119,8 +158,8 @@ function wallShapes(doc: EditorDocument, side: ElevationSide, cut: boolean): Sha
  * generador sigue el dibujo de la sección mucho más que el texto, que no bastó para que dejara de girar las camas.
  */
 function furnitureShapes(doc: EditorDocument, side: ElevationSide, rooms: { boundary: Point[] }[]): Shape[] {
-  const axis = AXES[side];
-  return doc.furniture.filter((item) => rooms.some((room) => pointInPolygon(objectCenter(item), room.boundary))).map((item) => {
+  const axis = AXES[side], layout = sectionVisibility(doc, side);
+  return doc.furniture.filter((item) => sectionPointVisible(layout, objectCenter(item)) && rooms.some((room) => pointInPolygon(objectCenter(item), room.boundary))).map((item) => {
     const corners = footprint(item), hs = corners.map((p) => axis.h(p.x, p.y));
     const left = Math.min(...hs), right = Math.max(...hs), base = furnitureElevation(item), height = furnitureHeight(item);
     const depth = corners.reduce((sum, p) => sum + axis.depth(p.x, p.y), 0) / corners.length;
@@ -165,21 +204,14 @@ function meshShapes(positions: Float32Array, indices: Uint32Array, side: Elevati
 }
 
 /** Alzado técnico de una fachada o de su sección: muros, huecos con su tamaño y cota, y tejado. Sin textos ni cotas. */
-export async function rasterizeEditorElevation(doc: EditorDocument, side: ElevationSide, options: { cut?: boolean } = {}) {
+export async function rasterizeEditorElevation(doc: EditorDocument, side: ElevationSide, options: { cut?: boolean; furniture?: boolean } = {}) {
   const cut = options.cut === true;
   const shapes = wallShapes(doc, side, cut);
-  if (cut) shapes.push(...furnitureShapes(doc, side, sectionRooms(doc, side)));
-  // La sección es una maqueta abierta: sin tejado, con la línea del techo sobre las estancias.
+  if (cut && options.furniture !== false) shapes.push(...furnitureShapes(doc, side, sectionRooms(doc, side)));
+  // La sección está abierta por arriba: no añadir una losa que no existe en la vista sin techo.
   if (!cut) for (const roof of exteriorRoofGeometry(doc)) {
     shapes.push(...meshShapes(roof.positions, roof.indices, side, ROOF));
     for (const closure of roof.wallClosures) shapes.push(...meshShapes(closure.positions, closure.indices, side, WALL));
-  }
-  if (cut && shapes.length) {
-    const drawn: Pt[] = [];
-    for (const shape of shapes) shape.svg((p) => { drawn.push(p); return ''; });
-    const left = Math.min(...drawn.map((p) => p.h)), right = Math.max(...drawn.map((p) => p.h)), ceiling = Math.max(...drawn.map((p) => p.v));
-    const slab = [{ h: left, v: ceiling }, { h: right, v: ceiling }, { h: right, v: ceiling + 200 }, { h: left, v: ceiling + 200 }];
-    shapes.push({ depth: -Infinity, svg: (map) => `<polygon points="${points(slab, map)}" fill="${CUT}"/>` });
   }
   // Para medir la caja basta con capturar los puntos que dibuja cada forma.
   const measured: Pt[] = [];

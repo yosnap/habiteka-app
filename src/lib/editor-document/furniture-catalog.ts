@@ -1,19 +1,29 @@
 import { OUTDOOR_CATALOG } from './outdoor-catalog';
 import type { Furniture } from './schema';
-import { ASSET_CATALOG } from './furniture-assets';
+import { ASSET_CATALOG, REALISTIC_ASSET_REPLACEMENTS } from './furniture-assets';
+import { HABITEKA_FURNITURE_CATALOG } from './habiteka-furniture';
+import { furnitureRooms } from './furniture-rooms';
 
 export type FurnitureProfile = 'outdoor' | 'sofa' | 'sofa-chaise' | 'sofa-corner' | 'sofa-modular' | 'sofa-bed' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'decor' | 'rug'
   | 'curtain' | 'curtain-open' | 'roller' | 'venetian' | 'vertical-blind' | 'shutter' | 'appliance' | 'screen' | 'bench';
-export type FurnitureRoom = 'salon' | 'dormitorio' | 'comedor' | 'cocina' | 'bano' | 'oficina' | 'exterior' | 'iluminacion' | 'decoracion';
+export type FurnitureRoom = 'salon' | 'dormitorio' | 'infantil' | 'comedor' | 'cocina' | 'bano' | 'lavadero' | 'recibidor' | 'oficina'
+  | 'garaje' | 'exterior' | 'iluminacion' | 'decoracion';
 export interface FurnitureCatalogEntry {
   id: string; productId: string; variantLabel: string; kind: string; label: string;
   room: FurnitureRoom; category: string; function: string; style: string; material: string;
   color: string; widthMm: number; depthMm: number; heightMm: number; elevationMm: number;
   profile: FurnitureProfile;
+  /**
+   * Lavabos y fregaderos: altura del borde o de la encimera medida desde la base de la pieza. `heightMm` incluye el
+   * grifo (es la medida real del modelo) y la sección que guía los renders dibuja la pieza solo hasta aquí.
+   */
+  counterHeightMm?: number;
 }
+/** Estancias del catálogo en el orden de su portada. */
 export const FURNITURE_ROOMS: Record<FurnitureRoom, string> = {
-  salon: 'Salón', dormitorio: 'Dormitorio', comedor: 'Comedor', cocina: 'Cocina',
-  bano: 'Baño', oficina: 'Oficina', exterior: 'Exterior', iluminacion: 'Iluminación', decoracion: 'Decoración',
+  salon: 'Salón', dormitorio: 'Dormitorio', infantil: 'Infantil', comedor: 'Comedor', cocina: 'Cocina', bano: 'Baño',
+  lavadero: 'Lavadero', recibidor: 'Recibidor', oficina: 'Oficina', garaje: 'Garaje', exterior: 'Exterior',
+  iluminacion: 'Iluminación', decoracion: 'Decoración',
 };
 type Dimensions = [number, number, number];
 function entry(id: string, label: string, room: FurnitureRoom, profile: FurnitureProfile,
@@ -57,9 +67,16 @@ const essentials = [
   entry('lavabo', 'Lavabo con mueble', 'bano', 'sink', [800, 500, 850], 'Cerámica y madera', '#d1d5ce', 'Aseo personal'),
   entry('inodoro', 'Inodoro', 'bano', 'toilet', [400, 700, 800], 'Cerámica', '#e4e6e2', 'Aseo sanitario'),
   entry('banera', 'Bañera', 'bano', 'bath', [1700, 750, 600], 'Cerámica', '#e2e5e0', 'Baño y descanso'),
-  entry('ducha', 'Plato de ducha', 'bano', 'shower', [900, 900, 60], 'Piedra', '#c0c5c0', 'Ducha'),
+  entry('banera-compacta', 'Bañera compacta', 'bano', 'bath', [1400, 700, 580], 'Cerámica', '#e2e5e0', 'Baño en espacios pequeños'),
+  entry('ducha', 'Plato de ducha', 'bano', 'shower', [900, 900, 30], 'Piedra', '#c0c5c0', 'Ducha'),
   entry('columna-bano', 'Columna de baño', 'bano', 'cabinet', [350, 350, 1800], 'Madera lacada', '#d3d7d1', 'Guardar productos de aseo'),
-  entry('lavadora', 'Lavadora', 'bano', 'appliance', [600, 600, 850], 'Acero esmaltado', '#d5dbd8', 'Lavar ropa'),
+  entry('lavadora', 'Lavadora', 'lavadero', 'appliance', [600, 600, 850], 'Acero esmaltado', '#d5dbd8', 'Lavar ropa'),
+  entry('secadora', 'Secadora', 'lavadero', 'appliance', [600, 600, 850], 'Acero esmaltado', '#d9dedb', 'Secar ropa'),
+  entry('pila-lavadero', 'Pila de lavadero', 'lavadero', 'sink', [600, 500, 850], 'Cerámica', '#e4e6e1', 'Lavar a mano en el lavadero'),
+  entry('cesto-ropa', 'Cesto de ropa', 'lavadero', 'decor', [450, 350, 550], 'Mimbre', '#b89a6e', 'Guardar la ropa sucia', 'Nórdico'),
+  entry('zapatero', 'Zapatero', 'recibidor', 'cabinet', [800, 350, 1000], 'Roble', '#b38e64', 'Guardar el calzado en la entrada', 'Nórdico'),
+  entry('mueble-columna', 'Mueble columna', 'salon', 'cabinet', [500, 400, 1900], 'Madera lacada', '#dcd8cf', 'Guardar en poco espacio'),
+  entry('felpudo', 'Felpudo', 'recibidor', 'rug', [800, 500, 15], 'Fibra de coco', '#a5875e', 'Recibir en la entrada'),
   entry('escritorio', 'Escritorio', 'oficina', 'table', [1400, 700, 750], 'Roble y metal', '#ad8b63', 'Trabajar y estudiar', 'Industrial'),
   entry('silla-oficina', 'Silla de oficina', 'oficina', 'chair', [650, 650, 1100], 'Malla y metal', '#525d61', 'Trabajo sentado'),
   entry('cajonera', 'Cajonera de oficina', 'oficina', 'cabinet', [420, 550, 600], 'Metal', '#8d9794', 'Archivar documentos', 'Industrial'),
@@ -86,7 +103,7 @@ const essentials = [
   entry('persiana-vertical', 'Persiana de lamas verticales', 'decoracion', 'vertical-blind', [1800, 100, 2400], 'Tejido', '#d5d2c8', 'Lamas verticales giratorias', 'Contemporáneo'),
   entry('persiana-exterior', 'Persiana enrollable exterior', 'exterior', 'shutter', [1200, 150, 1400], 'Aluminio', '#b9bcb6', 'Cajón y lamas enrollables sobre la ventana', 'Contemporáneo', 900),
 ];
-export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
+const ALL_FURNITURE: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...HABITEKA_FURNITURE_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
   if (item.kind === 'cama-doble') return [item, variant(item, 'king', 'King · 180 cm', { widthMm: 1800, color: '#9caaa6', material: 'Tela acolchada y madera' })];
   if (item.kind === 'sofa-3') return [item, variant(item, 'piel', 'Piel · 250 cm', { widthMm: 2500, material: 'Piel', color: '#8e5e42', style: 'Clásico' })];
   if (item.kind === 'mesa-comedor') return [item, variant(item, 'grande', 'Nogal · 200 cm', { widthMm: 2000, depthMm: 1000, material: 'Nogal', color: '#785b43', style: 'Clásico' })];
@@ -98,7 +115,13 @@ export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = [...ASSET_CAT
   if (item.kind === 'persiana-veneciana') return [item, variant(item, 'madera', 'Madera clara', { color: '#c9a878', material: 'Madera' }), variant(item, 'negra', 'Negra', { color: '#3a3d3c' })];
   return [item];
 })];
-const catalogById = new Map(FURNITURE_CATALOG.map((item) => [item.id, item]));
+/**
+ * Catálogo visible (panel y Amueblar). Los modelos antiguos que se ven con su equivalente realista no se ofrecen porque
+ * duplicaban a ese modelo, pero siguen resolviéndose por id para los documentos que ya los usan.
+ */
+export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = ALL_FURNITURE.filter((item) =>
+  !(item.id.startsWith('habiteka:asset:') && REALISTIC_ASSET_REPLACEMENTS[item.id.slice('habiteka:asset:'.length)]));
+const catalogById = new Map(ALL_FURNITURE.map((item) => [item.id, item]));
 export function getFurnitureCatalogEntry(catalogId?: string): FurnitureCatalogEntry | undefined {
   return catalogId ? catalogById.get(catalogId) : undefined;
 }
@@ -110,7 +133,10 @@ export function normalizeFurnitureSearch(value: string): string {
 }
 export function searchFurnitureCatalog(query: string, room = '', style = ''): FurnitureCatalogEntry[] {
   const terms = normalizeFurnitureSearch(query).split(/\s+/).filter(Boolean);
-  return FURNITURE_CATALOG.filter((item) => (!room || item.room === room) && (!style || item.style === style)
-    && terms.every((term) => normalizeFurnitureSearch([item.label, item.variantLabel, item.material,
-      item.function, item.style, FURNITURE_ROOMS[item.room]].join(' ')).includes(term)));
+  return FURNITURE_CATALOG.filter((item) => {
+    const rooms = furnitureRooms(item);
+    return (!room || rooms.includes(room as FurnitureRoom)) && (!style || item.style === style)
+      && terms.every((term) => normalizeFurnitureSearch([item.label, item.variantLabel, item.material,
+        item.function, item.style, ...rooms.map((id) => FURNITURE_ROOMS[id])].join(' ')).includes(term));
+  });
 }

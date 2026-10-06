@@ -62,7 +62,9 @@ interface Props extends PlanImportActions {
     projectId: string,
     base64: string,
   ) => Promise<(SketchPlanResult & { imageUrl: string; assetKey?: string; studioResult?: StudioResult; importResult: ImportedPlan }) | ActionErrorResult>;
-  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string; assetKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
+  importCanvasAction: (projectId: string) => Promise<{ imageUrl: string; assetKey?: string; sourceUrl?: string; sourceKey?: string; studioResult?: StudioResult } | ActionErrorResult>;
+  /** Usa el boceto o un redibujado guardado como fondo del editor («Mostrar original»), alineado con sus muros. */
+  editorBackgroundAction: (projectId: string, assetKey: string) => Promise<{ ok: boolean } | ActionErrorResult>;
   redrawAction: (
     projectId: string,
     imageParts: ImagePart[],
@@ -106,6 +108,7 @@ export function PlanoStudio({
   drawingAction,
   uploadAction,
   importCanvasAction,
+  editorBackgroundAction,
   redrawAction,
   selectResultAction,
   startNewAction,
@@ -224,6 +227,16 @@ export function PlanoStudio({
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }, [plano, escalaEstimada]);
 
+  const [backgroundKey, setBackgroundKey] = useState(initialState.editorReference?.image.assetKey ?? null);
+  const [backgroundNotice, setBackgroundNotice] = useState<string | null>(null);
+  /** El boceto o un redibujado pasa a ser el fondo del editor, alineado con los muros de su plano. */
+  const onBackground = (result: StudioResultView) => run('select', async () => {
+    setBackgroundNotice(null);
+    await callAction(editorBackgroundAction(projectId, result.assetKey));
+    setBackgroundKey(result.assetKey);
+    setBackgroundNotice('Fondo del editor actualizado. Actívalo en el Editor con «Mostrar original» y regula su transparencia.');
+  });
+
   const rememberResult = (result: StudioResult | undefined, url: string) => {
     if (!result) {
       setArchiveWarning('La imagen se generó, pero no se pudo archivar en el proyecto. Descárgala antes de salir.');
@@ -333,14 +346,12 @@ export function PlanoStudio({
       rememberResult(result.studioResult, result.imageUrl);
       setFromCanvas(true);
       setFromDrawing(false);
-      setOriginalUrl(result.imageUrl);
-      setSourceKey(result.assetKey);
+      // La captura solo es el plano de trabajo para generar vistas: el original, la extracción y el fondo del editor
+      // siguen siendo los de antes.
+      setOriginalUrl(result.sourceUrl ?? result.imageUrl);
+      setSourceKey(result.sourceKey ?? result.assetKey);
       setPlanImageUrl(result.imageUrl);
       setActiveKey(result.assetKey);
-      setPlano(null);
-      setImportResult(null);
-      setImportApplied(false);
-      setQuality(null);
       setCenitalUrl(null);
       setConfirmSend(false);
       setPreviewResult(null);
@@ -415,17 +426,21 @@ export function PlanoStudio({
     const selected = await callAction(selectResultAction(projectId, result.assetKey));
     setPlanImageUrl(selected.imageUrl);
     setOriginalUrl(selected.sourceUrl);
-    setSourceKey(result.kind === 'source' ? result.assetKey : result.sourceKey);
+    // Una captura del editor vuelve como plano de trabajo sin cambiar el original.
+    if (result.kind !== 'canvas') setSourceKey(result.kind === 'source' ? result.assetKey : result.sourceKey);
     setActiveKey(selected.assetKey);
     setRedraws(result.kind === 'redraw'
       ? { [result.mode ?? 'tecnico']: { url: selected.imageUrl, key: selected.assetKey } }
       : {});
-    setFromCanvas(false);
+    setFromCanvas(result.kind === 'canvas');
     setFromDrawing(false);
-    setPlano(null);
-    setImportResult(null);
-    setImportApplied(false);
-    setQuality(null);
+    // La captura conserva la extracción del plano que ya está en el editor; otra imagen empieza sin ella.
+    if (result.kind !== 'canvas') {
+      setPlano(null);
+      setImportResult(null);
+      setImportApplied(false);
+      setQuality(null);
+    }
     setCenitalUrl(null);
     setPreviewResult(null);
     setComparing(false);
@@ -536,6 +551,8 @@ export function PlanoStudio({
           onCompare={compareResult}
           onContinue={continueResult}
           onReviewImport={openImport}
+          backgroundKey={backgroundKey}
+          onBackground={hasEditorPlan ? onBackground : undefined}
         />
         </div>
       </div>
@@ -628,7 +645,8 @@ export function PlanoStudio({
             <div className="grid h-full place-content-center gap-3 p-6 text-center">
               <h2 className="text-ink font-medium">Aún no hay extracción vectorial</h2>
               <p className="text-ink-soft max-w-sm text-sm">Primero lee los muros y revisa las medidas. Después podrás abrir el plano editable en el editor.</p>
-              {planImageUrl ? <Button disabled={busy !== null} onClick={importResult ? openImport : onImportCurrent}>{importResult ? 'Revisar medidas' : 'Extraer y revisar medidas'}</Button> : null}
+              {planImageUrl && (importResult || !fromCanvas) ? <Button disabled={busy !== null} onClick={importResult ? openImport : onImportCurrent}>{importResult ? 'Revisar medidas' : 'Extraer y revisar medidas'}</Button> : null}
+              {fromCanvas && !importResult ? <p className="text-ink-soft max-w-sm text-xs">Este plano es una captura del editor y ya es editable: no hace falta extraerlo.</p> : null}
             </div>
           ) : null}
           {tab === 'render' && visibleUrl && !comparing ? (
@@ -669,8 +687,11 @@ export function PlanoStudio({
             onCompare={compareResult}
             onContinue={continueResult}
             onReviewImport={openImport}
+            backgroundKey={backgroundKey}
+            onBackground={hasEditorPlan ? onBackground : undefined}
           />
           {archiveWarning ? <p className="text-destructive text-xs" role="alert">{archiveWarning}</p> : null}
+          {backgroundNotice ? <p className="text-emerald-700 text-xs" role="status">{backgroundNotice}</p> : null}
           <div className="border-line bg-surface rounded-card border p-3">
             <h2 className="text-ink text-sm font-medium">Otras entradas</h2>
             <div className="mt-2 flex flex-col gap-2">

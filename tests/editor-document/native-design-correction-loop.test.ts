@@ -2,7 +2,7 @@
  * La IA propone con libertad y la validación física solo protege lo imposible: si rechaza algo, el modelo recibe el
  * motivo y corrige una vez, en lugar de recibir posiciones prefabricadas.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import type { ChatRequest, ChatVisionAdapter } from '@/lib/contracts';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
@@ -11,6 +11,11 @@ import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { getFurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import { proposeNativeDesign } from '@/server/agent/editor-v2/native-design-proposal';
+import { OpenRouterChatVisionAdapter } from '@/server/ai/chat-vision-adapter';
+import { setClientFactory } from '@/server/ai/client/gateway-client';
+
+let restoreClient: (() => void) | undefined;
+afterEach(() => { restoreClient?.(); restoreClient = undefined; });
 
 const materials = { walls: 'none', floors: 'none', slabUndersides: 'none', stairBodies: 'none', rampBodies: 'none',
   landingBodies: 'none', stairs: 'none', ramps: 'none', columns: 'none' };
@@ -38,10 +43,31 @@ describe('propuesta de diseño con corrección', () => {
     const { chat, requests } = scripted([answer([planter(6200, 1700)]), answer([planter(5000, 3400)])]);
     const proposal = await proposeNativeDesign(chat, patio(), 'moderno', '', '', [], options);
     expect(requests).toHaveLength(2);
-    // Sin razonamiento: el modelo agotaba el límite comprobando solapes que el código ya resuelve.
-    expect(requests.map(({ reasoning, maxTokens }) => [reasoning, maxTokens])).toEqual([[{ enabled: false }, 16000], [{ enabled: false }, 16000]]);
+    // El endpoint puede exigir razonamiento, también al corregir; la geometría exacta sigue validada por código.
+    expect(requests.map(({ reasoning, maxTokens }) => [reasoning, maxTokens])).toEqual([[{ effort: 'low' }, 16000], [{ effort: 'low' }, 16000]]);
     const correction = requests[1]!.messages.at(-1)!.content.map((part) => ('text' in part ? part.text : '')).join('');
     expect(correction).toContain('junto a un muro o al borde');
+    expect(proposal.furniture.map(({ xMm, yMm }) => [xMm, yMm])).toEqual([[5000, 3400]]);
+  });
+
+  it.each([false, true])('propone y corrige con un endpoint que exige razonamiento (OpenAI=%s)', async (openAiApi) => {
+    const bodies: Record<string, unknown>[] = [];
+    const replies = [answer([planter(6200, 1700)]), answer([planter(5000, 3400)])];
+    const previous = setClientFactory(() => ({ chat: { completions: { create: async (body: Record<string, unknown>) => {
+      bodies.push(body);
+      if (openAiApi ? body.reasoning_effort !== 'low' : (body.reasoning as { effort?: string })?.effort !== 'low') {
+        throw new Error('400 Reasoning is mandatory for this endpoint and cannot be disabled.');
+      }
+      return { choices: [{ message: { content: JSON.stringify(replies[bodies.length - 1]!.structured) } }], usage: {} };
+    } } } }) as never);
+    restoreClient = () => { setClientFactory(previous); };
+    const adapter = new OpenRouterChatVisionAdapter({ apiKey: 'test-key', openAiApi });
+    const proposal = await proposeNativeDesign(adapter, patio(), 'moderno', '', '', [], options);
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) {
+      expect(body[openAiApi ? 'max_completion_tokens' : 'max_tokens']).toBe(16000);
+      expect(body).not.toHaveProperty('reasoning.enabled');
+    }
     expect(proposal.furniture.map(({ xMm, yMm }) => [xMm, yMm])).toEqual([[5000, 3400]]);
   });
 

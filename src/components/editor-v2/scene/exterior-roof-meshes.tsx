@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo } from 'react';
-import { BufferAttribute, BufferGeometry } from 'three';
+import { BufferAttribute, BufferGeometry, DoubleSide } from 'three';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { exteriorRoofGeometry, type RoofGeometry } from '@/lib/editor-document/exterior-roof-geometry';
 import { SurfaceMaterial } from './surface-material';
@@ -19,7 +19,8 @@ function RoofPart({ part, document }: { part: RoofGeometry; document: EditorDocu
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group userData={{ videoStage: 2, buildKey: 'exterior-roof' }}>
     <mesh geometry={geometry} castShadow receiveShadow userData={{ sourceEntityId: 'exterior-roof' }}>
-      <SurfaceMaterial id={document.exteriorRoof!.materialId} color={document.exteriorRoof!.color} width={1} height={1} doubleSide />
+      {part.glazing ? <meshPhysicalMaterial color="#d8edf1" transparent opacity={.35} transmission={.85} roughness={.08} metalness={0} thickness={.02} side={DoubleSide} />
+        : <SurfaceMaterial id={document.exteriorRoof!.materialId} color={document.exteriorRoof!.color} width={1} height={1} doubleSide />}
     </mesh>
   </group>;
 }

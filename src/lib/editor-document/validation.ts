@@ -12,6 +12,7 @@ import { assertLightingSceneFields } from './lighting-scene-validation';
 import { assertLightZoneFields } from './light-zone-validation';
 import { assertDesignZoneFields } from './design-zone-validation';
 import { surfaceMaterial } from './surface-materials';
+import { isDoorHandle, isFrameFinish, isLeafDesign, isLeafFinish } from './opening-look-options';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
 import { isDesignSpaceKind } from '@/lib/design-space-kind';
@@ -240,13 +241,13 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if ((value.schemaVersion as number) >= 5 && key === 'walls')
         allowed.walls += ' curveHeightMm';
       if (construction && key === 'openings')
-        allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId';
+        allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId leafDesign leafFinish handle frameFinish';
       if (spatial) {
         allowed.walls += ' colors';
         allowed.openings += ' colors';
         allowed.stairs += ' color';
         allowed.ramps += ' color';
-        allowed.furniture += ' heightMm elevationMm color hostId coverage rolledSides';
+        allowed.furniture += ' heightMm elevationMm color hostId coverage rolledSides porchSteps';
       }
       keys(e, allowed[key]!);
       if (e.name !== undefined) {
@@ -264,6 +265,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         positive(e.heightMm);
         nonnegative(e.elevationMm);
         if (e.hostId !== undefined) text(e.hostId);
+        if (e.porchSteps !== undefined && (e.kind !== 'porche-entrada' || typeof e.porchSteps !== 'boolean'))
+          throw new Error('Peldaños de porche inválidos');
         if (e.coverage !== undefined) { finite(e.coverage); if ((e.coverage as number) < 0 || (e.coverage as number) > 1) throw new Error('La cobertura va de 0 a 1'); }
         if (e.rolledSides !== undefined && (e.kind !== 'carpa' || !['none', 'left', 'right', 'both'].includes(e.rolledSides as string)))
           throw new Error('Laterales de carpa inválidos');
@@ -316,6 +319,10 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           if (e.openAngleDeg < 0 || e.openAngleDeg > 180)
             throw new Error('Ángulo de apertura inválido');
           if (e.sourceRampId !== undefined) text(e.sourceRampId);
+          // Aspecto opcional: sin estos campos la puerta o ventana se ve como siempre.
+          if ((e.leafDesign !== undefined && !isLeafDesign(e.leafDesign)) || (e.leafFinish !== undefined && !isLeafFinish(e.leafFinish))
+            || (e.handle !== undefined && !isDoorHandle(e.handle)) || (e.frameFinish !== undefined && !isFrameFinish(e.frameFinish)))
+            throw new Error('Diseño o acabado de abertura desconocido');
         }
       } else if (key === 'furniture') {
         text(e.kind);

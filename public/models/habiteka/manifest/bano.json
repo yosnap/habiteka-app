@@ -1,0 +1,3409 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia bano) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "bano",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "banera_empotrada_140_repisa": {
+   "file": "banera_empotrada_140_repisa.glb",
+   "thumbnail": "thumbs/banera_empotrada_140_repisa.webp",
+   "sha256": "e12946873a24c14025b2e81f39dca154252d0927a6f3d5a780cdfbb68e453d2d",
+   "bytes": 39896,
+   "triangles": 5104,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    700,
+    580
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    700,
+    580
+   ],
+   "family": "bano",
+   "type": "bath_built_in",
+   "params": {
+    "tub_h": 520,
+    "faucet": "repisa"
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "524e6360a377ceab07bf5adb826161e2985b5029a3a4ee810bc033e9baf75785",
+   "builtAt": "2026-10-05"
+  },
+  "banera_empotrada_160": {
+   "file": "banera_empotrada_160.glb",
+   "thumbnail": "thumbs/banera_empotrada_160.webp",
+   "sha256": "a8be4db1e3513dd5de0076b37e138646c488f16916fa7c665d1545c0c0d42944",
+   "bytes": 51796,
+   "triangles": 6332,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1600,
+    700,
+    1347
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    700,
+    1350
+   ],
+   "family": "bano",
+   "type": "bath_built_in",
+   "params": {
+    "tub_h": 560
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "565f7b8fa749cd204b98fb607f4d0e7ad284aea6f35ab9ef964268aa76f74214",
+   "builtAt": "2026-10-05"
+  },
+  "banera_empotrada_170": {
+   "file": "banera_empotrada_170.glb",
+   "thumbnail": "thumbs/banera_empotrada_170.webp",
+   "sha256": "c61832d09144a8c761cfb805213206bd4ea4921264e99f3ee3035d2fcaf35c42",
+   "bytes": 51344,
+   "triangles": 6236,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1700,
+    700,
+    1347
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    700,
+    1350
+   ],
+   "family": "bano",
+   "type": "bath_built_in",
+   "params": {
+    "tub_h": 560
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4c6909ca3ff3b067693bedd058bd364f644053b259a00ff48ee948276f5e67be",
+   "builtAt": "2026-10-05"
+  },
+  "banera_empotrada_170x75_repisa": {
+   "file": "banera_empotrada_170x75_repisa.glb",
+   "thumbnail": "thumbs/banera_empotrada_170x75_repisa.webp",
+   "sha256": "0cde08ebe6f8f6cb617880d5c74c21a0ccaab697183b7b432b24a65e43c8febc",
+   "bytes": 39544,
+   "triangles": 5104,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1700,
+    750,
+    600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    750,
+    600
+   ],
+   "family": "bano",
+   "type": "bath_built_in",
+   "params": {
+    "tub_h": 540,
+    "faucet": "repisa"
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d7ee19f34aa4faaaa32159fc526edf168c0f3ab68cba400de390844345294814",
+   "builtAt": "2026-10-05"
+  },
+  "banera_esquina_140": {
+   "file": "banera_esquina_140.glb",
+   "thumbnail": "thumbs/banera_esquina_140.webp",
+   "sha256": "f2ecdbeeac25698cd3d2a880599b5b662c4a58262a417620511dbcb50611d588",
+   "bytes": 44520,
+   "triangles": 5360,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    1400,
+    791
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    1400,
+    790
+   ],
+   "family": "bano",
+   "type": "bath_corner",
+   "params": {
+    "tub_h": 560
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c7c77f8bc76abc7566937d67ee28ca8515c652ec6188703019c9df6f3db9b685",
+   "builtAt": "2026-10-05"
+  },
+  "banera_exenta_160": {
+   "file": "banera_exenta_160.glb",
+   "thumbnail": "thumbs/banera_exenta_160.webp",
+   "sha256": "e988e81703ac5b34d65fc2a9c0ab932fe143eca5e233d867a9ca70a8d910b4b1",
+   "bytes": 52572,
+   "triangles": 6424,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1600,
+    922,
+    992
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    920,
+    980
+   ],
+   "family": "bano",
+   "type": "bath_freestanding",
+   "params": {
+    "tub_depth": 750,
+    "tub_h": 600
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d5c7c57107936b43afc388c686dbbcb9a1dc499832c95c1c819e03912fb91539",
+   "builtAt": "2026-10-05"
+  },
+  "banera_exenta_170": {
+   "file": "banera_exenta_170.glb",
+   "thumbnail": "thumbs/banera_exenta_170.webp",
+   "sha256": "8ef4a43204f7fea3c21d1a744be462bfbcc6d34544670ad103ed348da191391b",
+   "bytes": 52684,
+   "triangles": 6424,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1700,
+    972,
+    992
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    970,
+    980
+   ],
+   "family": "bano",
+   "type": "bath_freestanding",
+   "params": {
+    "tub_depth": 800,
+    "tub_h": 600
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "98a19974327dd23f15493836210a77243dd9b7a1ac7f7cc85674786fed75aa05",
+   "builtAt": "2026-10-05"
+  },
+  "banera_exenta_170_negra": {
+   "file": "banera_exenta_170_negra.glb",
+   "thumbnail": "thumbs/banera_exenta_170_negra.webp",
+   "sha256": "88a7b8418cacd116f5a8d3e338065b01cd3701ce7cfb4ae0a711c23e2ba40259",
+   "bytes": 52740,
+   "triangles": 6424,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1700,
+    972,
+    992
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    970,
+    980
+   ],
+   "family": "bano",
+   "type": "bath_freestanding",
+   "params": {
+    "tub_depth": 800,
+    "tub_h": 600
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6ec857690480a6deb923a8d3e96eaa6e577a0574f612003575ebe3496097b3da",
+   "builtAt": "2026-10-05"
+  },
+  "banera_hidromasaje_170": {
+   "file": "banera_hidromasaje_170.glb",
+   "thumbnail": "thumbs/banera_hidromasaje_170.webp",
+   "sha256": "5d55051656899d4050f96595d64587591b00bb120704af8b95801f09da31cf36",
+   "bytes": 51104,
+   "triangles": 6256,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1700,
+    750,
+    620
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    750,
+    620
+   ],
+   "family": "bano",
+   "type": "bath_built_in",
+   "params": {
+    "jets": true,
+    "tub_h": 560
+   },
+   "finishes": {
+    "acrilico": "bano-acrilico-blanco",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1e992bceb3a1af4764b6a98d871bd505445869377aa392b6894bad10fc1eb433",
+   "builtAt": "2026-10-05"
+  },
+  "bide_suelo_blanco": {
+   "file": "bide_suelo_blanco.glb",
+   "thumbnail": "thumbs/bide_suelo_blanco.webp",
+   "sha256": "bd17287afd8f837b0254a494fa61254bbc44e2a723809d0306b6d6af6634b8cf",
+   "bytes": 30352,
+   "triangles": 3120,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    540,
+    541
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    360,
+    540,
+    540
+   ],
+   "family": "bano",
+   "type": "bidet",
+   "params": {
+    "style": "suelo"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bdcc6c3a9dabae000377801f73037c208b3558242453afc96423c889d8db013d",
+   "builtAt": "2026-10-05"
+  },
+  "bide_suspendido_blanco": {
+   "file": "bide_suspendido_blanco.glb",
+   "thumbnail": "thumbs/bide_suspendido_blanco.webp",
+   "sha256": "61cf7097c0964d4d67049554cbfe394a2238245537fe79245715aaf75c8a8f13",
+   "bytes": 32088,
+   "triangles": 3280,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    520,
+    341
+   ],
+   "elevationMm": 200,
+   "specDimensionsMm": [
+    360,
+    520,
+    340
+   ],
+   "family": "bano",
+   "type": "bidet",
+   "params": {
+    "style": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f0971ef55820ba1b9e9883d82fa1b97eb65a4efcd084267d5d465b7d42c1b119",
+   "builtAt": "2026-10-05"
+  },
+  "bide_suspendido_negro": {
+   "file": "bide_suspendido_negro.glb",
+   "thumbnail": "thumbs/bide_suspendido_negro.webp",
+   "sha256": "c6a1154abe25a2f7580466c9fc254ab8d06d10491ed3075fda214b43bd962b13",
+   "bytes": 31980,
+   "triangles": 3280,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    520,
+    341
+   ],
+   "elevationMm": 200,
+   "specDimensionsMm": [
+    360,
+    520,
+    340
+   ],
+   "family": "bano",
+   "type": "bidet",
+   "params": {
+    "style": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-negra",
+    "griferia": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3610778c7978c22591e5d96149b3d9863895a075ef4d1c34506a2649ed030fb5",
+   "builtAt": "2026-10-05"
+  },
+  "columna_bano_blanca": {
+   "file": "columna_bano_blanca.glb",
+   "thumbnail": "thumbs/columna_bano_blanca.webp",
+   "sha256": "ed9824de9752e1d066a7ae49dab11a1c7ed5af811d2db45fa18ceb3bd42f32fb",
+   "bytes": 14948,
+   "triangles": 1180,
+   "texturePx": 512,
+   "dimensionsMm": [
+    350,
+    327,
+    1500
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    350,
+    300,
+    1500
+   ],
+   "family": "bano",
+   "type": "tall_cabinet",
+   "params": {},
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "52fa1b6be21133f14f235384245e9bf706fec77198adc231b0d0f0b940a11503",
+   "builtAt": "2026-10-05"
+  },
+  "columna_bano_roble": {
+   "file": "columna_bano_roble.glb",
+   "thumbnail": "thumbs/columna_bano_roble.webp",
+   "sha256": "1440fe857a1428876ec2d69b677c1fb7b494771d0a47deb7063609cd58a0ef2f",
+   "bytes": 108272,
+   "triangles": 1180,
+   "texturePx": 512,
+   "dimensionsMm": [
+    350,
+    327,
+    1500
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    350,
+    300,
+    1500
+   ],
+   "family": "bano",
+   "type": "tall_cabinet",
+   "params": {},
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "631b6b08fb9283d8b7cd747bbb96513bcf6451d8c511d08305f66238a9c7b7bf",
+   "builtAt": "2026-10-05"
+  },
+  "columna_bano_suelo_blanca": {
+   "file": "columna_bano_suelo_blanca.glb",
+   "thumbnail": "thumbs/columna_bano_suelo_blanca.webp",
+   "sha256": "9cbc74b701cf401fa29740277a0834998e750c4dae1d361bc1dd201175f5bf3e",
+   "bytes": 19244,
+   "triangles": 1564,
+   "texturePx": 512,
+   "dimensionsMm": [
+    350,
+    350,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    350,
+    323,
+    1800
+   ],
+   "family": "bano",
+   "type": "tall_cabinet",
+   "params": {
+    "bottom": 100,
+    "legs": true
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "daca1a85db3b34676e9dd26c7a2a1f438785ce160ff275add1a0094b868636f1",
+   "builtAt": "2026-10-05"
+  },
+  "columna_bano_suelo_roble": {
+   "file": "columna_bano_suelo_roble.glb",
+   "thumbnail": "thumbs/columna_bano_suelo_roble.webp",
+   "sha256": "2e990746b57be73d746a845aa14fb4a424b75df0766fd9572cc1937215c1139b",
+   "bytes": 112564,
+   "triangles": 1564,
+   "texturePx": 512,
+   "dimensionsMm": [
+    350,
+    350,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    350,
+    323,
+    1800
+   ],
+   "family": "bano",
+   "type": "tall_cabinet",
+   "params": {
+    "bottom": 100,
+    "legs": true
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d5fd79e2828a4941ea6e671421834dec53c9a0cb8a8f2b136945270f24e0d848",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_angular_80x80": {
+   "file": "ducha_angular_80x80.glb",
+   "thumbnail": "thumbs/ducha_angular_80x80.webp",
+   "sha256": "57b271dac8b05b5b197b5dc781d2b5dbe948632d8c398fb06cd1e6e46241a4bf",
+   "bytes": 241488,
+   "triangles": 5904,
+   "texturePx": 512,
+   "dimensionsMm": [
+    803,
+    803,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "angular",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "17a3afc7b86a687a7ec1b08f2c9e7425f36cd0058da85b24a865b3440210137e",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_angular_90x90": {
+   "file": "ducha_angular_90x90.glb",
+   "thumbnail": "thumbs/ducha_angular_90x90.webp",
+   "sha256": "84398f3ee76bdc4eb16a9108990267f4a78c484a64874f82cacbfd5b4b7d8022",
+   "bytes": 241468,
+   "triangles": 5904,
+   "texturePx": 512,
+   "dimensionsMm": [
+    903,
+    903,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "angular",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5c0ea40bd1b0955c2589fea44e30c4c493b061159d4a58e5aee4de37ab301bfa",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_angular_90x90_antracita": {
+   "file": "ducha_angular_90x90_antracita.glb",
+   "thumbnail": "thumbs/ducha_angular_90x90_antracita.webp",
+   "sha256": "cbb276118cec6664e330a8a6a3919b6f74c799872d3bb7d9cead19a77e574638",
+   "bytes": 243876,
+   "triangles": 5904,
+   "texturePx": 512,
+   "dimensionsMm": [
+    903,
+    903,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "angular",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-antracita",
+    "cristal": "bano-vidrio",
+    "perfil": "metal-negro",
+    "griferia": "metal-negro"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "70680912d31b3f5b5770ea57c4aabfc0b2b368a39e662c4cd099dcf72c435bf8",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_angular_90x90_techo": {
+   "file": "ducha_angular_90x90_techo.glb",
+   "thumbnail": "thumbs/ducha_angular_90x90_techo.webp",
+   "sha256": "1630a5c6a9f1719f31b33b7bab145a37023cc51c1f4d41e54e27f9c2180acc1b",
+   "bytes": 231132,
+   "triangles": 4808,
+   "texturePx": 512,
+   "dimensionsMm": [
+    903,
+    903,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    2400
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "angular",
+    "shower": "techo"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "80b037bac23dbc45a9edbf126982c7ab9734af489c224d4581eb4fc15bb7e3f6",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_corredera_70x120": {
+   "file": "ducha_corredera_70x120.glb",
+   "thumbnail": "thumbs/ducha_corredera_70x120.webp",
+   "sha256": "a0b6428ca4fd7134a31125bbc3c30a5b846b316f2d9bafbe9a07bf4ae0fc5c88",
+   "bytes": 230760,
+   "triangles": 4636,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    700,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    700,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "corredera",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2b1a3e3590811755737b6c30434ffb085c98eb6280a725b8afc9875114fc1ccd",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_corredera_80x140": {
+   "file": "ducha_corredera_80x140.glb",
+   "thumbnail": "thumbs/ducha_corredera_80x140.webp",
+   "sha256": "f3937c08592ec8dba3d168c57f99d9e6cd63238682f4df240d12f7ed4bb1ccc7",
+   "bytes": 230716,
+   "triangles": 4636,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "corredera",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fe8f1e0d31c5944965278ba052ef7547ff20bf47c2ed4cd37aeec2ff5fc38ff6",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_corredera_80x140_techo": {
+   "file": "ducha_corredera_80x140_techo.glb",
+   "thumbnail": "thumbs/ducha_corredera_80x140_techo.webp",
+   "sha256": "e7b55d993cd9e11150ff2c3c4ca2bb07416bfdfc78d8fff9318414d8640bc20f",
+   "bytes": 222444,
+   "triangles": 3540,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    2400
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "corredera",
+    "shower": "techo"
+   },
+   "finishes": {
+    "plato": "bano-resina-gris",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f6816a712c5b553033bce5a1764251079f097bd022acda4b7bb97ad97fb19bff",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_corredera_80x160": {
+   "file": "ducha_corredera_80x160.glb",
+   "thumbnail": "thumbs/ducha_corredera_80x160.webp",
+   "sha256": "e0fbcfc30d72290b77486f1d760941f73d1c3d9f6bdad67f1271bbdf0d3be37b",
+   "bytes": 230772,
+   "triangles": 4636,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1600,
+    800,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "corredera",
+    "shower": "columna"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "809b9f5af49f76a125107474fa4f69155450ddc54004ebaf1b7735a3e851c4d4",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_walk_in_80x140": {
+   "file": "ducha_walk_in_80x140.glb",
+   "thumbnail": "thumbs/ducha_walk_in_80x140.webp",
+   "sha256": "3580e9c9ff0b6a5273c57310a6eb9078b93d9d74db957e38259a7102001e74ad",
+   "bytes": 220660,
+   "triangles": 3576,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "walk_in"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0608627ff42ba27a446919c1e8edd5f8d49e6c239a44251eb68d8eb54d8a1ead",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_walk_in_80x140_negra": {
+   "file": "ducha_walk_in_80x140_negra.glb",
+   "thumbnail": "thumbs/ducha_walk_in_80x140_negra.webp",
+   "sha256": "f7d132194aa9e09bc622af52f31bfc886ff0ac50addaa4a260ad99edeb53ee77",
+   "bytes": 223060,
+   "triangles": 3576,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "walk_in"
+   },
+   "finishes": {
+    "plato": "bano-resina-antracita",
+    "cristal": "bano-vidrio",
+    "perfil": "metal-negro",
+    "griferia": "metal-negro"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8be4742ab9b7abab033c3ab2088bd297f4544e659f3e9758e2f5ad0ffda6da97",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_walk_in_80x160": {
+   "file": "ducha_walk_in_80x160.glb",
+   "thumbnail": "thumbs/ducha_walk_in_80x160.webp",
+   "sha256": "053ba6a219c1d384b50bb04a2d6d29f58bb6576c34ee4067ee74c2cf17676b5f",
+   "bytes": 220672,
+   "triangles": 3576,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1600,
+    800,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    800,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "walk_in"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b910f682c1aa28d9f4dc0e44b199312e6fccd4a44f9b10f4bac34bf1bcc9aab2",
+   "builtAt": "2026-10-05"
+  },
+  "ducha_walk_in_90x180": {
+   "file": "ducha_walk_in_90x180.glb",
+   "thumbnail": "thumbs/ducha_walk_in_90x180.webp",
+   "sha256": "7fddd45b15a05f64fde0fc958ebb2ae01dde9c73388a1717c491c2c3ccb28def",
+   "bytes": 220624,
+   "triangles": 3576,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    900,
+    2111
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    2110
+   ],
+   "family": "bano",
+   "type": "shower",
+   "params": {
+    "screen": "walk_in"
+   },
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "cristal": "bano-vidrio",
+    "perfil": "cromo",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4a493526d2c951b0f0eb478f10514420838ad9f09c533680ab79a686b006069c",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_led_100": {
+   "file": "espejo_led_100.glb",
+   "thumbnail": "thumbs/espejo_led_100.webp",
+   "sha256": "04a648e6c02641db3302b7f67451d5ea33d1fc4df395b7a6645cc2c931a688f8",
+   "bytes": 14668,
+   "triangles": 1532,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    21,
+    700
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    1000,
+    21,
+    700
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular",
+    "led": true
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita",
+    "led": "bano-led"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2639d7442c07b8e7404ab44c208dd56f54b459e5f09257116d7628f140e837d3",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_led_80": {
+   "file": "espejo_led_80.glb",
+   "thumbnail": "thumbs/espejo_led_80.webp",
+   "sha256": "e9e86621bc9904b38dc674cfa91840b9ed385e1f1cc2e0d4bbad81afdc009c91",
+   "bytes": 14828,
+   "triangles": 1532,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    21,
+    700
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    800,
+    21,
+    700
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular",
+    "led": true
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita",
+    "led": "bano-led"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ad281a8fb9df51f0099baf46c92f1fb960663ef14858e1f32ea5698651ef88ea",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_rectangular_100": {
+   "file": "espejo_rectangular_100.glb",
+   "thumbnail": "thumbs/espejo_rectangular_100.webp",
+   "sha256": "ef91922bff326809fa62da5b0a68dfd2c02d8d32ccc82f3d1b03648b32d82f74",
+   "bytes": 4700,
+   "triangles": 152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    20,
+    700
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    1000,
+    20,
+    700
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular"
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0da670cd10d7e4aa335a172c55530feaca05e7eec8575f98e15cfce2cd1a627b",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_rectangular_120": {
+   "file": "espejo_rectangular_120.glb",
+   "thumbnail": "thumbs/espejo_rectangular_120.webp",
+   "sha256": "e775ffc344972c21503a0747ca0b942fbd560ceaf5be67eb40b0d8117b445fa2",
+   "bytes": 4728,
+   "triangles": 152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    20,
+    700
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    1200,
+    20,
+    700
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular"
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "26152f551e962ccbd0a186e56460b7d3e703b38ad6e69cc12f3c3060d07ad771",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_rectangular_60": {
+   "file": "espejo_rectangular_60.glb",
+   "thumbnail": "thumbs/espejo_rectangular_60.webp",
+   "sha256": "c3e43e1d2180fe4827f037ca299c438a25d6c29c271c2a356926ac84f851ec14",
+   "bytes": 4744,
+   "triangles": 152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    20,
+    800
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    600,
+    20,
+    800
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular"
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "65fcfb511021864e55c81a19e95c0124bbf8251dc0fe5e8c5088229a483859fc",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_rectangular_80": {
+   "file": "espejo_rectangular_80.glb",
+   "thumbnail": "thumbs/espejo_rectangular_80.webp",
+   "sha256": "3759e26e789046de4cd7d45fe552b3931f17dbb04606af2bca85f72db30d5c0e",
+   "bytes": 4744,
+   "triangles": 152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    20,
+    700
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    800,
+    20,
+    700
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "rectangular"
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3722fc10d27fd787727e5052ab8df786de4169a8e5f8d6ece1da1d9613626ea7",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_redondo_60": {
+   "file": "espejo_redondo_60.glb",
+   "thumbnail": "thumbs/espejo_redondo_60.webp",
+   "sha256": "48939d5a09d86cee114f1da5e8d7dde438fcfd04292e0b716bf040e9f84f689c",
+   "bytes": 26300,
+   "triangles": 3168,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    33,
+    600
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    600,
+    33,
+    600
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "redondo",
+    "frame": true
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "233aadf7ec4d2b072a884b02a27c8919a6343fb5c7050e60cf011cea9562c2d4",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_redondo_80": {
+   "file": "espejo_redondo_80.glb",
+   "thumbnail": "thumbs/espejo_redondo_80.webp",
+   "sha256": "933d9a67ba7bcadbc6b469da196925a98fc62a0c24dca6f5f04fea8f459a82af",
+   "bytes": 26264,
+   "triangles": 3168,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    33,
+    800
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    800,
+    33,
+    800
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "redondo",
+    "frame": true
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "29e381eba18deb8c1ff03107ee7143ee73bbf410135bd13616535544a9595f3a",
+   "builtAt": "2026-10-05"
+  },
+  "espejo_redondo_80_laton": {
+   "file": "espejo_redondo_80_laton.glb",
+   "thumbnail": "thumbs/espejo_redondo_80_laton.webp",
+   "sha256": "4946f2919b2f88f5d0634b646864423d8dbbb8c694574530075c73ee4bb2b190",
+   "bytes": 26232,
+   "triangles": 3168,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    33,
+    800
+   ],
+   "elevationMm": 1050,
+   "specDimensionsMm": [
+    800,
+    33,
+    800
+   ],
+   "family": "bano",
+   "type": "mirror",
+   "params": {
+    "shape": "redondo",
+    "frame": true
+   },
+   "finishes": {
+    "espejo": "bano-espejo",
+    "marco": "laton"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "696b98bccce2b93de0875cf5f9cf97348e4ede43a7d8d369ac8ce965c718097f",
+   "builtAt": "2026-10-05"
+  },
+  "estante_bano_60": {
+   "file": "estante_bano_60.glb",
+   "thumbnail": "thumbs/estante_bano_60.webp",
+   "sha256": "8808ec0102f2c5653ebfc3c81b54194b5e2cab87f23635de212f83f96463333c",
+   "bytes": 10240,
+   "triangles": 720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    125,
+    75
+   ],
+   "elevationMm": 1130,
+   "specDimensionsMm": [
+    600,
+    130,
+    75
+   ],
+   "family": "bano",
+   "type": "glass_shelf",
+   "params": {},
+   "finishes": {
+    "cristal": "bano-vidrio-mate",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bde6fa60108494603852e8948c5d3297e244c547cec2905ace5c8656b5eefd8d",
+   "builtAt": "2026-10-05"
+  },
+  "inodoro_cisterna_blanco": {
+   "file": "inodoro_cisterna_blanco.glb",
+   "thumbnail": "thumbs/inodoro_cisterna_blanco.webp",
+   "sha256": "96f0419a2ca723b91b2caf070a1ba379933d9d058d52f359f2ee95b747f639a7",
+   "bytes": 60292,
+   "triangles": 7600,
+   "texturePx": 512,
+   "dimensionsMm": [
+    406,
+    665,
+    793
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    380,
+    660,
+    800
+   ],
+   "family": "bano",
+   "type": "toilet",
+   "params": {
+    "style": "cisterna"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "190ba7853edb1e09380ad596f17e2c883e21ef7ddf9b7048f815eed4f997bb66",
+   "builtAt": "2026-10-05"
+  },
+  "inodoro_compacto_blanco": {
+   "file": "inodoro_compacto_blanco.glb",
+   "thumbnail": "thumbs/inodoro_compacto_blanco.webp",
+   "sha256": "cfeff42bb90a2dae5e6a5accc9316724bd9b223a8874bbab09cd6f029970ef29",
+   "bytes": 56224,
+   "triangles": 7056,
+   "texturePx": 512,
+   "dimensionsMm": [
+    366,
+    660,
+    793
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    360,
+    650,
+    800
+   ],
+   "family": "bano",
+   "type": "toilet",
+   "params": {
+    "style": "compacto"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "92d3f399925352f5cd3457e10f202e5db491233493f5d029d609c4219c603dd4",
+   "builtAt": "2026-10-05"
+  },
+  "inodoro_suspendido_blanco": {
+   "file": "inodoro_suspendido_blanco.glb",
+   "thumbnail": "thumbs/inodoro_suspendido_blanco.webp",
+   "sha256": "71081bce8f38a415ca0adb7286837bcf6e78f182f56aadbb2fb961d47956a192",
+   "bytes": 46856,
+   "triangles": 5620,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    546,
+    882
+   ],
+   "elevationMm": 200,
+   "specDimensionsMm": [
+    360,
+    540,
+    885
+   ],
+   "family": "bano",
+   "type": "toilet",
+   "params": {
+    "style": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "62157e57a33bcde7d60241762bbdcc4d715a7699865fd9253d054d179b96f7ce",
+   "builtAt": "2026-10-05"
+  },
+  "inodoro_suspendido_negro": {
+   "file": "inodoro_suspendido_negro.glb",
+   "thumbnail": "thumbs/inodoro_suspendido_negro.webp",
+   "sha256": "eec63d4fa3173fe27d9423a36756fa292132ef7a1c3832972ee15f7aa9bb9f53",
+   "bytes": 46752,
+   "triangles": 5620,
+   "texturePx": 512,
+   "dimensionsMm": [
+    360,
+    546,
+    882
+   ],
+   "elevationMm": 200,
+   "specDimensionsMm": [
+    360,
+    540,
+    885
+   ],
+   "family": "bano",
+   "type": "toilet",
+   "params": {
+    "style": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-negra",
+    "griferia": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "07f3639051a5b24eda4d605534c2c6e46c44b83f4338cb47dcf4e8fad9dd813e",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_pedestal_55": {
+   "file": "lavabo_pedestal_55.glb",
+   "thumbnail": "thumbs/lavabo_pedestal_55.webp",
+   "sha256": "8347aedacf1e7c79a6c309b1924babbf2071d56f038794f54ac0d4946b34214c",
+   "bytes": 46908,
+   "triangles": 6232,
+   "texturePx": 512,
+   "dimensionsMm": [
+    550,
+    440,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    550,
+    440,
+    1045
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "pedestal"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "839bb8e9bb316b2f3f02b33c56165d64d6d3f1610b045c6b33ca54158571505b",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_pedestal_65": {
+   "file": "lavabo_pedestal_65.glb",
+   "thumbnail": "thumbs/lavabo_pedestal_65.webp",
+   "sha256": "b50566440d49ab04af8727f2d933ea195ff668d4daf51c8e759900e7ddf184f2",
+   "bytes": 46508,
+   "triangles": 6160,
+   "texturePx": 512,
+   "dimensionsMm": [
+    650,
+    500,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    650,
+    500,
+    1045
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "pedestal"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4ce9833b358aa3241b22a3f0afeefad4d7eb31eb09f6671f2a93b538f94fdb87",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_semipedestal_55": {
+   "file": "lavabo_semipedestal_55.glb",
+   "thumbnail": "thumbs/lavabo_semipedestal_55.webp",
+   "sha256": "fc7f9088072314095947e1cd5957ee193a09484f21d5b86bff6296c47239d6ce",
+   "bytes": 48740,
+   "triangles": 6360,
+   "texturePx": 512,
+   "dimensionsMm": [
+    550,
+    440,
+    672
+   ],
+   "elevationMm": 374,
+   "specDimensionsMm": [
+    550,
+    440,
+    675
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "semipedestal"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9dedc270113d251a1ca0a2625b51e31b1d2231e4c6ff58b72105afe13db89cdc",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_semipedestal_60": {
+   "file": "lavabo_semipedestal_60.glb",
+   "thumbnail": "thumbs/lavabo_semipedestal_60.webp",
+   "sha256": "a1fdfd08914440c74d8619b525b5c206cf19552db9461ab4488d5e84ee6956b8",
+   "bytes": 48740,
+   "triangles": 6360,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    460,
+    672
+   ],
+   "elevationMm": 374,
+   "specDimensionsMm": [
+    600,
+    460,
+    675
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "semipedestal"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a61aa19634bc399d365f2fa72e492e10cf4c22f5acca4ec2ac49144542615b55",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_ovalado_100": {
+   "file": "lavabo_sobre_encimera_ovalado_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_ovalado_100.webp",
+   "sha256": "be1bda05a4cb886fb690f8677e926d1ac111944bbfbcfaf6205f9ca212e4090a",
+   "bytes": 137096,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "ovalado",
+    "basin": [
+     520,
+     370,
+     140
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3af6ec272eeecfe75447e6faa155c02880025f15dcd78819a78aec15f19d532d",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_ovalado_80": {
+   "file": "lavabo_sobre_encimera_ovalado_80.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_ovalado_80.webp",
+   "sha256": "7abff469c7d0c4daf49b15e167239b7550ee7bb12cfc9a801efed2fc00fbfc19",
+   "bytes": 137584,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "ovalado",
+    "basin": [
+     520,
+     370,
+     140
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "294ec5071988de019a1d18d0a3218836bfa0dbe13056b7191a02a8aeacaa05d8",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_ovalado_marmol_100": {
+   "file": "lavabo_sobre_encimera_ovalado_marmol_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_ovalado_marmol_100.webp",
+   "sha256": "b2c727ecbed65c04604cdbcce8d232d4b3924dfd11e49984ce6551d05ca06fbd",
+   "bytes": 83124,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "ovalado",
+    "basin": [
+     520,
+     370,
+     140
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "metal-negro",
+    "encimera": "marmol-blanco"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "01744483f5af8ee294ca5b83a0e034d160610e2b58625e425a285c7d6138192c",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_rectangular_100": {
+   "file": "lavabo_sobre_encimera_rectangular_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_rectangular_100.webp",
+   "sha256": "3fdb24ed5f1a54b86624b22b7bdd69fa479cceea7852467363cec24770900a8a",
+   "bytes": 135416,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "rectangular",
+    "basin": [
+     500,
+     350,
+     125
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "816d1d7bcd9bf79e44f987e641418b380b2954770ebea3c19c4385d2a45f6e85",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_rectangular_80": {
+   "file": "lavabo_sobre_encimera_rectangular_80.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_rectangular_80.webp",
+   "sha256": "e8a368e44d2eac495dc919e3cad37ed22099aa6dcf610512692bfd5b5a17a59f",
+   "bytes": 135752,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "rectangular",
+    "basin": [
+     500,
+     350,
+     125
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ba7eaeb98122ffc88a589b0c1d0a5500ec81c5be6e407294b5231f8a299919c0",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_rectangular_marmol_100": {
+   "file": "lavabo_sobre_encimera_rectangular_marmol_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_rectangular_marmol_100.webp",
+   "sha256": "4444c8786c9d2797aae921afd83bdf206adc5307e4adfab8cc56075f17aed421",
+   "bytes": 81444,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "rectangular",
+    "basin": [
+     500,
+     350,
+     125
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "metal-negro",
+    "encimera": "marmol-blanco"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "69937ed5db652f5095bfd3c94218317cf81fa63fa9dbe3e6be4135e8ffe7b8fd",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_redondo_100": {
+   "file": "lavabo_sobre_encimera_redondo_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_redondo_100.webp",
+   "sha256": "4093d68a0263ce28970e489d64db900ef3f3f4407748096ff6788cab862a8aae",
+   "bytes": 135928,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "redondo",
+    "basin": [
+     380,
+     380,
+     145
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f4b996a70ec26b8c656111b82397ef75025aa99090777402ff81525d2c321201",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_redondo_80": {
+   "file": "lavabo_sobre_encimera_redondo_80.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_redondo_80.webp",
+   "sha256": "ddfc5806b21325214bde6c854655647163a3f2d5ef8260617e27fe01c454aa7f",
+   "bytes": 136304,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    800,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "redondo",
+    "basin": [
+     380,
+     380,
+     145
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo",
+    "encimera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c8117b35218df0db5c0e361d28bd13fb6ccf5580054aa2329134e31b21ed4ff4",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_sobre_encimera_redondo_marmol_100": {
+   "file": "lavabo_sobre_encimera_redondo_marmol_100.glb",
+   "thumbnail": "thumbs/lavabo_sobre_encimera_redondo_marmol_100.webp",
+   "sha256": "c6cdd60461e50090de13b7050347e3ed7ccb30718a4d6fd7e02a88532e6ee9c3",
+   "bytes": 81956,
+   "triangles": 5044,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "elevationMm": 460,
+   "specDimensionsMm": [
+    1000,
+    460,
+    612
+   ],
+   "family": "bano",
+   "type": "vessel_basin",
+   "params": {
+    "shape": "redondo",
+    "basin": [
+     380,
+     380,
+     145
+    ],
+    "top_h": 760
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "metal-negro",
+    "encimera": "marmol-blanco"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a50a746eef5428ad804922d1387696311042045f1ceb50138c260885549da0a9",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_suspendido_50": {
+   "file": "lavabo_suspendido_50.glb",
+   "thumbnail": "thumbs/lavabo_suspendido_50.webp",
+   "sha256": "bf14fbd6dda64f888aa087089ceaf6d5f22a6950404c5856a3726ca9b2cb5a47",
+   "bytes": 46636,
+   "triangles": 5680,
+   "texturePx": 512,
+   "dimensionsMm": [
+    500,
+    420,
+    596
+   ],
+   "elevationMm": 450,
+   "specDimensionsMm": [
+    500,
+    420,
+    600
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b237a1c7fba3ff62a64010415d43e5cd0ba566bf0b0d485dcbcc42518496ddca",
+   "builtAt": "2026-10-05"
+  },
+  "lavabo_suspendido_60": {
+   "file": "lavabo_suspendido_60.glb",
+   "thumbnail": "thumbs/lavabo_suspendido_60.webp",
+   "sha256": "4c1aa7d4d4c6f7a85940d5e114bd50179cfc7d8577ac935e8476f177ef7c5e8b",
+   "bytes": 46692,
+   "triangles": 5680,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    460,
+    596
+   ],
+   "elevationMm": 450,
+   "specDimensionsMm": [
+    600,
+    460,
+    600
+   ],
+   "family": "bano",
+   "type": "wall_basin",
+   "params": {
+    "support": "suspendido"
+   },
+   "finishes": {
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "13597cfdb8699e87dc014b3dbef3f5ca52cee9c35a7d336d97accc1281098f5d",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_doble_120": {
+   "file": "mueble_lavabo_doble_120.glb",
+   "thumbnail": "thumbs/mueble_lavabo_doble_120.webp",
+   "sha256": "aec8fc931afb5a1433bed4657404f71ff67513b044bf077c551cbec0f54872bc",
+   "bytes": 206864,
+   "triangles": 13888,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1200,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 2
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bb3255355d917d7b3679ff735586a6b20b814d02707b31e06705348da79e0c19",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_doble_140": {
+   "file": "mueble_lavabo_doble_140.glb",
+   "thumbnail": "thumbs/mueble_lavabo_doble_140.webp",
+   "sha256": "b00e64282b3122bfbe597a0b252d9ba9dd2f36d67183cea42549be3a8f990aa2",
+   "bytes": 205376,
+   "triangles": 13800,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    475,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1400,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 2
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9583d0411fa6b4424185ab85b1011212b6a10e0ea93edb2474394dcb57995af0",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_doble_140_blanco": {
+   "file": "mueble_lavabo_doble_140_blanco.glb",
+   "thumbnail": "thumbs/mueble_lavabo_doble_140_blanco.webp",
+   "sha256": "f1a135c28aca9a613c07317e6e5d19fced4e30253dfc373b396434ccbec31159",
+   "bytes": 110624,
+   "triangles": 13800,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    475,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1400,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 2
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c063b9eabf47831954d753f2d5f576de3b9761d7f285244075fbc1d53dd4c020",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_doble_140_gris": {
+   "file": "mueble_lavabo_doble_140_gris.glb",
+   "thumbnail": "thumbs/mueble_lavabo_doble_140_gris.webp",
+   "sha256": "60e233d24ff906b577e385e8d4b28d48480bd5cbec560d643fdcb22c281deffd",
+   "bytes": 110636,
+   "triangles": 13800,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    475,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1400,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 2
+   },
+   "finishes": {
+    "carcasa": "bano-lacado-gris",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f23889d42829cc1abdac20343ed856551ed72bfaaa971b288678a5b5334198d2",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_doble_140_nogal": {
+   "file": "mueble_lavabo_doble_140_nogal.glb",
+   "thumbnail": "thumbs/mueble_lavabo_doble_140_nogal.webp",
+   "sha256": "8564f72228930b9dca2cfda8d46154cb6073adeac98453f8bbcae7d97af3163b",
+   "bytes": 170348,
+   "triangles": 13800,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    475,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1400,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 2
+   },
+   "finishes": {
+    "carcasa": "nogal",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dc062467f0f09d5d573c178c81213df869f339490e5b38c1a8f73d0e155893f8",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_100": {
+   "file": "mueble_lavabo_suelo_100.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_100.webp",
+   "sha256": "5ae0ea8b3cfd4d05203a9f7f81c57a97fbccba5467736ed14098a4c2570d1dd7",
+   "bytes": 165212,
+   "triangles": 8248,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "adb999becf642cf6efc1ebd90a2ece12cac3fe13958a3a56a66c947698b09cbf",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_120": {
+   "file": "mueble_lavabo_suelo_120.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_120.webp",
+   "sha256": "45d8ded92e1b8060b51a85f8c639a5e724539a177c379a19e1aba5fdd2e31e3d",
+   "bytes": 177328,
+   "triangles": 9408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    476,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "67c5911a3c76b5a3cd57e496e300ef5fbc30ce2839c088a1f2240a655fb49c7d",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_60": {
+   "file": "mueble_lavabo_suelo_60.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_60.webp",
+   "sha256": "324a6ce043fe2d34c3efceb76b88ea7032d258e4e478b97063632b673ff71d8c",
+   "bytes": 165784,
+   "triangles": 8336,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "373eb23c2c0c98744b661be054e619cdcd51aae20ce00058313cf33749e050b3",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_80": {
+   "file": "mueble_lavabo_suelo_80.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_80.webp",
+   "sha256": "024382381c0da8bffb1310e2c228ab9de8c5e6fca70848137896ecdfa2576289",
+   "bytes": 165748,
+   "triangles": 8336,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "68f42e950b0db0f87a21c9cc6284fa91434749aa7fc0dd7f97b1c8255f035537",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_80_blanco": {
+   "file": "mueble_lavabo_suelo_80_blanco.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_80_blanco.webp",
+   "sha256": "05b00ea0cbfb99469c866929592752c0fc87cb7d3352294365d6597241f66257",
+   "bytes": 71396,
+   "triangles": 8336,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "052a8128489eb7d6185a2f162101d5080fbc96020b31b0f1b6bc9ff360acac20",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_80_gris": {
+   "file": "mueble_lavabo_suelo_80_gris.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_80_gris.webp",
+   "sha256": "90307181876cb5e114547d65a8ad55ab19dba13ae51e21abb08a854e31b29f94",
+   "bytes": 71408,
+   "triangles": 8336,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "bano-lacado-gris",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fd870668c197c1386db53f0158ea35aebf449af8caf0b6decc492bf4e5c6fd89",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suelo_80_nogal": {
+   "file": "mueble_lavabo_suelo_80_nogal.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suelo_80_nogal.webp",
+   "sha256": "793b81f4e6117685cfe1bfb30ecad2ef54f6aee183263befa36df4389991b59a",
+   "bytes": 130580,
+   "triangles": 8336,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    475,
+    1046
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    460,
+    1045
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suelo",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "nogal",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e977f9b9814684bfb98250b3615082e7b259c193d40827f979b6b6258194c0b5",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_100": {
+   "file": "mueble_lavabo_suspendido_100.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_100.webp",
+   "sha256": "daced152fead4ca0777193f210e7a22d6f15b4b558b5e3a65bdd324e58708278",
+   "bytes": 63072,
+   "triangles": 7448,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1000,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1000,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b009c94d9df70c454bfb9c7efd73ee96183442cb2bf53ca5826e8914af1bf469",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_120": {
+   "file": "mueble_lavabo_suspendido_120.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_120.webp",
+   "sha256": "74e116a8e505df876d9cad061ce61f11fa4dd229b0cdaaaebf2e6fde384cb4d5",
+   "bytes": 69708,
+   "triangles": 8192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    1200,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7f217a11b1bd5e562704a3e3862148f08c62a3cef9b5b33c0b1a7b4d4915953c",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_60": {
+   "file": "mueble_lavabo_suspendido_60.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_60.webp",
+   "sha256": "e66409ceab3f9b7ddd8bfb2ab612d766ef45f83866e8c43e440deee3e7be258a",
+   "bytes": 64704,
+   "triangles": 7536,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    475,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    600,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a25947ba2dd8f712308e2c38ee2fa0bf8e1b6d93222e6f06fe0718e7d8d26df0",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_80": {
+   "file": "mueble_lavabo_suspendido_80.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_80.webp",
+   "sha256": "d8a3bc90883869e4adecdef6951ce09f98e036d13164179fa391f87ec8131dc3",
+   "bytes": 64388,
+   "triangles": 7536,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    800,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "lacado-blanco",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8221a8964291ea5b56f3ea1427b733a515e56d3808c864f8a470cd6829d8acbd",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_80_gris": {
+   "file": "mueble_lavabo_suspendido_80_gris.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_80_gris.webp",
+   "sha256": "f91d632a77cde54d60a93ec0d945ab949201fcbdcd5c8cf52d0382167dd1336a",
+   "bytes": 64412,
+   "triangles": 7536,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    800,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "bano-lacado-gris",
+    "tirador": "cromo",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5f97abefb5a89b13859f608f8efc42197e9d8d14351b5fcc59a430013f5528b3",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_80_nogal": {
+   "file": "mueble_lavabo_suspendido_80_nogal.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_80_nogal.webp",
+   "sha256": "dc03742fcce1c431d3c33b261cd54d791518748c13a520f57d4cd5da8560b1b7",
+   "bytes": 122952,
+   "triangles": 7536,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    800,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "nogal",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "09b9ff6fa1dfbb9d912f6ee1c340f350698d5348ba3dc09bae179aba96642050",
+   "builtAt": "2026-10-05"
+  },
+  "mueble_lavabo_suspendido_80_roble": {
+   "file": "mueble_lavabo_suspendido_80_roble.glb",
+   "thumbnail": "thumbs/mueble_lavabo_suspendido_80_roble.webp",
+   "sha256": "3b9ff7cd7372718bbb21518496dc8141625f0d91e1b50680253215c438be88c9",
+   "bytes": 158140,
+   "triangles": 7536,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    476,
+    696
+   ],
+   "elevationMm": 350,
+   "specDimensionsMm": [
+    800,
+    460,
+    695
+   ],
+   "family": "bano",
+   "type": "vanity",
+   "params": {
+    "mount": "suspendido",
+    "bowls": 1
+   },
+   "finishes": {
+    "carcasa": "roble",
+    "tirador": "metal-negro",
+    "ceramica": "bano-ceramica-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2d1157c48a703e47b714458f38583a285e09db4b15efc6429319bceaba1c3f96",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_70x120": {
+   "file": "plato_ducha_70x120.glb",
+   "thumbnail": "thumbs/plato_ducha_70x120.webp",
+   "sha256": "81b38c2fae3d909fc8e1392043583b11c4014e8f1d135b5cc6c23c9cb39d3f10",
+   "bytes": 188760,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    700,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    700,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3188ca73e1d95a0096c4aa0176db017aa29d7e21cfbf32cfdbdeb03d99de42fe",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_80x140": {
+   "file": "plato_ducha_80x140.glb",
+   "thumbnail": "thumbs/plato_ducha_80x140.webp",
+   "sha256": "d4f46353446171ec653544ee2dc304f3582bff450d3a87e3919bf4a6d27f703a",
+   "bytes": 188632,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a9e7ecf719a5692ff33005d5c133b4ecab1fa39228caa883558e789b07f7cb75",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_80x140_antracita": {
+   "file": "plato_ducha_80x140_antracita.glb",
+   "thumbnail": "thumbs/plato_ducha_80x140_antracita.webp",
+   "sha256": "0d491cc47626805dcc244e3a056d6c76a6033685039289e31f189acb05b35aa1",
+   "bytes": 190996,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-antracita",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "798ec270435bfeefe278a316d4bee6e22b25c96b814d0865991a5a35cbd9c1ce",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_80x140_gris": {
+   "file": "plato_ducha_80x140_gris.glb",
+   "thumbnail": "thumbs/plato_ducha_80x140_gris.webp",
+   "sha256": "d5a53ec573b5848cffe055a3330e86e09928758a50f82dc0cae00b54e2992283",
+   "bytes": 190732,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-gris",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "de404f79a2792f4501b4ea99ba39140cfc5247157af4f1ddb120a1eed3f678d2",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_80x160": {
+   "file": "plato_ducha_80x160.glb",
+   "thumbnail": "thumbs/plato_ducha_80x160.webp",
+   "sha256": "3bdf8ac5cd1b8ecd3d48d61185e7c05ab7faf96e875c7df82912d5dfeefe5f34",
+   "bytes": 188648,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1600,
+    800,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    800,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "804c265ab79e6b8d7c9c30817756b289590bac05e22a34b4177bde8f64bbfb11",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_80x80": {
+   "file": "plato_ducha_80x80.glb",
+   "thumbnail": "thumbs/plato_ducha_80x80.webp",
+   "sha256": "06d202c2179c6efd738ed5416840898d25b280bba4ebf8222647b0c04bdaa69d",
+   "bytes": 188556,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    800,
+    800,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    800,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1aaf3d3a7fee59169acead28ca9c02ea4138546dcb6287dd312488391207e50f",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_90x180": {
+   "file": "plato_ducha_90x180.glb",
+   "thumbnail": "thumbs/plato_ducha_90x180.webp",
+   "sha256": "16f51182ef5091a329249b973346f8b3a97423bfd2cf64c59907c8babab5581c",
+   "bytes": 188692,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    900,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "30f32ae5c90c8abad8809dc6115cf3461069fda4fe70b4356d7bab23ad55689e",
+   "builtAt": "2026-10-05"
+  },
+  "plato_ducha_90x90": {
+   "file": "plato_ducha_90x90.glb",
+   "thumbnail": "thumbs/plato_ducha_90x90.webp",
+   "sha256": "2008d14b1d1a40ba698c1e133bc9c4f88bd179efb46b8ac971ca374cd9be578f",
+   "bytes": 188592,
+   "triangles": 408,
+   "texturePx": 512,
+   "dimensionsMm": [
+    900,
+    900,
+    30
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    30
+   ],
+   "family": "bano",
+   "type": "shower_tray",
+   "params": {},
+   "finishes": {
+    "plato": "bano-resina-blanca",
+    "griferia": "cromo"
+   },
+   "textures": [
+    "bano-pizarra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "83595a28620cd4afefb0dd50c3fd21ccffefcdb643378cda489489c5086a5e58",
+   "builtAt": "2026-10-05"
+  },
+  "portarrollos_cromo": {
+   "file": "portarrollos_cromo.glb",
+   "thumbnail": "thumbs/portarrollos_cromo.webp",
+   "sha256": "242f94904324c63ed237b8f10434c2be4a1e2795e44328837d25cd51925174a0",
+   "bytes": 14356,
+   "triangles": 1152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    164,
+    117,
+    157
+   ],
+   "elevationMm": 600,
+   "specDimensionsMm": [
+    170,
+    120,
+    160
+   ],
+   "family": "bano",
+   "type": "paper_holder",
+   "params": {},
+   "finishes": {
+    "griferia": "cromo",
+    "papel": "bano-papel"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cf84e22bdb8b80c6d23a535eeb79915c914de5639f564434bbd96d0d04f3b337",
+   "builtAt": "2026-10-05"
+  },
+  "portarrollos_negro": {
+   "file": "portarrollos_negro.glb",
+   "thumbnail": "thumbs/portarrollos_negro.webp",
+   "sha256": "72879fe7ecd0d63dca742ec52729ac29ce83f14ad5bcfa9cd1ac414063189120",
+   "bytes": 14400,
+   "triangles": 1152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    164,
+    117,
+    157
+   ],
+   "elevationMm": 600,
+   "specDimensionsMm": [
+    170,
+    120,
+    160
+   ],
+   "family": "bano",
+   "type": "paper_holder",
+   "params": {},
+   "finishes": {
+    "griferia": "metal-negro",
+    "papel": "bano-papel"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6e9ddcfbb5d0ed819a0529112345d2db3c9860570a24f8a603fa9537b335a277",
+   "builtAt": "2026-10-05"
+  },
+  "radiador_toallero_50x120": {
+   "file": "radiador_toallero_50x120.glb",
+   "thumbnail": "thumbs/radiador_toallero_50x120.webp",
+   "sha256": "512bf9d6cd8c6ac8de37727aec33bca061fbd7cce1744b2f2f1e444b464b185a",
+   "bytes": 26328,
+   "triangles": 2200,
+   "texturePx": 512,
+   "dimensionsMm": [
+    520,
+    88,
+    1308
+   ],
+   "elevationMm": 42,
+   "specDimensionsMm": [
+    500,
+    85,
+    1310
+   ],
+   "family": "bano",
+   "type": "towel_radiator",
+   "params": {},
+   "finishes": {
+    "estructura": "lacado-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "46320fb1f413817047fba0010617db05194b281b3bc9ec83d7900f6a2672b6d9",
+   "builtAt": "2026-10-05"
+  },
+  "radiador_toallero_50x120_cromo": {
+   "file": "radiador_toallero_50x120_cromo.glb",
+   "thumbnail": "thumbs/radiador_toallero_50x120_cromo.webp",
+   "sha256": "e5d5d636e59db1950c2610927f3ff7ffda1e5ff68019c70ca3a5e3312369ccf9",
+   "bytes": 26180,
+   "triangles": 2200,
+   "texturePx": 512,
+   "dimensionsMm": [
+    520,
+    88,
+    1308
+   ],
+   "elevationMm": 42,
+   "specDimensionsMm": [
+    500,
+    85,
+    1310
+   ],
+   "family": "bano",
+   "type": "towel_radiator",
+   "params": {},
+   "finishes": {
+    "estructura": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "db5072d56f87b023cd742ee3b22d86054fa874a0840a8484f67d3d41e9d4100e",
+   "builtAt": "2026-10-05"
+  },
+  "toallero_barra_60": {
+   "file": "toallero_barra_60.glb",
+   "thumbnail": "thumbs/toallero_barra_60.webp",
+   "sha256": "6468a621da4cf9a30361703fb6faa8f743f16f2cb927e48e7ca6fedfa32127d5",
+   "bytes": 64452,
+   "triangles": 2812,
+   "texturePx": 512,
+   "dimensionsMm": [
+    598,
+    112,
+    447
+   ],
+   "elevationMm": 692,
+   "specDimensionsMm": [
+    600,
+    100,
+    450
+   ],
+   "family": "bano",
+   "type": "towel_bar",
+   "params": {},
+   "finishes": {
+    "griferia": "cromo",
+    "toalla": "algodon-gris"
+   },
+   "textures": [
+    "algodon"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e1a1ccb29a842e4ba1c6dac916fcf1a101034680d8f8ca603e7533ed6c4c120e",
+   "builtAt": "2026-10-05"
+  },
+  "toallero_barra_60_negro": {
+   "file": "toallero_barra_60_negro.glb",
+   "thumbnail": "thumbs/toallero_barra_60_negro.webp",
+   "sha256": "2c35702abb1eae9be8e7d65435d208a5e65aac28d03c1b317d69554fcef186d3",
+   "bytes": 64204,
+   "triangles": 2812,
+   "texturePx": 512,
+   "dimensionsMm": [
+    598,
+    112,
+    447
+   ],
+   "elevationMm": 692,
+   "specDimensionsMm": [
+    600,
+    100,
+    450
+   ],
+   "family": "bano",
+   "type": "towel_bar",
+   "params": {},
+   "finishes": {
+    "griferia": "metal-negro",
+    "toalla": "algodon-blanco"
+   },
+   "textures": [
+    "algodon"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b566e0f25e128c90ab1066777a7ce9414b12a66ce26e55997349eab514d5bf21",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "algodon": {
+   "source": "polyhaven",
+   "id": "cotton_jersey",
+   "title": "Cotton Jersey",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/cotton_jersey",
+   "license": "CC0-1.0",
+   "sizeMm": 264,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg",
+     "bytes": 581360,
+     "md5": "d2f4493fdd48634b50d40f810ce9deb7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg",
+     "bytes": 678670,
+     "md5": "2dcc9dda3b726477f607c808e52f1833"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_rough_1k.jpg",
+     "bytes": 865264,
+     "md5": "ac691d215d3aca34dcd6ea2d03937286"
+    }
+   ]
+  },
+  "bano-pizarra": {
+   "source": "ambientcg",
+   "id": "Rock035",
+   "title": "Rock 035",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Rock035",
+   "license": "CC0-1.0",
+   "sizeMm": 700,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Rock035_1K-JPG.zip",
+     "bytes": 9547643,
+     "sha256": "c5e4dbd7d5555734498834c1e09b799ef3d1f00c61fe08c0d953b93a8fb1bb95"
+    }
+   ]
+  },
+  "marmol_blanco": {
+   "source": "ambientcg",
+   "id": "Marble021",
+   "title": "Marble 021",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Marble021",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Marble021_1K-JPG.zip",
+     "bytes": 4141632,
+     "sha256": "7e75982560079476f6051666985553deb3eb77b07d2923a12d0665733b8f043e"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  }
+ }
+}

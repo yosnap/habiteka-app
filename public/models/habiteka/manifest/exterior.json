@@ -1,0 +1,1103 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia exterior) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "exterior",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "conjunto_chillout_gris": {
+   "file": "conjunto_chillout_gris.glb",
+   "thumbnail": "thumbs/conjunto_chillout_gris.webp",
+   "sha256": "b40772fcd622533f5f8969276bf0da8e2b55c04eaa12d3952ad3ea516ad59803",
+   "bytes": 1235100,
+   "triangles": 20304,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2400,
+    2000,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2400,
+    2000,
+    650
+   ],
+   "family": "exterior",
+   "type": "chillout",
+   "params": {},
+   "finishes": {
+    "trenzado": "ratan-gris",
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_trenzado",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "01f19c272806021920c91439ae0978ffb83d7bc0746e9682375c4ddc9026c0d0",
+   "builtAt": "2026-10-05"
+  },
+  "conjunto_chillout_natural": {
+   "file": "conjunto_chillout_natural.glb",
+   "thumbnail": "thumbs/conjunto_chillout_natural.webp",
+   "sha256": "11249b6c9a777b49a0cff13ccc263b047deb63570992539caf2da723dacdcd63",
+   "bytes": 1010568,
+   "triangles": 20304,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2400,
+    2000,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2400,
+    2000,
+    650
+   ],
+   "family": "exterior",
+   "type": "chillout",
+   "params": {},
+   "finishes": {
+    "trenzado": "ratan-natural",
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_natural",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "532dc7d3e20a60aa7b88ea0f5b5a0739492e42502fcefe4efbaa05f393cf33a6",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_aluminio_exterior_antracita": {
+   "file": "mesa_aluminio_exterior_antracita.glb",
+   "thumbnail": "thumbs/mesa_aluminio_exterior_antracita.webp",
+   "sha256": "d9851b3242af0f89d9deaef3035572b8d163e79917d975ac46e671f60d08cd73",
+   "bytes": 17992,
+   "triangles": 1580,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    871,
+    740
+   ],
+   "specDimensionsMm": [
+    1600,
+    900,
+    740
+   ],
+   "family": "exterior",
+   "type": "slat_table",
+   "params": {
+    "frame": "estructura"
+   },
+   "finishes": {
+    "sobre": "aluminio-antracita",
+    "estructura": "aluminio-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b9daab0e9152166bc9341a701174feda05834ec3e4aa61e9f99d5b28c31c5a51",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_aluminio_exterior_blanca": {
+   "file": "mesa_aluminio_exterior_blanca.glb",
+   "thumbnail": "thumbs/mesa_aluminio_exterior_blanca.webp",
+   "sha256": "e46c901aae44e05216208e3b996293e20f050c611f5dbdad25dac4de6bcdf29e",
+   "bytes": 18000,
+   "triangles": 1580,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    871,
+    740
+   ],
+   "specDimensionsMm": [
+    1600,
+    900,
+    740
+   ],
+   "family": "exterior",
+   "type": "slat_table",
+   "params": {
+    "frame": "estructura"
+   },
+   "finishes": {
+    "sobre": "aluminio-blanco",
+    "estructura": "aluminio-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b36ca88761859af9e31d8174a1c6d496ace1cd9b4d4a50d1436d52bd3a04deeb",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_centro_exterior_ratan": {
+   "file": "mesa_centro_exterior_ratan.glb",
+   "thumbnail": "thumbs/mesa_centro_exterior_ratan.webp",
+   "sha256": "58e3c17c7e4c7f20f4889a3aeabdf4f68a0056716eb40137b8cfca9297fc2f12",
+   "bytes": 173984,
+   "triangles": 296,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    900,
+    900,
+    330
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    330
+   ],
+   "family": "exterior",
+   "type": "coffee_rattan",
+   "params": {},
+   "finishes": {
+    "sobre": "cristal",
+    "trenzado": "ratan-natural"
+   },
+   "textures": [
+    "ratan_natural"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "80f6f568564bc08526157ceb17cbd22948ec0db0f05559db9274a2f53762c08e",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_centro_exterior_teca": {
+   "file": "mesa_centro_exterior_teca.glb",
+   "thumbnail": "thumbs/mesa_centro_exterior_teca.webp",
+   "sha256": "e72136d569201e9b58f1a2679dedfadd3a68c0ec0e5b69223b8b6bf6f796d426",
+   "bytes": 316168,
+   "triangles": 1476,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    571,
+    350
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    600,
+    350
+   ],
+   "family": "exterior",
+   "type": "slat_table",
+   "params": {},
+   "finishes": {
+    "sobre": "teca",
+    "madera": "teca"
+   },
+   "textures": [
+    "teca"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "753069b18ce4a723606568b01c0b30cd23e914c606881494dffcb17990c57510",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_teca_exterior_180": {
+   "file": "mesa_teca_exterior_180.glb",
+   "thumbnail": "thumbs/mesa_teca_exterior_180.webp",
+   "sha256": "61b76c0b0fb5e5bc61ad9ccadff89e175bd89d9e5bb4844abe402c2afec13a72",
+   "bytes": 315328,
+   "triangles": 1580,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    871,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    750
+   ],
+   "family": "exterior",
+   "type": "slat_table",
+   "params": {},
+   "finishes": {
+    "sobre": "teca",
+    "madera": "teca"
+   },
+   "textures": [
+    "teca"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8e13eb6c391f8f726829b12a20faf1b93b11fe47e44b76c0eb42be0fd6c1b813",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_teca_exterior_220": {
+   "file": "mesa_teca_exterior_220.glb",
+   "thumbnail": "thumbs/mesa_teca_exterior_220.webp",
+   "sha256": "e608f5c493b388f4d51bac772cff8f1c274213434966e3cbd690572e0a4f7d5b",
+   "bytes": 316808,
+   "triangles": 1688,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2200,
+    971,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    1000,
+    750
+   ],
+   "family": "exterior",
+   "type": "slat_table",
+   "params": {},
+   "finishes": {
+    "sobre": "teca",
+    "madera": "teca"
+   },
+   "textures": [
+    "teca"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2f4e19b89c765e03c1246ace3ef06b3b4d3562025ddd28349471b61f461d6fe7",
+   "builtAt": "2026-10-05"
+  },
+  "silla_apilable_antracita": {
+   "file": "silla_apilable_antracita.glb",
+   "thumbnail": "thumbs/silla_apilable_antracita.webp",
+   "sha256": "b371132a1cc5475ba69ee9139974c20a48b1023991f8c0dd236f664297fdf5fc",
+   "bytes": 26428,
+   "triangles": 3192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    521,
+    512,
+    750
+   ],
+   "specDimensionsMm": [
+    540,
+    530,
+    800
+   ],
+   "family": "exterior",
+   "type": "chair_stack",
+   "params": {},
+   "finishes": {
+    "carcasa": "polipropileno-antracita"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "02b343abbe7e01390418be515447ba9a74c0b61f70cba3499890021af4d3ac94",
+   "builtAt": "2026-10-05"
+  },
+  "silla_apilable_blanca": {
+   "file": "silla_apilable_blanca.glb",
+   "thumbnail": "thumbs/silla_apilable_blanca.webp",
+   "sha256": "f0e0660eafc7a409b0b328301496179eaf87ec42b890b1121c72d852799ecc64",
+   "bytes": 26416,
+   "triangles": 3192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    521,
+    512,
+    750
+   ],
+   "specDimensionsMm": [
+    540,
+    530,
+    800
+   ],
+   "family": "exterior",
+   "type": "chair_stack",
+   "params": {},
+   "finishes": {
+    "carcasa": "polipropileno-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6e79c17e4ff6a175b7935d583011ceded5a66913957e76b08acbb60cf9c0b4b2",
+   "builtAt": "2026-10-05"
+  },
+  "silla_apilable_salvia": {
+   "file": "silla_apilable_salvia.glb",
+   "thumbnail": "thumbs/silla_apilable_salvia.webp",
+   "sha256": "9f2146c497fc5548c7399fc2d5cffb26c0974a1353c0ae3fc6684d74b642bb93",
+   "bytes": 26420,
+   "triangles": 3192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    521,
+    512,
+    750
+   ],
+   "specDimensionsMm": [
+    540,
+    530,
+    800
+   ],
+   "family": "exterior",
+   "type": "chair_stack",
+   "params": {},
+   "finishes": {
+    "carcasa": "polipropileno-salvia"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4a21df1cb47638418a23ebc11b41e4447ee85c79f6fbd8a841e2b83603d381eb",
+   "builtAt": "2026-10-05"
+  },
+  "silla_cuerda_aluminio": {
+   "file": "silla_cuerda_aluminio.glb",
+   "thumbnail": "thumbs/silla_cuerda_aluminio.webp",
+   "sha256": "eb72513098044dcd4daf7d554b0d2b46d3ea35e7fa654882c2be923c2a1d28e8",
+   "bytes": 117088,
+   "triangles": 2340,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    640,
+    749
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    620,
+    780
+   ],
+   "family": "exterior",
+   "type": "chair_rope",
+   "params": {},
+   "finishes": {
+    "estructura": "aluminio-antracita",
+    "cuerda": "cuerda-gris"
+   },
+   "textures": [
+    "cuerda"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3339c44eb67f83dca159c9c10fb7a84d21fc70804a1263056406e7d78d7978f6",
+   "builtAt": "2026-10-05"
+  },
+  "silla_cuerda_teca": {
+   "file": "silla_cuerda_teca.glb",
+   "thumbnail": "thumbs/silla_cuerda_teca.webp",
+   "sha256": "8ad5fa4ca67690d4b2559c943b7198a9beb156231242e9e6fa21b20243edabc3",
+   "bytes": 176444,
+   "triangles": 2340,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    640,
+    749
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    620,
+    780
+   ],
+   "family": "exterior",
+   "type": "chair_rope",
+   "params": {},
+   "finishes": {
+    "estructura": "teca",
+    "cuerda": "cuerda-beige"
+   },
+   "textures": [
+    "cuerda",
+    "teca"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0a0183e6a2e2a0f9f04c6380f0bd74351a04b66c6b603cf9cd4d48452f76f95f",
+   "builtAt": "2026-10-05"
+  },
+  "silla_metalica_exterior_blanca": {
+   "file": "silla_metalica_exterior_blanca.glb",
+   "thumbnail": "thumbs/silla_metalica_exterior_blanca.webp",
+   "sha256": "c0727f8a9e727429be1cc4bccd42195202c32018f4ab7d4c09998f40267e7fe2",
+   "bytes": 9812,
+   "triangles": 792,
+   "texturePx": 512,
+   "dimensionsMm": [
+    516,
+    511,
+    823
+   ],
+   "specDimensionsMm": [
+    440,
+    500,
+    850
+   ],
+   "family": "exterior",
+   "type": "chair_metal",
+   "params": {},
+   "finishes": {
+    "estructura": "aluminio-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "06f2a68cfc36d572b0e009ed3b96e7ee3c5d6bbf13fc1dae177ae0874bc8a697",
+   "builtAt": "2026-10-05"
+  },
+  "silla_metalica_exterior_verde": {
+   "file": "silla_metalica_exterior_verde.glb",
+   "thumbnail": "thumbs/silla_metalica_exterior_verde.webp",
+   "sha256": "ebce20e981bbce08306829c9a14fcbe1e4e5ab5ba26088c694f2b9aef745705f",
+   "bytes": 9812,
+   "triangles": 792,
+   "texturePx": 512,
+   "dimensionsMm": [
+    516,
+    511,
+    823
+   ],
+   "specDimensionsMm": [
+    440,
+    500,
+    850
+   ],
+   "family": "exterior",
+   "type": "chair_metal",
+   "params": {},
+   "finishes": {
+    "estructura": "lacado-verde"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4da65cbaa82d159b4ccd291f2865197ef91c5ff5eb004f4ab3b7a93bab385dc8",
+   "builtAt": "2026-10-05"
+  },
+  "silla_ratan_moca": {
+   "file": "silla_ratan_moca.glb",
+   "thumbnail": "thumbs/silla_ratan_moca.webp",
+   "sha256": "df0a9978d6b2488ed9097762751d3cf65dc486cfec21200195a895537ccfd761",
+   "bytes": 222284,
+   "triangles": 3628,
+   "texturePx": 512,
+   "dimensionsMm": [
+    555,
+    548,
+    841
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    560,
+    580,
+    860
+   ],
+   "family": "exterior",
+   "type": "chair_rattan",
+   "params": {},
+   "finishes": {
+    "trenzado": "ratan-oscuro",
+    "estructura": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_oscuro"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e0f126b2894878e93bbaee0fdd08c8193b3e71c7d690db75a028ae7774a6e1a1",
+   "builtAt": "2026-10-05"
+  },
+  "silla_ratan_natural": {
+   "file": "silla_ratan_natural.glb",
+   "thumbnail": "thumbs/silla_ratan_natural.webp",
+   "sha256": "18bfe58df1e0f1fde9beac7e0fccd056c80a5f08e312b24627382e93753db1d7",
+   "bytes": 112136,
+   "triangles": 3628,
+   "texturePx": 512,
+   "dimensionsMm": [
+    555,
+    548,
+    841
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    560,
+    580,
+    860
+   ],
+   "family": "exterior",
+   "type": "chair_rattan",
+   "params": {},
+   "finishes": {
+    "trenzado": "ratan-natural",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "ratan_natural"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b505f2a8eea1838b4d4aa0cd3d50facff1e015ddd89f7f4874676291c45b5596",
+   "builtAt": "2026-10-05"
+  },
+  "sillon_ratan_gris": {
+   "file": "sillon_ratan_gris.glb",
+   "thumbnail": "thumbs/sillon_ratan_gris.webp",
+   "sha256": "fb83a18eaada6513446994c8e5ad8683db38c5214a7fb944ea426a546e8b9c8f",
+   "bytes": 350924,
+   "triangles": 4448,
+   "texturePx": 512,
+   "dimensionsMm": [
+    850,
+    866,
+    763
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    850,
+    780
+   ],
+   "family": "exterior",
+   "type": "sofa_rattan",
+   "params": {
+    "seats": 1
+   },
+   "finishes": {
+    "trenzado": "ratan-gris",
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_trenzado",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4cb226472d0abc7ad41b7baa62be1d7fcb5d77c0254a221f5a3b7374097ca319",
+   "builtAt": "2026-10-05"
+  },
+  "sillon_ratan_moca": {
+   "file": "sillon_ratan_moca.glb",
+   "thumbnail": "thumbs/sillon_ratan_moca.webp",
+   "sha256": "e8185cd4f1e7bb6103211af020b2e467653c8d2896938ee6f8349e9b085e0bd0",
+   "bytes": 360640,
+   "triangles": 4448,
+   "texturePx": 512,
+   "dimensionsMm": [
+    850,
+    866,
+    763
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    850,
+    780
+   ],
+   "family": "exterior",
+   "type": "sofa_rattan",
+   "params": {
+    "seats": 1
+   },
+   "finishes": {
+    "trenzado": "ratan-oscuro",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_oscuro",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "aef87f09c3878bdbbd337abceeacacde662edc187d9ac1b84ea6d5675df9de06",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_aluminio_antracita": {
+   "file": "sofa_aluminio_antracita.glb",
+   "thumbnail": "thumbs/sofa_aluminio_antracita.webp",
+   "sha256": "a998d96b0fa51742f61ff3a0ea0e7351f5876eebdbf889fa28db97d1ab75a310",
+   "bytes": 440640,
+   "triangles": 10712,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    825,
+    737
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    820,
+    740
+   ],
+   "family": "exterior",
+   "type": "sofa_aluminium",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "estructura": "aluminio-antracita",
+    "tapiceria": "tejido-exterior-gris"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1740c9732e14d85a54f33e8cabb2d25964f27f93d634830e39f1d52f4fe4061f",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_aluminio_blanco": {
+   "file": "sofa_aluminio_blanco.glb",
+   "thumbnail": "thumbs/sofa_aluminio_blanco.webp",
+   "sha256": "e5a8e6ff165dcdccec1599b1487fd305a62817cc17a389047c1762741b43469b",
+   "bytes": 438736,
+   "triangles": 10712,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    825,
+    737
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    820,
+    740
+   ],
+   "family": "exterior",
+   "type": "sofa_aluminium",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "estructura": "aluminio-blanco",
+    "tapiceria": "tejido-exterior-crudo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f2a5db90976eefe70b5a128b88e0b6914cff0b64bd667645f609a013b51f9ba0",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_ratan_2p": {
+   "file": "sofa_ratan_2p.glb",
+   "thumbnail": "thumbs/sofa_ratan_2p.webp",
+   "sha256": "5fb6473be3537bf1a534e687f0aa2798bc01f782536112fcd5cfe70d5f312827",
+   "bytes": 836724,
+   "triangles": 7968,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    866,
+    763
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    850,
+    780
+   ],
+   "family": "exterior",
+   "type": "sofa_rattan",
+   "params": {
+    "seats": 2
+   },
+   "finishes": {
+    "trenzado": "ratan-oscuro",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_oscuro",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2fef6311446f9eab56c413c8e0dc7a439c8b6d7823bf63dfad7c921f2aa4623f",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_ratan_3p": {
+   "file": "sofa_ratan_3p.glb",
+   "thumbnail": "thumbs/sofa_ratan_3p.webp",
+   "sha256": "c6c4fb1178f356970003bf36ff6f613b70e929aa58d885600d9ddc808aa6d295",
+   "bytes": 866576,
+   "triangles": 10624,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    866,
+    763
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    850,
+    780
+   ],
+   "family": "exterior",
+   "type": "sofa_rattan",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "trenzado": "ratan-oscuro",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_oscuro",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c2f9e6f5fe2ee07830cac742843b3ad0bd9fbc3e00121674dc9d9618c26cd546",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_ratan_3p_gris": {
+   "file": "sofa_ratan_3p_gris.glb",
+   "thumbnail": "thumbs/sofa_ratan_3p_gris.webp",
+   "sha256": "85c49f5478157c36f9a2cbe42925fc124581574862c973d5fe3162286385db27",
+   "bytes": 835352,
+   "triangles": 10624,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    866,
+    763
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    850,
+    780
+   ],
+   "family": "exterior",
+   "type": "sofa_rattan",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "trenzado": "ratan-gris",
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_trenzado",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f29dc2a0068b6fcb4f21f610f1b8693a0c5cd6c83e05318f5f893c7f96c1f434",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_teca_2p": {
+   "file": "sofa_teca_2p.glb",
+   "thumbnail": "thumbs/sofa_teca_2p.webp",
+   "sha256": "8677dbc4a653d5e5fd7d42cd1eab23f1ae3eced045485cb100ddcad2082df446",
+   "bytes": 724860,
+   "triangles": 8348,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1430,
+    844,
+    760
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    800,
+    800
+   ],
+   "family": "exterior",
+   "type": "sofa_teak",
+   "params": {
+    "seats": 2
+   },
+   "finishes": {
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-gris"
+   },
+   "textures": [
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0174df52ab1c07234edd475db49386dfb99e966e8a0fad62eb4e1fb196b699b1",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_teca_3p": {
+   "file": "sofa_teca_3p.glb",
+   "thumbnail": "thumbs/sofa_teca_3p.webp",
+   "sha256": "62ff706739a40c612c26df3ee57a7f0a16979af0973ed81a3d2cd8b5ce76551c",
+   "bytes": 762428,
+   "triangles": 11380,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1930,
+    844,
+    760
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1900,
+    800,
+    800
+   ],
+   "family": "exterior",
+   "type": "sofa_teak",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-crudo"
+   },
+   "textures": [
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3fc8008bf54eb980604f81bffecefed9c972ba680a4fbb3bbd5dd0c5c616cff8",
+   "builtAt": "2026-10-05"
+  },
+  "tumbona_aluminio": {
+   "file": "tumbona_aluminio.glb",
+   "thumbnail": "thumbs/tumbona_aluminio.webp",
+   "sha256": "8016dbfb9e6e3b42ae9d4a65d56b295814f906346021107cec4af5155ef002d2",
+   "bytes": 395632,
+   "triangles": 7480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    760,
+    1940,
+    810
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    1950,
+    860
+   ],
+   "family": "exterior",
+   "type": "lounger",
+   "params": {
+    "frame": "estructura"
+   },
+   "finishes": {
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "metal-negro",
+    "estructura": "aluminio-blanco"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "27c8ed34208759225572c51c04c538ef7578119cbcb06ba3c8c9d57a3ad8bd84",
+   "builtAt": "2026-10-05"
+  },
+  "tumbona_teca": {
+   "file": "tumbona_teca.glb",
+   "thumbnail": "thumbs/tumbona_teca.webp",
+   "sha256": "6d314b67c49b7742483f951a654bea80c097c5eb70cd540240fe0f8386e5c0f8",
+   "bytes": 696448,
+   "triangles": 7480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    760,
+    1940,
+    810
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    1950,
+    860
+   ],
+   "family": "exterior",
+   "type": "lounger",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f1830d10a1131b6f50c6a88fc4f838f7029326b9d089035d9cd851ece7e015e1",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "cuerda": {
+   "source": "ambientcg",
+   "id": "Rope001",
+   "title": "Rope 001",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Rope001",
+   "license": "CC0-1.0",
+   "sizeMm": 160,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Rope001_1K-JPG.zip",
+     "bytes": 4226862,
+     "sha256": "0f4daf2c2720b9bd910369cab753090b0ad6560435526ec5aaab293bae5fdbfc"
+    }
+   ]
+  },
+  "ratan_natural": {
+   "source": "ambientcg",
+   "id": "Wicker013",
+   "title": "Wicker 013",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker013",
+   "license": "CC0-1.0",
+   "sizeMm": 500,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker013_1K-JPG.zip",
+     "bytes": 7589296,
+     "sha256": "c5a716e57e20a6f785342a2725cfec25a62b27f808dea76bcd878002b8a921e0"
+    }
+   ]
+  },
+  "ratan_oscuro": {
+   "source": "ambientcg",
+   "id": "Wicker006",
+   "title": "Wicker 006",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker006",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker006_1K-JPG.zip",
+     "bytes": 8971017,
+     "sha256": "79929a0e7d4c0e568cfaca66474f6c8d12322ae8da32cb713fd7548c66679c71"
+    }
+   ]
+  },
+  "ratan_trenzado": {
+   "source": "ambientcg",
+   "id": "Wicker002",
+   "title": "Wicker 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker002",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker002_1K-JPG.zip",
+     "bytes": 8737377,
+     "sha256": "86f94873dafbca88468d9632376be29630eaea989111e9fca4f692a1b1466d78"
+    }
+   ]
+  },
+  "teca": {
+   "source": "polyhaven",
+   "id": "teak_veneer",
+   "title": "Teak Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/teak_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_diff_1k.jpg",
+     "bytes": 612194,
+     "md5": "0ca1914271448bcec9989ccaf46ea6b8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_nor_gl_1k.jpg",
+     "bytes": 410625,
+     "md5": "7c7d3c362775233d89523b44e5771c73"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_rough_1k.jpg",
+     "bytes": 731629,
+     "md5": "bc875070660548e52189959794f23f1b"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  }
+ }
+}

@@ -8,6 +8,7 @@ import { wallPath } from './wall-path';
 import { rampParts } from './ramp-route';
 import { localToWorld, worldToLocal } from './spatial-properties';
 import { stairLayout } from './stair-layout';
+import { isPorch, isPorchAddon, porchFloorAt } from './porch-volumes';
 
 export const CAMERA_CLEARANCE_MM = 150;
 export interface WalkBlock {
@@ -27,6 +28,8 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
     doors: doc.openings.filter((o) => o.wallId === wall.id && o.kind !== 'ventana' &&
       (o.kind !== 'puerta' || (o.openAngleDeg ?? 90) >= 75)) }));
   const rampSurfaces = (doc.ramps ?? []).flatMap((ramp) => rampParts(ramp).map((part) => ({ ramp, part })));
+  const porches = doc.furniture.filter(isPorch);
+  const porchAt = (p: Point) => porches.map((item) => porchFloorAt(item, p)).find((surface) => surface !== null) ?? null;
   const roomAt = (p: Point) => rooms.find((room) => insideRoom(p, room.boundary));
   const roomFloorAt = (p: Point) => {
     const room = roomAt(p);
@@ -58,7 +61,8 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
       if (tread) return { id: stair.id, floorMm: stair.elevationMm + tread.heightMm,
         riseMm: stair.heightMm / stair.stepCount };
     }
-    return null;
+    const porch = porchAt(p);
+    return porch?.riseMm !== undefined ? { ...porch, riseMm: porch.riseMm } : null;
   };
   const rampAt = (p: Point) => {
     for (const { ramp, part } of rampSurfaces) {
@@ -87,13 +91,13 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
       .map((item) => ({ item, kind: 'furniture' as const })),
     ...(doc.columns ?? []).map((item) => ({ item, kind: 'column' as const })),
   ];
-  const floorAt = (p: Point) => stairAt(p)?.floorMm ?? rampAt(p) ??
+  const floorAt = (p: Point) => stairAt(p)?.floorMm ?? porchAt(p)?.floorMm ?? rampAt(p) ??
     roomFloorAt(p) ?? 0;
   const blockAt = (p: Point, eyeHeightMm = 1600): WalkBlock | null => {
     if (voids?.floor?.some((outline) => insideRoom(p, outline))) return { kind: 'floor-void', point: p };
     const room = roomAt(p);
     // Los umbrales de puerta pueden coincidir exactamente con el borde de dos estancias.
-    if (!room && rampAt(p) === null && stairAt(p) === null &&
+    if (!room && rampAt(p) === null && stairAt(p) === null && porchAt(p) === null &&
       !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) {
       const edge = rampSurfaces.find(({ ramp, part }) => {
         const local = rampLocalAt(ramp, part, p);
@@ -128,6 +132,7 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
       const angle = -item.rotation * Math.PI / 180, dx = p.x - item.x, dy = p.y - item.y;
       const x = dx * Math.cos(angle) - dy * Math.sin(angle), y = dx * Math.sin(angle) + dy * Math.cos(angle);
       const partIndex = volumes.findIndex((v) => {
+        if (isPorchAddon(v.part)) return false;
         const a = -(v.rotation ?? 0) * Math.PI / 180, dx = x - v.x, dy = y - v.y;
         const vx = dx * Math.cos(a) - dy * Math.sin(a), vy = dx * Math.sin(a) + dy * Math.cos(a);
         return v.top > floor + 100 && v.bottom < floor + eyeHeightMm + 100 &&

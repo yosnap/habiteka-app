@@ -25,6 +25,13 @@ const top = () => image(240, 120, (x, y) => x < 20 || x >= 220 || y < 20 || y >=
   : x < 120 ? [200, 30, 30] : [30, 30, 200]);
 
 describe('cenital aceptada adaptada a cada alzado', () => {
+  it('no confunde el jardín y el parking con la caja de la casa al recortar', async () => {
+    const plan = await image(240, 120, (x, y) => x < 120 ? [60, 120 + y % 20, 50] : [180, 180, 180]);
+    const guide: CameraRoomGuide = { rooms: [{ id: 'este', name: 'este', x: .5, y: .5 }] };
+    expect(await acceptedTopForView(plan, 'front', document, spatial, guide)).toBe(plan);
+    const fromRight = await raw((await acceptedTopForView(plan, 'right', document, spatial, guide)).base64);
+    expect([fromRight.info.width, fromRight.info.height]).toEqual([120, 240]);
+  });
   it('gira la cenital para que su borde inferior sea la fachada cortada', async () => {
     const plan = await image(4, 2, (x, y) => x === 0 && y === 0 ? [255, 0, 0] : [255, 255, 255]);
     const corner = { front: [0, 0], back: [3, 1], left: [0, 3], right: [1, 0] } as const;

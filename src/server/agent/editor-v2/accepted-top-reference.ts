@@ -47,6 +47,9 @@ async function houseBoxInImage(buffer: Buffer): Promise<{ box: Box; width: numbe
   const pixel = (x: number, y: number) => [0, 1, 2].map(channel => data[(y * info.width + x) * 3 + channel]!);
   const corners = [pixel(0, 0), pixel(info.width - 1, 0), pixel(0, info.height - 1), pixel(info.width - 1, info.height - 1)];
   const background = [0, 1, 2].map(channel => corners.map(corner => corner[channel]!).sort((a, b) => a - b)[1]!);
+  // Jardín, parking u ortofoto no son un fondo neutro. Sin encaje fiable, conservar toda la imagen aceptada.
+  if (corners.some(corner => corner.reduce((sum, channel, i) => sum + Math.abs(channel - background[i]!), 0) > 30)
+    || Math.max(...background) - Math.min(...background) > 25) return null;
   const columns = new Array<number>(info.width).fill(0), rows = new Array<number>(info.height).fill(0);
   for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
     const [r, g, b] = pixel(x, y);

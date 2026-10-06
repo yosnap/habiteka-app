@@ -4,7 +4,7 @@ import { exteriorRoofFootprints } from './exterior-roof-footprint';
 import { roofPrismGeometry } from './roof-prism-geometry';
 import { exteriorRoofWallClosures, type RoofWallClosure } from './exterior-roof-wall-closures';
 
-export interface RoofGeometry { positions: Float32Array; uvs: Float32Array; indices: Uint32Array; baseM: number; peakM: number; wallClosures: RoofWallClosure[]; }
+export interface RoofGeometry { positions: Float32Array; uvs: Float32Array; indices: Uint32Array; baseM: number; peakM: number; wallClosures: RoofWallClosure[]; glazing?: boolean; }
 
 /** Facetas recortadas por la huella real: mantiene retranqueos y huecos de patios. */
 export function exteriorRoofGeometry(doc: EditorDocument): RoofGeometry[] {
@@ -13,7 +13,8 @@ export function exteriorRoofGeometry(doc: EditorDocument): RoofGeometry[] {
   const angle = roof.orientationDeg * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle), slope = Math.tan(roof.pitchDeg * Math.PI / 180);
   return exteriorRoofFootprints(doc).map(footprint => {
     const polygon: Polygon = footprint.rings.map(ring => ring.map(p => [(p.x * c + p.y * s) / 1000, (-p.x * s + p.y * c) / 1000] as Pair));
-    const outer = polygon[0]!, minU = Math.min(...outer.map(p => p[0])), maxU = Math.max(...outer.map(p => p[0]));
+    const outer = footprint.slopeBoundary?.map(p => [(p.x * c + p.y * s) / 1000, (-p.x * s + p.y * c) / 1000] as Pair) ?? polygon[0]!;
+    const minU = Math.min(...outer.map(p => p[0])), maxU = Math.max(...outer.map(p => p[0]));
     const minV = Math.min(...outer.map(p => p[1])), maxV = Math.max(...outer.map(p => p[1])), midV = (minV + maxV) / 2;
     const w = maxU - minU, d = maxV - minV, baseM = footprint.baseMm / 1000, thickness = roof.thicknessMm / 1000;
     const top = (u: number, v: number) => baseM + thickness + (roof.kind === 'flat' ? 0
@@ -41,9 +42,9 @@ export function exteriorRoofGeometry(doc: EditorDocument): RoofGeometry[] {
       : cells.flatMap(cell => polygonClipping.intersection(polygon, [cell]));
     const world = (u: number, v: number): Pair => [u * c - v * s, u * s + v * c];
     const underside = (u: number, v: number) => top(u, v) - thickness;
-    const geometry = roofPrismGeometry(parts, world, top, underside);
+    const geometry = roofPrismGeometry(parts, world, top, footprint.glazing ? (u, v) => top(u, v) - .02 : underside);
     if (!geometry.positions.length) throw new Error('No se pudo construir la geometría del tejado. Revisa su huella.');
-    return { ...geometry, baseM, peakM: Math.max(...[...geometry.positions].filter((_, index) => index % 3 === 1)),
-      wallClosures: exteriorRoofWallClosures(doc, parts, (x, y) => [(x * c + y * s) / 1000, (-x * s + y * c) / 1000], world, underside) };
+    return { ...geometry, baseM, ...(footprint.glazing ? { glazing: true } : {}), peakM: Math.max(...[...geometry.positions].filter((_, index) => index % 3 === 1)),
+      wallClosures: footprint.glazing ? [] : exteriorRoofWallClosures(doc, parts, (x, y) => [(x * c + y * s) / 1000, (-x * s + y * c) / 1000], world, underside) };
   });
 }

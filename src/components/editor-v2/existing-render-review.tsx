@@ -9,7 +9,7 @@ export function ExistingRenderReview({ captures, disabled, labelAt, onReview }: 
 }) {
   const [index, setIndex] = useState(0), [dataUrl, setDataUrl] = useState(''), [error, setError] = useState('');
   return <details className="mt-4 space-y-3 rounded-control border border-line p-3">
-    <summary className="cursor-pointer text-sm font-semibold">Opcional: subir un PNG existente para revisarlo</summary>
+    <summary className="cursor-pointer text-sm font-semibold">Opcional: revisar un PNG externo</summary>
     <p className="text-xs text-ink-soft">Esta herramienta no indica que se haya generado una imagen. Úsala solo si ya tienes un PNG guardado: súbelo, elige la vista de referencia correspondiente y pulsa Revisar y guardar. No es necesario para generar nuevas imágenes. Solo se guarda si pasa la revisión; después podrás decidir si aceptas el diseño. La revisión visual con IA tiene coste; no se genera otra imagen.</p>
     <div className="flex flex-wrap gap-2">{captures.map((capture, i) => <button key={`${capture.view.preset}-${i}`} type="button" disabled={disabled} aria-pressed={index === i}
       className="rounded-control border border-line px-3 py-2 text-xs aria-pressed:bg-brand-50" onClick={() => setIndex(i)}>{labelAt(i)}</button>)}</div>

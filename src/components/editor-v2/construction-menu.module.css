@@ -13,4 +13,11 @@
 .outdoorFilters { display: grid; gap: 16px; min-width: 0; }
 .outdoorFilters label { display: grid; gap: 8px; min-width: 0; font-size: .8125rem; color: var(--muted); }
 .outdoorFilters input, .outdoorFilters [role='combobox'] { width: 100%; min-width: 0; }
+.gardenSection { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.gardenSection summary { cursor: pointer; font-weight: 650; }
+.gardenSection p { font-size: .8125rem; line-height: 1.5; margin-block: 10px; color: var(--muted); }
+.gardenSection label { display: grid; gap: 6px; margin-top: 12px; font-size: .8125rem; }
+.gardenSection input[type='number'] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.gardenSection input[type='checkbox'] { width: auto; }
+.gardenSection button { margin-top: 10px; }
 @media (max-width: 800px) { .panel.panel { top: 84px; left: 8px; bottom: 8px; width: calc(100% - 16px); } }

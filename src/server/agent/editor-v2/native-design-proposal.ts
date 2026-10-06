@@ -3,16 +3,20 @@ import { scopedDesignFixtures, validateFixedFinishes } from '@/lib/editor-docume
 import { estiloDescripcion, estiloLabel } from '@/lib/design-options';
 import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { getFurnitureCatalogEntry, FURNITURE_CATALOG } from '@/lib/editor-document/furniture-catalog';
+import { HABITEKA_SMALLER, listedForProposal } from '@/lib/editor-document/habiteka-furniture';
 import { SURFACE_MATERIALS } from '@/lib/editor-document/surface-materials';
 import type { EditorDocument, FloorFinish, Point } from '@/lib/editor-document/schema';
-import { addSuggestedFurniture, addSuggestedKitchens, doorClearZones, nativeFurniturePlacementIssue, settleNativeDesignFurniture, settleNativeDesignKitchen, type NativeDesignFurniture, type NativeDesignProposal, type NativeFurniturePlacementIssue } from '@/lib/editor-document/native-design-proposal';
+import { addSuggestedFurniture, addSuggestedKitchens, doorClearZones, settleNativeDesignFurniture, settleNativeDesignKitchen, type NativeDesignFurniture, type NativeDesignProposal, type NativeFurniturePlacementIssue } from '@/lib/editor-document/native-design-proposal';
 import { faceAxis, fromModelFurniture, placeOnFace, PROPOSAL_ROTATIONS, toModelFurniture } from '@/lib/editor-document/proposal-coordinates';
 import { isKitchenSlotKind, kitchenOnArm, planKitchen, type NativeDesignKitchen } from '@/lib/editor-document/native-design-kitchen';
 import { KITCHEN_SLOT_DEFAULTS, KITCHEN_SLOT_KINDS } from '@/lib/editor-document/kitchen-run-types';
 import { upgradeKitchenDocument } from '@/lib/editor-document/kitchen-run-commands';
 import type { FurnitureCatalogEntry } from '@/lib/editor-document/furniture-catalog';
 import type { SketchGuide } from './sketch-furniture-guide';
-import { COMPANION_RULES } from '@/lib/editor-document/native-design-seating';
+import { alignToSketch, sketchMissing, sketchPlacements, sketchRule } from './sketch-design-rule';
+import { isBarCounter, isBarStool, isTelevision } from '@/lib/editor-document/native-design-seating';
+import { hasRoomTelevision } from '@/lib/editor-document/proposal-existing-television';
+import { companionPlan, placedByCompanion, placeWithCompanions } from './native-design-companions';
 import { DEFAULT_WASHBASIN, isWetFixture, packWetRoom, WET_PACK_ORDERS, wetScore } from '@/lib/editor-document/native-design-wet-rooms';
 import { roomInterior } from '@/lib/editor-document/room-interior';
 import { roomWallFaces, type RoomWallFace } from '@/lib/editor-document/room-wall-faces';
@@ -25,15 +29,17 @@ import { localToWorld, upgradeSpatialDocument } from '@/lib/editor-document/spat
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { zoneDesignContext, zoneRoomOutline } from './zone-design-context';
 import { lightPlacementHints, plantPlacementHints, rugPlacementHints } from './native-design-placement-hints';
+import { furnitureRooms } from '@/lib/editor-document/furniture-rooms';
+import { roomFromZoneName, roomUseLabel, roomUseRules } from '@/lib/editor-document/room-use';
 import { reviewFurnitureLayout, type FurnitureLayoutIssue } from './furniture-layout-review';
 
 /**
- * Salida para amueblar una vivienda entera. Sin razonamiento: con `effort: 'low'` el modelo pensaba 16 000 tokens
- * comprobando cada solape al milímetro (y Sonnet 5 ignora un tope de razonamiento), así que el JSON se cortaba o no
- * llegaba. La parte exacta la resuelve el código: recoloca lo que queda a pocos centímetros de un sitio válido.
+ * Salida para amueblar una vivienda entera. Razonamiento bajo: algunos endpoints lo exigen y rechazan `enabled: false`.
+ * El presupuesto sigue acotado y la parte exacta la resuelve el código: recoloca lo que queda a pocos centímetros
+ * de un sitio válido. Un modelo que agote la salida sin JSON conserva el tratamiento de error y respaldo del adaptador.
  */
 const MAX_PROPOSAL_TOKENS = 16000;
-const PROPOSAL_REASONING = { enabled: false } as const;
+const PROPOSAL_REASONING = { effort: 'low' } as const;
 const MATERIAL_IDS = new Set(SURFACE_MATERIALS.map((material) => material.id));
 const FLOOR_TEXTURES = new Set<string>(['none', 'wood', 'tile', ...MATERIAL_IDS]);
 
@@ -68,6 +74,19 @@ export async function proposeNativeDesign(
   chat: ChatVisionAdapter, document: EditorDocument, style: Estilo, objective: string, instruction: string, references: MessagePart[],
   rawOptions?: RenderDesignOptions, guide: SketchGuide | null = null,
 ): Promise<NativeDesignProposal> {
+  const proposal = await designProposal(chat, document, style, objective, instruction, references, rawOptions, guide);
+  if (!guide) return proposal;
+  // Lo dibujado que el catálogo no tiene se le dice al cliente en la revisión, en lugar de sustituirlo por otra pieza.
+  const rooms = designScopeRooms(document, scopeFromOptions(renderDesignOptionsSchema.parse(rawOptions ?? {})))
+    .map((room) => ({ id: room.id, boundary: room.boundary, name: roomName(document, room) }));
+  const missing = sketchMissing(guide, rooms);
+  return missing.length ? { ...proposal, sketchMissing: missing } : proposal;
+}
+
+async function designProposal(
+  chat: ChatVisionAdapter, document: EditorDocument, style: Estilo, objective: string, instruction: string, references: MessagePart[],
+  rawOptions: RenderDesignOptions | undefined, guide: SketchGuide | null,
+): Promise<NativeDesignProposal> {
   const options = renderDesignOptionsSchema.parse(rawOptions ?? {});
   const scope = scopeFromOptions(options);
   designScopeRooms(document, scope);
@@ -75,10 +94,9 @@ export async function proposeNativeDesign(
   assertCompatibleDesignStyle(document, style, scope);
   const request = [{ role: 'user' as const, content: [{ type: 'text' as const, text: nativeDesignPrompt(document, style, objective, instruction, options, guide) },
     ...references, ...(guide ? [guide.image] : [])] }];
-  const guided = guide !== null;
   const first = await chat.chat({ model: '', responseSchema: NATIVE_DESIGN_SCHEMA, temperature: 0.2, maxTokens: MAX_PROPOSAL_TOKENS,
     reasoning: PROPOSAL_REASONING, messages: request });
-  const draft = parseNativeDesignProposalDetailed(first.structured, style, document, options, guided);
+  const draft = parseNativeDesignProposalDetailed(first.structured, style, document, options, guide, `${objective} ${instruction}`);
   if (options.freedom === 'strict') return draft.proposal;
   // El código protege lo físico y Jev juzga si la distribución es la de una vivienda real; la IA corrige una vez con ambos motivos.
   const layout = await reviewFurnitureLayout(chat, document, draft.proposal);
@@ -96,7 +114,7 @@ export async function proposeNativeDesign(
     });
     const raw = (revised.structured as { furniture?: unknown } | undefined)?.furniture;
     const replacements = Array.isArray(raw) ? raw : [];
-    const merge = (furniture: unknown[]) => parseNativeDesignProposalDetailed({ ...(first.structured as object), furniture }, style, document, options, guided).proposal;
+    const merge = (furniture: unknown[]) => parseNativeDesignProposalDetailed({ ...(first.structured as object), furniture }, style, document, options, guide, `${objective} ${instruction}`).proposal;
     const revisedProposal = merge([...kept, ...replacements]);
     const chosen = bestPerRoom(document, draft.proposal.furniture, revisedProposal.furniture);
     // Lo señalado que la corrección no sustituye por una pieza válida vuelve a su sitio, si aún cabe.
@@ -152,9 +170,16 @@ function countBy(furniture: NativeDesignFurniture[]): Map<string, number> {
  */
 const LATE_PROFILES: Readonly<Record<string, number>> = { bath: .5, shower: .5, cabinet: 1, shelf: 1, chair: 2, bench: 2, lamp: 3, plant: 3, decor: 3, curtain: 3, rug: 3, outdoor: 3 };
 function placementOrder(raw: unknown): number {
-  const id = (raw as { catalogId?: unknown } | null)?.catalogId;
-  return LATE_PROFILES[typeof id === 'string' ? catalogEntryFor(id)?.profile ?? '' : ''] ?? 0;
+  const id = (raw as { catalogId?: unknown } | null)?.catalogId, entry = typeof id === 'string' ? catalogEntryFor(id) : undefined;
+  // Una butaca va con los asientos: colocada antes, ocupaba el sitio del mueble de TV dibujado en el boceto.
+  if (entry && /butaca|sillon/.test(entry.id)) return LATE_PROFILES.chair!;
+  return LATE_PROFILES[entry?.profile ?? ''] ?? 0;
 }
+function byPlacementOrder(list: readonly unknown[]): unknown[] {
+  return list.map((raw, index) => ({ raw, index }))
+    .sort((a, b) => placementOrder(a.raw) - placementOrder(b.raw) || footprintArea(b.raw) - footprintArea(a.raw) || a.index - b.index).map(({ raw }) => raw);
+}
+
 /** Dentro de cada turno, lo grande antes: la bañera antes que el inodoro, que si no le quitaba la única pared larga. */
 function footprintArea(raw: unknown): number {
   const id = (raw as { catalogId?: unknown } | null)?.catalogId, entry = typeof id === 'string' ? catalogEntryFor(id) : undefined;
@@ -181,7 +206,7 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
   const indoorIds = new Set(eligibleCeilingRooms(document).map((room) => room.id));
   const exteriorOnly = targetRooms.every((room) => !indoorIds.has(room.id));
   const kitchensOn = arrangedByCode(options, zone !== null);
-  const furniture = FURNITURE_CATALOG.filter((item) => allowedProposalCatalog(item, options)
+  const furniture = FURNITURE_CATALOG.filter((item) => allowedProposalCatalog(item, options) && listedForProposal(item)
     && (!exteriorOnly || item.room === 'exterior' || item.id === 'habiteka:outdoor:tira-led') && !(kitchensOn && looseKitchenPiece(item, guide !== null)))
     .map((item) => `${item.id} (${item.label}; ${item.widthMm}x${item.depthMm}mm)`).join(', ');
   return [
@@ -199,18 +224,19 @@ function nativeDesignPrompt(document: EditorDocument, style: Estilo, objective: 
     ORIENTATION_RULE,
     `Estancias elegidas para colocar objetos (milímetros). interiorMm es el suelo útil, ya descontado el grueso de los muros. walls son sus paredes: side dice en qué lado de la estancia está, atMm su coordenada (y en arriba/abajo, x en izquierda/derecha), fromMm–toMm su tramo, free los tramos libres de puertas y pasos y windows dónde hay ventana. doorClearMm son los rectángulos que cada puerta o paso necesita libres; ningún mueble puede pisarlos; una alfombra sí, siempre fuera del arco de giro de la hoja: ${JSON.stringify(targetRooms.map((room) => {
       const interior = zone ? zoneRoomOutline(zone, room) : roomInterior(document, room);
-      return { id: room.id, name: roomName(document, room), interiorMm: interior.map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })),
+      return { id: room.id, name: roomName(document, room), uso: roomUseLabel(roomName(document, room)) || undefined, interiorMm: interior.map((point) => ({ x: Math.round(point.x), y: Math.round(point.y) })),
         walls: (faces.byRoom.get(room.id) ?? []).map(({ id, side, atMm, fromMm, toMm, free, windows }) => ({ id, side, atMm, fromMm, toMm, free, windows })),
         doorClearMm: doors.filter((box) => overlapsBox(box, interior)) };
     }))}.`,
     'Sentido del diseño: en zonas exteriores usa solo objetos de la categoría Exterior; una lámpara de pie o una planta de interior no van al aire libre. No bloquees el paso a escaleras, rampas ni puertas: deja 1000 mm libres alrededor de escaleras y rampas y, delante de cada puerta y a ambos lados del muro, una franja de su ancho tan honda como su hoja más 20 cm. Coloca plantas, jardineras y lámparas junto a muros, barandillas o el borde de la zona, nunca en mitad del espacio libre. Si no hay un sitio con sentido, devuelve menos objetos o ninguno.',
+    roomUseRules(targetRooms.map((room) => roomName(document, room))),
     lightPlacementHints(document, targetRooms, zone?.polygon, options),
     plantPlacementHints(document, targetRooms, zone?.polygon, options),
     rugPlacementHints(document, targetRooms, zone?.polygon, options),
     `Permisos obligatorios, prevalecen sobre cualquier preferencia: ${JSON.stringify({ freedom: options.freedom, additions: options.additions, placement: options.placement, regions: options.regions })}.`,
     ...(options.freedom === 'free' ? ['Equipa también baños, aseos, cocina y lavadero, contra los muros y agrupados como en una vivienda real: inodoro, lavabo y ducha o bañera en el baño; la cocina completa en kitchens; la lavadora en el lavadero. Pon la isla solo si queda 1 m libre alrededor. No tapes puertas ni ventanas.'] : []),
     kitchensOn ? KITCHEN_RULE : 'kitchens debe ser [].',
-    guide && kitchensOn ? sketchRule(document, guide, targetRooms, faces) : '',
+    guide && kitchensOn ? sketchRule(guide, targetRooms.map((room) => ({ id: room.id, boundary: room.boundary, name: roomName(document, room) })), faces.byRoom) : '',
     options.freedom === 'strict' ? 'Modo estricto: furniture debe ser []. Solo propone acabados, sin añadir objetos.' : 'Solo añade objetos del catálogo permitido; en zonas seleccionadas toda su huella debe quedar dentro de una zona. No muevas objetos existentes. Si el cliente pide muebles o luces permitidos, incluye objetos válidos cuando quepan; no los menciones solo en el resumen.',
     zone ? `Diseña únicamente «${zone.name}». Toda la huella de cada objeto nuevo debe quedar dentro de su polígono. El acabado de suelo se aplicará solo a esa parte, sin alterar el suelo de las zonas vecinas. Un muro que cruce el límite no cambiará completo; conserva su material.` : '',
     'El ambiente de captura y los ángulos son ajustes para imágenes. Conserva los techos y luminarias existentes. Si se permite iluminación y se pide una luz exterior real, puedes añadir habiteka:outdoor:tira-led dentro de furniture: su luz es visible en la escena 3D. No inventes luminarias fuera del catálogo. Resume solo cambios que realmente propones.',
@@ -235,7 +261,8 @@ export function parseNativeDesignProposal(value: unknown, style: Estilo, documen
 /** Objeto que el modelo propuso y la validación rechazó, con el motivo, para pedirle una corrección. */
 export interface NativeDesignRejection { text: string; item: NativeDesignFurniture }
 
-export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo, document: EditorDocument, options: RenderDesignOptions, guided = false):
+export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo, document: EditorDocument, options: RenderDesignOptions, guide: SketchGuide | null = null,
+  request = ''):
   { proposal: NativeDesignProposal; rejections: NativeDesignRejection[] } {
   if (!value || typeof value !== 'object') throw new Error('La IA no devolvió una propuesta de diseño válida.');
   const input = value as Record<string, unknown>;
@@ -258,8 +285,8 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
   const rooms = deriveRooms(candidateDoc);
   // Primero lo que organiza cada estancia (camas, sofás, cocina, sanitarios, armarios, mesas), después sillas y bancos y
   // al final la decoración: si una planta se valida antes, la cama ya no cabe aunque el modelo la pensara primero.
-  const rawFurniture = (Array.isArray(input.furniture) ? input.furniture : []).map((raw, index) => ({ raw, index }))
-    .sort((a, b) => placementOrder(a.raw) - placementOrder(b.raw) || footprintArea(b.raw) - footprintArea(a.raw) || a.index - b.index).map(({ raw }) => raw);
+  const guided = guide !== null;
+  let rawFurniture = byPlacementOrder(Array.isArray(input.furniture) ? input.furniture : []);
   const furniture: NativeDesignProposal['furniture'] = [];
   const rejected: string[] = [], rejections: NativeDesignRejection[] = [];
   const reject = (text: string, item?: NativeDesignFurniture) => { rejected.push(text); if (item) rejections.push({ text, item }); };
@@ -277,20 +304,24 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     }
   }
   const roomAt = (point: Point) => rooms.find((room) => allowedRooms.has(room.id) && pointInPolygon(point, room.boundary))?.id;
-  // Sillas, mesillas y mesa de centro las coloca el código junto a su mesa, cama o sofá, con el modelo que eligió la IA.
-  const proposed = rawFurniture.flatMap((raw) => parseFurniture(raw, faces));
-  const entryOf = (item: NativeDesignFurniture) => getFurnitureCatalogEntry(item.catalogId);
-  const rules = COMPANION_RULES.filter((rule) => proposed.some(({ item }) => rule.anchor(entryOf(item))));
-  const roomOf = ({ item, roomId }: { item: NativeDesignFurniture; roomId?: string }) => roomId ?? roomAt(toModelCentre(item));
-  // Estancias con la pieza principal de cada conjunto: un acompañante de la IA solo se sustituye donde hay quien lo lleve.
-  const anchored = rules.map((rule) => new Set(proposed.filter(({ item }) => rule.anchor(entryOf(item))).map(roomOf)));
-  const choice = new Map<string, string>(), served = new Set<string>();
-  for (const entry of proposed) {
-    const room = roomOf(entry);
-    rules.forEach((rule, index) => {
-      if (room && rule.companion(entryOf(entry.item)) && !choice.has(`${index}:${room}`)) choice.set(`${index}:${room}`, entry.item.catalogId);
-    });
+  // Con boceto, el sitio de cada pieza dibujada lo impone el código; lo dibujado que la IA no propuso se añade.
+  if (guide && arranged) {
+    const sketchRooms = rooms.filter((room) => allowedRooms.has(room.id)).map((room) => ({ id: room.id, boundary: room.boundary, name: roomName(document, room) }));
+    rawFurniture = byPlacementOrder(alignToSketch(rawFurniture, sketchPlacements(guide, sketchRooms, faces.byRoom).pieces, (value) => {
+      const parsed = parseFurniture(value, faces)[0];
+      return parsed && (parsed.roomId ?? roomAt(toModelCentre(parsed.item)));
+    }));
   }
+  // Sillas, mesillas, mesa de centro, taburetes, alfombra y lámparas de las mesillas los coloca el código junto a su
+  // mesa, cama, barra o sofá, con el modelo que eligió la IA (o el dibujado en el boceto).
+  const proposed = rawFurniture.flatMap((raw) => parseFurniture(raw, faces));
+  // El garaje es para el coche: solo una estantería metálica, salvo que el cliente pida muebles ahí o los dibuje.
+  const keepGaragesFree = !guided && !/garaje|cochera|parking/i.test(request);
+  const roomUse = (roomId: string) => { const room = rooms.find((item) => item.id === roomId); return room ? roomFromZoneName(roomName(document, room)) : null; };
+  const entryOf = (item: NativeDesignFurniture) => getFurnitureCatalogEntry(item.catalogId);
+  const roomOf = ({ item, roomId }: { item: NativeDesignFurniture; roomId?: string }) => roomId ?? roomAt(toModelCentre(item));
+  // Un acompañante de la IA solo se sustituye donde hay quien lo lleve.
+  const plan = companionPlan(proposed.map((entry) => ({ item: entry.item, room: roomOf(entry) }))), served = new Set<string>();
   // Sanitarios de cada baño: tal como los puso la IA si caben todos; si no, recolocados desde las esquinas.
   const handled = new Set<unknown>();
   if (arranged) for (const [roomId, list] of wetFixturesByRoom(rawFurniture, faces, roomAt)) {
@@ -323,10 +354,11 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     if (handled.has(raw)) continue;
     const parsed = parseFurniture(raw, faces)[0];
     if (!parsed) { reject('objeto sin ficha o coordenadas válidas'); continue; }
-    if (rules.some((rule, index) => rule.companion(entryOf(parsed.item)) && anchored[index]!.has(roomOf(parsed)))) continue;
+    if (placedByCompanion(plan, parsed.item, roomOf(parsed))) continue;
     let { item, along } = parsed;
     // Al recolocarla, la pieza no sale de su estancia: la de su pared o la de su centro propuesto.
     const home = parsed.roomId ?? roomAt(toModelCentre(item));
+    if (isTelevision(getFurnitureCatalogEntry(item.catalogId)) && hasRoomTelevision(candidateDoc, home, rooms)) continue;
     // Una planta o una lámpara de pie sin pared se arrima a la más cercana de su estancia, sin quedarse a medio metro.
     const nearest = arranged && !parsed.roomId && home && hugsWall(getFurnitureCatalogEntry(item.catalogId)) ? nearestFace(faces.byRoom.get(home) ?? [], toModelCentre(item)) : undefined;
     if (nearest) {
@@ -338,9 +370,16 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     let label = getFurnitureCatalogEntry(item.catalogId)!.label;
     let catalog = getFurnitureCatalogEntry(item.catalogId)!;
     if (!allowedProposalCatalog(catalog, options)) { reject(`${label}: categoría no permitida`, item); continue; }
+    if (home && keepGaragesFree && roomUse(home) === 'garaje' && !furnitureRooms(catalog).includes('garaje')) {
+      reject(`${label}: el garaje se deja libre para el coche`); continue;
+    }
     if (kitchens.length && looseKitchenPiece(catalog, guided)) { reject(`${label}: va encajado en el mueble de cocina`); continue; }
+    // Una silla de oficina sin escritorio se queda sola en el cuarto.
+    if (catalog.id.includes('silla-oficina') && !furniture.some((other) => other.catalogId.includes('escritorio') && roomAt(toModelCentre(other)) === home)) {
+      reject(`${label}: sin escritorio al que arrimarse`); continue;
+    }
     // Un taburete sin isla ni barra se queda en mitad de la cocina.
-    if (catalog.id.includes('taburete') && !furniture.some((other) => other.catalogId.includes('isla') && roomAt(toModelCentre(other)) === home)) {
+    if (isBarStool(catalog) && !furniture.some((other) => isBarCounter(entryOf(other)) && roomAt(toModelCentre(other)) === home)) {
       reject(`${label}: sin isla ni barra a la que arrimarse`); continue;
     }
     if (!allowedProposalFurniture(item, options, zone?.polygon)) {
@@ -354,7 +393,7 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     };
     const roomFaces = home ? faces.byRoom.get(home) ?? [] : [];
     // El mueble de la tele va en la pared de enfrente del sofá, centrado con él; si ahí no cabe, donde lo puso la IA.
-    const sofa = arranged && /mueble[-_]tv/.test(catalog.id) ? furniture.find((other) => entryOf(other)?.profile.startsWith('sofa') && roomAt(toModelCentre(other)) === home) : undefined;
+    const sofa = arranged && !guided && /mueble[-_]tv/.test(catalog.id) ? furniture.find((other) => entryOf(other)?.profile.startsWith('sofa') && roomAt(toModelCentre(other)) === home) : undefined;
     const facing = sofa ? facingWall(roomFaces, sofa) : undefined;
     const tv = facing && settleNativeDesignFurniture(candidateDoc, fromModelFurniture(placeOnFace({ ...toModelFurniture(item), alongMm: facing.alongMm }, facing.face))!,
       rooms, settleRooms, zone?.polygon, faceAxis(facing.face));
@@ -376,64 +415,8 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     }
     // Contra una pared, se desliza a lo largo de la pared en la que ha quedado (puede no ser la que eligió la IA).
     if (arranged && WALL_PROFILES.has(catalog.profile) && wallBehind(roomFaces, settled.item)) along = settled.item.rotation % 180 ? { x: 0, y: 1 } : { x: 1, y: 0 };
-    const groups = (anchor: NativeDesignFurniture) => rules.flatMap((rule, index) => {
-      const key = rule.fallback ? `${index}:${home ?? ''}` : `${rule.name}:${home ?? ''}`;
-      const chosen = choice.get(`${index}:${home ?? ''}`) ?? (rule.fallback && rule.anchor(catalog) ? rule.fallback(catalog) : undefined);
-      return rule.anchor(catalog) && chosen && (rule.fallback || !served.has(key)) ? [{ rule, key, chosen, items: rule.place(anchor, chosen) }] : [];
-    });
-    // Contra una pared, la pieza se desliza por ella hasta dejar sitio a sus acompañantes (las dos mesillas de la cama);
-    // exenta (una mesa), se aparta de la pared en cualquier dirección hasta que caben sus sillas.
-    let anchor = settled.item;
-    const axes = along ? [along] : [{ x: 1, y: 0 }, { x: 0, y: 1 }];
-    if (groups(anchor).some(({ rule }) => rule.name !== 'alfombra')) {
-      // Cuentan las sillas, mesillas y mesa de centro, sin meter bajo la mesa; la alfombra no estorba a nadie.
-      const blocking = (candidate: NativeDesignFurniture) => groups(candidate).filter(({ rule }) => rule.name !== 'alfombra')
-        .map(({ rule, chosen }) => ({ rule, items: rule.place(candidate, chosen, false) }));
-      const fits = (candidate: NativeDesignFurniture) => {
-        const before = candidateDoc.furniture.length;
-        addSuggestedFurniture(candidateDoc, candidate, rooms, allowedRooms, zone?.polygon);
-        const count = blocking(candidate).reduce((total, { rule, items }) => total + items.filter((companion) => {
-          const ok = !nativeFurniturePlacementIssue(candidateDoc, companion, rooms, settleRooms, zone?.polygon);
-          if (ok) addSuggestedFurniture(candidateDoc, companion, rooms, allowedRooms, zone?.polygon);
-          return ok;
-        }).slice(0, rule.single?.(catalog) ? 1 : undefined).length, 0);
-        candidateDoc.furniture.splice(before);
-        return count;
-      };
-      const wanted = blocking(anchor).reduce((total, { rule, items }) => total + (rule.single?.(catalog) ? 1 : items.length), 0);
-      let best = fits(anchor);
-      // Exenta, solo si falta la mitad o más: mover una mesa de comedor por una cabecera que no cabe costaba segundos.
-      const search = !!along || best * 2 <= wanted;
-      for (let step = 1; search && best < wanted && step <= (along ? SHIFT_STEPS : SHIFT_STEPS / 2); step++) for (const axis of axes) for (const sign of [1, -1]) {
-        const moved = { ...settled.item, xMm: settled.item.xMm + axis.x * sign * step * 50, yMm: settled.item.yMm + axis.y * sign * step * 50 };
-        if (nativeFurniturePlacementIssue(candidateDoc, moved, rooms, settleRooms, zone?.polygon)) continue;
-        const count = fits(moved);
-        if (count > best) { best = count; anchor = moved; }
-      }
-    }
-    furniture.push(anchor);
-    addSuggestedFurniture(candidateDoc, anchor, rooms, allowedRooms, zone?.polygon);
-    for (const { rule, key, chosen, items } of groups(anchor)) {
-      served.add(key);
-      let placed = 0;
-      const loose = rule.place(anchor, chosen, false);
-      for (const [index, companion] of items.entries()) {
-        if (placed && rule.single?.(catalog)) break;
-        // Lo que solo cabe lejos de su mesa, cama o sofá ya no forma conjunto con él. Una silla que no entra bajo la mesa
-        // (un modelo 3D cuya caja choca con el tablero) se queda tocando el canto.
-        const near = (target: NativeDesignFurniture) => {
-          const result = settleNativeDesignFurniture(candidateDoc, target, rooms, settleRooms, zone?.polygon);
-          return !result.issue && Math.hypot(result.item.xMm - target.xMm, result.item.yMm - target.yMm) <= 150 ? result : null;
-        };
-        // Primero la comprobación exacta (barata); la búsqueda de un sitio cercano, solo una vez y sin meterla bajo la mesa.
-        const exact = [companion, loose[index]].find((target) => target && !nativeFurniturePlacementIssue(candidateDoc, target, rooms, settleRooms, zone?.polygon));
-        const seat = exact ? { item: exact, issue: null } : near(loose[index] ?? companion);
-        if (!seat) continue;
-        furniture.push(seat.item);
-        addSuggestedFurniture(candidateDoc, seat.item, rooms, allowedRooms, zone?.polygon);
-        placed++;
-      }
-    }
+    furniture.push(...placeWithCompanions({ doc: candidateDoc, rooms, allowedRooms, settleRooms, zonePolygon: zone?.polygon, home, plan, served },
+      settled.item, catalog, along));
   }
   // El texto libre del modelo puede atribuir montajes o muebles que el plano no
   // representa. El resumen se construye a partir de la propuesta validada.
@@ -512,8 +495,9 @@ function parseFurniture(value: unknown, faces: ReturnType<typeof proposalFaces>)
   const number = (key: string) => typeof raw[key] === 'number' && Number.isFinite(raw[key]) ? raw[key] as number : undefined;
   const wall = faceFor(faces, raw.wall, number('alongMm')), face = wall?.face;
   if (!getFurnitureCatalogEntry(catalogId) || (!face && ['cxMm', 'cyMm', 'rotation'].some((key) => number(key) === undefined))) return [];
+  // La medida propia solo la trae una alfombra dibujada en el boceto; cualquier otra pieza la ignora al validarse.
   const model = { catalogId, alongMm: number('alongMm'), cxMm: number('cxMm') ?? 0, cyMm: number('cyMm') ?? 0, rotation: number('rotation') ?? 0,
-    reason: typeof raw.reason === 'string' ? raw.reason.slice(0, 180) : '' };
+    reason: typeof raw.reason === 'string' ? raw.reason.slice(0, 180) : '', widthMm: number('widthMm'), depthMm: number('depthMm') };
   const placed = fromModelFurniture(face ? placeOnFace(model, face) : model);
   return placed ? [{ item: placed, ...(wall ? { along: faceAxis(wall.face), roomId: wall.roomId } : {}) }] : [];
 }
@@ -575,15 +559,16 @@ function facingWall(faces: readonly RoomWallFace[], sofa: NativeDesignFurniture)
 
 /** Pieza más pequeña del mismo uso para cuando la elegida no cabe en ninguna pared de su estancia. */
 const SMALLER: Readonly<Record<string, string>> = {
-  'habiteka:furniture:banera': 'habiteka:furniture:ducha',
+  'habiteka:furniture:banera': 'habiteka:furniture:banera-compacta',
+  'habiteka:furniture:banera-compacta': 'habiteka:furniture:ducha',
   'habiteka:furniture:sofa-3:piel': 'habiteka:furniture:sofa-3',
   'habiteka:furniture:sofa-3': 'habiteka:furniture:sofa-2',
   'habiteka:furniture:armario:grande': 'habiteka:furniture:armario',
   'habiteka:furniture:cama-doble:king': 'habiteka:furniture:cama-doble',
+  // Muebles propios: misma pieza en la medida inmediatamente menor (p. ej., sofá de 4 a 3 plazas, cama de 180 a 160).
+  ...HABITEKA_SMALLER,
 };
 
-/** Hasta 60 cm a cada lado, en pasos de 5 cm, para hacer sitio a las mesillas sin despegar la cama de su pared. */
-const SHIFT_STEPS = 12;
 /** Piezas que van contra una pared y, si no caben en la elegida, se prueban en otra de la misma estancia. */
 const WALL_PROFILES = new Set(['bed', 'sofa', 'sofa-chaise', 'sofa-corner', 'sofa-modular', 'sofa-bed', 'cabinet', 'shelf', 'toilet', 'sink', 'bath', 'shower', 'appliance']);
 /**
@@ -631,7 +616,7 @@ function faceFor(faces: ReturnType<typeof proposalFaces>, id: unknown, alongMm?:
 }
 
 /** Cómo decide la IA dónde va cada pieza: la pared y el punto; la aritmética de la huella la hace el código. */
-const PLACEMENT_RULE = 'Cómo colocar cada objeto. Los ids de pared son los de walls de cada estancia (E1a, E3b…), nunca los ids de muro del contexto (w0, w12…). Si va contra una pared (cama, armario, cómoda, sofá, aparador, mueble de TV, librería, mesilla, muebles y electrodomésticos de cocina, sanitarios, lavadora, cortina, y plantas o lámparas de pie de rincón): pon en wall el id de esa pared y en alongMm la coordenada del CENTRO de la pieza a lo largo de la pared (x en paredes arriba/abajo, y en izquierda/derecha), con toda la pieza dentro de un tramo free; el sistema la pega a la cara interior con la trasera contra el muro y la gira sola, así que deja cxMm, cyMm y rotation a 0. Las piezas de una misma pared van seguidas sin solaparse: el centro de la siguiente está a (ancho anterior + ancho propio) / 2 del anterior, o más. Evita el cabecero bajo una ventana si otra pared ciega admite la cama con sus mesillas a los lados. Las mesillas de cada cama, las sillas de una mesa de comedor o de jardín y la mesa de centro delante del sofá las coloca el sistema junto a su cama, mesa o sofá: incluye como mucho una de cada, del modelo que prefieras, y deja sitio para ellas. No pongas un armario ni otra pieza alta delante de una ventana. Si va exenta (mesa de comedor, isla, mesa de centro, alfombra, sillas alrededor de la mesa, butaca, taburetes): deja wall vacío y da cxMm/cyMm (centro de la huella) y rotation según la regla de orientación.';
+const PLACEMENT_RULE = 'Cómo colocar cada objeto. Los ids de pared son los de walls de cada estancia (E1a, E3b…), nunca los ids de muro del contexto (w0, w12…). Si va contra una pared (cama, armario, cómoda, sofá, aparador, mueble de TV, librería, mesilla, muebles y electrodomésticos de cocina, sanitarios, lavadora, cortina, y plantas o lámparas de pie de rincón): pon en wall el id de esa pared y en alongMm la coordenada del CENTRO de la pieza a lo largo de la pared (x en paredes arriba/abajo, y en izquierda/derecha), con toda la pieza dentro de un tramo free; el sistema la pega a la cara interior con la trasera contra el muro y la gira sola, así que deja cxMm, cyMm y rotation a 0. Las piezas de una misma pared van seguidas sin solaparse: el centro de la siguiente está a (ancho anterior + ancho propio) / 2 del anterior, o más. Evita el cabecero bajo una ventana si otra pared ciega admite la cama con sus mesillas a los lados. Las mesillas de cada cama, las sillas de una mesa de comedor o de jardín, la mesa de centro delante del sofá, los taburetes de una isla o una mesa alta y la lámpara de mesa de cada mesilla las coloca el sistema junto a su cama, mesa, sofá, isla o mesilla: incluye como mucho una de cada, del modelo que prefieras, y deja sitio para ellas. No pongas un armario ni otra pieza alta delante de una ventana. Si va exenta (mesa de comedor, isla, mesa de centro, alfombra, sillas alrededor de la mesa, butaca): deja wall vacío y da cxMm/cyMm (centro de la huella) y rotation según la regla de orientación.';
 
 /**
  * Amueblar del todo: el código compone la cocina y los baños y recoloca lo que no cabe donde lo puso la IA (otra pared,
@@ -686,50 +671,3 @@ function parseKitchen(value: unknown, document: EditorDocument, rooms: ReturnTyp
 
 /** La cocina como un mueble de obra: la IA dice dónde y con qué aparatos; el código monta módulos, encimera y altos. */
 const KITCHEN_RULE = 'Cocina: no la compongas con módulos ni electrodomésticos sueltos. En kitchens da una entrada por cada estancia que sea cocina (normalmente una): roomId es su id; walls, la pared o las dos paredes contiguas (en L) que prefieres para la encimera, o [] para que decida el sistema; appliances, los aparatos que lleva (fregadero, vitroceramica, horno, lavavajillas, frigorifico-columna y, si no hay lavadero, lavadora). El sistema monta el mueble de cocina modular (fondo 600 mm, encimera y zócalo continuos) en lineal o en L por las paredes libres con paso delante, con el lavavajillas junto al fregadero, el horno junto a la placa, encimera entre medias y la nevera en un extremo. Una ventana no impide la cocina: la encimera pasa bajo ella y los altos se omiten encima. uppers añade armarios altos. frontColor (#rrggbb) es el color de los frentes y worktopMaterialId un material permitido para la encimera, ambos del estilo pedido. Deja libre el frente de la cocina (1 m): la isla, los taburetes y lo demás van en furniture, fuera de esas paredes. Si la cocina ya tiene muebles de cocina, kitchens va vacío.';
-
-/** Lo que en un boceto va contra una pared; mesas, sillas y alfombras van exentas. */
-const SKETCH_WALL_KINDS = new Set(['sofa', 'bed', 'cabinet', 'shelf', 'kitchen', 'sink', 'toilet', 'bath', 'shower', 'appliance', 'bench']);
-/** Distancia máxima entre el borde dibujado y la cara del muro para considerar que la pieza va contra él. */
-const SKETCH_WALL_REACH_MM = 700;
-
-/** Caras de la estancia contra las que va la caja dibujada, de la más cercana a la más lejana, con la distancia. */
-function sketchWalls(faces: readonly RoomWallFace[], item: SketchGuide['items'][number]) {
-  const min = { x: item.centreMm.x - item.sizeMm.x / 2, y: item.centreMm.y - item.sizeMm.y / 2 };
-  const max = { x: item.centreMm.x + item.sizeMm.x / 2, y: item.centreMm.y + item.sizeMm.y / 2 };
-  // Una cama o un inodoro apoyan en el muro su lado corto (cabecero, cisterna); lo demás, el largo. Casi cuadrado, cualquiera.
-  const wide = item.sizeMm.x > item.sizeMm.y * 1.25, tall = item.sizeMm.y > item.sizeMm.x * 1.25, shortBack = item.kind === 'bed' || item.kind === 'toilet';
-  return faces.flatMap((face) => {
-    const horizontal = face.side === 'arriba' || face.side === 'abajo';
-    if (item.kind !== 'kitchen' && (wide || tall) && horizontal !== (shortBack ? tall : wide)) return [];
-    const [from, to] = horizontal ? [min.x, max.x] : [min.y, max.y];
-    if (Math.min(to, face.toMm) - Math.max(from, face.fromMm) <= 0) return [];
-    const distance = face.side === 'arriba' ? min.y - face.atMm : face.side === 'abajo' ? face.atMm - max.y
-      : face.side === 'izquierda' ? min.x - face.atMm : face.atMm - max.x;
-    return distance > -300 && distance <= SKETCH_WALL_REACH_MM ? [{ face, distance: Math.abs(distance), alongMm: Math.round(horizontal ? item.centreMm.x : item.centreMm.y) }] : [];
-  }).sort((a, b) => a.distance - b.distance);
-}
-
-/**
- * El cliente dibujó su distribución en el boceto con el que importó el plano: Amueblar la reproduce. La importación ya
- * midió la caja de cada mueble; el código deduce de ella la pared y el punto (la IA, sin razonar, leía mal el dibujo y
- * cambiaba la cocina o la cama de pared) y la IA elige la pieza del catálogo mirando la imagen.
- */
-function sketchRule(document: EditorDocument, guide: SketchGuide, rooms: ReturnType<typeof deriveRooms>, faces: ReturnType<typeof proposalFaces>): string {
-  const items = guide.items.flatMap((item): Record<string, unknown>[] => {
-    const room = rooms.find((candidate) => faces.byRoom.has(candidate.id) && pointInPolygon(item.centreMm, candidate.boundary));
-    if (!room) return [];
-    const walls = SKETCH_WALL_KINDS.has(item.kind) ? sketchWalls(faces.byRoom.get(room.id) ?? [], item) : [];
-    const base = { mueble: item.label, estancia: roomName(document, room) };
-    if (item.kind === 'kitchen') {
-      // La encimera no va en la pared donde el boceto dibuja la mesa de la cocina.
-      const tables = guide.items.filter((other) => other.kind === 'table' && pointInPolygon(other.centreMm, room.boundary));
-      const taken = new Set(tables.flatMap((table) => sketchWalls(faces.byRoom.get(room.id) ?? [], table).slice(0, 1).map(({ face }) => face.id)));
-      return [{ ...base, roomId: room.id, kitchenWalls: walls.filter(({ face }) => !taken.has(face.id)).slice(0, 2).map(({ face }) => face.id) }];
-    }
-    return [walls[0] ? { ...base, wall: walls[0].face.id, alongMm: walls[0].alongMm } : { ...base, cxMm: item.centreMm.x, cyMm: item.centreMm.y }];
-  });
-  return [`Boceto del cliente (la última imagen adjunta): es SU distribución, la que quiere ver. Está alineado con el plano: su esquina superior izquierda es (0, 0) mm y la inferior derecha (${guide.frameMm.width}, ${guide.frameMm.height}) mm.`,
-    `Reprodúcelo. Estos son los muebles dibujados, con la pared (wall) y el punto (alongMm) que ya se midieron en el boceto, o el centro si van exentos: ${JSON.stringify(items)}. Pon cada uno con ESA wall y ESE alongMm (o ese centro), eligiendo en la imagen y en el catálogo la pieza que corresponde en el estilo pedido: una cama individual dibujada es una cama individual; una mesa con sillas en la cocina, habiteka:furniture:mesa-cocina; en el comedor, la mesa de comedor del tamaño de las sillas dibujadas (sus sillas las pone el sistema). El tipo leído puede estar equivocado (un escritorio leído como mesa de centro): la imagen manda en el tipo, la lista en el sitio.`,
-    'La cocina: si la lista trae kitchenWalls, esas son las paredes de la encimera: ponlas tal cual en kitchens.walls y en appliances los aparatos dibujados en ella. Si la nevera está dibujada aparte de la encimera, ponla en furniture contra su pared y no pongas frigorifico-columna.',
-    'Después completa lo que el boceto no dibuja y el uso pide (mesillas, lámparas, cortinas, decoración) sin tapar ni mover lo dibujado.'].join('\n');
-}

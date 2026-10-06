@@ -6,7 +6,8 @@ export const CATALOG_CATEGORIES: { id: string; label: string; profiles: Furnitur
   { id: 'tables', label: 'Mesas y escritorios', room: 'comedor', profiles: ['table'] },
   { id: 'chairs', label: 'Sillas y bancos', room: 'oficina', profiles: ['chair', 'bench'] },
   { id: 'storage', label: 'Almacenaje', room: 'oficina', profiles: ['cabinet', 'shelf'] },
-  { id: 'kitchen', label: 'Cocina y aparatos', room: 'cocina', profiles: ['kitchen', 'appliance'] },
+  // Los electrodomésticos incluyen la lavadora y la secadora del lavadero.
+  { id: 'kitchen', label: 'Cocina y electrodomésticos', room: 'cocina', profiles: ['kitchen', 'appliance'] },
   { id: 'bath', label: 'Baño y lavabos', room: 'bano', profiles: ['sink', 'toilet', 'bath', 'shower'] },
   { id: 'lights', label: 'Lámparas', room: 'iluminacion', profiles: ['lamp'] },
   { id: 'decor', label: 'Plantas y decoración', room: 'decoracion', profiles: ['plant', 'decor', 'rug'] },

@@ -1,0 +1,1081 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia electrodomesticos) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "electrodomesticos",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "cafetera_espresso_inox": {
+   "file": "cafetera_espresso_inox.glb",
+   "thumbnail": "thumbs/cafetera_espresso_inox.webp",
+   "sha256": "da0155ba962de72bc6c3dbc20bd4fbab7b9cf62917ff96325515051839a38f53",
+   "bytes": 83108,
+   "triangles": 4204,
+   "texturePx": 512,
+   "dimensionsMm": [
+    300,
+    350,
+    348
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    300,
+    350,
+    350
+   ],
+   "family": "electrodomesticos",
+   "type": "espresso",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-plastico-negro",
+    "logo": "cromo",
+    "carcasa": "elec-inox",
+    "tirador": "cromo",
+    "esfera": "elec-esfera",
+    "indicador": "elec-indicador"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "417b5baba81878452ceca3c59fee105ec670dd24e14de07d32356012fe8cc138",
+   "builtAt": "2026-10-05"
+  },
+  "campana_pared_60": {
+   "file": "campana_pared_60.glb",
+   "thumbnail": "thumbs/campana_pared_60.webp",
+   "sha256": "32fc68acdb310f1ea0c239e42e0fa38c592548d8ff582cbf5945020999177b62",
+   "bytes": 55740,
+   "triangles": 1484,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    503,
+    900
+   ],
+   "elevationMm": 1550,
+   "specDimensionsMm": [
+    600,
+    500,
+    900
+   ],
+   "family": "electrodomesticos",
+   "type": "hood",
+   "params": {
+    "elev": 1550
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-plastico-negro",
+    "logo": "cromo",
+    "carcasa": "elec-inox",
+    "filtro": "elec-aluminio"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6c3ef8993832f05b79c3a46a61d5983b92467abd436dd3536f21c79aa085aa9b",
+   "builtAt": "2026-10-05"
+  },
+  "campana_pared_90": {
+   "file": "campana_pared_90.glb",
+   "thumbnail": "thumbs/campana_pared_90.webp",
+   "sha256": "7782cc6d82705bb08c5be569f7c6601ee31bc0227f3bb0515b29338e0366ae3e",
+   "bytes": 55768,
+   "triangles": 1484,
+   "texturePx": 512,
+   "dimensionsMm": [
+    900,
+    503,
+    900
+   ],
+   "elevationMm": 1550,
+   "specDimensionsMm": [
+    900,
+    500,
+    900
+   ],
+   "family": "electrodomesticos",
+   "type": "hood",
+   "params": {
+    "elev": 1550
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-plastico-negro",
+    "logo": "cromo",
+    "carcasa": "elec-inox",
+    "filtro": "elec-aluminio"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0101271aa81557508ee522f1579dca1ad84987693d24b17de21724aaa2faf82e",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_americano_inox": {
+   "file": "frigorifico_americano_inox.glb",
+   "thumbnail": "thumbs/frigorifico_americano_inox.webp",
+   "sha256": "1a1a8ed5cfb524de888313965b0b17a35cb5a3d80f3b05242d5ec6f173d54631",
+   "bytes": 77028,
+   "triangles": 3072,
+   "texturePx": 512,
+   "dimensionsMm": [
+    910,
+    720,
+    1790
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    910,
+    720,
+    1790
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_american",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "tirador": "elec-inox",
+    "interior": "elec-plastico-negro",
+    "aro": "cromo"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "049e1e2717397dd0c18db7db618b167b74eeea0bfab4612a5a24609d60e59dbf",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_americano_inox_90x80": {
+   "file": "frigorifico_americano_inox_90x80.glb",
+   "thumbnail": "thumbs/frigorifico_americano_inox_90x80.webp",
+   "sha256": "3c42dc36fd917d645c2ceac209249de809390ad37ccab4a6dd8a3227feee7617",
+   "bytes": 77204,
+   "triangles": 3072,
+   "texturePx": 512,
+   "dimensionsMm": [
+    900,
+    800,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    800,
+    1800
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_american",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "tirador": "elec-inox",
+    "interior": "elec-plastico-negro",
+    "aro": "cromo"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "02f340c46a9fe2657ba5a796cbe0c49c5143b5d2e08dc44918c6c4b247898215",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_combi_blanco_203": {
+   "file": "frigorifico_combi_blanco_203.glb",
+   "thumbnail": "thumbs/frigorifico_combi_blanco_203.webp",
+   "sha256": "f7f0cdc202867c6c8f1885f1c2cda5e36a55662ffe96a25120a93e08c93cb0fe",
+   "bytes": 23680,
+   "triangles": 2096,
+   "texturePx": 512,
+   "dimensionsMm": [
+    595,
+    650,
+    2030
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    595,
+    650,
+    2030
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_combi",
+   "params": {
+    "freezer_h": 660,
+    "display": false
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "frente": "elec-blanco",
+    "tirador": "elec-plata"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "31718d959dbbad41eb732a8c0d1ca690a8536909fbc7383ea41afafb3f497baf",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_combi_inox_186": {
+   "file": "frigorifico_combi_inox_186.glb",
+   "thumbnail": "thumbs/frigorifico_combi_inox_186.webp",
+   "sha256": "cbaa90b2a473667a36c111ff6405a8137c65f06d8769e28cbaf944afe3ebf3b5",
+   "bytes": 69624,
+   "triangles": 2388,
+   "texturePx": 512,
+   "dimensionsMm": [
+    595,
+    650,
+    1860
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    595,
+    650,
+    1860
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_combi",
+   "params": {
+    "freezer_h": 620,
+    "display": true
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8f9448c6d326f569be8da2a4a7d844f1a77c56a44f068fc883e33d73461f6386",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_combi_inox_70x180": {
+   "file": "frigorifico_combi_inox_70x180.glb",
+   "thumbnail": "thumbs/frigorifico_combi_inox_70x180.webp",
+   "sha256": "19c1a5ccfd35bd5724f51e50798dc323270dbbc3f37086e5977e3a376f72dff6",
+   "bytes": 69464,
+   "triangles": 2388,
+   "texturePx": 512,
+   "dimensionsMm": [
+    700,
+    700,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    700,
+    1800
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_combi",
+   "params": {
+    "freezer_h": 610,
+    "display": true
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8ec367a8c982615297934e9b0f6f80554a639dde7e932f7fe44f7f202bbe0345",
+   "builtAt": "2026-10-05"
+  },
+  "frigorifico_combi_inox_70x190": {
+   "file": "frigorifico_combi_inox_70x190.glb",
+   "thumbnail": "thumbs/frigorifico_combi_inox_70x190.webp",
+   "sha256": "f87dcc1aef51fd53671a1740c224711fc566fe475397c00eb4706f563fcc3270",
+   "bytes": 69408,
+   "triangles": 2388,
+   "texturePx": 512,
+   "dimensionsMm": [
+    700,
+    700,
+    1900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    700,
+    1900
+   ],
+   "family": "electrodomesticos",
+   "type": "fridge_combi",
+   "params": {
+    "freezer_h": 640,
+    "display": true
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d99b82207d2026c92d26089d5988b9c524967863be6c633602340eb273be4b1f",
+   "builtAt": "2026-10-05"
+  },
+  "horno_sobremesa_35l": {
+   "file": "horno_sobremesa_35l.glb",
+   "thumbnail": "thumbs/horno_sobremesa_35l.webp",
+   "sha256": "558dc9aef37b7e704bfffea81ff8c3a08837e4b90d7a75484c97703cc8d992fa",
+   "bytes": 72008,
+   "triangles": 2876,
+   "texturePx": 512,
+   "dimensionsMm": [
+    520,
+    420,
+    320
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    520,
+    420,
+    320
+   ],
+   "family": "electrodomesticos",
+   "type": "mini_oven",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plastico-negro",
+    "frente": "elec-plastico-negro",
+    "panel": "elec-inox",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-esmalte",
+    "tirador": "cromo",
+    "indicador": "elec-indicador"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f2a71711ac5c80bd381252a81871d7ad2906ad0f3def79e85e313161c40d9e7f",
+   "builtAt": "2026-10-05"
+  },
+  "lavadora_blanca": {
+   "file": "lavadora_blanca.glb",
+   "thumbnail": "thumbs/lavadora_blanca.webp",
+   "sha256": "9dcb37a7acce4cf449bb4d6ad10f27630e9f5e2569e41eabb2a1cd1922433cbe",
+   "bytes": 70024,
+   "triangles": 7160,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    596,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "washer",
+   "params": {
+    "kind": "lavadora"
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-tambor",
+    "carcasa": "elec-blanco",
+    "panel": "elec-blanco",
+    "aro": "elec-plastico-gris"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "debf5376535ac00bb3bb75801b6b888bff269fb956ffd0c04f5d235d953b7bbf",
+   "builtAt": "2026-10-05"
+  },
+  "lavadora_inox": {
+   "file": "lavadora_inox.glb",
+   "thumbnail": "thumbs/lavadora_inox.webp",
+   "sha256": "90a752e67d1f4e62303d4e3e105c7a2ad130a514c7a2f4527046afa920b0395d",
+   "bytes": 125492,
+   "triangles": 7160,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    596,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "washer",
+   "params": {
+    "kind": "lavadora"
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-tambor",
+    "carcasa": "elec-inox",
+    "panel": "elec-cristal-negro",
+    "aro": "elec-inox-oscuro"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a0b1ba336c2c368af4e3f94944e8158fc5b0a025606c3bb0b74aae91e5c5aa47",
+   "builtAt": "2026-10-05"
+  },
+  "lavasecadora_inox": {
+   "file": "lavasecadora_inox.glb",
+   "thumbnail": "thumbs/lavasecadora_inox.webp",
+   "sha256": "fad416dba9fd369d48130d1d13f8b27ab571186c8d46df030a327d0555af73ee",
+   "bytes": 108700,
+   "triangles": 7160,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    616,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    620,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "washer",
+   "params": {
+    "kind": "lavasecadora"
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-tambor",
+    "carcasa": "elec-inox",
+    "panel": "elec-cristal-negro",
+    "aro": "elec-plastico-negro",
+    "cajetin": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1738acbf9a2acea5d7d9ef66d242276ce1855d3ef3d2443bf5723dffc7b0fe75",
+   "builtAt": "2026-10-05"
+  },
+  "lavavajillas_45_blanco": {
+   "file": "lavavajillas_45_blanco.glb",
+   "thumbnail": "thumbs/lavavajillas_45_blanco.webp",
+   "sha256": "314b5e0b75148e37aecc1b242094080d0be50692286971e26bd08a2187a8c8ee",
+   "bytes": 28200,
+   "triangles": 2080,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    598,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "dishwasher",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "frente": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "tirador": "elec-plata"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bd6505cd796605fc0dc173373cf7c957cc60d26d518351bdebcd8ac52726e7c8",
+   "builtAt": "2026-10-05"
+  },
+  "lavavajillas_60_blanco": {
+   "file": "lavavajillas_60_blanco.glb",
+   "thumbnail": "thumbs/lavavajillas_60_blanco.webp",
+   "sha256": "bb9efa6475425f3e398287d0ff89b0463ddc3977cf1b3715cf0eaeb95bb5784a",
+   "bytes": 28184,
+   "triangles": 2080,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    598,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "dishwasher",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "frente": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "tirador": "elec-plata"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4f309dcc237523c70444d451e655a3fb5f8feed6b9c638c519cca4410dddc63b",
+   "builtAt": "2026-10-05"
+  },
+  "lavavajillas_60_inox": {
+   "file": "lavavajillas_60_inox.glb",
+   "thumbnail": "thumbs/lavavajillas_60_inox.webp",
+   "sha256": "067866e2ac41a9a57233e3c30549726039188154aaecaa1ea8285fb5931a4500",
+   "bytes": 65148,
+   "triangles": 2080,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    598,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "dishwasher",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plata",
+    "frente": "elec-inox",
+    "panel": "elec-cristal-negro",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b380e35c4dae5896bd33ba56ebcd2fb87cb83155017adf817c89ae73a7afe9f3",
+   "builtAt": "2026-10-05"
+  },
+  "microondas_inox": {
+   "file": "microondas_inox.glb",
+   "thumbnail": "thumbs/microondas_inox.webp",
+   "sha256": "21bf8f20fbc65e19364a3bf3703c2b5575dc8339f7ee4c50362f50e55108722d",
+   "bytes": 66476,
+   "triangles": 2184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    480,
+    380,
+    280
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    480,
+    380,
+    280
+   ],
+   "family": "electrodomesticos",
+   "type": "microwave",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-inox",
+    "frente": "elec-cristal-negro",
+    "panel": "elec-inox",
+    "ventana": "elec-ventana",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d08a3c123bd0738d79180926a1df6396d8282a19fb2a7e7d441ff7a6f21fc9d1",
+   "builtAt": "2026-10-05"
+  },
+  "microondas_inox_32l": {
+   "file": "microondas_inox_32l.glb",
+   "thumbnail": "thumbs/microondas_inox_32l.webp",
+   "sha256": "822adfed893e0f783fb5c0a58fe2b04e254e33bc40bf8d3d7afee12763a6e3af",
+   "bytes": 66776,
+   "triangles": 2184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    550,
+    380,
+    350
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    550,
+    380,
+    350
+   ],
+   "family": "electrodomesticos",
+   "type": "microwave",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-inox",
+    "frente": "elec-cristal-negro",
+    "panel": "elec-inox",
+    "ventana": "elec-ventana",
+    "tirador": "elec-inox"
+   },
+   "textures": [
+    "elec_inox"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ac36b2c948aef3eb685c5e9135b5a1acc1669990cd6897fbcb41f98004292a22",
+   "builtAt": "2026-10-05"
+  },
+  "microondas_negro": {
+   "file": "microondas_negro.glb",
+   "thumbnail": "thumbs/microondas_negro.webp",
+   "sha256": "eea68fa85d855bb140f076fd50da94093f4c36a61609b7868a6dd800de08cd84",
+   "bytes": 29544,
+   "triangles": 2184,
+   "texturePx": 512,
+   "dimensionsMm": [
+    480,
+    380,
+    280
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    480,
+    380,
+    280
+   ],
+   "family": "electrodomesticos",
+   "type": "microwave",
+   "params": {},
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "cromo",
+    "logo": "cromo",
+    "carcasa": "elec-plastico-negro",
+    "frente": "elec-cristal-negro",
+    "panel": "elec-cristal-negro",
+    "ventana": "elec-ventana",
+    "tirador": "elec-plastico-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4af92a5a3e60f3c28835059b0cb564bccf7a9798a077e4181d0b3e37dda81a4c",
+   "builtAt": "2026-10-05"
+  },
+  "secadora_blanca": {
+   "file": "secadora_blanca.glb",
+   "thumbnail": "thumbs/secadora_blanca.webp",
+   "sha256": "18e1bb44ebf369ff624e2adf5883c8a2926683a8880c69001c8c784a630171ef",
+   "bytes": 71460,
+   "triangles": 7256,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    636,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    640,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "washer",
+   "params": {
+    "kind": "secadora",
+    "door_r": 185,
+    "door_z": 440
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-tambor",
+    "carcasa": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "aro": "elec-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3137295ec6491114161a39bbfc5ba8900bebebf965805571e66888634a67e42c",
+   "builtAt": "2026-10-05"
+  },
+  "secadora_blanca_60x60": {
+   "file": "secadora_blanca_60x60.glb",
+   "thumbnail": "thumbs/secadora_blanca_60x60.webp",
+   "sha256": "ebb1df9fd3a991ade60fb4ad466c9bfb412fd11f00d21c67278c6789a50d2382",
+   "bytes": 71396,
+   "triangles": 7256,
+   "texturePx": 512,
+   "dimensionsMm": [
+    600,
+    596,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    850
+   ],
+   "family": "electrodomesticos",
+   "type": "washer",
+   "params": {
+    "kind": "secadora",
+    "door_r": 185,
+    "door_z": 440
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "vidrio": "elec-cristal-ahumado",
+    "interior": "elec-tambor",
+    "carcasa": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "aro": "elec-blanco"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f127c81a6cf91d6809692366699cc809a87caa7dc4ce37c7c265bfa6828baa84",
+   "builtAt": "2026-10-05"
+  },
+  "termo_electrico_100": {
+   "file": "termo_electrico_100.glb",
+   "thumbnail": "thumbs/termo_electrico_100.webp",
+   "sha256": "9ba91ca96eb401b01389205eb1c9fd0cc7e1e9accb306a2b871142e282602490",
+   "bytes": 38276,
+   "triangles": 3540,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    469,
+    1060
+   ],
+   "elevationMm": 1250,
+   "specDimensionsMm": [
+    450,
+    470,
+    1060
+   ],
+   "family": "electrodomesticos",
+   "type": "water_heater",
+   "params": {
+    "elev": 1250
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "tirador": "cromo",
+    "aro": "cromo",
+    "esfera": "elec-esfera",
+    "indicador": "elec-indicador",
+    "frio": "elec-azul",
+    "calor": "elec-rojo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "72bc94ccf8308bdd45d60840de42ffba9299581d6009576d2500ee9b48934b28",
+   "builtAt": "2026-10-05"
+  },
+  "termo_electrico_50": {
+   "file": "termo_electrico_50.glb",
+   "thumbnail": "thumbs/termo_electrico_50.webp",
+   "sha256": "a2e1d65b3941383b9dbfffba9b356288778c778776451062599503ba27e9a4f0",
+   "bytes": 39008,
+   "triangles": 3540,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    469,
+    680
+   ],
+   "elevationMm": 1500,
+   "specDimensionsMm": [
+    450,
+    470,
+    680
+   ],
+   "family": "electrodomesticos",
+   "type": "water_heater",
+   "params": {
+    "elev": 1500
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "tirador": "cromo",
+    "aro": "cromo",
+    "esfera": "elec-esfera",
+    "indicador": "elec-indicador",
+    "frio": "elec-azul",
+    "calor": "elec-rojo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0bf43c1727d6f4d7c0ffb78903e07c0ad36cf08b2d31cb6f3d6f86461439365d",
+   "builtAt": "2026-10-05"
+  },
+  "termo_electrico_80": {
+   "file": "termo_electrico_80.glb",
+   "thumbnail": "thumbs/termo_electrico_80.webp",
+   "sha256": "6b9ace78bcccc4b6271aced31ffba749e911f9a805a43ba5cb086f573b219d33",
+   "bytes": 38496,
+   "triangles": 3540,
+   "texturePx": 512,
+   "dimensionsMm": [
+    450,
+    469,
+    900
+   ],
+   "elevationMm": 1400,
+   "specDimensionsMm": [
+    450,
+    470,
+    900
+   ],
+   "family": "electrodomesticos",
+   "type": "water_heater",
+   "params": {
+    "elev": 1400
+   },
+   "finishes": {
+    "goma": "elec-goma",
+    "pantalla": "elec-pantalla",
+    "led": "elec-digitos",
+    "mandos": "elec-blanco",
+    "logo": "cromo",
+    "carcasa": "elec-blanco",
+    "panel": "elec-plastico-gris",
+    "tirador": "cromo",
+    "aro": "cromo",
+    "esfera": "elec-esfera",
+    "indicador": "elec-indicador",
+    "frio": "elec-azul",
+    "calor": "elec-rojo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e91db52367c576ff5c2de5e5d70375fbf26c1d0f41a1efe97e7b3d52196b60e8",
+   "builtAt": "2026-10-05"
+  },
+  "vitroceramica_60": {
+   "file": "vitroceramica_60.glb",
+   "thumbnail": "thumbs/vitroceramica_60.webp",
+   "sha256": "b0c33a1a54f4077272e3ed30dff7f1e2774f49ce5f41b2729df857d57c6d4797",
+   "bytes": 27080,
+   "triangles": 3696,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    600,
+    520,
+    8
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    520,
+    8
+   ],
+   "family": "electrodomesticos",
+   "type": "ceramic_hob",
+   "params": {},
+   "finishes": {
+    "vidrio": "elec-cristal-negro",
+    "carcasa": "elec-plastico-negro",
+    "marco": "elec-aluminio",
+    "marcas": "elec-serigrafia"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "10677c9a9ca936fd7b1032ac891ba28e31375ba55a806583b9bbc1885ab17f3d",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "elec_inox": {
+   "source": "ambientcg",
+   "id": "Metal009",
+   "title": "Metal 009",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Metal009",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Metal009_1K-JPG.zip",
+     "bytes": 4767000,
+     "sha256": "1b1970219b40fe707e7194b28702f1a65b0d227bbea56da69dfbc8d8b5cfcb5e"
+    }
+   ]
+  }
+ }
+}

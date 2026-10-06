@@ -29,6 +29,7 @@ import {
 } from './normalize-geometry';
 import { assignMeasuredThickness, classifyWallThickness } from './wall-thickness';
 import { mergeOpenPlanRooms, roomOverlapWarnings } from './room-overlap';
+import { leafWithoutArc, recognizedLeafType } from './aperture-types';
 
 export interface RoomsPlan {
   plano: Plano2dPayload;
@@ -216,15 +217,17 @@ export function buildPlanFromRooms(rooms: SketchRoom[], prepared: PreparedSketch
       : undefined;
     return [rescued ?? primary];
   }).filter((aperture) => {
-    // Cuando visión ha identificado también arco y bisagra, un trazo raster
-    // continuo puede ser la hoja de la puerta; no lo tratamos como veto.
+    // Cuando visión ha identificado también arco y bisagra (o una corredera,
+    // plegable o doble hoja), un trazo raster continuo puede ser la hoja de la
+    // puerta; no lo tratamos como veto.
     if (!prepared.fromPixels || aperture.kind === 'ventana') return true;
     const planWall = planWalls.find((wall) => wall.id === aperture.wallId);
     if (!planWall) return false;
     const lengthMm = Math.hypot(planWall.to.x - planWall.from.x, planWall.to.y - planWall.from.y);
     // Una abertura que consume casi todo un tramo corto suele ser una puerta
     // proyectada al lado equivocado de una unión en T.
-    const coverageLimit = aperture.swing && aperture.hinge && aperture.widthMm < lengthMm * 0.9 ? 1.01 : 0.3;
+    const coverageLimit = (aperture.swing && aperture.hinge || recognizedLeafType(aperture.catalogId)) &&
+      aperture.widthMm < lengthMm * 0.9 ? 1.01 : 0.3;
     return apertureCoverage(aperture, unitWalls, planWalls, prepared.sourceWalls) < coverageLimit;
   });
   const apertures = mergeApertures(anchoredGaps, anchoredModel, planWalls);
@@ -244,8 +247,9 @@ export function buildPlanFromRooms(rooms: SketchRoom[], prepared: PreparedSketch
   };
 }
 
+/** Puerta con hoja reconocida: arco visible o con giro y bisagra, o una corredera, plegable o doble hoja leída. */
 function hasDoorArc(seed: ApertureSeed): boolean {
-  return seed.tipo === 'puerta' && (seed.arcVisible === true || Boolean(seed.swing && seed.hinge));
+  return seed.tipo === 'puerta' && (seed.arcVisible === true || Boolean(seed.swing && seed.hinge) || leafWithoutArc(seed.variante));
 }
 
 function doorArcNear(candidate: ApertureSeed, seeds: ApertureSeed[]): boolean {
@@ -801,10 +805,13 @@ function mergeApertures(measured: PlanAperture[], model: PlanAperture[], walls: 
     const len = lengthOf.get(a.wallId) ?? 0;
     const duplicate = out.findIndex((b) => b.wallId === a.wallId && Math.abs(b.position - a.position) * len < SAME_APERTURE_MM);
     if (duplicate < 0) out.push(a);
-    else if (a.swing || a.hinge) out[duplicate] = {
+    // El hueco medido manda en la posición; el modelo aporta giro, bisagra y la carpintería que leyó.
+    else if (a.swing || a.hinge || a.catalogId) out[duplicate] = {
       ...out[duplicate]!,
       ...(a.swing ? { swing: a.swing } : {}),
       ...(a.hinge ? { hinge: a.hinge } : {}),
+      ...(a.catalogId && !out[duplicate]!.catalogId && [a.kind, 'hueco'].includes(out[duplicate]!.kind)
+        ? { kind: a.kind, catalogId: a.catalogId } : {}),
     };
   }
   return out.map((a, i) => ({ ...a, id: `a${i}` }));
