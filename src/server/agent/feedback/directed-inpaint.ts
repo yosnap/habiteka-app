@@ -34,12 +34,14 @@ function buildDirectedPrompt(instruction: string, wholeImage: boolean): string {
     return (
       `Edita esta imagen según esta indicación: ${instruction}. ` +
       'Conserva el mismo espacio, encuadre, perspectiva e iluminación. Conserva la arquitectura salvo la corrección concreta solicitada; ' +
+      'si sobra o pide quitar un objeto, bórralo sin sustituirlo por otro; ' +
       'cambia solo lo que pide la indicación, sin añadir texto ni marcas.'
     );
   }
   return (
     `Modifica únicamente la región enmascarada según esta indicación: ${instruction}. ` +
     'Interpreta la descripción de un defecto como la corrección solicitada: si falta un elemento, restáuralo en la zona indicada. ' +
+    'Si sobra o pide quitar un objeto, bórralo por completo dentro de la máscara y rellena con el suelo, la pared o el fondo que lo rodea; no lo sustituyas por otro igual ni por otra pieza. ' +
     'Corrige solo la parte necesaria para resolver ese defecto; conservar el resto no significa conservar el defecto. ' +
     'Mantén el resto de la imagen sin cambios, conservando estilo, iluminación y perspectiva.'
   );

@@ -2,6 +2,8 @@ import type { EditorDocument } from './schema';
 import { ceilingSurfaces, resolvedLuminaires, luminaireDepthMm, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM } from './ceiling-geometry';
 import { resolvedStrips } from './light-strip-geometry';
 import { exteriorRoofFootprints } from './exterior-roof-footprint';
+import { roofOpeningPoints } from './roof-opening-types';
+import { roofCeilingVoids } from './roof-opening-commands';
 
 const meters = (value: number) => Number((value / 1000).toFixed(3));
 
@@ -9,15 +11,23 @@ export const CEILING_RENDER_POLICY = `Los techos y luminarias indicados ya está
 
 /** Las mismas reglas, condensadas para el prompt compacto (tope de longitud de los modelos de respaldo). */
 export const EXTERIOR_ROOF_RENDER_POLICY = 'exteriorRoof es el tejado exterior aprobado: conserva kind, pendiente pitchDeg, orientación orientationDeg, alero, espesor, acabado y huella con sus huecos. Sus boundaryM ya incluyen alero; no lo añadas otra vez. Los muros de sus estancias se prolongan desde su altura guardada hasta la cara inferior inclinada del tejado: reproduce esos hastiales y cierres con el acabado del muro, sin huecos entre pared y cubierta, sin crear nuevas ventanas. Respeta la visibilidad de camera: si ceilingView=hidden, oculta techo y tejado incluso en dron; en alzados con cutaway conserva la cubierta y oculta los cierres de los muros del lado de cámara. En exterior completo con cubierta visible conserva el tejado, sin sustituirlo por el falso techo. Estas ocultaciones no eliminan elementos del diseño. voidCover es manual: solid cierra vacíos interiores, open mantiene sus aberturas y glass las cubre con las huellas glazing=true. Respeta ese cristal real y su pendiente; no abras nuevos huecos ni cambies la elección. No cierres patios exteriores ajenos a esa cubierta ni elimines pérgolas.';
-export const CEILING_RENDER_POLICY_COMPACT = 'Techos/luces: conserva geometría/acabados/K/lm/estado. color=interior;topMaterialId=arriba;edgeMaterialId=canto;roofTopM=superior;espesor=heightM+dropM;dropM=caída;positionM.elevation=inferior. Transparente=edición, no cristal. ceilingView=hidden:oculta techo/tejado;cutaway:abre frente. exteriorRoof:forma/pendiente/orientación/alero;hastiales al intradós,mismo acabado,sin ventanas nuevas. voidCover manual solid/open/glass=cerrado/abierto/vidrio(glazing=true),solo vacíos internos. No inventes huecos,cubras patios externos ni borres pérgolas. spot:haz hasta aimM. lightStrips: tiras LED lineales;conserva ruta/cota/emisión/longitud. K/lm incluyen escena.';
+export const ROOF_OPENING_RENDER_POLICY = 'exteriorRoof.openings son piezas manuales: conserva tipo, posición, dimensiones proyectadas, giro y contorno. glass y roof-window siguen la pendiente; roof-window tiene marco y vidrio cerrado. chimney es una salida vertical de ladrillo con conducto hueco y sombrerete metálico, nunca vidrio; height es su altura sobre el punto más alto del tejado bajo ella, más 0.28 m de sombrerete. Sus huecos atraviesan también el techo interior. No añadas lucernarios ni chimeneas por decoración ni alteres la clasificación manual de paredes.';
+export const CEILING_RENDER_POLICY_COMPACT = 'Techos/luces: color=interior;topMaterialId=arriba;edgeMaterialId=canto;roofTopM=superior;espesor=heightM+dropM;dropM=caída;positionM.elevation=inferior. Transparente=edición, no cristal. ceilingView=hidden:oculta techo/tejado;cutaway:abre frente. exteriorRoof:forma/pendiente/orientación/alero;hastiales al intradós,mismo acabado,sin ventanas nuevas. voidCover manual solid/open/glass=cierra/abre/acristala vacíos;glazing=vidrio. openings=vidrios/ventanas/chimeneas manuales. No inventes huecos,cubras patios externos ni borres pérgolas. spot:haz hasta aimM. lightStrips: tiras LED lineales;conserva ruta/cota/emisión/longitud. K/lm incluyen escena.';
 
 /** Mismo contrato físico para diseño, render completo y render compacto. */
 export function ceilingDesignContext(doc: EditorDocument) {
   return {
     ...(doc.exteriorRoof ? { exteriorRoof: { ...doc.exteriorRoof,
+      ...(doc.exteriorRoof.openings?.length ? { openings: doc.exteriorRoof.openings.map(opening => ({
+        id: opening.id, kind: opening.kind, positionM: { x: meters(opening.x), y: meters(opening.y) }, rotationDeg: opening.rotation,
+        dimensionsM: { width: meters(opening.widthMm), depth: meters(opening.depthMm), ...(opening.kind === 'chimney' ? { height: meters(opening.heightMm ?? 1200) } : {}) },
+        boundaryM: roofOpeningPoints(opening).map(p => ({ x: meters(p.x), y: meters(p.y) })),
+      })) } : {}),
       eavesM: meters(doc.exteriorRoof.eavesMm), thicknessM: meters(doc.exteriorRoof.thicknessMm),
       footprints: exteriorRoofFootprints(doc).map(part => ({ baseM: meters(part.baseMm),
-        ...(part.glazing ? { glazing: true } : {}), boundaryM: part.rings.map(ring => ring.map(point => ({ x: meters(point.x), y: meters(point.y) }))) })),
+        ...(part.glazing ? { glazing: true } : {}), ...(part.frame ? { frame: true } : {}), ...(part.chimney ? { chimney: true } : {}),
+        ...(part.openingId ? { openingId: part.openingId } : {}),
+        boundaryM: part.rings.map(ring => ring.map(point => ({ x: meters(point.x), y: meters(point.y) }))) })),
     } } : {}),
     ceilings: ceilingSurfaces(doc).map(({ ceiling, room, heightMm }) => ({
       id: ceiling.id, roomId: room.id, kind: ceiling.kind,
@@ -26,6 +36,7 @@ export function ceilingDesignContext(doc: EditorDocument) {
       ...(ceiling.topMaterialId ? { topMaterialId: ceiling.topMaterialId } : {}),
       ...(ceiling.edgeMaterialId ? { edgeMaterialId: ceiling.edgeMaterialId } : {}),
       boundaryM: room.boundary.map((point) => ({ x: meters(point.x), y: meters(point.y) })),
+      ...(doc.exteriorRoof?.openings?.length ? { voidsM: roofCeilingVoids(doc).map(ring => ring.map(p => ({ x: meters(p.x), y: meters(p.y) }))) } : {}),
     })),
     // Temperatura, flujo y encendido salen ya con la escena activa aplicada.
     luminaires: resolvedLuminaires(doc).map(({ luminaire, ceiling, heightMm, ceilingHeightMm, effectiveTemperatureK, effectiveLumens, effectiveEnabled, aim }) => ({

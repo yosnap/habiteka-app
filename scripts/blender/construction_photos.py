@@ -26,6 +26,7 @@ from mathutils import Vector  # noqa: E402
 
 import hk_geo as geo  # noqa: E402
 import hk_render  # noqa: E402
+from roof_construction_photos import scenes as roof_scenes  # noqa: E402
 
 TEX = {}
 WALL_H, WALL_T = 2.5, .15
@@ -606,6 +607,7 @@ SCENES = {
     'pavimento': (scene_pavimento, -30, 30),
     'terreno': (scene_terreno, -30, 26),
 }
+SCENES.update(roof_scenes({'box': box, 'plain': plain, 'textured': textured, 'add': add}))
 
 
 # ── ejecución ─────────────────────────────────────────────────────────────────────────────────────────────────────

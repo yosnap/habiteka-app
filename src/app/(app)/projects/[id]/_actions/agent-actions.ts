@@ -56,7 +56,7 @@ import type { NativeDesignProposal } from '@/lib/editor-document/native-design-p
 import { isInteriorRenderMode, MAX_RENDER_PASSES, renderDesignOptionsSchema, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { zoneMaskCoverage, ZONE_EMPTY_COVERAGE } from '@/server/agent/editor-v2/zone-mask-coverage';
 import { isolateZoneResult } from '@/server/agent/editor-v2/zone-isolated-image';
-import { reviewRenderFidelity } from '@/server/agent/editor-v2/review-render-fidelity';
+import { reviewRenderFidelity, unfinishedRenderReview } from '@/server/agent/editor-v2/review-render-fidelity';
 import { renderSpatialReference } from '@/server/agent/editor-v2/render-spatial-reference';
 import { assertRenderViewIntegrity } from '@/lib/editor-document/render-view-integrity';
 import { requestedRenderRedesign } from '@/lib/editor-document/render-redesign';
@@ -601,7 +601,9 @@ async function generateConceptRenderFromEditorImpl(
     options.freedom === 'strict' && !isInteriorRenderMode(options) &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)) && !drone, auditReference, options.redesignFixed,
     redesignRequested, spatial, { reference: plan ? 'plan' : section ? 'section' : 'capture', people: options.people,
-      sectionRooms: 'sectionRooms' in prepared ? prepared.sectionRooms : undefined });
+      sectionRooms: 'sectionRooms' in prepared ? prepared.sectionRooms : undefined })
+    // Un PNG externo solo se guarda si supera la revisión; una imagen recién generada ya está pagada y no se pierde.
+    .catch((error) => { if (parsedSettings.existingImageDataUrl) throw error; return unfinishedRenderReview(error); });
   let finalAsset = { assetUrl: result.assetUrl, assetKey: result.assetKey };
   if (!finalAsset.assetKey && !zoneMask) {
     // El proveedor no pudo copiar el resultado (CDN lenta): se conservan los bytes originales ya descargados para la

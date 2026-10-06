@@ -16,7 +16,7 @@ const CATEGORIES: ConstructionCardCategory[] = ['patio', 'walls', 'rooms', 'kitc
 const noop = () => {};
 const handlers = { readOnly: false, onTool: noop, onShape: noop, onAddStair: noop, onAddRamp: noop, onAddLanding: noop, onAddColumn: noop };
 /** Fichas fuera de construction-cards: las superficies del apartado Exterior y jardín. */
-const SURFACE_PHOTOS = ['terreno', 'pavimento'];
+const SURFACE_PHOTOS = ['terreno', 'pavimento', 'tejado', 'cristal-tejado', 'ventana-tejado', 'chimenea-tejado'];
 
 describe('fotos de las fichas de Construir', () => {
   it('cada foto es un WebP de 336 × 224 px en public/images/construction', async () => {
@@ -64,6 +64,15 @@ describe('fotos de las fichas de Construir', () => {
       expect(html, category).not.toContain('<svg');
       for (const card of constructionSection(category).cards) expect(html, card.id).toContain(`src="${constructionPhotoUrl(card.photo)}"`);
     }
+  });
+
+  it('ofrece piezas y edición del tejado desde Construir con fotografías', () => {
+    const html = renderToStaticMarkup(createElement(ConstructionCatalog, { ...handlers, category: 'roof', onRoofAction: noop }));
+    for (const id of ['tejado', 'cristal-tejado', 'ventana-tejado', 'chimenea-tejado'] as const) expect(html).toContain(constructionPhotoUrl(id));
+    for (const text of ['Editar tejado en plano 2D', 'Ver tejado en 3D', 'Salida de chimenea', 'Ocultar tejado']) expect(html).toContain(text);
+    expect(html).not.toContain('<svg');
+    const navigation = renderToStaticMarkup(createElement(ConstructionNavigationImage, { category: 'roof' }));
+    expect(navigation).toContain('/images/construction/tejado.webp');
   });
 
   it('no ofrece una ficha si el editor no tiene su comando', () => {

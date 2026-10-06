@@ -98,6 +98,8 @@ const essentials = [
   entry('sofa-modular', 'Sofá modular de tres módulos', 'salon', 'sofa-modular', [2700, 950, 820], 'Tela', '#8b9a95', 'Módulos independientes combinables', 'Nórdico'),
   entry('sofa-cama', 'Sofá cama', 'salon', 'sofa-bed', [2000, 950, 850], 'Tela', '#a89b8a', 'Sofá que se convierte en cama'),
   entry('cortina-abierta', 'Cortina abierta (dos paños)', 'decoracion', 'curtain-open', [1800, 180, 2400], 'Lino', '#d8cfc0', 'Paños recogidos a los lados', 'Mediterráneo'),
+  entry('cortina-ventanal', 'Cortina de lino para ventanal', 'decoracion', 'curtain', [3600, 180, 2600], 'Lino', '#e8dfcc', 'Dos paños de onda para ventanales grandes', 'Mediterráneo'),
+  entry('cortina-corta', 'Cortina corta de lino', 'decoracion', 'curtain', [1200, 180, 1400], 'Lino', '#efeae0', 'Dos paños de onda hasta el alféizar', 'Nórdico', 900),
   entry('estor-enrollable', 'Estor enrollable', 'decoracion', 'roller', [1200, 80, 1600], 'Tejido técnico', '#e4e0d6', 'Pantalla que se enrolla en un tubo', 'Contemporáneo', 900),
   entry('persiana-veneciana', 'Persiana veneciana', 'decoracion', 'venetian', [1200, 60, 1500], 'Aluminio', '#c9ccc8', 'Lamas horizontales orientables', 'Contemporáneo', 900),
   entry('persiana-vertical', 'Persiana de lamas verticales', 'decoracion', 'vertical-blind', [1800, 100, 2400], 'Tejido', '#d5d2c8', 'Lamas verticales giratorias', 'Contemporáneo'),
@@ -110,6 +112,9 @@ const ALL_FURNITURE: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...HA
   if (item.kind === 'alfombra') return [item, variant(item, 'grande', 'Yute · 300 × 200 cm', { widthMm: 3000, depthMm: 2000, material: 'Yute', color: '#bda777', style: 'Rústico' })];
   if (item.kind === 'armario') return [item, variant(item, 'grande', 'Roble · 180 cm', { widthMm: 1800, material: 'Roble', color: '#b49267', style: 'Nórdico' })];
   if (item.kind === 'sofa-cama') return [item, variant(item, 'abierto', 'Abierto · cama 200 × 190 cm', { depthMm: 1900, heightMm: 450 })];
+  if (item.kind === 'cortina-ventanal' || item.kind === 'cortina-corta') return [item,
+    variant(item, 'salvia', 'Verde salvia', { color: '#a5b29a' }),
+    variant(item, 'terracota', 'Terracota', { color: '#bf8a70' })];
   if (item.kind === 'cortina' || item.kind === 'cortina-abierta') return [item, variant(item, 'gris', 'Gris piedra', { color: '#9a9a96' }), variant(item, 'azul', 'Azul noche', { color: '#6c7f93' }), variant(item, 'blanco', 'Blanco roto', { color: '#efeae0' })];
   if (item.kind === 'estor-enrollable') return [item, variant(item, 'gris', 'Gris grafito', { color: '#8f8f8b' }), variant(item, 'screen', 'Screen negro', { color: '#3a3d3c', material: 'Tejido screen' })];
   if (item.kind === 'persiana-veneciana') return [item, variant(item, 'madera', 'Madera clara', { color: '#c9a878', material: 'Madera' }), variant(item, 'negra', 'Negra', { color: '#3a3d3c' })];

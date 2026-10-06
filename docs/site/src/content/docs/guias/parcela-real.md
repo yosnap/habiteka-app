@@ -23,6 +23,8 @@ Selecciona **Colocar el diseño** y arrástralo. Ajusta **Tamaño del diseño** 
 - Las cotas del plano editable se conservan. Comprueba que el encaje visual corresponde a las dimensiones reales.
 - Revisa la posición del acceso, no solo la alineación del volumen.
 
+La ortofoto tiene norte arriba. El giro del diseño fija el norte del plano que muestran las brújulas del editor y usa la iluminación orientada. **Herramientas → Orientación y sol** comparte ese giro: cambiar el norte también cambia el encaje y exige confirmarlo otra vez. Si ya habías definido el norte, cargar una nueva fotografía lo conserva.
+
 ## Tapar la construcción anterior
 
 Para una sustitución:
@@ -54,6 +56,8 @@ En **Imágenes y vídeo**, elige:
 Selecciona Día, Tarde, Atardecer o Noche. Los menús mantienen abierto el panel, al igual que guardar; un clic externo no lo cierra. Seleccionar de nuevo el mismo valor conserva la confirmación del encaje.
 
 Las imágenes ya generadas conservan su luz. Cuando generes otras, elige también ese momento de luz en **Diseñar con IA**.
+
+La dirección y altura del sol se ajustan en **Orientación y sol**, por separado para Día, Tarde y Atardecer. No se calculan automáticamente con las coordenadas de la parcela ni con una fecha/hora. Las sombras de noche proceden de las luminarias.
 
 **Guardar cambios** aplica el encaje al borrador y mantiene abierto el panel. **Confirmar para el vídeo** marca el encaje como revisado; no crea un MP4.
 

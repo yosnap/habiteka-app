@@ -11,7 +11,9 @@ import { seatOpening } from './l-sofa-shape';
  * código las coloca respecto a la pieza principal ya validada.
  */
 export function isDiningTable(entry: FurnitureCatalogEntry | undefined): boolean {
-  return !!entry && entry.profile === 'table' && (entry.room === 'comedor' || entry.id === 'habiteka:furniture:mesa-jardin');
+  // Un set ya incluye sus sillas: no se le añaden acompañantes alrededor de la huella completa.
+  return !!entry && !entry.productId.startsWith('habiteka-set_comedor_') && entry.profile === 'table'
+    && (entry.room === 'comedor' || entry.id === 'habiteka:furniture:mesa-jardin');
 }
 export function isDiningChair(entry: FurnitureCatalogEntry | undefined): boolean {
   return !!entry && entry.profile === 'chair' && (entry.room === 'comedor' || entry.id === 'habiteka:furniture:silla-jardin');
@@ -163,7 +165,7 @@ const TUCK_RATIO = .38, TUCK_MAX_MM = 220;
 
 export function diningChairs(table: NativeDesignFurniture, chairId: string, snug = true): NativeDesignFurniture[] {
   const tableEntry = getFurnitureCatalogEntry(table.catalogId), chair = getFurnitureCatalogEntry(chairId);
-  if (!tableEntry || !chair) return [];
+  if (!isDiningTable(tableEntry) || !tableEntry || !chair) return [];
   const { widthMm: width, depthMm: depth } = tableEntry;
   const half = chair.depthMm / 2 - (snug ? Math.min(TUCK_MAX_MM, Math.round(chair.depthMm * TUCK_RATIO)) : 0);
   const perSide = Math.max(1, Math.floor(width / PLACE_MM));

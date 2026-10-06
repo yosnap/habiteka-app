@@ -1,6 +1,7 @@
 import type { Estilo } from '@/lib/contracts';
+import { propertySunPrompt } from '@/lib/editor-document/property-orientation';
 import { estiloLabel } from '@/lib/design-options';
-import type { EditorDocument } from '@/lib/editor-document/schema';
+import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import { renderViewVisibilityRule } from '@/lib/editor-document/render-view-visibility';
 import { requestedRenderRedesign, RENDER_REDESIGN_RULE } from '@/lib/editor-document/render-redesign';
@@ -12,7 +13,8 @@ import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { FURNITURE_USE_RULE } from '@/lib/editor-document/render-review';
 import { includeSpatialImageInGeneration, renderSpatialRule, type RenderSpatialContext } from './render-spatial-context';
 import type { CameraRoomGuide } from './render-camera-room-guide';
-import { exteriorDesignContext, exteriorPlanRule, isVehicle } from '@/lib/editor-document/exterior-design-context';
+import { exteriorDesignContext, isVehicle } from '@/lib/editor-document/exterior-design-context';
+import { centroid, exteriorPlanSummary, fixturePlanSummary } from './plan-prompt-inventory';
 import {
   isInteriorRenderMode,
   RENDER_ADDITION_LABELS,
@@ -26,7 +28,7 @@ const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, 
 /** Personas pedidas por el usuario: dan vida a la imagen sin cambiar el diseño ni bloquear pasos. */
 export const PEOPLE_RULE = 'Añade algunas personas haciendo vida cotidiana en las estancias, a escala real y sin tapar puertas ni pasos.';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v25';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v26';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -125,10 +127,20 @@ export function selectedViewImagePrompt(
     rooms: level.rooms.filter(room => visibleRoomIds.has(room.id)),
     openAreas: level.openAreas?.filter(area => area.roomIds.every(id => visibleRoomIds.has(id))),
   })) } : spatial;
+  // Exterior y sanitarios van en frases breves: con su inventario JSON el prompt pasaba de 28 000 caracteres, KIE lo
+  // rechazaba y el respaldo reinventaba la planta. La auditoría sigue recibiendo el inventario completo.
+  const inScope = (point: Point) => options.placement !== 'selected' || options.regions.some((region) => pointInPolygon(point, region.polygon));
+  const exterior = (spatial ? spatial.levels.flatMap((level) => level.exterior ?? []) : acceptedDesign ? [] : exteriorDesignContext(document))
+    .filter((item) => inScope(centroid(item.footprint)));
+  const fixtures = (spatial?.levels.flatMap((level) => level.fixtureGroups ?? []) ?? [])
+    .filter((group) => group.items.some((item) => inScope(item.center)));
+  const briefSpatial = spatialForCamera && { ...spatialForCamera,
+    levels: spatialForCamera.levels.map((level) => ({ ...level, exterior: undefined, fixtureGroups: undefined })) };
 
   return [
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
     `Produce UNA imagen arquitectónica realista del MISMO proyecto y MISMA cámara (${viewName}). Estilo: ${estiloLabel(style)}; ${light}.`,
+    ...(propertySunPrompt(document, options.lighting) ? [propertySunPrompt(document, options.lighting)] : []),
     'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina y accesos visibles.',
     ...(redesign ? [RENDER_REDESIGN_RULE] : []),
     options.redesignFixed && acceptedDesign
@@ -140,8 +152,9 @@ export function selectedViewImagePrompt(
       ? 'MOBILIARIO DEL DISEÑO ACEPTADO: no sustituyas ni añadas muebles respecto de la cenital aceptada; la decoración menor permitida debe ser coherente con ella. Respeta la escala, el uso y todos los pasos.'
       : 'Puedes sustituir muebles móviles (sofás, mesas, sillas, lámparas, alfombras y cortinas) dentro del ámbito; respeta la escala, el uso y todos los pasos.',
     FURNITURE_USE_RULE,
-    ...(spatialForCamera ? [renderSpatialRule(spatialForCamera, includeSpatialImageInGeneration(view))] : []),
-    ...(!spatialForCamera && !acceptedDesign ? exteriorPlanRule(exteriorDesignContext(document)) : []),
+    ...(briefSpatial ? [renderSpatialRule(briefSpatial, includeSpatialImageInGeneration(view))] : []),
+    ...exteriorPlanSummary(exterior),
+    ...fixturePlanSummary(fixtures),
     ...(cameraGuide ? [
       'USOS LOCALIZADOS EN ESTA CÁMARA: las posiciones siguientes son puntos interiores visibles de las estancias en la imagen 1 (x desde la izquierda, y desde arriba, entre 0 y 1). Amuebla cada espacio según SU nombre en esa posición, no según el orden de una lista de habitaciones del plano. Los nombres ocultos no se trasladan al primer plano. Un punto no visible no implica que falte su estancia.',
       `Estancias localizadas: ${JSON.stringify(cameraGuide.rooms)}.`,

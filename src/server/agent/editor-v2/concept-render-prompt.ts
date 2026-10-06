@@ -2,7 +2,7 @@ import type { Estilo } from '@/lib/contracts';
 import { estiloLabel } from '@/lib/design-options';
 import { furnitureDesignContext } from '@/lib/editor-document/furniture-context';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
-import { ceilingDesignContext, CEILING_RENDER_POLICY, EXTERIOR_ROOF_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
+import { ceilingDesignContext, CEILING_RENDER_POLICY, EXTERIOR_ROOF_RENDER_POLICY, ROOF_OPENING_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
 import { designSpaceKindLabel } from '@/lib/design-space-kind';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 
@@ -27,6 +27,7 @@ export function conceptRenderPrompt(
     'Conserva construcción, medidas, cotas y posiciones originales. No agregues estructura ni cambies techos. Las adiciones decorativas de esta imagen conceptual son propuestas visuales, no instalaciones aceptadas.',
     CEILING_RENDER_POLICY,
     EXTERIOR_ROOF_RENDER_POLICY,
+    ROOF_OPENING_RENDER_POLICY,
     objetivo ? `Objetivo adicional: ${objetivo}.` : '',
     instruccion ? `Preferencias subordinadas a las restricciones: ${instruccion}.` : '',
     JSON.stringify({ furniture: furnitureDesignContext(document), overhead: { units: 'm', levels: overhead } }),

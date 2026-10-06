@@ -9,8 +9,10 @@ import type { EditorTool } from '@/canvas/editor-v2/store';
 import type { Stair } from '@/lib/editor-document/schema';
 import styles from './editor.module.css';
 import photo from './catalog-photo.module.css';
+import { RoofConstructionCatalog } from './roof-construction-catalog';
+import type { RoofAction } from './use-roof-workflow';
 
-export type ConstructionCategory = 'outdoor' | 'patio' | 'walls' | 'rooms' | 'kitchen' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps' | 'columns';
+export type ConstructionCategory = 'roof' | 'outdoor' | 'patio' | 'walls' | 'rooms' | 'kitchen' | 'shapes' | 'doors' | 'windows' | 'passages' | 'stairs' | 'ramps' | 'columns';
 export interface ConstructionCatalogProps {
   category: ConstructionCategory;
   onAddOutdoor?: (item: FurnitureCatalogEntry) => void;
@@ -22,6 +24,7 @@ export interface ConstructionCatalogProps {
   onAddRamp?: () => void;
   onAddLanding?: () => void;
   onAddColumn?: () => void;
+  onRoofAction?: (action: RoofAction) => void;
 }
 /** Ejecuta la acción de la ficha; `undefined` si el editor no ofrece ese comando (la ficha no se muestra). */
 function cardHandler(action: ConstructionCardAction, props: ConstructionCatalogProps): (() => void) | undefined {
@@ -39,6 +42,7 @@ function cardHandler(action: ConstructionCardAction, props: ConstructionCatalogP
 /** Only offers construction actions backed by a real command or tool. */
 export function ConstructionCatalog(props: ConstructionCatalogProps) {
   const { category, readOnly, onTool, onAddOutdoor } = props;
+  if (category === 'roof') return <RoofConstructionCatalog readOnly={readOnly} onAction={props.onRoofAction} />;
   if (category === 'outdoor') return <OutdoorConstructionCatalog readOnly={readOnly} onAdd={onAddOutdoor} />;
   if (category === 'doors' || category === 'windows') return <OpeningTypeCatalog kind={category === 'doors' ? 'puerta' : 'ventana'}
     readOnly={readOnly} onChoose={(card) => onTool(card.tool, card.typeId)} />;

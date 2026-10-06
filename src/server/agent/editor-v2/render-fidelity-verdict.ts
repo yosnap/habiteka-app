@@ -32,7 +32,10 @@ export const RENDER_FIDELITY_SCHEMA = z.toJSONSchema(verdictSchema.extend({
   exteriorChecks: z.array(exteriorCheck.extend({ observedVehicleType: exteriorCheck.shape.observedVehicleType.unwrap() })),
   fixtureChecks: z.array(fixtureCheckSchema),
 })) as JsonSchema;
-export const RENDER_FIDELITY_VERSION = 'spatial-fidelity-v5';
+export const RENDER_FIDELITY_VERSION = 'spatial-fidelity-v8';
+
+/** Informe del auditor incompleto o ilegible: la imagen no queda verificada, pero no hay evidencia de un defecto. */
+export class IncompleteRenderReviewError extends UserFacingError {}
 
 /**
  * Una puntuación global no puede ocultar un fallo concreto o una estancia sin evaluar. En los alzados cortados las
@@ -42,7 +45,7 @@ export const RENDER_FIDELITY_VERSION = 'spatial-fidelity-v5';
 export function validateRenderFidelity(value: unknown, redesignRequested: boolean, context?: RenderSpatialContext, model?: string,
   cutawayElevation = false, requiredRoomIds: readonly string[] = [], requiredExteriorIds: readonly string[] = [], fixturePolicy: FixtureAuditPolicy = {}) {
   const parsed = verdictSchema.safeParse(value);
-  if (!parsed.success) throw new UserFacingError('No se pudo verificar la fidelidad completa de la imagen. Se ha detenido el lote; vuelve a intentarlo.');
+  if (!parsed.success) throw new IncompleteRenderReviewError('No se pudo verificar la fidelidad completa de la imagen: el informe de la revisión no es válido.');
   const verdict = parsed.data;
   const exterior = context?.levels.flatMap(level => level.exterior ?? []) ?? [];
   const exteriorChecks = verdict.exteriorChecks ?? [];
@@ -52,15 +55,15 @@ export function validateRenderFidelity(value: unknown, redesignRequested: boolea
     ids.length === checks.length && new Set(checks.map(item => item.id)).size === ids.length
       && checks.every(item => ids.includes(item.id));
   if (verdict.criteria.length !== criterionIds.length || new Set(verdict.criteria.map(item => item.id)).size !== criterionIds.length)
-    throw new UserFacingError('La revisión visual no comprobó todos los criterios de calidad. No se puede dar el diseño por verificado.');
+    throw new IncompleteRenderReviewError('La revisión visual no comprobó todos los criterios de calidad. No se puede dar el diseño por verificado.');
   if (context && (!complete(context.levels.flatMap(level => level.rooms.map(room => room.id)), verdict.roomChecks)
     || !complete(context.levels.flatMap(level => level.openings.map(opening => opening.id)), verdict.openingChecks)
     || !complete(context.levels.flatMap(level => (level.openAreas ?? []).map(area => area.id)), verdict.openAreaChecks)))
-    throw new UserFacingError('La revisión de la imagen no comprobó todas las estancias y los huecos del plano. El diseño no se ha guardado.');
+    throw new IncompleteRenderReviewError('La revisión de la imagen no comprobó todas las estancias y los huecos del plano.');
   if (context && !complete(exterior.map(item => item.id), exteriorChecks))
-    throw new UserFacingError('La revisión no comprobó todo el terreno, los cerramientos y los objetos exteriores. El diseño no se ha guardado.');
+    throw new IncompleteRenderReviewError('La revisión no comprobó todo el terreno, los cerramientos y los objetos exteriores.');
   if (context && !complete(fixtureGroups.map(group => group.id), fixtureChecks))
-    throw new UserFacingError('La revisión no comprobó los sanitarios y las placas de cocción por estancia. El diseño no se ha guardado.');
+    throw new IncompleteRenderReviewError('La revisión no comprobó los sanitarios y las placas de cocción por estancia.');
   // Contrasta observaciones concretas con el modelo aunque el auditor devuelva pass.
   for (const item of verdict.openingChecks) {
     const opening = context?.levels.flatMap(level => level.openings).find(opening => opening.id === item.id);

@@ -9,6 +9,7 @@
 import type { ImportedFurniture, PlanImportWarning, PlanZone } from '@/lib/contracts';
 import {
   FURNITURE_CATALOG,
+  normalizeFurnitureSearch,
   type FurnitureCatalogEntry,
   type FurnitureProfile,
   type FurnitureRoom,
@@ -133,7 +134,13 @@ function bestCatalogEntry(
   room: FurnitureRoom | null,
 ): FurnitureCatalogEntry | null {
   const profile = item.tipo as FurnitureProfile;
-  const byProfile = FURNITURE_CATALOG.filter((e) => e.profile === profile);
+  const label = normalizeFurnitureSearch(item.etiqueta ?? '');
+  const wantsBunk = /litera/.test(label);
+  const wantsDiningSet = /\b(set|conjunto)\b/.test(label) && /comedor|mesa/.test(label);
+  // La huella sola no distingue una cama de una litera, ni una mesa de un set con sillas.
+  const byProfile = FURNITURE_CATALOG.filter((e) => e.profile === profile
+    && (profile !== 'bed' || /litera/.test(e.productId) === wantsBunk)
+    && (profile !== 'table' || e.productId.startsWith('habiteka-set_comedor_') === wantsDiningSet));
   if (byProfile.length === 0) return null;
   // En un cuarto infantil, una cama dibujada es individual; en el garaje, la estantería es la metálica.
   const preferred = room ? byProfile.filter((e) => furnitureRooms(e).includes(room)) : [];

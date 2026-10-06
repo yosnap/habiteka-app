@@ -8,6 +8,7 @@ import { RENDER_FIDELITY_CRITERIA } from '@/lib/editor-document/render-fidelity'
 import type { RenderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
 import { renderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
 import { prepareRenderImageRequest } from '@/server/agent/editor-v2/prepare-render-image-request';
+import { selectedViewImagePrompt } from '@/server/agent/editor-v2/selected-view-image-prompt';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -67,9 +68,34 @@ describe('conservación de césped, cerco y vehículos', () => {
       spatial: { context, image } });
     expect(request.referenceImages).toHaveLength(1);
     expect(request.prompt).toContain('Césped verde PBR');
-    expect(request.prompt).toContain('no sustituyas césped por tierra');
-    expect(request.prompt).toContain('"openAngleDeg":90');
-    expect(request.prompt).toContain('"id":"car1"'); expect(request.prompt).toContain('"id":"car2"');
+    // La cenital nombra el exterior en frases breves; el inventario con identificadores queda para la auditoría.
+    expect(request.prompt).toContain('el césped sigue siendo césped');
+    expect(request.prompt).toMatch(/1 puerta con su apertura/);
+    expect(request.prompt).toMatch(/vehículos: [^;]*×2|vehículos: [^;]*, [^;]*/);
+    expect(request.prompt).not.toContain('"id":"car1"');
+    // El arco de giro salía como un tablón curvo entre los marcos.
+    expect(request.prompt).toMatch(/tabla rígida y recta[^.]*sin arcos ni piezas curvas/);
+  });
+
+  it('las vistas con captura nombran el exterior sin inventario JSON y solo dentro de las zonas elegidas', () => {
+    const iso: RenderView = { ...view, preset: 'isometric', position: [20, 15, 20], cutaway: false };
+    const all = defaultRenderDesignOptions();
+    const prompt = selectedViewImagePrompt(doc, iso, 'moderno', all, '', '', false, false, false, renderSpatialContext(doc, iso, all));
+    expect(prompt).toContain('EXTERIOR EXISTENTE OBLIGATORIO');
+    expect(prompt).toContain('Exterior del proyecto, si aparece en esta cámara');
+    expect(prompt).toContain('Césped verde PBR');
+    expect(prompt).toMatch(/1 puerta con su apertura/);
+    // El inventario con identificadores y contornos solo lo recibe la auditoría.
+    expect(prompt).not.toContain('L1-E-');
+    expect(prompt).not.toContain('"footprint"');
+    // En perspectiva no se dan posiciones del plano: arriba o izquierda no son los de la imagen.
+    expect(prompt).not.toMatch(/Exterior del proyecto[^\n]*\((arriba|abajo|izquierda|derecha|centro)/);
+    const zone = { ...all, placement: 'selected' as const,
+      regions: [{ id: 'garaje', name: 'Garaje', polygon: [{ x: 6500, y: 2500 }, { x: 9500, y: 2500 }, { x: 9500, y: 8000 }, { x: 6500, y: 8000 }] }] };
+    const zonePrompt = selectedViewImagePrompt(doc, iso, 'moderno', zone, '', '', true, false, false, renderSpatialContext(doc, iso, zone));
+    expect(zonePrompt).toMatch(/vehículos: coche/);
+    expect(zonePrompt).not.toContain('cercos:');
+    expect(zonePrompt).not.toContain('Césped verde PBR');
   });
 
   it('incluye suelos de jardín y no exige mostrar capas totalmente cubiertas', async () => {

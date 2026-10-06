@@ -7,7 +7,8 @@ import { isRampLanding } from './ramp-kind';
 import { rampParts } from './ramp-route';
 import { deriveRooms } from './rooms';
 import { wallPath } from './wall-path';
-import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-context';
+import { ceilingDesignContext, CEILING_RENDER_POLICY, ROOF_OPENING_RENDER_POLICY } from './ceiling-design-context';
+import { roofOpeningPoints, ROOF_OPENING_LABELS } from './roof-opening-types';
 import { polygonArea } from './geometry';
 
 const meters = (value: number) => Number((value / 1000).toFixed(3));
@@ -102,6 +103,16 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
     });
 
     const overhead = ceilingDesignContext(source);
+    for (const opening of source.exteriorRoof?.openings ?? []) elements.push({
+      id: nextId('TV'), sourceId: opening.id, type: ROOF_OPENING_LABELS[opening.kind].toLowerCase(),
+      name: ROOF_OPENING_LABELS[opening.kind], level: levelName,
+      dimensions: { projectedWidth: meters(opening.widthMm), projectedDepth: meters(opening.depthMm), ...(opening.kind === 'chimney' ? { heightAboveRoof: meters(opening.heightMm ?? 1200) } : {}) },
+      rotationDeg: opening.rotation,
+      boundary: roofOpeningPoints(opening).map(p => ({ x: meters(p.x), y: meters(p.y) })),
+      attributes: { frame: opening.kind === 'roof-window', pitchDeg: source.exteriorRoof!.pitchDeg },
+      relationships: [opening.kind === 'chimney' ? 'Conducto vertical hueco en cubierta y techo interior, con sombrerete metálico; conserva la altura libre sobre el tejado.'
+        : 'Hueco real de la cubierta y del techo interior; vidrio sobre la pendiente existente.'],
+    });
     for (const ceiling of overhead.ceilings) {
       elements.push({
         id: nextId('T'), sourceId: ceiling.id, type: ceiling.kind === 'suspended' ? 'falso techo' : 'techo plano',
@@ -131,6 +142,7 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
         name: wall.name ?? `Muro ${wall.id}`, level: levelName,
         dimensions: { length: meters(lengthMm), thickness: meters(wall.thicknessMm), height: meters(heightMm), baseElevation: meters(baseMm) },
         areaM2: area(lengthMm * heightMm),
+        ...(wall.classification ? { attributes: { classification: wall.classification } } : {}),
         relationships: source.openings.filter((opening) => opening.wallId === wall.id)
           .map((opening) => `Contiene abertura ${opening.id}.`),
       });
@@ -223,6 +235,7 @@ export function buildEditorRenderContract(doc: EditorDocument): EditorRenderCont
     'Las áreas y las cotas son métricas obligatorias: no cambiar la superficie útil ni convertir un suelo elevado en terreno.',
     'Solo se permiten acabados, iluminación, vegetación y mobiliario no estructural que no invadan la circulación, subordinados a los permisos del render.',
     CEILING_RENDER_POLICY,
+    ROOF_OPENING_RENDER_POLICY,
   ];
   const totals = {
     finishedFloorAreaM2: Number(elements.filter((element) => element.type === 'suelo acabado')

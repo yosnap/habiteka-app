@@ -60,7 +60,8 @@ function kitchenRuns(doc: EditorDocument): string {
   }).join('');
 }
 
-function bounds(doc: EditorDocument, zone?: readonly Point[]) {
+/** Rectángulo en mm que ocupa la imagen del plano: sirve también para situar elementos en ella al describirlos. */
+export function planRasterBounds(doc: EditorDocument, zone?: readonly Point[]) {
   if (zone?.length) {
     const xs = zone.map((point) => point.x), ys = zone.map((point) => point.y);
     const x = Math.min(...xs) - PADDING_MM, y = Math.min(...ys) - PADDING_MM;
@@ -100,15 +101,17 @@ function pathData(points: Point[]) {
  * la de dos hojas lleva dos arcos; la corredera, su hoja junto al muro y la guía, sin arco; la plegable, su zigzag; la
  * vidriera y la corredera de vidrio, hojas en azul vidrio. La de vaivén añade el arco hacia la otra cara sin segunda
  * hoja, y la seccional, en discontinuo, la huella de sus paneles recogidos bajo el techo.
+ * Sin `swingArcs` solo quedan las hojas: la IA de imagen convertía cualquier arco en una tabla curva entre los marcos, y
+ * la hoja abierta en su ángulo ya fija el lado y el giro. Amueblar sí los recibe, para dejar libre el barrido.
  */
-export function doorSymbols(doc: EditorDocument): string {
+export function doorSymbols(doc: EditorDocument, swingArcs = true): string {
   const visible = doc.openings.filter((opening) => doc.walls.some((wall) => wall.id === opening.wallId && !wall.hidden));
   return spatialOpenings(doc, 'P').map((spatial, index) => {
     const opening = visible[index]!, layout = opening.kind === 'puerta' ? worldOpeningLeaves(doc, opening) : null;
     const stroke = layout?.type.glazed ? '#6ab7dd' : '#8a6a45', width = Math.max(50, layout?.type.leafThicknessMm ?? 0);
     const doubleActing = !!layout?.leaves[0]?.hinge?.doubleActing;
     const swings = [spatial.swingClearance, spatial.secondSwingClearance].flatMap((swing, order) => swing
-      ? [`<path d="${pathData(swing.polygon.slice(1))}" fill="none" stroke="#b9a58a" stroke-width="18"/>${order && doubleActing ? ''
+      ? [`${swingArcs ? `<path d="${pathData(swing.polygon.slice(1))}" fill="none" stroke="#b9a58a" stroke-width="18"/>` : ''}${order && doubleActing ? ''
         : `<path d="M ${n(swing.hinge.x)} ${n(swing.hinge.y)} L ${n(swing.openEnd.x)} ${n(swing.openEnd.y)}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round"/>`}`]
       : []);
     const rail = layout?.rail ? `<path d="${pathData([layout.rail.from, layout.rail.to])}" stroke="#b9a58a" stroke-width="18" stroke-dasharray="80 60"/>` : '';
@@ -122,11 +125,12 @@ export function doorSymbols(doc: EditorDocument): string {
 /** PNG arquitectónico limpio: geometría y tipos visuales, nunca rejilla ni controles de edición. */
 function svg(
   doc: EditorDocument,
-  view: ReturnType<typeof bounds>,
+  view: ReturnType<typeof planRasterBounds>,
   size: { width: number; height: number },
   zone?: readonly Point[],
   doorLeaves = false,
   terrain = '',
+  swingArcs = true,
 ) {
   const walls = doc.walls
     .filter((wall) => !wall.hidden)
@@ -154,7 +158,7 @@ function svg(
       return `${line}${gaps}`;
     })
     .join('');
-  const leaves = doorLeaves ? doorSymbols(doc) : '';
+  const leaves = doorLeaves ? doorSymbols(doc, swingArcs) : '';
   // Las alfombras van debajo, más claras, y lo apoyado sobre otro mueble encima: si no, una alfombra tapaba la cama.
   const isRug = (item: EditorDocument['furniture'][number]) => furnitureProfile(item) === 'rug';
   const furniture = planDrawOrder(doc.furniture)
@@ -193,14 +197,14 @@ function svg(
 }
 
 export async function rasterizeEditorDocument(doc: EditorDocument, zone?: readonly Point[],
-  options: { doorLeaves?: boolean } = {}): Promise<RasterResult> {
-  const view = bounds(doc, zone);
+  options: { doorLeaves?: boolean; swingArcs?: boolean } = {}): Promise<RasterResult> {
+  const view = planRasterBounds(doc, zone);
   const outWidth =
     view.width >= view.height ? MAX_SIDE : Math.round((MAX_SIDE * view.width) / view.height);
   const outHeight =
     view.height > view.width ? MAX_SIDE : Math.round((MAX_SIDE * view.height) / view.width);
   const terrain = await terrainSymbols(doc);
-  const png = await sharp(Buffer.from(svg(doc, view, { width: outWidth, height: outHeight }, zone, options.doorLeaves, terrain)))
+  const png = await sharp(Buffer.from(svg(doc, view, { width: outWidth, height: outHeight }, zone, options.doorLeaves, terrain, options.swingArcs ?? true)))
     .resize(outWidth, outHeight, { fit: 'fill' })
     .png()
     .toBuffer();

@@ -115,7 +115,7 @@ function assertConstructionReferences(sources: Awaited<ReturnType<typeof designV
   if (!sources.rows.some(row => !row.options.interiorRoomIds.length && ['top', 'isometric', 'drone'].includes(row.payload.generation?.view?.preset ?? '')))
     throw new Error('Elige una cenital, isométrica o dron del diseño para fijar el conjunto y su distribución.');
   if (!sources.references.some(reference => reference.closedRoof))
-    throw new Error('Añade Exterior terminado del mismo diseño y tanda, con fachadas completas y tejado visible, antes de preparar la construcción.');
+    throw new Error('Añade Exterior terminado del mismo diseño y tanda, o pulsa «Cerrar tejado desde el modelo» en su isométrica o dron aceptados, antes de preparar la construcción.');
   const batches = new Set(sources.references.map(reference => reference.batchId));
   if (batches.size !== 1 || batches.has(null)) throw new Error('Para el piloto elige referencias de una misma tanda. No se mezclarán diseños distintos.');
 }

@@ -85,6 +85,10 @@ Cambiar entre **Plano 2D**, **Amueblado** y **Modelo 3D** conserva la selección
 
 **Paredes externas** selecciona los muros visibles que delimitan una sola estancia interior, incluyendo los que dan a patios; no se limita al perímetro de la parcela. **Paredes internas** incluye los que separan dos interiores y los tabiques abiertos dentro de una estancia. La clasificación de estancias excluye las etiquetadas como patio, terraza, jardín, balcón, exterior, porche o loggia y las delimitadas por límites lógicos exteriores. Un pasillo delimitado así también puede hacer que sus paredes entren en la selección externa. Revisa sus límites y etiquetas si debería ser interior.
 
+Para corregir esa clasificación, selecciona la pared y abre **Propiedades → Medidas → Clasificación de pared**. **Uso de la pared** ofrece **Automática**, **Interior** y **Exterior**. El panel muestra la clasificación aplicada, si es manual y el criterio automático. Puedes seleccionar varias paredes y fijar el uso de todas en una sola operación, incluso si tenían valores distintos. La elección manual manda en **Seleccionar → Paredes**, en los acabados interiores/exteriores y en el corte de fachadas del 3D. **Automática** retira la elección manual. Cambiar el uso no modifica los muros ni convierte un patio en habitación; el ámbito del tejado se configura por separado. Puedes deshacer el cambio.
+
+**Construir → Tejado** reúne configuración, **Editar tejado en plano 2D**, **Ver tejado en 3D** y ocultación. Sus fichas permiten colocar cristales, ventanas de techo y salidas de chimenea con un clic, o dibujar su tamaño arrastrando. El plano muestra las aristas de las pendientes y avisa con una vista previa roja si la pieza no cabe. Mientras editas la cubierta, sus piezas reciben los clics; pulsa **Ocultar tejado · cerrar edición** para volver a paredes y muebles. Los accesos de **Herramientas → Tejado** y **Vista → Tejado en 2D** siguen disponibles. Consulta [Cristales, ventanas y chimeneas](/editor/techos-luces-tejado/#cristales-y-ventanas-en-el-plano-2d).
+
 Los paneles tienen espacio propio junto al lienzo. En pantallas estrechas aparecen debajo, con desplazamiento independiente; el plano y sus controles siguen accesibles. Abrir o cerrar un panel conserva el centro y la escala del plano técnico. Si necesitas ver todo el inmueble en el espacio disponible, pulsa **Encuadrar**.
 
 ### Navegar mientras trabajas
@@ -126,7 +130,7 @@ Si mezclas tipos distintos o seleccionas varios elementos sin edición conjunta,
 
 ## Construir
 
-Abre **Construir** y elige una tarjeta de categoría: paredes, habitaciones, puertas, ventanas y huecos; también columnas, escaleras, rampas y otras formas disponibles. Las tarjetas incorporan imágenes realistas orientativas; las funciones pendientes siguen identificadas dentro de su categoría. **Todas las categorías** vuelve al inicio del panel. Los huecos se vinculan a una pared.
+Abre **Construir** y elige una tarjeta de categoría: paredes, habitaciones, puertas, ventanas y huecos; también **Tejado**, columnas, escaleras, rampas y otras formas disponibles. Las tarjetas incorporan imágenes realistas orientativas; las funciones pendientes siguen identificadas dentro de su categoría. **Todas las categorías** vuelve al inicio del panel. Los huecos de puertas y ventanas normales se vinculan a una pared; las ventanas de techo se colocan sobre la cubierta desde **Tejado**.
 
 Para cadenas de paredes, pulsa para fijar inicio y extremos. Cerrar el contorno termina la cadena; Escape termina un trazo abierto conservando los tramos confirmados. Una habitación rectangular se dibuja arrastrando sus esquinas.
 
@@ -196,9 +200,25 @@ El espacio libre de cada puerta sigue su tipo: una abatible reserva el giro de c
 
 Limitaciones actuales: en una pared curva, las hojas de puerta son rígidas sobre la cuerda del hueco y no llevan tapajuntas; los vidrios de las ventanas siguen el arco sin dibujar hojas separadas ni el montante de la ventana con fijo superior. La corredera vista no comprueba si la hoja recogida llega a una pared perpendicular; elige el lado de apertura con espacio. Las puertas de garaje se ven cerradas o abiertas del todo (sin posiciones intermedias de la hoja basculante). No hay **ventana de esquina**: cada abertura pertenece a un solo muro; para un ventanal en esquina, coloca una ventana fija en cada muro, lo más cerca posible de la esquina. Al importar un plano, la lectura reconoce la puerta de entrada, la de dos hojas, las correderas (vista, de granero, de dos hojas al centro y de vidrio de dos o cuatro hojas según su ancho), la plegable, la puerta de garaje seccional, la balconera y la ventana corredera cuando el dibujo las distingue (consulta [Puertas y ventanas que reconoce](/guias/importar-plano/#puertas-y-ventanas-que-reconoce)); el resto de tipos se eligen aquí.
 
+## Orientación del inmueble y sombras
+
+Abre **Herramientas → Orientación y sol**. Indica dónde está el **Norte del plano**: 0° arriba, 90° derecha, 180° abajo y 270° izquierda. Puedes usar el slider o escribir el ángulo. **Definir norte arriba** activa la orientación cuando aún no existe. No gira paredes ni muebles: cambia la referencia geográfica de todo el edificio, incluida cualquier otra planta.
+
+La brújula aparece en Plano 2D, Amueblado y 3D. **Norte del plano** se refiere a los ejes del plano, no al rumbo de la cámara 3D. No forma parte de las capturas que se envían a los generadores.
+
+Elige **Día**, **Tarde** o **Atardecer** y ajusta **Dirección de donde llega el sol** (0° Norte, 90° Este, 180° Sur, 270° Oeste) y **Altura del sol sobre el horizonte**. Las sombras van hacia el lado contrario; bajar el sol las alarga. Cada ambiente conserva sus propios ajustes. De **Noche** no hay sol y las sombras dependen de las luminarias existentes.
+
+Los valores iniciales son de presentación: Día desde el sur a 55°, Tarde desde el suroeste a 30° y Atardecer desde el oeste a 12°. Se ajustan manualmente; no se calcula la posición solar real por ubicación, fecha y hora. Sin norte definido se conserva la iluminación anterior de presentación.
+
+Con **Parcela real**, el norte se obtiene del giro sobre la ortofoto, que tiene norte arriba. Cambiar el norte aquí también cambia el giro del encaje; cambiar el giro allí actualiza la brújula. Al modificar norte o sol vuelve a confirmar el encaje en Parcela real. Una fotografía nueva conserva el norte que ya hayas indicado.
+
+Los cambios se guardan en el borrador y admiten Deshacer/Rehacer. Guarda el proyecto para sincronizarlos. La maqueta actualiza sus sombras y las nuevas imágenes IA reciben la dirección física del sol; las imágenes ya generadas conservan sus sombras. Revisa la coherencia visual antes de aceptar cada diseño.
+
 ## Amueblar y propiedades
 
 **Televisión existente al proponer con IA.** Amueblar conserva la pantalla que ya hay en cada estancia y no añade otra al colocar un mueble de TV. La aplicación también comprueba las propuestas anteriores. Una estancia distinta puede recibir su propia televisión; si quieres varias en la misma habitación, colócalas manualmente desde el catálogo.
+
+**Sanitarios existentes al proponer con IA.** Amueblar completa cada baño sin repetir piezas: si ya tiene inodoro, lavabo, bidé o ducha, venga del plano importado, de una colocación manual o de un Amueblar anterior, solo añade lo que falta. Ducha y bañera cuentan como la misma función, y tampoco pone dos inodoros en el mismo baño aunque la IA los pida. Los sanitarios que ya sobran no se quitan solos: bórralos en el plano.
 
 Abre **Amueblar** y explora **Habitaciones** o **Categorías** mediante miniaturas realistas. También puedes buscar por nombre o abrir **Ver todos los muebles**. Dentro de los resultados, despliega **Filtrar por estancia y estilo** si lo necesitas; **Todas las habitaciones y categorías** limpia los filtros y vuelve al inicio.
 
@@ -210,6 +230,16 @@ Abre **Amueblar** y explora **Habitaciones** o **Categorías** mediante miniatur
 - **Garaje:** solo estanterías metálicas.
 
 Al buscar, escribir el nombre de una estancia también encuentra sus piezas: «lavadora baño» encuentra la lavadora. En **Categorías**, los aparatos están en **Cocina y electrodomésticos**, incluida la lavadora.
+
+**Literas, cortinas y descanso:** en **Dormitorio** e **Infantil**, busca «litera» para elegir madera natural o blanca, metal negro o cama doble inferior de 135 cm con cama superior de 90 cm. Todas incluyen colchones, ropa de cama, barandillas y escalera. Son una sola pieza: al cambiar medidas se escala el conjunto, sin modificar cada cama por separado.
+
+Las cortinas aparecen en **Decoración**, **Dormitorio**, **Infantil** y **Salón**. Además de los dos paños habituales, hay **Cortina de lino para ventanal** (3,60 m de ancho y 2,60 m de alto) y **Cortina corta de lino** (1,20 × 1,40 m, elevada 90 cm), en natural/blanco roto, salvia y terracota. Mantienen el control de cobertura y el ajuste a la ventana en Propiedades.
+
+En **Comedor**, busca «set de comedor»: mesa rectangular de roble con 4 o 6 sillas, o mesa redonda de mármol con 4 sillas. **Añadir al plano** coloca mesa y sillas juntas; la huella y las medidas incluyen todo el conjunto. Puedes moverlo, girarlo y escalarlo como un objeto; las sillas no se editan por separado. Amueblar no le añade otra ronda de sillas.
+
+Al importar un boceto, una cama o mesa sin identificación específica se conserva como pieza suelta: solo se elige litera o set cuando la lectura los nombra expresamente.
+
+En **Exterior** y **Salón**, busca «chill out»: sofá bajo de ratán de 2 o 3 plazas y sillón bajo con cojín crudo o gris para terrazas y zonas de descanso. También sigue disponible la rinconera con mesa. Las fichas de los nuevos muebles propios llevan foto de producto y comparten modelo entre plano y 3D; son guías para preparar el diseño.
 
 Elige la variante, pulsa **Añadir al plano** y coloca el objeto. El catálogo permanece abierto al pulsar sobre el lienzo; puedes cerrarlo con su X o Escape. En **Propiedades**, revisa dimensiones, giro, elevación y acabados disponibles. Las imágenes de habitaciones y categorías son ilustraciones genéricas para orientarte. Las de Infantil, Recibidor, Lavadero y Garaje son renders de Blender con muebles del catálogo y texturas CC0; las demás se generaron con IA. No representan el modelo exacto de un producto ni un diseño aceptado de tu inmueble. Cada ficha conserva sus dimensiones, variantes y representación propia.
 

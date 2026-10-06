@@ -11,7 +11,7 @@ export function designConstructionSelectionIssue(references: readonly DesignVide
   const batches = new Set(references.map(reference => reference.batchId));
   if (batches.size !== 1 || batches.has(null)) return 'Elige imágenes de una misma tanda. Quita las de otras tandas antes de continuar.';
   if (!designVideoLayoutReference(references)) return 'Añade una cenital, isométrica o dron del conjunto de esta tanda.';
-  if (!references.some(reference => reference.closedRoof)) return 'Añade un exterior terminado con fachadas completas y tejado de esta tanda.';
+  if (!references.some(reference => reference.closedRoof)) return 'Añade un exterior terminado de esta tanda, o cierra el tejado desde el modelo sobre su isométrica o dron aceptados.';
   return null;
 }
 

@@ -13,6 +13,8 @@ import { curvedWallMeshes } from './curved-wall-meshes';
 import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
+import { selectedWallSides } from '@/lib/editor-document/wall-bulk-appearance';
+import { wallPoints } from '@/lib/editor-document/geometry';
 
 /** A read-only projection: no proximity inference, recentering, revision bumps or migration. */
 export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][] = []): EditorScene {
@@ -32,13 +34,18 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
   try {
     rooms = deriveRooms(doc);
     for (const room of rooms) room.wallIds.forEach((wallId, i) => {
-      if (doc.walls.find((wall) => wall.id === wallId)?.hidden) return;
-      if (rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
+      const wall = doc.walls.find((wall) => wall.id === wallId);
+      if (wall?.hidden || wall?.classification === 'interior') return;
+      if (wall?.classification !== 'exterior' && rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
+      if (exteriorWalls.some(item => item.sourceEntityId === wallId)) return;
       const a = doc.vertices.find((v) => v.id === room.vertexIds[i])!;
       const b = doc.vertices.find((v) => v.id === room.vertexIds[(i + 1) % room.vertexIds.length])!;
       const length = Math.hypot(b.x - a.x, b.y - a.y);
+      const face = wall?.classification === 'exterior' ? selectedWallSides(doc, wallId, 'exterior')[0] : null;
+      const endpoints = face ? wallPoints(doc, wall!) : [a, b];
+      const dx = endpoints[1]!.x - endpoints[0]!.x, dy = endpoints[1]!.y - endpoints[0]!.y, sign = face === 'left' ? -1 : 1;
       exteriorWalls.push({ sourceEntityId: wallId, x: meters((a.x + b.x) / 2), z: meters((a.y + b.y) / 2),
-        normalX: (b.y - a.y) / length, normalZ: -(b.x - a.x) / length });
+        normalX: dy / length * sign, normalZ: -dx / length * sign });
     });
     floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves], floorVoids);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }

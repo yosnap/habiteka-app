@@ -20,6 +20,8 @@ import {
 import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
 import { GeographicSitePanel } from './geographic-site-panel';
 import { ExteriorRoofPanel } from './exterior-roof-panel';
+import { PropertyOrientationPanel } from './property-orientation-panel';
+import { useRoofWorkflow } from './use-roof-workflow';
 import { EditorViewSwitch } from './editor-view-switch';
 import { viewForTool } from '@/canvas/editor-v2/view-mode';
 import type { EditorDocument, Point, Stair } from '@/lib/editor-document/schema';
@@ -215,8 +217,16 @@ export function EditorShell({
   const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
   const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
   const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
+  useEffect(() => store.subscribe((next, previous) => {
+    if (next.tool !== previous.tool && next.tool !== 'select') setPreferences(current => {
+      if (!current.visibility.roof) return current;
+      const value = { ...current, visibility: { ...current.visibility, roof: false } };
+      saveEditorPreferences(value); return value;
+    });
+  }), [store]);
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
   const [mode, setMode] = useState<'2d' | 'visual' | '3d'>('2d');
+  const roofWorkflow = useRoofWorkflow(store, visibility, setVisibility, setMode, () => setConstruction(false));
   const [localLighting, setLocalLighting] = useState<SceneLightingPreset>('daylight');
   const sceneLighting = lightingPreset ?? localLighting;
   // Las herramientas de trazado conservan el lienzo técnico; muebles y selección se editan en la maqueta cenital.
@@ -364,6 +374,7 @@ export function EditorShell({
   };
   const chooseTool = (next: EditorTool, openingTypeId?: string) => {
     if (store.getState().readOnly && next !== 'select') return;
+    if (visibility.roof) setVisibility({ ...visibility, roof: false });
     if (openingTypeId) store.getState().beginOpeningType(openingTypeId);
     else store.getState().setTool(next);
     setConstruction(false);
@@ -617,7 +628,7 @@ export function EditorShell({
         canGenerate={!readOnly && Boolean(projectId && onGenerateDesign && onGenerateRender && generateEnabled)}
         generateDisabledReason={generateDisabledReason} onOpenVideoStudio={onOpenVideoStudio}>
           <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
-          <SelectByKindMenu store={store} />
+          <SelectByKindMenu store={store} onSelect={() => { if (visibility.roof) setVisibility({ ...visibility, roof: false }); }} />
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough'}
             onClick={() => { if (sidePanel === 'walkthrough') closePanel(); else openPanel('walkthrough'); }}>
             <Footprints size={18} aria-hidden="true" />
@@ -626,7 +637,9 @@ export function EditorShell({
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}><BrainCircuit size={18} aria-hidden="true" />Contexto IA</button>
           <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'ceiling'}
             onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}><Lightbulb size={18} aria-hidden="true" />Techo y luces</button>
-          <ExteriorRoofPanel store={store} onPreview={() => { store.getState().setCeilingView('solid'); setMode('3d'); }} />
+          <ExteriorRoofPanel store={store} open={roofWorkflow.open} onOpenChange={roofWorkflow.setOpen}
+            onPreview={() => roofWorkflow.action('preview')} onEditPlan={() => roofWorkflow.action('edit')} />
+          <PropertyOrientationPanel store={store} lighting={sceneLighting} onLightingChange={preset => { setLocalLighting(preset); onLightingChange?.(preset); }} />
           {projectId && <GeographicSitePanel store={store} projectId={projectId} readOnly={readOnly} approvalDisabled={approveDisabled}
             videoResultsHref={videoResultsHref} onOpenApproved={onOpenApproved} onReviewApproval={onApproveDesign ? () => {
               const light = store.getState().document.geographicSite?.lighting;
@@ -740,6 +753,8 @@ export function EditorShell({
           <CanvasView store={store} onCenter={onCenter} active={mode === '2d'} fitOnMount
             presentation="technical" dimensions={visibility.dimensions}
             showFurniture={visibility.furniture} showWalls={visibility.walls} showLighting={visibility.lighting}
+            showRoof={visibility.roof === true} onHideRoof={() => setVisibility({ ...visibility, roof: false })}
+            roofRequest={roofWorkflow.request} onRoofAction={roofWorkflow.action}
             reference={reference} originalVisible={originalVisible} originalOpacity={originalOpacity} />
         </div>
         {mode !== '2d' && (
@@ -759,6 +774,7 @@ export function EditorShell({
           <ConstructionMenu
             key={constructionCategory ?? 'all'}
             initialCategory={constructionCategory}
+            onRoofAction={roofWorkflow.action}
             onPath={(options) => { if (store.getState().readOnly) return; chooseTool('garden-path'); store.setState({ gardenPathOptions: options }); }}
             onMixedGarden={() => run(() => {
               const state = store.getState(); if (state.readOnly) return;

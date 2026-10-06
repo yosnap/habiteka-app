@@ -1,4 +1,7 @@
 'use client';
+import type { EditorDocument } from '@/lib/editor-document/schema';
+import { propertyNorth } from '@/lib/editor-document/property-orientation';
+import { PropertySolarLighting } from './property-solar-lighting';
 
 /** Sin sesgo, las superficies grandes (techos, suelos) se sombrean a sí mismas en franjas («shadow acne»). */
 const SHADOW_BIAS = -0.0005;
@@ -21,7 +24,8 @@ export const SCENE_LIGHTING_LABELS: Record<SceneLightingPreset, string> = {
  * sumada a las luminarias (ver `MAX_SHADOW_LIGHTS`) el shader se quedaba sin
  * unidades de textura y el material no compilaba.
  */
-export function SceneLighting({ preset, hasLuminaires = false }: { preset: SceneLightingPreset; hasLuminaires?: boolean }) {
+export function SceneLighting({ preset, hasLuminaires = false, document }: { preset: SceneLightingPreset; hasLuminaires?: boolean; document?: EditorDocument }) {
+  if (document && propertyNorth(document) !== undefined) return <PropertySolarLighting document={document} preset={preset} />;
   if (preset === 'afternoon') return <>
     <color attach="background" args={['#eeeae1']} />
     <hemisphereLight args={['#fff3df', '#969080', .65]} />

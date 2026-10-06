@@ -266,6 +266,7 @@ function essentialGeometry(payload: ScopePayload, boundaryTolerance = 0): unknow
         heightM: wall.heightM,
         baseElevationM: wall.baseElevationM,
         pathM: wall.pathM,
+        ...(wall.classification ? { classification: wall.classification } : {}),
       })),
       openings: level.openings.map((opening) => ({
         wallId: opening.wallId,

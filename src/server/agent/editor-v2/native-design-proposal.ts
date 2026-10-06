@@ -17,7 +17,7 @@ import { alignToSketch, sketchMissing, sketchPlacements, sketchRule } from './sk
 import { isBarCounter, isBarStool, isTelevision } from '@/lib/editor-document/native-design-seating';
 import { hasRoomTelevision } from '@/lib/editor-document/proposal-existing-television';
 import { companionPlan, placedByCompanion, placeWithCompanions } from './native-design-companions';
-import { DEFAULT_WASHBASIN, isWetFixture, packWetRoom, WET_PACK_ORDERS, wetScore } from '@/lib/editor-document/native-design-wet-rooms';
+import { DEFAULT_WASHBASIN, isWetFixture, missingWetFixtures, packWetRoom, presentWetRoles, WET_PACK_ORDERS, wetScore } from '@/lib/editor-document/native-design-wet-rooms';
 import { roomInterior } from '@/lib/editor-document/room-interior';
 import { roomWallFaces, type RoomWallFace } from '@/lib/editor-document/room-wall-faces';
 import { renderDesignOptionsSchema, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
@@ -324,8 +324,12 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
   const plan = companionPlan(proposed.map((entry) => ({ item: entry.item, room: roomOf(entry) }))), served = new Set<string>();
   // Sanitarios de cada baño: tal como los puso la IA si caben todos; si no, recolocados desde las esquinas.
   const handled = new Set<unknown>();
-  if (arranged) for (const [roomId, list] of wetFixturesByRoom(rawFurniture, faces, roomAt)) {
-    list.forEach(({ raw }) => handled.add(raw));
+  if (arranged) for (const [roomId, wanted] of wetFixturesByRoom(rawFurniture, faces, roomAt)) {
+    wanted.forEach(({ raw }) => handled.add(raw));
+    // Se completa lo que falta: el inodoro del plano importado o de un Amueblar anterior no se repite.
+    const present = presentWetRoles(candidateDoc, rooms.find((room) => room.id === roomId)?.boundary ?? []);
+    const list = missingWetFixtures(present, wanted);
+    if (!list.length) continue;
     const only = new Set([roomId]), mark = { doc: candidateDoc.furniture.length, list: furniture.length };
     const commit = (item: NativeDesignFurniture) => { furniture.push(item); addSuggestedFurniture(candidateDoc, item, rooms, allowedRooms, zone?.polygon); return item; };
     const undo = () => { candidateDoc.furniture.splice(mark.doc); furniture.splice(mark.list); };
@@ -335,7 +339,7 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     });
     const entries = list.map(({ item }) => getFurnitureCatalogEntry(item.catalogId)!);
     // Un inodoro siempre lleva un lavabo cerca, aunque la IA no lo pida.
-    if (entries.some((entry) => entry.profile === 'toilet') && !entries.some((entry) => entry.profile === 'sink')) entries.push(getFurnitureCatalogEntry(DEFAULT_WASHBASIN)!);
+    if (entries.some((entry) => entry.profile === 'toilet') && !entries.some((entry) => entry.profile === 'sink') && !present.has('washbasin')) entries.push(getFurnitureCatalogEntry(DEFAULT_WASHBASIN)!);
     if (asProposed.length >= entries.length) continue;
     // Si no cabe todo, se prueba cada orden de colocación desde las esquinas y se queda el mejor baño.
     const attempts = [asProposed, ...WET_PACK_ORDERS.map((order) => {
@@ -359,6 +363,8 @@ export function parseNativeDesignProposalDetailed(value: unknown, style: Estilo,
     // Al recolocarla, la pieza no sale de su estancia: la de su pared o la de su centro propuesto.
     const home = parsed.roomId ?? roomAt(toModelCentre(item));
     if (isTelevision(getFurnitureCatalogEntry(item.catalogId)) && hasRoomTelevision(candidateDoc, home, rooms)) continue;
+    if (home && isWetFixture(getFurnitureCatalogEntry(item.catalogId))
+      && !missingWetFixtures(presentWetRoles(candidateDoc, rooms.find((room) => room.id === home)?.boundary ?? []), [parsed]).length) continue;
     // Una planta o una lámpara de pie sin pared se arrima a la más cercana de su estancia, sin quedarse a medio metro.
     const nearest = arranged && !parsed.roomId && home && hugsWall(getFurnitureCatalogEntry(item.catalogId)) ? nearestFace(faces.byRoom.get(home) ?? [], toModelCentre(item)) : undefined;
     if (nearest) {

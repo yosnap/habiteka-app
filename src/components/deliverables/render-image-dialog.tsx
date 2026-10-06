@@ -12,6 +12,7 @@ import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
 import { RenderRegionImage } from './render-region-image';
 import { RenderAcceptance } from './render-acceptance';
 import { RenderFidelityCard } from './render-fidelity-card';
+import { canCloseRoof, RoofClosureButton } from './roof-closure-button';
 import styles from './render-image-dialog.module.css';
 
 export function RenderImageDialog({ item, projectId, index, total, saved, onChanged, onMove, onClose, onRestoreFocus }: {
@@ -75,6 +76,7 @@ function RenderImageBody({ item, projectId, index, total, saved, onChanged, onMo
             <RenderFidelityCard report={item.payload.generation?.fidelity} model={item.payload.generation?.model} />
             <div className="space-y-3 border-t border-line pt-4">
               <h3 className="text-sm font-semibold">Acciones de imagen</h3>
+              {canCloseRoof(item, renderGalleryState(item, saved).accepted) && <RoofClosureButton projectId={projectId} item={item} />}
               <DeliverableActions key={item.id} projectId={projectId} deliverable={item} highlightChanges={item.quality?.decision === 'block'}
                 imageEditor={{ scope, zone, onScopeChange: setScope, onClear: () => setZone(null), onOpenChange: setEditing, onPendingChange: setPending }}
                 leadingAction={<UseAsBackgroundButton projectId={projectId} assetUrl={item.payload.assetUrl} zoneId={item.zoneId} deliverableId={item.id} />} />

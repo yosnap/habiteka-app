@@ -31,7 +31,7 @@ export const USER_INSTRUCTION_NOTE =
 
 export interface InstructionEvidence {
   /** Invalida evaluaciones anteriores cuando cambia el contrato de interpretación. */
-  evidenceVersion: 'instruction-selection-v1' | 'design-guidance-v1';
+  evidenceVersion: 'instruction-selection-v2' | 'design-guidance-v1';
   purpose?: 'generate-design';
   generationContext?: EditorInstructionContext;
   planContext?: unknown;
@@ -56,7 +56,7 @@ export interface InstructionEvidence {
 /** Qué admite cada entregable: lo lee Jev para juzgar compatibilidad. */
 const SCOPE: Record<InstructionTargetType, string> = {
   render3d:
-    'A photorealistic design image: materials, colours, lighting, furniture and atmosphere can change. Restoring a missing door leaf or window in an existing opening, removing an invented leaf to match the plan, clearing door swings and explicitly resizing an existing pool within its current terrace are actionable image corrections. Reporting a missing door is not by itself a request to demolish a wall or cut a new opening. Preserve walls, room boundaries, opening positions and widths, camera and terrace boundaries; do not invent access routes. Image edits do not modify the underlying plan.',
+    'A photorealistic design image: materials, colours, lighting, furniture and atmosphere can change. Removing, adding or replacing furniture, sanitary fixtures (toilets, washbasins, bidets, showers, bathtubs) or cooktops inside the selected area is an actionable image correction, for example keeping a single toilet and washbasin where the image shows duplicates; furniture and fixtures in an image may differ from the plan. Restoring a missing door leaf or window in an existing opening, removing an invented leaf to match the plan, clearing door swings and explicitly resizing an existing pool within its current terrace are actionable image corrections. Reporting a missing door is not by itself a request to demolish a wall or cut a new opening. Preserve walls, room boundaries, opening positions and widths, camera and terrace boundaries; do not invent access routes. Image edits do not modify the underlying plan.',
   plano2d:
     'A 2D floor plan drawing: walls, doors, windows, room names and dimensions can change; colours, textures and lighting cannot.',
   memoria:
@@ -112,7 +112,7 @@ export function buildInstructionEvidence(
   const { text: safe, sanitized } = neutralizeInstruction(text);
   const imageSelection = deliverableType === 'render3d' && imageZone ? selectionEvidence(imageZone) : undefined;
   return {
-    evidenceVersion: 'instruction-selection-v1',
+    evidenceVersion: 'instruction-selection-v2',
     ...(planContext ? { planContext } : {}),
     ...(imageSelection ? { imageSelection } : {}),
     deliverableType,

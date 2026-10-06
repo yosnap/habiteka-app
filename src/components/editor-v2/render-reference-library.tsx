@@ -69,7 +69,7 @@ export function RenderReferenceLibrary({ projectId, zoneId, document, view, opti
               <fieldset disabled={disabled}><RenderAcceptance item={item} projectId={projectId} saved={saved[item.id]} onChanged={value => {
                 setSaved(previous => ({ ...previous, [item.id]: value }));
                 if (!value.accepted && selectedId === item.id) onSelect();
-              }} /></fieldset>
+              }} onReviewed={() => void load()} /></fieldset>
             </>}
             <Button type="button" className="w-full" variant={selectedId === item.id ? 'default' : 'outline'} disabled={disabled || busy || !eligible}
               onClick={() => { onSelect(item.id); setOpen(false); }}>{selectedId === item.id ? 'Referencia seleccionada' : 'Usar como referencia'}</Button>

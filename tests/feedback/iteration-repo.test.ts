@@ -183,7 +183,7 @@ describe('runFeedback — cambios por texto desde «Diseños»', () => {
     const row = await prisma.deliverable.findUniqueOrThrow({ where: { id: out.newDeliverableId } });
     expect(row.payload).toMatchObject({ imageEdit: { sourceDeliverableId: deliverableId, zone: polygon, protectedPixels: 88,
       contextCrop: { x: 120, y: 80, width: 512, height: 512 } },
-      generation: { model: 'edited-model', promptVersion: 'habiteka-directed-inpaint-v3', documentRevision: 16 } });
+      generation: { model: 'edited-model', promptVersion: 'habiteka-directed-inpaint-v4', documentRevision: 16 } });
     expect((row.payload as { generation: object }).generation).not.toHaveProperty('acceptance');
     expect((row.payload as { generation: object }).generation).not.toHaveProperty('fidelity');
   });

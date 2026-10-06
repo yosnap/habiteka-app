@@ -4,6 +4,14 @@ Actualizado: 5 de octubre de 2026.
 
 ## Alcance
 
+### Literas, comedores y descanso (6 de octubre de 2026)
+
+La familia `descanso` añade 11 modelos propios con miniatura y procedencia: cuatro literas (madera natural/blanca, metal y doble inferior), tres conjuntos de comedor (rectangular de cuatro/seis plazas y redondo de cuatro) y cuatro asientos bajos chill out (sofá de dos/tres plazas y sillón natural/gris). `fam_descanso.py` reutiliza los constructores de comedor y ratán de exterior; `dependsOn` incluye ambas familias para mantener la huella de generación vigente. Los conjuntos son objetos indivisibles, con medidas exteriores de mesa y sillas; `isDiningTable` los excluye de los acompañantes automáticos para evitar duplicarlas.
+
+El catálogo ofrece las literas en Infantil y Dormitorio y los chill out en Exterior y Salón. Las nuevas cortinas de ventanal y cortas usan los estados de onda existentes, con cobertura y color regulables; no duplican GLB. Se ofrecen también en las habitaciones y el salón. No hay gasto en proveedores IA: los muebles se generan localmente en Blender. Estos modelos siguen siendo guías de colocación; los resultados finales del inmueble requieren diseños IA aceptados.
+
+La colocación desde bocetos mantiene camas y mesas sueltas cuando la lectura solo reconoce el perfil genérico; para seleccionar literas o sets exige que la etiqueta los nombre. Así la ampliación no transforma una cama infantil en litera por tener una huella parecida.
+
 ### Exterior y jardín (octubre de 2026)
 
 La fábrica admite dimensiones de hasta 20 m para piezas exteriores (árboles, piscinas y vehículos); mantiene el límite de 4 m en interiores y los límites existentes de peso y polígonos. Las relaciones de modelos más pequeños para Amueblar excluyen los modelos ocultos del catálogo, como las jardineras de Exterior.

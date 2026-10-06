@@ -23,6 +23,26 @@ const adapter = (verdict: Record<string, unknown>) => {
 };
 
 describe('auditoría de fidelidad del diseño', () => {
+  it('no descarta una corredera por verse cerrada si el plano la dibuja abierta', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    const context: RenderSpatialContext = { units: 'mm', levels: [{ id: 'ground', name: 'Planta', rooms: [], openings: [] }] };
+    await assertRenderFidelity(vision, image, image, { ...view, preset: 'top' }, undefined, 0, false, undefined, false, false,
+      { context, image }, { reference: 'plan' }).catch(() => undefined);
+    const text = (vision.chat.mock.calls[0]![0].messages[0]!.content[0] as { text: string }).text;
+    expect(text).toMatch(/corredera o plegable puede verse cerrada, entreabierta o abierta[^.]*no es un defecto/);
+  });
+  it('rechaza hojas curvas y deja respuesta para revisar cada estancia y hueco', async () => {
+    const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
+    const openings = Array.from({ length: 30 }, (_, index) => ({ id: `L1-O${index + 1}`, kind: 'ventana', center: { x: index * 100, y: 0 }, widthMm: 900, heightMm: 1200 }));
+    const rooms = Array.from({ length: 11 }, (_, index) => ({ id: `L1-R${index + 1}`, name: 'Estancia', anchor: { x: index * 100, y: 500 } }));
+    const context = { units: 'mm', levels: [{ id: 'ground', name: 'Planta', rooms, openings }] } as unknown as RenderSpatialContext;
+    await assertRenderFidelity(vision, image, image, { ...view, preset: 'top' }, undefined, 0, false, undefined, false, false,
+      { context, image }, { reference: 'plan' }).catch(() => undefined);
+    const request = vision.chat.mock.calls[0]![0];
+    expect((request.messages[0]!.content[0] as { text: string }).text).toMatch(/hoja curva, doblada o un tablón que sigue el arco de giro es fail[^]*partida en dos o más tramos, en V/);
+    // Con 41 comprobaciones la respuesta se cortaba con el presupuesto anterior (6000 + exterior + sanitarios).
+    expect(request.maxTokens).toBeGreaterThanOrEqual(6000 + 41 * 110);
+  });
   it('distingue elementos ocultos por cámara de pérdidas de identidad', async () => {
     const vision = adapter({ accepted: true, cameraAndGeometryPreserved: true, objectIdentityPreserved: true, violations: [] });
     await assertRenderFidelity(vision, image, image, { ...view, cutaway: true, ceilingView: 'hidden',

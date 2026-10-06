@@ -86,5 +86,7 @@ describe('directedInpaint — consume la primitiva de inpaint', () => {
     expect(captured!.zone.id).toBe('z1');
     expect(captured!.prompt).toContain('parquet');
     expect(captured!.prompt).toContain('sin cambios');
+    // «Este inodoro sobra» devolvía otro inodoro en la misma zona.
+    expect(captured!.prompt).toMatch(/bórralo por completo[^.]*no lo sustituyas por otro igual/);
   });
 });

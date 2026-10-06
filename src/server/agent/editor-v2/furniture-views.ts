@@ -38,7 +38,19 @@ export function furnitureFacing(item: Furniture, toward: readonly [number, numbe
 }
 
 function label(item: Furniture): string {
-  return (item.name ?? getFurnitureCatalogEntry(item.catalogId)?.label ?? item.kind).trim().toLowerCase();
+  // «· modelo 3D» distingue variantes en el catálogo; para el generador es ruido.
+  return (item.name ?? getFurnitureCatalogEntry(item.catalogId)?.label ?? item.kind).trim().replace(/\s*·\s*modelo 3d$/i, '').toLowerCase();
+}
+
+const MAX_PLAN_GROUPS = 10;
+const DETAIL_PROFILES = new Set(['appliance', 'screen', 'lamp', 'plant', 'decor', 'rug']);
+const SEAT_PROFILES = new Set(['chair', 'stool']);
+
+/** Primero lo que fija la orientación, luego lo grande y fijo (armarios, chimenea, mesas), los asientos y los detalles. */
+function importanceTier(item: Furniture): number {
+  if (isBed(item) || isSofa(item)) return 0;
+  const profile = furnitureProfile(item);
+  return DETAIL_PROFILES.has(profile) ? 3 : SEAT_PROFILES.has(profile) ? 2 : 1;
 }
 
 /** Muebles de una estancia, con los que tienen cabecero o respaldo primero porque son los que fijan la orientación. */
@@ -56,15 +68,28 @@ function joinItems(items: string[]): string {
 export const PLAN_SIDE = (back: Point) => Math.abs(back.x) > Math.abs(back.y)
   ? (back.x > 0 ? 'a la derecha' : 'a la izquierda') : (back.y > 0 ? 'abajo' : 'arriba');
 
-/** Muebles de cada estancia vistos en el plano: «Dormitorio: cama doble (cabecero arriba), mesilla (2)». */
+/**
+ * Muebles de cada estancia vistos en el plano: «Dormitorio: cama doble (cabecero arriba), mesilla (2)». Se ordenan por
+ * importancia y no por el orden del documento: antes la cafetera entraba y la chimenea o las sillas se quedaban fuera.
+ * Lo apoyado sobre otro mueble o colgado (televisor, lámpara de mesa, campana) es un detalle de ese mueble.
+ */
 export function planFurnitureLines(document: EditorDocument, rooms: { name: string; boundary?: Point[] }[]): string[] {
   return rooms.flatMap((room) => {
-    const items = room.boundary?.length ? roomFurniture(document, room.boundary) : [];
-    const described = items.map((item) => {
+    // Solo se omiten los detalles elevados: un arbusto sobre una jardinera o un mueble sobre una tarima siguen contando.
+    const items = room.boundary?.length ? roomFurniture(document, room.boundary)
+      .filter((item) => furnitureElevation(item) <= 0 || importanceTier(item) < 3) : [];
+    const groups = new Map<string, { tier: number; area: number; count: number }>();
+    for (const item of items) {
       const front = furnitureFront(item), side = PLAN_SIDE({ x: -front.x, y: -front.y });
-      return isBed(item) ? `${label(item)} (cabecero ${side})` : isSofa(item) ? `${label(item)} (respaldo ${side})` : label(item);
-    });
-    return described.length ? [`${room.name}: ${joinItems(described)}`] : [];
+      const text = isBed(item) ? `${label(item)} (cabecero ${side})` : isSofa(item) ? `${label(item)} (respaldo ${side})` : label(item);
+      const group = groups.get(text) ?? { tier: importanceTier(item), area: 0, count: 0 };
+      group.area += item.widthMm * item.depthMm;
+      group.count++;
+      groups.set(text, group);
+    }
+    const described = [...groups].sort(([, a], [, b]) => a.tier - b.tier || b.area - a.area).slice(0, MAX_PLAN_GROUPS)
+      .map(([text, group]) => group.count > 1 ? `${text} (${group.count})` : text);
+    return described.length ? [`${room.name}: ${described.join(', ')}`] : [];
   });
 }
 

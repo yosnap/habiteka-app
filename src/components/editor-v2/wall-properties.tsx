@@ -13,6 +13,7 @@ import { WallConstructionFields } from './construction-fields';
 import { PropertySection } from './property-section';
 import styles from './editor.module.css';
 import properties from './selection-properties.module.css';
+import { setWallClassification, wallClassificationInfo } from '@/lib/editor-document/exterior-wall-selection';
 
 export function WallProperties({ wall, document, store, multiple, edit }: {
   wall: Wall; document: EditorDocument; store: EditorStore; multiple: boolean;
@@ -20,9 +21,22 @@ export function WallProperties({ wall, document, store, multiple, edit }: {
 }) {
   const [mergeId, setMergeId] = useState('');
   const points = wallPoints(document, wall);
+  const classification = wallClassificationInfo(document, wall);
+  const wallIds = multiple ? store.getState().selection.filter(id => document.walls.some(item => item.id === id && !item.hidden)) : [wall.id];
+  const modes = new Set(document.walls.filter(item => wallIds.includes(item.id)).map(item => item.classification ?? 'auto'));
   const adjacent = document.walls.filter((item) => item.id !== wall.id && [item.startVertexId, item.endVertexId]
     .some((id) => id === wall.startVertexId || id === wall.endVertexId));
   return <>
+    <PropertySection title="Clasificación de pared">
+      <label className={styles.field}>Uso de la pared<ModernSelect aria-label="Clasificación de pared" value={modes.size > 1 ? 'mixed' : wall.classification ?? 'auto'}
+        onChange={event => edit(doc => setWallClassification(doc, wallIds, event.target.value as 'auto' | 'interior' | 'exterior'))}>
+        {modes.size > 1 && <option value="mixed" disabled>Valores distintos</option>}
+        <option value="auto">Automática</option><option value="interior">Interior</option><option value="exterior">Exterior</option>
+      </ModernSelect></label>
+      <p>{multiple ? 'La elección se aplica a todas las paredes seleccionadas.' : `Clasificación aplicada: ${classification.effective === 'exterior' ? 'Exterior' : classification.effective === 'interior' ? 'Interior' : 'Sin determinar'} (${wall.classification ? 'manual' : 'automática'}).`}</p>
+      {!multiple && <p>Detección automática: {classification.automatic === 'exterior' ? 'Exterior' : classification.automatic === 'interior' ? 'Interior' : 'Sin determinar'}. {classification.reason}</p>}
+      <p>Interior y Exterior cambian la selección por tipo y los acabados. No cambian la forma de la casa ni convierten un patio en habitación.</p>
+    </PropertySection>
     <PropertySection title="Dimensiones">
       <div className={styles.fields}>
         {!multiple && <MeterField label={wall.curveHeightMm ? 'Entre extremos' : 'Longitud'} valueMm={distance(...points)} change={(value) => edit((doc) => {

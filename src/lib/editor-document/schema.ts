@@ -17,6 +17,8 @@ export interface Wall {
   name?: string;
   /** Logical room boundary that is intentionally omitted from the 2D and 3D physical render. */
   hidden?: boolean;
+  /** Elección manual para selección y acabados; ausente = clasificación automática. */
+  classification?: 'interior' | 'exterior';
   startVertexId: string;
   endVertexId: string;
   thicknessMm: number;
@@ -272,6 +274,7 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
+  propertyOrientation?: import('./property-orientation').PropertyOrientation;
   renderBackdrop?: import('./render-backdrop').RenderBackdrop;
   exteriorRoof?: import('./exterior-roof').ExteriorRoof;
   geographicSite?: import('./geographic-site').GeographicSite;

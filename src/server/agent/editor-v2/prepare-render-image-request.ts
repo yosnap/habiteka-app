@@ -11,6 +11,7 @@ import { acceptedTopForView } from './accepted-top-reference';
 import { simplePlanPrompt, simpleSectionPrompt } from './simple-plan-prompt';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { planFurnitureLines } from './furniture-views';
+import { planRasterBounds } from './rasterize-editor-document';
 import { UserFacingError } from '@/server/errors/user-facing-error';
 import type { Point } from '@/lib/editor-document/schema';
 import { exteriorDesignContext } from '@/lib/editor-document/exterior-design-context';
@@ -61,14 +62,15 @@ export async function prepareRenderImageRequest(input: Input) {
     const furniture = await input.section.describe?.(anchor, names, hints);
     if (!furniture || furniture.length !== names.length)
       throw new UserFacingError('No se pudo leer el mobiliario de todas las estancias en la cenital aceptada. Se ha detenido la vista antes de generar una imagen.');
-    const prompt = simpleSectionPrompt(view.preset, style, options, objective, instruction, names, furniture, hints);
+    const prompt = simpleSectionPrompt(view.preset, style, options, objective, instruction, names, furniture, hints, document);
     return { request: { prompt, compactPrompt: prompt, aspectRatio, referenceImages: [image, anchor] } as ImageGenRequest,
       reference: image, zoneMask: undefined, styleAnchor: anchor, sectionRooms };
   }
   if (input.plan) {
     const { image, aspectRatio } = await fitRenderReferenceAspect(input.plan);
     const prompt = simplePlanPrompt(style, options, objective, instruction, spatial.context,
-      planFurnitureLines(document, spatial.context.levels.flatMap((level) => level.rooms)), exteriorDesignContext(document), criticalFixtureGroups(document));
+      planFurnitureLines(document, spatial.context.levels.flatMap((level) => level.rooms)), exteriorDesignContext(document), criticalFixtureGroups(document),
+      planRasterBounds(document), document);
     const request: ImageGenRequest = { prompt, compactPrompt: prompt, aspectRatio, referenceImages: [image] };
     return { request, reference: image, zoneMask: undefined, styleAnchor: undefined };
   }

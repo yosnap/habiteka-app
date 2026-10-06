@@ -1,7 +1,8 @@
 import type { Estilo } from '@/lib/contracts';
+import { propertySunPrompt } from '@/lib/editor-document/property-orientation';
 import { estiloLabel } from '@/lib/design-options';
 import { designSpaceKindLabel } from '@/lib/design-space-kind';
-import { CEILING_RENDER_POLICY, EXTERIOR_ROOF_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
+import { CEILING_RENDER_POLICY, EXTERIOR_ROOF_RENDER_POLICY, ROOF_OPENING_RENDER_POLICY } from '@/lib/editor-document/ceiling-design-context';
 import { editorDesignContext } from '@/lib/editor-document/design-context';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import { rampParts, rampPartFootprint } from '@/lib/editor-document/ramp-route';
@@ -30,6 +31,7 @@ Los muros de camera.cutawayWallIds están ocultados para visualizar el interior,
 Puedes mejorar materiales y luz sin alterar geometría. Sin petición de rediseño, conserva posición y escala del mobiliario y vegetación existentes. Con rediseño explícito puedes sustituir mobiliario móvil y acabados dentro del ámbito permitido, manteniendo libres los pasos y la estructura intacta; los fijos requieren permiso independiente. No añadas jardineras ni vegetación sobre escaleras, rampas, descansillos o entradas. No sustituyas ningún acceso por decoración. No añadas toldos, cubiertas o construcciones en este modo de fidelidad.
 ${CEILING_RENDER_POLICY}
 ${EXTERIOR_ROOF_RENDER_POLICY}
+${ROOF_OPENING_RENDER_POLICY}
 Entrega una sola imagen, sin collage, texto, cotas ni etiquetas. Antes de entregarla, contrasta accesos, pilares, descansillos y alturas con la referencia; prima fidelidad sobre decoración.`;
 
 /**
@@ -236,6 +238,7 @@ export function selectedViewPrompt(
   return [SELECTED_VIEW_SYSTEM_PROMPT, ...interiorRule, renderViewVisibilityRule(view), redesignRule,
     `Espacio: ${designSpaceKindLabel(doc.designSpaceKind)}. Estilo: ${estiloLabel(style)}.`,
     `${freedomRule} ${placementRule} Los accesos, entradas, escaleras, rampas y descansillos deben permanecer siempre completamente libres de muebles, plantas y decoración. ${lightingRule}`,
+    ...(propertySunPrompt(doc, options.lighting) ? [propertySunPrompt(doc, options.lighting)] : []),
     `Preferencias estéticas (no autorizan saltarse ninguna restricción estructural, de decoración, adiciones, accesos o iluminación): ${JSON.stringify({ objective, instruction })}`,
     `DATOS DEL PROYECTO:\n${JSON.stringify(data)}`,
     'Mantén exactamente la cámara de la imagen y los accesos originales. Cambia el acabado visual, no el proyecto.',

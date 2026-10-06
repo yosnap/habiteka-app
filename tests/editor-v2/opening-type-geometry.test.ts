@@ -197,6 +197,16 @@ describe('rasterizado del plano y del alzado para la IA', () => {
     expect(sliding).toContain('stroke-dasharray');
   });
 
+  it('la referencia de imagen dibuja solo las hojas: sin arcos que se conviertan en tablones curvos', () => {
+    const arcs = (svg: string) => svg.match(/fill="none" stroke="#b9a58a" stroke-width="18"\/>/g)?.length ?? 0;
+    const leaves = (svg: string) => svg.match(/stroke-linecap="round"/g)?.length ?? 0;
+    for (const type of ['puerta-basic', 'puerta-doble']) {
+      const plain = doorSymbols(wallWith(opening(type)), false);
+      expect(arcs(plain)).toBe(0);
+      expect(leaves(plain)).toBe(leaves(doorSymbols(wallWith(opening(type)))));
+    }
+  });
+
   it('genera plano y alzado con todos los tipos sin errores', async () => {
     for (const type of OPENING_TYPES) {
       // La estancia de prueba mide 3 m: la corredera elevadora de 3,2 m entra con un ancho que quepa entre esquinas.

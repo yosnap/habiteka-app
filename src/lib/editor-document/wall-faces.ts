@@ -1,8 +1,16 @@
 import type { EditorDocument, Wall } from './schema';
 import { deriveRooms } from './rooms';
+import { selectedWallSides } from './wall-bulk-appearance';
 
 /** Face semantics come from bounded room winding, never from drawing direction. */
 export function wallFaces(doc: EditorDocument, wall: Wall): { side: 'left' | 'right'; label: string }[] {
+  if (wall.classification === 'interior') return [
+    { side: 'left', label: 'Interior · cara izquierda' }, { side: 'right', label: 'Interior · cara derecha' },
+  ];
+  if (wall.classification === 'exterior') {
+    const outside = selectedWallSides(doc, wall.id, 'exterior')[0] ?? 'right';
+    return [{ side: outside === 'left' ? 'right' : 'left', label: 'Interior' }, { side: outside, label: 'Exterior' }];
+  }
   const interior = new Map<'left' | 'right', number>();
   let rooms;
   try { rooms = deriveRooms(doc); } catch { return []; }

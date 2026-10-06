@@ -11,9 +11,10 @@ import { House } from 'lucide-react';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { SiteAdjustmentControl } from './site-adjustment-control';
 
-export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; onPreview: () => void }) {
+export function ExteriorRoofPanel({ store, onPreview, onEditPlan, open: controlledOpen, onOpenChange }: { store: EditorStore; onPreview: () => void; onEditPlan?: () => void; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const doc = useStore(store, state => state.document), readOnly = useStore(store, state => state.readOnly);
-  const [open, setOpen] = useState(false), [notice, setNotice] = useState('');
+  const [localOpen, setLocalOpen] = useState(false), [notice, setNotice] = useState('');
+  const open = controlledOpen ?? localOpen, setOpen = onOpenChange ?? setLocalOpen;
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
   const geometry = useMemo(() => {
     try {
@@ -26,7 +27,11 @@ export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; on
   const roof = doc.exteriorRoof;
   function update(patch: Partial<ExteriorRoof> | null) {
     setNotice('');
-    try { store.getState().apply(setExteriorRoof(store.getState().document, patch)); }
+    try {
+      const next = setExteriorRoof(store.getState().document, patch);
+      if (next.exteriorRoof?.openings?.length) exteriorRoofGeometry(next);
+      store.getState().apply(next);
+    }
     catch (error) { setNotice(error instanceof Error ? error.message : 'No se pudo guardar el tejado.'); }
   }
   return <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -64,14 +69,14 @@ export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; on
                     <option value="solid">Cerrar con el tejado</option><option value="open">Dejar abiertos</option><option value="glass">Cerrar con cristal</option>
                   </ModernSelect>
                 </label>
-                <p className="text-xs text-ink-soft">Solo afecta a los vacíos rodeados por la cubierta. El cristal se coloca únicamente si lo eliges; no cubre terrazas fuera del contorno.</p>
+                <p className="text-xs text-ink-soft">Solo afecta a los vacíos rodeados por la cubierta. Para reducir ese cristal, colocar otro en una habitación o añadir una ventana, abre la edición en plano 2D. No cubre terrazas fuera del contorno.</p>
                 {roof.roomIds.some(id => !geometry.rooms.some(room => room.id === id)) && <button type="button" className="underline" onClick={() => update({ roomIds: geometry.rooms.map(room => room.id) })}>Actualizar selección con las habitaciones actuales</button>}
                 <p className="text-xs text-ink-soft">Se unen sus huellas y se respetan retranqueos. Los vacíos centrales se cierran o quedan abiertos según la opción anterior.</p>
                 {geometry.rooms.map((room, index) => <label key={room.id} className="flex items-start gap-2 rounded-lg border p-2">
                   <input type="checkbox" className="mt-1" checked={roof.roomIds.includes(room.id)} onChange={event => update({ roomIds: event.target.checked ? [...roof.roomIds, room.id] : roof.roomIds.filter(id => id !== room.id) })} />
                   <span>{doc.labels.find(label => insideRoom(label, room.boundary))?.text ?? `Estancia ${index + 1}`} · {(room.areaMm2 / 1e6).toFixed(1)} m²</span>
                 </label>)}
-                {!!geometry.parts.length && <p>Altura máxima del tejado en esta planta: {Math.max(...geometry.parts.map(part => part.peakM)).toFixed(2)} m.</p>}
+                {!!geometry.parts.length && <p>Altura máxima del tejado en esta planta: {Math.max(...geometry.parts.filter(part => !part.chimney).map(part => part.peakM)).toFixed(2)} m.</p>}
                 <button type="button" className="text-red-700 underline underline-offset-4" onClick={() => update(null)}>Quitar tejado exterior</button>
               </div>
             </fieldset>}
@@ -79,7 +84,10 @@ export function ExteriorRoofPanel({ store, onPreview }: { store: EditorStore; on
         </div>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t p-5 text-sm">
           <p className="text-ink-soft">Los ajustes se guardan en el borrador. Aprueba los cambios antes de exportar.</p>
-          <button type="button" disabled={!roof || !!geometry.error} className="rounded-lg border px-4 py-2 font-medium" onClick={() => { setOpen(false); onPreview(); }}>Ver tejado en 3D</button>
+          <div className="flex gap-2">
+            {onEditPlan && <button type="button" className="rounded-lg border px-4 py-2 font-medium" onClick={() => { setOpen(false); onEditPlan(); }}>Editar tejado en plano 2D</button>}
+            <button type="button" disabled={!roof || !!geometry.error} className="rounded-lg border px-4 py-2 font-medium" onClick={() => { setOpen(false); onPreview(); }}>Ver tejado en 3D</button>
+          </div>
         </footer>
       </Dialog.Content>
     </Dialog.Portal>

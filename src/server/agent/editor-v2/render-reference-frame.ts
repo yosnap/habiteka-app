@@ -7,13 +7,18 @@ const OUTPUT_RATIOS = [
   ['2:3', 2 / 3], ['16:9', 16 / 9], ['9:16', 9 / 16], ['21:9', 21 / 9],
 ] as const;
 
+/** Formato de salida más próximo a la proporción de la cámara; la captura se completa con bandas centradas hasta él. */
+export function fittedOutputRatio(sourceRatio: number) {
+  return OUTPUT_RATIOS.reduce((best, item) =>
+    Math.abs(Math.log(item[1] / sourceRatio)) < Math.abs(Math.log(best[1] / sourceRatio)) ? item : best);
+}
+
 /** Fija el formato desde la cámara, nunca desde las referencias auxiliares. No recorta ni estira píxeles. */
 export async function fitRenderReferenceAspect(image: RenderReferenceImage, mask?: RenderReferenceImage) {
   if (mask && (image.width !== mask.width || image.height !== mask.height))
     throw new Error('La máscara no coincide con la captura. Vuelve a preparar esta vista.');
   const sourceRatio = image.width / image.height;
-  const [aspectRatio, ratio] = OUTPUT_RATIOS.reduce((best, item) =>
-    Math.abs(Math.log(item[1] / sourceRatio)) < Math.abs(Math.log(best[1] / sourceRatio)) ? item : best);
+  const [aspectRatio, ratio] = fittedOutputRatio(sourceRatio);
   const width = sourceRatio < ratio ? Math.ceil(image.height * ratio) : image.width;
   const height = sourceRatio > ratio ? Math.ceil(image.width / ratio) : image.height;
   if (width === image.width && height === image.height) return { image, mask, aspectRatio };

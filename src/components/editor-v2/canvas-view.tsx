@@ -16,6 +16,7 @@ import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Line, Circle, Group, Rect, Text, Image as KonvaImage } from 'react-konva';
 import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
+import { PropertyCompassOverlay } from './property-compass';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
 import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
 import type Konva from 'konva';
@@ -44,6 +45,10 @@ import type { SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard'
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import { pointAtLength, typedLengthKey } from '@/canvas/editor-v2/typed-length';
 import { editorHint, modifierKey } from '@/canvas/editor-v2/editor-hints';
+import { useRoofPlanTool } from './use-roof-plan-tool';
+import { RoofPlanLayer } from './roof-plan-layer';
+import { RoofPlanControls } from './roof-plan-controls';
+import type { RoofPlacementRequest, RoofAction } from './use-roof-workflow';
 
 type Marquee = { from: Point; to: Point; baseSelection: string[]; mode: 'replace' | 'add' | 'subtract' };
 
@@ -58,7 +63,7 @@ function placementLabel(item: SpatialClipboardItem): string {
 /** Espera máxima a la imagen del plano original antes de enseñar el plano sin ella. */
 const REFERENCE_WAIT_MS = 2500;
 
-export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
+export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, showRoof = false, onHideRoof, roofRequest, onRoofAction, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; showRoof?: boolean; onHideRoof?: () => void; roofRequest?: RoofPlacementRequest | null; onRoofAction?: (action: RoofAction) => void; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -145,6 +150,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const start = continuous ? chain.at(-1) ?? null : gesture?.tool === tool ? gesture.point : null;
   const [pointer, setPointer] = useState<Point | null>(null), [generation, setGeneration] = useState(0);
   const stage = useRef<Konva.Stage>(null);
+  const roofTool = useRoofPlanTool(store, showRoof && active, stage, roofRequest);
   useEffect(() => {
     if (active && size.width > 10 && size.height > 10)
       onCenter({ x: (size.width / 2 - view.x) / view.scale, y: (size.height / 2 - view.y) / view.scale });
@@ -315,6 +321,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
   const hint = editorHint(tool, selected, doc, !!(start || wallPreview.anchor));
   return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
+    onKeyDownCapture={roofTool.keyDown}
     onKeyDown={(e) => {
       if (e.key === 'Escape') {
         if (pendingSpatial) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
@@ -333,6 +340,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       onPointerDown={(e) => {
         stage.current?.container().parentElement?.focus();
         if (pan) return;
+        if (showRoof) { roofTool.pointerDown(); return; }
         if (tool === 'walkthrough' && !readOnly) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const p = point(), state = store.getState();
@@ -401,6 +409,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
           }
         }
       }} onPointerMove={() => {
+        if (!pan && showRoof) { roofTool.pointerMove(); return; }
         if (!pan && zoneTool.active) { const p = point(); if (p) zoneTool.pointerMove(p); return; }
         if (!pan && placingSpatial) { const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null); if (raw && pendingSpatial) { const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 }); snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale); } return; }
         if (!pan && splitting) { setPointer(point()); return; }
@@ -409,7 +418,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         const p = point();
         if (p && (tool === 'wall' || tool === 'guard-wall')) setWallDraw((current) => moveWallDraw(current, p));
         else if (start) setPointer(p);
-      }} onPointerUp={() => { if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
+      }} onPointerUp={() => { if (!pan && showRoof) roofTool.pointerUp(); else if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
       onDblClick={(event) => {
         if (!pan && zoneTool.active) { zoneTool.close(); return; }
         const state = store.getState();
@@ -422,7 +431,8 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
           opacity={originalOpacity} listening={false} />
       </Layer>}
       {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}:${presentation}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showRoof}:${showReference}:${presentation}`} listening={!pan && active && !showRoof}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active || showRoof} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
+      {showRoof && <RoofPlanLayer tool={roofTool} scale={view.scale} disabled={pan || !active} />}
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
       {looseEnds.map((point, index) => <Group key={`loose-end-${point.wallId}-${index}`} x={point.x} y={point.y}>
@@ -510,14 +520,16 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     {pan && !placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Mano activa · arrastra para desplazar la vista · Espacio para volver
     </div>}
-    {!pan && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && !showRoof && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {readOnly ? 'Diseño aprobado · usa el borrador para hacer cambios' : presentation === 'visual' ? 'Añade desde Amueblar o Construir · arrastra para mover · selecciona para editar' : 'Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina'}
     </div>}
-    {!pan && <CanvasSelectionMenu store={store} view={view} size={size} />}
+    <PropertyCompassOverlay document={doc} />
+    {showRoof && <RoofPlanControls tool={roofTool} onAction={onRoofAction} onClose={() => { roofTool.choose(null); onHideRoof?.(); }} />}
+    {!pan && !showRoof && <CanvasSelectionMenu store={store} view={view} size={size} />}
     {!doc.walls.length && !planObjects(doc).length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
-    {!readOnly && !pan && hint && <p className={styles.hints} role="status">{hint}</p>}
+    {!readOnly && !pan && !showRoof && hint && <p className={styles.hints} role="status">{hint}</p>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">
       <button onClick={() => zoom(.8)} aria-label="Alejar" data-tooltip={shortcutHint('Alejar', 'zoomOut')}><ZoomOut size={18} aria-hidden="true" /></button>
       <span>{Math.round(view.scale * 1000)}%</span>

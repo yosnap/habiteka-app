@@ -2,7 +2,10 @@ import { getFurnitureCatalogEntry, type FurnitureCatalogEntry } from './furnitur
 import type { NativeDesignFurniture } from './native-design-proposal';
 import { faceAxis, fromModelFurniture, placeOnFace } from './proposal-coordinates';
 import type { RoomWallFace } from './room-wall-faces';
-import type { Point } from './schema';
+import type { EditorDocument, Point } from './schema';
+import { criticalFixtureKind } from './critical-fixtures';
+import { objectCenter } from './spatial-properties';
+import { pointInPolygon } from './polygon-tools';
 
 /** Sanitarios: van contra la pared y, en un baño pequeño, solo caben todos si se colocan bien seguidos. */
 export const WET_PROFILES = new Set(['toilet', 'sink', 'bath', 'shower']);
@@ -15,6 +18,32 @@ export const wetScore = (items: readonly NativeDesignFurniture[]) => items.reduc
   return score + (profile === 'toilet' || profile === 'sink' ? 2 : 1);
 }, 0);
 export const DEFAULT_WASHBASIN = 'habiteka:furniture:lavabo';
+
+/** Ducha y bañera cubren la misma función: un baño que ya tiene una no recibe la otra. */
+function wetRole(catalogId: string, kind = ''): string | undefined {
+  const fixture = criticalFixtureKind({ catalogId, kind });
+  return fixture === 'bath' ? 'shower' : fixture;
+}
+
+/** Funciones sanitarias que ya cubre la estancia: piezas del plano importado, puestas a mano o de un Amueblar anterior. */
+export function presentWetRoles(doc: EditorDocument, boundary: readonly Point[]): Set<string> {
+  return new Set(doc.furniture.flatMap((item) => {
+    const role = wetRole(item.catalogId ?? '', item.kind);
+    return role && pointInPolygon(objectCenter(item), boundary) ? [role] : [];
+  }));
+}
+
+/** Amueblar completa el baño sin repetir: fuera lo que la estancia ya tiene y lo que la IA pidió dos veces. */
+export function missingWetFixtures<T extends { item: NativeDesignFurniture }>(present: ReadonlySet<string>, list: readonly T[]): T[] {
+  const taken = new Set(present);
+  return list.filter(({ item }) => {
+    const role = wetRole(item.catalogId);
+    if (!role) return true;
+    if (taken.has(role)) return false;
+    taken.add(role);
+    return true;
+  });
+}
 
 /**
  * Coloca los sanitarios de una estancia desde las esquinas: primero la bañera o la ducha, después el inodoro y el

@@ -8,7 +8,7 @@ import { exteriorDesignContext } from '@/lib/editor-document/exterior-design-con
 import { validateRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-verdict';
 import { RENDER_FIDELITY_CRITERIA } from '@/lib/editor-document/render-fidelity';
 import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-editor-document';
-import type { RenderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
+import { renderSpatialRule, type RenderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
 
 const document = () => {
   const doc = exteriorRenderDocument(); doc.schemaVersion = 11;
@@ -38,6 +38,16 @@ describe('identidad de sanitarios, vitrocerámica y vehículos', () => {
     expect(groups[0]?.counts).toMatchObject({ toilet: 1, washbasin: 1, shower: 1, bath: 0 });
     expect(groups[1]?.counts.cooktop).toBe(1); expect(groups[1]?.items[0]?.center).toEqual({ x: 4500, y: 6800 });
     expect(audit(verdict()).status).toBe('passed');
+  });
+  it('la revisión recibe dónde mirar pero no las cantidades, que el código contrasta después', () => {
+    // Con las cantidades delante, la revisión las copiaba y aprobaba dos inodoros donde el plano tiene uno.
+    const bathroom = groups.find(group => group.counts.toilet === 1)!;
+    const review = renderSpatialRule(context, true, true);
+    expect(review).toContain(JSON.stringify(bathroom.id));
+    expect(review).toContain('searchAreaMm');
+    expect(review).not.toContain('"counts"');
+    expect(review).not.toContain('"kind":"toilet"');
+    expect(renderSpatialRule(context)).toContain('"counts"');
   });
   it('rechaza tres inodoros, placa borrada o recuento omitido aunque el resumen apruebe', () => {
     const repeated = verdict(); repeated.fixtureChecks[0]!.observedCounts.toilet = 3;

@@ -45,6 +45,7 @@ import { VideoSceneScope } from './video-scene-scope';
 import { videoScopeRegions } from '@/lib/editor-document/video-content-scope';
 import { buildWalkthrough } from '@/lib/editor-document/walkthrough-geometry';
 import { SceneLighting, SCENE_LIGHTING_LABELS, type SceneLightingPreset } from './scene-lighting';
+import { PropertyCompassOverlay } from '../property-compass';
 import { SceneEnvironment } from './scene-environment';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
 import { viewCoverIds } from '@/lib/editor-document/view-covers';
@@ -659,7 +660,7 @@ function SceneView({
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => {
         if (!store.getState().pan && (presentation !== 'plan' || store.getState().tool !== 'place-object')) store.getState().select([]);
       }}>
-      <SceneLighting key={lighting} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
+      <SceneLighting key={lighting} document={document} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <SceneEnvironment preset={lighting} />
       {projectId && document.geographicSite?.confirmed && <GeographicSiteScene
@@ -774,6 +775,7 @@ function SceneView({
         </Html>;
       })}
     </Canvas>
+    {!recording && !videoStudio && <PropertyCompassOverlay document={document} />}
     {presentation === 'plan' && !store.getState().readOnly && selection.length === 1 && document.furniture.some((item) => item.id === selection[0]) &&
       <button type="button" onClick={() => setPlanMenu({ id: selection[0]!, x: 20, y: 60 })}
         style={{ position: 'absolute', top: 12, left: 16, zIndex: 4, borderRadius: 8,

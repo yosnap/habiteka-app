@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
-import { exteriorWallIds, interiorWallIds } from '@/lib/editor-document/exterior-wall-selection';
+import { exteriorWallIds, interiorWallIds, setWallClassification, wallClassificationInfo } from '@/lib/editor-document/exterior-wall-selection';
+import { parseEditorDocument } from '@/lib/editor-document/validation';
+import { selectedWallSides } from '@/lib/editor-document/wall-bulk-appearance';
+import { editorDocumentToScene } from '@/canvas/editor-v2/scene/editor-document-to-scene';
+import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { applyKindSelection, idsByKind } from '@/canvas/editor-v2/select-by-kind';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
@@ -20,6 +24,28 @@ function house() {
 }
 
 describe('selector de muros exteriores', () => {
+  it('la clasificación manual manda en selección, caras y corte 3D, y se puede volver a automática', () => {
+    const before = house(), changed = setWallClassification(before, ['w0', 'w1'], 'interior');
+    expect(exteriorWallIds(changed)).not.toContain('w0');
+    expect(interiorWallIds(changed)).toContain('w0');
+    expect(selectedWallSides(changed, 'w0', 'interior')).toEqual(['left', 'right']);
+    expect(wallFaces(changed, changed.walls[0]!).every(face => face.label.startsWith('Interior'))).toBe(true);
+    const facade = setWallClassification(before, ['w6'], 'exterior');
+    const face = selectedWallSides(facade, 'w6', 'exterior')[0];
+    expect(wallFaces(facade, facade.walls[6]!).find(item => item.side === face)!.label).toBe('Exterior');
+    const normals = editorDocumentToScene(facade).exteriorWalls.filter(item => item.sourceEntityId === 'w6');
+    expect(normals).toHaveLength(1);
+    expect(normals[0]!.normalX).toBe(face === 'left' ? -1 : 1);
+    expect(editorDocumentToScene(changed).exteriorWalls.some(wall => wall.sourceEntityId === 'w0')).toBe(false);
+    expect(wallClassificationInfo(changed, changed.walls[0]!)).toMatchObject({ effective: 'interior', automatic: 'exterior' });
+    expect(parseEditorDocument(JSON.parse(JSON.stringify(changed))).walls[0]!.classification).toBe('interior');
+    expect(setWallClassification(changed, ['w0'], 'auto').walls[0]!.classification).toBeUndefined();
+    expect(before.walls[0]!.classification).toBeUndefined();
+    expect(changed.vertices).toEqual(before.vertices);
+    const store = createEditorStore(before);
+    store.getState().apply(changed); store.getState().undo();
+    expect(exteriorWallIds(store.getState().document)).toContain('w0');
+  });
   it('incluye el perímetro de dos habitaciones sin seleccionar el tabique compartido', () => {
     expect(exteriorWallIds(house())).toEqual(['w0', 'w1', 'w2', 'w3', 'w4', 'w5']);
     expect(interiorWallIds(house())).toEqual(['w6']);

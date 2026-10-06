@@ -11,6 +11,7 @@ type Side = 'left' | 'right';
 
 function sides(doc: EditorDocument, wall: Wall, rooms: DerivedRoom[], target: WallFaceTarget): Side[] {
   if (target === 'both') return ['left', 'right'];
+  if (wall.classification === 'interior') return target === 'interior' ? ['left', 'right'] : [];
   const adjacent = rooms.flatMap((room) => {
     const index = room.wallIds.indexOf(wall.id);
     return index < 0 ? [] : [room.vertexIds[index] === wall.startVertexId ? 'left' as const : 'right' as const];
@@ -21,6 +22,8 @@ function sides(doc: EditorDocument, wall: Wall, rooms: DerivedRoom[], target: Wa
     if (rooms.some((room) => insideRoom({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, room.boundary)))
       return ['left', 'right'];
   }
+  if (wall.classification === 'exterior' && adjacent.length !== 1)
+    return target === 'interior' ? [adjacent[0] ?? 'left'] : [adjacent[0] === 'right' ? 'left' : 'right'];
   if (adjacent.length !== 1) return [];
   return [target === 'interior' ? adjacent[0]! : adjacent[0] === 'left' ? 'right' : 'left'];
 }

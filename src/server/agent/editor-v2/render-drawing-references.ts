@@ -14,7 +14,8 @@ export async function renderDrawingReferences(document: EditorDocument, view: Re
   acceptedTop: boolean, reviewingExisting: boolean) {
   if (zoneCompositeActive(options) || isInteriorRenderMode(options) || reviewingExisting) return {};
   if (view.preset === 'top') {
-    const raster = await rasterizeEditorDocument(document, undefined, { doorLeaves: true });
+    // Solo las hojas: el arco de giro salía en la imagen como un tablón curvo entre los marcos.
+    const raster = await rasterizeEditorDocument(document, undefined, { doorLeaves: true, swingArcs: false });
     return { plan: await sanitizeImageBuffer(Buffer.from(raster.base64, 'base64')) };
   }
   if (!acceptedTop || !['front', 'back', 'left', 'right'].includes(view.preset)) return {};

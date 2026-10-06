@@ -8,7 +8,7 @@ import type { CatalogPhotoSource } from '@/canvas/editor-v2/scene/catalog-photo-
 export const CONSTRUCTION_PHOTO_IDS = [
   'pared', 'murete', 'habitacion', 'habitacion-l', 'habitacion-u', 'habitacion-t', 'cocina', 'forma-l', 'forma-u',
   'forma-t', 'escalera-recta', 'escalera-l', 'escalera-u', 'descansillo', 'rampa', 'columna', 'paso-abierto', 'patio',
-  'pavimento', 'terreno',
+  'pavimento', 'terreno', 'tejado', 'cristal-tejado', 'ventana-tejado', 'chimenea-tejado',
 ] as const;
 export type ConstructionPhotoId = (typeof CONSTRUCTION_PHOTO_IDS)[number];
 

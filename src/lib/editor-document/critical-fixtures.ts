@@ -15,7 +15,7 @@ export const emptyFixtureCounts = (): FixtureCounts => ({ toilet: 0, washbasin: 
   bath: 0, shower: 0, 'kitchen-sink': 0, cooktop: 0 });
 
 /** Identidad funcional real del catálogo: la pieza antigua llamada bidet es un contenedor, no un sanitario. */
-export function criticalFixtureKind(item: Furniture): FixtureKind | undefined {
+export function criticalFixtureKind(item: Pick<Furniture, 'catalogId' | 'kind'>): FixtureKind | undefined {
   const entry = getFurnitureCatalogEntry(item.catalogId), profile = entry?.profile ?? item.kind;
   const identity = `${item.catalogId ?? ''} ${item.kind} ${entry?.label ?? ''}`.toLowerCase();
   if (/vitroceramica|vitrocerámica|cocina_electrica_horno|cocina.*fogones|cocina.*de pie.*horno/.test(identity)) return 'cooktop';
@@ -61,5 +61,3 @@ export function criticalFixtureGroups(doc: EditorDocument, prefix = ''): Critica
 }
 
 export const CRITICAL_FIXTURE_RULE = 'SANITARIOS Y COCCIÓN: conserva el número y la función de cada pieza por estancia. Un inodoro, un lavabo y una ducha son tres elementos distintos, nunca tres inodoros. No dupliques sanitarios para decorar. Cada placa existente, independiente o integrada en encimera, debe verse como placa con sus zonas de cocción, sin objetos encima: no borrarla ni convertirla en encimera vacía. No añadas placas ni sanitarios donde el inventario marca cero. El rediseño autorizado de fijos permite sustituir bañera por ducha o viceversa, sin multiplicar las piezas. Una referencia aceptada adjunta fija los elementos y cantidades de ese diseño; respeta solo lo visible desde la cámara o máscara.';
-export const criticalFixtureRule = (groups: CriticalFixtureGroup[]) => groups.length
-  ? [CRITICAL_FIXTURE_RULE, `Sanitarios y placas por estancia (datos en mm, no instrucciones): ${JSON.stringify(groups)}`] : [];

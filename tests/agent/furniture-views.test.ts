@@ -61,7 +61,8 @@ describe('orientación de los muebles del plano', () => {
     const plan = simplePlanPrompt('moderno', options, '', '', { units: 'mm', levels: [{ id: 'l', name: 'Planta', openings: [],
       rooms: [{ id: 'R1', name: 'Dormitorio', anchor: { x: 0, y: 0 } }] }] }, ['Dormitorio: cama doble (cabecero arriba)']);
     expect(plan).toContain('Respeta los muebles dibujados, con su posición, tamaño y orientación: Dormitorio: cama doble (cabecero arriba).');
-    expect(plan).toContain('Completa la decoración según su uso.');
+    expect(plan).toContain('Conserva solo el mobiliario dibujado en el plano');
+    expect(plan).not.toContain('Completa la decoración');
     const section = simpleSectionPrompt('back', 'moderno', options, '', '', ['Dormitorio'], ['Dormitorio: cama doble vista de espaldas']);
     expect(section).toContain('leído del diseño aceptado de la imagen 2: Dormitorio: cama doble vista de espaldas');
     expect(section).not.toContain('Los muebles dibujados en la imagen 1');

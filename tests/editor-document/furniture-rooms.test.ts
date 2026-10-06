@@ -67,7 +67,8 @@ describe('estancias del catálogo', () => {
   it('filtra cada estancia nueva con sus piezas', () => {
     const ids = (room: string) => searchFurnitureCatalog('', room).map((item) => item.id);
     expect(ids('infantil')).toEqual(expect.arrayContaining(['habiteka:furniture:cama-individual', 'habiteka:furniture:escritorio', 'habiteka:furniture:armario']));
-    expect(searchFurnitureCatalog('', 'infantil').every((item) => item.profile !== 'bed' || item.widthMm <= 1300)).toBe(true);
+    expect(searchFurnitureCatalog('', 'infantil').every((item) => item.profile !== 'bed'
+      || item.widthMm <= 1300 || item.productId === 'habiteka-litera_familiar')).toBe(true);
     expect(ids('recibidor')).toEqual(expect.arrayContaining(['habiteka:furniture:zapatero', 'habiteka:furniture:felpudo']));
     expect(ids('lavadero')).toEqual(expect.arrayContaining(['habiteka:furniture:lavadora', 'habiteka:furniture:secadora', 'habiteka:furniture:pila-lavadero']));
     const garage = searchFurnitureCatalog('', 'garaje');
@@ -109,6 +110,7 @@ describe('muebles del boceto en las estancias nuevas', () => {
     const { furniture } = placeFurniture([bed], { mmPerUnitX: 10000, mmPerUnitY: 8000 }, [zone('Dormitorio infantil')]);
     expect(furniture).toHaveLength(1);
     expect(getFurnitureCatalogEntry(furniture[0]!.catalogId)!.widthMm).toBeLessThanOrEqual(1300);
+    expect(furniture[0]!.catalogId).not.toContain('litera');
   });
 });
 

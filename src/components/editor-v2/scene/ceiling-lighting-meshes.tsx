@@ -7,6 +7,7 @@ import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { LightStripMeshes } from './light-strip-meshes';
 import { SurfaceMaterial } from './surface-material';
 import { surfaceMaterialAppearance } from '@/lib/editor-document/surface-materials';
+import { roofCeilingVoids } from '@/lib/editor-document/roof-opening-commands';
 
 type Surface = ReturnType<typeof ceilingSurfaces>[number];
 type ResolvedLight = ReturnType<typeof resolvedLuminaires>[number];
@@ -105,6 +106,10 @@ export function CeilingLightingMeshes({
   shadowBudget?: number;
 }) {
   const surfaces = useMemo(() => ceilingSurfaces(document), [document]);
+  const voids = useMemo(() => {
+    try { return [...ceilingVoids, ...roofCeilingVoids(document)]; }
+    catch { return ceilingVoids; }
+  }, [ceilingVoids, document]);
   const lights = useMemo(() => resolvedLuminaires(document), [document]);
   const strips = useMemo(() => resolvedStrips(document), [document]);
   // Luminarias y tiras comparten un único presupuesto de luces reales de WebGL.
@@ -112,7 +117,7 @@ export function CeilingLightingMeshes({
   const emitting = new Set(budget.luminaireIds);
   const shadowing = new Set(shadowLightIds(budget.luminaireIds, shadowBudget));
   return <>
-    {surfaces.map((surface) => <CeilingMesh key={surface.ceiling.id} surface={surface} view={view} voids={ceilingVoids}
+    {surfaces.map((surface) => <CeilingMesh key={surface.ceiling.id} surface={surface} view={view} voids={voids}
       selected={selection.includes(surface.ceiling.id)} onSelect={onSelect} />)}
     <LightStripMeshes document={document} selection={selection} emittingIds={budget.stripIds} />
     {lights.map((resolved) => <LuminaireMesh key={resolved.luminaire.id} resolved={resolved} view={view}

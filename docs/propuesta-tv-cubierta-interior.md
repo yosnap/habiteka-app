@@ -30,10 +30,11 @@ No generan cierres de muro duplicados. El contexto IA incluye `voidCover` y
 La transparencia de edición sigue siendo únicamente una ayuda visual.
 
 La política compacta conserva estas reglas dentro de sus 660 caracteres y del
-presupuesto total de 4800 del prompt. El panel aplica el vidrio a todos los
-vacíos encerrados: editar una zona individual o el tejado sobre el lienzo 2D
-sigue pendiente. La selección de paredes externas cuenta adyacencias a las
-estancias interiores elegibles, por lo que incluye las paredes a patios.
+presupuesto total de 4800 del prompt. El panel puede aplicar el vidrio a todos
+los vacíos encerrados, o convertirlo en piezas editables en el plano 2D.
+La selección de paredes externas cuenta adyacencias a las estancias interiores
+elegibles, incluyendo paredes a patios, salvo elección manual del usuario.
+Consulta [Clasificación manual y huecos de tejado](paredes-y-cristales-tejado.md).
 
 Pruebas: televisión existente y acompañante, propuesta antigua al aplicar,
 otra estancia, límite de pantallas por propuesta, cerrado nuevo y abierto

@@ -43,6 +43,8 @@ export type DeliverablePayload =
         acceptance?: { acceptedAt: string; userId: string };
         /** Metadatos de composiciones anteriores; los nuevos diseños usan una sola imagen auditada. */
         zoneComposite?: { mode: string; coverage: number };
+        /** Cubierta del modelo añadida a una vista aceptada (guía de forma del plano y revisión propia). */
+        roofClosure?: { baseDeliverableId: string };
       };
     }
   | { type: 'memoria'; markdown: string };

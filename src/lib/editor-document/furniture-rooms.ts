@@ -30,6 +30,11 @@ const matches = (pattern: RegExp) => (entry: FurnitureCatalogEntry) => pattern.t
  * las dos. La estancia propia de cada pieza no cambia.
  */
 const ALSO_IN: readonly (readonly [FurnitureRoom, (entry: FurnitureCatalogEntry) => boolean])[] = [
+  ['dormitorio', matches(/litera/)],
+  ['salon', matches(/chillout/)],
+  ['dormitorio', (entry) => entry.profile === 'curtain' || entry.profile === 'curtain-open'],
+  ['infantil', (entry) => entry.profile === 'curtain' || entry.profile === 'curtain-open'],
+  ['salon', (entry) => entry.profile === 'curtain' || entry.profile === 'curtain-open'],
   // Infantil: camas individuales (90 y 105) y lo que acompaña a la cama, el estudio y la ropa.
   ['infantil', (entry) => isSingleBed(entry)
     || matches(/escritorio|silla[-_]oficina|armario|comoda|mesita|mesilla|libreria|estanteria[-_]cubos|cesto/)(entry)],
