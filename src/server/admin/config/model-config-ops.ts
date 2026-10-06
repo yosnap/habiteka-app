@@ -11,7 +11,8 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { ModelAction } from '@/generated/prisma/enums';
 import { prisma } from '@/server/db/prisma';
 import { invalidateModelConfig } from '@/server/ai';
-import { allowedModel, isModelAllowed } from './model-allowlist';
+import { allowedModel, isModelAllowed, type ModelProviderId } from './model-allowlist';
+import { BUILT_IN_PROVIDERS, customProvider, loadCustomRegistry } from '@/server/ai/custom-ai-providers';
 import { writeAudit } from '../audit';
 import { configError } from './config-errors';
 
@@ -25,7 +26,7 @@ export interface UpdateModelInput {
   backups: ModelBackup[];
 }
 
-export type ModelProvider = 'openrouter' | 'kie' | 'nan' | 'openai';
+export type ModelProvider = ModelProviderId;
 export interface ModelBackup { model: string; provider: ModelProvider; }
 
 function validateModelConfig(input: UpdateModelInput, saved?: { primaryModel: string; provider: string | null }): void {
@@ -48,8 +49,9 @@ function validateModelConfig(input: UpdateModelInput, saved?: { primaryModel: st
   }
 }
 
-/** Valida un perfil sin persistirlo como mapeo activo. */
-export function validateModelInputs(inputs: UpdateModelInput[]): void {
+/** Valida un perfil sin persistirlo como mapeo activo; los modelos de proveedores propios se consultan en su registro. */
+export async function validateModelInputs(inputs: UpdateModelInput[]): Promise<void> {
+  await loadCustomRegistry();
   if (inputs.length === 0) throw configError('El perfil debe incluir al menos un uso de IA');
   const actions = new Set(inputs.map((input) => input.action));
   if (actions.size !== inputs.length) throw configError('El perfil contiene usos de IA repetidos');
@@ -58,7 +60,7 @@ export function validateModelInputs(inputs: UpdateModelInput[]): void {
 
 /** Persiste la configuración de una acción tras validarla; invalida la caché. */
 export async function updateModelConfig(actorId: string, input: UpdateModelInput): Promise<void> {
-  const current = await prisma.modelConfig.findUnique({ where: { action: input.action } });
+  const [current] = await Promise.all([prisma.modelConfig.findUnique({ where: { action: input.action } }), loadCustomRegistry()]);
   validateModelConfig(input, current ?? undefined);
 
   await persistModelConfig(input);
@@ -80,7 +82,7 @@ export async function replaceModelConfigs(actorId: string, inputs: UpdateModelIn
   if (inputs.length === 0) throw configError('Debes indicar al menos una configuración de modelo');
   const uniqueActions = new Set(inputs.map((input) => input.action));
   if (uniqueActions.size !== inputs.length) throw configError('Hay usos de IA repetidos en la configuración');
-  const existing = await prisma.modelConfig.findMany({ where: { action: { in: inputs.map((input) => input.action) } } });
+  const [existing] = await Promise.all([prisma.modelConfig.findMany({ where: { action: { in: inputs.map((input) => input.action) } } }), loadCustomRegistry()]);
   const existingByAction = new Map(existing.map((config) => [config.action, config]));
   inputs.forEach((input) => validateModelConfig(input, existingByAction.get(input.action)));
 
@@ -100,6 +102,7 @@ export async function listModelConfig() {
   const [configs, routes] = await Promise.all([
     prisma.modelConfig.findMany({ orderBy: { action: 'asc' } }),
     prisma.aiModelRoute.findMany({ orderBy: [{ action: 'asc' }, { position: 'asc' }] }),
+    loadCustomRegistry(),
   ]);
   const routesByAction = new Map<ModelAction, ModelBackup[]>();
   for (const route of routes) {
@@ -135,7 +138,7 @@ function legacyBackups(config: { fallbacks: string[]; provider: string | null })
 }
 
 function isProvider(provider: string | null): provider is ModelProvider {
-  return provider === 'openrouter' || provider === 'kie' || provider === 'nan' || provider === 'openai';
+  return !!provider && ((BUILT_IN_PROVIDERS.includes(provider) && provider !== 'typesafe') || !!customProvider(provider));
 }
 
 function auditMeta(input: UpdateModelInput, batch: boolean): Prisma.InputJsonValue {

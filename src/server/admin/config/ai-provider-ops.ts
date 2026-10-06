@@ -52,12 +52,12 @@ export async function updateNanProvider(actorId: string, input: { apiKey: string
   return updateProvider(actorId, NAN_PROVIDER, input);
 }
 
-async function getProviderStatus(provider: string): Promise<ProviderStatus> {
+export async function getProviderStatus(provider: string): Promise<ProviderStatus> {
   const credential = await prisma.aiProviderCredential.findUnique({ where: { provider } });
   return { provider, configured: !!credential, enabled: credential?.enabled ?? false, keyHint: credential?.keyHint ?? null, updatedAt: credential?.updatedAt ?? null };
 }
 
-async function updateProvider(actorId: string, provider: string, input: { apiKey: string; enabled: boolean }): Promise<void> {
+export async function updateProvider(actorId: string, provider: string, input: { apiKey: string; enabled: boolean }): Promise<void> {
   const apiKey = input.apiKey.trim();
   if (apiKey.length < 12) throw configError(`La API key de ${provider.toUpperCase()} parece incompleta`);
   await prisma.aiProviderCredential.upsert({

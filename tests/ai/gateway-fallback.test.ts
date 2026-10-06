@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { APIUserAbortError } from 'openai';
 import { withGatewayFallback } from '@/server/ai/client/gateway-fallback';
 import { setClientFactory } from '@/server/ai/client/gateway-client';
 
@@ -60,5 +61,22 @@ describe('withGatewayFallback (OpenRouter es SPOF)', () => {
     const cause = { status: 429, message: 'concurrency limit' };
     await expect(withGatewayFallback({ baseURL: null, run: async () => { throw cause; } }))
       .rejects.toMatchObject({ kind: 'rate_limit', cause });
+  });
+
+  it('un modelo que no responde a tiempo pasa al respaldo con un aviso claro', async () => {
+    const f = setClientFactory(() => ({}) as never);
+    restore = () => setClientFactory(f);
+    // Como lo lanza el SDK al vencer la señal de espera: su clase, sin `name` propio.
+    const cause = new APIUserAbortError();
+    await expect(withGatewayFallback({ baseURL: null, apiKey: 'k', run: async () => { throw cause; } }))
+      .rejects.toMatchObject({ kind: 'timeout', message: 'El modelo no respondió en 3 minutos' });
+  });
+
+  it('sin saldo (402) avisa claro y deja pasar al respaldo configurado', async () => {
+    const f = setClientFactory(() => ({}) as never);
+    restore = () => setClientFactory(f);
+    const cause = { status: 402, message: 'requires more credits' };
+    await expect(withGatewayFallback({ baseURL: null, run: async () => { throw cause; } }))
+      .rejects.toMatchObject({ kind: 'provider_down', cause, message: expect.stringContaining('sin saldo') });
   });
 });

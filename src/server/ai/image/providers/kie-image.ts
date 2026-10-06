@@ -12,7 +12,7 @@ const TASK_URL = 'https://api.kie.ai/api/v1/jobs/recordInfo';
 const BASE64_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload';
 const POLL_INTERVAL_MS = 3_000;
 /** KIE descuenta créditos por tarea; 1 crédito ≈ 0,005 USD (200 créditos por dólar). */
-const KIE_USD_PER_CREDIT = 0.005;
+export const KIE_USD_PER_CREDIT = 0.005;
 const TIMEOUT_MS = 120_000;
 const FLUX_TIMEOUT_MS = 600_000;
 // Los PNG 4K de gpt-image pasan de 12 MB: el tope es el mismo que admite el lector de renders propios.

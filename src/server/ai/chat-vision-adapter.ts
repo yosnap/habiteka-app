@@ -15,7 +15,7 @@ import type {
   MessagePart,
   ToolCall,
 } from '@/lib/contracts';
-import { withGatewayFallback } from './client/gateway-fallback';
+import { MODEL_TIMEOUT_MS, withGatewayFallback } from './client/gateway-fallback';
 import { resolveMaxTokens } from './call-limits';
 import { toTokenUsage } from './cost/usage-to-cost';
 import { aiError } from './errors';
@@ -44,6 +44,13 @@ export interface ChatAdapterOptions {
   apiKey?: string;
   maxTokens?: number;
   reportsUsd?: boolean;
+  /** La API de OpenAI no acepta `reasoning` ni `max_tokens` en sus modelos actuales: usa sus propios campos. */
+  openAiApi?: boolean;
+  /**
+   * Proveedores que no aplican `response_format` por sí solos (APIMart, NodeClub, NaN…): el esquema va también escrito en
+   * las instrucciones, o el modelo contesta en prosa y no hay JSON que leer.
+   */
+  schemaInstruction?: boolean;
 }
 
 export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
@@ -56,7 +63,8 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
       apiKey: this.options.apiKey,
       // OpenRouter acepta campos extra (`models`) que no están en los tipos del
       // SDK; se pasa el body construido a su API de Chat Completions.
-      run: (client) => client.chat.completions.create(body as never) as Promise<RawCompletion>,
+      // Tope total por modelo, reintentos incluidos: un proveedor colgado pasa al respaldo en lugar de esperar 10 min.
+      run: (client) => client.chat.completions.create(body as never, { signal: AbortSignal.timeout(MODEL_TIMEOUT_MS) }) as Promise<RawCompletion>,
     });
 
     const choice = completion.choices[0];
@@ -68,12 +76,10 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
     }
     // Un JSON cortado por el límite nunca es válido: se dice que faltó espacio, no que el formato estaba mal.
     if (req.responseSchema && (choice.finish_reason === 'length' || !choice.message.content?.trim())) {
-      throw aiError('schema', choice.finish_reason === 'length'
-        ? 'El modelo agotó el límite de respuesta sin devolver el diseño completo. Inténtalo con un ámbito más pequeño (estancias o una zona) o cambia el modelo de visión.'
-        : 'El modelo no devolvió datos estructurados para el diseño.');
+      throw incompleteJsonError(choice.finish_reason === 'length');
     }
 
-    const structured = this.parseStructured(req, choice.message.content);
+    const structured = parseStructuredOutput(req, choice.message.content);
     return {
       content: choice.message.content ?? '',
       toolCalls: mapToolCalls(choice.message.tool_calls),
@@ -88,7 +94,8 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
       baseURL: this.options.baseURL ?? null,
       apiKey: this.options.apiKey,
       run: (client) =>
-        client.chat.completions.create(body as never) as unknown as Promise<
+        // En streaming el tope es hasta que empieza la respuesta; después llega a trozos.
+        client.chat.completions.create(body as never, { timeout: MODEL_TIMEOUT_MS }) as unknown as Promise<
           AsyncIterable<RawChunk>
         >,
     });
@@ -105,9 +112,11 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
   }
 
   private buildBody(req: ChatRequest, stream: boolean): RawRequestBody {
+    const instruction: ChatMessage[] = req.responseSchema && this.options.schemaInstruction ? [{ role: 'system', content: [{ type: 'text',
+      text: `Responde únicamente con un objeto JSON válido, sin markdown ni texto aparte, que cumpla este esquema JSON:\n${JSON.stringify(req.responseSchema)}` }] }] : [];
     const body: RawRequestBody = {
       model: req.model,
-      messages: req.messages.map(toOpenAIMessage),
+      messages: [...instruction, ...req.messages].map(toOpenAIMessage),
       max_tokens: resolveMaxTokens(req.maxTokens ?? this.options.maxTokens),
       stream,
     };
@@ -129,28 +138,44 @@ export class OpenRouterChatVisionAdapter implements ChatVisionAdapter {
       // `extra_body.models` es la forma de OpenRouter de declarar respaldos.
       body.models = [req.model, ...req.fallbackModels].slice(0, 4);
     }
-    return body;
-  }
-
-  private parseStructured(req: ChatRequest, content: string | null): unknown {
-    if (!req.responseSchema || !content) return undefined;
-    // Algunos modelos (Gemini con imágenes, o un respaldo sin soporte nativo de
-    // json_schema) ignoran el `response_format` y envuelven el JSON en vallas
-    // markdown o en prosa. Antes de fallar se intenta rescatar el JSON embebido;
-    // el validador de cada fase sigue siendo la frontera de confianza real.
-    for (const candidate of jsonCandidates(content)) {
-      try {
-        return JSON.parse(candidate);
-      } catch {
-        // Siguiente candidato.
+    if (this.options.openAiApi) {
+      body.max_completion_tokens = body.max_tokens;
+      delete body.max_tokens;
+      if (body.reasoning) {
+        if ('effort' in body.reasoning) body.reasoning_effort = body.reasoning.effort;
+        delete body.reasoning;
       }
     }
-    throw aiError(
-      'schema',
-      'La salida no es JSON válido contra el schema',
-      new Error(`Inicio de la salida del modelo: ${content.slice(0, 200)}`),
-    );
+    return body;
   }
+}
+
+/** Un JSON cortado por el límite nunca es válido: se dice que faltó espacio, no que el formato estaba mal. */
+export function incompleteJsonError(byLimit: boolean) {
+  return aiError('schema', byLimit
+    ? 'El modelo agotó el límite de respuesta sin terminar el resultado. En un diseño, prueba con un ámbito más pequeño (estancias o una zona); si no, elige otro modelo en Modelos por uso.'
+    : 'El modelo no devolvió el resultado en el formato pedido.');
+}
+
+/** Salida estructurada de la respuesta, también cuando el modelo envuelve el JSON en markdown o prosa. */
+export function parseStructuredOutput(req: ChatRequest, content: string | null): unknown {
+  if (!req.responseSchema || !content) return undefined;
+  // Algunos modelos (Gemini con imágenes, o un respaldo sin soporte nativo de
+  // json_schema) ignoran el `response_format` y envuelven el JSON en vallas
+  // markdown o en prosa. Antes de fallar se intenta rescatar el JSON embebido;
+  // el validador de cada fase sigue siendo la frontera de confianza real.
+  for (const candidate of jsonCandidates(content)) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Siguiente candidato.
+    }
+  }
+  throw aiError(
+    'schema',
+    'La salida no es JSON válido contra el schema',
+    new Error(`Inicio de la salida del modelo: ${content.slice(0, 200)}`),
+  );
 }
 
 /**
@@ -242,7 +267,9 @@ interface RawChunk {
 interface RawRequestBody {
   model: string;
   messages: OpenAIChatMessage[];
-  max_tokens: number;
+  max_tokens?: number;
+  max_completion_tokens?: number;
+  reasoning_effort?: 'low' | 'medium' | 'high';
   stream: boolean;
   temperature?: number;
   reasoning?: { effort: 'low' | 'medium' | 'high' } | { enabled: false };

@@ -77,6 +77,36 @@ model AiProviderCredential {
   @@map("ai_provider_credential")
 }
 
+// Proveedor de IA compatible con OpenAI añadido desde el panel (APIMart, NodeClub.ai…). Su clave vive en
+// AiProviderCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
+model AiCustomProvider {
+  id        String          @id
+  label     String
+  baseUrl   String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("ai_custom_provider")
+}
+
+// Modelo de texto o visión que habilita el administrador, de un proveedor propio o de OpenRouter, NaN u OpenAI
+// (`providerId` es el id del proveedor, sin clave foránea: los integrados no tienen fila en ai_custom_provider). Se
+// habilita para unos usos y con su precio de entrada por 1M tokens, que cuenta para el techo de cada uso y para
+// estimar el coste cuando el proveedor no lo informa.
+model AiCustomModel {
+  id              String           @id @default(cuid())
+  providerId      String
+  model           String
+  label           String
+  actions         ModelAction[]
+  priceUsdPerUnit Float
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([providerId, model])
+  @@map("ai_custom_model")
+}
+
 // Configuración de marca (singleton). El logo referencia un MediaAsset.
 model BrandSettings {
   id                String   @id @default(cuid())

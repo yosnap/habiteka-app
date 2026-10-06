@@ -36,6 +36,9 @@ export default defineConfig({
         { label: 'Recorrido y muestra de obra', slug: 'videos/recorrido' },
         { label: 'Promoción sobre parcela', slug: 'videos/promocion' },
       ] },
+      { label: 'Administración', items: [
+        { label: 'Proveedores y modelos de IA', slug: 'admin/proveedores-ia' },
+      ] },
       { label: 'Ayuda', items: [
         { label: 'Resolver problemas', slug: 'ayuda/problemas' },
         { label: 'Estado y novedades', slug: 'ayuda/novedades' },

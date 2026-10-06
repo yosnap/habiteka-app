@@ -72,8 +72,8 @@ export interface ChatRequest {
    */
   maxTokens?: number;
   /**
-   * Control explícito para no agotar el presupuesto en razonamiento sin devolver JSON. Sonnet 5 solo admite razonamiento
-   * adaptativo e ignora un tope de tokens: `enabled: false` lo apaga cuando el código ya resuelve la parte exacta.
+   * Preferencia de razonamiento; comparte el presupuesto de salida y el esfuerzo bajo no evita siempre agotarlo.
+   * `enabled: false` solo es compatible con endpoints que permiten desactivarlo; algunos exigen razonamiento.
    */
   reasoning?: { effort: 'low' | 'medium' | 'high' } | { enabled: false };
 }

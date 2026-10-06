@@ -12,6 +12,8 @@ import { updateBranding, type BrandingInput } from '../branding/branding-ops';
 import { createPolarProduct, type CreateProductInput } from '../billing/product-ops';
 import { getKieProviderStatus, getNanProviderStatus, getOpenAiProviderStatus, getOpenRouterProviderStatus, updateKieProvider, updateNanProvider, updateOpenAiProvider, updateOpenRouterProvider, getTypesafeProviderStatus, updateTypesafeProvider } from './ai-provider-ops';
 import { listCustomModelProfiles, saveCustomModelProfile } from './model-profile-ops';
+import { deleteCustomModel, deleteCustomProvider, listBuiltInModelProviders, listCustomProviders, listProviderModels, saveCustomModel, saveCustomProvider } from './custom-provider-ops';
+import type { ModelAction } from '@/generated/prisma/enums';
 
 export async function adminListModelConfig() {
   await requireAdmin();
@@ -105,4 +107,37 @@ export async function adminCreatePolarProduct(input: CreateProductInput) {
 function revalidateAiConfigPages(): void {
   revalidatePath('/config');
   revalidatePath('/config/models');
+}
+
+export async function adminListCustomProviders() { await requireAdmin(); return listCustomProviders(); }
+export async function adminListBuiltInModelProviders() { await requireAdmin(); return listBuiltInModelProviders(); }
+
+export async function adminSaveCustomProvider(input: { id?: string; label: string; baseUrl: string; apiKey: string; enabled: boolean }) {
+  const actor = await requireAdmin();
+  const id = await saveCustomProvider(actor.userId, input);
+  revalidateAiConfigPages();
+  return id;
+}
+
+export async function adminDeleteCustomProvider(id: string) {
+  const actor = await requireAdmin();
+  await deleteCustomProvider(actor.userId, id);
+  revalidateAiConfigPages();
+}
+
+export async function adminListProviderModels(id: string) {
+  await requireAdmin();
+  return listProviderModels(id);
+}
+
+export async function adminSaveCustomModel(input: { providerId: string; model: string; label: string; actions: ModelAction[]; priceUsdPerUnit: number }) {
+  const actor = await requireAdmin();
+  await saveCustomModel(actor.userId, input);
+  revalidateAiConfigPages();
+}
+
+export async function adminDeleteCustomModel(providerId: string, model: string) {
+  const actor = await requireAdmin();
+  await deleteCustomModel(actor.userId, providerId, model);
+  revalidateAiConfigPages();
 }
