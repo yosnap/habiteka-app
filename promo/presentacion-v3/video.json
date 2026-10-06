@@ -1,9 +1,9 @@
 {
   "esquema": 1,
   "proyecto": "habiteka",
-  "nombre": "presentacion",
+  "nombre": "presentacion-v3",
   "formato": { "ancho": 1920, "alto": 1080, "fps": 30 },
-  "duracion": { "min": 44, "max": 70 },
+  "duracion": { "min": 42, "max": 90 },
   "idioma": "es",
   "marca": {
     "nombre": "Habiteka",
@@ -29,9 +29,9 @@
     "fecha": "2026-10-06T10:00:00",
     "zonaHoraria": "Europe/Madrid"
   },
-  "voz": { "proveedor": "elevenlabs", "vozId": "SDVJaMLoJa7wc3s2sn7d", "modelo": "eleven_multilingual_v2" },
-  "musica": { "caracter": "energica", "bpm": 116, "tonalidad": "Mi mayor" },
-  "direccion": "navegador-limpio",
-  "semilla": 4,
+  "voz": { "proveedor": "ninguna" },
+  "musica": { "caracter": "ambiental", "bpm": 92, "tonalidad": "Re menor" },
+  "direccion": "dinamica",
+  "semilla": 9,
   "terminos": ["Habiteka"]
 }

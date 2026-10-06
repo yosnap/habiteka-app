@@ -21,8 +21,10 @@ positivos, los procedimientos y ciertos resultados**. Cambiar todas las URLs de
   semilla: 4` (los anteriores usaban La menor 104, Re mayor 84 y Re mayor 124).
 - Formato y voz: **A** — un solo MP4 1920×1080 (~55-60 s) **con voz** en español.
 - Capturas: la app local en `http://localhost:3040` con el dev-login
-  (`/api/dev/login`, cuenta `admin@habiteka.dev`); cualquier `localhost` visible
-  se sustituye por `https://habiteka.app` (`sustituirTextos`).
+  `http://localhost:3040`), cualquier `localhost` visible
+  se sustituye por `https://habiteka.app` (`sustituirTextos`). El storage de
+  renders y planos (`http://localhost:9000`, URLs firmadas) está en
+  `origenesPermitidos`: sin él las imágenes no cargan en las capturas.
 
 ## Decisiones del motor
 
@@ -42,6 +44,9 @@ positivos, los procedimientos y ciertos resultados**. Cambiar todas las URLs de
   Diseños (79 renders) para marcar las capacidades con checks.
 - **Revisión de plano**: la escena `editor` pulsa «Modelo 3D» para mostrar la
   vista tridimensional del proyecto.
+- **Render a tamaño completo**: la escena `resultados` abre la primera imagen
+  de la galería (diálogo de revisión) para que el vídeo muestre un diseño real,
+  no solo la lista de zonas.
 - Cada afirmación del guion tiene evidencia: rutas y textos de `habiteka-app`
   (landing, `/proyectos`, guía de uso `docs/guia-de-uso.md`, PRD
   `docs/prd-inmueble-verificable-inmersion-video-catalogo.md`).

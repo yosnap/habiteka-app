@@ -19,7 +19,7 @@ escenas:
     parametros: { captura: plano }
     frases:
       - texto: "Importa un plano en imagen o PDF y revisa cada medida con calma antes de pasar al editor."
-        hablado: "Importa un plano en imagen o pe de efe y revisa cada medida con calma antes de pasar al editor."
+        hablado: "Importa un plano desde una imagen o un documento, y revisa cada medida con calma antes de pasar al editor."
   - id: editor
     pieza: captura
     parametros: { captura: editor }
@@ -48,4 +48,4 @@ escenas:
     parametros: { lema: "Del plano al diseño y al vídeo", url: "habiteka.app", boton: "Empezar gratis" }
     frases:
       - texto: "Habiteka. Diseña tu primer proyecto gratis en habiteka.app."
-        hablado: "Habiteka. Diseña tu primer proyecto gratis en habiteka punto app."
+        hablado: "Habiteka: diseña tu primer proyecto gratis y muéstralo a tus clientes."
