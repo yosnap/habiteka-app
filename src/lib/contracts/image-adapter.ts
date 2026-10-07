@@ -29,6 +29,8 @@ export interface InpaintRequest {
   zone: CanvasZone;
   /** Guía binaria generada por el servidor: blanco editable, negro protegido. */
   editMask?: { base64: string; mimeType: 'image/png' };
+  /** Quitar un objeto: la zona se tapa antes de enviarla para que el modelo no vuelva a dibujar lo que ve. */
+  eraseZone?: boolean;
   prompt: string;
   seed?: number;
 }

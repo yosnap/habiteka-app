@@ -24,8 +24,18 @@ export function directedInpaint(
   return image.inpaint({
     baseImage: input.baseImage,
     zone: input.zone,
+    eraseZone: !isWholeImageZone(input.zone) && removalRequest(input.instruction),
     prompt,
   });
+}
+
+/**
+ * Quitar sin dejar nada en la zona: «este inodoro sobra, elimínalo». Pedir que quede uno de varios no lo es, porque
+ * borrar la zona entera se llevaría también el que se conserva.
+ */
+export function removalRequest(instruction: string): boolean {
+  const text = instruction.toLowerCase();
+  return /\b(elimin|quit|borr|retir|sobra|remove|delete)/u.test(text) && !/\b(deja|dejar|manten|mantén|conserv|qued|solo|sólo|uno de|una de)/u.test(text);
 }
 
 // La conservación exterior se impone además en protected-inpaint, fuera del proveedor.

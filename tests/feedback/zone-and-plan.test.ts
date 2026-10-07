@@ -5,7 +5,7 @@ import {
   onlyZoneChanged,
   ZoneNotFoundError,
 } from '@/server/agent/feedback/partial-plan-editor';
-import { directedInpaint } from '@/server/agent/feedback/directed-inpaint';
+import { directedInpaint, removalRequest } from '@/server/agent/feedback/directed-inpaint';
 import type { Plano2dPayload, PlanZone, ImageAdapter, CanvasZone } from '@/lib/contracts';
 
 describe('resolveZone — validación de la zona', () => {
@@ -88,5 +88,13 @@ describe('directedInpaint — consume la primitiva de inpaint', () => {
     expect(captured!.prompt).toContain('sin cambios');
     // «Este inodoro sobra» devolvía otro inodoro en la misma zona.
     expect(captured!.prompt).toMatch(/bórralo por completo[^.]*no lo sustituyas por otro igual/);
+  });
+
+  it('borra la zona antes de enviarla solo cuando se pide quitar algo sin conservar nada de ella', () => {
+    expect(removalRequest('este inodoro sobra, elimínalo')).toBe(true);
+    expect(removalRequest('quita esta silla')).toBe(true);
+    expect(removalRequest('aquí hay 3 retretes y 2 lavabos, deja solamente uno de cada')).toBe(false);
+    expect(removalRequest('cambia el suelo a parquet')).toBe(false);
+    expect(removalRequest('en esta pared falta una puerta')).toBe(false);
   });
 });

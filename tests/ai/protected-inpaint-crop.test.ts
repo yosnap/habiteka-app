@@ -103,4 +103,25 @@ describe('retoque de detalles con contexto cercano', () => {
     expect(output.info).toMatchObject({ width, height });
     expect(output.data.equals(expected)).toBe(true);
   });
+
+  it('para quitar un objeto envía la zona tapada con el color de su borde y conserva el resto del recorte', async () => {
+    // «Este inodoro sobra»: viendo el inodoro en el recorte, el modelo lo volvía a dibujar.
+    const f = await fixture();
+    const result = await protectedInpaint(f.image, { baseImage: f.baseImage, zone, eraseZone: true, prompt: 'Este inodoro sobra, elimínalo' });
+    const crop = result.regionEdit!.contextCrop!;
+    const sent = f.inpaint.mock.calls[0]![0];
+    expect(sent.prompt).toContain('flat patch inside WHITE');
+    const reference = await decode(sent.baseImage.base64!);
+    const mask = await sharp(Buffer.from(sent.editMask!.base64, 'base64')).greyscale().raw().toBuffer();
+    const original = await sharp(f.original, { raw: { width, height, channels: 4 } })
+      .extract({ left: crop.x, top: crop.y, width: crop.width, height: crop.height }).raw().toBuffer();
+    const colours = new Set<string>();
+    for (let i = 0; i < mask.length; i++) {
+      const pixel = reference.data.subarray(i * 4, i * 4 + 4);
+      if (mask[i] === 255) colours.add(pixel.join(','));
+      else expect(pixel.equals(original.subarray(i * 4, i * 4 + 4))).toBe(true);
+    }
+    expect(colours.size).toBe(1);
+  });
 });
+

@@ -141,7 +141,7 @@ async function regenerate(
         ...reference,
         ...(deps.designContext?.camera ? { camera: deps.designContext.camera as Prisma.InputJsonValue } : {}),
         ...(reference.generation ? { generation: { ...reference.generation as Prisma.InputJsonObject,
-          ...result.generation, promptVersion: 'habiteka-directed-inpaint-v4' } } : {}),
+          ...result.generation, promptVersion: 'habiteka-directed-inpaint-v5' } } : {}),
         type: 'render3d',
         assetUrl: result.assetUrl,
         ...(result.assetKey ? { assetKey: result.assetKey } : {}),

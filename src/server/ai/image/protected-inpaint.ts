@@ -30,7 +30,9 @@ export async function protectedInpaint(
   const window = inpaintWindow(request.zone, width, height);
   const cropped = window.width !== width || window.height !== height;
   const maskPng = await sharp(mask, { raw: { width, height, channels: 1 } }).extract(window).png().toBuffer();
-  const originalPng = await sharp(base.data, { raw: { width, height, channels: 4 } }).extract(window).png().toBuffer();
+  // Para quitar un objeto se tapa la zona: viéndolo en el recorte, el modelo lo volvía a dibujar.
+  const source = request.eraseZone ? eraseMasked(base.data, mask, width, height) : base.data;
+  const originalPng = await sharp(source, { raw: { width, height, channels: 4 } }).extract(window).png().toBuffer();
   if (originalPng.byteLength > MAX_OWN_RENDER_BYTES)
     throw aiError('sanitizer', 'La referencia preparada supera el tamaño permitido para el retoque.');
   const result = await image.inpaint({
@@ -41,6 +43,7 @@ export async function protectedInpaint(
     prompt: request.prompt + '\nREFERENCE 1 is ' + (cropped ? 'a close crop from the original image, including the selected detail and its surroundings' : 'the complete original image') +
       '. REFERENCE 2 is a binary edit mask aligned to reference 1: WHITE is the only editable area, BLACK must remain unchanged.' +
       ' Apply the requested correction inside WHITE. A report of a missing element requests restoring that element; do not return an unchanged copy.' +
+      (request.eraseZone ? ' The flat patch inside WHITE in reference 1 is where the object to remove was: fill it with the continuation of the surrounding floor, walls and light, and draw no object, fixture or furniture there.' : '') +
       ' Return exactly the view in reference 1, with the same framing, aspect ratio, camera, lighting and scale. Do not reconstruct the full floor plan from a crop, change the viewpoint, add borders or render the mask. Preserve continuity at the mask boundary. If a requested change is outside WHITE, leave it unchanged.',
   });
   const candidate = await decode(await resultBytes(result, storage));
@@ -65,6 +68,34 @@ export async function protectedInpaint(
   return { ...result, assetKey: undefined, ...asset, regionEdit: { mode: 'original-pixels-v1', zone: request.zone,
     protectedPixels: mask.length - editedPixels, totalPixels: mask.length,
     ...(cropped ? { contextCrop: { x: window.left, y: window.top, width: window.width, height: window.height } } : {}) } };
+}
+
+/**
+ * Rellena la zona con un color claro de su borde exterior (percentil 75 de luminosidad): queda un parche liso del tono
+ * del suelo que el modelo debe completar. La media y la mediana salían casi negras con los muros que rodean un sanitario.
+ */
+function eraseMasked(data: Buffer, mask: Uint8Array, width: number, height: number): Buffer {
+  const output = Buffer.from(data), margin = 12;
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let pixel = 0; pixel < mask.length; pixel++) {
+    if (mask[pixel] !== 255) continue;
+    const x = pixel % width, y = Math.floor(pixel / width);
+    left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y);
+  }
+  if (right < 0) return output;
+  const ring: number[] = [];
+  for (let y = Math.max(0, top - margin); y <= Math.min(height - 1, bottom + margin); y++)
+    for (let x = Math.max(0, left - margin); x <= Math.min(width - 1, right + margin); x++) {
+      const pixel = y * width + x;
+      if (mask[pixel] === 255) continue;
+      ring.push(pixel);
+    }
+  const luma = (pixel: number) => data[pixel * 4]! * .3 + data[pixel * 4 + 1]! * .59 + data[pixel * 4 + 2]! * .11;
+  const middle = ring.sort((a, b) => luma(a) - luma(b))[Math.floor(ring.length * .75)];
+  const fill = middle === undefined ? [128, 128, 128, 255] : [data[middle * 4]!, data[middle * 4 + 1]!, data[middle * 4 + 2]!, 255];
+  for (let pixel = 0; pixel < mask.length; pixel++)
+    if (mask[pixel] === 255) output.set(fill, pixel * 4);
+  return output;
 }
 
 async function decode(bytes: Buffer) {
