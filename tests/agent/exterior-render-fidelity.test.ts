@@ -90,6 +90,10 @@ describe('conservación de césped, cerco y vehículos', () => {
     expect(prompt).not.toContain('"footprint"');
     // En perspectiva no se dan posiciones del plano: arriba o izquierda no son los de la imagen.
     expect(prompt).not.toMatch(/Exterior del proyecto[^\n]*\((arriba|abajo|izquierda|derecha|centro)/);
+    // Sin ortofoto la isométrica no inventa calles ni casas vecinas alrededor de la parcela (en Estricto ya lo impide su propia regla).
+    const controlled = { ...all, freedom: 'controlled' as const };
+    expect(selectedViewImagePrompt(doc, iso, 'moderno', controlled, '', '', false, false, false, renderSpatialContext(doc, iso, controlled))).toContain('SIN ORTOFOTO');
+    expect(selectedViewImagePrompt(doc, iso, 'moderno', controlled, '', '', false, false, true, renderSpatialContext(doc, iso, controlled))).not.toContain('SIN ORTOFOTO');
     const zone = { ...all, placement: 'selected' as const,
       regions: [{ id: 'garaje', name: 'Garaje', polygon: [{ x: 6500, y: 2500 }, { x: 9500, y: 2500 }, { x: 9500, y: 8000 }, { x: 6500, y: 8000 }] }] };
     const zonePrompt = selectedViewImagePrompt(doc, iso, 'moderno', zone, '', '', true, false, false, renderSpatialContext(doc, iso, zone));

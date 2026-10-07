@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import type { CanvasZone, ImageAdapter, ImageResult, InpaintRequest } from '@/lib/contracts';
 import { protectedInpaint } from '@/server/ai/image/protected-inpaint';
 import { imageEditMask } from '@/server/ai/image/image-edit-mask';
+import { blendRemovalFill } from '@/server/ai/image/removal-blend';
 
 const width = 1200, height = 800;
 const cost = { amountUsd: .15, unit: 'image' as const };
@@ -122,6 +123,27 @@ describe('retoque de detalles con contexto cercano', () => {
       else expect(pixel.equals(original.subarray(i * 4, i * 4 + 4))).toBe(true);
     }
     expect(colours.size).toBe(1);
+  });
+
+  it('al quitar un objeto iguala el relleno al suelo de alrededor y funde el borde sin tocar el exterior', () => {
+    // El relleno del modelo salía como un rectángulo de otro tono con el borde recto.
+    const w = 60, h = 40, mask = new Uint8Array(w * h), original = Buffer.alloc(w * h * 4), fill = Buffer.alloc(w * h * 4);
+    for (let pixel = 0; pixel < w * h; pixel++) {
+      const x = pixel % w, y = Math.floor(pixel / w), inside = x >= 20 && x < 40 && y >= 10 && y < 30;
+      mask[pixel] = inside ? 255 : 0;
+      original.set(inside ? [250, 250, 250, 255] : [200 + (x % 3), 190, 170, 255], pixel * 4);
+      fill.set([140, 150, 160, 255], pixel * 4);
+    }
+    const outside = Buffer.from(fill);
+    blendRemovalFill(original, fill, mask, w, h);
+    const centre = (20 * w + 30) * 4;
+    expect(Math.abs(fill[centre]! - 201)).toBeLessThanOrEqual(3);
+    expect(Math.abs(fill[centre + 2]! - 170)).toBeLessThanOrEqual(3);
+    // Junto al borde se funde con el suelo de fuera, sin que reaparezca el objeto blanco que había dentro.
+    const edge = (20 * w + 20) * 4;
+    expect(Math.abs(fill[edge]! - 201)).toBeLessThanOrEqual(4);
+    expect(fill[edge + 1]!).toBeLessThan(200);
+    for (let pixel = 0; pixel < w * h; pixel++) if (!mask[pixel]) expect(fill.subarray(pixel * 4, pixel * 4 + 4).equals(outside.subarray(pixel * 4, pixel * 4 + 4))).toBe(true);
   });
 });
 

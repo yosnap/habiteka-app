@@ -28,7 +28,7 @@ const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, 
 /** Personas pedidas por el usuario: dan vida a la imagen sin cambiar el diseño ni bloquear pasos. */
 export const PEOPLE_RULE = 'Añade algunas personas haciendo vida cotidiana en las estancias, a escala real y sin tapar puertas ni pasos.';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v26';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v27';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -176,6 +176,8 @@ export function selectedViewImagePrompt(
       ] : []),
     ] : []),
     ...(jointRule ? [jointRule] : []),
+    // Isométrica sin ortofoto: el entorno no existe en el plano y no se inventa.
+    ...(!hasEnvironment && !hasMask && view.preset === 'isometric' && !strictOutside ? ['SIN ORTOFOTO: fuera del terreno modelado del plano deja un fondo neutro y liso. No inventes calles, casas vecinas, paisaje ni horizonte alrededor de la parcela.'] : []),
     ...(strictOutside ? ['El fondo liso de la captura NO representa un terreno diseñado: déjalo neutro. No añadas suelo, paisaje, árboles, arbustos, cielo, horizonte, caminos ni coches fuera de la geometría existente.'] : []),
     ...(vehicleCount ? [`El proyecto contiene ${vehicleCount} coches: si aparecen en esta cámara, siguen siendo coches aparcados en los mismos sitios. No los conviertas en sofás, mesas ni otros muebles.`] : []),
     `${additions} ${placement} Mantén libres puertas, pasos, rampas y escaleras.`,

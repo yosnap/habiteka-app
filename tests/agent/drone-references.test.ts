@@ -83,6 +83,13 @@ describe('referencias obligatorias del dron', () => {
     expect(await droneReferences(ctx, scope, emptyEditorDocument(), { ...view, preset: 'top' }, options)).toBeNull();
     expect(mocks.rows).not.toHaveBeenCalled();
   });
+  it('genera la isométrica sin ortofoto con la cenital aceptada y sin entorno; el dron la sigue exigiendo', async () => {
+    // Sin emplazamiento confirmado no se podía crear ninguna isométrica de toda la planta.
+    const result = await droneReferences(ctx, scope, emptyEditorDocument(), { ...view, preset: 'isometric' }, options);
+    expect(result).toMatchObject({ identity: image, deliverableId: 'anchor' });
+    expect(result?.environment).toBeUndefined();
+    await expect(droneReferences(ctx, scope, emptyEditorDocument(), view, options)).rejects.toThrow('ortofoto');
+  });
   it('requiere cenital para isométrica y no mezcla permiso de rediseño', async () => {
     await droneReferences(ctx, scope, emptyEditorDocument(), { ...view, preset: 'isometric' }, options, ortho);
     expect(mocks.rows.mock.calls[0]![0].where.OR).toEqual([{ payload: { path: ['generation', 'view', 'preset'], equals: 'top' } }]);

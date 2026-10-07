@@ -37,7 +37,7 @@ Con teclado, enfoca **Seleccionar zona de retoque** y pulsa **Intro** para inici
 
 Elige **Toda la imagen** expresamente para un cambio general de estilo o iluminación. Ese alcance permite modificar toda la imagen y exige revisar nuevamente la distribución. Para corregir varios detalles manteniendo el resto, aplica y revisa uno por uno sobre la versión que quieras conservar.
 
-El retoque recibe también el tipo de hueco, las medidas y el giro de las puertas, las zonas abiertas compartidas y las piscinas modeladas. Puedes pedir que quite una hoja inventada o aparte el mueble que choca con una puerta. También puedes quitar, añadir o sustituir muebles y sanitarios dentro de la zona marcada; por ejemplo, «aquí hay 3 inodoros y 2 lavabos, deja solo uno de cada». Al quitar un objeto («este inodoro sobra, elimínalo»), la zona marcada se tapa con el tono del suelo antes de enviarla a la IA, que la rellena con el suelo o la pared de alrededor sin dibujar otro igual. Marca el objeto entero: lo que quede fuera de la zona no cambia. Si pides dejar una pieza de varias («deja solo uno»), la zona no se tapa. La imagen puede diferir del plano en muebles y sanitarios, y el plano del Editor no cambia. Ampliar una piscina ya presente requiere una petición explícita y debe conservar los límites y accesos de su terraza. Esa petición afecta a la nueva imagen, no autoriza piscinas en otras zonas ni cambia las dimensiones guardadas en el Editor. El retoque no hereda una revisión superada: comprueba visualmente el resultado antes de aceptarlo.
+El retoque recibe también el tipo de hueco, las medidas y el giro de las puertas, las zonas abiertas compartidas y las piscinas modeladas. Puedes pedir que quite una hoja inventada o aparte el mueble que choca con una puerta. También puedes quitar, añadir o sustituir muebles y sanitarios dentro de la zona marcada; por ejemplo, «aquí hay 3 inodoros y 2 lavabos, deja solo uno de cada». Al quitar un objeto («este inodoro sobra, elimínalo»), la zona marcada se tapa con el tono del suelo antes de enviarla a la IA, que la rellena con el suelo o la pared de alrededor sin dibujar otro igual. Después, el color del relleno se iguala al del suelo que rodea la zona y su borde se funde con la imagen, para que no se note un rectángulo. Marca el objeto entero con un poco de suelo alrededor y sin pisar los muros: lo que quede fuera de la zona no cambia, y un muro dentro de ella se redibuja peor. Si pides dejar una pieza de varias («deja solo uno»), la zona no se tapa. La imagen puede diferir del plano en muebles y sanitarios, y el plano del Editor no cambia. Ampliar una piscina ya presente requiere una petición explícita y debe conservar los límites y accesos de su terraza. Esa petición afecta a la nueva imagen, no autoriza piscinas en otras zonas ni cambia las dimensiones guardadas en el Editor. El retoque no hereda una revisión superada: comprueba visualmente el resultado antes de aceptarlo.
 :::note[Revisión del recorte antes de generar]
 Una captura que registra tabiques interiores ocultos se bloquea antes de generar la imagen. Prepara de nuevo la vista y comprueba la previsualización: frontal, trasera y laterales abren únicamente la fachada del lado de cámara. Las fotos antiguas con ese defecto aparecen como **No válida para construcción** en el estudio de vídeo y deben reemplazarse. Cambiar sus etiquetas no repara la imagen.
 :::
@@ -58,7 +58,7 @@ En **Ángulos del diseño**, puedes marcar varias vistas seguidas con ratón o t
 
 Marca **Personas** si quieres que aparezcan personas haciendo vida en las estancias. Solo cambian la imagen: no modifican el plano ni el diseño, y la revisión las admite mientras no tapen puertas o pasos ni tengan una escala irreal.
 
-Elige si el resultado debe incluir solo la casa o también su entorno. En vistas lejanas, la parcela confirmada aporta la ortofoto guardada y se utilizan referencias aceptadas de identidad.
+Elige si el resultado debe incluir solo la casa o también su entorno. En vistas lejanas, la parcela confirmada aporta la ortofoto guardada y se utilizan referencias aceptadas de identidad. El dron y el exterior necesitan esa ortofoto, guardada o adjunta en el diálogo. La isométrica no: sin ella parte de la cenital aceptada y muestra solo el terreno modelado del plano, con fondo neutro alrededor y sin calles ni casas inventadas.
 
 ## Qué muestra cada vista
 
@@ -187,7 +187,7 @@ La biblioteca muestra imágenes del mismo proyecto y zona, su estado y las difer
 
 Cuando solo difieren los ajustes recuperables de una imagen aceptada, pulsa **Usar ajustes de esta referencia**. Se recuperan luz, libertad, ámbito, zonas de colocación y permiso de rediseño de fijos, manteniendo los ángulos que has pedido. Vuelve a pulsar **Ver vistas de referencia**; la imagen elegida se conserva. Este botón no corrige un plano diferente ni cambia la planta activa.
 
-Consultar la biblioteca, aceptar y seleccionar no consume créditos. Generar las nuevas vistas sí tiene coste. Elegir el diseño no sustituye la ortofoto requerida para vistas lejanas con entorno.
+Consultar la biblioteca, aceptar y seleccionar no consume créditos. Generar las nuevas vistas sí tiene coste. Elegir el diseño no sustituye la ortofoto que requieren el dron y el exterior.
 
 ### Revisar una imagen existente sin regenerarla
 

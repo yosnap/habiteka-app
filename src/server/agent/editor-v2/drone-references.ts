@@ -60,7 +60,10 @@ export async function lateralDesignReference(ctx: OrgContext, scope: EditorScope
   return { identity: await readRenderReference(anchor.payload), deliverableId: anchor.id };
 }
 
-/** El dron deriva de una vista cercana aceptada del mismo inmueble y de su entorno real. */
+/**
+ * El dron deriva de una vista cercana aceptada del mismo inmueble y de su entorno real. La isométrica puede generarse
+ * sin ortofoto: sin emplazamiento se queda en el terreno modelado del plano, sin entorno inventado alrededor.
+ */
 export async function droneReferences(ctx: OrgContext, scope: EditorScope, document: EditorDocument,
   view: RenderView, options: RenderDesignOptions, orthophotoDataUrl?: string, referenceId?: string) {
   if (!['drone', 'isometric', 'exterior'].includes(view.preset)) return null;
@@ -72,9 +75,10 @@ export async function droneReferences(ctx: OrgContext, scope: EditorScope, docum
     orthophotoDataUrl = `data:image/jpeg;base64,${bytes.toString('base64')}`;
   }
   const match = orthophotoDataUrl?.match(/^data:image\/(?:png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
-  if (!isolated && (!match?.[1] || orthophotoDataUrl!.length > 14_000_000))
-    fail('Para las vistas lejanas adjunta una ortofoto de la parcela y genera antes una cenital del mismo diseño.');
-  const environment = isolated ? undefined : await sanitizeImageBuffer(Buffer.from(match![1]!, 'base64'));
+  if (orthophotoDataUrl && orthophotoDataUrl.length > 14_000_000) fail('La ortofoto supera el tamaño permitido.');
+  if (!isolated && view.preset !== 'isometric' && !match?.[1])
+    fail('Para el dron y el exterior adjunta una ortofoto de la parcela y genera antes una cenital del mismo diseño.');
+  const environment = isolated || !match?.[1] ? undefined : await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
   const anchor = await designReference(ctx, scope, document, view, options, view.preset === 'drone' ? 'isometric' : 'top', true, referenceId);
   if (!anchor) fail(`Falta una ${view.preset === 'drone' ? 'isométrica' : 'cenital'} aceptada del mismo diseño, ámbito, luz, libertad y permiso de rediseño. Elígela de la biblioteca o genérala y acéptala antes de la vista lejana.`);
   return { identity: await readRenderReference(anchor.payload), environment, deliverableId: anchor.id };

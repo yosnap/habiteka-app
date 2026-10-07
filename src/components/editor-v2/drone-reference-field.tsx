@@ -12,7 +12,7 @@ export function DroneReferenceField({ value, onChange, disabled, savedSite = fal
       La isométrica requiere una cenital aceptada; el dron requiere la isométrica del mismo diseño, luz y libertad.</p>
   </section>;
   return <section className="mt-3 space-y-2 rounded-control border border-line p-3 text-sm">
-    <label className="flex flex-col gap-2 font-medium">Ortofoto para las vistas lejanas (isométrica y dron)
+    <label className="flex flex-col gap-2 font-medium">Ortofoto para las vistas lejanas (obligatoria en dron y exterior, opcional en isométrica)
       <input type="file" accept="image/png,image/jpeg,image/webp" disabled={disabled} onChange={(event) => {
         const file = event.target.files?.[0];
         event.target.value = '';
@@ -27,7 +27,7 @@ export function DroneReferenceField({ value, onChange, disabled, savedSite = fal
       }} />
     </label>
     <p className="text-ink-soft text-xs">Genera primero una cenital del mismo diseño, luz y libertad. La isométrica deriva de ella y el dron requiere la isométrica.
-      La ortofoto define el entorno; la casa conserva todos sus elementos, incluidas pérgolas y terrazas.</p>
+      La ortofoto define el entorno; la casa conserva todos sus elementos, incluidas pérgolas y terrazas. Sin ortofoto, la isométrica muestra solo el terreno modelado con fondo neutro.</p>
     {value && <div className="flex items-center gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={value} alt="Ortofoto seleccionada" className="h-20 w-32 rounded object-cover" />

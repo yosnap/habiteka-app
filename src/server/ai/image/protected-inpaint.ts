@@ -5,6 +5,7 @@ import { isWholeImageZone, resolveZone } from '@/server/agent/feedback/zone-reso
 import { imageEditMask } from './image-edit-mask';
 import { inpaintWindow, zoneInWindow } from './inpaint-window';
 import { MAX_OWN_RENDER_BYTES } from './input-sanitizer';
+import { blendRemovalFill } from './removal-blend';
 import { aiError } from '../errors';
 
 const MAX_PIXELS = 24_000_000;
@@ -63,6 +64,7 @@ export async function protectedInpaint(
     pixels.copy(output, pixel * 4, sourceOffset, sourceOffset + 4);
     editedPixels++;
   }
+  if (request.eraseZone) blendRemovalFill(base.data, output, mask, width, height);
   const png = await sharp(output, { raw: { width, height, channels: 4 } }).png().toBuffer();
   const asset = await persist(png, storage);
   return { ...result, assetKey: undefined, ...asset, regionEdit: { mode: 'original-pixels-v1', zone: request.zone,
