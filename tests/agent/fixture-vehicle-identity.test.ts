@@ -3,7 +3,8 @@ import sharp from 'sharp';
 import { exteriorRenderDocument } from '../helpers/exterior-render-document';
 import { criticalFixtureGroups } from '@/lib/editor-document/critical-fixtures';
 import { kitchenRunDefaults } from '@/lib/editor-document/kitchen-run-types';
-import { vehicleType } from '@/lib/editor-document/vehicle-type';
+import { VEHICLE_FACTORY_PAINT, vehicleType } from '@/lib/editor-document/vehicle-type';
+import { exteriorFurnitureSymbol } from '@/server/agent/editor-v2/rasterize-editor-exterior';
 import { exteriorDesignContext } from '@/lib/editor-document/exterior-design-context';
 import { validateRenderFidelity } from '@/server/agent/editor-v2/render-fidelity-verdict';
 import { RENDER_FIDELITY_CRITERIA } from '@/lib/editor-document/render-fidelity';
@@ -93,4 +94,13 @@ describe('identidad de sanitarios, vitrocerámica y vehículos', () => {
     candidate.exteriorChecks.find(item => item.id === car.id)!.observedVehicleType = 'compact';
     expect(() => validateRenderFidelity(candidate, false, vehicleContext)).toThrow(/debe ser suv/);
   });
+  it('pinta los vehículos en la guía como en el editor: el modelo sin pintar con su pintura y el pintado con su color', () => {
+    // La furgoneta blanca del editor guardaba el gris azulado del catálogo y la cenital la dibujaba de ese color.
+    const van = { id: 'van', kind: 'coche', catalogId: 'habiteka:outdoor:coche:furgoneta', x: 0, y: 0, widthMm: 2000, depthMm: 5200,
+      heightMm: 2300, rotation: 0, elevationMm: 0, color: '#6d8a9d', dimensionalOrigin: 'physical' as const };
+    expect(exteriorFurnitureSymbol(van)).toContain(`fill="${VEHICLE_FACTORY_PAINT.van}"`);
+    expect(exteriorFurnitureSymbol(van)).not.toContain('#6d8a9d');
+    expect(exteriorFurnitureSymbol({ ...van, color: '#aa2222' })).toContain('fill="#aa2222"');
+  });
 });
+

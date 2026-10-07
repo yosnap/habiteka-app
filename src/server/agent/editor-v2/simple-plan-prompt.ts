@@ -8,6 +8,10 @@ import type { CriticalFixtureGroup } from '@/lib/editor-document/critical-fixtur
 import { capped, exteriorPlanSummary, fixturePlanSummary, planPlacement, pointsBox, type PlanBox } from './plan-prompt-inventory';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { propertySunPrompt } from '@/lib/editor-document/property-orientation';
+import { isVehicle, VEHICLE_TYPE_LABELS, vehicleType } from '@/lib/editor-document/vehicle-type';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
+import { objectCenter } from '@/lib/editor-document/spatial-properties';
 
 /**
  * Cenital desde el plano 2D con un prompt corto. La prueba con el mismo generador mostró que la captura 3D en
@@ -66,7 +70,7 @@ export function simplePlanPrompt(style: Estilo, options: RenderDesignOptions, ob
   return lines.map((line) => line === FURNITURE ? `${head}${capped(furniture, Math.max(0, furnitureBudget))}.` : line).join('\n');
 }
 
-export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v7';
+export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v8';
 
 const SIDE: Record<string, string> = { front: 'el frente', back: 'la trasera', left: 'la izquierda', right: 'la derecha' };
 
@@ -83,6 +87,7 @@ export function simpleSectionPrompt(side: string, style: Estilo, options: Render
     'La maqueta está abierta por arriba, sin techo ni tejado. No añadas losas, vigas continuas, bloques ni bandas horizontales que cierren su parte superior. Conserva únicamente la coronación de cada muro real.',
     `La imagen 2 es el diseño interior aceptado visto desde arriba; su borde inferior es este frente. Cada estancia tiene sus mismos muebles, colores y acabados, con la misma orientación.${rooms.length ? ` Estancias de izquierda a derecha: ${rooms.join(', ')}.` : ''}`,
     'Conserva exactamente los sanitarios y placas de cocción visibles del diseño aceptado: mismo número y función, sin duplicar inodoros ni omitir la vitrocerámica. No añadas elementos ocultos para mostrarlos en este corte.',
+    ...sectionVehicleLines(document, rooms),
     ...rooms.flatMap((name, index) => visibilityHints[index] ? [`Visibilidad de ${name}: ${visibilityHints[index]}`] : []),
     // La lectura previa de la cenital dice cómo se ve cada mueble; sin ella queda la regla general de las camas.
     ...(furniture.length ? [`Mobiliario visto desde esta cámara, leído del diseño aceptado de la imagen 2: ${furniture.join('; ')}.`]
@@ -95,3 +100,18 @@ export function simpleSectionPrompt(side: string, style: Estilo, options: Render
     'Fondo neutro alrededor de la maqueta. Sin textos, rótulos, cotas ni marcos.',
   ].join('\n');
 }
+
+/**
+ * Tipo de cada vehículo de las estancias del corte: sin él, la berlina de la cochera salía como un SUV de una marca real.
+ */
+function sectionVehicleLines(document: EditorDocument | undefined, rooms: string[]): string[] {
+  if (!document) return [];
+  const derived = deriveRoomsSafe(document);
+  const vehicles = document.furniture.filter(isVehicle).flatMap((item) => {
+    const room = derived.find((candidate) => pointInPolygon(objectCenter(item), candidate.boundary));
+    const name = room && document.labels.find((label) => pointInPolygon(label, room.boundary))?.text.trim();
+    return name && rooms.includes(name) ? [`${name}: ${VEHICLE_TYPE_LABELS[vehicleType(item)]}`] : [];
+  });
+  return vehicles.length ? [`Vehículos visibles, cada uno de su tipo y nunca otro (una berlina no es un SUV ni una furgoneta): ${vehicles.join('; ')}. Sin logotipos ni marcas reconocibles.`] : [];
+}
+

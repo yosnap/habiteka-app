@@ -9,8 +9,8 @@ import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
 import { localToWorld } from '@/lib/editor-document/spatial-properties';
 import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
-import type { FurnitureVolume } from '@/lib/editor-document/furniture-profiles';
-import { vehicleType } from '@/lib/editor-document/vehicle-type';
+import { isPainted, type FurnitureVolume } from '@/lib/editor-document/furniture-profiles';
+import { VEHICLE_FACTORY_PAINT, vehicleType } from '@/lib/editor-document/vehicle-type';
 
 const points = (p: Point[]) => p.map(q => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ');
 const color = (value?: string, fallback = '#687477') => /^#[\da-f]{6}$/i.test(value ?? '') ? value! : fallback;
@@ -46,12 +46,15 @@ export function exteriorFurnitureSymbol(item: Furniture): string | undefined {
   if (isLegacyBoundary(item) || isBoundary(item)) return '';
   if (isVehicle(item)) {
     const type = vehicleType(item), van = type === 'van', suv = type === 'suv';
+    // La carrocería se ve como en el editor: pintada por el usuario o con la pintura del modelo. El color de catálogo
+    // no pinta el modelo, y la guía mostraba gris azulada una furgoneta que en el editor es blanca.
+    const paint = isPainted(item) ? color(item.color, VEHICLE_FACTORY_PAINT[type]) : VEHICLE_FACTORY_PAINT[type];
     const rect = (x: number, y: number, w: number, d: number, fill: string, radius = 0) =>
       `<rect x="${x * item.widthMm}" y="${y * item.depthMm}" width="${w * item.widthMm}" height="${d * item.depthMm}" rx="${radius * item.widthMm}" fill="${fill}"/>`;
     return `<g transform="translate(${item.x} ${item.y}) rotate(${item.rotation})">${
       [0, .88].flatMap(x => [.16, .7].map(y => rect(x, y, .12, .15, '#252b2e', .025))).join('')
-    }${rect(.06, .025, .88, .95, color(item.color, '#a8adb3'), van ? .05 : suv ? .08 : .15)}${rect(.16, van ? .15 : .3, .68, van ? .17 : .45, '#344951', .09)}${
-      rect(.19, van ? .32 : .4, .62, van ? .56 : .23, color(item.color, '#a8adb3'), .04)
+    }${rect(.06, .025, .88, .95, paint, van ? .05 : suv ? .08 : .15)}${rect(.16, van ? .15 : .3, .68, van ? .17 : .45, '#344951', .09)}${
+      rect(.19, van ? .32 : .4, .62, van ? .56 : .23, paint, .04)
     }${suv ? [.11, .85].map(x => rect(x, .32, .04, .4, '#53646b')).join('') : ''}${
       van ? rect(.19, .88, .62, .015, '#53646b') + rect(.495, .895, .01, .05, '#53646b') : ''
     }${[.15, .7].map(x => rect(x, .03, .15, .04, '#f8ebbf')).join('')}${

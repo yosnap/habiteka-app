@@ -294,7 +294,7 @@ En **Caminos**, elige acabado, ancho entre 0,30 y 10 m, bordillos y vegetación 
 
 La piscina, estanque, fuente, barbacoas, carpas, toldo y sombrilla disponen de modelos con piezas y materiales separados. La carpa conserva las opciones de recoger laterales.
 
-Los vehículos incluyen **Coche compacto**, **Turismo moderno (berlina)**, **SUV** y **Furgoneta**, con carrocerías distintas, pasos de rueda, neumáticos, llantas, cristales, retrovisores y ópticas. Sus medidas iniciales (ancho × largo × alto) son 1,75 × 4 × 1,45 m; 1,80 × 4,60 × 1,50 m; 1,90 × 4,70 × 1,75 m; y 2 × 5,20 × 2,30 m, respectivamente. Puedes editar sus medidas, giro y color en Propiedades. El color cambia la pintura y conserva cristales, neumáticos, llantas y luces. Los vehículos ya guardados conservan sus medidas y muestran la nueva geometría.
+Los vehículos incluyen **Coche compacto**, **Turismo moderno (berlina)**, **SUV** y **Furgoneta**, con carrocerías distintas, pasos de rueda, neumáticos, llantas, cristales, retrovisores y ópticas. Sus medidas iniciales (ancho × largo × alto) son 1,75 × 4 × 1,45 m; 1,80 × 4,60 × 1,50 m; 1,90 × 4,70 × 1,75 m; y 2 × 5,20 × 2,30 m, respectivamente. Puedes editar sus medidas, giro y color en Propiedades. El color cambia la pintura y conserva cristales, neumáticos, llantas y luces. Sin pintar, cada modelo trae su pintura de fábrica (compacto plata, berlina azul, SUV gris y furgoneta blanca), que es la que muestra **Pintar → Color de la carrocería** y la que reciben las imágenes con IA. Los vehículos ya guardados conservan sus medidas y muestran la nueva geometría.
 
 Estos modelos sirven para colocar y medir elementos en el editor. El acabado visual sigue admitiendo mejoras; no sustituye los diseños IA aceptados del inmueble.
 

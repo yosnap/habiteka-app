@@ -11,6 +11,7 @@ import { rasterizeEditorElevation, sectionFurnitureDescription, sectionRooms } f
 import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-editor-document';
 import { simplePlanPrompt, simpleSectionPrompt } from '@/server/agent/editor-v2/simple-plan-prompt';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 
 // Dormitorio de 4 × 4 m con la cama de matrimonio y el cabecero contra el muro de arriba (y = 0).
 const bed = (rotation = 0): Furniture => ({ id: 'b1', kind: 'cama-doble', catalogId: 'habiteka:furniture:cama-doble',
@@ -66,5 +67,17 @@ describe('orientación de los muebles del plano', () => {
     const section = simpleSectionPrompt('back', 'moderno', options, '', '', ['Dormitorio'], ['Dormitorio: cama doble vista de espaldas']);
     expect(section).toContain('leído del diseño aceptado de la imagen 2: Dormitorio: cama doble vista de espaldas');
     expect(section).not.toContain('Los muebles dibujados en la imagen 1');
+  });
+  it('la sección nombra el tipo de cada vehículo del corte y prohíbe marcas', () => {
+    // La berlina de la cochera salía como un SUV con el logotipo de una marca real.
+    const garage = upgradeSpatialDocument(addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 3000, y: 0 }, { x: 3000, y: 5500 }, { x: 0, y: 5500 }], true));
+    garage.labels.push({ id: 'garaje', text: 'COCHERA', x: 1500, y: 2750 });
+    garage.furniture.push({ id: 'car', kind: 'coche', catalogId: 'habiteka:outdoor:coche:turismo-3d', x: 600, y: 450, widthMm: 1800,
+      depthMm: 4600, heightMm: 1500, rotation: 0, elevationMm: 0, color: '#6d8a9d', dimensionalOrigin: 'physical' });
+    const options = defaultRenderDesignOptions();
+    const section = simpleSectionPrompt('front', 'moderno', options, '', '', ['COCHERA'], [], [], garage);
+    expect(section).toContain('COCHERA: berlina');
+    expect(section).toContain('Sin logotipos ni marcas reconocibles');
+    expect(simpleSectionPrompt('front', 'moderno', options, '', '', ['SALA'], [], [], garage)).not.toContain('Vehículos visibles');
   });
 });

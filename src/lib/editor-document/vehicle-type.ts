@@ -19,3 +19,13 @@ export const vehicleType = (item: Pick<Furniture, 'catalogId' | 'kind'>): Vehicl
   catalogTypes[item.catalogId ?? ''] ?? kindTypes[item.kind] ?? 'unspecified';
 export const isVehicle = (item: Pick<Furniture, 'catalogId' | 'kind'>): boolean =>
   vehicleType(item) !== 'unspecified' || /^(coche|auto|autom[oó]vil|veh[ií]culo)$/i.test(item.kind);
+
+/**
+ * Pintura de fábrica de cada modelo 3D (scripts/furniture-factory/families/equipamiento.mjs): es la que se ve en el
+ * editor mientras el usuario no pinte el vehículo. La furgoneta, de un blanco algo gris en el modelo, se aclara para
+ * que la guía de la IA no la tome por gris.
+ */
+export const VEHICLE_FACTORY_PAINT: Record<VehicleType, string> = {
+  compact: '#9aa5af', sedan: '#344d6a', suv: '#6a7379', van: '#e6e8e5', unspecified: '#a8adb3',
+};
+

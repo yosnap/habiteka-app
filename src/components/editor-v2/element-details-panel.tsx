@@ -14,6 +14,8 @@ import { finishColor, furnitureSpatial } from '@/lib/editor-document/spatial-pro
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { furnitureAsset, ORIGINAL_ASSET_COLOR } from '@/lib/editor-document/furniture-assets';
+import { isPainted } from '@/lib/editor-document/furniture-profiles';
+import { isVehicle, VEHICLE_FACTORY_PAINT, vehicleType } from '@/lib/editor-document/vehicle-type';
 
 export function ElementDetailsPanel({ store, embedded = false }: { store: EditorStore; embedded?: boolean }) {
   const state = useStore(store), id = state.selection[0];
@@ -32,6 +34,8 @@ export function ElementDetailsPanel({ store, embedded = false }: { store: Editor
     : furniture && isBoundary(furniture) ? [['base', 'Muro inferior', furniture.construction.baseColor], ['body', 'Valla / seto', furniture.color], ['posts', 'Postes', furniture.construction.postColor]]
     : furniture && isKitchenRun(furniture) ? [['body', 'Frentes', furniture.color], ['worktop', 'Encimera', furniture.kitchen.worktopColor], ['plinth', 'Zócalo', furniture.kitchen.plinthColor],
       ...(furniture.kitchen.uppers ? [['uppers', 'Módulos altos', furniture.kitchen.uppers.color] as [string, string, string]] : [])]
+    // Un vehículo sin pintar se ve con la pintura de su modelo, no con el color guardado del catálogo.
+    : furniture && isVehicle(furniture) ? [['body', 'Color de la carrocería', isPainted(furniture) && furniture.color ? furniture.color : VEHICLE_FACTORY_PAINT[vehicleType(furniture)]]]
     : [['body', 'Color del elemento', furniture ? furnitureSpatial(furniture).color : stair!.color ?? finishColor(stair!.materialId)]];
   const content = <>
     {!embedded && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
