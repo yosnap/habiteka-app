@@ -3,6 +3,10 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Versión 0.5.1 — 8 de octubre de 2026
+
+- **Texturas de fachada en la cara correcta:** en planos con una cocina o un salón abiertos, separados con un límite oculto, el editor tomaba esas estancias por exteriores. Al aplicar un acabado a las paredes exteriores, algunas lo recibían por dentro. Ahora esos límites separan estancias interiores, y solo los de terrazas y patios marcan un espacio al aire libre, también al partirlos dibujando una pared.
+
 ## Versión 0.5.0 — 8 de octubre de 2026 · Constructor y navegación visual
 
 - **Coste real en la pestaña Plano:** redibujar el plano o generar su vista cenital mostraba «0 créditos de la app». Era cierto, porque no descuenta créditos de Habiteka, pero confuso: el proveedor sí cobra la imagen. Ahora se muestra su precio con el modelo principal de **Render 3D** y hay que autorizarlo antes de generar. Extraer las medidas no genera imágenes: solo usa una lectura con IA de visión.

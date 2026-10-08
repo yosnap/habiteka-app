@@ -27,9 +27,12 @@ describe('dibujar paredes que cruzan otras', () => {
       const a = withHidden.vertices.find((v) => v.id === w.startVertexId)!, b = withHidden.vertices.find((v) => v.id === w.endVertexId)!;
       return a.y === 2000 && b.y === 2000;
     })!.id;
-    withHidden.walls = withHidden.walls.map((w) => (w.id === hiddenId ? { ...w, hidden: true } : w));
+    withHidden.walls = withHidden.walls.map((w) => (w.id === hiddenId ? { ...w, id: 'hidden:ext0:0', hidden: true } : w));
     const drawn = addWallPath(withHidden, [{ x: 3000, y: 0 }, { x: 3000, y: 2000 }]);
     expect(deriveRooms(drawn)).toHaveLength(3);
-    expect(drawn.walls.filter((w) => w.hidden)).toHaveLength(2);
+    const hidden = drawn.walls.filter((w) => w.hidden);
+    expect(hidden).toHaveLength(2);
+    // Los dos tramos conservan el prefijo del límite oculto: su estancia sigue siendo exterior.
+    expect(hidden.every((w) => w.id.startsWith('hidden:ext0:0'))).toBe(true);
   });
 });
