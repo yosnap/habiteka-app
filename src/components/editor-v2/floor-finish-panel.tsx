@@ -11,9 +11,10 @@ import { surfaceMaterial } from '@/lib/editor-document/surface-materials';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { bulkPeers, propagateToPeers } from '@/lib/editor-document/bulk-edit';
 
-export function FloorFinishPanel({ store }: { store: EditorStore }) {
+export function FloorFinishPanel({ store, embedded = false }: { store: EditorStore; embedded?: boolean }) {
   const state = useStore(store), id = state.selection[0];
   if (state.detailPanel !== 'paint' || !id) return null;
+  if (!embedded && state.sidePanel === 'inspector') return null;
   const roomIds = new Set(deriveRoomsSafe(state.document).map((room) => room.id));
   if (!roomIds.has(id)) return null;
   const selectedCount = state.selection.filter((selectedId) => roomIds.has(selectedId)).length;
@@ -23,9 +24,9 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
     try { const current = store.getState().document, next = setFloorFinish(current, id, patch); state.apply(propagateToPeers(current, next, id, bulkPeers(current, id, state.selection))); }
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo pintar el suelo'); }
   };
-  return <AnchoredEditorPanel store={store} label="Acabados del suelo">
-    <strong>{selectedCount > 1 ? `Acabados de ${selectedCount} suelos` : 'Acabados del suelo'}</strong>
-    <button aria-label="Cerrar acabados del suelo" onClick={() => state.setDetailPanel(null)} style={{ float: 'right' }}>×</button>
+  const content = <>
+    {!embedded && <><strong>{selectedCount > 1 ? `Acabados de ${selectedCount} suelos` : 'Acabados del suelo'}</strong>
+    <button aria-label="Cerrar acabados del suelo" onClick={() => state.setDetailPanel(null)} style={{ float: 'right' }}>×</button></>}
     <fieldset disabled={state.readOnly} style={{ border: 0, padding: 0, display: 'grid', gap: 12, marginTop: 16 }}>
       <label>Color <input type="color" aria-label="Color del suelo" value={finish.color} onChange={(e) => update({ color: e.target.value })} /></label>
       <label>Textura <ModernSelect aria-label="Textura del suelo" value={finish.texture} onChange={(e) => update({ texture: e.target.value as FloorFinish['texture'] })}>
@@ -36,7 +37,7 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
         texture: (id ?? 'none') as FloorFinish['texture'], color: '#ffffff',
         tileSizeMm: surfaceMaterial(id)?.sizeMm[0] ?? 600,
       })} />
-      <MeterField label="Cota del suelo" valueMm={finish.elevationMm ?? 0} change={(elevationMm) => update({ elevationMm })} />
+      {!embedded && <MeterField label="Cota del suelo" valueMm={finish.elevationMm ?? 0} change={(elevationMm) => update({ elevationMm })} />}
       {(finish.elevationMm ?? 0) > 0 && <>
         <MeterField label="Grosor del forjado" valueMm={finish.slabThicknessMm ?? finish.elevationMm!} change={(slabThicknessMm) => update({ slabThicknessMm })} />
         <small style={{ color: '#5d665f' }}>Reducirlo deja espacio para una planta o bodega inferior.</small>
@@ -49,5 +50,6 @@ export function FloorFinishPanel({ store }: { store: EditorStore }) {
       <MeterField label="Tamaño de repetición" valueMm={finish.tileSizeMm} change={(tileSizeMm) => update({ tileSizeMm })} />
       <NumberField label="Giro de textura (°)" value={finish.rotation} change={(rotation) => update({ rotation })} />
     </fieldset>
-  </AnchoredEditorPanel>;
+  </>;
+  return embedded ? content : <AnchoredEditorPanel store={store} label="Acabados del suelo">{content}</AnchoredEditorPanel>;
 }

@@ -34,6 +34,21 @@ describe('rasterizeEditorDocument', () => {
     expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(1280);
     expect(result.aspectRatio).toBeTruthy();
   });
+  it('dibuja la hoja y el barrido de las puertas solo cuando se piden', async () => {
+    const doc = emptyEditorDocument();
+    doc.vertices.push({ id: 'a', x: 0, y: 0 }, { id: 'b', x: 6_000, y: 0 });
+    doc.walls.push({ id: 'w1', startVertexId: 'a', endVertexId: 'b', thicknessMm: 150, dimensionalOrigin: 'physical' });
+    doc.openings.push({ id: 'p1', kind: 'puerta', wallId: 'w1', position: .5, widthMm: 900, dimensionalOrigin: 'physical' });
+    const brown = async (options?: { doorLeaves?: boolean }) => {
+      const { data, info } = await sharp(Buffer.from((await rasterizeEditorDocument(doc, undefined, options)).base64, 'base64'))
+        .removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      let count = 0;
+      for (let i = 0; i < info.width * info.height; i++) if (Math.abs(data[i * 3]! - 0x8a) < 12 && Math.abs(data[i * 3 + 1]! - 0x6a) < 12) count++;
+      return count;
+    };
+    expect(await brown()).toBe(0);
+    expect(await brown({ doorLeaves: true })).toBeGreaterThan(20);
+  });
   it('recorta una referencia de diseño al polígono elegido', async () => {
     const doc = emptyEditorDocument();
     doc.vertices.push({ id: 'a', x: 0, y: 0 }, { id: 'b', x: 10_000, y: 0 });

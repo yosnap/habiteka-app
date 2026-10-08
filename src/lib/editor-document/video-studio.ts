@@ -7,8 +7,8 @@ import type { ConstructionTimingOptions } from './construction-timing';
 export const VIDEO_GOALS = [
   { id: 'construction', title: 'Construcción', description: 'Desde vacío hasta el edificio terminado.', mode: 'construction' },
   { id: 'advertising', title: 'Publicidad', description: 'Presenta el diseño y su entorno.', mode: 'promotion' },
-  { id: 'visit', title: 'Primera persona', description: 'Recorre las habitaciones desde dentro.', mode: 'walkthrough' },
-  { id: 'combined', title: 'Construcción + visita', description: 'La obra, el vuelo y el paseo en una pieza.', mode: 'showcase' },
+  { id: 'visit', title: 'Primera persona', description: 'Prepara el paseo completo desde el exterior.', mode: 'walkthrough' },
+  { id: 'combined', title: 'Construcción + visita', description: 'Pendiente: obra e interiores del diseño.', mode: 'showcase' },
 ] as const;
 export type VideoGoal = typeof VIDEO_GOALS[number]['id'];
 

@@ -18,19 +18,22 @@ import type {
 } from '@/lib/contracts';
 import type { ModelAction } from '@/generated/prisma/enums';
 import { OpenRouterChatVisionAdapter } from './chat-vision-adapter';
+import { AnthropicMessagesAdapter } from './anthropic-messages-adapter';
+import { BUILT_IN_MODEL_PROVIDERS, isKieChatModel } from './custom-ai-providers';
 import { ProviderImageAdapter, createActiveProvider } from './image/provider-image-adapter';
 import { KieImageProvider } from './image/providers/kie-image';
 import { OpenAiImageProvider } from './image/providers/openai-image';
 import { resolveKieKey, resolveProviderKey } from './provider-key-resolver';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { resolveRoutes, type ResolvedRoute } from './model-routing';
-import { AiError, canFailover } from './errors';
+import { AiError, aiError, canFailover } from './errors';
 import { assertCanSpend, recordOutcome } from './guard/spend-guard';
 import { enforceModelJurisdiction } from '@/server/privacy/jurisdiction-allowlist';
 import { randomUUID } from 'node:crypto';
 import { aiErrorCode, recordAiAttempt, type AiCostScope } from '@/server/analytics/ai-cost-recorder';
 import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { chatAttemptCost } from './cost/chat-attempt-cost';
+import { protectedInpaint } from './image/protected-inpaint';
 
 // Estimaciones de coste por llamada para el guardia (USD). Conservadoras: el
 // coste real medido lo aporta la respuesta y lo concilia la facturación.
@@ -43,12 +46,11 @@ export type AiCallContext = AiCostScope;
 export async function getChatVisionAdapter(
   ctx: AiCallContext,
   action: ModelAction,
-  options: { preferredProvider?: ResolvedRoute['provider'] } = {},
 ): Promise<ChatVisionAdapter> {
-  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' && route.provider !== 'openai');
+  // El orden es el de «Modelos por uso»: el primario y después sus respaldos, sin reordenar ni exigir un proveedor.
+  // OpenAI y KIE entran con los modelos de texto y visión habilitados en el panel (en KIE, los Claude); no sus modelos de imagen.
+  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' || isKieChatModel(route.model));
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de chat compatible para ${action}`);
-  if (options.preferredProvider && routes.some((route) => route.provider === options.preferredProvider))
-    routes.sort((a, b) => Number(b.provider === options.preferredProvider) - Number(a.provider === options.preferredProvider));
 
   return {
     async chat(req: ChatRequest): Promise<ChatResult> {
@@ -85,8 +87,17 @@ export async function getChatVisionAdapter(
 export async function getImageAdapterForAction(
   ctx: AiCallContext,
   action: ModelAction,
+  confirmedRoute?: { provider: string; model: string; maxUsd: number },
 ): Promise<ImageAdapter> {
-  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'nan');
+  let routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'nan');
+  if (confirmedRoute) {
+    const selected = routes.find(route => route.provider === confirmedRoute.provider && route.model === confirmedRoute.model);
+    const price = selected && allowedModel(action, selected.model, selected.provider)?.priceUsdPerUnit;
+    if (!selected || price === undefined || !Number.isFinite(confirmedRoute.maxUsd) || price > confirmedRoute.maxUsd)
+      throw new AiError('provider_down', 'El modelo o precio de imagen ya no coincide con el presupuesto confirmado.');
+    // Un encuadre presupuestado es un solo intento con este modelo, sin respaldo automático.
+    routes = [selected];
+  }
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de imagen compatible para ${action}`);
   return wrapImageAdapter(ctx, action, new FailoverImageAdapter(ctx, action, routes));
 }
@@ -114,7 +125,9 @@ function wrapImageAdapter(ctx: AiCallContext, _action: ModelAction, inner: Image
     async inpaint(req: InpaintRequest): Promise<ImageResult> {
       assertCanSpend(ctx.organizationId, IMAGE_ESTIMATE_USD);
       try {
-        const result = await inner.inpaint(req);
+        let storage;
+        try { storage = getStorageAdapter(); } catch { storage = undefined; }
+        const result = await protectedInpaint(inner, req, storage);
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
@@ -140,31 +153,47 @@ async function createImageAdapter(route: ResolvedRoute): Promise<ImageAdapter> {
   return new ProviderImageAdapter(createActiveProvider(route.model, await resolveProviderKey('openrouter')));
 }
 
+/** Claude en KIE usa el formato de mensajes de Anthropic; el resto de proveedores, el de OpenAI. */
+function chatAdapterFor(route: ResolvedRoute, apiKey: string): ChatVisionAdapter {
+  if (route.provider === 'kie') return new AnthropicMessagesAdapter({ baseURL: route.baseURL ?? BUILT_IN_MODEL_PROVIDERS.kie!.baseUrl, apiKey });
+  return new OpenRouterChatVisionAdapter({ baseURL: route.baseURL, apiKey, reportsUsd: route.provider === 'openrouter', openAiApi: route.provider === 'openai',
+    // OpenRouter y OpenAI aplican el esquema JSON; el resto de proveedores compatibles no siempre.
+    schemaInstruction: route.provider !== 'openrouter' && route.provider !== 'openai' });
+}
+
 async function withChatFailover<T extends ChatResult>(
   ctx: AiCallContext, action: ModelAction, routes: ResolvedRoute[], req: ChatRequest,
-  invoke: (adapter: OpenRouterChatVisionAdapter, routed: ChatRequest) => Promise<T>,
+  invoke: (adapter: ChatVisionAdapter, routed: ChatRequest) => Promise<T>,
 ): Promise<T> {
   const requestId = randomUUID();
   let lastError: unknown;
+  const failures: string[] = [];
   for (const [attempt, route] of routes.entries()) {
     const started = performance.now();
     const model = req.model || route.model;
     try {
       enforceModelJurisdiction(model);
       const apiKey = await resolveProviderKey(route.provider);
-      const adapter = new OpenRouterChatVisionAdapter({ baseURL: route.baseURL, apiKey, reportsUsd: route.provider === 'openrouter' });
+      const adapter = chatAdapterFor(route, apiKey);
       // El failover se ejecuta aquí, intento a intento. No delegarlo al gateway:
       // ocultaría qué proveedor/modelo respondió y rompería la trazabilidad real.
       const result = await invoke(adapter, { ...req, model, fallbackModels: undefined });
       const usage = result.usage;
-      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units: usage ? { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } : undefined, ...chatAttemptCost(usage) });
-      return result;
+      const declared = route.provider !== 'openrouter' ? allowedModel(action, model, route.provider)?.priceUsdPerUnit : undefined;
+      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units: usage ? { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } : undefined, ...chatAttemptCost(usage, declared) });
+      return { ...result, execution: { provider: route.provider, model } };
     } catch (error) {
       lastError = error;
       await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'error', latencyMs: elapsed(started), costType: 'unknown', errorCode: aiErrorCode(error) });
-      if (!canFailover(error)) throw error;
+      // Un modelo que no devuelve el JSON completo (límite de salida, respuesta vacía) también pasa al respaldo.
+      const incomplete = !!req.responseSchema && error instanceof AiError && error.kind === 'schema';
+      if (!canFailover(error) && !incomplete) throw error;
+      failures.push(`${route.provider} · ${model}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+  // Con varias rutas, el último error escondía por qué falló el primario: se dicen todos.
+  if (failures.length > 1 && lastError instanceof AiError)
+    throw aiError(lastError.kind, `Ningún modelo configurado respondió. ${failures.join(' | ')}`, lastError);
   throw lastError;
 }
 
@@ -180,13 +209,13 @@ async function* streamWithChatFailover(ctx: AiCallContext, action: ModelAction, 
     try {
       enforceModelJurisdiction(model);
       const apiKey = await resolveProviderKey(route.provider);
-      const adapter = new OpenRouterChatVisionAdapter({ baseURL: route.baseURL, apiKey, reportsUsd: route.provider === 'openrouter' });
+      const adapter = chatAdapterFor(route, apiKey);
       for await (const delta of adapter.chatStream({ ...req, model, fallbackModels: undefined })) {
         emitted = true;
         if (delta.usage) units = delta.usage;
         yield delta;
       }
-      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units, ...chatAttemptCost(units) });
+      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units, ...chatAttemptCost(units, route.provider !== 'openrouter' ? allowedModel(action, model, route.provider)?.priceUsdPerUnit : undefined) });
       recorded = true;
       return;
     } catch (error) {
@@ -221,9 +250,10 @@ class FailoverImageAdapter implements ImageAdapter {
       const started = performance.now();
       try {
         const result = await operation(await createImageAdapter(route));
-        // Misma tarifa estimada que la previsualización; nunca importe facturado.
-        const costUsd = allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
-        await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'success', latencyMs: elapsed(started), units: { images: 1, unit: result.cost.unit }, costUsd, costType: 'estimated' });
+        // El importe que confirma el proveedor manda; sin él, la misma tarifa estimada que la previsualización.
+        const confirmed = result.cost.confirmedUsd;
+        const costUsd = confirmed ?? allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
+        await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'success', latencyMs: elapsed(started), units: { images: 1, unit: result.cost.unit }, costUsd, costType: confirmed !== undefined ? 'confirmed' : 'estimated' });
         return { ...result, generation: { provider: route.provider, model: route.model, fallbackIndex: attempt } };
       }
       catch (error) {

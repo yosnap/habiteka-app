@@ -15,8 +15,8 @@
 import { useState, type ReactNode, useRef } from 'react';
 import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
 import { useMountEffect } from '@/lib/use-mount-effect';
-import type { QualityVerdict } from '@/lib/quality-verdict';
 import { CheckToggle } from '@/components/ui/check-toggle';
+import type { QualityVerdict } from '@/lib/quality-verdict';
 
 const BLOCKED_NOTE =
   'No se generará ninguna imagen ni propuesta con este plano: corrígelo en el editor y vuelve a abrir este diálogo.';
@@ -36,7 +36,7 @@ export interface EditorQualityState {
 }
 
 interface Props {
-  evaluate: () => Promise<QualityVerdict | null>;
+  evaluate: (acknowledgeImport?: boolean) => Promise<QualityVerdict | null>;
   onChange: (state: EditorQualityState) => void;
   /** Mensaje del servidor cuando ha cortado por falta de confirmación expresa. */
   serverConfirmMessage?: string | null;
@@ -102,6 +102,21 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
   };
 
   const toggleAck = (value: boolean) => {
+    if (value) {
+      setPending(true); setError(null);
+      onChange({ quality, ack: false, blocked: true });
+      const id = ++latest.current;
+      void evaluate(true).then((verdict) => {
+        if (!alive.current || id !== latest.current) return;
+        setQuality(verdict); setAck(true);
+        onChange({ quality: verdict, ack: true, blocked: verdict?.decision === 'block' });
+      }).catch((cause: unknown) => {
+        if (!alive.current || id !== latest.current) return;
+        setError(cause instanceof Error ? cause.message : 'No se pudo guardar la revisión. Vuelve a intentarlo.');
+        onChange({ quality, ack: false, blocked: quality?.decision === 'block' });
+      }).finally(() => { if (alive.current && id === latest.current) setPending(false); });
+      return;
+    }
     setAck(value);
     onChange({ quality, ack: value, blocked: quality?.decision === 'block' });
   };
@@ -121,7 +136,7 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
   if (loading && !serverConfirmMessage) {
     return <p className="text-ink-soft mt-4 text-xs">Comprobando la calidad del plano…</p>;
   }
-  if (error && !serverConfirmMessage) {
+  if (error && !quality && !serverConfirmMessage) {
     return (
       <div className="mt-4 space-y-2">
         <p className="text-ink-soft text-xs" role="status">
@@ -135,10 +150,12 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
 
   return (
     <div className="mt-4 space-y-2">
+      <p className="text-xs font-medium">Revisión del plano · no evalúa el realismo de las imágenes</p>
       <QualityVerdictCard quality={shown} blockedNote={BLOCKED_NOTE} />
+      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       {pending ? (
         <p className="text-ink-soft text-xs" role="status">
-          Plano reparado: volviendo a comprobar la calidad…
+          Comprobando el plano y guardando la revisión cuando corresponde…
         </p>
       ) : null}
       {issues}
@@ -153,7 +170,10 @@ export function EditorQualityGate({ evaluate, onChange, serverConfirmMessage = n
         </div>
       ) : null}
       {shown.decision === 'confirm' ? (
-        <CheckToggle checked={ack} onChange={toggleAck} label="Entiendo las dudas y quiero generar igualmente" />
+        <div className="rounded-control border border-line bg-canvas p-3">
+          <CheckToggle checked={ack} disabled={pending} onChange={toggleAck}
+            label="He revisado el plano y quiero generar con estos avisos" />
+        </div>
       ) : null}
     </div>
   );

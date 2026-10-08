@@ -6,7 +6,12 @@ export function renderImageLabel(deliverable: Deliverable): { zone: string; view
   const generation = deliverable.payload.type === 'render3d' ? deliverable.payload.generation : undefined;
   const zones = generation?.options?.placement === 'selected' ? generation.options.regions.map(region => region.name) : [];
   const scopeLabel = zones.length > 3 ? `${zones.slice(0, 2).join(', ')} y ${zones.length - 2} zonas más` : zones.join(', ');
-  const zone = generation?.view?.roomName || scopeLabel || 'Inmueble completo';
+  const scope = generation?.options?.designScope;
+  const fallback = scope === 'house' ? 'Solo la casa' : scope === 'interior' ? 'Interiores'
+    : scope === 'exterior' ? 'Exterior' : scope === 'rooms' ? 'Estancias seleccionadas'
+      : scope === 'zone' || generation?.options?.placement === 'selected' ? 'Zonas seleccionadas'
+        : generation?.options ? 'Toda la planta' : 'Ámbito sin registrar';
+  const zone = generation?.view?.roomName || scopeLabel || fallback;
   const preset = generation?.view?.preset;
   const view = preset === 'custom' && generation?.view?.roomName ? 'Interior · altura de ojos'
     : preset && preset in RENDER_VIEW_LABELS ? RENDER_VIEW_LABELS[preset as keyof typeof RENDER_VIEW_LABELS]

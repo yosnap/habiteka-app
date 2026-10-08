@@ -30,17 +30,17 @@ hero:
 
 **Proyecto → plano → diseño → parcela, si la necesitas → revisión y aprobación → imágenes o vídeo.**
 
-El borrador es editable. La aprobación conserva una versión para la visita y los vídeos nativos. Revisa las medidas y los resultados antes de compartirlos.
+El borrador es editable. La aprobación fija la geometría y las medidas de la guía. Acepta por separado las imágenes IA en Diseños: vídeos y visitas finales deben conservar esos diseños con aspecto de filmación real. El 3D del plano no se ofrece como resultado final.
 
 ## Ya tengo el diseño terminado: quiero un vídeo
 
 - **Presentar los diseños generados:** Diseños → Vídeos → Montaje con tus diseños generados → revisar selección → Crear montaje con N imágenes. También puedes abrirlo desde **Parcela real → Abrir vídeos con mis imágenes**. [Pasos completos](/videos/montaje-imagenes/).
 - **Paseo continuo fotorrealista en primera persona:** pendiente. El montaje disponible muestra renders con zoom y fundidos; no atraviesa continuamente las habitaciones.
-- **Recorrido del modelo 3D:** Editor → Recorrido → Recorrido completo → Previsualizar en 3D → Aprobar cambios → Exportar vídeo de este recorrido → Exportar recorrido 3D · MP4. [Pasos completos](/videos/recorrido/).
-- **Construcción conceptual sobre la parcela:** Parcela real → Confirmar para el vídeo → Revisar y aprobar diseño → Confirmar aprobación → 3D y visita → Muestra 3D sobre la parcela · 30 s · MP4. [Pasos completos](/videos/promocion/).
-- **Construcción y después paseo:** prepara el recorrido aprobado y pulsa Exportar muestra 3D · obra, vuelo y recorrido. Es una muestra nativa, con etapas antes de la ruta.
+- **Primera persona:** acepta un diseño interior existente en Diseños y prepara una toma desde Vídeos → Primera persona. Es un piloto de una estancia, pendiente de revisión de fidelidad. [Pasos completos](/videos/recorrido/).
+- **Diseño sobre parcela:** prepara el encaje y revisa imágenes IA que lo representen. Solo las aceptadas pueden entrar en vídeos; la promoción geográfica continua desde diseños sigue pendiente. [Alcance actual](/videos/promocion/).
+- **Construcción y después paseo:** pendiente sobre diseños aceptados; el estudio permite preparar construcción y una toma interior por separado.
 
-El recorrido y la construcción conceptual graban el modelo 3D. El montaje muestra los renders terminados. Consulta [Tipos de vídeo](/videos/tipos/) para comprobar el alcance de cada modalidad.
+Todo vídeo final parte de diseños IA aceptados. El 3D es una guía y no se graba como sustituto. Consulta [Tipos de vídeo](/videos/tipos/) para comprobar el alcance real de cada modalidad.
 
 ## Tema de la documentación
 

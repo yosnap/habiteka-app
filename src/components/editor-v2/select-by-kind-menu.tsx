@@ -9,13 +9,14 @@ import { HeaderMenu } from './header-menu';
 import type { MouseEvent } from 'react';
 
 /** Selecciona de golpe todos los elementos de un tipo; el inspector aplica después cada cambio a toda la selección. */
-export function SelectByKindMenu({ store }: { store: EditorStore }) {
+export function SelectByKindMenu({ store, onSelect }: { store: EditorStore; onSelect?: () => void }) {
   const doc = useStore(store, (s) => s.document);
   const rooms = deriveRoomsSafe(doc);
   const kinds = SELECTABLE_KINDS.map((kind) => ({ ...kind, ids: idsByKind(doc, rooms, kind.id) }));
   const wallKinds = kinds.filter((kind) => kind.id === 'walls' || kind.id === 'interior-walls' || kind.id === 'exterior-walls');
   const otherKinds = kinds.filter((kind) => !wallKinds.includes(kind));
   const select = (kind: SelectableKind, ids: string[], event: MouseEvent<HTMLButtonElement>) => {
+    onSelect?.();
     applyKindSelection(store, kind, ids);
     event.currentTarget.closest('details')?.removeAttribute('open');
     event.currentTarget.closest('[role="menu"]')?.closest('details')?.removeAttribute('open');

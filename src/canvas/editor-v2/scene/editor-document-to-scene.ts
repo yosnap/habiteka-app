@@ -1,7 +1,7 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
-import type { EditorDocument, FloorFinish, Point } from '@/lib/editor-document/schema';
+import type { EditorDocument, FloorFinish, Furniture, Point } from '@/lib/editor-document/schema';
 import { deriveRooms } from '@/lib/editor-document/rooms';
-import { meters, type EditorScene, type ScenePolygon, type ExteriorWall } from './types';
+import { meters, type EditorScene, type SceneBox, type ScenePolygon, type ExteriorWall } from './types';
 import { wallMeshes, junctionMeshes } from './wall-meshes';
 import { openingMeshes } from './opening-meshes';
 import { stairMeshes } from './stair-meshes';
@@ -13,6 +13,8 @@ import { curvedWallMeshes } from './curved-wall-meshes';
 import { landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 import { layeredTerrainSurfaces } from '@/lib/editor-document/terrain-surfaces';
+import { selectedWallSides } from '@/lib/editor-document/wall-bulk-appearance';
+import { wallPoints } from '@/lib/editor-document/geometry';
 
 /** A read-only projection: no proximity inference, recentering, revision bumps or migration. */
 export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][] = []): EditorScene {
@@ -32,13 +34,18 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
   try {
     rooms = deriveRooms(doc);
     for (const room of rooms) room.wallIds.forEach((wallId, i) => {
-      if (doc.walls.find((wall) => wall.id === wallId)?.hidden) return;
-      if (rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
+      const wall = doc.walls.find((wall) => wall.id === wallId);
+      if (wall?.hidden || wall?.classification === 'interior') return;
+      if (wall?.classification !== 'exterior' && rooms.filter((r) => r.wallIds.includes(wallId)).length !== 1) return;
+      if (exteriorWalls.some(item => item.sourceEntityId === wallId)) return;
       const a = doc.vertices.find((v) => v.id === room.vertexIds[i])!;
       const b = doc.vertices.find((v) => v.id === room.vertexIds[(i + 1) % room.vertexIds.length])!;
       const length = Math.hypot(b.x - a.x, b.y - a.y);
+      const face = wall?.classification === 'exterior' ? selectedWallSides(doc, wallId, 'exterior')[0] : null;
+      const endpoints = face ? wallPoints(doc, wall!) : [a, b];
+      const dx = endpoints[1]!.x - endpoints[0]!.x, dy = endpoints[1]!.y - endpoints[0]!.y, sign = face === 'left' ? -1 : 1;
       exteriorWalls.push({ sourceEntityId: wallId, x: meters((a.x + b.x) / 2), z: meters((a.y + b.y) / 2),
-        normalX: (b.y - a.y) / length, normalZ: -(b.x - a.x) / length });
+        normalX: dy / length * sign, normalZ: -dx / length * sign });
     });
     floors = floorMeshes(doc, rooms, logicalWalls, [...logicalJoins, ...logicalCurves], floorVoids);
   } catch (error) { warnings.push(error instanceof Error ? error.message : 'No se pudo cerrar el suelo.'); }
@@ -67,17 +74,22 @@ export function editorDocumentToScene(doc: EditorDocument, floorVoids: Point[][]
       position: [meters(column.x + column.widthMm / 2), meters(column.elevationMm + column.heightMm / 2), meters(column.y + column.depthMm / 2)] as [number, number, number],
       size: [meters(column.widthMm), meters(column.heightMm), meters(column.depthMm)] as [number, number, number],
       rotation: -column.rotation * Math.PI / 180, color: column.color ?? '#a6a6a0', materialId: column.materialId })),
-    ...planObjects(doc).flatMap((f) => furnitureVolumes(f, doc).map((volume, index) => {
-      const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
-      const p = localToWorld(f, center);
-      return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? volume.slotId ?? f.id, role: 'furniture' as const,
-        position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
-        size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
-        ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
-        shape: volume.shape, materialId: volume.materialId, useColorMap: volume.useColorMap,
-        boundaryPart: volume.part, opacity: volume.opacity,
-        appearance: volume.appearance,
-        rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
-    })),
+    ...planObjects(doc).flatMap((f) => furnitureSceneBoxes(f, doc)),
   ] };
+}
+
+/** Sólidos con que la escena 3D pinta un objeto del plano sin modelo GLB; sin documento, los de la pieza suelta. */
+export function furnitureSceneBoxes(f: Furniture, doc?: EditorDocument): SceneBox[] {
+  return furnitureVolumes(f, doc).map((volume, index) => {
+    const center = localToWorld({ ...volume, rotation: volume.rotation ?? 0 }, { x: volume.widthMm / 2, y: volume.depthMm / 2 });
+    const p = localToWorld(f, center);
+    return { id: index ? `${f.id}:${index}` : f.id, sourceEntityId: volume.gateId ?? volume.slotId ?? f.id, role: 'furniture' as const,
+      position: [meters(p.x), meters((volume.bottom + volume.top) / 2), meters(p.y)] as [number, number, number],
+      size: [meters(volume.widthMm), meters(volume.top - volume.bottom), meters(volume.depthMm)] as [number, number, number],
+      ...(f.catalogId === 'habiteka:outdoor:tira-led' && index === 1 ? { emissive: '#ffe3ad' } : {}),
+      shape: volume.shape, materialId: volume.materialId, useColorMap: volume.useColorMap,
+      boundaryPart: volume.part, opacity: volume.opacity,
+      appearance: volume.appearance,
+      rotation: -(f.rotation + (volume.rotation ?? 0)) * Math.PI / 180, color: volume.color ?? furnitureSpatial(f).color };
+  });
 }

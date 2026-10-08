@@ -5,6 +5,18 @@ status: in-progress
 
 # Fase 5: Vídeo de construcción visual y recorrido
 
+## Decisión vigente — diseños aceptados como única fuente
+
+Corrección explícita del usuario el 02/10/2026: todo vídeo, primera persona, inmersión y visita virtual final debe partir de renders IA aceptados y conservar su mobiliario/apariencia con hiperrealismo de filmación real. El plano/3D son guías y no valen como entrega ni sustituto. Esta decisión sustituye las alternativas nativas descritas como avances históricos debajo. Se retiran del flujo; aceptación humana de imágenes obligatoria e independiente de auditoría automática. Sin interior aceptado o modalidad implementada, indicar pendiente y bloquear, no grabar el modelo.
+
+No cerrar fase por prompts, capturas del plano, compilaciones ni pruebas. Continúan pendientes derivación coherente de interiores, continuidad y visita libre desde diseños, combinado y verificación temporal/visual real. Fuente permanente: `AGENTS.md`; [contrato técnico](../../docs/disenos-aceptados-como-fuente.md).
+
+## Publicidad vertical y panel de cotas — 02/10/2026
+
+Prioridad elegida por el usuario: publicidad vertical y cotas. Implementación de formato compartido 16:9/9:16, vista previa y guardado separados, y composición local desde vídeos existentes de la misma aprobación. H3 requiere aceptación previa. Se conserva audio y duración del original y se añade otro entregable con procedencia; no se generan clips de pago.
+
+Las cotas del anuncio muestran ancho/fondo/altura globales del diseño aprobado en panel separado, con modos animado, inicio, fijo y desactivado. No reconstruyen la geometría del vídeo ni siguen su cámara. La exportación 3D conserva su cámara horizontal y encaja la imagen completa en vertical. No requiere migraciones. Verificados 47 casos enfocados, suite de 2396 pruebas, tipos/lint/documentación, compilación Next y exportaciones reales H.264/AAC; [reporte](../reports/publicidad-261002-1337-vertical-cotas.md). La fase sigue abierta por fidelidad H3, primera persona continua, editor de tomas y pistas externas. Referencia técnica: `docs/publicidad-video.md`.
+
 ## Referencias con función y tercera preparación — 02/10/2026
 
 Exterior corregido generado y revisado: fachada lateral cerrada, cubierta y pérgolas conservadas. La inspección conjunta detecta muebles/colores discordantes en las vistas anteriores. El estudio propone ahora cenital para distribución y mobiliario, exterior para fachadas/tejado/cámara, con función visible e índices alineados con el envío. El guion pide cámara fija, muros consecutivos y vuelo final corto; no garantiza fidelidad del modelo.
@@ -238,3 +250,15 @@ Caso real FInca: preparada prueba `a417fe82-9687-4403-b548-39ed37594672`, seis v
 El usuario autorizó el único clip de $0.34 y las seis referencias. También autorizó habilitar temporalmente el cap global en $0.34 porque estaba en 0; restaurado a 0 y auditado inmediatamente tras aceptar KIE la tarea `9db0219df7bd9cfe3fff16721dd16a9d`. Resultado archivado: 8 s, 1344×768/24 fps, audio AAC estéreo, 286 s de generación según KIE.
 
 **Rechazado**, no cumple muros uno a uno ni continuidad de la envolvente. Sí aparecen partes de terraza, pérgola, escaleras y mobiliario de las referencias; no se certifica identidad total ni todas las cantidades. Mezclar vistas seccionadas no fija un exterior cerrado durante el giro. Las referencias tenían fondo neutro, por lo que tampoco fijan encaje geográfico. Sin segunda generación. Antes de otro gasto, preparar estados de obra coherentes, exterior cerrado y referencia del conjunto sobre ortofoto. El guion solo no ha alcanzado el umbral. [Evaluación y fotogramas](../reports/video-261001-1756-piloto-h3-finca-report.md).
+
+## Limpieza, nombres y pruebas del paseo — 02/10/2026
+
+Publicidad vertical y cotas confirmadas en commit `2b159ac`. Añadida limpieza individual y por selección, con papelera durable y restauración, también para referencias rechazadas. Los vídeos se pueden nombrar antes de crear y renombrar después; los originales de publicidad utilizan esos nombres. No hay migraciones ni generaciones de pago.
+
+Probados en Comet los flujos reales del recorrido aprobado completo y la pieza de construcción + visita: MP4 1920×1080 H.264 de 22,77 s y 30,83 s, respectivamente, con audio AAC de efectos en la pieza combinada. Guardados en MinIO local y comparados con las descargas mediante SHA-256. Estos resultados son muestras del modelo editable, no inmersión fotorrealista desde renders. Esta última y la fidelidad profesional de H3 siguen pendientes. No se aprobaron ni modificaron diseños durante estas pruebas.
+
+## Preparación de primera persona desde diseños — 02/10/2026
+
+Añadida opción `Primera persona → Mis diseños`, con piloto H3 de una estancia de 8/12 s, presupuesto, nombre, guion y revisión. Reutiliza el envío único y recuperación existentes; `walkthrough-ai` se conserva en el JSON sin migraciones. Comprueba cámara interior real, planta, techo/muros completos, misma estancia/tanda, revisión visual vigente y rechazo antes de preparar y enviar. Publicidad bloquea resultados H3 no aceptados de ambas modalidades.
+
+El estudio muestra interiores por defecto y enlaza directamente a su preparación en el editor, sin generar automáticamente. Las referencias actuales verificadas en navegador son aéreas/exteriores: faltan interiores para una prueba real. No hay transferencia ni consumo IA en esta implementación. Continúan pendientes continuidad entre habitaciones, revisión del piloto interior pagado y montaje combinado con construcción; la muestra nativa conserva sus límites.

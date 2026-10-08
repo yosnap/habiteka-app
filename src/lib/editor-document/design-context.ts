@@ -9,6 +9,8 @@ import { ceilingDesignContext, CEILING_RENDER_POLICY } from './ceiling-design-co
 import { wallConstruction } from './construction-properties';
 import { designMaterialPalette } from './design-material-palette';
 import { buildingDesignStyle } from './design-scope';
+import { exteriorDesignContext } from './exterior-design-context';
+import { propertyNorth } from './property-orientation';
 
 const meters = (millimeters: number) => Number((millimeters / 1000).toFixed(3));
 
@@ -23,6 +25,7 @@ export function editorDesignContext(doc: EditorDocument) {
     units: 'm',
     spaceKind: doc.designSpaceKind ?? null,
     designStyle: buildingDesignStyle(doc) ?? null,
+    orientation: propertyNorth(doc) === undefined ? null : { northDeg: propertyNorth(doc), sunlight: doc.propertyOrientation?.sunlight ?? null, solarMode: 'manual' },
     existingMaterialPalette: designMaterialPalette(doc),
     instruction: [
       'Geometría de referencia del plano editado por el usuario.',
@@ -86,6 +89,7 @@ export function editorDesignContext(doc: EditorDocument) {
           } : null,
         })),
         boundaries: boundaryDesignContext(source),
+        exterior: exteriorDesignContext(source),
         ...ceilingDesignContext(source),
         walls: source.walls.map((wall) => {
           const path = wallPath(source, wall);
@@ -94,6 +98,7 @@ export function editorDesignContext(doc: EditorDocument) {
             id: wall.id,
             name: wall.name ?? null,
             hidden: Boolean(wall.hidden),
+            ...(wall.classification ? { classification: wall.classification } : {}),
             lengthM: meters(path.length),
             thicknessM: meters(wall.thicknessMm),
             heightM: meters(wall.heightMm ?? 2700),

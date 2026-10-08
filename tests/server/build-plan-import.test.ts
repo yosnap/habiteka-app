@@ -101,6 +101,9 @@ describe('buildPlanImport', () => {
     expect(result.warnings).toContainEqual(expect.objectContaining({
       code: 'cotas-generales-discordantes',
     }));
+    const message = result.warnings.find((warning) => warning.code === 'cotas-generales-discordantes')!.message;
+    expect(message).toContain('no cotas verificadas por el usuario');
+    expect(message).not.toContain('Las cotas generales indican');
     expect(buildPlanImport(raw()).warnings.some((warning) =>
       warning.code === 'cotas-generales-discordantes')).toBe(false);
   });

@@ -59,7 +59,11 @@ describe('parseRawSketch', () => {
       { tipo: 'ventana', muro: 0, posicion: 0.5 },
     ]);
     expect(sketchPrompt()).toContain('no los deduzcas del nombre');
-    expect(sketchPrompt()).toContain('Una PUERTA exige ver el arco');
+    // Con todos los decimales, un plano con mucho mobiliario no cabía en la respuesta.
+    expect(planPrompt()).toContain('3 decimales como máximo');
+    // La abatible exige el arco; la corredera y la plegable se reconocen por su hoja.
+    expect(sketchPrompt()).toContain('Una PUERTA abatible exige ver el arco');
+    expect(sketchPrompt()).toContain('Es tipo=puerta aunque no tenga arco');
   });
 
   it('sanea los tres puntos de un arco antes de usarlos para situar la puerta', () => {

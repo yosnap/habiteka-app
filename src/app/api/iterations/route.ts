@@ -21,6 +21,7 @@ import { assertInstructionQuality } from '@/server/quality/instruction-gate';
 import { instructionTargetOf } from '@/server/quality/evidence/instruction-evidence';
 import { UserFacingError } from '@/server/errors/user-facing-error';
 import type { CanvasZone } from '@/lib/contracts';
+import { resolveZone } from '@/server/agent/feedback/zone-resolver';
 
 export async function POST(request: Request) {
   const ctx = await requireOrgContext();
@@ -52,9 +53,10 @@ export async function POST(request: Request) {
   let deliverable;
   try {
     deliverable = await loadDeliverable(ctx.organizationId, body.deliverableId);
+    if (deliverable.type === 'RENDER_3D') resolveZone(body.zone);
     await assertInstructionQuality(
       ctx,
-      { projectId: deliverable.projectId, refId: body.deliverableId },
+      { projectId: deliverable.projectId, refId: body.deliverableId, imageZone: body.zone },
       instructionTargetOf(deliverable.type),
       body.instruction,
       body.qualityAck === true,

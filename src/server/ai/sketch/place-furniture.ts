@@ -14,6 +14,8 @@ import {
   type FurnitureProfile,
   type FurnitureRoom,
 } from '@/lib/editor-document/furniture-catalog';
+import { furnitureRooms } from '@/lib/editor-document/furniture-rooms';
+import { roomFromZoneName } from '@/lib/editor-document/room-use';
 import type { SketchFurniture } from './sketch-types';
 import { fitFurnitureNearSource } from './furniture-placement-geometry';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
@@ -33,25 +35,8 @@ export interface PlacementResult {
 // recolocarse dentro (imprecisión de la caja leída); más, se descarta.
 const MAX_SPILL_RATIO = 0.25;
 
-// Estancia del catálogo a partir del nombre rotulado en el plano.
-const ROOM_KEYWORDS: Array<[FurnitureRoom, string[]]> = [
-  ['dormitorio', ['dorm', 'habitacion', 'bedroom']],
-  ['cocina', ['cocina', 'kitchen', 'despensa', 'lavanderia', 'lavadero']],
-  ['bano', ['bano', 'aseo', 'wc', 'lavabo', 'b°', 'bº']],
-  ['comedor', ['comedor', 'dining']],
-  ['salon', ['salon', 'sala', 'living', 'estar', 'recibidor', 'hall', 'pasillo', 'vestidor', 'entrada']],
-  ['oficina', ['estudio', 'oficina', 'despacho', 'office']],
-  ['exterior', ['terraza', 'patio', 'jardin', 'porche', 'loggia', 'balcon', 'garden', 'cochera', 'garaje']],
-];
-
-/** Estancia del catálogo que sugiere un nombre de zona; null si no se reconoce. */
-export function roomFromZoneName(name: string): FurnitureRoom | null {
-  const normalized = normalizeFurnitureSearch(name);
-  for (const [room, keywords] of ROOM_KEYWORDS) {
-    if (keywords.some((k) => normalized.includes(normalizeFurnitureSearch(k)))) return room;
-  }
-  return null;
-}
+/** Estancia del catálogo que sugiere un nombre de zona (compartido con Amueblar). */
+export { roomFromZoneName };
 
 /** Proyecta las cajas leídas a mm, elige entrada de catálogo y valida la estancia. */
 export function placeFurniture(
@@ -149,9 +134,16 @@ function bestCatalogEntry(
   room: FurnitureRoom | null,
 ): FurnitureCatalogEntry | null {
   const profile = item.tipo as FurnitureProfile;
-  const byProfile = FURNITURE_CATALOG.filter((e) => e.profile === profile);
+  const label = normalizeFurnitureSearch(item.etiqueta ?? '');
+  const wantsBunk = /litera/.test(label);
+  const wantsDiningSet = /\b(set|conjunto)\b/.test(label) && /comedor|mesa/.test(label);
+  // La huella sola no distingue una cama de una litera, ni una mesa de un set con sillas.
+  const byProfile = FURNITURE_CATALOG.filter((e) => e.profile === profile
+    && (profile !== 'bed' || /litera/.test(e.productId) === wantsBunk)
+    && (profile !== 'table' || e.productId.startsWith('habiteka-set_comedor_') === wantsDiningSet));
   if (byProfile.length === 0) return null;
-  const preferred = room ? byProfile.filter((e) => e.room === room) : [];
+  // En un cuarto infantil, una cama dibujada es individual; en el garaje, la estantería es la metálica.
+  const preferred = room ? byProfile.filter((e) => furnitureRooms(e).includes(room)) : [];
   const candidates = preferred.length > 0 ? preferred : byProfile;
   const rotated = item.rotacionDeg === 90 || item.rotacionDeg === 270;
   const target = rotated ? { w: drawn.h, h: drawn.w } : drawn;

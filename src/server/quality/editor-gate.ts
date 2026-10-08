@@ -20,6 +20,7 @@ import { evaluateCheckpointCached, type QualityContext } from './evaluate';
 import type { GateContext } from './gate-mark';
 import { buildEditorEvidence } from './evidence/editor-evidence';
 import { editorGeometryFingerprint } from './editor-geometry-fingerprint';
+import { hasImportReview, saveImportReview } from './editor-import-review';
 
 export const EDITOR_STRUCTURE_CHECKPOINT = 'editor_structure';
 
@@ -39,6 +40,7 @@ export async function editorDocumentQuality(
   scope: EditorQualityScope,
   document: EditorDocument,
   gate?: GateContext,
+  acknowledgeImport = false,
 ): Promise<QualityVerdict> {
   if (document.importReview?.geometryFingerprint === editorGeometryFingerprint(document))
     return {
@@ -66,15 +68,21 @@ export async function editorDocumentQuality(
   );
   // Jev solo ve la estructura actual, no la imagen de origen. Después de una
   // corrección geométrica, la comparación visual sigue requiriendo aceptación.
-  if (document.importReview && evaluation.decision === 'proceed') return {
+  if (document.importReview && evaluation.decision === 'proceed') {
+    if (acknowledgeImport) await saveImportReview(ctx, scope, document);
+    if (await hasImportReview(ctx, scope, document)) return {
+      score: evaluation.score, decision: 'proceed', reasons: evaluation.reasons, failOpen: evaluation.failOpen,
+    };
+    return {
     score: evaluation.score,
     decision: 'confirm',
     reasons: [
-      'La geometría cambió desde la importación. Comprueba que coincide con el plano original antes de generar.',
-      ...document.importReview.reasons.slice(0, 2),
+      'La estructura actual permite continuar, pero sigue pendiente comprobar su correspondencia con el plano original. Los avisos guardados pertenecen a la importación inicial y no son una nueva medición del editor.',
+      'Compara las medidas y la distribución actuales con el original antes de confirmar. Actualizar una vista de referencia no modifica el plano ni verifica su escala.',
     ],
-    failOpen: false,
+    failOpen: evaluation.failOpen,
   };
+  }
   return {
     score: evaluation.score,
     decision: evaluation.decision,

@@ -13,6 +13,7 @@ import {
   importCanvasStudio,
   drawingStudio,
   uploadStudio,
+  setEditorBackgroundStudio,
   importPlanStudio,
   importStudioPlanStudio,
   refitPlanImportStudio,
@@ -74,6 +75,7 @@ export default async function PlanoStudioPage({ params }: Props) {
           ...buildPlanImport(initialState.planImport.raw, {
             roomOverrides: initialState.planImport.roomOverrides,
             doorOverrides: initialState.planImport.doorOverrides,
+            wallOverrides: initialState.planImport.wallOverrides,
             generalWidthMm: initialState.planImport.generalWidthMm,
             includeFurniture: initialState.planImport.includeFurniture,
             normalize: initialState.planImport.detected
@@ -87,6 +89,10 @@ export default async function PlanoStudioPage({ params }: Props) {
           // Veredicto de fiabilidad de la última evaluación: se reutiliza sin
           // volver a llamar a Jev (el plano recalculado es el mismo).
           quality: initialState.quality ?? UNEVALUATED,
+          revision: initialState.planImportRevision,
+          wallOverrides: initialState.planImport.wallOverrides ?? [],
+          generalWidthMm: initialState.planImport.generalWidthMm,
+          includeFurniture: initialState.planImport.includeFurniture,
         }
       : null;
   // El layout del proyecto ya reserva la cabecera y las pestañas (flex + min-h-0);
@@ -109,6 +115,7 @@ export default async function PlanoStudioPage({ params }: Props) {
         uploadAction={uploadStudio}
         cenitalAction={cenitalStudio}
         importCanvasAction={importCanvasStudio}
+        editorBackgroundAction={setEditorBackgroundStudio}
         sendToEditorAction={sendPlanoToEditor}
         importAction={importPlanStudio}
         importCurrentAction={importStudioPlanStudio}

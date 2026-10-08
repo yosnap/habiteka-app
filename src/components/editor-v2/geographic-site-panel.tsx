@@ -7,6 +7,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { callAction } from '@/lib/action-result';
 import { LIGHTING_LABELS, LIGHTING_PRESETS } from '@/lib/lighting-preset';
 import { geographicSiteSchema, sitePlanOrigin, type GeographicSite } from '@/lib/editor-document/geographic-site';
+import { propertyNorth, siteRotationForNorth } from '@/lib/editor-document/property-orientation';
 import { GeographicSiteMap } from './geographic-site-map';
 import { loadSiteOrthophoto, resolveSiteOrthophoto } from '@/server/editor/geographic-site-actions';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -21,7 +22,7 @@ export function GeographicSitePanel({ store, projectId, readOnly, ...nextSteps }
   const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
   const continueWith = (action?: () => void) => action ? () => { setOpen(false); action(); } : undefined;
   return <Dialog.Root open={open} onOpenChange={setOpen}>
-    <Dialog.Trigger asChild><button type="button"><MapPin size={18} /><span>Parcela real</span></button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" data-project-menu-action><MapPin size={18} /><span>Parcela real</span></button></Dialog.Trigger>
     <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[150] bg-black/50" />
       <Dialog.Content ref={setMenuContainer} onInteractOutside={event => event.preventDefault()}
         className="fixed inset-2 z-[151] flex flex-col overflow-y-auto rounded-2xl bg-white text-ink shadow-2xl lg:inset-5 lg:overflow-hidden [&_button]:cursor-pointer [&_button]:transition-colors [&_button]:active:bg-emerald-100 [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50">
@@ -70,7 +71,7 @@ function SiteEditor({ store, projectId, readOnly, menuContainer, ...nextSteps }:
       if (pair.length !== 2 || pair.some(n => !Number.isFinite(n))) throw new Error('Escribe latitud, longitud en grados decimales.');
       const image = await callAction(loadSiteOrthophoto(projectId, { latitude: pair[0], longitude: pair[1], groundWidthM: width }));
       const { url: imageUrl, ...data } = image;
-      setSite({ ...data, anchor: { x: .5, y: .5 }, planOriginMm: sitePlanOrigin(doc), rotationDeg: 0,
+      setSite({ ...data, anchor: { x: .5, y: .5 }, planOriginMm: sitePlanOrigin(doc), rotationDeg: siteRotationForNorth(propertyNorth(doc) ?? 0),
         intervention: [], scenario: 'new-build', lighting: site?.lighting ?? 'daylight', confirmed: false });
       setUrl(imageUrl); setMessage('Fotografía lista. Acerca la casa y tapa la construcción que vas a sustituir.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo cargar la ortofoto.'); }

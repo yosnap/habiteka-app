@@ -1,0 +1,21 @@
+{
+  "source": "IGN / PNOA, WMS Ortoimagen máxima actualidad",
+  "latitude": 40.70940806753031,
+  "longitude": -3.5302981596101293,
+  "crs": "EPSG:3857",
+  "bbox": [
+    -393109.72271712153,
+    4969454.717661039,
+    -392872.2642353393,
+    4969692.176142822
+  ],
+  "width": 1440,
+  "height": 1440,
+  "approximateGroundWidthM": 180,
+  "north": "arriba",
+  "coordinatePixel": [
+    720,
+    720
+  ],
+  "placementConfirmed": false
+}

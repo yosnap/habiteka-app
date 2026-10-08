@@ -55,6 +55,12 @@ export async function assertRenderFraming(capture: Image, candidate: Image): Pro
   const outputCenter = [output.x + output.width / 2, output.y + output.height / 2];
   if (ratio(source.width, output.width) > 2.2 || ratio(source.height, output.height) > 2.2
       || distance(sourceCenter, outputCenter) > 0.2) {
-    throw new RenderRejectedError('Se descartó el diseño porque recortó o desplazó demasiado el inmueble en el encuadre.');
+    const reason = 'Se descartó el diseño porque recortó o desplazó demasiado el inmueble en el encuadre.';
+    throw new RenderRejectedError(reason, {
+      version: 'render-framing-v1', status: 'rejected', checkedAt: new Date().toISOString(),
+      criteria: [{ id: 'cameraAndGeometryPreserved', status: 'fail',
+        observation: `${reason} Comprobación de encuadre; no se ejecutó la auditoría visual de los demás criterios.` }],
+      violations: [reason], roomChecks: [], openingChecks: [],
+    });
   }
 }

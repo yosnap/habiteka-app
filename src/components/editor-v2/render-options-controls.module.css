@@ -14,13 +14,8 @@
     background 0.15s,
     border-color 0.15s;
 }
-.controls input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  min-width: 0;
-  min-height: 0;
-  flex: 0 0 18px;
-}
+.scopeChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+@media (max-width: 540px) { .scopeChoices { grid-template-columns: 1fr; } }
 .viewChoice {
   color: #263d38;
   background: #fff;
@@ -37,15 +32,16 @@
   font-weight: 600;
 }
 .optionButton:hover {
-  border-color: color-mix(in oklch, var(--primary), transparent 45%);
+  border-color: var(--brand, #087f75);
 }
 .optionButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 .active {
-  border-color: var(--primary);
-  background: color-mix(in oklch, var(--primary), transparent 90%);
+  border-color: var(--brand, #087f75);
+  color: var(--brand, #087f75);
+  background: var(--selected, #e2f1eb);
 }
 .optionButton small {
   color: var(--muted-foreground);

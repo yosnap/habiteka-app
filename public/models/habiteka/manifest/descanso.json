@@ -1,0 +1,594 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia descanso) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "descanso",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "litera_familiar_135_90": {
+   "file": "litera_familiar_135_90.glb",
+   "thumbnail": "thumbs/litera_familiar_135_90.webp",
+   "sha256": "8bc3128d2ac64086a339591e2252e5c4c4086ff34edeef199ba6ba7a529d1a5d",
+   "bytes": 1120400,
+   "triangles": 9716,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1513,
+    2010,
+    1850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1550,
+    2020,
+    1850
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {
+    "lowerWidth": 1350
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9246ad5c76b50e898bbb2f221ef04e577ed99ed5ba06afbd5914ba26616f2628",
+   "builtAt": "2026-10-06"
+  },
+  "litera_madera_90": {
+   "file": "litera_madera_90.glb",
+   "thumbnail": "thumbs/litera_madera_90.webp",
+   "sha256": "64e88ecab8044c8b6a77d82ae54cec657770cbecb987b70a93b8eff8887f2a00",
+   "bytes": 1110336,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {},
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2d23fc88f79a0aaec9939aec1ffab2bd06fc66d877f372e5266b9fb4ee61a6b1",
+   "builtAt": "2026-10-06"
+  },
+  "litera_madera_blanca": {
+   "file": "litera_madera_blanca.glb",
+   "thumbnail": "thumbs/litera_madera_blanca.webp",
+   "sha256": "6ffe7bd38e5a8b6fc4fdddd44fc4802767c46da504484c7fbc6f0d629f2fd446",
+   "bytes": 663532,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {},
+   "finishes": {
+    "madera": "lacado-blanco",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7ce2fc42cd3f2219abe28fe43d332f7fe0f16f0c6afb6b8b12bcc9f2588f6592",
+   "builtAt": "2026-10-06"
+  },
+  "litera_metal_90": {
+   "file": "litera_metal_90.glb",
+   "thumbnail": "thumbs/litera_metal_90.webp",
+   "sha256": "aa55882ae64f708a2275277f675c7b96cea122c622b315d403267009d527f71f",
+   "bytes": 663408,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {},
+   "finishes": {
+    "madera": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "89588dd165f80c9f8dbd77b528e3116aaa0bbaed49cdf94a5f53812c4288cfe7",
+   "builtAt": "2026-10-06"
+  },
+  "set_comedor_rectangular_4": {
+   "file": "set_comedor_rectangular_4.glb",
+   "thumbnail": "thumbs/set_comedor_rectangular_4.webp",
+   "sha256": "dc887a2a2b29aaf337b5be5e5ef38422354e82ff93f996e7ed9b2212d7b02f33",
+   "bytes": 568872,
+   "triangles": 11308,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1201,
+    1771,
+    853
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    1800,
+    850
+   ],
+   "family": "descanso",
+   "type": "dining_set",
+   "params": {
+    "seats": 4,
+    "table": [
+     1200,
+     800
+    ]
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble",
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "725336474082d7fafd1e8a47a8f93d48ad092bd8220fa7415545499217c0b88e",
+   "builtAt": "2026-10-06"
+  },
+  "set_comedor_rectangular_6": {
+   "file": "set_comedor_rectangular_6.glb",
+   "thumbnail": "thumbs/set_comedor_rectangular_6.webp",
+   "sha256": "dce2ad366f596679195288ce7057b21758e62be426a65cd8afde040ba866f3ab",
+   "bytes": 625344,
+   "triangles": 16524,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1801,
+    1871,
+    853
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    1900,
+    850
+   ],
+   "family": "descanso",
+   "type": "dining_set",
+   "params": {
+    "seats": 6,
+    "table": [
+     1800,
+     900
+    ]
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble",
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ce7d6f077fe3ddf6838efa85b699fc330ba8bb143bf9b95e36b3eb958712c1bd",
+   "builtAt": "2026-10-06"
+  },
+  "set_comedor_redondo_4": {
+   "file": "set_comedor_redondo_4.glb",
+   "thumbnail": "thumbs/set_comedor_redondo_4.webp",
+   "sha256": "54ab1db42fb0e700112ef6ec5fb363307319b9cbb000c539d9ffe2630cec67d1",
+   "bytes": 688064,
+   "triangles": 11808,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2071,
+    2071,
+    853
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2100,
+    2100,
+    850
+   ],
+   "family": "descanso",
+   "type": "dining_set",
+   "params": {
+    "round": true,
+    "seats": 4,
+    "table": [
+     1100,
+     1100
+    ]
+   },
+   "finishes": {
+    "sobre": "marmol-blanco",
+    "estructura": "aluminio-blanco",
+    "madera": "roble"
+   },
+   "textures": [
+    "marmol_blanco",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8f9146281f9de7e80eaf6f9b8a7b0ba9144efa22396d2cf965468980bb2f5ef5",
+   "builtAt": "2026-10-06"
+  },
+  "sillon_chillout_bajo_gris": {
+   "file": "sillon_chillout_bajo_gris.glb",
+   "thumbnail": "thumbs/sillon_chillout_bajo_gris.webp",
+   "sha256": "6ff4f0fb73ceb647c5bb9b3e5cce94b72784d7670ec485291c56619774a124f4",
+   "bytes": 765552,
+   "triangles": 4448,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    850,
+    916,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    900,
+    650
+   ],
+   "family": "descanso",
+   "type": "low_seat",
+   "params": {
+    "seats": 1
+   },
+   "finishes": {
+    "trenzado": "ratan-gris",
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_trenzado",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bea740b68b4dcad9e64b12950b262ef4e0fb092411eedf90256377767e0f075a",
+   "builtAt": "2026-10-06"
+  },
+  "sillon_chillout_bajo_natural": {
+   "file": "sillon_chillout_bajo_natural.glb",
+   "thumbnail": "thumbs/sillon_chillout_bajo_natural.webp",
+   "sha256": "d26bae2bb7d730f3b320c0f963d081c138af0af524fe255dddb465ffab94664a",
+   "bytes": 541032,
+   "triangles": 4448,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    850,
+    916,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    900,
+    650
+   ],
+   "family": "descanso",
+   "type": "low_seat",
+   "params": {
+    "seats": 1
+   },
+   "finishes": {
+    "trenzado": "ratan-natural",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_natural",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1c2df8e22bd4c7269336769b20e71c2c2d37db6503a3eb92a81a2463b87212b7",
+   "builtAt": "2026-10-06"
+  },
+  "sofa_chillout_bajo_2p": {
+   "file": "sofa_chillout_bajo_2p.glb",
+   "thumbnail": "thumbs/sofa_chillout_bajo_2p.webp",
+   "sha256": "7e1bc34fe047e910bab95662635a5c3f3c2fee4d37aed382e6cb6af40d158450",
+   "bytes": 582404,
+   "triangles": 8352,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    916,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    900,
+    650
+   ],
+   "family": "descanso",
+   "type": "low_seat",
+   "params": {
+    "seats": 2
+   },
+   "finishes": {
+    "trenzado": "ratan-natural",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_natural",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ccea6651260c8f4768c96fa61e8e1861703f0e63fd225840a89aa0a31a1110c2",
+   "builtAt": "2026-10-06"
+  },
+  "sofa_chillout_bajo_3p": {
+   "file": "sofa_chillout_bajo_3p.glb",
+   "thumbnail": "thumbs/sofa_chillout_bajo_3p.webp",
+   "sha256": "ea51727def361f5a86ca8db09417a864821a8891405f994666795071042dd82e",
+   "bytes": 616508,
+   "triangles": 11488,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2200,
+    916,
+    634
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    900,
+    650
+   ],
+   "family": "descanso",
+   "type": "low_seat",
+   "params": {
+    "seats": 3
+   },
+   "finishes": {
+    "trenzado": "ratan-natural",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "aluminio-antracita"
+   },
+   "textures": [
+    "ratan_natural",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3befee414d4566f4a361dc2492175f7bfc7da0e6f32949556874b75c783c5d85",
+   "builtAt": "2026-10-06"
+  }
+ },
+ "textures": {
+  "algodon": {
+   "source": "polyhaven",
+   "id": "cotton_jersey",
+   "title": "Cotton Jersey",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/cotton_jersey",
+   "license": "CC0-1.0",
+   "sizeMm": 264,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg",
+     "bytes": 581360,
+     "md5": "d2f4493fdd48634b50d40f810ce9deb7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg",
+     "bytes": 678670,
+     "md5": "2dcc9dda3b726477f607c808e52f1833"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_rough_1k.jpg",
+     "bytes": 865264,
+     "md5": "ac691d215d3aca34dcd6ea2d03937286"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "marmol_blanco": {
+   "source": "ambientcg",
+   "id": "Marble021",
+   "title": "Marble 021",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Marble021",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Marble021_1K-JPG.zip",
+     "bytes": 4141632,
+     "sha256": "7e75982560079476f6051666985553deb3eb77b07d2923a12d0665733b8f043e"
+    }
+   ]
+  },
+  "ratan_natural": {
+   "source": "ambientcg",
+   "id": "Wicker013",
+   "title": "Wicker 013",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker013",
+   "license": "CC0-1.0",
+   "sizeMm": 500,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker013_1K-JPG.zip",
+     "bytes": 7589296,
+     "sha256": "c5a716e57e20a6f785342a2725cfec25a62b27f808dea76bcd878002b8a921e0"
+    }
+   ]
+  },
+  "ratan_trenzado": {
+   "source": "ambientcg",
+   "id": "Wicker002",
+   "title": "Wicker 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker002",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker002_1K-JPG.zip",
+     "bytes": 8737377,
+     "sha256": "86f94873dafbca88468d9632376be29630eaea989111e9fca4f692a1b1466d78"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  }
+ }
+}

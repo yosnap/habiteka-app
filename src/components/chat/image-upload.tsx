@@ -24,9 +24,11 @@ export interface UploadedImage {
 interface Props {
   onUpload: (image: UploadedImage) => void | Promise<void>;
   disabled?: boolean;
+  /** Texto del botón: cada ruta del asistente pide una imagen distinta. */
+  label?: string;
 }
 
-export function ImageUpload({ onUpload, disabled }: Props) {
+export function ImageUpload({ onUpload, disabled, label = '📷 Subir foto o boceto del espacio' }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   // null = cargando estado de consentimiento; true/false = ya conocido.
@@ -109,7 +111,7 @@ export function ImageUpload({ onUpload, disabled }: Props) {
         disabled={disabled || processing || consented === null}
         onClick={() => inputRef.current?.click()}
       >
-        {processing ? 'Preparando imagen…' : '📷 Subir foto o boceto del espacio'}
+        {processing ? 'Preparando imagen…' : label}
       </Button>
       {error ? (
         <p className="text-danger text-xs" role="alert">

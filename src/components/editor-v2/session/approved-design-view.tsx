@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import type { DraftScope } from '@/canvas/editor-v2/draft-contract';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { EditorSceneView } from '../scene/editor-scene-view';
-import { createWalkthroughVideoSaver } from './save-walkthrough-video';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ceilingSurfaces, eligibleCeilingRooms, insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { buildingDocuments } from '@/lib/editor-document/building-levels';
@@ -26,9 +25,6 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
   const [presentation, setPresentation] = useState<'plan' | 'spatial'>('spatial');
   const routeId = useStore(store, (state) => state.walkthroughId);
   const routes = useMemo(() => approval.document.walkthroughs ?? [], [approval.document]);
-  useEffect(() => {
-    if (routes.length && !store.getState().walkthroughId) store.getState().setWalkthrough(routes[0]!.id);
-  }, [routes, store]);
   const approximate = approval.assets.filter((asset) => !asset.sha256).length;
   const uncoveredRooms = useMemo(() => {
     try {
@@ -47,27 +43,27 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
   if (scope.zoneId) visitQuery.set('zona', scope.zoneId);
   const visitHref = `/projects/${encodeURIComponent(scope.projectId)}/editor?${visitQuery}`;
 
-  return <section className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-emerald-900/15 bg-white">
-    <header className="flex flex-wrap items-center gap-3 border-b border-emerald-900/15 px-4 py-3 text-sm">
+  return <section className="flex min-h-[560px] flex-1 flex-col overflow-hidden border border-line bg-surface text-ink [&_button]:cursor-pointer">
+    <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 text-sm">
+      <button type="button" className="rounded-control border border-line px-3 py-2 hover:bg-surface-muted" onClick={onBack}>← Volver al editor</button>
       <div className="mr-auto">
-        <strong>Diseño aprobado · revisión {approval.revision}</strong>
-        <p className="text-xs text-slate-600">{new Date(approval.approvedAt).toLocaleString('es-ES')} · La visita y el vídeo usan esta versión.</p>
+        <strong>Revisar plano aprobado</strong>
+        <p className="text-xs text-ink-soft">Solo lectura · revisión {approval.revision} · {new Date(approval.approvedAt).toLocaleDateString('es-ES')}</p>
       </div>
-      <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'plan'} onClick={() => setPresentation('plan')}>Plano visual</button>
-      <button type="button" className="rounded border px-3 py-2" aria-pressed={presentation === 'spatial'} onClick={() => setPresentation('spatial')}>3D y visita</button>
+      <button type="button" className="rounded-control border border-line px-3 py-2 aria-pressed:bg-brand-50" aria-pressed={presentation === 'plan'} onClick={() => setPresentation('plan')}>Plano 2D</button>
+      <button type="button" className="rounded-control border border-line px-3 py-2 aria-pressed:bg-brand-50" aria-pressed={presentation === 'spatial'} onClick={() => setPresentation('spatial')}>Modelo 3D</button>
       <a className="rounded border px-3 py-2" href={visitHref}>Enlace de esta versión</a>
       {onOpenVideoStudio ? <button type="button" className="rounded-control bg-brand-600 px-3 py-2 text-white" onClick={onOpenVideoStudio}>Crear vídeo</button>
         : <Link className="rounded-control bg-brand-600 px-3 py-2 text-white" href={`/projects/${encodeURIComponent(scope.projectId)}/videos${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>Crear vídeo</Link>}
-      <button type="button" className="rounded border px-3 py-2" onClick={onBack}>Editar diseño</button>
     </header>
-    {(approximate > 0 || uncoveredRooms.length > 0 || !routes.length) && <p className="border-b bg-amber-50 px-4 py-2 text-xs text-amber-950">
+    {(approximate > 0 || uncoveredRooms.length > 0 || !routes.length) && <details className="border-b border-line px-4 py-3 text-xs text-ink-soft"><summary className="cursor-pointer">Detalles de la guía: objetos y techos</summary><p className="mt-2">
       {approximate > 0 && `${approximate} objetos usan una representación aproximada; no se presentan como producto exacto. `}
-      {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); la visita y el vídeo las muestran abiertas. `}
-      {!routes.length && 'Para grabar una visita del modelo 3D, dibuja un recorrido en el borrador y aprueba una nueva revisión. Para presentar tus renders, abre «Vídeos con mis imágenes». La promoción de la parcela usa su propio guion.'}
-    </p>}
-    {routes.length > 1 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Recorrido del vídeo
-      <ModernSelect className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
-        {!routeId && <option value="">Selecciona un recorrido</option>}
+      {uncoveredRooms.length > 0 && `${uncoveredRooms.length} estancias interiores sin techo (${uncoveredRooms.join(', ')}); revisa esta guía antes de preparar diseños. `}
+      {!routes.length && 'Los recorridos del plano sirven para comprobar geometría. Para crear vídeos, revisa y acepta los diseños IA en Diseños.'}
+    </p></details>}
+    {routes.length > 0 && <label className="flex items-center gap-2 border-b px-4 py-2 text-sm">Comprobar recorrido del plano
+      <ModernSelect aria-label="Recorrido de la guía" className="rounded border px-2 py-1" value={routeId ?? ''} onChange={(event) => store.getState().setWalkthrough(event.target.value || null)}>
+        <option value="">Sin recorrido · vista libre</option>
         {routes.map((route) => <option key={route.id} value={route.id}>{route.name}</option>)}
       </ModernSelect>
     </label>}
@@ -75,7 +71,7 @@ export function ApprovedDesignView({ approval, scope, initialRouteId, onBack, on
       <div className="min-w-0 flex-1">
         <EditorSceneView key={presentation} store={store} projectId={scope.projectId} presentation={presentation}
         lightingPreset={approval.lightingPreset} lightingLocked
-        onSaveNativeVideo={createWalkthroughVideoSaver(scope, approval.id)} />
+        allowVideoExport={false} />
       </div>
     </div>
   </section>;

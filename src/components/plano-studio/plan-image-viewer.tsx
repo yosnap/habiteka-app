@@ -14,6 +14,8 @@ interface Props {
   alt: string;
   /** Leyenda que se muestra sobre la esquina inferior derecha. */
   caption?: ReactNode;
+  /** Contenido interactivo en el mismo marco y transformación que la imagen. */
+  overlay?: ReactNode;
 }
 
 interface View {
@@ -30,13 +32,14 @@ const FIT_PADDING = 24;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 8;
 
-export function PlanImageViewer({ src, alt, caption }: Props) {
+export function PlanImageViewer({ src, alt, caption, overlay }: Props) {
   const container = useRef<HTMLDivElement | null>(null);
   const image = useRef<HTMLImageElement | null>(null);
   const drag = useRef<{ px: number; py: number; vx: number; vy: number } | null>(null);
   const [view, setView] = useState<View>({ scale: 1, x: 0, y: 0, fit: 1 });
   const [pan, setPan] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   // Lee el tamaño natural del <img> en el momento de encuadrar: si la imagen
   // venía de caché, `onLoad` pudo dispararse antes de hidratar y no llegar.
@@ -46,6 +49,7 @@ export function PlanImageViewer({ src, alt, caption }: Props) {
     const w = img?.naturalWidth ?? 0;
     const h = img?.naturalHeight ?? 0;
     if (!el || !img?.complete || w === 0 || h === 0) return;
+    setImageSize((current) => current.width === w && current.height === h ? current : { width: w, height: h });
     // Un scroll programático (p. ej. de una herramienta de accesibilidad) no debe descuadrar.
     el.scrollTop = 0;
     el.scrollLeft = 0;
@@ -148,6 +152,11 @@ export function PlanImageViewer({ src, alt, caption }: Props) {
           pointerEvents: 'none',
         }}
       />
+      {overlay && imageSize.width > 0 && <div style={{ position: 'absolute', left: 0, top: 0,
+        width: imageSize.width, height: imageSize.height, transformOrigin: '0 0',
+        transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, pointerEvents: pan ? 'none' : 'auto' }}>
+        {overlay}
+      </div>}
       {caption ? (
         <div className="text-ink-soft absolute bottom-3 right-3 max-w-[55%] rounded bg-white/90 px-2 py-1 text-xs">
           {caption}

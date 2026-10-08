@@ -2,18 +2,24 @@ import type { EditorDocument, Opening, Wall } from '@/lib/editor-document/schema
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
 import { meters, type SceneBox } from './types';
-import { WINDOW_GLASS_COLOR, WINDOW_SEAL_COLOR, windowSealWidth } from './window-appearance';
+import { windowSealWidth } from './window-appearance';
+import { openingType } from '@/lib/editor-document/opening-types';
+import { openingFrameMm, openingLeafLayout, worldOpeningLeaves } from '@/lib/editor-document/opening-leaves';
+import { openingLook } from '@/lib/editor-document/opening-look';
+import { leafParts, leafSpan, SLIDING_RAIL_MM } from './opening-leaf-parts';
+import { openingPartStyle, type PartTone } from './opening-part-style';
+import { openingExtraParts } from './opening-extra-parts';
 
-/** Frames and glazing follow the host arc; a hinged door leaf remains rigid. */
+/** Marcos y vidrios siguen el arco del muro; las hojas de puerta son rígidas, sobre la cuerda entre jambas. */
 export function curvedOpeningMeshes(doc: EditorDocument, wall: Wall, opening: Opening): SceneBox[] {
-  const path = wallPath(doc, wall), props = openingConstruction(opening), boxes: SceneBox[] = [];
-  const frame = Math.min(45, opening.widthMm / 8, props.heightMm / 8), from = opening.position - opening.widthMm / path.length / 2;
+  const path = wallPath(doc, wall), props = openingConstruction(opening), boxes: SceneBox[] = [], type = openingType(opening)!, look = openingLook(opening);
+  const frame = openingFrameMm(opening), from = opening.position - opening.widthMm / path.length / 2;
   const to = opening.position + opening.widthMm / path.length / 2, depth = wall.thicknessMm + 20;
-  const add = (role: SceneBox['role'], x: number, z: number, y: number, width: number, height: number, thickness: number, angle: number) => {
+  const add = (role: SceneBox['role'], x: number, z: number, y: number, width: number, height: number, thickness: number, angle: number,
+    tone?: PartTone, shape?: SceneBox['shape']) => {
     boxes.push({ id: `${opening.id}:${boxes.length}`, sourceEntityId: opening.id, role,
       position: [meters(x), meters(props.elevationMm + y), meters(z)], size: [meters(width), meters(height), meters(thickness)], rotation: -angle,
-      color: role === 'glass' ? WINDOW_GLASS_COLOR : role === 'seal' ? WINDOW_SEAL_COLOR
-        : role === 'leaf' ? opening.colors?.leaf ?? '#bb956c' : opening.colors?.frame ?? '#f4f1e9' });
+      ...openingPartStyle(opening, type, look, role, tone), ...(shape ? { shape } : {}) });
   };
   const band = (start: number, end: number, y: number, height: number, thickness: number,
     role: SceneBox['role'] = 'frame', offset = 0) => {
@@ -30,8 +36,17 @@ export function curvedOpeningMeshes(doc: EditorDocument, wall: Wall, opening: Op
   band(from, to, props.heightMm - frame / 2, frame, depth);
   if (opening.kind === 'ventana') {
     band(from, to, frame / 2, frame, depth);
-    band(opening.position - frame / path.length / 2, opening.position + frame / path.length / 2, props.heightMm / 2, props.heightMm - frame * 2, depth * .6);
-    band(innerFrom, innerTo, props.heightMm / 2, props.heightMm - frame * 2, 8, 'glass');
+    if (type.operation === 'corredera-marco') {
+      // Dos paños que se cruzan en el centro, cada uno en su carril.
+      const overlap = 25 / path.length, offset = type.leafThicknessMm / 2 + 5;
+      band(innerFrom, opening.position + overlap, props.heightMm / 2, props.heightMm - frame * 2, 8, 'glass', -offset);
+      band(opening.position - overlap, innerTo, props.heightMm / 2, props.heightMm - frame * 2, 8, 'glass', offset);
+    } else {
+      // Montante central en la ventana histórica y en las de dos hojas; la fija y la de una hoja van sin él.
+      if (type.operation === 'generica' || (type.operation === 'abatible' && type.leaves >= 2))
+        band(opening.position - frame / path.length / 2, opening.position + frame / path.length / 2, props.heightMm / 2, props.heightMm - frame * 2, depth * .6);
+      band(innerFrom, innerTo, props.heightMm / 2, props.heightMm - frame * 2, 8, 'glass');
+    }
     const seal = windowSealWidth(frame);
     for (const side of [-1, 1]) {
       const face = side * (depth / 2 + 2);
@@ -40,13 +55,28 @@ export function curvedOpeningMeshes(doc: EditorDocument, wall: Wall, opening: Op
       band(innerFrom, innerTo, props.heightMm - frame + seal / 2, seal, 4, 'seal', face);
       band(innerFrom, innerTo, frame - seal / 2, seal, 4, 'seal', face);
     }
-  } else {
-    const left = path.at(innerFrom), right = path.at(innerTo), hinge = props.hinge === 'left' ? left : right, end = props.hinge === 'left' ? right : left;
-    const width = Math.hypot(end.x - hinge.x, end.y - hinge.y);
-    const delta = (props.swing === 'left' ? 1 : -1) * (props.hinge === 'left' ? 1 : -1) * props.openAngleDeg * Math.PI / 180;
-    const angle = Math.atan2(end.y - hinge.y, end.x - hinge.x) + delta;
-    add('leaf', hinge.x + Math.cos(angle) * width / 2, hinge.y + Math.sin(angle) * width / 2,
-      (props.heightMm - frame) / 2, width, props.heightMm - frame, 38, angle);
+    return boxes;
+  }
+  if (type.operation === 'corredera-marco') band(from, to, 10, 20, depth * .6);
+  const layout = worldOpeningLeaves(doc, opening)!, span = leafSpan(type, props.heightMm, frame);
+  for (const leaf of layout.leaves) for (const part of leafParts(leaf, type, span, look)) {
+    const across = part.across ?? 0, cos = Math.cos(leaf.angle), sin = Math.sin(leaf.angle);
+    add(part.role, leaf.center.x + cos * part.along - sin * across, leaf.center.y + sin * part.along + cos * across,
+      part.y, part.length, part.height, part.thickness, leaf.angle, part.tone, part.shape);
+  }
+  // Herrajes de granero y guías de la seccional sobre la cuerda entre jambas; sin tapajuntas, que no siguen la curva.
+  const { origin, direction, spanMm } = layout.frame, base = Math.atan2(direction.y, direction.x);
+  const local = openingLeafLayout(opening, spanMm, wall.thicknessMm)!;
+  for (const part of openingExtraParts(opening, type, look, local, { widthMm: opening.widthMm, heightMm: props.heightMm, frameMm: frame,
+    wallThicknessMm: wall.thicknessMm, depthMm: depth, casing: false })) {
+    const across = part.across ?? 0;
+    add(part.role, origin.x + direction.x * part.along - direction.y * across, origin.y + direction.y * part.along + direction.x * across,
+      part.y, part.length, part.height, part.thickness, base, part.tone, part.shape);
+  }
+  if (layout.rail && !type.barn) {
+    const { from: start, to: end } = layout.rail;
+    add('frame', (start.x + end.x) / 2, (start.y + end.y) / 2, props.heightMm - SLIDING_RAIL_MM / 2,
+      Math.hypot(end.x - start.x, end.y - start.y), SLIDING_RAIL_MM, 60, Math.atan2(end.y - start.y, end.x - start.x));
   }
   return boxes;
 }

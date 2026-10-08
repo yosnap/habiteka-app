@@ -13,11 +13,19 @@ El editor conserva y sincroniza tus cambios. El estado **Sincronizado** indica q
 
 1. Revisa el plano, objetos, plantas, techos y parcela.
 2. Espera a **Sincronizado**.
-3. Pulsa **Aprobar diseño** si es la primera vez, o **Aprobar cambios** si ya hay una versión. Desde Parcela real, tras confirmar el encaje, puedes usar **Revisar y aprobar diseño**.
+3. Abre **Herramientas** y pulsa **Aprobar diseño** si es la primera vez, o **Aprobar cambios** si ya hay una versión. Desde Parcela real, tras confirmar el encaje, puedes usar **Revisar y aprobar diseño**.
 4. En la ventana de revisión, comprueba la luz y pulsa **Confirmar aprobación**. La entrada desde Parcela real propone la luz de esa parcela.
-5. Se abre la copia conservada. **Ver aprobado** permite volver a ella desde el borrador, después de la primera aprobación. Si necesitas presentar los renders, utiliza **Vídeos con mis imágenes**.
+5. Sigues en el editor. **Herramientas → Ver aprobado** abre la copia conservada después de la primera aprobación; **Volver al editor** regresa al borrador. Para presentar los renders, abre **Vídeos**.
 
-La visita y los vídeos nativos usan esa aprobación; el montaje compara con ella las revisiones de sus imágenes. Aprobar no genera imágenes ni vídeos. Editar después el borrador no modifica los resultados anteriores. Cambiar encaje, escenario o luz de parcela exige aprobar otra revisión para exportar con esos cambios. Las imágenes anteriores pueden requerir regeneración si dejan de corresponder al diseño aprobado.
+Esta aprobación fija la geometría y las medidas del plano guía; no acepta por sí sola las imágenes IA. Abre cada render en **Diseños** y pulsa **Aceptar este diseño** después de revisarlo. Vídeos y visitas finales deben partir de esas imágenes aceptadas y conservar sus muebles y acabados. Aprobar no genera imágenes ni vídeos. Editar el borrador no modifica los resultados anteriores; cambiar geometría, encaje o luz puede requerir nuevas imágenes coherentes y su aceptación.
+
+## Aviso al cambiar un diseño aprobado
+
+En cuanto un cambio aparta el plano de la versión aprobada aparece el aviso **El plano ya no coincide con el diseño aprobado**. Basta mover un mueble 1 cm con las flechas. Las rutas, los comentarios y los rótulos movidos dentro de su estancia no cuentan. Mientras no coincida, las imágenes aceptadas con esa versión no sirven para generar nuevos interiores ni vídeos.
+
+- **Deshacer** recupera el estado anterior. Solo aparece si hay historial en esta sesión; después de recargar, deshaz el cambio a mano.
+- **Aprobar cambios** abre la revisión de la nueva versión. Después tendrás que generar y aceptar imágenes coherentes con ella.
+- **Mantener el cambio** oculta el aviso hasta el siguiente cambio.
 
 ## Si aparecen dos versiones
 

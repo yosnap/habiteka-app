@@ -14,6 +14,8 @@ import { restOnHost } from './object-host-rest';
  * otro mueble (televisor sobre mueble, microondas sobre encimera) se apoya antes en su anfitrión y sigue a su altura.
  */
 export function restObjectsOnFloors(doc: EditorDocument): EditorDocument {
+  // La cota de los muebles existe desde la versión espacial del documento: uno anterior no la admite.
+  if (doc.schemaVersion < 4) return doc;
   const rooms = deriveRoomsSafe(doc);
   if (!rooms.length) return doc;
   let changed = false;

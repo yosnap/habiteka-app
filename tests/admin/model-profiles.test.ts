@@ -26,13 +26,13 @@ describe('perfiles de modelos', () => {
     }
   });
 
-  it('genera con Flare y edita con Sunburst en el perfil de validación', () => {
+  it('el perfil arquitectónico usa Sunburst y un auditor visual independiente', () => {
     const { configurations } = MODEL_PROFILES.gpt_25_architecture_validation;
     const render = configurations.find((item) => item.action === 'render3d')!;
     const inpaint = configurations.find((item) => item.action === 'inpaint')!;
-    // Misma calidad por la mitad de coste en la prueba A/B de generación.
-    expect(render.primaryModel).toBe('gpt-image-2-5-flare-image-to-image');
-    expect(render.backups?.[0]?.model).toBe('gpt-image-2-5-sunburst-image-to-image');
+    expect(render.primaryModel).toBe('gpt-image-2-5-sunburst-image-to-image');
+    expect(configurations.find(item => item.action === 'vision')?.primaryModel).toBe('anthropic/claude-sonnet-5');
+    expect(render.backups).toHaveLength(3);
     expect(inpaint.primaryModel).toBe('gpt-image-2-5-sunburst-image-to-image');
   });
 });

@@ -7,8 +7,9 @@ import { editDocument, newId } from '@/canvas/editor-v2/editing-operations';
 import { linearBoundarySupport } from './landing-wall-placement';
 
 /** Draw along the centre line; retain one selectable entity for the whole run. */
-export function addLinearBoundary(doc: EditorDocument, kind: BoundaryKind, drawnFrom: Point, drawnTo: Point) {
-  const item = OUTDOOR_CATALOG.find((entry) => entry.kind === kind)!;
+export function addLinearBoundary(doc: EditorDocument, kind: BoundaryKind, drawnFrom: Point, drawnTo: Point, catalogId?: string | null) {
+  const item = OUTDOOR_CATALOG.find((entry) => entry.kind === kind && entry.id === catalogId)
+    ?? OUTDOOR_CATALOG.find((entry) => entry.kind === kind)!;
   // Sobre el borde de un descansillo se retranquea como un murete; cruzándolo o dentro, se apoya en su superficie.
   const support = linearBoundarySupport(doc, [drawnFrom, drawnTo], item.depthMm);
   const [from, to] = support.points, elevationMm = support.landingId ? support.elevationMm : item.elevationMm;

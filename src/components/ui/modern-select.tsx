@@ -35,7 +35,7 @@ export function ModernSelect({ children, className = '', compact = false, popove
         <Select.Viewport className="p-1">
           {groups.map((group) => <Select.Group key={group || '__ungrouped'}>
             {group && <Select.Label className="px-2 py-1 text-xs font-medium text-muted-foreground">{group}</Select.Label>}
-            {options.filter((item) => (item.group ?? '') === group).map((item) => <Select.Item key={item.value} value={item.value || emptyValue} disabled={item.disabled} className="relative flex cursor-default items-center rounded-control py-1.5 pr-8 pl-2 text-sm outline-none data-[highlighted]:bg-primary/10 data-[state=checked]:bg-primary/15 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40">
+            {options.filter((item) => (item.group ?? '') === group).map((item) => <Select.Item key={item.value} value={item.value || emptyValue} disabled={item.disabled} className="relative flex cursor-pointer items-center rounded-control py-1.5 pr-8 pl-2 text-sm outline-none data-[highlighted]:bg-primary/10 data-[state=checked]:bg-primary/15 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40">
               <Select.ItemText>{item.label}</Select.ItemText>
               <Select.ItemIndicator className="absolute right-2"><Check className="h-4 w-4 text-primary" aria-hidden="true" /></Select.ItemIndicator>
             </Select.Item>)}

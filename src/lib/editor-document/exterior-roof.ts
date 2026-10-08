@@ -3,10 +3,14 @@ import type { EditorDocument } from './schema';
 import { eligibleCeilingRooms } from './ceiling-geometry';
 import { surfaceMaterial } from './surface-materials';
 import { parseEditorDocument } from './validation';
+import { roofOpeningSchema } from './roof-opening-types';
 
 export const ROOF_KIND_LABELS = { flat: 'Plana', mono: 'Una agua', gable: 'Dos aguas', hip: 'Cuatro aguas' } as const;
 export const exteriorRoofSchema = z.object({
   kind: z.enum(['flat', 'mono', 'gable', 'hip']),
+  /** Sin campo en documentos anteriores: conservar sus huecos hasta una elección manual. */
+  voidCover: z.enum(['solid', 'open', 'glass']).optional(),
+  openings: z.array(roofOpeningSchema).max(100).refine(items => new Set(items.map(item => item.id)).size === items.length, 'Cristal o ventana de techo duplicados').optional(),
   roomIds: z.array(z.string().max(4000).refine(id => {
     try { const ids = JSON.parse(id.slice(5)); return id.startsWith('room:') && Array.isArray(ids) && ids.length >= 3 && ids.every(v => typeof v === 'string' && v.length > 0); }
     catch { return false; }
@@ -26,7 +30,8 @@ export function setExteriorRoof(input: EditorDocument, patch: Partial<ExteriorRo
   else {
     const defaults: ExteriorRoof = { kind: 'flat', roomIds: eligibleCeilingRooms(doc).map(room => room.id),
       pitchDeg: 25, orientationDeg: 0, eavesMm: 250, thicknessMm: 160, color: '#57534e' };
-    const next = { ...defaults, ...doc.exteriorRoof, ...patch };
+    const next: ExteriorRoof = { ...defaults, ...doc.exteriorRoof, ...patch };
+    next.voidCover = patch.voidCover ?? doc.exteriorRoof?.voidCover ?? (doc.exteriorRoof ? 'open' : 'solid');
     if (patch.materialId === undefined && Object.hasOwn(patch, 'materialId')) delete next.materialId;
     doc.exteriorRoof = exteriorRoofSchema.parse(next);
   }

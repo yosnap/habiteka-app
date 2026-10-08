@@ -1,0 +1,2340 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia sofas) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "sofas",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "butaca_club_conac": {
+   "file": "butaca_club_conac.glb",
+   "thumbnail": "thumbs/butaca_club_conac.webp",
+   "sha256": "c756c2d02ffed4a55197c52af7788553fa47d2dc882a235fbb3433818d07c84d",
+   "bytes": 319912,
+   "triangles": 7616,
+   "texturePx": 512,
+   "dimensionsMm": [
+    929,
+    951,
+    771
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    760
+   ],
+   "family": "sofas",
+   "type": "armchair",
+   "params": {
+    "style": "club",
+    "seats": 1
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0302ee6605e793aa1929d224b0e6749547a772ab631a1fa9595289c6427ecdc8",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_club_marron": {
+   "file": "butaca_club_marron.glb",
+   "thumbnail": "thumbs/butaca_club_marron.webp",
+   "sha256": "9b9569c811a2c56964f2c40d7d0ba682db9e36c65f74727e37b256ed846b91eb",
+   "bytes": 357884,
+   "triangles": 7616,
+   "texturePx": 512,
+   "dimensionsMm": [
+    929,
+    951,
+    771
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    760
+   ],
+   "family": "sofas",
+   "type": "armchair",
+   "params": {
+    "style": "club",
+    "seats": 1
+   },
+   "finishes": {
+    "tapiceria": "piel-marron",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "piel_marron"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "048b5f44b3a333c83f8987d1a9e5d34bb6c40cb9ed1c9ca89c8fca49b57e8629",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_envolvente_boucle": {
+   "file": "butaca_envolvente_boucle.glb",
+   "thumbnail": "thumbs/butaca_envolvente_boucle.webp",
+   "sha256": "54c4754bd99def6437658a7ed58e4eae895f321caa976faaa788c8aaa600c230",
+   "bytes": 221780,
+   "triangles": 4692,
+   "texturePx": 512,
+   "dimensionsMm": [
+    820,
+    755,
+    740
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    820,
+    780,
+    740
+   ],
+   "family": "sofas",
+   "type": "armchair_round",
+   "params": {
+    "style": "moderno"
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "febcb08e609fbcf6b578f9eff5a804cb79c6460c432ed6165fc5ac55b7e81c43",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_envolvente_rosa": {
+   "file": "butaca_envolvente_rosa.glb",
+   "thumbnail": "thumbs/butaca_envolvente_rosa.webp",
+   "sha256": "a922374d6456d655bcb72349f8cd16011439cf9a7eee50f56f56fcf4f0cfc864",
+   "bytes": 152144,
+   "triangles": 4692,
+   "texturePx": 512,
+   "dimensionsMm": [
+    820,
+    755,
+    740
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    820,
+    780,
+    740
+   ],
+   "family": "sofas",
+   "type": "armchair_round",
+   "params": {
+    "style": "moderno"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-rosa",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e11999955765c265bc4c83dc058dc4b91ed84a62e2b7dd5f915b6481ac82e957",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_madera_nogal": {
+   "file": "butaca_madera_nogal.glb",
+   "thumbnail": "thumbs/butaca_madera_nogal.webp",
+   "sha256": "28aa1cd54bfd80bc8f42b7a93c86e7108283fd5457ca3363322fcd59ea3c9a0c",
+   "bytes": 216988,
+   "triangles": 3012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    695,
+    784,
+    746
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    680,
+    780,
+    780
+   ],
+   "family": "sofas",
+   "type": "armchair_wood",
+   "params": {},
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "madera": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "323432e2948507e5baa20826626d4b9c83af324808fb330945e406343a22377b",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_madera_roble": {
+   "file": "butaca_madera_roble.glb",
+   "thumbnail": "thumbs/butaca_madera_roble.webp",
+   "sha256": "39649138f0356b232e2be356de5a406d352d861f12b293e9c7759b0d3e4d312e",
+   "bytes": 238540,
+   "triangles": 3012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    695,
+    784,
+    746
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    680,
+    780,
+    780
+   ],
+   "family": "sofas",
+   "type": "armchair_wood",
+   "params": {},
+   "finishes": {
+    "tapiceria": "lino-arena",
+    "madera": "roble"
+   },
+   "textures": [
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "96ac6ea6d65dadd3e8c26b40d70bb0a116af7133314ca4afcbe35c466f82a579",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_orejero_gris": {
+   "file": "butaca_orejero_gris.glb",
+   "thumbnail": "thumbs/butaca_orejero_gris.webp",
+   "sha256": "531f62c712c4e0ec4a4af7a252ce29b55c16416a1ee68f0bb9363ae55e549ad5",
+   "bytes": 280968,
+   "triangles": 8320,
+   "texturePx": 512,
+   "dimensionsMm": [
+    822,
+    911,
+    1071
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    860,
+    1060
+   ],
+   "family": "sofas",
+   "type": "wingback",
+   "params": {
+    "style": "orejero"
+   },
+   "finishes": {
+    "tapiceria": "espiga-gris",
+    "patas": "nogal"
+   },
+   "textures": [
+    "espiga",
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5e90b1c462d5149e450d70eff5a45daae03c011cb019616f93f848baa7b9b305",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_orejero_verde": {
+   "file": "butaca_orejero_verde.glb",
+   "thumbnail": "thumbs/butaca_orejero_verde.webp",
+   "sha256": "78f994be3ed65eed6e392d36e408496045bce330e88ceba329b3213f97b331a0",
+   "bytes": 248460,
+   "triangles": 8320,
+   "texturePx": 512,
+   "dimensionsMm": [
+    822,
+    911,
+    1071
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    860,
+    1060
+   ],
+   "family": "sofas",
+   "type": "wingback",
+   "params": {
+    "style": "orejero"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "47114b5c81664e4600b3f5ff8fc47ff01c75bff3666994f589485bc4d0073431",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_tapizada_boucle": {
+   "file": "butaca_tapizada_boucle.glb",
+   "thumbnail": "thumbs/butaca_tapizada_boucle.webp",
+   "sha256": "90a4df9e27af65209a98caa52f469326c270facfe5a581e870d80889292349a7",
+   "bytes": 248856,
+   "triangles": 7600,
+   "texturePx": 512,
+   "dimensionsMm": [
+    863,
+    911,
+    806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    880,
+    800
+   ],
+   "family": "sofas",
+   "type": "armchair",
+   "params": {
+    "style": "moderno",
+    "seats": 1,
+    "arm_w": 0.15
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9c5b9c9de79a7abc69c8121bf20867faa2f7409dd14f1595dc2778ddbd7564d7",
+   "builtAt": "2026-10-05"
+  },
+  "butaca_tapizada_mostaza": {
+   "file": "butaca_tapizada_mostaza.glb",
+   "thumbnail": "thumbs/butaca_tapizada_mostaza.webp",
+   "sha256": "1a4784cffbbbfc7a23c6d232b9984c7a08fbb90dddcb325bdd042253389d9026",
+   "bytes": 178916,
+   "triangles": 7600,
+   "texturePx": 512,
+   "dimensionsMm": [
+    863,
+    911,
+    806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    880,
+    800
+   ],
+   "family": "sofas",
+   "type": "armchair",
+   "params": {
+    "style": "moderno",
+    "seats": 1,
+    "arm_w": 0.15
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-mostaza",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e7a9e447216ba8011e9d1d4ec13dddbb09a74f4c15344ebe4062336d6ecb4336",
+   "builtAt": "2026-10-05"
+  },
+  "chaise_dormitorio_lino": {
+   "file": "chaise_dormitorio_lino.glb",
+   "thumbnail": "thumbs/chaise_dormitorio_lino.webp",
+   "sha256": "07742a2bede213d68e18fc9dbbd4e63e7fb38bd3744d62c02727024ae8eacacb",
+   "bytes": 942924,
+   "triangles": 14316,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1616,
+    678,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    650,
+    850
+   ],
+   "family": "sofas",
+   "type": "chaise_classic",
+   "params": {
+    "side": "derecha"
+   },
+   "finishes": {
+    "tapiceria": "lino-blanco",
+    "patas": "fresno"
+   },
+   "textures": [
+    "fresno",
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "82c803ca2315e3e7f04e83558ccd860a5fdc441f06dbb30c71d8c67a4ded6dcc",
+   "builtAt": "2026-10-05"
+  },
+  "chaise_dormitorio_rosa": {
+   "file": "chaise_dormitorio_rosa.glb",
+   "thumbnail": "thumbs/chaise_dormitorio_rosa.webp",
+   "sha256": "e733a08f2f9227bccaf2355cfe5b6d42c8c0374901c0203f79eaa249318c2116",
+   "bytes": 622476,
+   "triangles": 14316,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1616,
+    678,
+    850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    650,
+    850
+   ],
+   "family": "sofas",
+   "type": "chaise_classic",
+   "params": {
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-rosa",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a6ee7f2266647c476b52f186310d6450cd2ae427b6b553c1bacfeea632433b9d",
+   "builtAt": "2026-10-05"
+  },
+  "meridiana_derecha": {
+   "file": "meridiana_derecha.glb",
+   "thumbnail": "thumbs/meridiana_derecha.webp",
+   "sha256": "c452e42e753d51e5e1dced352cb284f37d0a8a63e98db65c8455a53cc658c901",
+   "bytes": 961840,
+   "triangles": 10508,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1865,
+    781,
+    821
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1850,
+    760,
+    800
+   ],
+   "family": "sofas",
+   "type": "daybed",
+   "params": {
+    "style": "escandinavo",
+    "side": "derecha"
+   },
+   "finishes": {
+    "tapiceria": "lino-arena",
+    "patas": "roble"
+   },
+   "textures": [
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c67de5c9d3c72431d0c9a459e0587efa9cce36b6e348824ad9d4870f4ac7286f",
+   "builtAt": "2026-10-05"
+  },
+  "meridiana_izquierda": {
+   "file": "meridiana_izquierda.glb",
+   "thumbnail": "thumbs/meridiana_izquierda.webp",
+   "sha256": "bef3b171d7292ac907fb8e7275b1c111cb60e6009d9c6a2893cd411e21d59b87",
+   "bytes": 961896,
+   "triangles": 10508,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1865,
+    781,
+    821
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1850,
+    760,
+    800
+   ],
+   "family": "sofas",
+   "type": "daybed",
+   "params": {
+    "style": "escandinavo",
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "lino-arena",
+    "patas": "roble"
+   },
+   "textures": [
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "66b2e005225a1aa5e4ad343aa20861fe1922fc3e74a1cfeffb4722513d15e8c4",
+   "builtAt": "2026-10-05"
+  },
+  "meridiana_izquierda_verde": {
+   "file": "meridiana_izquierda_verde.glb",
+   "thumbnail": "thumbs/meridiana_izquierda_verde.webp",
+   "sha256": "1d39ef82ee4150801cbdc5e254583393b85f0c50aa1498288cde3e24437856db",
+   "bytes": 583436,
+   "triangles": 10508,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1865,
+    781,
+    821
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1850,
+    760,
+    800
+   ],
+   "family": "sofas",
+   "type": "daybed",
+   "params": {
+    "style": "escandinavo",
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b461a8b3e29b42ba60a8dd1bd457a1c6338f86fd5f942f6727c3f5499ba802bd",
+   "builtAt": "2026-10-05"
+  },
+  "puf_cuadrado": {
+   "file": "puf_cuadrado.glb",
+   "thumbnail": "thumbs/puf_cuadrado.webp",
+   "sha256": "d3ed3bd97048b871bd8a1a3fb574a8e7554874bdc31efa06af0ef92c369a84bd",
+   "bytes": 255368,
+   "triangles": 2112,
+   "texturePx": 512,
+   "dimensionsMm": [
+    620,
+    620,
+    440
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    420
+   ],
+   "family": "sofas",
+   "type": "pouf",
+   "params": {
+    "shape": "cuadrado"
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9597b3906730482b705342e9776a1c63f04f2d2c1c96bcdf39b9351c129e9acc",
+   "builtAt": "2026-10-05"
+  },
+  "puf_redondo": {
+   "file": "puf_redondo.glb",
+   "thumbnail": "thumbs/puf_redondo.webp",
+   "sha256": "dce8f4a3a9aa78a8b76cc66784e4641e332ad4cbd0c8bc0282632dccba43e158",
+   "bytes": 197664,
+   "triangles": 2128,
+   "texturePx": 512,
+   "dimensionsMm": [
+    520,
+    520,
+    420
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    500,
+    420
+   ],
+   "family": "sofas",
+   "type": "pouf",
+   "params": {
+    "shape": "redondo"
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "patas": "nogal"
+   },
+   "textures": [
+    "boucle",
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "55c0470b0528c1a268cf2b51a19cf888f02c850d0ff4f8012b72e3300d680771",
+   "builtAt": "2026-10-05"
+  },
+  "puf_redondo_verde": {
+   "file": "puf_redondo_verde.glb",
+   "thumbnail": "thumbs/puf_redondo_verde.webp",
+   "sha256": "d71f422a0e9f9cb21d42c0717a1fb848826f543ee760b2b940bd7226c91b30e3",
+   "bytes": 128436,
+   "triangles": 2128,
+   "texturePx": 512,
+   "dimensionsMm": [
+    520,
+    520,
+    420
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    500,
+    420
+   ],
+   "family": "sofas",
+   "type": "pouf",
+   "params": {
+    "shape": "redondo"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0b0c39e93479759515126c6ace3a0ba89ebc87069b2d5231cd510de58c7936ed",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_brazo_fino_2p": {
+   "file": "sofa_brazo_fino_2p.glb",
+   "thumbnail": "thumbs/sofa_brazo_fino_2p.webp",
+   "sha256": "ae4236c7c3ee12a92a7a5566a9ed08892438e49f5cf105e3fc0e0a1bddb50152",
+   "bytes": 508580,
+   "triangles": 12064,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1605,
+    911,
+    786
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    880,
+    780
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "brazos_finos"
+   },
+   "finishes": {
+    "tapiceria": "espiga-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "espiga"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2eb9bacc5be42001183d1a2ff5a8335269eba5f402b978f77481cc8037251d1a",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_brazo_fino_3p": {
+   "file": "sofa_brazo_fino_3p.glb",
+   "thumbnail": "thumbs/sofa_brazo_fino_3p.webp",
+   "sha256": "0fed3340ec719c8ed3c994f377b023e21f4bb207b3e67528f10e4e23d21c764f",
+   "bytes": 525048,
+   "triangles": 14128,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2005,
+    911,
+    786
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    880,
+    780
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "brazos_finos"
+   },
+   "finishes": {
+    "tapiceria": "espiga-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "espiga"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "06553cc3e8ddfa8c10c918ccc4411d50d252658a34ba053a91bf6ea324f83f43",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_brazo_fino_3p_arena": {
+   "file": "sofa_brazo_fino_3p_arena.glb",
+   "thumbnail": "thumbs/sofa_brazo_fino_3p_arena.webp",
+   "sha256": "baf48c48a2328d067fff935c9c1380d67bcbec633cabcbebf4db91a8f8332258",
+   "bytes": 553328,
+   "triangles": 14128,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2005,
+    911,
+    786
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    880,
+    780
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "brazos_finos"
+   },
+   "finishes": {
+    "tapiceria": "lino-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "abcd5ee4af9d6dc6f8662165cb72b21444153a42fb5691299f26f505603ac3e2",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_brazo_fino_4p": {
+   "file": "sofa_brazo_fino_4p.glb",
+   "thumbnail": "thumbs/sofa_brazo_fino_4p.webp",
+   "sha256": "2dbe100cbb71ff7e4231f0078abab00cb3a309548eaadee8043d4ffd8d6114f7",
+   "bytes": 542508,
+   "triangles": 16608,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2405,
+    911,
+    786
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2400,
+    880,
+    780
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "brazos_finos"
+   },
+   "finishes": {
+    "tapiceria": "espiga-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "espiga"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ac9d01b6df338d0c9ff2a030d272277796dbb2d094acdbb5efcc253a79e74576",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_cama_abierto": {
+   "file": "sofa_cama_abierto.glb",
+   "thumbnail": "thumbs/sofa_cama_abierto.webp",
+   "sha256": "7f54552e339cd509babb114c7014f4e63cceea8ddb65edbc89378d20a1cc3692",
+   "bytes": 1183036,
+   "triangles": 22420,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2005,
+    2155,
+    855
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    2150,
+    850
+   ],
+   "family": "sofas",
+   "type": "sofa_bed",
+   "params": {
+    "style": "brazos_finos",
+    "seat_depth": 950,
+    "open": true
+   },
+   "finishes": {
+    "tapiceria": "tejido-azul",
+    "patas": "metal-negro",
+    "metal": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "65534a0d7b8602cd6b409e633f2e62da7e10163dce95b52e7624991d15815939",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_cama_cerrado": {
+   "file": "sofa_cama_cerrado.glb",
+   "thumbnail": "thumbs/sofa_cama_cerrado.webp",
+   "sha256": "9a5471bd737202181ef38997b697498c7e06ab7b2bfae2a439dde6cbc41bf68a",
+   "bytes": 456316,
+   "triangles": 14592,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2005,
+    981,
+    855
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    950,
+    850
+   ],
+   "family": "sofas",
+   "type": "sofa_bed",
+   "params": {
+    "style": "brazos_finos",
+    "seat_depth": 950
+   },
+   "finishes": {
+    "tapiceria": "tejido-azul",
+    "patas": "metal-negro",
+    "metal": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c9f62555b5e454517a032eafa0ca1c4ceba8b2b5ae1484b982b835521300f091",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_capitone_2p": {
+   "file": "sofa_capitone_2p.glb",
+   "thumbnail": "thumbs/sofa_capitone_2p.webp",
+   "sha256": "1b6966afa22964618a1dca32cebeabd87a17c0f9ad0fd0ecec658ec6ad71cdd1",
+   "bytes": 904444,
+   "triangles": 25496,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1721,
+    933,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    900,
+    740
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "capitone",
+    "seats": 2
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8e8682796d99cd50a42df7556fd4459569e7a69362adfb5c0755e458a188cd09",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_capitone_2p_azul": {
+   "file": "sofa_capitone_2p_azul.glb",
+   "thumbnail": "thumbs/sofa_capitone_2p_azul.webp",
+   "sha256": "979126bd6775bd650b249d918b2d6ed7bbc220477036b17c08a02c5dff0f6353",
+   "bytes": 735472,
+   "triangles": 25496,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1721,
+    933,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1700,
+    900,
+    740
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "capitone",
+    "seats": 2
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-azul",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cbed9507eab39ac9ab03aced09ae19925744ded9f5985b0913a97e4aeed3e64d",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_capitone_3p": {
+   "file": "sofa_capitone_3p.glb",
+   "thumbnail": "thumbs/sofa_capitone_3p.webp",
+   "sha256": "f9282fde327a15ff6bacf964479f48e14bc2231326a9cdfbba8c2b5f0f3a12ec",
+   "bytes": 943004,
+   "triangles": 29352,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2171,
+    932,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2150,
+    900,
+    740
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "capitone",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "piel-conac",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "piel_conac"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "75a0538676e8ba58d0dc1ef5476f2b2c5e9176198e111bc2672a6c089faf3920",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_capitone_3p_verde": {
+   "file": "sofa_capitone_3p_verde.glb",
+   "thumbnail": "thumbs/sofa_capitone_3p_verde.webp",
+   "sha256": "0588a7307dd46276593c295c4110449e31b09d9039f58f57f5a220dcfc433945",
+   "bytes": 781532,
+   "triangles": 29352,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2171,
+    932,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2150,
+    900,
+    740
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "capitone",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "03d711cd477036acd199e48a09bd73cb73dd87cdb43f51171e72f97d2a96783c",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_chaise_derecha_3p": {
+   "file": "sofa_chaise_derecha_3p.glb",
+   "thumbnail": "thumbs/sofa_chaise_derecha_3p.webp",
+   "sha256": "2376cf14ba6220d8dc1fda3ebe3dcddf1014afff2b5100ed99d2b642186b2870",
+   "bytes": 649020,
+   "triangles": 23760,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2713,
+    1631,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2700,
+    1600,
+    820
+   ],
+   "family": "sofas",
+   "type": "chaise",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "chaise_w": 900,
+    "side": "derecha"
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "63a608ccbbba391e6962906f28067f61e2ac5ede34a190ecfc30ae64a212e16a",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_chaise_derecha_4p": {
+   "file": "sofa_chaise_derecha_4p.glb",
+   "thumbnail": "thumbs/sofa_chaise_derecha_4p.webp",
+   "sha256": "2fbedabfb7e2b8345ddb0caa0b85fc046aed95cf496bdbafba6d33fbd100f3e7",
+   "bytes": 665052,
+   "triangles": 25880,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3113,
+    1680,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3100,
+    1650,
+    820
+   ],
+   "family": "sofas",
+   "type": "chaise",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "chaise_w": 900,
+    "side": "derecha"
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "41a4baec2b93653ed4ecb9915ca3215857c6d27518205dfea5ef873d0ffc8cc0",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_chaise_izquierda_3p": {
+   "file": "sofa_chaise_izquierda_3p.glb",
+   "thumbnail": "thumbs/sofa_chaise_izquierda_3p.webp",
+   "sha256": "f8ab0b99436a646902f68cdcccd57c3c827f3ddf7d55222ea0c35db1b731be85",
+   "bytes": 648828,
+   "triangles": 23760,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2713,
+    1631,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2700,
+    1600,
+    820
+   ],
+   "family": "sofas",
+   "type": "chaise",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "chaise_w": 900,
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cc04233847ad7ec32fa901605d8243bda05704bdb49119fecd42823d4b283ed2",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_chaise_izquierda_3p_boucle": {
+   "file": "sofa_chaise_izquierda_3p_boucle.glb",
+   "thumbnail": "thumbs/sofa_chaise_izquierda_3p_boucle.webp",
+   "sha256": "797f68189d2585f8e9996064d6d813206f15c5261dd37c9c5311470387e9f9c9",
+   "bytes": 522584,
+   "triangles": 23760,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2713,
+    1631,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2700,
+    1600,
+    820
+   ],
+   "family": "sofas",
+   "type": "chaise",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "chaise_w": 900,
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b7a0168796baf0c249fc5fd64139c3920e330894c41260cf16bd93644f471fcf",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_chaise_izquierda_4p": {
+   "file": "sofa_chaise_izquierda_4p.glb",
+   "thumbnail": "thumbs/sofa_chaise_izquierda_4p.webp",
+   "sha256": "274efe11b0ada82549abe9c3e92bb31e0bf2b921700666fcec6337965597bebd",
+   "bytes": 664892,
+   "triangles": 25880,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3113,
+    1680,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3100,
+    1650,
+    820
+   ],
+   "family": "sofas",
+   "type": "chaise",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "chaise_w": 900,
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b43f5b4ec0581b4651c2773aade8d149b61ff5c74ab3ae923d22d25c20e6fe1e",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_2p": {
+   "file": "sofa_moderno_2p.glb",
+   "thumbnail": "thumbs/sofa_moderno_2p.webp",
+   "sha256": "64197b7e226aa4386259903acdb3f7a54426333a132e6c4198add3656d2adc04",
+   "bytes": 557264,
+   "triangles": 13824,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1813,
+    981,
+    826
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 2
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b1bfd34b962616cffbe6b9d2a01dad1562cada0c7e0a75bc33524898b2f5cb7c",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_3p": {
+   "file": "sofa_moderno_3p.glb",
+   "thumbnail": "thumbs/sofa_moderno_3p.webp",
+   "sha256": "f22fba97a5555378b71bc34958dfb09b078641fff1f32413d02c634e530e6e97",
+   "bytes": 587460,
+   "triangles": 17080,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2213,
+    981,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "769726d81aacfe2bff9882a3818315f550b138ff817f4cee38af180870915db6",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_3p_antracita": {
+   "file": "sofa_moderno_3p_antracita.glb",
+   "thumbnail": "thumbs/sofa_moderno_3p_antracita.webp",
+   "sha256": "986bba01e32da70168237009cfa3524624c14a4de202068f1dc2595ec0f6f2c4",
+   "bytes": 487632,
+   "triangles": 17080,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2213,
+    981,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "966021f2c2810812b2e6565c31eeaa0ebc73734cc5baf076d0250fb3769aa3b3",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_3p_boucle": {
+   "file": "sofa_moderno_3p_boucle.glb",
+   "thumbnail": "thumbs/sofa_moderno_3p_boucle.webp",
+   "sha256": "e11f3b9316efb98ab988e8fd0a9181b108efd1fe415620c4ba24c119cf517c1b",
+   "bytes": 462764,
+   "triangles": 17080,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2213,
+    981,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "boucle-crudo",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "56171fa85ce084d496dd6c0c945334628c6a0f1f2b58ff8e879e47e02c1b1bf5",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_3p_terciopelo": {
+   "file": "sofa_moderno_3p_terciopelo.glb",
+   "thumbnail": "thumbs/sofa_moderno_3p_terciopelo.webp",
+   "sha256": "32ab1589ec1b905d8cdb931c2c4b69c32e59316831899e172c49b390d5d2e7ba",
+   "bytes": 445768,
+   "triangles": 17080,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2213,
+    981,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2200,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b6c0ee4918c2429b7cabbedcfb4e85e725300be5a8af6ff29d4a5ac70ef2aa5a",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_moderno_4p": {
+   "file": "sofa_moderno_4p.glb",
+   "thumbnail": "thumbs/sofa_moderno_4p.webp",
+   "sha256": "300dc074f9446a92112100160f4b6ea3601bdc21715f41337df1763099188e3c",
+   "bytes": 610140,
+   "triangles": 19656,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2613,
+    981,
+    827
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    950,
+    820
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "moderno",
+    "seats": 4
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "33a1f4c8cf1fb0fa6b63f874c83f560b5f6a607180a0619ffadf5395bada3284",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_brazo_dcho": {
+   "file": "sofa_modular_brazo_dcho.glb",
+   "thumbnail": "thumbs/sofa_modular_brazo_dcho.webp",
+   "sha256": "638b9fea5151cce5ae0ea87420e3fd6494d5d00b1a4acfda0a97670ba2526e94",
+   "bytes": 378940,
+   "triangles": 8368,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1087,
+    1031,
+    807
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1070,
+    1000,
+    800
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "brazo_dcho"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "90d75014339c9ed365e6276b150723d7bcc1c056fbec5fdcf772805bda11aa1e",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_brazo_izq": {
+   "file": "sofa_modular_brazo_izq.glb",
+   "thumbnail": "thumbs/sofa_modular_brazo_izq.webp",
+   "sha256": "9b46b880e12900a801adc43584a1e141c4cc22918f0acb8fd8028248be86ac0b",
+   "bytes": 379088,
+   "triangles": 8368,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1086,
+    1031,
+    807
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1070,
+    1000,
+    800
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "brazo_izq"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "14e9a577493a9da1b7dc53f579d993bada2196782bd0b93e5568e521f89dc5e4",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_central": {
+   "file": "sofa_modular_central.glb",
+   "thumbnail": "thumbs/sofa_modular_central.webp",
+   "sha256": "4948b9220cf2358f91c98e6d10df74e67537c410577e05d1cefc0d02fd10674f",
+   "bytes": 361512,
+   "triangles": 6544,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    920,
+    1031,
+    807
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    1000,
+    800
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "central"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1e86d209dd7aa94add932e828af911d65efe60ecbd1424de277e4be247e4cbeb",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_chaise": {
+   "file": "sofa_modular_chaise.glb",
+   "thumbnail": "thumbs/sofa_modular_chaise.webp",
+   "sha256": "beddd281e6790f1ce4effc602ba2f6675eeb5c78b08b10ed78dd7dbd19298480",
+   "bytes": 379408,
+   "triangles": 8784,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    920,
+    1631,
+    807
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    1600,
+    800
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "chaise"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1b53f6c1b26b71d70c70c927d7e62b2d49e9dbff36a37b1ed76995fd3d5e6b98",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_esquina": {
+   "file": "sofa_modular_esquina.glb",
+   "thumbnail": "thumbs/sofa_modular_esquina.webp",
+   "sha256": "28e6a5ab473c09e0b43ccb14329176a88cc7d0e452f69a614e66ab3ca2c3f6da",
+   "bytes": 388476,
+   "triangles": 9152,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1020,
+    1031,
+    808
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    1000,
+    800
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "esquina"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8b6eb9906655d6ff63b6abb3bc6674af19896bc004a1e3bf3d88673c24532a75",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_modular_puf": {
+   "file": "sofa_modular_puf.glb",
+   "thumbnail": "thumbs/sofa_modular_puf.webp",
+   "sha256": "0042f3d98604be6df835e04b1fefb54d1b1fad05fe8e2e0d3f94e7c8625ac08e",
+   "bytes": 326460,
+   "triangles": 3312,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    913,
+    912,
+    454
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    440
+   ],
+   "family": "sofas",
+   "type": "module",
+   "params": {
+    "style": "moderno",
+    "seat_th": 0.18,
+    "module": "puf"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1b13c35e6ac491b4500715c71bd7128bc620f2709031dabfa6be9575cf55e79c",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_nordico_2p": {
+   "file": "sofa_nordico_2p.glb",
+   "thumbnail": "thumbs/sofa_nordico_2p.webp",
+   "sha256": "ed5b34e48ac4212ee20066d8c47511efe42d920f4d70dc162a921c8e3e0062f9",
+   "bytes": 884292,
+   "triangles": 12192,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1662,
+    891,
+    805
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1650,
+    860,
+    800
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "escandinavo",
+    "seats": 2
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "roble"
+   },
+   "textures": [
+    "roble",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "69434e2a297ed6d3ec817fb2cd1bb9e1a59043d6a0838fc0f505aa3180b979c5",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_nordico_3p": {
+   "file": "sofa_nordico_3p.glb",
+   "thumbnail": "thumbs/sofa_nordico_3p.webp",
+   "sha256": "9f45b5b536da47e9e540459f1a2445ebf198914eca950397e597fd4057c2d1af",
+   "bytes": 903380,
+   "triangles": 14272,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2062,
+    891,
+    806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2050,
+    860,
+    800
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "escandinavo",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "roble"
+   },
+   "textures": [
+    "roble",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2bf810ed718c07c8ef6e1744b199dc1ee60bc5bb3486dae2f649016f083456e8",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_nordico_3p_azul": {
+   "file": "sofa_nordico_3p_azul.glb",
+   "thumbnail": "thumbs/sofa_nordico_3p_azul.webp",
+   "sha256": "f12c039ed4f63da9ae4f5403faa53d69a8605d5d287c770b807c5b635c38472f",
+   "bytes": 903428,
+   "triangles": 14272,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2062,
+    891,
+    806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2050,
+    860,
+    800
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "escandinavo",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "tejido-azul",
+    "patas": "roble"
+   },
+   "textures": [
+    "roble",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3c7d8994a2cf0e6dc9e13e721729ddc69d3982be3f3e61be95646cde783b0722",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_nordico_3p_mostaza": {
+   "file": "sofa_nordico_3p_mostaza.glb",
+   "thumbnail": "thumbs/sofa_nordico_3p_mostaza.webp",
+   "sha256": "b2250f2309163f84baf3d00038af654062bee25bcc6f88f48b20e62f8ecaf42d",
+   "bytes": 858600,
+   "triangles": 14272,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2062,
+    891,
+    806
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2050,
+    860,
+    800
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "escandinavo",
+    "seats": 3
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-mostaza",
+    "patas": "roble"
+   },
+   "textures": [
+    "roble",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f40bc422d96e727a452ecc32ec66cb419281accddfc6a828704f5bc956493b08",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_nordico_4p": {
+   "file": "sofa_nordico_4p.glb",
+   "thumbnail": "thumbs/sofa_nordico_4p.webp",
+   "sha256": "82a6c224f694e1c333f5ae8c046703ecf59662c38bf8d5f840bd135e878a2da9",
+   "bytes": 936344,
+   "triangles": 17664,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2462,
+    891,
+    807
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2450,
+    860,
+    800
+   ],
+   "family": "sofas",
+   "type": "sofa",
+   "params": {
+    "style": "escandinavo",
+    "seats": 4
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "roble"
+   },
+   "textures": [
+    "roble",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4b0b15a999e77efd20a8923e05283a6e3d510371baa158ddaa2293124f7b004c",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_rinconera_derecha": {
+   "file": "sofa_rinconera_derecha.glb",
+   "thumbnail": "thumbs/sofa_rinconera_derecha.webp",
+   "sha256": "51fbc956631c0be3cde8950354da3842139814fc49e9311fa63b436a133ad604",
+   "bytes": 625668,
+   "triangles": 31384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2817,
+    2117,
+    828
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2800,
+    2100,
+    820
+   ],
+   "family": "sofas",
+   "type": "corner",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "side": "derecha"
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b96abc429253fc558d82d9e992ec5d7fe5e7e1cf53f757f8216529738d649e26",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_rinconera_izquierda": {
+   "file": "sofa_rinconera_izquierda.glb",
+   "thumbnail": "thumbs/sofa_rinconera_izquierda.webp",
+   "sha256": "2863795855e2a9d811b0888232dd27e5dfe963fb393fc17642079235e897e31b",
+   "bytes": 625160,
+   "triangles": 31384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2817,
+    2117,
+    828
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2800,
+    2100,
+    820
+   ],
+   "family": "sofas",
+   "type": "corner",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "55e18b1f75e5eecbf6f1c8b740104d78ba86a2f936b6d2180f3f8ceb51ee6d6d",
+   "builtAt": "2026-10-05"
+  },
+  "sofa_rinconera_izquierda_arena": {
+   "file": "sofa_rinconera_izquierda_arena.glb",
+   "thumbnail": "thumbs/sofa_rinconera_izquierda_arena.webp",
+   "sha256": "e206ca5ee2afbb6aa6501919aaf055670e9a387aa31176dcd5d6156239b00d4a",
+   "bytes": 725444,
+   "triangles": 31384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2817,
+    2117,
+    828
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2800,
+    2100,
+    820
+   ],
+   "family": "sofas",
+   "type": "corner",
+   "params": {
+    "style": "moderno",
+    "seat_depth": 950,
+    "side": "izquierda"
+   },
+   "finishes": {
+    "tapiceria": "lino-arena",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b7499adba5cbd01b629caf167abcc76653be6983d0b7aa79dad0b4c3e30dbfb2",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "algodon": {
+   "source": "polyhaven",
+   "id": "cotton_jersey",
+   "title": "Cotton Jersey",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/cotton_jersey",
+   "license": "CC0-1.0",
+   "sizeMm": 264,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg",
+     "bytes": 581360,
+     "md5": "d2f4493fdd48634b50d40f810ce9deb7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg",
+     "bytes": 678670,
+     "md5": "2dcc9dda3b726477f607c808e52f1833"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_rough_1k.jpg",
+     "bytes": 865264,
+     "md5": "ac691d215d3aca34dcd6ea2d03937286"
+    }
+   ]
+  },
+  "boucle": {
+   "source": "polyhaven",
+   "id": "curly_teddy_natural",
+   "title": "Curly Teddy Natural",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/curly_teddy_natural",
+   "license": "CC0-1.0",
+   "sizeMm": 336,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg",
+     "bytes": 673494,
+     "md5": "82060ba3b45dfdbfab202b616a251b94"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg",
+     "bytes": 576152,
+     "md5": "6496bc0ee48ee2ec2cac68ef82c9fe67"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_rough_1k.jpg",
+     "bytes": 812202,
+     "md5": "ea8d25d0290626e294b8d2242333d790"
+    }
+   ]
+  },
+  "espiga": {
+   "source": "polyhaven",
+   "id": "poly_wool_herringbone",
+   "title": "Poly Wool Herringbone",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/poly_wool_herringbone",
+   "license": "CC0-1.0",
+   "sizeMm": 270,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_diff_1k.jpg",
+     "bytes": 942966,
+     "md5": "5c0981092ba0129d5951720ea23d50c2"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_nor_gl_1k.jpg",
+     "bytes": 1045151,
+     "md5": "a6371d03b033a1c20e1c2758136ac757"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_rough_1k.jpg",
+     "bytes": 857426,
+     "md5": "9f85f667517ee9c7f3cc85214058a7d8"
+    }
+   ]
+  },
+  "fresno": {
+   "source": "polyhaven",
+   "id": "ash_veneer",
+   "title": "Ash Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/ash_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_diff_1k.jpg",
+     "bytes": 592273,
+     "md5": "5be48b4be87620998cfaee5a4281169d"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_nor_gl_1k.jpg",
+     "bytes": 397524,
+     "md5": "6986a1e827968726d996b76d77f3a2ac"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_rough_1k.jpg",
+     "bytes": 797439,
+     "md5": "175ba23d74984b0cfb1d9eac636cc255"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "piel_conac": {
+   "source": "polyhaven",
+   "id": "fabric_leather_02",
+   "title": "Fabric Leather 02",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/fabric_leather_02",
+   "license": "CC0-1.0",
+   "sizeMm": 500,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_diff_1k.jpg",
+     "bytes": 663390,
+     "md5": "35256026fcf2734d558ee2aa8f939c10"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_nor_gl_1k.jpg",
+     "bytes": 170918,
+     "md5": "1600b3fed674702eaa350cd627278a0f"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_02/fabric_leather_02_rough_1k.jpg",
+     "bytes": 636469,
+     "md5": "a1582ea1adc9bd4fa1608f8374ab90b8"
+    }
+   ]
+  },
+  "piel_marron": {
+   "source": "polyhaven",
+   "id": "brown_leather",
+   "title": "Brown Leather",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/brown_leather",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_albedo_1k.jpg",
+     "bytes": 503348,
+     "md5": "080b3bf1372766ff2c7ff121ed07b5e8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_nor_gl_1k.jpg",
+     "bytes": 863280,
+     "md5": "b63ae0121a415c23d74eed0b07fc6065"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_rough_1k.jpg",
+     "bytes": 686142,
+     "md5": "0f3a0148c8d2d25fbeca67e64e79bca0"
+    }
+   ]
+  },
+  "punto": {
+   "source": "polyhaven",
+   "id": "knitted_fleece",
+   "title": "Knitted Fleece",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/knitted_fleece",
+   "license": "CC0-1.0",
+   "sizeMm": 266,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_diff_1k.jpg",
+     "bytes": 887569,
+     "md5": "712475d9e6358c001260f6555a7821be"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_nor_gl_1k.jpg",
+     "bytes": 1128139,
+     "md5": "c76c323dc9249aaea3150f1770090c05"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_rough_1k.jpg",
+     "bytes": 959605,
+     "md5": "9122b74fc45c09b132bc6bacb95d3d11"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  },
+  "terciopelo": {
+   "source": "polyhaven",
+   "id": "velour_velvet",
+   "title": "Velour Velvet",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/velour_velvet",
+   "license": "CC0-1.0",
+   "sizeMm": 284,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_diff_1k.jpg",
+     "bytes": 735556,
+     "md5": "fa3a7ef3606bf7591b8f8577992e7228"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_nor_gl_1k.jpg",
+     "bytes": 695985,
+     "md5": "41009a399cb4d45e44636a515cd4c8c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_rough_1k.jpg",
+     "bytes": 943960,
+     "md5": "fac679bf7a69501a7402d832667fbc06"
+    }
+   ]
+  }
+ }
+}

@@ -5,15 +5,23 @@ import type { EditorScope } from '@/server/editor/authority';
 import { ImageTourBuilder } from '@/components/deliverables/image-tour-builder';
 import { VIDEO_DIMENSION_MODES, videoDimensionMode } from '@/lib/editor-document/video-presentation';
 import { DesignVideoTask } from './design-video-task';
+import { AdvertisingClipBuilder } from '@/components/deliverables/advertising-clip-builder';
+import { ADVERTISING_DIMENSIONS } from '@/lib/editor-document/advertising-video';
+import { VIDEO_FORMATS } from '@/lib/editor-document/video-format';
+import { RenameVideo } from '@/components/deliverables/video-name';
 
 const LABELS: Record<string, string> = { construction: 'Construcción del edificio · 3D', promotion: 'Publicidad en parcela · 3D',
-  walkthrough: 'Primera persona · 3D', showcase: 'Construcción + visita · 3D', images: 'Publicidad con mis diseños' };
+  walkthrough: 'Primera persona · 3D', showcase: 'Construcción + visita · 3D', images: 'Publicidad con mis diseños', advertising: 'Publicidad con un vídeo guardado' };
 
-export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, onReviewApproval }: {
+export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, onReviewApproval, onChooseImages, onOpenSaved, onCreateAdvertising, clips = false, portalContainer }: {
   scope: EditorScope; gallery: boolean; revisionKey: string; onBusyChange?: (busy: boolean) => void; onReviewApproval?: () => void;
+  clips?: boolean; portalContainer?: HTMLElement | null;
+  onChooseImages?: () => void; onOpenSaved?: () => void; onCreateAdvertising?: () => void;
 }) {
   const [media, setMedia] = useState<Awaited<ReturnType<typeof loadVideoStudioMedia>> | null>(null);
   const [error, setError] = useState(''), [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const reportBusy = (value: boolean) => { setBusy(value); onBusyChange?.(value); };
   const refresh = useCallback(async () => {
     setLoading(true); setError('');
     try { setMedia(await loadVideoStudioMedia(scope)); }
@@ -31,17 +39,26 @@ export function VideoStudioMedia({ scope, gallery, revisionKey, onBusyChange, on
     <div className="mx-auto max-w-4xl space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div><h2 className="text-xl font-semibold">{gallery ? 'Vídeos guardados' : 'Publicidad con tus diseños'}</h2>
-          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí.' : 'Selecciona imágenes de una misma versión. Se montan con movimiento suave y fundidos.'}</p></div>
-        <button type="button" className="rounded-control border border-line px-3 py-2 text-sm" disabled={loading} onClick={() => void refresh()}>{loading ? 'Cargando…' : 'Actualizar'}</button>
+          <p className="mt-1 text-sm text-ink-soft">{gallery ? 'Reproduce y descarga tus vídeos aquí. Las muestras 3D antiguas son archivo histórico del plano guía y no sirven como vídeos finales ni originales de publicidad.' : clips ? 'Adapta un vídeo desde diseños aceptados y revisa el anuncio antes de guardarlo.' : 'Selecciona diseños IA aceptados de una misma versión. Si falta alguno, abre la imagen en Diseños y acepta su diseño tras revisarlo.'}</p></div>
+        <button type="button" className="rounded-control border border-line px-3 py-2 text-sm" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Cargando…' : 'Actualizar'}</button>
       </header>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!media && loading && <p role="status">Cargando los resultados de este inmueble…</p>}
-      {media && !gallery && <ImageTourBuilder key={`${media.approvalId}:${media.images.map(image => image.id).join()}`} projectId={scope.projectId} zoneId={scope.zoneId ?? null} {...media}
-        onBusyChange={onBusyChange} onReviewApproval={onReviewApproval} onCreated={() => void refresh()} />}
+      {media && !gallery && (clips ? <AdvertisingClipBuilder key={media.approvalId} scope={scope} approvalId={media.approvalId}
+        clips={media.videos.filter(video => video.url && video.approvalId === media.approvalId
+          && (video.mode === 'images' || video.designJob?.status === 'accepted'))} disabled={!media.approvalId || media.approvalOutdated}
+        portalContainer={portalContainer} onBusyChange={reportBusy} onCreated={() => void refresh()} onChooseImages={onChooseImages} onOpenSaved={onOpenSaved} />
+        : <ImageTourBuilder key={media.approvalId} projectId={scope.projectId} zoneId={scope.zoneId ?? null} {...media}
+          portalContainer={portalContainer} onBusyChange={reportBusy} onReviewApproval={onReviewApproval} onCreated={refresh} onOpenSaved={onOpenSaved} />)}
       {media && gallery && (!media.videos.length ? <p className="rounded-card border border-dashed border-line p-8 text-center text-ink-soft">Todavía no hay vídeos. Elige «Crear vídeo» para preparar el primero.</p>
-        : media.videos.map(video => video.designJob ? <DesignVideoTask key={video.id} scope={scope} id={video.id} initial={video.designJob} initialUrl={video.url} onBusyChange={onBusyChange} /> : <section className="space-y-3 rounded-card border border-line bg-surface p-4" key={video.id}>
-          <h3 className="font-semibold">{LABELS[video.mode] ?? 'Vídeo'} <span className="ml-2 text-sm font-normal text-ink-soft">{Math.round(video.durationMs / 1000)} s{video.approvedRevision !== null ? ` · revisión ${video.approvedRevision}` : ''}</span></h3>
-          {video.mode !== 'images' && <p className="text-xs text-ink-soft">{video.contentScope === 'house' ? 'Solo la casa' : 'Todo el plano'} · {new Date(video.createdAt).toLocaleString('es-ES')}</p>}
+        : media.videos.map(video => video.designJob ? <DesignVideoTask key={JSON.stringify([video.id, video.designJob, video.url])} scope={scope} id={video.id} initial={video.designJob} initialUrl={video.url} onBusyChange={reportBusy} onRenamed={() => void refresh()} onCreateAdvertising={onCreateAdvertising} /> : <section className="space-y-3 rounded-card border border-line bg-surface p-4" key={video.id}>
+          <h3 className="font-semibold">{video.title || LABELS[video.mode] || 'Vídeo'} <span className="ml-2 text-sm font-normal text-ink-soft">{Math.round(video.durationMs / 1000)} s{video.approvedRevision !== null ? ` · revisión ${video.approvedRevision}` : ''}</span></h3>
+          {video.title && <p className="text-xs text-ink-soft">{LABELS[video.mode] ?? 'Vídeo'}</p>}
+          <RenameVideo scope={scope} id={video.id} title={video.title} onSaved={() => void refresh()} onBusyChange={reportBusy} />
+          {video.mode !== 'images' && video.mode !== 'advertising' && <p className="text-xs text-ink-soft">{video.contentScope === 'house' ? 'Solo la casa' : 'Todo el plano'} · {new Date(video.createdAt).toLocaleString('es-ES')}</p>}
+          <p className="text-xs text-ink-soft">{VIDEO_FORMATS.find(item => item.value === (video.advertising?.format ?? video.presentation?.format ?? 'horizontal'))?.label}</p>
+          {video.advertising && <p className="text-xs text-ink-soft">{ADVERTISING_DIMENSIONS.find(item => item.value === video.advertising?.dimensionMode)?.label}
+            {video.advertising.dimensionMode !== 'none' ? ' · panel de medidas globales del diseño aprobado' : ''}</p>}
           {video.presentation && <p className="text-xs text-ink-soft">Cotas: {VIDEO_DIMENSION_MODES.find(item => item.value === videoDimensionMode(video.presentation!))?.label}
             {video.presentation.dimensionOcclusion !== false && videoDimensionMode(video.presentation) !== 'none' ? ' · ocultación detrás de la casa' : ''}</p>}
           {video.presentation?.prompt && <details className="text-sm"><summary className="cursor-pointer">Indicaciones guardadas para IA</summary><p className="mt-2 whitespace-pre-wrap text-ink-soft">{video.presentation.prompt}</p></details>}

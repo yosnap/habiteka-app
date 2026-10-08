@@ -1,9 +1,13 @@
+'use client';
+
 /**
  * Cabecera del área autenticada: marca, saldo de créditos y menú de cuenta.
- * Server component (lee la sesión y el saldo); el botón de cerrar sesión es un
- * cliente aparte para poder usar el cliente de auth del navegador.
+ * Recibe sesión y saldo del layout de servidor; adapta la densidad al espacio
+ * de trabajo del proyecto. Los permisos se validan siempre en el servidor.
  */
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { House } from 'lucide-react';
 import { SignOutButton } from './sign-out-button';
 
 interface Props {
@@ -14,13 +18,14 @@ interface Props {
 }
 
 export function AppHeader({ userName, balance, isAdmin }: Props) {
+  const workspace = usePathname().startsWith('/projects/');
   return (
     <header className="border-line bg-surface sticky top-0 z-40 border-b">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-3">
-        <Link href="/proyectos" className="text-ink text-lg font-semibold tracking-tight">
-          Habiteka
+      <div className={`mx-auto flex w-full items-center justify-between px-5 ${workspace ? 'py-1.5' : 'max-w-5xl py-3'}`}>
+        <Link href="/proyectos" className="text-ink inline-flex items-center gap-2 text-base font-semibold tracking-tight">
+          <span className="grid size-7 place-items-center rounded-lg bg-brand-50 text-brand-700"><House size={16} /></span>Habiteka
         </Link>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
           <Link href="/ayuda" className="text-ink-soft hover:text-ink">
             Ayuda
           </Link>

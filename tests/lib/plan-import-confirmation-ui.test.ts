@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { PlanQualityCard } from '@/components/plano-studio/plan-quality-card';
+import { QualityVerdictCard } from '@/components/quality/quality-verdict-card';
 
 const noop = () => {};
 const blockedQuality = {
@@ -13,6 +14,25 @@ const blockedQuality = {
 const summary = { replacesExisting: true, rooms: 3, exteriors: 1, furniture: 2 };
 
 describe('confirmación al enviar un plano importado', () => {
+  it('no atribuye una evaluación puntuada a un fallo automático ni pide confirmar un bloqueo', () => {
+    for (const quality of [{ ...blockedQuality, score: 86, decision: 'confirm' as const }, blockedQuality]) {
+      const html = renderToStaticMarkup(createElement(QualityVerdictCard, { quality }));
+      expect(html).not.toContain('No se pudo evaluar');
+    }
+    const html = renderToStaticMarkup(createElement(QualityVerdictCard, {
+      quality: { ...blockedQuality, score: null, decision: 'confirm' },
+    }));
+    expect(html).toContain('No se pudo evaluar');
+  });
+  it('muestra una vez los motivos duplicados de revisiones antiguas, también en modo compacto', () => {
+    for (const compact of [false, true]) {
+      const html = renderToStaticMarkup(createElement(QualityVerdictCard, {
+        quality: { ...blockedQuality, reasons: ['Motivo repetido', 'Motivo repetido', 'Segundo motivo'] }, compact,
+      }));
+      expect(html.match(/Motivo repetido/g)).toHaveLength(1);
+      expect(html).toContain('Segundo motivo');
+    }
+  });
   it('no presenta el envío de un plano bloqueado como acción inmediata', () => {
     const html = renderToStaticMarkup(createElement(PlanQualityCard, {
       quality: blockedQuality,

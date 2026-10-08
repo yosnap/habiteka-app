@@ -1,0 +1,1102 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia comedor) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "comedor",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "banco_madera_140": {
+   "file": "banco_madera_140.glb",
+   "thumbnail": "thumbs/banco_madera_140.webp",
+   "sha256": "0440af7d6ff20d6207ff5c64a7ad7eaa082c8a68fd46c392305120b3292603d4",
+   "bytes": 445032,
+   "triangles": 512,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1400,
+    350,
+    450
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    350,
+    450
+   ],
+   "family": "comedor",
+   "type": "bench",
+   "params": {
+    "style": "madera"
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "57626797f575289b1d7310f1a1526105d1e767ad331e3fac8732eca578da6743",
+   "builtAt": "2026-10-05"
+  },
+  "banco_madera_180": {
+   "file": "banco_madera_180.glb",
+   "thumbnail": "thumbs/banco_madera_180.webp",
+   "sha256": "eb1cd051d07a355d2d9a8244c4c5785f0d3c5419dfab1730f702d51ef0400e3b",
+   "bytes": 445028,
+   "triangles": 512,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    350,
+    450
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    350,
+    450
+   ],
+   "family": "comedor",
+   "type": "bench",
+   "params": {
+    "style": "madera"
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a17d65f9d553d3f5ce817abc4254ec59f5ed3e2aaf0ac5611e30ff7a38c5baf6",
+   "builtAt": "2026-10-05"
+  },
+  "banco_tapizado_120": {
+   "file": "banco_tapizado_120.glb",
+   "thumbnail": "thumbs/banco_tapizado_120.webp",
+   "sha256": "114112ed3b66c4def0d9e7011bed75c7ca6b7178ea5289605ec39cc2066fdb6c",
+   "bytes": 333084,
+   "triangles": 3608,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1208,
+    413,
+    474
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    400,
+    460
+   ],
+   "family": "comedor",
+   "type": "bench",
+   "params": {
+    "style": "tapizado"
+   },
+   "finishes": {
+    "tapiceria": "boucle-arena",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "boucle"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d59af40fef54782274713ec3625af1cd7ee68b88bf6911c45c33718f1aca77c9",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_cristal_160": {
+   "file": "mesa_comedor_cristal_160.glb",
+   "thumbnail": "thumbs/mesa_comedor_cristal_160.webp",
+   "sha256": "b02c46dade62c8cad93fa3eb6c5d565ebe8a2b33afed7dd245be4c70ff7f2816",
+   "bytes": 9540,
+   "triangles": 724,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    900,
+    750
+   ],
+   "specDimensionsMm": [
+    1600,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "acero",
+    "top_th": 12
+   },
+   "finishes": {
+    "sobre": "cristal",
+    "estructura": "cromo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fe670172f21dc65a4f715b01c5b770e4b5c6693cb14686b6f5c3f221f29e5beb",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_marmol_blanco": {
+   "file": "mesa_comedor_marmol_blanco.glb",
+   "thumbnail": "thumbs/mesa_comedor_marmol_blanco.webp",
+   "sha256": "cbb5f21fd1dda8afa1cc59a5ffdca9cbc3f610451649a4fd258962f3d166f78c",
+   "bytes": 132584,
+   "triangles": 1192,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    900,
+    751
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "trineo",
+    "top_th": 20
+   },
+   "finishes": {
+    "sobre": "marmol-blanco",
+    "estructura": "metal-negro"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b1b8c0d5abaa8e8ab2398b2e8458504e25fb4bba39c23aa6efe36d3df9032106",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_marmol_negro": {
+   "file": "mesa_comedor_marmol_negro.glb",
+   "thumbnail": "thumbs/mesa_comedor_marmol_negro.webp",
+   "sha256": "20f8f5d34e416a37d9b3b3354659ade4accfae6faf68ebf03d38bab64b314b81",
+   "bytes": 296540,
+   "triangles": 1192,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    900,
+    751
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "trineo",
+    "top_th": 20
+   },
+   "finishes": {
+    "sobre": "marmol-negro",
+    "estructura": "laton"
+   },
+   "textures": [
+    "marmol_negro"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "66f9919304741f0678f273ccb3e56ae62de6e173c310100403110e65aaf35b2f",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_nogal_180": {
+   "file": "mesa_comedor_nogal_180.glb",
+   "thumbnail": "thumbs/mesa_comedor_nogal_180.webp",
+   "sha256": "8ff3b274b599d710aa209cddb366fa84f8d1477fe7ce6b25b559ca77721d8364",
+   "bytes": 215776,
+   "triangles": 944,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    900,
+    760
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    900,
+    760
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "caballete",
+    "top_th": 40
+   },
+   "finishes": {
+    "sobre": "nogal",
+    "estructura": "nogal"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1dac66277e98aa1fa538e9b7e3be23dcb65959a37d175aed291db3f86ff8ed81",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_roble_160": {
+   "file": "mesa_comedor_roble_160.glb",
+   "thumbnail": "thumbs/mesa_comedor_roble_160.webp",
+   "sha256": "9c433612483634df3b98adf23d9f3a3da45c0881139fc37338fa203883a082f5",
+   "bytes": 454472,
+   "triangles": 876,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1601,
+    902,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "conicas"
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4dbe92991b07348f0344ea99d819b39e1b620faba893d391142b0c5371da2b0a",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_comedor_roble_200": {
+   "file": "mesa_comedor_roble_200.glb",
+   "thumbnail": "thumbs/mesa_comedor_roble_200.webp",
+   "sha256": "da854c8ca316e921b279f7dd2ce5d7a924549b6e0bb383d78da4d2bef5a83aa7",
+   "bytes": 454556,
+   "triangles": 876,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2001,
+    1002,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    1000,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "conicas"
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b0e00063429f0c6a88d7fe38b6764008ce2cc7b4432a0685ded669396e92e539",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_extensible_abierta": {
+   "file": "mesa_extensible_abierta.glb",
+   "thumbnail": "thumbs/mesa_extensible_abierta.webp",
+   "sha256": "aefed0fc2a9c58b97891b8df77238706d4a2f3b105ea8a6e617bd99e56ceab76",
+   "bytes": 456132,
+   "triangles": 1172,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1897,
+    900,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1900,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "patas",
+    "seams": [
+     -250,
+     250
+    ]
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e5e5f00e1ed1d88c5aa609cc91053fab7f968669e3326640edc719446dd5f129",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_extensible_cerrada": {
+   "file": "mesa_extensible_cerrada.glb",
+   "thumbnail": "thumbs/mesa_extensible_cerrada.webp",
+   "sha256": "eef1caab68deaee9b41d4010f577bd8ff649b3d2a155d4781bf5ce1023549a7c",
+   "bytes": 453528,
+   "triangles": 984,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1397,
+    900,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1400,
+    900,
+    750
+   ],
+   "family": "comedor",
+   "type": "table",
+   "params": {
+    "base": "patas",
+    "seams": [
+     0
+    ]
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d5913fa718e39031139eb6e60961ba7c0c917a7f4ea87081373b4d4d0ec89130",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_redonda_madera_patas": {
+   "file": "mesa_redonda_madera_patas.glb",
+   "thumbnail": "thumbs/mesa_redonda_madera_patas.webp",
+   "sha256": "e06281e857fcbfd7ea3ffead9a796b09015eff4f0239ffc3ebec2678d58e39e7",
+   "bytes": 466276,
+   "triangles": 1984,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    1000,
+    748
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    1000,
+    750
+   ],
+   "family": "comedor",
+   "type": "round_table",
+   "params": {
+    "base": "patas"
+   },
+   "finishes": {
+    "sobre": "roble",
+    "estructura": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a80d44f0534ebb00ee35bf7ab469c48992bb910ff73a9f79917da7a0d05b7489",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_redonda_madera_pie_nogal": {
+   "file": "mesa_redonda_madera_pie_nogal.glb",
+   "thumbnail": "thumbs/mesa_redonda_madera_pie_nogal.webp",
+   "sha256": "41623ad8470d98ae3dc95dcf286bb52749ef92bc0a0da41bd9041c3268dcb1eb",
+   "bytes": 217800,
+   "triangles": 1072,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1100,
+    1100,
+    750
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    1100,
+    750
+   ],
+   "family": "comedor",
+   "type": "round_table",
+   "params": {
+    "base": "columna"
+   },
+   "finishes": {
+    "sobre": "nogal",
+    "estructura": "nogal"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a46bb545ddf25b66225bfd7437037ff03492496a32c53aff0d8a7a50bea3233a",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_redonda_marmol_120": {
+   "file": "mesa_redonda_marmol_120.glb",
+   "thumbnail": "thumbs/mesa_redonda_marmol_120.webp",
+   "sha256": "aa526935020bac114c297d113354f7c40b2aa3ab83e9c29a46d369eb30765ae3",
+   "bytes": 136804,
+   "triangles": 1376,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    1200,
+    740
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    1200,
+    740
+   ],
+   "family": "comedor",
+   "type": "round_table",
+   "params": {
+    "base": "tulipa",
+    "top_th": 20
+   },
+   "finishes": {
+    "sobre": "marmol-blanco",
+    "estructura": "lacado-blanco"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "79156b8d53dea255b23ca12166563920e354f7dff854e1edfae8e0169388aebb",
+   "builtAt": "2026-10-05"
+  },
+  "mesa_redonda_marmol_90": {
+   "file": "mesa_redonda_marmol_90.glb",
+   "thumbnail": "thumbs/mesa_redonda_marmol_90.webp",
+   "sha256": "e62273b8529195a7d831667c28e5f23fd858eb4efab02224d169069bb51ef600",
+   "bytes": 136748,
+   "triangles": 1376,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    900,
+    900,
+    740
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    740
+   ],
+   "family": "comedor",
+   "type": "round_table",
+   "params": {
+    "base": "tulipa",
+    "top_th": 20
+   },
+   "finishes": {
+    "sobre": "marmol-blanco",
+    "estructura": "lacado-blanco"
+   },
+   "textures": [
+    "marmol_blanco"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "db6161fa03273688c4e7ad496fc009eab72c84a0f697033316dc982c39704130",
+   "builtAt": "2026-10-05"
+  },
+  "silla_cocina_blanca": {
+   "file": "silla_cocina_blanca.glb",
+   "thumbnail": "thumbs/silla_cocina_blanca.webp",
+   "sha256": "3eb6bf3bc4230ae2e8dfeb867fff48f0fee07a619d7ee34e67f1ff110919c623",
+   "bytes": 106404,
+   "triangles": 2652,
+   "texturePx": 512,
+   "dimensionsMm": [
+    400,
+    451,
+    861
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    480,
+    860
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "cocina"
+   },
+   "finishes": {
+    "estructura": "lacado-blanco",
+    "asiento": "cuerda-beige"
+   },
+   "textures": [
+    "cuerda"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fe2787fe8187db38976daee7db612f6f8509ce08941ad8047b01a514e0e20a35",
+   "builtAt": "2026-10-05"
+  },
+  "silla_cocina_verde": {
+   "file": "silla_cocina_verde.glb",
+   "thumbnail": "thumbs/silla_cocina_verde.webp",
+   "sha256": "0ad3f9b0bd3d95876fcc2f6d84436cb87ae7ad28011ed49f788c92d2e6b00710",
+   "bytes": 106264,
+   "triangles": 2652,
+   "texturePx": 512,
+   "dimensionsMm": [
+    400,
+    451,
+    861
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    480,
+    860
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "cocina"
+   },
+   "finishes": {
+    "estructura": "lacado-verde",
+    "asiento": "cuerda-beige"
+   },
+   "textures": [
+    "cuerda"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "89485740b484ea942f75f3e2462056f76b45c3f76f26c5a00aaab01577b21c74",
+   "builtAt": "2026-10-05"
+  },
+  "silla_metalica_negra": {
+   "file": "silla_metalica_negra.glb",
+   "thumbnail": "thumbs/silla_metalica_negra.webp",
+   "sha256": "c42f8bdf44fb8a4a6dbcbc4cc3d404fa4155c3a5b494b9813dfbd26b7c47012e",
+   "bytes": 9816,
+   "triangles": 792,
+   "texturePx": 512,
+   "dimensionsMm": [
+    516,
+    511,
+    823
+   ],
+   "specDimensionsMm": [
+    440,
+    500,
+    850
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "metalica"
+   },
+   "finishes": {
+    "estructura": "metal-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "89a44df3ee82fdf6d81991704ffaf781d50801683b4ffe09ac7060a07404358d",
+   "builtAt": "2026-10-05"
+  },
+  "silla_nordica_negra": {
+   "file": "silla_nordica_negra.glb",
+   "thumbnail": "thumbs/silla_nordica_negra.webp",
+   "sha256": "a3e7c4c2e287cebf922d7d844390a1bad1f57350f7927acbe29ec3c1c800cf39",
+   "bytes": 85676,
+   "triangles": 2608,
+   "texturePx": 512,
+   "dimensionsMm": [
+    445,
+    513,
+    803
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    520,
+    800
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "nordica"
+   },
+   "finishes": {
+    "madera": "roble-negro"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d56f872055dc14c4bdbcab5470337a415c7a101d321ec90e3dfc6c54bd4a3c72",
+   "builtAt": "2026-10-05"
+  },
+  "silla_nordica_roble": {
+   "file": "silla_nordica_roble.glb",
+   "thumbnail": "thumbs/silla_nordica_roble.webp",
+   "sha256": "eb2afc491876ea4784d10e0de3e6df378eca0d33618aebb87e7a5fd9de37eb0b",
+   "bytes": 121396,
+   "triangles": 2608,
+   "texturePx": 512,
+   "dimensionsMm": [
+    445,
+    513,
+    803
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    520,
+    800
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "nordica"
+   },
+   "finishes": {
+    "madera": "roble"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "816ac07776cd6c352aa62d3b17358c8d55a7f3021b8d3bada38b426588cb56ec",
+   "builtAt": "2026-10-05"
+  },
+  "silla_tapizada_gris": {
+   "file": "silla_tapizada_gris.glb",
+   "thumbnail": "thumbs/silla_tapizada_gris.webp",
+   "sha256": "0296430c0fbd2fb0f40429c962e5f9d7e0df41404af0fe01fea1fca51798a099",
+   "bytes": 240340,
+   "triangles": 3496,
+   "texturePx": 512,
+   "dimensionsMm": [
+    488,
+    584,
+    843
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    480,
+    560,
+    860
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "tapizada"
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble"
+   },
+   "textures": [
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "45e624cae84d1882e34024cbdb62c059d502868faed3b073856788d05ff46cd1",
+   "builtAt": "2026-10-05"
+  },
+  "silla_tapizada_verde": {
+   "file": "silla_tapizada_verde.glb",
+   "thumbnail": "thumbs/silla_tapizada_verde.webp",
+   "sha256": "14013be8f83a9178aad2b8f99aa5309accb493b7ee97399f4bb0e72e75c5d7ee",
+   "bytes": 193168,
+   "triangles": 3496,
+   "texturePx": 512,
+   "dimensionsMm": [
+    488,
+    584,
+    843
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    480,
+    560,
+    860
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "tapizada"
+   },
+   "finishes": {
+    "tapiceria": "terciopelo-verde",
+    "patas": "nogal"
+   },
+   "textures": [
+    "nogal",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ec113f9c7d3bf83e29c214403b711fc28c41cd860b69cd66d2da8a1e235c74c6",
+   "builtAt": "2026-10-05"
+  },
+  "silla_windsor_fresno": {
+   "file": "silla_windsor_fresno.glb",
+   "thumbnail": "thumbs/silla_windsor_fresno.webp",
+   "sha256": "25c4df885e937add02f14864cdc71c18b63834863bf4f0f9cffafefaf211b75e",
+   "bytes": 107836,
+   "triangles": 3596,
+   "texturePx": 512,
+   "dimensionsMm": [
+    546,
+    530,
+    898
+   ],
+   "elevationMm": 9,
+   "specDimensionsMm": [
+    520,
+    520,
+    920
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "windsor"
+   },
+   "finishes": {
+    "madera": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4798fdbc30f91f4ddf41bf2ef26f653014c3067d228e92d53bceceed62352c42",
+   "builtAt": "2026-10-05"
+  },
+  "silla_windsor_nogal": {
+   "file": "silla_windsor_nogal.glb",
+   "thumbnail": "thumbs/silla_windsor_nogal.webp",
+   "sha256": "2f5c9d9155b429dbb980f04c7f475e7857686a69f28cf09be0a9a2751e8a2e7c",
+   "bytes": 100072,
+   "triangles": 3596,
+   "texturePx": 512,
+   "dimensionsMm": [
+    546,
+    530,
+    898
+   ],
+   "elevationMm": 9,
+   "specDimensionsMm": [
+    520,
+    520,
+    920
+   ],
+   "family": "comedor",
+   "type": "chair",
+   "params": {
+    "style": "windsor"
+   },
+   "finishes": {
+    "madera": "nogal"
+   },
+   "textures": [
+    "nogal"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dbfda872a567a9a65249e5fe6692384e79810f364d2ebb0d081fbd6099a59104",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "boucle": {
+   "source": "polyhaven",
+   "id": "curly_teddy_natural",
+   "title": "Curly Teddy Natural",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/curly_teddy_natural",
+   "license": "CC0-1.0",
+   "sizeMm": 336,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_diff_1k.jpg",
+     "bytes": 673494,
+     "md5": "82060ba3b45dfdbfab202b616a251b94"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_nor_gl_1k.jpg",
+     "bytes": 576152,
+     "md5": "6496bc0ee48ee2ec2cac68ef82c9fe67"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/curly_teddy_natural/curly_teddy_natural_rough_1k.jpg",
+     "bytes": 812202,
+     "md5": "ea8d25d0290626e294b8d2242333d790"
+    }
+   ]
+  },
+  "cuerda": {
+   "source": "ambientcg",
+   "id": "Rope001",
+   "title": "Rope 001",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Rope001",
+   "license": "CC0-1.0",
+   "sizeMm": 160,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Rope001_1K-JPG.zip",
+     "bytes": 4226862,
+     "sha256": "0f4daf2c2720b9bd910369cab753090b0ad6560435526ec5aaab293bae5fdbfc"
+    }
+   ]
+  },
+  "fresno": {
+   "source": "polyhaven",
+   "id": "ash_veneer",
+   "title": "Ash Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/ash_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_diff_1k.jpg",
+     "bytes": 592273,
+     "md5": "5be48b4be87620998cfaee5a4281169d"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_nor_gl_1k.jpg",
+     "bytes": 397524,
+     "md5": "6986a1e827968726d996b76d77f3a2ac"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_rough_1k.jpg",
+     "bytes": 797439,
+     "md5": "175ba23d74984b0cfb1d9eac636cc255"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "marmol_blanco": {
+   "source": "ambientcg",
+   "id": "Marble021",
+   "title": "Marble 021",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Marble021",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Marble021_1K-JPG.zip",
+     "bytes": 4141632,
+     "sha256": "7e75982560079476f6051666985553deb3eb77b07d2923a12d0665733b8f043e"
+    }
+   ]
+  },
+  "marmol_negro": {
+   "source": "ambientcg",
+   "id": "Marble009",
+   "title": "Marble 009",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Marble009",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Marble009_1K-JPG.zip",
+     "bytes": 4692354,
+     "sha256": "76c9a0ebdc9615462ea26904886c43f79a8211466f57b3554aa8df2d9193b4c5"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  },
+  "terciopelo": {
+   "source": "polyhaven",
+   "id": "velour_velvet",
+   "title": "Velour Velvet",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/velour_velvet",
+   "license": "CC0-1.0",
+   "sizeMm": 284,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_diff_1k.jpg",
+     "bytes": 735556,
+     "md5": "fa3a7ef3606bf7591b8f8577992e7228"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_nor_gl_1k.jpg",
+     "bytes": 695985,
+     "md5": "41009a399cb4d45e44636a515cd4c8c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_rough_1k.jpg",
+     "bytes": 943960,
+     "md5": "fac679bf7a69501a7402d832667fbc06"
+    }
+   ]
+  }
+ }
+}

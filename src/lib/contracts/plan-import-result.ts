@@ -27,6 +27,34 @@ export interface PlanDoorOverride {
   hinge?: 'left' | 'right';
   /** Centro revisado a lo largo del muro final (0–1). */
   position?: number;
+  /** Ancho real del hueco revisado, en milímetros. */
+  widthMm?: number;
+}
+
+/** Corrección de un muro existente; sus vértices compartidos se mueven conjuntamente. */
+export interface PlanWallOverride {
+  wallId: string;
+  from: PlanPoint;
+  to: PlanPoint;
+  thicknessMm: number;
+}
+
+/** Contorno de una estancia ajustado a mano en un lado sin muro (su límite abierto). */
+export interface PlanZoneOutlineOverride {
+  zoneId: string;
+  outline: PlanPoint[];
+}
+
+export interface PlanImportReviewOptions {
+  includeFurniture?: boolean;
+  generalWidthMm?: number | null;
+  doorOverrides?: PlanDoorOverride[];
+  wallOverrides?: PlanWallOverride[];
+  zoneOutlineOverrides?: PlanZoneOutlineOverride[];
+  /** Revisión que vio el usuario; evita guardar sobre una importación distinta. */
+  revision?: string;
+  /** Guardado determinista de la revisión, sin evaluación IA de pago. */
+  saveOnly?: boolean;
 }
 
 /** Ajuste aplicado por el solver a una estancia y eje. */

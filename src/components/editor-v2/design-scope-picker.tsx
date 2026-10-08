@@ -166,7 +166,9 @@ export function DesignScopePicker({ document, options, onChange, onCreateZone, o
             setZoneError(null);
           }
           catch (error) { setZoneError(error instanceof Error ? error.message : 'No se pudo guardar la zona.'); }
-        }} disabled={disabled} full={!reshapeId && (document?.designZones?.length ?? 0) >= MAX_DESIGN_ZONES}
+        }}
+        onExistingRoom={{ hint: 'si ya es una zona guardada, se elige esa', select: (id) => { setReshapeId(null); setZoneError(null); changeScope({ designZoneId: id }); } }}
+        disabled={disabled} full={!reshapeId && (document?.designZones?.length ?? 0) >= MAX_DESIGN_ZONES}
         fullMessage={`Máximo de ${MAX_DESIGN_ZONES} zonas de diseño.`}
         label="Mapa 2D para dibujar una zona de diseño" />}
       {zoneError && <p role="alert" className="text-destructive text-xs">{zoneError}</p>}

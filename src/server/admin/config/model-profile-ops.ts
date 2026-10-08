@@ -12,7 +12,7 @@ export async function listCustomModelProfiles() {
 export async function saveCustomModelProfile(actorId: string, input: { name: string; description?: string; configurations: UpdateModelInput[] }) {
   const name = input.name.trim();
   if (name.length < 3 || name.length > 60) throw configError('El nombre del perfil debe tener entre 3 y 60 caracteres');
-  validateModelInputs(input.configurations);
+  await validateModelInputs(input.configurations);
   const profile = await prisma.aiModelProfile.upsert({
     where: { name }, create: { name, description: input.description?.trim() || null, configurations: input.configurations as unknown as Prisma.InputJsonValue },
     update: { description: input.description?.trim() || null, configurations: input.configurations as unknown as Prisma.InputJsonValue },
@@ -30,5 +30,5 @@ function parseConfigurations(value: unknown): UpdateModelInput[] {
 function isConfiguration(value: unknown): value is UpdateModelInput {
   if (!value || typeof value !== 'object') return false;
   const item = value as Partial<UpdateModelInput>;
-  return typeof item.action === 'string' && typeof item.primaryModel === 'string' && typeof item.enabled === 'boolean' && (item.provider === 'openrouter' || item.provider === 'kie' || item.provider === 'nan' || item.provider === 'openai') && Array.isArray(item.backups);
+  return typeof item.action === 'string' && typeof item.primaryModel === 'string' && typeof item.enabled === 'boolean' && typeof item.provider === 'string' && item.provider.length > 0 && Array.isArray(item.backups);
 }

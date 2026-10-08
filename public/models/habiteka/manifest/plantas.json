@@ -1,0 +1,1191 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia plantas) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "plantas",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "bambu_120": {
+   "file": "bambu_120.glb",
+   "thumbnail": "thumbs/bambu_120.webp",
+   "sha256": "5fdc1835cf987743bc6dee6adccb7ad312e140983413642d53320eb8e60efe92",
+   "bytes": 308476,
+   "triangles": 10640,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    508,
+    1200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    480,
+    1200
+   ],
+   "family": "plantas",
+   "type": "bambu",
+   "params": {
+    "pot": {
+     "kind": "cilindro",
+     "d": 280,
+     "h": 260
+    },
+    "culms": 5
+   },
+   "finishes": {
+    "hojas": "pla-hojas-claras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_clara",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3d34753d7c2eaa8a31a2edf6677759c9d8ab8e6b59e3a0ab88d0bfefae950bda",
+   "builtAt": "2026-10-05"
+  },
+  "bambu_180": {
+   "file": "bambu_180.glb",
+   "thumbnail": "thumbs/bambu_180.webp",
+   "sha256": "086dd6a0cde5485d8f5274c3dba907a5a36985aa02a1770306b102c17a7f4e4d",
+   "bytes": 467584,
+   "triangles": 21720,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    700,
+    650,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    650,
+    1800
+   ],
+   "family": "plantas",
+   "type": "bambu",
+   "params": {
+    "pot": {
+     "kind": "hormigon",
+     "d": 380,
+     "h": 380,
+     "square": true
+    },
+    "culms": 7
+   },
+   "finishes": {
+    "hojas": "pla-hojas-claras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-hormigon"
+   },
+   "textures": [
+    "pla_hoja_clara",
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e72d24e930b3f5428a2d44ed65cab311307908b84499dbb6e8592925948651b2",
+   "builtAt": "2026-10-05"
+  },
+  "cactus_100": {
+   "file": "cactus_100.glb",
+   "thumbnail": "thumbs/cactus_100.webp",
+   "sha256": "499e62a2875af8ee5ec0b26bc2ee34661fdd1ba35a0fe2584b6fb45b7cf46857",
+   "bytes": 397256,
+   "triangles": 9936,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    284,
+    260,
+    1002
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    300,
+    280,
+    1000
+   ],
+   "family": "plantas",
+   "type": "cactus",
+   "params": {
+    "pot": {
+     "kind": "terracota",
+     "d": 260,
+     "h": 230
+    }
+   },
+   "finishes": {
+    "tierra": "pla-tierra",
+    "grava": "pla-grava",
+    "maceta": "pla-terracota"
+   },
+   "textures": [
+    "pla_hormigon",
+    "pla_terracota",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "95b0e563722889ee87c16691141c6e9040f57a2df0bf796b08ee573c4e4c6437",
+   "builtAt": "2026-10-05"
+  },
+  "ficus_lyrata_120": {
+   "file": "ficus_lyrata_120.glb",
+   "thumbnail": "thumbs/ficus_lyrata_120.webp",
+   "sha256": "b6c9719f0fac20b2df8cf4cf0e7e4805377cc066a16340f9f20dd679929a8750",
+   "bytes": 365788,
+   "triangles": 7873,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    507,
+    1200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    500,
+    1200
+   ],
+   "family": "plantas",
+   "type": "ficus_lyrata",
+   "params": {
+    "pot": {
+     "kind": "terracota",
+     "d": 280,
+     "h": 250
+    },
+    "leaves": 22,
+    "leaf": 290
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-terracota"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_terracota",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cd6f267b972ca459fface18e4f3e4ad354e6607955a3eaefbddf09c009037fc1",
+   "builtAt": "2026-10-05"
+  },
+  "ficus_lyrata_180": {
+   "file": "ficus_lyrata_180.glb",
+   "thumbnail": "thumbs/ficus_lyrata_180.webp",
+   "sha256": "468b789597d71eb27f1a50459c9682a1aeacbe2de5f6002afe1cb03b83b949ac",
+   "bytes": 329532,
+   "triangles": 8801,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    750,
+    750,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    750,
+    750,
+    1800
+   ],
+   "family": "plantas",
+   "type": "ficus_lyrata",
+   "params": {
+    "pot": {
+     "kind": "hormigon",
+     "d": 380,
+     "h": 370
+    },
+    "leaves": 30,
+    "leaf": 360
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-hormigon"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a04f2b725e725647c5ec8dfc45009bec2fbfa378670cd4667d87a03223e4bc87",
+   "builtAt": "2026-10-05"
+  },
+  "ficus_lyrata_60": {
+   "file": "ficus_lyrata_60.glb",
+   "thumbnail": "thumbs/ficus_lyrata_60.webp",
+   "sha256": "88e20beae02a3d840da93a5cceb469f8eba634563a8f36f9f5f7c595fb084e55",
+   "bytes": 259292,
+   "triangles": 4553,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    420,
+    400,
+    600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    400,
+    600
+   ],
+   "family": "plantas",
+   "type": "ficus_lyrata",
+   "params": {
+    "pot": {
+     "kind": "cilindro",
+     "d": 180,
+     "h": 170
+    },
+    "leaves": 12,
+    "leaf": 200,
+    "bush": true
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "29da3990272afa9e9828419da0e3f2e46a159b3bfba438cd6c80673652bb34e0",
+   "builtAt": "2026-10-05"
+  },
+  "helecho_55": {
+   "file": "helecho_55.glb",
+   "thumbnail": "thumbs/helecho_55.webp",
+   "sha256": "db8eb0fbd26555ec43394f5e8a0b0fa76d12d23ed5808a798507c27619eed3c3",
+   "bytes": 429000,
+   "triangles": 4112,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    800,
+    550
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    800,
+    550
+   ],
+   "family": "plantas",
+   "type": "helecho",
+   "params": {
+    "pot": {
+     "kind": "bola",
+     "d": 240,
+     "h": 210
+    },
+    "fronds": 46
+   },
+   "finishes": {
+    "hojas": "pla-frondas",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_fronda",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "92f2e933eb16a119cba68e619116d686512564d41832b537ab01872e0ce817d3",
+   "builtAt": "2026-10-05"
+  },
+  "kentia_140": {
+   "file": "kentia_140.glb",
+   "thumbnail": "thumbs/kentia_140.webp",
+   "sha256": "960308ed002f3192f698edcc2afe285df2f3d496669afd14b586dbc0d57f83be",
+   "bytes": 546856,
+   "triangles": 14536,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1050,
+    1050,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1050,
+    1050,
+    1400
+   ],
+   "family": "plantas",
+   "type": "kentia",
+   "params": {
+    "pot": {
+     "kind": "cesta",
+     "d": 320,
+     "h": 290
+    },
+    "fronds": 9
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-fibra"
+   },
+   "textures": [
+    "pla_fibra",
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "129a8d6d3e7ccd951923f76d33e4819e8946b15908b68d65d506afe0f579ed3a",
+   "builtAt": "2026-10-05"
+  },
+  "kentia_190": {
+   "file": "kentia_190.glb",
+   "thumbnail": "thumbs/kentia_190.webp",
+   "sha256": "be2aff47dc7fab25f65faae7ca10eb021e32566bb1618a13dc29ad36dc3c6fcd",
+   "bytes": 413336,
+   "triangles": 17936,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1350,
+    1350,
+    1900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1350,
+    1350,
+    1900
+   ],
+   "family": "plantas",
+   "type": "kentia",
+   "params": {
+    "pot": {
+     "kind": "cilindro",
+     "d": 380,
+     "h": 360
+    },
+    "fronds": 12
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1dbbd780b418fb56f27d06946b2ec2b7d8cdec2d1221b28753c9978895565cbb",
+   "builtAt": "2026-10-05"
+  },
+  "monstera_120": {
+   "file": "monstera_120.glb",
+   "thumbnail": "thumbs/monstera_120.webp",
+   "sha256": "06d8fa9bba6fc2ac08e37a02a179c10c3572622629a59a0e741b3af4d1289ca2",
+   "bytes": 715988,
+   "triangles": 7006,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    950,
+    1200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    950,
+    1200
+   ],
+   "family": "plantas",
+   "type": "monstera",
+   "params": {
+    "pot": {
+     "kind": "cesta",
+     "d": 340,
+     "h": 300
+    },
+    "leaves": 12,
+    "leaf": 480,
+    "pole": true
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-fibra",
+    "tutor": "pla-coco"
+   },
+   "textures": [
+    "pla_coco",
+    "pla_fibra",
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a52bde7cf6471007288f2b21e88374323fd66f6fde304de86fa694db9f643dda",
+   "builtAt": "2026-10-05"
+  },
+  "monstera_150": {
+   "file": "monstera_150.glb",
+   "thumbnail": "thumbs/monstera_150.webp",
+   "sha256": "9db6c8290cca213a210bb77feff6a5d6170835f1f8286efd860f729dba649c52",
+   "bytes": 573700,
+   "triangles": 7310,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    1150,
+    1500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    1150,
+    1500
+   ],
+   "family": "plantas",
+   "type": "monstera",
+   "params": {
+    "pot": {
+     "kind": "hormigon",
+     "d": 400,
+     "h": 380
+    },
+    "leaves": 15,
+    "leaf": 560,
+    "pole": true
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-hormigon",
+    "tutor": "pla-coco"
+   },
+   "textures": [
+    "pla_coco",
+    "pla_hoja_oscura",
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bf76825b2c5e68d3d3f98ba5eb1e81dd37ef244dcc9daf30b3adae0444762229",
+   "builtAt": "2026-10-05"
+  },
+  "monstera_70": {
+   "file": "monstera_70.glb",
+   "thumbnail": "thumbs/monstera_70.webp",
+   "sha256": "9908339ef02e5f7ff2f80845c49ddccd120b2039de7383281d7991057c6d19f2",
+   "bytes": 270652,
+   "triangles": 4656,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    650,
+    620,
+    700
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    650,
+    620,
+    700
+   ],
+   "family": "plantas",
+   "type": "monstera",
+   "params": {
+    "pot": {
+     "kind": "bola",
+     "d": 240,
+     "h": 220
+    },
+    "leaves": 8,
+    "leaf": 300
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "76b014e1e724ba7470c337bf7ff9f956265853e3566e91888e030962850e75c5",
+   "builtAt": "2026-10-05"
+  },
+  "olivo_120": {
+   "file": "olivo_120.glb",
+   "thumbnail": "thumbs/olivo_120.webp",
+   "sha256": "0b0b2af3fcdaec17d1c9432c295160b09f714be1ebe127ce0b706b5846ccea36",
+   "bytes": 786940,
+   "triangles": 22016,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    600,
+    600,
+    1200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    1200
+   ],
+   "family": "plantas",
+   "type": "olivo",
+   "params": {
+    "pot": {
+     "kind": "terracota",
+     "d": 360,
+     "h": 320
+    }
+   },
+   "finishes": {
+    "hojas": "pla-hojas-claras",
+    "tierra": "pla-tierra",
+    "corteza": "pla-corteza",
+    "maceta": "pla-terracota"
+   },
+   "textures": [
+    "pla_corteza",
+    "pla_hoja_clara",
+    "pla_terracota",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "27fb6c80d10a34ac120f775d2141d28a6ed7181f83349f1d858e578b260903bd",
+   "builtAt": "2026-10-05"
+  },
+  "olivo_170": {
+   "file": "olivo_170.glb",
+   "thumbnail": "thumbs/olivo_170.webp",
+   "sha256": "f1cd309d5494d3bd13c3343d254863aecc9e06cdde523cc650049a0914243d56",
+   "bytes": 927472,
+   "triangles": 33312,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    850,
+    850,
+    1700
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    850,
+    850,
+    1700
+   ],
+   "family": "plantas",
+   "type": "olivo",
+   "params": {
+    "pot": {
+     "kind": "hormigon",
+     "d": 460,
+     "h": 440,
+     "square": true
+    }
+   },
+   "finishes": {
+    "hojas": "pla-hojas-claras",
+    "tierra": "pla-tierra",
+    "corteza": "pla-corteza",
+    "maceta": "pla-hormigon"
+   },
+   "textures": [
+    "pla_corteza",
+    "pla_hoja_clara",
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5e6b6403b347bded67fabb70f090a40027cb16fefbc64f56ba9f1aaa03893f0d",
+   "builtAt": "2026-10-05"
+  },
+  "potus_colgante_105": {
+   "file": "potus_colgante_105.glb",
+   "thumbnail": "thumbs/potus_colgante_105.webp",
+   "sha256": "1a2793ca191e34970317e0f9cb5ef2f68769f9663334d9d76803f78187d3942c",
+   "bytes": 595884,
+   "triangles": 17136,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    420,
+    430,
+    1055
+   ],
+   "elevationMm": 1145,
+   "specDimensionsMm": [
+    420,
+    430,
+    1050
+   ],
+   "family": "plantas",
+   "type": "potus_colgante",
+   "params": {
+    "pot": {
+     "kind": "colgante",
+     "d": 170,
+     "h": 130
+    }
+   },
+   "finishes": {
+    "hojas": "pla-hojas-potus",
+    "tierra": "pla-tierra",
+    "cuerda": "cuerda-beige",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "cuerda",
+    "pla_hoja_potus",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1eb7852078f10931114e9e7608140025008a754da9719d4c7bf75457f568a335",
+   "builtAt": "2026-10-05"
+  },
+  "potus_sobremesa_30": {
+   "file": "potus_sobremesa_30.glb",
+   "thumbnail": "thumbs/potus_sobremesa_30.webp",
+   "sha256": "a20552dbb84ae7da85da44f8277dd7649f27436698409b6fab70ac6cb76eb5c5",
+   "bytes": 427368,
+   "triangles": 10064,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    503,
+    480,
+    304
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    520,
+    480,
+    300
+   ],
+   "family": "plantas",
+   "type": "potus",
+   "params": {
+    "pot": {
+     "kind": "terracota",
+     "d": 150,
+     "h": 140
+    }
+   },
+   "finishes": {
+    "hojas": "pla-hojas-potus",
+    "tierra": "pla-tierra",
+    "maceta": "pla-terracota"
+   },
+   "textures": [
+    "pla_hoja_potus",
+    "pla_terracota",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e7f384175715cadaec393d5e082ad7bfb366e76bc3b62b49478725d3301573e7",
+   "builtAt": "2026-10-05"
+  },
+  "sansevieria_55": {
+   "file": "sansevieria_55.glb",
+   "thumbnail": "thumbs/sansevieria_55.webp",
+   "sha256": "27369dd0f06f7e110e03185ebf9831af6ff9bd24f35b3889615db2eb3fbdaad0",
+   "bytes": 254620,
+   "triangles": 5120,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    320,
+    286,
+    550
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    320,
+    290,
+    550
+   ],
+   "family": "plantas",
+   "type": "sansevieria",
+   "params": {
+    "pot": {
+     "kind": "cilindro",
+     "d": 180,
+     "h": 170
+    },
+    "leaves": 11
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f9a30564c71bd4007c63d9739bd954a96891c57606e8fdd224701d12ab4821df",
+   "builtAt": "2026-10-05"
+  },
+  "sansevieria_90": {
+   "file": "sansevieria_90.glb",
+   "thumbnail": "thumbs/sansevieria_90.webp",
+   "sha256": "c067bb8cc896d3cc1116e0cc84b35e7b214a20669323ebcf60914a73e4871f43",
+   "bytes": 298164,
+   "triangles": 6464,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    420,
+    462,
+    900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    420,
+    460,
+    900
+   ],
+   "family": "plantas",
+   "type": "sansevieria",
+   "params": {
+    "pot": {
+     "kind": "hormigon",
+     "d": 260,
+     "h": 280
+    },
+    "leaves": 15
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-hormigon"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5f0ebc002a80df1c15cb53652b1f67e6b5fcf0fc3aacdde1657f74d59c9c421f",
+   "builtAt": "2026-10-05"
+  },
+  "strelitzia_150": {
+   "file": "strelitzia_150.glb",
+   "thumbnail": "thumbs/strelitzia_150.webp",
+   "sha256": "b2f85e1044567f6c099c493846d261aa5396b21f83ab985d7860c722e21b15a0",
+   "bytes": 479660,
+   "triangles": 5032,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1050,
+    1000,
+    1500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1050,
+    1000,
+    1500
+   ],
+   "family": "plantas",
+   "type": "strelitzia",
+   "params": {
+    "pot": {
+     "kind": "cesta",
+     "d": 340,
+     "h": 310
+    },
+    "leaves": 9
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-fibra"
+   },
+   "textures": [
+    "pla_fibra",
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a5bbed9c61ed89cf80028c4a4e4cddeafb833a48f98b63b913e38105d4deab21",
+   "builtAt": "2026-10-05"
+  },
+  "strelitzia_180": {
+   "file": "strelitzia_180.glb",
+   "thumbnail": "thumbs/strelitzia_180.webp",
+   "sha256": "0f6a7f46ed0fbf36213a9c1d68d4fdf85c99fea7b2b9ac997880fe2143703bb8",
+   "bytes": 305068,
+   "triangles": 5264,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1220,
+    1000,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1220,
+    1000,
+    1800
+   ],
+   "family": "plantas",
+   "type": "strelitzia",
+   "params": {
+    "pot": {
+     "kind": "cilindro",
+     "d": 380,
+     "h": 360
+    },
+    "leaves": 12
+   },
+   "finishes": {
+    "hojas": "pla-hojas-oscuras",
+    "tierra": "pla-tierra",
+    "maceta": "pla-ceramica-blanca"
+   },
+   "textures": [
+    "pla_hoja_oscura",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "db4d67b4c70f9d3ee6a67f9556f35c2599a475f62335c990aa59857e26200bd2",
+   "builtAt": "2026-10-05"
+  },
+  "suculentas_16": {
+   "file": "suculentas_16.glb",
+   "thumbnail": "thumbs/suculentas_16.webp",
+   "sha256": "1809e5adc3a5e3b03fb96e8eef973c3d35f6ddbff2b95d3634538508794b1bdd",
+   "bytes": 411516,
+   "triangles": 16160,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    320,
+    320,
+    156
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    320,
+    320,
+    160
+   ],
+   "family": "plantas",
+   "type": "suculentas",
+   "params": {
+    "pot": {
+     "kind": "cuenco",
+     "d": 320,
+     "h": 110
+    }
+   },
+   "finishes": {
+    "tierra": "pla-tierra",
+    "grava": "pla-grava",
+    "maceta": "pla-hormigon"
+   },
+   "textures": [
+    "pla_hormigon",
+    "pla_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6d3c8c74ffbc9ebc49675be7081f1065aa27befa96b599b64ecb04985e74cd29",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "cuerda": {
+   "source": "ambientcg",
+   "id": "Rope001",
+   "title": "Rope 001",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Rope001",
+   "license": "CC0-1.0",
+   "sizeMm": 160,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Rope001_1K-JPG.zip",
+     "bytes": 4226862,
+     "sha256": "0f4daf2c2720b9bd910369cab753090b0ad6560435526ec5aaab293bae5fdbfc"
+    }
+   ]
+  },
+  "pla_coco": {
+   "source": "ambientcg",
+   "id": "Ground048",
+   "title": "Ground 048",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Ground048",
+   "license": "CC0-1.0",
+   "sizeMm": 1400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Ground048_1K-JPG.zip",
+     "bytes": 10655049,
+     "sha256": "3decfdd20e6c8f8c1ff02840cbd336922fca678e23987111af4bebb0a7a89c96"
+    }
+   ]
+  },
+  "pla_corteza": {
+   "source": "polyhaven",
+   "id": "bark_willow_02",
+   "title": "Bark Willow 02",
+   "authors": [
+    "Charlotte Baglioni"
+   ],
+   "pageUrl": "https://polyhaven.com/a/bark_willow_02",
+   "license": "CC0-1.0",
+   "sizeMm": 2150,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_diff_1k.jpg",
+     "bytes": 998966,
+     "md5": "384e25dd87b6b606458c9aa5f84735aa"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_nor_gl_1k.jpg",
+     "bytes": 1358916,
+     "md5": "eb381e522a4053d6ca4ce7e31c77dcd3"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_rough_1k.jpg",
+     "bytes": 498100,
+     "md5": "ab7b9a693d9edcfeaa606b7219c64193"
+    }
+   ]
+  },
+  "pla_fibra": {
+   "source": "ambientcg",
+   "id": "Wicker002",
+   "title": "Wicker 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Wicker002",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Wicker002_1K-JPG.zip",
+     "bytes": 8737377,
+     "sha256": "86f94873dafbca88468d9632376be29630eaea989111e9fca4f692a1b1466d78"
+    }
+   ]
+  },
+  "pla_fronda": {
+   "source": "polyhaven",
+   "id": "fern_02",
+   "title": "Fern 02",
+   "authors": [
+    "Rob Tuytel",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/fern_02",
+   "license": "CC0-1.0",
+   "sizeMm": 600,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_diff_1k.jpg",
+     "bytes": 315705,
+     "md5": "82c18a6cfd5ae91c37c0e078f591181c"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_nor_gl_1k.jpg",
+     "bytes": 367222,
+     "md5": "43aed63dff79554f6064627515afd9d7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_rough_1k.jpg",
+     "bytes": 208576,
+     "md5": "282cac24b4e68c9848b64271b320a6a1"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fern_02/fern_02_alpha_1k.jpg",
+     "bytes": 246038,
+     "md5": "f2f725efc89ed87132c8706ca3ad223e"
+    }
+   ]
+  },
+  "pla_hoja_clara": {
+   "source": "ambientcg",
+   "id": "LeafSet018",
+   "title": "Leaf Set 018",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet018",
+   "license": "CC0-1.0",
+   "sizeMm": 200,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet018_1K-JPG.zip",
+     "bytes": 2828704,
+     "sha256": "47874a3a882a337a89fb5ebad890bf8f1449f39ccad5cd8056a48358d6568295"
+    }
+   ]
+  },
+  "pla_hoja_oscura": {
+   "source": "polyhaven",
+   "id": "anthurium_botany_01",
+   "title": "Anthurium Botany 01",
+   "authors": [
+    "Rob Tuytel",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/anthurium_botany_01",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_diff_1k.jpg",
+     "bytes": 448508,
+     "md5": "b78dfe5b3c265e5d9290c0f75a2801f3"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_nor_gl_1k.jpg",
+     "bytes": 494107,
+     "md5": "b9f023a3bf6f30ed293a35722ab14f06"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_rough_1k.jpg",
+     "bytes": 440747,
+     "md5": "38f99a8f7ff08143873cae17292551d9"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_alpha_1k.jpg",
+     "bytes": 97557,
+     "md5": "5b88c1e1a255c0f0ee24c0132a670737"
+    }
+   ]
+  },
+  "pla_hoja_potus": {
+   "source": "ambientcg",
+   "id": "LeafSet004",
+   "title": "Leaf Set 004",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet004",
+   "license": "CC0-1.0",
+   "sizeMm": 200,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet004_1K-JPG.zip",
+     "bytes": 4114097,
+     "sha256": "b9994984499c42cab9ac7327fe8c4821103b83f802dc76f133c5131af04372e6"
+    }
+   ]
+  },
+  "pla_hormigon": {
+   "source": "ambientcg",
+   "id": "Concrete034",
+   "title": "Concrete 034",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Concrete034",
+   "license": "CC0-1.0",
+   "sizeMm": 1100,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip",
+     "bytes": 3657575,
+     "sha256": "5839d284d94ffb8d2a56df742ec522b13dd311c52dbd42b8fd33f0409ceedb81"
+    }
+   ]
+  },
+  "pla_terracota": {
+   "source": "ambientcg",
+   "id": "Clay002",
+   "title": "Clay 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Clay002",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Clay002_1K-JPG.zip",
+     "bytes": 7780720,
+     "sha256": "aa29a541b39ef8304a65a96ab9bbcdd44e23bcdf3822979ca1d5ec895bb0809f"
+    }
+   ]
+  },
+  "pla_tierra": {
+   "source": "polyhaven",
+   "id": "brown_mud",
+   "title": "Brown Mud",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/brown_mud",
+   "license": "CC0-1.0",
+   "sizeMm": 1300,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_diff_1k.jpg",
+     "bytes": 501955,
+     "md5": "b141af27b413db140818d0a4998c394c"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_nor_gl_1k.jpg",
+     "bytes": 1011780,
+     "md5": "62df05266fa5a0adc7733a7184a15dea"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_rough_1k.jpg",
+     "bytes": 340815,
+     "md5": "fb4d5d8ef98ebee6a402955b99103a3a"
+    }
+   ]
+  }
+ }
+}

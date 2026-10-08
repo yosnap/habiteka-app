@@ -3,11 +3,14 @@ import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 export interface WalkthroughUploadTicket {
   id: string; key: string; organizationId: string; userId: string; projectId: string;
   zoneId: string | null; routeId: string; approvalId: string; approvedRevision: number;
-  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images'; expires: number;
+  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images' | 'advertising' | 'property-visit-ai'; expires: number;
+  jobVersion?: number;
   /** Montaje con imágenes: renders que lo componen, en orden. */
   sourceIds?: string[];
   contentScope?: import('@/lib/editor-document/video-content-scope').VideoContentScope;
   presentation?: import('@/lib/editor-document/video-presentation').VideoPresentationOptions;
+  advertising?: import('@/lib/editor-document/advertising-video').AdvertisingVideoOptions;
+  title?: string;
 }
 function signature(value: string, secret: string) { return createHmac('sha256', secret).update(value).digest('base64url'); }
 export function signUploadTicket(ticket: WalkthroughUploadTicket, secret: string): string {

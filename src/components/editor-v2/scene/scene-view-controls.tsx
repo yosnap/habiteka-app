@@ -108,12 +108,12 @@ export function SceneViewControls({
         <LayoutGrid size={15} aria-hidden="true" />
         <span>Maqueta</span>
       </button>
-      <button type="button" className={styles.actionButton} aria-label="Entrar al diseño en primera persona"
+      {canFreeWalk && <button type="button" className={styles.actionButton} aria-label="Entrar al diseño en primera persona"
         title={canFreeWalk ? 'Camina por la misma escena del editor' : 'Necesitas una estancia transitable'}
         disabled={!canFreeWalk} onClick={onFreeWalk}>
         <PersonStanding size={15} aria-hidden="true" />
         <span>Visita</span>
-      </button>
+      </button>}
       <label className={styles.selectLabel}>
         <Rotate3d size={15} aria-hidden="true" />
         <span className={styles.visuallyHidden}>Vistas</span>

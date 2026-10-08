@@ -21,10 +21,15 @@ function spatialSnapCandidates(doc: EditorDocument) {
     .map((point) => ({ point, id: ramp.id }))));
   return [...objects, ...ramps];
 }
-/** Distances are measured in screen pixels (with a floor in mm), so magnetic reach does not grow when zooming in. */
-export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, enabled: boolean, anchor?: Point): SnapCandidate {
+/**
+ * Distances are measured in screen pixels (with a floor in mm), so magnetic reach does not grow when zooming in.
+ * `free` (⌘ o Ctrl): no se une a esquinas, muros ni objetos; solo conserva el trazo ortogonal y las guías de alineación.
+ */
+export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, enabled: boolean, anchor?: Point,
+  options: { free?: boolean } = {}): SnapCandidate {
   if (!enabled) return { point, kind: 'free' };
   const radius = snapRadiusMm(scale, 12);
+  if (options.free) return freeWallPoint(doc, point, scale, radius, anchor);
   const candidates: (SnapCandidate & { gap: number; priority: number })[] = [];
   for (const v of doc.vertices) candidates.push({ point: { x: v.x, y: v.y }, kind: 'vertex', id: v.id, gap: distance(point, v), priority: 0 });
   for (const wall of doc.walls) {
@@ -51,4 +56,16 @@ export function snapWallPoint(doc: EditorDocument, point: Point, scale: number, 
   // Un extremo de muro se alinea con ejes y vértices, nunca con caras: así no nacen esquinas fantasma a medio grosor.
   const aligned = alignPoint(doc, point, scale, enabled, [], { faces: false, toleranceMm: snapRadiusMm(scale, 10) });
   return { point: aligned.point, kind: Math.hypot(aligned.delta.x, aligned.delta.y) > .001 ? 'object' : 'free', guides: aligned.guides };
+}
+
+function freeWallPoint(doc: EditorDocument, point: Point, scale: number, radius: number, anchor?: Point): SnapCandidate {
+  if (anchor) {
+    const dx = Math.abs(point.x - anchor.x), dy = Math.abs(point.y - anchor.y);
+    if (Math.min(dx, dy) <= radius) {
+      const aligned = dx < dy ? { x: anchor.x, y: point.y } : { x: point.x, y: anchor.y };
+      return { kind: 'orthogonal', point: aligned, guides: [{ from: anchor, to: aligned }] };
+    }
+  }
+  const aligned = alignPoint(doc, point, scale, true, [], { faces: false, toleranceMm: snapRadiusMm(scale, 10) });
+  return { point: aligned.point, kind: 'free', guides: aligned.guides };
 }

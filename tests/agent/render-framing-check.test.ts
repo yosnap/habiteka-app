@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import { assertRenderFraming } from '@/server/agent/editor-v2/render-framing-check';
+import { reviewRenderFidelity } from '@/server/agent/editor-v2/review-render-fidelity';
+import type { ChatVisionAdapter } from '@/lib/contracts';
+import type { RenderView } from '@/lib/editor-document/render-view';
 
 async function image(left: number, top: number, width: number, height: number) {
   const svg = `<svg width="400" height="200"><rect x="${left}" y="${top}" width="${width}" height="${height}" fill="#384350"/></svg>`;
@@ -29,5 +32,18 @@ describe('encuadre del render', () => {
   it('rechaza desplazar el inmueble fuera de su posición original', async () => {
     await expect(assertRenderFraming(await image(100, 60, 120, 80), await image(205, 60, 120, 80)))
       .rejects.toThrow('recortó o desplazó');
+  });
+
+  it('devuelve un descarte conservable, sin fingir una auditoría visual ni llamar a la IA', async () => {
+    const chat = vi.fn(), vision = { chat, chatStream: vi.fn() } as unknown as ChatVisionAdapter;
+    const review = await reviewRenderFidelity(vision, await image(140, 60, 120, 80),
+      await image(45, 5, 300, 190), { preset: 'right' } as RenderView);
+    expect(review.review?.status).toBe('rejected');
+    expect(review.fidelity).toMatchObject({ version: 'render-framing-v1', status: 'rejected',
+      criteria: [{ id: 'cameraAndGeometryPreserved', status: 'fail', observation: expect.stringContaining('no se ejecutó la auditoría visual') }],
+      roomChecks: [], openingChecks: [],
+    });
+    expect(chat).not.toHaveBeenCalled();
+    expect(review.fidelity.model).toBeUndefined();
   });
 });

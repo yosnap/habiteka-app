@@ -9,21 +9,27 @@
  * recalcular sin IA → enviar al editor (reemplaza el plano; confirmación en dos
  * pasos). UI mínima funcional: la lógica vive en servidor y contratos.
  */
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
-import { planoToSvg } from '@/lib/plan-svg/geometry-to-svg';
-import type { PlanDoorOverride, PlanImportResult, Plano2dPayload, WrittenRoomDimensions } from '@/lib/contracts';
+import type { PlanAperture, PlanWall, PlanWallOverride, PlanZoneOutlineOverride, PlanImportReviewOptions, PlanDoorOverride, PlanImportResult, Plano2dPayload, WrittenRoomDimensions } from '@/lib/contracts';
+import { applyReviewedDoors, applyReviewedWalls, nextWallSize, resizeZoneSide, reviewedOutlineOverrides, reviewedWallOverrides } from '@/lib/plan-review-geometry';
 import { doorSwing } from '@/lib/plan-svg/door-swing';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import type { StudioQuality } from '@/lib/studio-state';
 import { pdfFirstPageToPng } from './pdf-to-png';
 import { PlanQualityCard } from './plan-quality-card';
+import { useMountEffect } from '@/lib/use-mount-effect';
+import { PlanRedrawOffer, type RedrawComparison, type RedrawQuote } from './plan-redraw-offer';
+import { imageGenerationQuote, redrawPlanForReview, rereadPlanForReview } from '@/app/(app)/projects/[id]/_actions/plan-redraw-actions';
+import { PlanImportCanvas, type PlanReviewSelection } from './plan-import-canvas';
+import { PlanReviewDoorFields, PlanReviewWallFields, PlanReviewZoneFields } from './plan-review-fields';
 
 /** Importación con su veredicto de fiabilidad, tal y como la devuelve el servidor. */
-export type ImportedPlan = PlanImportResult & { imageUrl: string; quality: StudioQuality };
+export type ImportedPlan = PlanImportResult & { imageUrl: string; quality: StudioQuality;
+  revision?: string; wallOverrides?: PlanWallOverride[]; zoneOutlineOverrides?: PlanZoneOutlineOverride[]; generalWidthMm?: number; includeFurniture?: boolean };
 
 export interface PlanImportActions {
   importAction: (
@@ -34,8 +40,8 @@ export interface PlanImportActions {
   refitAction: (
     projectId: string,
     roomOverrides: WrittenRoomDimensions[],
-    options: { includeFurniture?: boolean; generalWidthMm?: number | null; doorOverrides?: PlanDoorOverride[] },
-  ) => Promise<(PlanImportResult & { quality: StudioQuality }) | ActionErrorResult>;
+    options: PlanImportReviewOptions,
+  ) => Promise<(PlanImportResult & { quality: StudioQuality; revision?: string; wallOverrides?: PlanWallOverride[]; zoneOutlineOverrides?: PlanZoneOutlineOverride[] }) | ActionErrorResult>;
   applyAction: (
     projectId: string,
     result: PlanImportResult,
@@ -50,12 +56,14 @@ interface Props extends PlanImportActions {
   initialResult?: ImportedPlan | null;
   initialGeneralWidthMm?: number;
   initialIncludeFurniture?: boolean;
+  initialSelection?: PlanReviewSelection;
+  onSaved?: (result: ImportedPlan) => void;
 }
 
-type Busy = 'import' | 'refit' | 'apply' | 'pdf' | null;
+type Busy = 'import' | 'redraw' | 'reread' | 'refit' | 'apply' | 'pdf' | null;
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
-export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitAction, applyAction, onBack, initialResult, initialGeneralWidthMm, initialIncludeFurniture }: Props) {
+export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitAction, applyAction, onBack, initialResult, initialGeneralWidthMm, initialIncludeFurniture, initialSelection = null, onSaved }: Props) {
   const router = useRouter();
   // La zona en curso se conserva al saltar al editor a corregir el plano.
   const zona = useSearchParams().get('zona');
@@ -67,14 +75,28 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   const [result, setResult] = useState<PlanImportResult | null>(initialResult ?? null);
   const [quality, setQuality] = useState<StudioQuality | null>(initialResult?.quality ?? null);
   const [rows, setRows] = useState<WrittenRoomDimensions[]>(initialResult?.writtenDimensions ?? []);
+  const currentRows = rows;
+  const latestRows = useRef<WrittenRoomDimensions[] | null>(null);
   // En esta fase importamos la ESTRUCTURA; el mobiliario leído es opcional y viene desactivado.
-  const [includeFurniture, setIncludeFurniture] = useState(initialIncludeFurniture ?? false);
+  const [includeFurniture, setIncludeFurniture] = useState(initialResult?.includeFurniture ?? initialIncludeFurniture ?? false);
   const [overlay, setOverlay] = useState(true);
   // Ancho total real (m) cuando el plano no trae cotas generales legibles.
-  const [generalWidth, setGeneralWidth] = useState(initialGeneralWidthMm ? String(initialGeneralWidthMm / 1000) : '');
+  const widthAtStart = initialResult?.generalWidthMm ?? initialGeneralWidthMm;
+  const [generalWidth, setGeneralWidth] = useState(widthAtStart ? String(widthAtStart / 1000) : '');
   const [confirmApply, setConfirmApply] = useState(false);
   const [confirmNewImport, setConfirmNewImport] = useState(false);
   const [needsRefit, setNeedsRefit] = useState(false);
+  const [revision, setRevision] = useState(initialResult?.revision);
+  const [wallOverrides, setWallOverrides] = useState<PlanWallOverride[]>(initialResult?.wallOverrides ?? []);
+  const [selection, setSelection] = useState<PlanReviewSelection>(initialSelection);
+  const [vectorOpacity, setVectorOpacity] = useState(.7);
+  const [saved, setSaved] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  type GeometryEntry = { result: PlanImportResult; walls: PlanWallOverride[]; outlines: PlanZoneOutlineOverride[] };
+  // Lados abiertos movidos a mano: el contorno de la estancia, sin muro que lo explique.
+  const [zoneOutlines, setZoneOutlines] = useState<PlanZoneOutlineOverride[]>(initialResult?.zoneOutlineOverrides ?? []);
+  const [past, setPast] = useState<GeometryEntry[]>([]), [future, setFuture] = useState<GeometryEntry[]>([]);
+  const sidebar = useRef<HTMLElement | null>(null);
   // Veredicto del SERVIDOR al aplicar: el plano queda en el editor «a corregir».
   const [needsCorrection, setNeedsCorrection] = useState(false);
   const alignedOverlay = overlay && Boolean(result?.sourceFrameMm && imageUrl);
@@ -99,6 +121,20 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   }, [result]);
   const keptImageWalls = result?.warnings.some((warning) =>
     warning.code === 'ajuste-desplaza-muros' && warning.message.includes('Se conservan los muros')) ?? false;
+  const selectedDoor = doors.find(({ aperture }) => selection?.kind === 'door' && selection.id === aperture.id);
+  const selectedWall = selection?.kind === 'wall' ? result?.plano.zones.flatMap(zone => zone.walls).find(wall => wall.id === selection.id) : null;
+  const selectElement = (next: PlanReviewSelection) => {
+    setSelection(next);
+    // Una estancia se despliega en su fila de la tabla; puertas y muros se editan arriba.
+    if (next?.kind === 'zone') requestAnimationFrame(() => sidebar.current?.querySelector(`[data-zone-row="${CSS.escape(next.id)}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    else sidebar.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (needsRefit) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [needsRefit]);
 
   const run = async (kind: Exclude<Busy, null>, fn: () => Promise<void>) => {
     if (inFlight.current) return;
@@ -115,39 +151,54 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     }
   };
 
-  const svgUrl = useMemo(() => {
-    if (!result) return null;
-    const svg = planoToSvg(result.plano, {
-      pxPerMeter: 90,
-      viewBox: alignedOverlay && result.sourceFrameMm
-        ? { minX: 0, minY: 0, width: result.sourceFrameMm.width, height: result.sourceFrameMm.height }
-        : undefined,
-      stretchToFrame: alignedOverlay,
-      showDimensions: !alignedOverlay && !result.escalaEstimada,
-      showLabels: !alignedOverlay,
-      labelZoneIds: alignedOverlay ? result.exteriors.map((zone) => zone.id) : undefined,
-      showAreas: false,
-      showDoorNumbers: alignedOverlay,
-      theme: { background: alignedOverlay ? 'transparent' : '#ffffff', floorFill: 'transparent',
-        wallFill: alignedOverlay ? 'rgba(225,29,72,0.78)' : '#26221f',
-        lineColor: alignedOverlay ? '#e11d48' : '#26221f', windowColor: '#2b7bbf',
-        textColor: alignedOverlay ? '#be123c' : '#26221f' },
-    });
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  }, [result, alignedOverlay]);
-
+  // Jev decide si conviene redibujar: solo entonces se consulta el precio.
+  const [quote, setQuote] = useState<RedrawQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<RedrawComparison | null>(null);
+  const loadQuote = (next: StudioQuality | null) => {
+    if (!next || next.decision === 'proceed' || quote) return;
+    setQuoteError(null);
+    void callAction(imageGenerationQuote(projectId)).then(setQuote)
+      .catch((e) => setQuoteError(e instanceof Error ? e.message : 'No se pudo calcular el precio.'));
+  };
+  // Una revisión retomada que Jev no dio por buena también muestra la propuesta.
+  useMountEffect(() => loadQuote(initialResult?.quality ?? null));
   const performImport = async (image: UploadedImage) => {
     const imported = await callAction(
       importAction(projectId, image.base64, { includeFurniture }),
     );
+    setComparison(null);
+    showImported(imported);
+  };
+  const onRedraw = (confirmed: RedrawQuote) => run('redraw', async () => {
+    const imported = await callAction(redrawPlanForReview(projectId,
+      { provider: confirmed.provider, model: confirmed.model, maxUsd: confirmed.priceUsd }));
+    setComparison({ sourceUrl: imported.sourceUrl, redrawUrl: imported.imageUrl, reading: 'tecnico' });
+    showImported(imported);
+    onSaved?.(imported);
+  });
+  const onReread = (image: 'source' | 'tecnico') => run('reread', async () => {
+    const imported = await callAction(rereadPlanForReview(projectId, image));
+    setComparison((current) => (current ? { ...current, reading: image } : current));
+    showImported(imported);
+    onSaved?.(imported);
+  });
+
+  const showImported = (imported: ImportedPlan) => {
+    loadQuote(imported.quality);
     setImageUrl(imported.imageUrl);
     setResult(imported);
     setQuality(imported.quality);
+    latestRows.current = null;
     setRows(imported.writtenDimensions);
     setGeneralWidth('');
     setNeedsRefit(false);
     setConfirmApply(false);
     setConfirmNewImport(false);
+    setRevision(imported.revision);
+    setWallOverrides(imported.wallOverrides ?? []);
+    setZoneOutlines(imported.zoneOutlineOverrides ?? []);
+    setPast([]); setFuture([]); setSaved(false); setSelection(null);
   };
 
   const importFrom = (image: UploadedImage) => run('import', () => performImport(image));
@@ -162,67 +213,109 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   const markForRefit = () => {
     setNeedsRefit(true);
     setConfirmApply(false);
+    setSaved(false); setNeedsCorrection(false);
   };
 
-  const updateRow = (zoneId: string, field: 'widthMm' | 'heightMm', value: string) => {
-    const meters = Number(value.replace(',', '.'));
-    const nextValue = value.trim() === '' || !Number.isFinite(meters) ? undefined : Math.round(meters * 1000);
-    if (rows.find((row) => row.zoneId === zoneId)?.[field] !== nextValue) markForRefit();
-    setRows((prev) =>
-      prev.map((row) =>
-        row.zoneId !== zoneId
-          ? row
-          : {
-              ...row,
-              [field]: nextValue,
-            },
-      ),
-    );
+  const setRowMm = (zoneId: string, field: 'widthMm' | 'heightMm', nextValue: number | undefined) => {
+    if (nextValue !== undefined && (nextValue < 500 || nextValue > 30000)) {
+      setError('Las cotas de estancia deben estar entre 0,5 y 30 metros.'); return false;
+    }
+    if (rows.find((row) => row.zoneId === zoneId)?.[field] === nextValue) return true;
+    markForRefit(); setError(null);
+    const next = rows.map((row) => (row.zoneId !== zoneId ? row : { ...row, [field]: nextValue }));
+    // El recálculo al soltar puede ocurrir antes de que React vuelva a pintar.
+    latestRows.current = next;
+    setRows(next);
+    return true;
   };
 
-  const onRefit = () =>
+  const onRefit = (leave = false) =>
     run('refit', async () => {
+      const rows = latestRows.current ?? currentRows;
       const meters = Number(generalWidth.replace(',', '.'));
       const generalWidthMm = generalWidth.trim() !== '' && Number.isFinite(meters) ? Math.round(meters * 1000) : undefined;
+      if (generalWidth.trim() && (!generalWidthMm || generalWidthMm < 1000 || generalWidthMm > 100000))
+        throw new Error('Indica un ancho total entre 1 y 100 metros.');
       const refitted = await callAction(
         refitAction(projectId, rows, {
           includeFurniture,
           generalWidthMm: generalWidthMm ?? null,
           doorOverrides: result ? doorOverridesFromPlan(result.plano) : [],
+          wallOverrides, zoneOutlineOverrides: zoneOutlines, revision, saveOnly: true,
         }),
       );
       setResult(refitted);
       setQuality(refitted.quality);
+      latestRows.current = null;
       setRows(refitted.writtenDimensions.map((w) => rows.find((r) => r.zoneId === w.zoneId) ?? w));
       setNeedsRefit(false);
       setConfirmApply(false);
+      setRevision(refitted.revision); setWallOverrides(refitted.wallOverrides ?? wallOverrides); setZoneOutlines(refitted.zoneOutlineOverrides ?? zoneOutlines);
+      setSaved(true); setConfirmLeave(false); setNeedsCorrection(false);
+      setPast([]); setFuture([]);
+      if (imageUrl) onSaved?.({ ...refitted, imageUrl, generalWidthMm, includeFurniture });
+      if (leave) onBack();
     });
 
-  const changeDoor = (apertureId: string, field: 'swing' | 'hinge') => {
+  const editGeometry = (plano: Plano2dPayload) => {
     if (!result) return;
-    const walls = new Map(result.plano.zones.flatMap((zone) => zone.walls.map((wall) => [wall.id, wall] as const)));
-    const zones = result.plano.zones.map((zone) => ({
-      ...zone,
-      apertures: zone.apertures.map((aperture) => {
-        if (aperture.id !== apertureId || aperture.kind !== 'puerta') return aperture;
-        const wall = walls.get(aperture.wallId);
-        const current = field === 'swing'
-          ? wall ? doorSwing(aperture, wall, result.plano.zones) : 'left'
-          : aperture.hinge ?? 'left';
-        return { ...aperture, [field]: current === 'left' ? 'right' : 'left' };
-      }),
-    }));
-    setResult({ ...result, plano: { ...result.plano, zones } });
-    markForRefit();
+    setPast(previous => [...previous.slice(-49), { result, walls: wallOverrides, outlines: zoneOutlines }]); setFuture([]);
+    const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
+    reviewedWallOverrides(result.plano, plano).forEach(wall => merged.set(wall.wallId, wall));
+    setWallOverrides([...merged.values()]); setResult({ ...result, plano }); markForRefit(); setError(null);
   };
-
-  const moveDoor = (apertureId: string, position: number) => {
-    if (!result || !Number.isFinite(position)) return;
-    setResult({ ...result, plano: { ...result.plano, zones: result.plano.zones.map((zone) => ({
-      ...zone, apertures: zone.apertures.map((aperture) => aperture.id === apertureId && aperture.kind === 'puerta'
-        ? { ...aperture, position } : aperture),
-    })) } });
-    markForRefit();
+  // Estirar una estancia: vista previa en vivo mientras se desliza y un solo paso de historial al soltar.
+  const zoneDrag = useRef<{ base: NonNullable<typeof result>; plano: Plano2dPayload; zoneId: string;
+    field: 'widthMm' | 'heightMm'; sizeMm: number } | null>(null);
+  const resizeZone = (zoneId: string, field: 'widthMm' | 'heightMm', sizeMm: number, side: 'min' | 'max' = 'max') => {
+    if (!result || busy) return false;
+    const base = zoneDrag.current?.base ?? result;
+    const plano = resizeZoneSide(base.plano, zoneId, field === 'widthMm' ? 'x' : 'y', sizeMm, side);
+    if (plano === base.plano) return false;
+    try { applyReviewedWalls(base.plano, reviewedWallOverrides(base.plano, plano)); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Ese tamaño deja un muro imposible.'); return false; }
+    zoneDrag.current = { base, plano, zoneId, field, sizeMm };
+    setResult({ ...base, plano }); setError(null);
+    return true;
+  };
+  const commitZoneResize = () => {
+    const drag = zoneDrag.current;
+    if (!drag) return;
+    zoneDrag.current = null;
+    setPast(previous => [...previous.slice(-49), { result: drag.base, walls: wallOverrides, outlines: zoneOutlines }]); setFuture([]);
+    const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
+    const movedWalls = reviewedWallOverrides(drag.base.plano, drag.plano);
+    movedWalls.forEach(wall => merged.set(wall.wallId, wall));
+    setWallOverrides([...merged.values()]); setResult({ ...drag.base, plano: drag.plano });
+    // Un lado abierto no mueve muros: se conserva el contorno de la estancia.
+    if (!movedWalls.length) {
+      const outlines = new Map(zoneOutlines.map(item => [item.zoneId, item]));
+      reviewedOutlineOverrides(drag.base.plano, drag.plano, drag.zoneId).forEach(item => outlines.set(item.zoneId, item));
+      setZoneOutlines([...outlines.values()]);
+    }
+    // La cota de la tabla pasa a ser la medida que ha fijado el usuario.
+    setRowMm(drag.zoneId, drag.field, Math.round(drag.sizeMm));
+  };
+  const updateDoor = (id: string, patch: Partial<PlanAperture>) => {
+    if (!result || busy) return false;
+    try { editGeometry(applyReviewedDoors(result.plano, [{ apertureId: id, ...patch }])); return true; }
+    catch (e) { setError(e instanceof Error ? e.message : 'No se pudo corregir la puerta.'); return false; }
+  };
+  const updateWall = (id: string, patch: Partial<PlanWall>) => {
+    const wall = result?.plano.zones.flatMap(zone => zone.walls).find(item => item.id === id);
+    if (!result || !wall || busy) return false;
+    try {
+      const next = applyReviewedWalls(result.plano, [{ ...wall, ...patch, wallId: id }]);
+      editGeometry(applyReviewedDoors(next, doorOverridesFromPlan(next))); return true;
+    } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo corregir el muro.'); return false; }
+  };
+  const historyMove = (redo: boolean) => {
+    const list = redo ? future : past, entry = list.at(-1);
+    if (!entry || !result) return;
+    const current = { result, walls: wallOverrides, outlines: zoneOutlines };
+    if (redo) { setFuture(list.slice(0, -1)); setPast(previous => [...previous, current]); }
+    else { setPast(list.slice(0, -1)); setFuture(previous => [...previous, current]); }
+    setResult(entry.result); setWallOverrides(entry.walls); setZoneOutlines(entry.outlines); markForRefit(); setError(null);
   };
 
   const editorUrl = `/projects/${projectId}${zona ? `?zona=${encodeURIComponent(zona)}` : ''}`;
@@ -302,19 +395,29 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     <div className="flex h-full flex-col gap-4 p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-ink text-lg font-semibold">Plano importado</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="text-ink-soft flex items-center gap-2 text-xs">
             <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} />
             Superponer sobre el original
           </label>
+          {alignedOverlay ? <label className="flex items-center gap-2 text-xs">Opacidad
+            <input aria-label="Opacidad de geometría" type="range" min="0.2" max="1" step="0.05" value={vectorOpacity} onChange={e => setVectorOpacity(Number(e.target.value))} /></label> : null}
+          <Button size="sm" disabled={busy !== null || !needsRefit} onClick={() => void onRefit()}>Guardar revisión</Button>
           <Button type="button" size="sm" variant="ghost" disabled={busy !== null} onClick={() => setConfirmNewImport(true)}>
             ← Otro plano
           </Button>
-          <Button type="button" size="sm" variant="outline" disabled={busy !== null} onClick={onBack}>
+          <Button type="button" size="sm" variant="outline" disabled={busy !== null} onClick={() => needsRefit ? setConfirmLeave(true) : onBack()}>
             Volver al estudio
           </Button>
         </div>
       </div>
+
+      {confirmLeave ? <div role="alert" className="rounded-control border border-amber-300 bg-amber-50 p-3 text-sm">
+        <p>Hay cambios sin guardar en esta revisión.</p><div className="mt-2 flex flex-wrap gap-2">
+          <Button disabled={busy !== null} onClick={() => void onRefit(true)}>Guardar y volver</Button>
+          <Button variant="outline" disabled={busy !== null} onClick={onBack}>Descartar y volver</Button>
+          <Button variant="ghost" onClick={() => setConfirmLeave(false)}>Seguir revisando</Button>
+        </div></div> : null}
 
       {confirmNewImport ? (
         <div className="rounded-control border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" role="alert">
@@ -327,24 +430,29 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-        <div className="border-line relative grid min-h-64 flex-1 place-items-center overflow-auto rounded-card border bg-white p-4">
-          <div className="relative">
-            {alignedOverlay && imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- original subido (URL firmada).
-              <img src={imageUrl} alt="Plano original" className="max-h-[70vh] max-w-full" />
-            ) : null}
-            {svgUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- SVG generado en memoria (data URL).
-              <img
-                src={svgUrl}
-                alt="Plano extraído"
-                className={alignedOverlay ? 'absolute inset-0 h-full w-full object-fill' : 'max-h-[70vh] max-w-full'}
-              />
-            ) : null}
-          </div>
+        <div className="border-line relative min-h-96 flex-1 overflow-hidden rounded-card border bg-white">
+          <PlanImportCanvas plano={result.plano} sourceFrame={result.sourceFrameMm} imageUrl={imageUrl}
+            overlay={overlay} opacity={vectorOpacity} selected={selection} onSelect={busy ? undefined : selectElement}
+            onMoveEndpoint={busy ? undefined : (id, endpoint, point) => { updateWall(id, { [endpoint]: point }); }} />
         </div>
 
-        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:w-80">
+        <aside ref={sidebar} className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto lg:w-80">
+          <p role="status" className="text-sm">{needsRefit ? 'Cambios sin guardar' : saved ? 'Revisión guardada en el proyecto' : 'Revisión del proyecto'}</p>
+          <p className="text-ink-soft text-xs">Guardar recalcula y conserva la revisión sin llamar a la IA. Después puedes enviarla al Editor.</p>
+          {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
+          <div className="flex gap-2"><Button size="sm" variant="outline" disabled={busy !== null || !past.length} onClick={() => historyMove(false)}>Deshacer geometría</Button>
+            <Button size="sm" variant="outline" disabled={busy !== null || !future.length} onClick={() => historyMove(true)}>Rehacer</Button></div>
+          {selectedDoor ? <PlanReviewDoorFields door={{ ...selectedDoor.aperture, swing: selectedDoor.aperture.swing ?? (() => {
+            const wall = result.plano.zones.flatMap(zone => zone.walls).find(item => item.id === selectedDoor.aperture.wallId);
+            return wall ? doorSwing(selectedDoor.aperture, wall, result.plano.zones) : 'left';
+          })() }} room={selectedDoor.room} wallLengthMm={(() => {
+            const wall = result.plano.zones.flatMap(zone => zone.walls).find(item => item.id === selectedDoor.aperture.wallId);
+            return wall ? Math.hypot(wall.to.x - wall.from.x, wall.to.y - wall.from.y) : 0;
+          })()}
+            number={doors.indexOf(selectedDoor) + 1} disabled={busy !== null} change={patch => updateDoor(selectedDoor.aperture.id, patch)} onClose={() => setSelection(null)} /> : null}
+          {selectedWall ? <PlanReviewWallFields wall={selectedWall} disabled={busy !== null}
+            change={patch => updateWall(selectedWall.id, patch)} onClose={() => setSelection(null)} /> : null}
+          {selection?.kind === 'zone' ? <p className="text-sm">Estancia resaltada. Ajusta su tamaño en «Cotas y geometría por estancia» o selecciona uno de sus muros.</p> : null}
           {alignedOverlay ? <p className="text-ink-soft text-xs">Rosa: geometría extraída · negro: plano original.</p> : null}
           {overlay && imageUrl && !result.sourceFrameMm ? (
             <p className="text-ink-soft text-xs">Esta revisión antigua no conserva el marco de la imagen; se muestra el vector sin superponer.</p>
@@ -353,12 +461,13 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
             <div role="alert" className="rounded-control border border-amber-400 bg-amber-50 p-3 text-xs text-amber-950">
               <p className="font-semibold">Comprueba la geometría antes de crear el 3D</p>
               <ul className="mt-2 list-disc space-y-1 pl-4">
-                {spatialWarnings.map((warning, i) => <li key={i}>{warning.message}</li>)}
+                {spatialWarnings.map((warning, i) => <li key={i}><button type="button" className="text-left underline underline-offset-2"
+                  onClick={() => selectElement(warning.zoneId ? { kind: 'zone', id: warning.zoneId } : { kind: 'scale', id: 'general' })}>{warning.message}</button></li>)}
               </ul>
-              {keptImageWalls ? <p className="mt-2">Se mantienen las posiciones detectadas en la imagen. Cambiar una cota escrita no desplazará esos muros: corrige la geometría en Editor v2 tras compararla con el original.</p> : null}
+              {keptImageWalls ? <p className="mt-2">Cambiar una cota escrita no desplazará estos muros. Selecciona un muro sobre el original para corregirlo aquí; puedes continuar en el Editor.</p> : null}
             </div>
           ) : null}
-          {result.escalaEstimada || generalWidth.trim() !== '' ? (
+          {result.escalaEstimada || generalWidth.trim() !== '' || selection?.kind === 'scale' ? (
             <div className="border-line bg-surface rounded-card border p-3">
               <p className="text-ink mb-1 text-sm font-medium">Ancho total real (m)</p>
               <p className="text-ink-soft mb-2 text-xs">
@@ -372,10 +481,10 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
           ) : null}
           <div className="border-line bg-surface rounded-card border p-3">
             <p className="text-ink mb-1 text-sm font-medium">Cotas y geometría por estancia (m)</p>
-            <p className="text-ink-soft mb-2 text-xs">La cota puede medir entre caras, ejes o extremos exteriores de las paredes. «Dibujo» muestra la caja geométrica de la estancia; compárala con el original.</p>
+            <p className="text-ink-soft mb-2 text-xs">Medidas del dibujo, entre caras interiores. Pulsa una estancia para ajustar su ancho y su fondo con deslizadores; compárala con el original.</p>
             <table className="w-full text-xs">
               <thead className="text-ink-soft">
-                <tr><th className="text-left font-normal">Estancia</th><th className="font-normal">Ancho</th><th className="font-normal">Alto</th></tr>
+                <tr><th className="text-left font-normal" colSpan={3}>Estancia · ancho × fondo</th></tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
@@ -383,20 +492,26 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
                   const mismatch = Boolean(measured && (
                     differsByOverFivePercent(row.widthMm, measured.widthMm) ||
                     differsByOverFivePercent(row.heightMm, measured.heightMm)));
+                  const open = selection?.kind === 'zone' && selection.id === row.zoneId;
+                  const shown = measured ?? { widthMm: row.widthMm, heightMm: row.heightMm };
                   return <Fragment key={row.zoneId}>
-                    <tr>
-                      <td className="text-ink pr-2">{row.name}</td>
-                      <td className="pr-1">
-                        <Input aria-label={`Ancho de ${row.name}`} className="h-7 px-1 text-xs" inputMode="decimal"
-                          defaultValue={metres(row.widthMm)} onBlur={(e) => updateRow(row.zoneId, 'widthMm', e.target.value)} />
-                      </td>
-                      <td>
-                        <Input aria-label={`Alto de ${row.name}`} className="h-7 px-1 text-xs" inputMode="decimal"
-                          defaultValue={metres(row.heightMm)} onBlur={(e) => updateRow(row.zoneId, 'heightMm', e.target.value)} />
+                    <tr data-zone-row={row.zoneId} className={open ? 'bg-surface-muted' : undefined}>
+                      <td className="text-ink pr-2" colSpan={3}>
+                        <button type="button" aria-expanded={open} className="flex w-full items-center justify-between gap-2 py-1 text-left"
+                          onClick={() => (open ? setSelection(null) : selectElement({ kind: 'zone', id: row.zoneId }))}>
+                          <span className="underline">{open ? '▾' : '▸'} {row.name}</span>
+                          <span className={`tabular-nums ${mismatch ? 'text-red-700' : ''}`}>{metres(shown.widthMm)} × {metres(shown.heightMm)}</span>
+                        </button>
                       </td>
                     </tr>
-                    {measured ? <tr><td colSpan={3} className={`pb-2 text-[11px] ${mismatch ? 'text-red-700' : 'text-ink-soft'}`}>
-                      Dibujo: {metres(measured.widthMm)} × {metres(measured.heightMm)}{mismatch ? ' · difiere más del 5 %' : ''}
+                    {open ? <tr><td colSpan={3} className="pb-2">
+                      <PlanReviewZoneFields name={row.name} widthMm={row.widthMm} heightMm={row.heightMm}
+                        drawn={measured ?? null} disabled={busy !== null}
+                        change={(field, valueMm, side) => resizeZone(row.zoneId, field, valueMm, side)}
+                        nextWall={(field, side) => result ? nextWallSize(result.plano, row.zoneId, field === 'widthMm' ? 'x' : 'y', side) : null}
+                        commit={commitZoneResize} onClose={() => setSelection(null)} />
+                    </td></tr> : mismatch ? <tr><td colSpan={3} className="pb-2 text-[11px] text-red-700">
+                      Cota escrita: {metres(row.widthMm)} × {metres(row.heightMm)} · difiere más del 5 % del dibujo
                     </td></tr> : null}
                   </Fragment>;
                 })}
@@ -406,42 +521,10 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
               <input type="checkbox" checked={includeFurniture} onChange={(e) => { setIncludeFurniture(e.target.checked); markForRefit(); }} />
               Colocar el mobiliario dibujado
             </label>
-            <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={onRefit} disabled={busy !== null}>
-              {busy === 'refit' ? 'Recalculando…' : 'Recalcular plano revisado'}
+            <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => void onRefit()} disabled={busy !== null}>
+              {busy === 'refit' ? 'Guardando…' : 'Guardar y recalcular revisión'}
             </Button>
           </div>
-
-          {doors.length > 0 ? (
-            <div className="border-line bg-surface rounded-card border p-3 text-xs">
-              <p className="text-ink mb-1 text-sm font-medium">Revisión de puertas y arcos</p>
-              <p className="text-ink-soft mb-2">Comprueba primero que cada número coincide con un arco de puerta real y que está sobre el muro correcto. Ajusta su posición, lado y bisagra sobre el original; recalcula antes de enviar al editor.</p>
-              {doors.some(({ aperture }) => !aperture.swing || !aperture.hinge) ? (
-                <p className="mb-2 text-amber-800">Algunos giros o bisagras se han estimado porque la extracción guardada no los indica.</p>
-              ) : null}
-              <div className="space-y-2">
-                {doors.map(({ aperture, room }, index) => <div key={aperture.id} className="border-line rounded-control border p-2">
-                  <p className="text-ink mb-1">{index + 1}. Puerta de {room}</p>
-                  <div className="flex gap-1">
-                    <Button type="button" size="sm" variant="outline" disabled={busy !== null}
-                      onClick={() => changeDoor(aperture.id, 'swing')}>Invertir lado</Button>
-                    <Button type="button" size="sm" variant="outline" disabled={busy !== null}
-                      onClick={() => changeDoor(aperture.id, 'hinge')}>Cambiar bisagra</Button>
-                  </div>
-                  {(() => {
-                    const wall = result.plano.zones.flatMap((zone) => zone.walls).find((item) => item.id === aperture.wallId);
-                    const length = wall ? Math.hypot(wall.to.x - wall.from.x, wall.to.y - wall.from.y) : 0;
-                    const half = length > 0 ? Math.min(0.5, aperture.widthMm / length / 2) : 0.5;
-                    return half < 0.5 ? <label className="text-ink-soft mt-2 block">
-                      Posición sobre el muro: {Math.round(aperture.position * 100)} %
-                      <input aria-label={`Posición de puerta ${index + 1}`} type="range" className="mt-1 w-full"
-                        min={half} max={1 - half} step="0.005" value={aperture.position}
-                        disabled={busy !== null} onChange={(event) => moveDoor(aperture.id, Number(event.target.value))} />
-                    </label> : null;
-                  })()}
-                </div>)}
-              </div>
-            </div>
-          ) : null}
 
           {result.corrections.length > 0 ? (
             <p className="text-ink-soft text-xs">
@@ -479,7 +562,9 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
                 Corregir en el editor
               </Button>
             </div>
-          ) : (
+          ) : (<>
+            {quality ? <PlanRedrawOffer approved={quality.decision === 'proceed'} quote={quote} quoteError={quoteError}
+              comparison={comparison} busy={busy !== null} redrawing={busy === 'redraw'} onRedraw={onRedraw} onReread={onReread} /> : null}
             <PlanQualityCard
               quality={quality}
               needsRefit={needsRefit}
@@ -495,8 +580,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
               onApply={onApply}
               onCancel={() => setConfirmApply(false)}
             />
-          )}
-          {error ? <p className="text-destructive text-sm" role="alert">{error}</p> : null}
+          </>)}
         </aside>
       </div>
     </div>
@@ -511,7 +595,7 @@ function doorOverridesFromPlan(plano: Plano2dPayload): PlanDoorOverride[] {
       ? [{ apertureId: aperture.id,
         ...(aperture.swing ? { swing: aperture.swing } : {}),
         ...(aperture.hinge ? { hinge: aperture.hinge } : {}),
-        position: aperture.position }]
+        position: aperture.position, widthMm: aperture.widthMm }]
       : [];
   }));
 }

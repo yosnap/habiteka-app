@@ -14,7 +14,8 @@ export function boundaryVolumes(b: Boundary): FurnitureVolume[] {
       return [{ ...p, right: left }, { ...p, left: right }, { left, right, bottom: Math.max(p.bottom, g.heightMm), top: p.top }]
         .filter((p) => p.right - p.left > .01 && p.top - p.bottom > .01);
     });
-    parts.push(...pieces.map((p) => ({ x: p.left, y, widthMm: p.right - p.left, depthMm, bottom: e + p.bottom, top: e + p.top, color, materialId })));
+    parts.push(...pieces.map((p) => ({ x: p.left, y, widthMm: p.right - p.left, depthMm, bottom: e + p.bottom, top: e + p.top, color, materialId,
+      ...(c.infill === 'hedge' && bottom >= c.baseHeightMm && top > c.baseHeightMm ? { part: 'foliage' as const } : {}) })));
   };
   box(0, 0, w, d, 0, c.baseHeightMm, c.baseColor, c.baseMaterialId);
   const base = c.baseHeightMm, height = b.heightMm - base;

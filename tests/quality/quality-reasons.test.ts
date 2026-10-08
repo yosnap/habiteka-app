@@ -7,7 +7,7 @@ import type { JevQuestion } from '@/server/quality/jev-client';
 const CLEAN: EditorEvidence = {
   niveles: 1, muros: 12, murosDegenerados: 0, extremosSueltos: 0, pasosAbiertos: 0, murosSinMedidaFisica: 0, estancias: 5,
   estanciasDerivables: true, topologiaValida: true, falloGeometria: null, huecos: 6, huecosSinMuro: 0,
-  huecosFueraDeMuro: 0, escalaConocida: true, suelos: 5, suelosSinEstancia: 0, plataformasElevadas: 0,
+  huecosFueraDeMuro: 0, puertasEstrechas: 0, escalaConocida: true, suelos: 5, suelosSinEstancia: 0, plataformasElevadas: 0,
   accesosVerticales: 0, escalerasIncoherentes: 0, rampasIncoherentes: 0, muebles: 0, columnas: 0,
   elementosContrato: 20, superficieSueloM2: 80,
 };

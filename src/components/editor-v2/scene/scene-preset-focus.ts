@@ -70,11 +70,15 @@ export function scenePresetFocus(
   const highMm = Math.max(2800, ...walls.map((wall) => (wall.baseElevationMm ?? 0) + (wall.heightMm ?? 2800)), ...roofs.map(roof => roof.peakM * 1000));
   // La isométrica prioriza la casa; el dron muestra además el agua próxima.
   const padding = preset === 'isometric' ? 1.2
-    : preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.55;
+    : preset === 'drone' ? (includesWater ? 1.35 : 1.7) : 1.1;
+  // En alzados el fondo del inmueble no ocupa ancho en pantalla: ampliarlo solo alejaba la cámara. Con el margen
+  // anterior la casa ocupaba en torno al 6 % de la captura lateral y el generador inventaba los detalles.
+  const depthAxis = preset === 'left' || preset === 'right' ? 0 : preset === 'front' || preset === 'back' ? 2 : -1;
+  const pad = (axis: number) => axis === depthAxis ? 1 : padding;
   return {
     center: [(xMin + xMax) / 2000, (elevationMm + (lowMm + highMm) / 2) / 1000, (zMin + zMax) / 2000],
-    size: [Math.max(1, (xMax - xMin) / 1000) * padding,
-      Math.max(2, (highMm - lowMm) / 1000) * padding,
-      Math.max(1, (zMax - zMin) / 1000) * padding],
+    size: [Math.max(1, (xMax - xMin) / 1000) * pad(0),
+      Math.max(2, (highMm - lowMm) / 1000) * pad(1),
+      Math.max(1, (zMax - zMin) / 1000) * pad(2)],
   };
 }

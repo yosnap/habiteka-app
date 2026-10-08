@@ -1,0 +1,1917 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia camas) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "camas",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "cama_capitone_105": {
+   "file": "cama_capitone_105.glb",
+   "thumbnail": "thumbs/cama_capitone_105.webp",
+   "sha256": "eb208de3028d6e44a4148db98d667eac72eb54c2dcd29a38d1b29b0fc8af9df7",
+   "bytes": 740788,
+   "triangles": 24736,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1230,
+    2077,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1140,
+    2030,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4a6dc9ca0d20fdf50094013879212466b5fbaa2c3be5966a2c64d2a570ce6e29",
+   "builtAt": "2026-10-05"
+  },
+  "cama_capitone_135": {
+   "file": "cama_capitone_135.glb",
+   "thumbnail": "thumbs/cama_capitone_135.webp",
+   "sha256": "e9e1261ea2e54c33e5adb3a3461a9bafcc5c1613b7eb8ebd8908be64d7c5387d",
+   "bytes": 793028,
+   "triangles": 30732,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1530,
+    2077,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1440,
+    2030,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "34d3df90a1e595e146fec9ef3e7eadeb179a5bcfb6f7c038efe35bcaf34a29b7",
+   "builtAt": "2026-10-05"
+  },
+  "cama_capitone_150": {
+   "file": "cama_capitone_150.glb",
+   "thumbnail": "thumbs/cama_capitone_150.webp",
+   "sha256": "e5c4e17739828f00909a37be2b47476635c7c4db8323b30380a2e9e7e3e3539d",
+   "bytes": 814196,
+   "triangles": 33048,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1680,
+    2077,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1590,
+    2030,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b6f7484e8e5829981f9195573587e908629b581978aa41f524a79e04a2b046f0",
+   "builtAt": "2026-10-05"
+  },
+  "cama_capitone_160": {
+   "file": "cama_capitone_160.glb",
+   "thumbnail": "thumbs/cama_capitone_160.webp",
+   "sha256": "f217a6e4b40d296f06fc6657ec59fd9501342ca4d870ed3b1ca27f5bf9f83715",
+   "bytes": 834760,
+   "triangles": 35396,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1780,
+    2177,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1690,
+    2130,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "524c39fc93684a0284df11ed7d17019ac31f8d5de19faf17120f7d6cfb617ce9",
+   "builtAt": "2026-10-05"
+  },
+  "cama_capitone_180": {
+   "file": "cama_capitone_180.glb",
+   "thumbnail": "thumbs/cama_capitone_180.webp",
+   "sha256": "aa804e35ba8b6cb7d52183631b7caf8d8cca86f4e776b8828bd5032a18c122a4",
+   "bytes": 855408,
+   "triangles": 38060,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1980,
+    2177,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1890,
+    2130,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3f154b70252d0bd527486db88670820d071e08c4f7cb52e7efe1b8bd160c8adb",
+   "builtAt": "2026-10-05"
+  },
+  "cama_capitone_90": {
+   "file": "cama_capitone_90.glb",
+   "thumbnail": "thumbs/cama_capitone_90.webp",
+   "sha256": "86dfa8ea0c2be76250ff9fcadfe0b3d7fa77c2514f03f4a3ad9bbf84fcae80cb",
+   "bytes": 722188,
+   "triangles": 22744,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1080,
+    2077,
+    1306
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    990,
+    2030,
+    1300
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "capitone",
+    "base": "tapizada",
+    "leg": "taco",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-beige",
+    "patas": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-gris",
+    "cojines": "terciopelo-mostaza",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "nogal",
+    "punto",
+    "tejido",
+    "terciopelo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c90fbf209d73da915e22cc1eca65faf4abd4443198a70feb8db766e1259a647d",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_105": {
+   "file": "cama_forja_105.glb",
+   "thumbnail": "thumbs/cama_forja_105.webp",
+   "sha256": "69b1a4222902baac87eab113cefb22297a5d3bd3e5591c42a1171741ab0c752d",
+   "bytes": 1326884,
+   "triangles": 16644,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    1990,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1110,
+    1990,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f8738a06e556f715ac9027ab2be3dadd60bbd17d776ff4882c3403063a13e05f",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_135": {
+   "file": "cama_forja_135.glb",
+   "thumbnail": "thumbs/cama_forja_135.webp",
+   "sha256": "d80668bc5f2309a429ddf18b5d59e7e92387c7ccccf9d5272fbc77491b3fa2cd",
+   "bytes": 1366432,
+   "triangles": 20836,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    1990,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1410,
+    1990,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "db64471647b3481dc95142f57e85a1603adb8d50f349fdb350960fc43ceecb61",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_150": {
+   "file": "cama_forja_150.glb",
+   "thumbnail": "thumbs/cama_forja_150.webp",
+   "sha256": "d9ff2aee7fd8132139807f3424ce5415ac0696d1e1ab1e44bf2f1902afc5ddc5",
+   "bytes": 1378552,
+   "triangles": 22056,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1650,
+    1990,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1560,
+    1990,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "649c600b1ea19928817c54ef1ac087b73de7b12f9755303821a5fe3318aea30b",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_160": {
+   "file": "cama_forja_160.glb",
+   "thumbnail": "thumbs/cama_forja_160.webp",
+   "sha256": "ff7d33d5f377a6a7bd486abc23a48c1e57f15b087a8c76ac13d05c33e8c3522a",
+   "bytes": 1388864,
+   "triangles": 23384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1750,
+    2090,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1660,
+    2090,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "83e1871a3c608ef4b94bf75d0e72faed9cbbdc28385e009b763a15fbb4857005",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_180": {
+   "file": "cama_forja_180.glb",
+   "thumbnail": "thumbs/cama_forja_180.webp",
+   "sha256": "68cccedc904904f3bb5a696eb2caa00490a212c209dd95a038f78b1a319f0639",
+   "bytes": 1400016,
+   "triangles": 24936,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1950,
+    2090,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1860,
+    2090,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "33ba0f9cfbb3d1401cb03776adefa3a23daf9d4f5f410bf1ab62801eb816cd23",
+   "builtAt": "2026-10-05"
+  },
+  "cama_forja_90": {
+   "file": "cama_forja_90.glb",
+   "thumbnail": "thumbs/cama_forja_90.webp",
+   "sha256": "b41f5ad13eb101c77293f8cce6703293840dd6e87ab38400f9defc3495fe3578",
+   "bytes": 1316860,
+   "triangles": 15440,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1050,
+    1990,
+    1250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    960,
+    1990,
+    1250
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "forja",
+    "base": "metal",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "metal": "forja-negra",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-arena",
+    "plaid": "punto-gris"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "07244dca7b0bb275c94b63f104782e46e4ba21a2ef45bb3fd768c96c26c609de",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_105": {
+   "file": "cama_listones_105.glb",
+   "thumbnail": "thumbs/cama_listones_105.webp",
+   "sha256": "58dd4b8b6627833451acdf0cfc92a46677df5b26b2eb2166ea20b40678fc7608",
+   "bytes": 1451132,
+   "triangles": 16424,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1270,
+    2029,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1180,
+    2010,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5f15c48660f47629525705cf789e6025b98cb5e64a89de63f01be7d4ad0fa978",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_135": {
+   "file": "cama_listones_135.glb",
+   "thumbnail": "thumbs/cama_listones_135.webp",
+   "sha256": "1582d44c4771916a9594e2a15c16ebf8e06c0d630cb30c4214f2ec9e2ec166e3",
+   "bytes": 1491256,
+   "triangles": 20424,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1570,
+    2029,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1480,
+    2010,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8e07174770508ca4df2364b4ad4a2388b8d08cf4970a484d9f21224e2313cb5e",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_150": {
+   "file": "cama_listones_150.glb",
+   "thumbnail": "thumbs/cama_listones_150.webp",
+   "sha256": "3ac0cb2a95e8d21f282c64d60e701e32ef34635856f5c617ded8feeace1d54c8",
+   "bytes": 1501720,
+   "triangles": 21388,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1720,
+    2030,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1630,
+    2010,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "da307a894311c27caa5e866aa2ece1bf14d83926b697ff89f8a9ac10dedc34f7",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_160": {
+   "file": "cama_listones_160.glb",
+   "thumbnail": "thumbs/cama_listones_160.webp",
+   "sha256": "756b9074b214c157c91238cbd115f90e52c6a1663401dda423138ec9fe8648cc",
+   "bytes": 1511240,
+   "triangles": 22820,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1820,
+    2130,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1730,
+    2110,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ef3ddab6a6a525f0179a86b06171766bd63d54ae6d3fa8017f405c686556e8ed",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_180": {
+   "file": "cama_listones_180.glb",
+   "thumbnail": "thumbs/cama_listones_180.webp",
+   "sha256": "14d01685a37f67e2d5b6a9beb2d76b329bf4d9c5092e19b71db6903ba29a62e5",
+   "bytes": 1522376,
+   "triangles": 24228,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2020,
+    2130,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1930,
+    2110,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "872414d8c91d196fc30f0570e9f79d1b130a3df296d66c5712fad72e495e4686",
+   "builtAt": "2026-10-05"
+  },
+  "cama_listones_90": {
+   "file": "cama_listones_90.glb",
+   "thumbnail": "thumbs/cama_listones_90.webp",
+   "sha256": "7ed5f4ab66f525c2e1d041b5f3cc739b9807d84482db5687aeff00c985107b8b",
+   "bytes": 1441960,
+   "triangles": 15356,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1120,
+    2029,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1030,
+    2010,
+    1100
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "listones",
+    "base": "madera",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "nogal",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "nogal",
+    "punto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a4c79d552250c52a02329a00592749b008f4f3cd398510078909a6177c99b79d",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_105": {
+   "file": "cama_madera_105.glb",
+   "thumbnail": "thumbs/cama_madera_105.webp",
+   "sha256": "8cad6264cba00778a0a354d39e0ce2f1513aaf59fc4cb677d1af352a9da9411b",
+   "bytes": 1440920,
+   "triangles": 15368,
+   "texturePx": 768,
+   "dimensionsMm": [
+    1270,
+    2044,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1180,
+    2010,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fd900f57c939ac61b633a20373b07371b32a3ae1aae935564d57f7cb6dd2c355",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_135": {
+   "file": "cama_madera_135.glb",
+   "thumbnail": "thumbs/cama_madera_135.webp",
+   "sha256": "8e675e5e602c3145553c12887c98e76d942dd80629094f7a005995b4147ba118",
+   "bytes": 1476412,
+   "triangles": 19044,
+   "texturePx": 768,
+   "dimensionsMm": [
+    1570,
+    2044,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1480,
+    2010,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cb20899c36b00c6336b390e00599df33664f1b1e301ead926c486d04a7516051",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_150": {
+   "file": "cama_madera_150.glb",
+   "thumbnail": "thumbs/cama_madera_150.webp",
+   "sha256": "f63cfc34d2c73063b2850786079a9fe68b420c783884afd660d6a7c300af1040",
+   "bytes": 1484332,
+   "triangles": 19900,
+   "texturePx": 768,
+   "dimensionsMm": [
+    1720,
+    2045,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1630,
+    2010,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6002d367ac6c9d64aea4a237e0104346edc06d5d57be1b53a24b760856aa5d19",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_160": {
+   "file": "cama_madera_160.glb",
+   "thumbnail": "thumbs/cama_madera_160.webp",
+   "sha256": "018864938e0bb8a4633f27fdf5c7604a3a7a9a64a47fa739531c80408758de09",
+   "bytes": 1494132,
+   "triangles": 21224,
+   "texturePx": 768,
+   "dimensionsMm": [
+    1820,
+    2145,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1730,
+    2110,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2f6b7917c33794a07728f5a67883f1b23e0b3e5cc1778ce64aab2048ab36a918",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_180": {
+   "file": "cama_madera_180.glb",
+   "thumbnail": "thumbs/cama_madera_180.webp",
+   "sha256": "f978964ab091bef3533ff49d26c2e2f0aaf367590e50ec2f9dae46932e80ed0d",
+   "bytes": 1502528,
+   "triangles": 22416,
+   "texturePx": 768,
+   "dimensionsMm": [
+    2020,
+    2145,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1930,
+    2110,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e22c027efdbc44473b2e0aaffc8f08292ba8ce34c5c5e3ea768b6ed490724cf3",
+   "builtAt": "2026-10-05"
+  },
+  "cama_madera_90": {
+   "file": "cama_madera_90.glb",
+   "thumbnail": "thumbs/cama_madera_90.webp",
+   "sha256": "bcd8b3d402bb9ad6d4f507dd9a998b4ef32b02a8de363e63219b544cce5e2dd3",
+   "bytes": 1434576,
+   "triangles": 14516,
+   "texturePx": 768,
+   "dimensionsMm": [
+    1120,
+    2044,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1030,
+    2010,
+    1050
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "madera",
+    "base": "madera",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-arena",
+    "cojines": "algodon-blanco",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "18ca2841ffda8dec04fa55ac3debfb7b2e36a800dbc53dd3beb54bff27b83e34",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_105": {
+   "file": "cama_tapizada_105.glb",
+   "thumbnail": "thumbs/cama_tapizada_105.webp",
+   "sha256": "9a634c90277e52fd41aaef749582f6019b7d71f300b20d60592dd1d8a3fb3feb",
+   "bytes": 629764,
+   "triangles": 18760,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1230,
+    2067,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1140,
+    2020,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3a461dc0068ed97510e911f568e8c2079640e855a2ff741762593903a7ad9dff",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_135": {
+   "file": "cama_tapizada_135.glb",
+   "thumbnail": "thumbs/cama_tapizada_135.webp",
+   "sha256": "194f1156e6b23d786c27b1c41b580c26ab6094213091e8144917f5f1bf302ccb",
+   "bytes": 671740,
+   "triangles": 23444,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1530,
+    2067,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1440,
+    2020,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d8eac088fe7e29033633b290f3b062701b1d7f82a6982b8902c52edf418ede3e",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_150": {
+   "file": "cama_tapizada_150.glb",
+   "thumbnail": "thumbs/cama_tapizada_150.webp",
+   "sha256": "648c84bda3397bf4883fdf6f2874454d7b15c11fb7f97aa15fd7cec5e8c9bddc",
+   "bytes": 683960,
+   "triangles": 24896,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1680,
+    2067,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1590,
+    2020,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "32a427860a32c7d966d7d848fd667571d462da1308fcdf822f5a618525d5c77b",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_160": {
+   "file": "cama_tapizada_160.glb",
+   "thumbnail": "thumbs/cama_tapizada_160.webp",
+   "sha256": "1aea56e563fcda5292dd5833564c8eca585e2daf58a3b55b00e28e92115c7268",
+   "bytes": 697020,
+   "triangles": 26828,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1780,
+    2167,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1690,
+    2120,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "28ec6d3cd1f0e31bfd33fad078fc2c3e0b496e522d81ff2c2b6aacd1c8792a89",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_180": {
+   "file": "cama_tapizada_180.glb",
+   "thumbnail": "thumbs/cama_tapizada_180.webp",
+   "sha256": "3f42ab4b2f9613d0b83f1112901e122d14cff80490208fb7edee8be261800b91",
+   "bytes": 708828,
+   "triangles": 28628,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1980,
+    2167,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1890,
+    2120,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "41ad59db30dfd4870303ff906146a3a5dc5c0b59eb3ec05322976ffd01b5f523",
+   "builtAt": "2026-10-05"
+  },
+  "cama_tapizada_90": {
+   "file": "cama_tapizada_90.glb",
+   "thumbnail": "thumbs/cama_tapizada_90.webp",
+   "sha256": "b29b24f7feaf8bf41ca13f091c06bc1c86989fc362b526bb10807bd1331301f6",
+   "bytes": 618624,
+   "triangles": 17504,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1080,
+    2067,
+    1208
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    990,
+    2020,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "tapizada",
+    "leg": "conica",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "lino-gris",
+    "patas": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-blanco",
+    "cojines": "lino-salvia",
+    "plaid": "punto-mostaza"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "punto",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "056406d6b26dffd290e94db8c7bb8870c7ccab3de02b49c0232fc274f4ea88a7",
+   "builtAt": "2026-10-05"
+  },
+  "canape_105": {
+   "file": "canape_105.glb",
+   "thumbnail": "thumbs/canape_105.webp",
+   "sha256": "18a8ea5f5d28a6e9f41b16d07f81f7b2ca7b529348ac9d86310ec5dfdc90b84d",
+   "bytes": 1148676,
+   "triangles": 17776,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    2052,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1110,
+    2010,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     1050,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4d7a33c2b19ccf9fb83a8a24f73a083abc1d0ee156792be6c8784a195dd97c03",
+   "builtAt": "2026-10-05"
+  },
+  "canape_135": {
+   "file": "canape_135.glb",
+   "thumbnail": "thumbs/canape_135.webp",
+   "sha256": "fe587fcab84024086f39c613e3010aaa7bf9a9f30dcaf0a138d59ced0d280670",
+   "bytes": 1191296,
+   "triangles": 22568,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    2052,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1410,
+    2010,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     1350,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "99942ccad8401b2dd213aa12ef3132e24dda7e47a6610e947712a4f75670ae67",
+   "builtAt": "2026-10-05"
+  },
+  "canape_150": {
+   "file": "canape_150.glb",
+   "thumbnail": "thumbs/canape_150.webp",
+   "sha256": "d195a75f53044eb0da520f1576d8ef718668749165961be868328ec9eda2122a",
+   "bytes": 1204484,
+   "triangles": 23988,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1650,
+    2052,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1560,
+    2010,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     1500,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c6cf8035dca86d2036927290870c48932bad7c346ff5c091f5bf7c8e3226e9d2",
+   "builtAt": "2026-10-05"
+  },
+  "canape_160": {
+   "file": "canape_160.glb",
+   "thumbnail": "thumbs/canape_160.webp",
+   "sha256": "3423c2d628a4b0823f8907632436476e316ccabe1840a9e5610c7783d440b54b",
+   "bytes": 1215720,
+   "triangles": 25656,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1750,
+    2152,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1660,
+    2110,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     1600,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f11e5082b05d37764ad7aa8fa826e8b4d3ec54c65bd2242369024b11d5c90b74",
+   "builtAt": "2026-10-05"
+  },
+  "canape_180": {
+   "file": "canape_180.glb",
+   "thumbnail": "thumbs/canape_180.webp",
+   "sha256": "31cf4170cf9a42ee9bada48c3aebda24bbd44fe8d683701a1eaa9b4d807fa6e0",
+   "bytes": 1229292,
+   "triangles": 27664,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1950,
+    2152,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1860,
+    2110,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     1800,
+     2000
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b0173472399742321883bc54adcad1eaa5ae045221e442da0cf45a17a4a367ee",
+   "builtAt": "2026-10-05"
+  },
+  "canape_90": {
+   "file": "canape_90.glb",
+   "thumbnail": "thumbs/canape_90.webp",
+   "sha256": "6cb85595e0fc73ab70d69714abfdc6deb618b864f8cf7b984d8a6c0a5ab45970",
+   "bytes": 1138768,
+   "triangles": 16548,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1050,
+    2051,
+    1206
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    960,
+    2010,
+    1200
+   ],
+   "family": "camas",
+   "type": "bed",
+   "params": {
+    "headboard": "tapizado",
+    "base": "canape",
+    "mattress": [
+     900,
+     1900
+    ]
+   },
+   "finishes": {
+    "tapiceria": "tejido-antracita",
+    "patas": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "algodon-blanco",
+    "cojines": "tejido-antracita",
+    "plaid": "punto-terracota"
+   },
+   "textures": [
+    "algodon",
+    "punto",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a17e316020e6bcd3e3b9ce2c9afc37c0a80a732146fcadb3e9e44bbf0903cfbe",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "algodon": {
+   "source": "polyhaven",
+   "id": "cotton_jersey",
+   "title": "Cotton Jersey",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/cotton_jersey",
+   "license": "CC0-1.0",
+   "sizeMm": 264,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg",
+     "bytes": 581360,
+     "md5": "d2f4493fdd48634b50d40f810ce9deb7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg",
+     "bytes": 678670,
+     "md5": "2dcc9dda3b726477f607c808e52f1833"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_rough_1k.jpg",
+     "bytes": 865264,
+     "md5": "ac691d215d3aca34dcd6ea2d03937286"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "nogal": {
+   "source": "polyhaven",
+   "id": "natural_walnut_veneer",
+   "title": "Natural Walnut Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/natural_walnut_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_diff_1k.jpg",
+     "bytes": 633330,
+     "md5": "b9dd8a10990c388322b2b2ca15824b8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+     "bytes": 441987,
+     "md5": "985fe886f38aeb2fa3580a5c0294f81a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+     "bytes": 568696,
+     "md5": "d88bc3c533ed61d6737ad75454c9b61f"
+    }
+   ]
+  },
+  "punto": {
+   "source": "polyhaven",
+   "id": "knitted_fleece",
+   "title": "Knitted Fleece",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/knitted_fleece",
+   "license": "CC0-1.0",
+   "sizeMm": 266,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_diff_1k.jpg",
+     "bytes": 887569,
+     "md5": "712475d9e6358c001260f6555a7821be"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_nor_gl_1k.jpg",
+     "bytes": 1128139,
+     "md5": "c76c323dc9249aaea3150f1770090c05"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_rough_1k.jpg",
+     "bytes": 959605,
+     "md5": "9122b74fc45c09b132bc6bacb95d3d11"
+    }
+   ]
+  },
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  },
+  "terciopelo": {
+   "source": "polyhaven",
+   "id": "velour_velvet",
+   "title": "Velour Velvet",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/velour_velvet",
+   "license": "CC0-1.0",
+   "sizeMm": 284,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_diff_1k.jpg",
+     "bytes": 735556,
+     "md5": "fa3a7ef3606bf7591b8f8577992e7228"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_nor_gl_1k.jpg",
+     "bytes": 695985,
+     "md5": "41009a399cb4d45e44636a515cd4c8c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_rough_1k.jpg",
+     "bytes": 943960,
+     "md5": "fac679bf7a69501a7402d832667fbc06"
+    }
+   ]
+  }
+ }
+}

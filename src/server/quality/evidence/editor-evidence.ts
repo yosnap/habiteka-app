@@ -34,6 +34,7 @@ export interface EditorEvidence {
   huecos: number;
   huecosSinMuro: number;
   huecosFueraDeMuro: number;
+  puertasEstrechas: number;
   escalaConocida: boolean;
   suelos: number;
   suelosSinEstancia: number;
@@ -73,6 +74,7 @@ export function buildEditorEvidence(document: EditorDocument): EditorEvidence {
     evidence.huecos += doc.openings.length;
     evidence.huecosSinMuro += defects.openingsWithoutWall.length;
     evidence.huecosFueraDeMuro += defects.openingsOutsideWall.length;
+    evidence.puertasEstrechas += defects.narrowDoorIds.length;
 
     const finishes = doc.floorFinishes ?? [];
     evidence.suelos += finishes.length;
@@ -119,6 +121,8 @@ export function explainEditorEvidence(evidence: EditorEvidence): string[] {
     facts.push(planIssueMessage('huecos-sin-muro', evidence.huecosSinMuro));
   if (evidence.huecosFueraDeMuro > 0)
     facts.push(planIssueMessage('huecos-fuera-de-muro', evidence.huecosFueraDeMuro));
+  if (evidence.puertasEstrechas > 0)
+    facts.push(planIssueMessage('puertas-estrechas', evidence.puertasEstrechas));
   if (evidence.suelosSinEstancia > 0)
     facts.push(planIssueMessage('suelos-sin-estancia', evidence.suelosSinEstancia));
   const vertical = evidence.escalerasIncoherentes + evidence.rampasIncoherentes;
@@ -143,6 +147,7 @@ function emptyEvidence(niveles: number): EditorEvidence {
     huecos: 0,
     huecosSinMuro: 0,
     huecosFueraDeMuro: 0,
+    puertasEstrechas: 0,
     escalaConocida: false,
     suelos: 0,
     suelosSinEstancia: 0,

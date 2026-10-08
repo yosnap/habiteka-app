@@ -11,7 +11,10 @@ interface HeaderMenuProps { icon: ReactNode; label: string; ariaLabel: string; r
 export function HeaderMenu({ icon, label, ariaLabel, role = 'dialog', children }: HeaderMenuProps) {
   const attach = useCallback((node: HTMLDetailsElement | null) => {
     if (!node) return;
-    const closeOnOutside = (event: PointerEvent) => { if (node.open && !node.contains(event.target as Node)) node.removeAttribute('open'); };
+    const closeOnOutside = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('[data-radix-popper-content-wrapper]')) return;
+      if (node.open && !node.contains(event.target as Node)) node.removeAttribute('open');
+    };
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && node.open) { node.removeAttribute('open'); node.querySelector('summary')?.focus(); } };
     document.addEventListener('pointerdown', closeOnOutside);
     document.addEventListener('keydown', closeOnEscape);

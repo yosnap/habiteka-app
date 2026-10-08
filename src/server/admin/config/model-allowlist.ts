@@ -9,10 +9,14 @@
  * defecto en lugar de facturarse.
  */
 import type { ModelAction } from '@/generated/prisma/enums';
+import { customModels } from '@/server/ai/custom-ai-providers';
+
+/** Proveedor de una ruta: uno integrado (openrouter, kie, nan, openai) o el id de un proveedor propio del panel. */
+export type ModelProviderId = string;
 
 export interface AllowedModel {
   id: string;
-  provider: 'openrouter' | 'kie' | 'nan' | 'openai';
+  provider: ModelProviderId;
   /** Nombre claro para administración; el id es el valor que recibe el proveedor. */
   label: string;
   status: 'current' | 'legacy' | 'deprecated';
@@ -47,6 +51,14 @@ const kieImageModels: AllowedModel[] = [
     priceUsdPerUnit: 0.06,
   },
   {
+    // Publicado el 06/10/2026; KIE: 6 créditos por imagen a 2K y hasta 14 referencias.
+    id: 'nano-banana-2-1',
+    provider: 'kie',
+    label: 'Google Nano Banana 2.1',
+    status: 'current',
+    priceUsdPerUnit: 0.03,
+  },
+  {
     id: 'nano-banana-2-lite',
     provider: 'kie',
     label: 'Google Nano Banana 2 Lite',
@@ -75,10 +87,10 @@ const kieImageModels: AllowedModel[] = [
     priceUsdPerUnit: 0.15,
   },
   {
-    // Variante Flare: fidelidad a la referencia y refinado más preciso (planos).
+    // Variante orientada a rapidez; la calidad debe comprobarse en cada resultado.
     id: 'gpt-image-2-5-flare-image-to-image',
     provider: 'kie',
-    label: 'GPT Image 2.5 Flare · fidelidad a la referencia',
+    label: 'GPT Image 2.5 Flare · generación rápida',
     status: 'current',
     priceUsdPerUnit: 0.08,
   },
@@ -147,7 +159,8 @@ const ALLOWED: Record<ModelAction, AllowedModel[]> = {
       provider: 'openrouter',
       label: 'Claude Sonnet 5',
       status: 'current',
-      priceUsdPerUnit: 5,
+      // Precio de entrada publicado por OpenRouter; la salida se contabiliza por uso.
+      priceUsdPerUnit: 2,
     },
     {
       id: 'google/gemini-2.5-flash',
@@ -303,7 +316,7 @@ const ALLOWED: Record<ModelAction, AllowedModel[]> = {
 };
 
 // Techo de precio por acción: ningún modelo más caro que esto puede configurarse.
-const PRICE_CEILING: Record<ModelAction, number> = {
+export const PRICE_CEILING: Record<ModelAction, number> = {
   vision: 4,
   chat: 6,
   plano2d: 6,
@@ -312,9 +325,19 @@ const PRICE_CEILING: Record<ModelAction, number> = {
   memoria: 6,
 };
 
-/** Modelos elegibles para una acción (para el selector cerrado de la UI). */
+/**
+ * Modelos elegibles para una acción (para el selector cerrado de la UI): los curados aquí y los que el administrador
+ * habilitó en sus proveedores propios, con el precio que declaró. Los propios exigen haber cargado antes su registro.
+ */
 export function allowedModels(action: ModelAction): AllowedModel[] {
-  return ALLOWED[action];
+  return [...ALLOWED[action], ...customModels(action).filter((added) => !includedModel(action, added.model, added.providerId))
+    .map(({ model, providerId, providerLabel, label, priceUsdPerUnit, builtIn }) =>
+      ({ id: model, provider: providerId, label: builtIn ? label : `${providerLabel} · ${label}`, status: 'current' as const, priceUsdPerUnit }))];
+}
+
+/** Modelo que ya viene de serie para el uso, sin habilitarlo desde el panel. */
+export function includedModel(action: ModelAction, modelId: string, provider: string): AllowedModel | undefined {
+  return ALLOWED[action].find((model) => model.id === modelId && model.provider === provider);
 }
 
 export function allowedModel(
@@ -322,7 +345,7 @@ export function allowedModel(
   modelId: string,
   provider?: string | null,
 ): AllowedModel | undefined {
-  return ALLOWED[action].find(
+  return allowedModels(action).find(
     (model) => model.id === modelId && (!provider || model.provider === provider),
   );
 }

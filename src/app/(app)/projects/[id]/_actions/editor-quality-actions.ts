@@ -26,6 +26,7 @@ export async function evaluateEditorQuality(
   projectId: string,
   rawDocument: unknown,
   zoneId: string | null = null,
+  acknowledgeImport = false,
 ) {
   return runAction(async (): Promise<QualityVerdict | null> => {
     const ctx = await requireOrgContext();
@@ -36,6 +37,6 @@ export async function evaluateEditorQuality(
     if (JSON.stringify(rawDocument ?? null).length > MAX_DOCUMENT_CHARS)
       fail('El plano es demasiado grande para comprobar su calidad.');
     const document = parseEditorDocument(rawDocument);
-    return editorDocumentQuality(ctx, { projectId, zoneId }, document);
+    return editorDocumentQuality(ctx, { projectId, zoneId }, document, undefined, acknowledgeImport === true);
   });
 }

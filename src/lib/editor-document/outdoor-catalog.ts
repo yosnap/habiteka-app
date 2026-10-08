@@ -1,7 +1,9 @@
 import type { FurnitureCatalogEntry } from './furniture-catalog';
+import { GARDEN_PATH_MATERIALS } from './garden-path-materials';
 
 type Row = [string, string, number, number, number, string, string, string];
 const rows: Row[] = [
+  ['porche-entrada', 'Porche de entrada con cuatro columnas', 3000, 2000, 2700, 'Columnas lacadas y cubierta', '#e9e7df', 'Entrada cubierta abierta, a ras o elevada con peldaños'],
   ['pergola', 'Pérgola de madera', 3000, 3000, 2500, 'Madera', '#a98256', 'Sombra con cubierta de lamas'],
   ['pergola-aluminio', 'Pérgola de aluminio', 3000, 3000, 2500, 'Aluminio', '#8f979c', 'Sombra con estructura de aluminio'],
   ['pergola-metal', 'Pérgola de acero', 3000, 3000, 2500, 'Acero lacado', '#3f484d', 'Sombra con estructura metálica'],
@@ -20,7 +22,7 @@ const rows: Row[] = [
   ['huerto', 'Huerto elevado', 2400, 1200, 600, 'Madera y tierra', '#735232', 'Bancal de cultivo con hileras'],
   ['camino', 'Camino de losas', 1200, 3000, 50, 'Piedra', '#b9b3a4', 'Paso peatonal modular'],
   ['parking', 'Plaza de parking', 2500, 5000, 20, 'Asfalto', '#55595a', 'Aparcamiento con líneas de delimitación'],
-  ['coche', 'Coche', 1800, 4300, 1500, 'Metal y vidrio', '#6d8a9d', 'Vehículo para escala y aparcamiento'],
+  ['coche', 'Coche compacto', 1750, 4000, 1450, 'Metal y vidrio', '#6d8a9d', 'Vehículo para escala y aparcamiento'],
   ['fuente', 'Fuente de jardín', 1400, 1400, 1300, 'Piedra y agua', '#b2ac9c', 'Fuente ornamental'],
   ['piscina', 'Piscina elevada', 6000, 3000, 1200, 'Revestimiento y agua', '#c4cec9', 'Vaso elevado con lámina de agua'],
   ['estanque', 'Estanque ornamental', 2500, 1800, 350, 'Piedra y agua', '#87988a', 'Estanque con borde de piedra'],
@@ -40,7 +42,33 @@ const standardCatalog: FurnitureCatalogEntry[] = rows.map(([kind, label, widthMm
   function: purpose, style: 'Contemporáneo', material, color, widthMm, depthMm, heightMm, elevationMm: 0,
 }));
 const basicCar = standardCatalog.find((entry) => entry.kind === 'coche')!;
-export const OUTDOOR_CATALOG: FurnitureCatalogEntry[] = [...standardCatalog, {
+const variants: [string, string, string, number, number, number][] = [
+  ['arbusto', 'lavanda', 'Lavanda', 650, 650, 650],
+  ['arbusto', 'romero', 'Romero', 700, 650, 700],
+  ['planta-exterior', 'graminea', 'Gramínea ornamental', 700, 700, 1100],
+  ['arbol', 'olivo', 'Olivo de jardín', 2500, 2500, 3000],
+  ['arbol', 'naranjo', 'Naranjo', 2000, 2000, 2800],
+  ['arbol', 'pino', 'Pino de jardín', 3200, 3200, 5000],
+  ['arbol', 'cipres', 'Ciprés mediterráneo', 900, 900, 3500],
+  ['arbol', 'palmera', 'Palmera de jardín', 3600, 3600, 4500],
+  ['jardinera-exterior', 'terracota', 'Jardinera de terracota con formio', 1000, 400, 900],
+  ['seto', 'bajo', 'Seto bajo de boj', 2000, 450, 500],
+  ['seto', 'laurel', 'Seto de laurel', 2000, 700, 1800],
+  ['seto', 'fotinia', 'Seto de fotinia', 2000, 650, 1400],
+  ['barbacoa', 'obra', 'Barbacoa de obra', 1400, 700, 1600],
+  ['aspersor', 'emergente', 'Aspersor emergente', 100, 100, 100],
+  ['coche', 'suv', 'SUV', 1900, 4700, 1750],
+  ['coche', 'furgoneta', 'Furgoneta', 2000, 5200, 2300],
+];
+export const OUTDOOR_CATALOG: FurnitureCatalogEntry[] = [...standardCatalog,
+  ...Object.entries(GARDEN_PATH_MATERIALS).flatMap(([key, label]) => [false, true].map((curb) => ({
+    ...standardCatalog.find((entry) => entry.kind === 'camino')!, id: `habiteka:outdoor:camino:${key}${curb ? '-bordillo' : ''}`,
+    productId: `outdoor-camino-${key}${curb ? '-bordillo' : ''}`, label: `Camino de ${label.toLowerCase()}${curb ? ' con bordillos' : ''}`,
+    widthMm: 3000, depthMm: 1200, variantLabel: curb ? 'Con bordillos' : 'Sin bordillos',
+  }))), ...variants.map(([kind, variant, label, widthMm, depthMm, heightMm]) => ({
+  ...standardCatalog.find((entry) => entry.kind === kind)!, id: `habiteka:outdoor:${kind}:${variant}`,
+  productId: `outdoor-${kind}-${variant}`, variantLabel: label, label, widthMm, depthMm, heightMm,
+})), {
   ...basicCar, id: 'habiteka:outdoor:coche:turismo-3d', productId: 'outdoor-coche-turismo-3d',
-  variantLabel: 'Turismo 3D', label: 'Turismo moderno · modelo 3D',
+  variantLabel: 'Berlina', label: 'Turismo moderno', widthMm: 1800, depthMm: 4600, heightMm: 1500,
 }];

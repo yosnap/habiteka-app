@@ -71,6 +71,11 @@ export interface ChatRequest {
    * truncar el JSON (los modelos con razonamiento gastan parte del presupuesto).
    */
   maxTokens?: number;
+  /**
+   * Preferencia de razonamiento; comparte el presupuesto de salida y el esfuerzo bajo no evita siempre agotarlo.
+   * `enabled: false` solo es compatible con endpoints que permiten desactivarlo; algunos exigen razonamiento.
+   */
+  reasoning?: { effort: 'low' | 'medium' | 'high' } | { enabled: false };
 }
 
 /** Invocación de herramienta emitida por el modelo. */
@@ -83,6 +88,8 @@ export interface ToolCall {
 
 export interface ChatResult {
   content: string;
+  /** Ruta efectiva, incluida cualquier conmutación; nunca inferida del modelo solicitado. */
+  execution?: { provider: string; model: string };
   toolCalls?: ToolCall[];
   /** Objeto validado contra `responseSchema` cuando se pidió salida estructurada. */
   structured?: unknown;

@@ -128,9 +128,9 @@ export const MODEL_PROFILES = {
     id: 'gpt_25_architecture_validation',
     name: 'Validación arquitectónica GPT 2.5',
     description:
-      'Prueba de máxima precisión con GPT Image 2.5 Sunburst y referencias de planta y estructura.',
+      'GPT Image 2.5 Sunburst con revisión visual de Claude Sonnet 5 y referencias de planta y estructura. Cada resultado requiere revisión.',
     configurations: [
-      openRouter('vision', 'google/gemini-3.7-flash'),
+      openRouter('vision', 'anthropic/claude-sonnet-5'),
       openRouter('chat', 'anthropic/claude-sonnet-5', [
         { model: 'openai/gpt-5.2-chat', provider: 'openrouter' },
       ]),
@@ -138,16 +138,12 @@ export const MODEL_PROFILES = {
         { model: 'openai/gpt-5.2-chat', provider: 'openrouter' },
       ]),
       {
-        // Un A/B real (mismo dormitorio, misma cámara, mismo prompt) dio calidad
-        // equivalente entre Flare y Sunburst, a mitad de coste por imagen: para
-        // generar de cero manda Flare y Sunburst queda de respaldo. La edición
-        // (`inpaint`) sigue en Sunburst, que es donde sí se nota.
+        // Una prueba en una estancia no demuestra equivalencia para plantas completas.
         action: 'render3d',
-        primaryModel: 'gpt-image-2-5-flare-image-to-image',
+        primaryModel: 'gpt-image-2-5-sunburst-image-to-image',
         provider: 'kie',
         enabled: true,
         backups: [
-          { model: 'gpt-image-2-5-sunburst-image-to-image', provider: 'kie' },
           { model: 'flux-2/flex-image-to-image', provider: 'kie' },
           { model: 'flux-2/pro-image-to-image', provider: 'kie' },
           { model: 'google/gemini-3-pro-image', provider: 'openrouter' },

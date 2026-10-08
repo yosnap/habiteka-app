@@ -10,6 +10,18 @@ const render = (id: string, batchId?: string, zoneId: string | null = null): Del
 });
 
 describe('galería de tandas', () => {
+  it.each([
+    ['all', 'Toda la planta'], ['house', 'Solo la casa'], ['interior', 'Interiores'],
+    ['exterior', 'Exterior'], ['rooms', 'Estancias seleccionadas'], ['zone', 'Zonas seleccionadas'],
+  ] as const)('identifica el ámbito %s sin confundirlo con el inmueble completo', (designScope, zone) => {
+    const image = render('scope');
+    if (image.payload.type !== 'render3d') throw new Error('fixture');
+    image.payload.generation!.options = { ...defaultRenderDesignOptions(), designScope };
+    expect(renderImageLabel(image).zone).toBe(zone);
+  });
+  it('no inventa el ámbito de una imagen antigua sin opciones', () => {
+    expect(renderImageLabel(render('old')).zone).toBe('Ámbito sin registrar');
+  });
   it('identifica el exterior terminado sin llamarlo isométrica abierta', () => {
     const image = render('roof', 'batch');
     if (image.payload.type !== 'render3d') throw new Error('fixture');

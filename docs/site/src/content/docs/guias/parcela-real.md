@@ -5,7 +5,7 @@ description: Coloca el diseño sobre una ortofoto y prepara la intervención.
 
 ## Cargar la fotografía
 
-Abre **Parcela real** desde el editor. En **Coordenadas y fotografía**, introduce latitud y longitud y carga la ortofoto. Su ancho determina cuánta superficie se obtiene; es distinto del zoom de pantalla.
+Abre **Herramientas → Parcela real** desde el editor. En **Coordenadas y fotografía**, introduce latitud y longitud y carga la ortofoto. Su ancho determina cuánta superficie se obtiene; es distinto del zoom de pantalla.
 
 La referencia IGN/PNOA cubre el ámbito admitido por la aplicación en España. Se guarda una copia con el proyecto. La fecha de copia no indica la fecha del vuelo ni garantiza que la fotografía muestre el estado actual.
 
@@ -22,6 +22,8 @@ Selecciona **Colocar el diseño** y arrástralo. Ajusta **Tamaño del diseño** 
 - 100 % corresponde al tamaño original; 110 % amplía su representación un 10 % respecto a la fotografía.
 - Las cotas del plano editable se conservan. Comprueba que el encaje visual corresponde a las dimensiones reales.
 - Revisa la posición del acceso, no solo la alineación del volumen.
+
+La ortofoto tiene norte arriba. El giro del diseño fija el norte del plano que muestran las brújulas del editor y usa la iluminación orientada. **Herramientas → Orientación y sol** comparte ese giro: cambiar el norte también cambia el encaje y exige confirmarlo otra vez. Si ya habías definido el norte, cargar una nueva fotografía lo conserva.
 
 ## Tapar la construcción anterior
 
@@ -55,6 +57,8 @@ Selecciona Día, Tarde, Atardecer o Noche. Los menús mantienen abierto el panel
 
 Las imágenes ya generadas conservan su luz. Cuando generes otras, elige también ese momento de luz en **Diseñar con IA**.
 
+La dirección y altura del sol se ajustan en **Orientación y sol**, por separado para Día, Tarde y Atardecer. No se calculan automáticamente con las coordenadas de la parcela ni con una fecha/hora. Las sombras de noche proceden de las luminarias.
+
 **Guardar cambios** aplica el encaje al borrador y mantiene abierto el panel. **Confirmar para el vídeo** marca el encaje como revisado; no crea un MP4.
 
 Guardar se desactiva cuando no hay cambios. Confirmar se desactiva cuando el encaje ya está confirmado. Así no se crea otra revisión ni se pierde la confirmación por repetir una acción sin modificar ajustes.
@@ -65,7 +69,7 @@ En el pie del panel encontrarás **Continuar hacia el vídeo**:
 
 1. Pulsa **Revisar y aprobar diseño**. Se cierra la parcela y aparece la ventana de aprobación, con la luz elegida en la parcela.
 2. Revisa y pulsa **Confirmar aprobación**. Se sincroniza el borrador y se conserva esa revisión. Si hay un error, la ventana lo muestra y la aprobación no se completa.
-3. Para presentar tus renders, abre **Vídeos con mis imágenes** en la vista aprobada. También puedes usar **Abrir vídeos con mis imágenes** desde Parcela real.
+3. Para presentar tus renders, abre **Crear vídeo** en la vista aprobada. También puedes usar **Abrir vídeos con mis imágenes** desde Parcela real.
 4. Revisa las imágenes y la revisión en **Montaje con tus diseños generados** antes de montar el MP4.
 
 Si esa revisión ya está aprobada, el primer botón será **Ver aprobado**. Antes de la primera aprobación no existe esa copia; aparece **Revisar y aprobar diseño**. Modificar el encaje, escenario o luz exige confirmarlo y aprobar otra revisión. [Guardar y aprobar](/guias/guardar-aprobar/).

@@ -30,7 +30,7 @@ function openingFootprint(doc: EditorDocument, openingId: string): Point[] {
 
 /** IDs that can be selected and deleted directly; rooms are derived, never entities. */
 export function selectableEntityIds(doc: EditorDocument): string[] {
-  return [...doc.walls, ...doc.openings, ...planObjects(doc), ...doc.labels, ...doc.dimensions, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].map((item) => item.id);
+  return [...doc.walls, ...doc.openings, ...planObjects(doc), ...doc.labels, ...doc.dimensions, ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? []), ...(doc.terrainSurfaces ?? [])].map((item) => item.id);
 }
 
 /** Select only entities whose full 2D footprint lies within the dragged frame. */
@@ -40,6 +40,7 @@ export function selectEntitiesInRectangle(doc: EditorDocument, from: Point, to: 
   for (const opening of doc.openings) if (contains(rect, openingFootprint(doc, opening.id))) ids.push(opening.id);
   for (const item of [...planObjects(doc), ...(doc.stairs ?? [])]) if (contains(rect, footprint(item))) ids.push(item.id);
   for (const column of doc.columns ?? []) if (contains(rect, footprint(column))) ids.push(column.id);
+  for (const surface of doc.terrainSurfaces ?? []) if (contains(rect, footprint({ ...surface, rotation: 0 }))) ids.push(surface.id);
   for (const ramp of doc.ramps ?? []) if (rampParts(ramp).every((part) => contains(rect, rampPartFootprint(ramp, part)))) ids.push(ramp.id);
   for (const label of doc.labels) if (contains(rect, [label])) ids.push(label.id);
   for (const dimension of doc.dimensions) if (contains(rect, [dimension.from, dimension.to])) ids.push(dimension.id);

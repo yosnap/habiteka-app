@@ -6,6 +6,10 @@ import { spotAimVector, SPOT_CONE_DEG, DEFAULT_ROOF_THICKNESS_MM, type CeilingSu
 
 export type CeilingView = 'hidden' | 'transparent' | 'solid';
 export const MAX_LUMINAIRE_LIGHTS = 12;
+/** Una pose explícita no hereda el corte aéreo de la vista abierta en el editor. */
+export function captureViewPreset(requested: string | undefined, active: string | null, hasCamera: boolean) {
+  return hasCamera ? 'custom' : requested && requested !== 'current' ? requested : active;
+}
 /** La captura usa su visibilidad propia, aunque la escena viva esté en otra cámara. */
 export function sceneCoversHidden(view: string | null, ceiling: CeilingView,
   capture: { ceiling: CeilingView; aerial: boolean } | null, recording: boolean): boolean {
@@ -31,6 +35,9 @@ export function captureCeilingView(view: string | null | undefined, custom?: {
   forDesign?: boolean;
 }): CeilingView {
   if (view === 'top' || view === 'isometric' || view === 'drone') return 'hidden';
+  // Los alzados con corte se capturan desde encima de la casa: con la cubierta la IA recibía una losa que tapaba las
+  // estancias. El aspecto acabado con tejado corresponde a «Exterior terminado».
+  if (custom?.forDesign && (view === 'front' || view === 'back' || view === 'left' || view === 'right')) return 'hidden';
   if ((!view || view === 'current' || view === 'custom') && (custom?.cutaway || custom?.forDesign) &&
     custom.highestCeilingM !== null && custom.cameraHeightM > custom.highestCeilingM) return 'hidden';
   return 'solid';

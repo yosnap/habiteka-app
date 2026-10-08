@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { ShapeGeometry, Group, Vector3 } from 'three';
-import { captureCeilingView, captureCutaway, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, sceneCoversHidden, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, captureViewPreset, ceilingShape, ceilingShapes, createLuminaireEmitter, presetCeilingView, sceneCoversHidden, temperatureColor } from '../../src/components/editor-v2/scene/ceiling-scene-utils';
 import { spotAimPoint } from '../../src/lib/editor-document/ceiling-geometry';
 
 describe('representación de techos e iluminación', () => {
+  it.each(['top', 'isometric', 'drone'])('una cámara del paseo conserva cubiertas aunque el editor esté en %s', active => {
+    const preset = captureViewPreset(undefined, active, true);
+    expect(preset).toBe('custom');
+    expect(sceneCoversHidden(active, 'hidden', { ceiling: 'solid', aerial: ['top', 'isometric', 'drone'].includes(preset!) }, false)).toBe(false);
+    expect(captureViewPreset('current', active, false)).toBe(active);
+    expect(captureViewPreset('front', active, false)).toBe('front');
+  });
   it('conserva pérgolas en capturas laterales aunque la escena esté en cenital sin techo', () => {
     expect(sceneCoversHidden('top', 'hidden', { ceiling: 'solid', aerial: false }, false)).toBe(false);
     expect(sceneCoversHidden('front', 'solid', { ceiling: 'hidden', aerial: true }, false)).toBe(true);
@@ -105,6 +112,14 @@ describe('representación de techos e iluminación', () => {
   it('oculta techos en capturas aéreas y los conserva en interiores', () => {
     for (const view of ['top', 'isometric', 'drone']) expect(captureCeilingView(view)).toBe('hidden');
     for (const view of ['front', 'back', 'left', 'right', null]) expect(captureCeilingView(view)).toBe('solid');
+  });
+  it('retira techo y tejado de los alzados que se capturan para diseñar', () => {
+    const context = { cutaway: true, cameraHeightM: 6, highestCeilingM: 2.7, forDesign: true };
+    for (const view of ['front', 'back', 'left', 'right']) {
+      expect(captureCeilingView(view, context)).toBe('hidden');
+      expect(captureCeilingView(view, { ...context, forDesign: false })).toBe('solid');
+    }
+    expect(captureCeilingView('exterior', context)).toBe('solid');
   });
   it('mantiene fachada y cubierta en Exterior terminado aunque la vista viva esté seccionada', () => {
     expect(captureCutaway('exterior', true)).toBe(false);

@@ -108,6 +108,12 @@ export function planRegionAreas(doc?: EditorDocument): RegionRoom[] {
   return [...rooms, ...planRegionAccesses(doc, rooms)];
 }
 
+/** Mismo contorno empiece donde empiece: volver a pulsar una estancia ya marcada no debe duplicarla. */
+export function samePolygon(a: readonly Point[], b: readonly Point[], toleranceMm = 1): boolean {
+  const near = (p: Point, q: Point) => Math.abs(p.x - q.x) <= toleranceMm && Math.abs(p.y - q.y) <= toleranceMm;
+  return a.length === b.length && a.every((p) => b.some((q) => near(p, q))) && b.every((q) => a.some((p) => near(p, q)));
+}
+
 /** Estancia bajo el punto, o null fuera de toda estancia. La más pequeña gana en anidamientos. */
 export function roomAtPoint(rooms: readonly RegionRoom[], point: Point): RegionRoom | null {
   const hits = rooms.filter((room) => pointInPolygon(point, room.polygon));

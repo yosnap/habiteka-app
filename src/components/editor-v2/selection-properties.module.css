@@ -1,0 +1,54 @@
+.summaryBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  z-index: 10;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  flex: 1;
+  min-width: 0;
+}
+.summary strong { overflow-wrap: anywhere; }
+.summary span { color: var(--muted); font-size: .8125rem; }
+.summaryBar .summaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.identity { display: grid; gap: 4px; margin-bottom: 16px; }
+.identity h2 { margin: 0; overflow-wrap: anywhere; }
+.identity span { color: var(--muted); font-size: .8125rem; }
+.tabs { display: flex; gap: 4px; margin: 16px 0; }
+.tabs button { flex: 1; padding-inline: 8px; }
+.section + .section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
+.section h3 { margin: 0 0 12px; font-size: .875rem; font-weight: 650; }
+.section p { font-size: .8125rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions button { display: inline-flex; align-items: center; gap: 8px; }
+.selectionList { display: grid; gap: 6px; margin: 12px 0; max-height: 280px; overflow: auto; }
+.selectionList button { text-align: left; }
+.selectionList small { display: block; color: var(--muted); }
+.searchToggle { margin-bottom: 16px; }
+.searchToggle summary { cursor: pointer; padding: 8px 0; color: var(--brand); font-weight: 600; }
+.searchToggle summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.searchFields { display: grid; gap: 16px; padding: 8px 0 4px; }
+.searchFields > label { gap: 8px; margin: 0; min-width: 0; }
+.searchFields > ul { margin: 0; }
+.empty { padding-block: 8px; }
+.empty svg { color: var(--brand); margin-bottom: 8px; }
+.empty p { font-size: .8125rem; }
+.footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.footer .delete { color: var(--danger); }
+@media (max-width: 600px) {
+  .summaryBar { padding: 8px; gap: 8px; }
+  .summary { flex-basis: 100%; }
+}

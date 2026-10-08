@@ -4,18 +4,77 @@ import type { OrgContext } from '@/server/auth/org-context';
 import type { EditorScope } from '@/server/editor/authority';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import type { RenderView } from '@/lib/editor-document/render-view';
-import { zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { isInteriorRenderMode, zoneCompositeActive, type RenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { sameContentRevisions } from '@/server/walkthrough/tour-images';
 import { sanitizeImageBuffer } from '@/server/ai/image/input-sanitizer';
 import { readRenderReference } from './render-asset-reader';
+import { LATERAL_ROTATION } from './accepted-top-reference';
 import { fail } from '@/server/errors/run-action';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { assertGeographicSiteOwnership } from '@/server/editor/geographic-site-ownership';
-import { renderReviewIssue, type RenderReview } from '@/lib/editor-document/render-review';
+import { acceptedRenderIssue, renderReviewIssue } from '@/lib/editor-document/render-review';
+import { referenceSettingIssues, referenceAcceptanceIssue, type ReferenceGeneration } from '@/lib/editor-document/render-reference-compatibility';
 
-/** El dron deriva de una vista cercana auditada del mismo inmueble y de su entorno real. */
+/**
+ * Vista auditada del mismo diseño, ámbito, luz, libertad y permiso de rediseño. Las aceptadas por el usuario tienen
+ * prioridad; con `requireAccepted` solo valen ellas.
+ */
+async function designReference(ctx: OrgContext, scope: EditorScope, document: EditorDocument, view: RenderView,
+  options: RenderDesignOptions, preset: 'top' | 'isometric', requireAccepted: boolean, referenceId?: string) {
+  const rows = await prisma.deliverable.findMany({ where: { projectId: scope.projectId,
+    zoneId: scope.zoneId ?? null, project: { organizationId: ctx.organizationId }, type: 'RENDER_3D', deletedAt: null,
+    ...(referenceId ? { id: referenceId } : {}),
+    OR: [{ payload: { path: ['generation', 'view', 'preset'], equals: preset } }] },
+    select: { id: true, payload: true }, orderBy: { createdAt: 'desc' }, take: 200 });
+  if (referenceId && !rows.some(row => row.id === referenceId)) fail('La referencia elegida no está disponible en este proyecto y zona para esta vista. Vuelve a abrir la biblioteca.');
+  const candidates = rows.flatMap((row) => {
+    if (referenceId && row.id !== referenceId) return [];
+    const payload = row.payload as { assetKey?: string; assetUrl?: string; generation?: ReferenceGeneration };
+    const generation = payload?.generation;
+    const issues = [...referenceSettingIssues(generation, view, options), ...(requireAccepted ? [referenceAcceptanceIssue(generation)].filter(Boolean) : [])];
+    if (referenceId && issues.length) fail(`La referencia elegida no es compatible: ${issues.join(' ')}`);
+    if (renderReviewIssue(generation)) return [];
+    const accepted = !acceptedRenderIssue(generation);
+    if (requireAccepted && !accepted) return [];
+    return generation?.documentRevision && !issues.length
+      ? [{ ...row, payload, revision: generation.documentRevision, accepted }] : [];
+  });
+  const valid = new Set(await sameContentRevisions(ctx, scope, { document, revision: document.revision }, candidates.map((row) => row.revision)));
+  if (referenceId && !candidates.some(row => valid.has(row.revision))) fail('El plano ha cambiado respecto a la referencia elegida. Selecciona un diseño compatible con el plano actual.');
+  // Orden estable: dentro de cada grupo se conserva la más reciente primero.
+  return candidates.filter((row) => valid.has(row.revision)).sort((a, b) => Number(b.accepted) - Number(a.accepted))[0];
+}
+
+const LATERAL_PRESETS = Object.keys(LATERAL_ROTATION);
+
+/** Cada interior pertenece al diseño aceptado; una tanda o una revisión automática no fijan su identidad. */
+export async function interiorDesignReference(ctx: OrgContext, scope: EditorScope, document: EditorDocument,
+  view: RenderView, options: RenderDesignOptions, referenceId?: string) {
+  if (!isInteriorRenderMode(options)) return null;
+  const anchor = await designReference(ctx, scope, document, view, options, 'top', true, referenceId);
+  if (!anchor) fail('Falta una cenital aceptada compatible para generar los interiores del mismo diseño. Elígela en la biblioteca y usa sus ajustes de luz y diseño.');
+  return { identity: await readRenderReference(anchor.payload), deliverableId: anchor.id };
+}
+
+/**
+ * Los laterales enseñan el interiorismo de la cenital aceptada desde otra cámara. Sin ella cada ángulo inventaba su
+ * propio mobiliario y la tanda no servía para un mismo vídeo.
+ */
+export async function lateralDesignReference(ctx: OrgContext, scope: EditorScope, document: EditorDocument,
+  view: RenderView, options: RenderDesignOptions, referenceId?: string) {
+  if (!LATERAL_PRESETS.includes(view.preset) || isInteriorRenderMode(options)) return null;
+  const anchor = await designReference(ctx, scope, document, view, options, 'top', true, referenceId);
+  if (!anchor) fail('Falta una cenital aceptada del mismo diseño, ámbito, luz, libertad y permiso de rediseño. Abre Elegir de la biblioteca, revisa tu cenital y pulsa Aceptar este diseño. Usa los mismos ajustes antes de preparar frontal, trasera y laterales.');
+  // Sin girar ni recortar: `acceptedTopForView` la adapta a la cámara cuando se conocen las estancias que ve.
+  return { identity: await readRenderReference(anchor.payload), deliverableId: anchor.id };
+}
+
+/**
+ * El dron deriva de una vista cercana aceptada del mismo inmueble y de su entorno real. La isométrica puede generarse
+ * sin ortofoto: sin emplazamiento se queda en el terreno modelado del plano, sin entorno inventado alrededor.
+ */
 export async function droneReferences(ctx: OrgContext, scope: EditorScope, document: EditorDocument,
-  view: RenderView, options: RenderDesignOptions, orthophotoDataUrl?: string) {
+  view: RenderView, options: RenderDesignOptions, orthophotoDataUrl?: string, referenceId?: string) {
   if (!['drone', 'isometric', 'exterior'].includes(view.preset)) return null;
   const isolated = zoneCompositeActive(options);
   if (!isolated && document.geographicSite?.confirmed) {
@@ -25,30 +84,11 @@ export async function droneReferences(ctx: OrgContext, scope: EditorScope, docum
     orthophotoDataUrl = `data:image/jpeg;base64,${bytes.toString('base64')}`;
   }
   const match = orthophotoDataUrl?.match(/^data:image\/(?:png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
-  if (!isolated && (!match?.[1] || orthophotoDataUrl!.length > 14_000_000))
-    fail('Para las vistas lejanas adjunta una ortofoto de la parcela y genera antes una cenital del mismo diseño.');
-  const environment = isolated ? undefined : await sanitizeImageBuffer(Buffer.from(match![1]!, 'base64'));
-  const rows = await prisma.deliverable.findMany({ where: { projectId: scope.projectId,
-    zoneId: scope.zoneId ?? null, project: { organizationId: ctx.organizationId }, type: 'RENDER_3D', deletedAt: null,
-    OR: (view.preset === 'drone' ? ['isometric'] : ['top']).map((preset) => ({ payload: { path: ['generation', 'view', 'preset'], equals: preset } })) },
-    select: { id: true, payload: true }, orderBy: { createdAt: 'desc' }, take: 32 });
-  const candidates = rows.flatMap((row) => {
-    const payload = row.payload as { assetKey?: string; assetUrl?: string; generation?: {
-      documentRevision?: number; review?: RenderReview; view?: { preset?: string; allLevels?: boolean; lighting?: string; levelId?: string | null }; options?: { freedom?: string; placement?: string; regions?: unknown[]; designScope?: string; redesignFixed?: boolean } } };
-    const generation = payload?.generation;
-    if (renderReviewIssue(generation)) return [];
-    return generation?.documentRevision && generation.view?.lighting === options.lighting &&
-      (generation.view.levelId ?? null) === (view.levelId ?? null) && generation.options?.freedom === options.freedom &&
-      (generation.view.allLevels === true) === (view.allLevels === true) &&
-      (generation.options.redesignFixed === true) === options.redesignFixed &&
-      (generation.options.placement === 'selected') === (options.placement === 'selected') &&
-      (options.placement !== 'selected' || JSON.stringify(generation.options.regions) === JSON.stringify(options.regions)) &&
-      (generation.options.designScope === 'house') === (options.designScope === 'house')
-      ? [{ ...row, payload, revision: generation.documentRevision }] : [];
-  });
-  const valid = new Set(await sameContentRevisions(ctx, scope, { document, revision: document.revision }, candidates.map((row) => row.revision)));
-  const compatible = candidates.filter((row) => valid.has(row.revision));
-  const anchor = compatible[0];
-  if (!anchor) fail(`Falta una ${view.preset === 'drone' ? 'isométrica' : 'cenital'} auditada del mismo diseño, ámbito, luz, libertad y permiso de rediseño. Genérala antes de la vista lejana.`);
+  if (orthophotoDataUrl && orthophotoDataUrl.length > 14_000_000) fail('La ortofoto supera el tamaño permitido.');
+  if (!isolated && view.preset !== 'isometric' && !match?.[1])
+    fail('Para el dron y el exterior adjunta una ortofoto de la parcela y genera antes una cenital del mismo diseño.');
+  const environment = isolated || !match?.[1] ? undefined : await sanitizeImageBuffer(Buffer.from(match[1], 'base64'));
+  const anchor = await designReference(ctx, scope, document, view, options, view.preset === 'drone' ? 'isometric' : 'top', true, referenceId);
+  if (!anchor) fail(`Falta una ${view.preset === 'drone' ? 'isométrica' : 'cenital'} aceptada del mismo diseño, ámbito, luz, libertad y permiso de rediseño. Elígela de la biblioteca o genérala y acéptala antes de la vista lejana.`);
   return { identity: await readRenderReference(anchor.payload), environment, deliverableId: anchor.id };
 }

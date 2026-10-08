@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { ShieldCheck, SlidersHorizontal, Sparkles, Sun, Sunset, Moon } from 'lucide-react';
 import type { EditorDocument } from '@/lib/editor-document/schema';
+import { LIGHTING_LABELS } from '@/lib/lighting-preset';
 import {
   RENDER_ADDITIONS,
   RENDER_ADDITION_LABELS,
@@ -16,7 +17,7 @@ import {
 } from '@/lib/editor-document/room-interior-cameras';
 import InteriorRoomsPicker from './interior-rooms-picker';
 import RenderRegionPicker from './render-region-picker';
-import { ModernSelect } from '@/components/ui/modern-select';
+import { CheckToggle } from '@/components/ui/check-toggle';
 import styles from './render-options-controls.module.css';
 
 interface Props {
@@ -25,9 +26,11 @@ interface Props {
   onChange: (options: RenderDesignOptions) => void;
   disabled?: boolean;
   editable?: boolean;
+  /** Luz de la aprobación vigente: el vídeo de primera persona solo admite interiores con ella. */
+  approvedLighting?: RenderDesignOptions['lighting'];
 }
 
-export function RenderOptionsControls({ document, options, onChange, disabled, editable }: Props) {
+export function RenderOptionsControls({ document, options, onChange, disabled, editable, approvedLighting }: Props) {
   const update = (patch: Partial<RenderDesignOptions>) => onChange({ ...options, ...patch });
   const interiorCameras: RoomInteriorCamera[] = useMemo(
     () => (document ? roomInteriorCameras(document) : []),
@@ -49,14 +52,8 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
     });
   return (
     <div className={`${styles.controls} mt-4 space-y-4`} aria-label="Opciones del render">
-      {editable && <section>
-        <label htmlFor="editor-design-preview-view" className="text-ink text-sm font-medium">Vista de referencia de la zona</label>
-        <ModernSelect compact id="editor-design-preview-view" className="mt-2" value={options.views[0] ?? 'current'}
-          disabled={disabled} onChange={(event) => update({ views: [event.target.value as RenderDesignOptions['views'][number]] })}>
-          {RENDER_VIEWS.map((view) => <option key={view} value={view}>{RENDER_VIEW_LABELS[view]}</option>)}
-        </ModernSelect>
-        <p className="text-muted-foreground mt-1 text-xs">La vista previa usa el 3D editable y no consume créditos.</p>
-      </section>}
+      {/* La propuesta coloca muebles en planta: se trabaja sobre la cenital, sin elegir otras vistas. */}
+      {editable && <p className="text-muted-foreground text-xs">La propuesta trabaja sobre la planta 2D, sin capturas del 3D ni coste de vista previa.</p>}
       {!editable && <section>
         <h3 className="text-ink text-sm font-medium">Iluminación</h3>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -89,15 +86,21 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
       </section>}
       <section>
         <h3 className="text-ink text-sm font-medium">Libertad de decoración</h3>
-        <label className="my-2 flex items-start gap-2 text-xs">
-          <input type="checkbox" disabled={disabled} checked={options.redesignFixed}
-            onChange={(event) => update({ redesignFixed: event.target.checked })} />
-          <span>{editable ? 'Rediseñar acabados de fijos existentes. Conserva medidas y posiciones; revisa cada cambio antes de aplicarlo.'
-            : 'Rediseño: permitir cambiar cocina, isla, sanitarios y armarios empotrados. Puede requerir más inversión; muros y huecos se conservan.'}</span>
-        </label>
+        <CheckToggle className="my-2" disabled={disabled} checked={options.redesignFixed}
+          onChange={(redesignFixed) => update({ redesignFixed })}
+          label={editable ? 'Rediseñar acabados de fijos existentes. Conserva medidas y posiciones; revisa cada cambio antes de aplicarlo.'
+            : 'Rediseño: permitir cambiar cocina, isla, sanitarios y armarios empotrados. Puede requerir más inversión; muros y huecos se conservan.'} />
+        {!editable && <CheckToggle className="my-2" disabled={disabled} checked={options.people}
+          onChange={(people) => update({ people })}
+          label="Personas: añadir personas haciendo vida en las estancias. No cambian el diseño ni el plano." />}
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {(
-            [
+            // Al diseñar el plano, los modos dicen qué hace la propuesta; en las imágenes, cuánto puede decorar el render.
+            editable ? [
+              ['free', 'Amueblar', 'Muebles, baños, cocina y decoración'],
+              ['controlled', 'Solo categorías', 'Añade solo lo marcado'],
+              ['strict', 'Acabados', 'Paredes y suelos, sin muebles'],
+            ] as const : [
               ['strict', 'Estricto', 'No añade objetos'],
               ['controlled', 'Controlado', 'Solo categorías marcadas'],
               ['free', 'Libre', 'Decoración sin construir'],
@@ -116,22 +119,15 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
         </div>
         {!editable && options.freedom !== 'strict' && (
           <p role="note" className="mt-2 rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
-            Los objetos que la IA añada en la imagen no existirán en el 3D editable, ni por tanto en la visita ni en el vídeo.
-            Para que existan, propónlos en «Cambiar acabados y muebles», aplícalos y genera después la imagen en modo Estricto.
+            El 3D del plano sirve como guía. Los vídeos y visitas finales deben conservar el mobiliario y acabado de los diseños IA que aceptes; requieren revisar el resultado.
+            Para incorporarlos al 3D editable, propónlos en «Diseñar el plano», aplícalos y genera después la imagen en modo Estricto.
           </p>
         )}
         {options.freedom === 'controlled' && (
           <div className="bg-canvas mt-2 grid gap-1 rounded-control p-2 sm:grid-cols-2">
             {RENDER_ADDITIONS.map((addition) => (
-              <label key={addition} className="text-ink-soft flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={options.additions.includes(addition)}
-                  disabled={disabled}
-                  onChange={() => toggleAddition(addition)}
-                />
-                {RENDER_ADDITION_LABELS[addition]}
-              </label>
+              <CheckToggle key={addition} checked={options.additions.includes(addition)} disabled={disabled}
+                onChange={() => toggleAddition(addition)} label={RENDER_ADDITION_LABELS[addition]} />
             ))}
           </div>
         )}
@@ -145,7 +141,7 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
       {(!editable || (options.freedom !== 'strict' && options.designScope !== 'zone')) && (
         <section>
           <h3 className="text-ink text-sm font-medium">{editable ? 'Dónde añadir objetos dentro del ámbito' : 'Qué parte del inmueble diseñar'}</h3>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className={styles.scopeChoices}>
             <OptionButton
               active={options.placement === 'all' && (editable || options.designScope !== 'house')}
               disabled={disabled}
@@ -190,27 +186,32 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
         <section>
           <div className="flex items-center justify-between">
             <h3 className="text-ink text-sm font-medium">Vistas interiores por estancia</h3>
-            <label className="text-ink-soft flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
+            <CheckToggle label="Activar"
                 checked={interiorMode}
                 disabled={disabled || !interiorCameras.length}
-                onChange={(event) =>
+                onChange={(checked) =>
                   update({
-                    interiorRoomIds: event.target.checked
+                    interiorRoomIds: checked
                       ? interiorCameras.filter((room) => room.habitable).map((room) => room.roomId)
                       : [],
                   })
                 }
               />
-              Activar
-            </label>
           </div>
           <p className="text-muted-foreground mt-1 text-xs">
             Una imagen por estancia, tomada desde dentro a altura de ojos sobre la geometría real
             de tu plano. Es la forma de obtener perspectivas fieles a tus muros. Mientras esté
             activo, los ángulos generales no se usan.
           </p>
+          {/* La luz aprobada puede reutilizarse; primera persona conserva la de sus imágenes aceptadas. */}
+          {interiorMode && approvedLighting && options.lighting !== approvedLighting && (
+            <div role="status" className="mt-2 rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950">
+              La aprobación vigente usa luz de {LIGHTING_LABELS[approvedLighting].toLowerCase()}. Primera persona conservará la luz de las imágenes aceptadas; todas las referencias de una toma deben compartirla.
+              <button type="button" disabled={disabled} className="ml-1 underline" onClick={() => update({ lighting: approvedLighting })}>
+                Usar luz de la aprobación
+              </button>
+            </div>
+          )}
           {interiorMode || !interiorCameras.length ? (
             <InteriorRoomsPicker
               cameras={interiorCameras}
@@ -224,36 +225,27 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
       {!editable && !interiorMode && <section>
         <div className="flex items-center justify-between">
           <h3 className="text-ink text-sm font-medium">Ángulos del diseño</h3>
-          <label className="text-ink-soft flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
+          <CheckToggle label={`Todas (${allViews.length} sin actual)`}
               checked={allViews.every((view) => options.views.includes(view))}
               disabled={disabled}
-              onChange={(event) =>
+              onChange={(checked) =>
                 update({
-                  views: event.target.checked
+                  views: checked
                     ? allViews
                     : options.views.filter((view) => view === 'current'),
                 })
               }
             />
-            Todas ({allViews.length} sin actual)
-          </label>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
           {RENDER_VIEWS.map((view) => (
-            <label
+            <CheckToggle
               key={view}
-              className={`${styles.viewChoice} flex items-center gap-2 rounded-control px-2 py-1.5 text-xs`}
-            >
-              <input
-                type="checkbox"
+              className={`${styles.viewChoice} rounded-control px-2 py-1.5`}
                 checked={options.views.includes(view)}
                 disabled={disabled}
                 onChange={() => toggleView(view)}
-              />
-              {RENDER_VIEW_LABELS[view]}
-            </label>
+              label={RENDER_VIEW_LABELS[view]} />
           ))}
         </div>
         <p className="mt-2 text-xs text-ink-soft">Exterior terminado conserva fachadas y tejado para el final de obra. Cenital, isométrica y dron muestran la distribución sin cubierta.</p>

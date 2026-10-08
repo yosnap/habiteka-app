@@ -60,6 +60,7 @@ export function RenderRegionPicker({ document, regions, onChange, disabled }: Pr
         name={name}
         onNameChange={setName}
         onPolygon={addRegion}
+        onExistingRoom={{ hint: 'pulsa otra vez para quitarla', select: (id) => onChange(regions.filter((region) => region.id !== id)) }}
         disabled={disabled}
         full={full}
         fullMessage={`Máximo de ${MAX_REGIONS} zonas alcanzado.`}

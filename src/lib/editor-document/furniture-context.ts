@@ -4,6 +4,8 @@ import { deriveRooms } from './rooms';
 import { getFurnitureCatalogEntry } from './furniture-catalog';
 import { furnitureSpatial, objectCenter } from './spatial-properties';
 import { furnitureAsset, ORIGINAL_ASSET_COLOR } from './furniture-assets';
+import { calibratedFurnitureProxy } from './furniture-collision-volumes';
+import { isPorch, porchAccess } from './porch-volumes';
 
 function inside(point: Point, polygon: Point[]): boolean {
   let result = false;
@@ -40,9 +42,12 @@ export function furnitureDesignContext(doc: EditorDocument) {
             dimensionsMm: { width: item.widthMm, depth: item.depthMm, height: spatial.heightMm },
             positionMm: { x: item.x, y: item.y, elevation: spatial.elevationMm }, centerMm: center,
             rotationDeg: item.rotation, color: asset && spatial.color === ORIGINAL_ASSET_COLOR ? null : spatial.color,
+            ...(isPorch(item) ? { porch: { columns: 4, closedSides: 0, floorElevationMm: spatial.elevationMm,
+              frontSteps: porchAccess(item).run > 0, stepRiserMm: porchAccess(item).riser, stepRunMm: porchAccess(item).run,
+              doorway: 'separate-wall-opening-at-rear' } } : {}),
             appearance: asset ? { source: asset.source, author: asset.author, license: asset.license,
               finish: spatial.color === ORIGINAL_ASSET_COLOR ? 'original-model-materials' : 'global-tint',
-              collision: 'conservative-bounding-box' } : null,
+              collision: calibratedFurnitureProxy(item) ? 'model-derived-solids' : 'conservative-bounding-box' } : null,
           };
         }),
       };

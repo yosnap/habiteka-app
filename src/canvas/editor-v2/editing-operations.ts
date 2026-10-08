@@ -18,6 +18,7 @@ import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
 import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
+import { splitWall } from '@/lib/editor-document/wall-commands';
 import { pruneLightingScenes } from '@/lib/editor-document/lighting-scene';
 import { followFurnitureOnMovedWalls } from './wall-furniture-follow';
 
@@ -47,21 +48,65 @@ export function addWallPath(doc: EditorDocument, points: Point[], closed = false
       const existing = next.vertices.find((v) => distance(v, p) < 0.01);
       if (existing) return existing.id;
       // Un extremo que cae sobre el cuerpo de un muro existente lo divide y comparte vértice: la estancia queda cerrada.
-      const support = wallSupportAt(next, p);
+      const support = wallSupportAt(next, p, { includeHidden: true });
       if (support) return joinPointToWall(next, support);
       const id = newId(); next.vertices.push({ id, ...p }); return id;
     });
+    const created = new Set<string>();
     for (let i = 0; i < ids.length - (closed ? 0 : 1); i++) {
-      const wall = { id: newId(), startVertexId: ids[i]!,
-        endVertexId: ids[(i + 1) % ids.length]!, thicknessMm: 150, dimensionalOrigin: 'physical' as const };
       const a = path[i]!, b = path[(i + 1) % path.length]!;
-      const floor = placement ? 0 : floorElevationAt(doc, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, roomsBefore);
-      const heightMm = (next.levels ? next.levels.find((l) => l.id === next.activeLevelId)!.heightMm : wallConstruction(wall).heightMm) + floor;
-      next.walls.push(next.schemaVersion >= 3 ? { ...wall, ...wallConstruction(wall), heightMm,
-        ...(placement ? { baseElevationMm: placement.elevationMm } : {}),
-        ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) } : wall);
+      // Cruzar otro muro por su cuerpo lo divide: ambos comparten el vértice del cruce. Se mide entre los
+      // vértices ya resueltos (un extremo apoyado en un muro está sobre su eje, no donde se soltó).
+      const from = next.vertices.find((v) => v.id === ids[i])!, to = next.vertices.find((v) => v.id === ids[(i + 1) % ids.length])!;
+      const chain = [ids[i]!, ...crossingVertices(next, from, to, created), ids[(i + 1) % ids.length]!];
+      for (let k = 0; k < chain.length - 1; k++) {
+        if (chain[k] === chain[k + 1]) continue;
+        const wall = { id: newId(), startVertexId: chain[k]!,
+          endVertexId: chain[k + 1]!, thicknessMm: 150, dimensionalOrigin: 'physical' as const };
+        created.add(wall.id);
+        const floor = placement ? 0 : floorElevationAt(doc, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, roomsBefore);
+        const heightMm = (next.levels ? next.levels.find((l) => l.id === next.activeLevelId)!.heightMm : wallConstruction(wall).heightMm) + floor;
+        next.walls.push(next.schemaVersion >= 3 ? { ...wall, ...wallConstruction(wall), heightMm,
+          ...(placement ? { baseElevationMm: placement.elevationMm } : {}),
+          ...(next.schemaVersion >= 4 ? { colors: { left: finishColor('plaster-white'), right: finishColor('plaster-white') } } : {}) } : wall);
+      }
     }
   });
+}
+
+/**
+ * Vértices donde el tramo a→b cruza el cuerpo de muros rectos existentes, ordenados
+ * desde a. Cada muro cruzado se divide en ese punto; si el cruce cae en una esquina,
+ * se reutiliza. Los extremos del tramo ya se resolvieron al crear sus vértices.
+ */
+function crossingVertices(doc: EditorDocument, a: Point, b: Point, created: Set<string>): string[] {
+  const vertices = new Map(doc.vertices.map((v) => [v.id, v]));
+  const hits: Array<{ t: number; wallId: string; u: number; corner?: string }> = [];
+  const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
+  if (length === 0) return [];
+  for (const wall of doc.walls) {
+    if (wall.curveHeightMm || created.has(wall.id)) continue;
+    const c = vertices.get(wall.startVertexId), d = vertices.get(wall.endVertexId);
+    if (!c || !d) continue;
+    const ex = d.x - c.x, ey = d.y - c.y, denom = dx * ey - dy * ex;
+    if (Math.abs(denom) < 1e-9) continue;
+    const t = ((c.x - a.x) * ey - (c.y - a.y) * ex) / denom;
+    const u = ((c.x - a.x) * dy - (c.y - a.y) * dx) / denom;
+    const wallLength = Math.hypot(ex, ey);
+    // Solo el interior del tramo nuevo: sus extremos ya comparten vértice si tocaban un muro.
+    if (t * length <= 1 || (1 - t) * length <= 1 || u < -1e-9 || u > 1 + 1e-9) continue;
+    const corner = u * wallLength <= 1 ? wall.startVertexId : (1 - u) * wallLength <= 1 ? wall.endVertexId : undefined;
+    hits.push({ t, wallId: wall.id, u, ...(corner ? { corner } : {}) });
+  }
+  hits.sort((x, y) => x.t - y.t);
+  const out: string[] = [];
+  for (const hit of hits) {
+    if (hit.corner) { if (!out.includes(hit.corner)) out.push(hit.corner); continue; }
+    const vertexId = newId();
+    splitWall(doc, hit.wallId, hit.u, vertexId, newId());
+    out.push(vertexId);
+  }
+  return out;
 }
 /** Murete independiente: un tramo abierto que protege un borde de rampa o descansillo. */
 export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
@@ -87,18 +132,28 @@ export function addGuardWallPath(doc: EditorDocument, points: Point[]) {
 }
 
 /** Repairs legacy protection walls drawn before landing-edge support existed. */
-export function repairLandingProtectionWalls(doc: EditorDocument): EditorDocument {
-  // This is deliberately tolerant of the old invalid geometry it repairs.
-  // `upgradeConstructionDocument` parses first and would reject intersecting legacy muretes.
-  const source = structuredClone(doc);
+/** Muretes de descansillo que se pueden recolocar; sin ninguno, la reparación no cambiaría nada. */
+function landingWallRepairs(source: EditorDocument) {
   const candidates = source.walls.flatMap((wall) => {
     if (wallConstruction(wall).heightMm > 1500) return [];
     const [from, to] = wallPoints(source, wall), placement = landingWallPlacement(source, [from, to]);
     return placement && distance(...placement.points) > .01 ? [{ wall, placement }] : [];
   });
   const candidateIds = new Set(candidates.map(({ wall }) => wall.id));
-  const movable = candidates.filter(({ wall }) => [wall.startVertexId, wall.endVertexId].every((vertexId) =>
+  return candidates.filter(({ wall }) => [wall.startVertexId, wall.endVertexId].every((vertexId) =>
     source.walls.filter((item) => item.startVertexId === vertexId || item.endVertexId === vertexId).every((item) => candidateIds.has(item.id))));
+}
+
+/** Solo entonces tiene sentido ofrecer «Reparar muretes del descansillo» ante un cruce de muros. */
+export function hasLandingWallsToRepair(doc: EditorDocument): boolean {
+  try { return landingWallRepairs(doc).length > 0; } catch { return false; }
+}
+
+export function repairLandingProtectionWalls(doc: EditorDocument): EditorDocument {
+  // This is deliberately tolerant of the old invalid geometry it repairs.
+  // `upgradeConstructionDocument` parses first and would reject intersecting legacy muretes.
+  const source = structuredClone(doc);
+  const movable = landingWallRepairs(source);
   if (!movable.length) return source;
   return editDocument(source, (next) => {
     const expected = new Map<string, Point>();

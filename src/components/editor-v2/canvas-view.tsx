@@ -1,9 +1,11 @@
 'use client';
 import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/lib/editor-document/boundary-types';
+import { danglingEnds } from '@/lib/editor-document/plan-issues';
 
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
 import { addLinearBoundary, isBoundaryKind } from '@/lib/editor-document/linear-boundary';
+import { addGardenPathSegment, DEFAULT_GARDEN_PATH } from '@/lib/editor-document/garden-paths';
 import { addKitchenRun, addKitchenSlot } from '@/lib/editor-document/kitchen-run-commands';
 import { kitchenSlotDrop } from '@/lib/editor-document/kitchen-slot-drop';
 import { orientKitchenRun, snapToWallFace } from '@/lib/editor-document/kitchen-run-placement';
@@ -14,8 +16,9 @@ import { putWalkthrough, waypoint } from '@/lib/editor-document/walkthrough';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Line, Circle, Group, Rect, Text, Image as KonvaImage } from 'react-konva';
 import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
+import { PropertyCompassOverlay } from './property-compass';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
-import { fittedView, zoomedView } from '@/canvas/editor-v2/view-math';
+import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
 import type Konva from 'konva';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -40,6 +43,12 @@ import { elementName } from '@/lib/editor-document/element-classification';
 import { isRampLanding } from '@/lib/editor-document/ramp-kind';
 import type { SpatialClipboardItem } from '@/canvas/editor-v2/spatial-clipboard';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import { pointAtLength, typedLengthKey } from '@/canvas/editor-v2/typed-length';
+import { editorHint, modifierKey } from '@/canvas/editor-v2/editor-hints';
+import { useRoofPlanTool } from './use-roof-plan-tool';
+import { RoofPlanLayer } from './roof-plan-layer';
+import { RoofPlanControls } from './roof-plan-controls';
+import type { RoofPlacementRequest, RoofAction } from './use-roof-workflow';
 
 type Marquee = { from: Point; to: Point; baseSelection: string[]; mode: 'replace' | 'add' | 'subtract' };
 
@@ -51,7 +60,10 @@ function placementLabel(item: SpatialClipboardItem): string {
   return elementName(item);
 }
 
-export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, reference }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; reference?: PlanReference | null }) {
+/** Espera máxima a la imagen del plano original antes de enseñar el plano sin ella. */
+const REFERENCE_WAIT_MS = 2500;
+
+export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, showRoof = false, onHideRoof, roofRequest, onRoofAction, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; showRoof?: boolean; onHideRoof?: () => void; roofRequest?: RoofPlacementRequest | null; onRoofAction?: (action: RoofAction) => void; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
   useEffect(() => {
@@ -65,54 +77,84 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
   const zoneTool = useLightZoneTool(store);
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
+  // ⌘/Ctrl mientras se dibuja: el muro no se une a esquinas ni a muros. La medida tecleada fija la longitud del tramo.
+  const [freeDraw, setFreeDraw] = useState(false);
+  const [typedLength, setTypedLength] = useState(''), typedRef = useRef('');
+  const commitTypedRef = useRef<((lengthMm: number) => void) | null>(null);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Meta' || event.key === 'Control') { setFreeDraw(event.type === 'keydown'); return; }
+      const target = event.target;
+      if (event.type !== 'keydown' || !commitTypedRef.current || (target instanceof HTMLElement
+        && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable))) return;
+      const result = typedLengthKey(typedRef.current, event.key);
+      if (!result.consumed) return;
+      // Las cifras son la medida, no atajos (el 0 encuadraría la vista).
+      event.preventDefault(); event.stopPropagation();
+      typedRef.current = result.buffer; setTypedLength(result.buffer);
+      if (result.commitMm) commitTypedRef.current(result.commitMm);
+    };
+    const release = () => setFreeDraw(false);
+    window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true); window.addEventListener('blur', release);
+    return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); window.removeEventListener('blur', release); };
+  }, []);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState({ x: 80, y: 80, scale: .08 });
   const initialFitDone = useRef(false);
+  // Hasta el primer encuadre el lienzo no se enseña: pintaba con la vista por defecto y saltaba al encuadrar.
+  const [fitted, setFitted] = useState(!fitOnMount);
   useEffect(() => {
     if (!fitOnMount || initialFitDone.current || size.width <= 100 || size.height <= 100) return;
     const frame = requestAnimationFrame(() => {
       if (initialFitDone.current) return;
       initialFitDone.current = true;
       if (!store.getState().focusPoint) setView(fittedView(doc, size));
+      setFitted(true);
     });
     return () => cancelAnimationFrame(frame);
   }, [fitOnMount, doc, size, store]);
   const [loadedReference, setLoadedReference] = useState<{ url: string; image: HTMLImageElement } | null>(null);
-  const [referenceVisible, setReferenceVisible] = useState(Boolean(reference));
-  const [referenceOpacity, setReferenceOpacity] = useState(0.75);
+  // Imagen original que ya no se espera: falló o tardó demasiado. El plano se enseña sin ella.
+  const [abandonedReference, setAbandonedReference] = useState<string | null>(null);
   useEffect(() => {
     if (!reference?.imageUrl) return;
     let active = true;
-    const image = new window.Image();
-    image.onload = () => { if (active) setLoadedReference({ url: reference.imageUrl, image }); };
-    image.onerror = () => { if (active) setLoadedReference(null); };
-    image.src = reference.imageUrl;
-    return () => { active = false; };
+    const url = reference.imageUrl, image = new window.Image();
+    const timeout = window.setTimeout(() => { if (active) setAbandonedReference(url); }, REFERENCE_WAIT_MS);
+    image.onload = () => { if (active) setLoadedReference({ url, image }); };
+    image.onerror = () => { if (active) { setLoadedReference(null); setAbandonedReference(url); } };
+    image.src = url;
+    return () => { active = false; window.clearTimeout(timeout); };
   }, [reference?.imageUrl]);
   const referenceImage = loadedReference && loadedReference.url === reference?.imageUrl
     ? loadedReference.image : null;
-  const showReference = Boolean(reference && referenceVisible && referenceImage);
+  const showReference = Boolean(reference && originalVisible && referenceImage);
+  // Con el original visible, el plano se pinta ya comparado con él: sin un primer pintado normal que luego cambia.
+  const ready = fitted && (!reference?.imageUrl || !originalVisible || Boolean(referenceImage) || abandonedReference === reference.imageUrl);
+  const selected = useStore(store, (s) => s.selection);
+  const looseEnds = useMemo(() => danglingEnds(doc).points.filter((point) => selected.includes(point.wallId)), [doc, selected]);
   // Centrar la vista a petición (buscador del inspector) sin cambiar la escala; se atiende una sola vez por petición.
   const focusPoint = useStore(store, (s) => s.focusPoint);
   const [handledFocus, setHandledFocus] = useState(focusPoint);
-  if (active && size.width > 100 && size.height > 100 && focusPoint !== handledFocus) {
+  if (focusPoint !== handledFocus && active && size.width > 100 && size.height > 100) {
     setHandledFocus(focusPoint);
-    if (focusPoint) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
+    if (active && focusPoint && size.width > 100 && size.height > 100) setView((current) => ({ ...current, x: size.width / 2 - focusPoint.point.x * current.scale, y: size.height / 2 - focusPoint.point.y * current.scale }));
   }
   const pan = useStore(store, (s) => s.pan), setPan = (next: boolean) => store.getState().setPan(next);
   const [gesture, setGesture] = useState<{ point: Point; tool: string } | null>(null);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [chain, setChain] = useState<Point[]>([]);
-  const continuous = tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || tool === 'kitchen' || tool === 'light-strip' || isBoundaryKind(tool);
+  const continuous = tool === 'garden-path' || tool === 'wall' || tool === 'guard-wall' || tool === 'patio' || tool === 'kitchen' || tool === 'light-strip' || isBoundaryKind(tool);
   // Tira libre en curso: el primer tramo la crea y los siguientes alargan su recorrido.
   const [stripId, setStripId] = useState<string | null>(null);
   const start = continuous ? chain.at(-1) ?? null : gesture?.tool === tool ? gesture.point : null;
   const [pointer, setPointer] = useState<Point | null>(null), [generation, setGeneration] = useState(0);
   const stage = useRef<Konva.Stage>(null);
+  const roofTool = useRoofPlanTool(store, showRoof && active, stage, roofRequest);
   useEffect(() => {
-    if (size.width > 10 && size.height > 10)
+    if (active && size.width > 10 && size.height > 10)
       onCenter({ x: (size.width / 2 - view.x) / view.scale, y: (size.height / 2 - view.y) / view.scale });
-  }, [size, view, onCenter]);
+  }, [active, size, view, onCenter]);
   // External tool/permission transitions and undo invalidate only the uncommitted preview.
   useEffect(() => store.subscribe((next, previous) => {
     if (next.tool === 'split-wall' && previous.tool !== next.tool) stage.current?.container().parentElement?.focus();
@@ -122,15 +164,21 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   }), [store]);
   useEffect(() => {
     const element = stage.current?.container();
-    if (element) element.style.cursor = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'light-zone', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure', 'walkthrough'].includes(tool)
+    if (element) element.style.cursor = !readOnly && ['garden-path', 'valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'light-zone', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure', 'walkthrough'].includes(tool)
       ? 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27 viewBox=%270 0 32 32%27%3E%3Cpath fill=%27%23087f75%27 d=%27m5 27 3-8L23 4l5 5L13 24z%27/%3E%3Cpath fill=%27white%27 d=%27m10 20 2 2-4 3z%27/%3E%3C/svg%3E") 4 28, crosshair'
       : '';
   }, [tool, readOnly]);
   // ResizeObserver is a real external subscription; callback-ref cleanup releases it on unmount.
+  const previousSize = useRef<{ width: number; height: number } | null>(null);
   const container = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) });
+      if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0) return;
+      const next = { width: entry.contentRect.width, height: entry.contentRect.height };
+      const previous = previousSize.current;
+      if (previous) setView((current) => resizedView(current, previous, next));
+      previousSize.current = next;
+      setSize(next);
     });
     observer.observe(node); return () => observer.disconnect();
   }, []);
@@ -153,7 +201,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       store.getState().setMagneticGuides([{ from: start!, to: chain[0]! }]); return chain[0]!;
     }
     if (p && (tool === 'wall' || tool === 'guard-wall')) {
-      const result = snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined);
+      const result = snapWallPoint(store.getState().document, p, view.scale, store.getState().snap, wallDraw.anchor ?? undefined, { free: freeDraw });
       store.getState().setMagneticGuides(result.guides ?? (result.guide ? [result.guide] : []));
       return result.point;
     }
@@ -165,21 +213,22 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     return p ? (tool === 'select' ? p : snapPointDrag(store, p, view.scale)) : null;
   };
   const cancel = () => { stage.current?.stopDrag(); store.getState().cancelWallSplit(); store.getState().cancelPendingSpatial(); setWallDraw(idleWallDraw()); setChain([]); setGesture(null); setPointer(null); setMarquee(null); setStripId(null); setGeneration((n) => n + 1); store.getState().setTool('select'); };
-  const clickChain = () => {
-    const p = point(); if (!p) return;
+  const clickChain = (explicit?: { x: number; y: number }) => {
+    const p = explicit ?? point(); if (!p) return;
     if (!start) { setChain([p]); setPointer(p); setWallDraw({ anchor: p, preview: p }); return; }
     if (distance(start, p) < 50) return;
     try {
       const state = store.getState();
       let closed = chain.length > 2 && distance(p, chain[0]!) < .01;
       if (tool === 'wall' || tool === 'guard-wall') {
-        const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start).extension : undefined;
+        const extension = tool === 'wall' && !explicit ? snapWallPoint(state.document, p, view.scale, state.snap, start, { free: freeDraw }).extension : undefined;
         const result = tool === 'wall' ? clickWallDraw({ anchor: start, preview: p }, p, state.document, extension)
           : clickGuardWallDraw({ anchor: start, preview: p }, p, state.document);
         if (!result.document) return;
         state.apply(result.document);
         if (tool === 'wall' && !result.state.anchor) closed = true;
-      } else if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p));
+      } else if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p, state.boundaryCatalogId));
+      else if (tool === 'garden-path') state.apply(addGardenPathSegment(state.document, start, p, state.gardenPathOptions ?? DEFAULT_GARDEN_PATH));
       else if (tool === 'kitchen') state.apply(addKitchenRun(state.document, ...orientKitchenRun(state.document, start, p, 400)));
       else if (tool === 'patio') state.apply(addOutdoorEdge(state.document, start, p));
       else if (tool === 'light-strip') {
@@ -194,24 +243,33 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       else { setChain([...chain, p]); setPointer(p); setWallDraw({ anchor: p, preview: p }); }
     } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Trazo inválido'); }
   };
+  // Con un tramo empezado, Enter con una medida tecleada lo termina con esa longitud hacia donde apunta el ratón.
+  useEffect(() => {
+    commitTypedRef.current = (tool === 'wall' || tool === 'guard-wall') && start && !readOnly
+      ? (lengthMm) => clickChain(pointAtLength(start, wallDraw.preview ?? start, lengthMm)) : null;
+  });
   const finish = () => {
     const p = point();
     if (!p || !start || distance(start, p) < 50) { setGesture(null); setPointer(null); setWallDraw(idleWallDraw()); return; }
     try {
       const state = store.getState();
+      let measurementId: string | undefined;
       if (tool === 'wall' || tool === 'guard-wall') {
-        const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start).extension : undefined;
+        const extension = tool === 'wall' ? snapWallPoint(state.document, p, view.scale, state.snap, start, { free: freeDraw }).extension : undefined;
         const draw = { anchor: start, preview: p };
         const result = tool === 'wall' ? clickWallDraw(draw, p, state.document, extension) : clickGuardWallDraw(draw, p, state.document);
         if (result.document) state.apply(result.document);
       }
-      if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p));
+      if (isBoundaryKind(tool)) state.apply(addLinearBoundary(state.document, tool, start, p, state.boundaryCatalogId));
       if (tool === 'patio') state.apply(addOutdoorArea(state.document, start, p));
       if (tool === 'rectangle') state.apply(addWallPath(state.document,
         [start, { x: p.x, y: start.y }, p, { x: start.x, y: p.y }], true));
-      if (tool === 'measure') state.apply(editDocument(state.document,
-        (next) => next.dimensions.push({ id: newId(), from: start, to: p })));
+      if (tool === 'measure') {
+        measurementId = newId();
+        state.apply(editDocument(state.document, next => next.dimensions.push({ id: measurementId!, from: start, to: p })));
+      }
       state.setTool('select');
+      if (measurementId) state.select([measurementId]);
     } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'Trazo inválido'); }
     setGesture(null); setPointer(null); setWallDraw(idleWallDraw());
   };
@@ -239,15 +297,15 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
   }, [presentation, size, view]);
-  const drawing = !readOnly && ['valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
+  const drawing = !readOnly && ['garden-path', 'valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
   const draftDimension = wallPreview.anchor && wallPreview.preview ? drawingDimension(wallPreview.anchor, wallPreview.preview, view.scale) : null;
   const wallExtension = wallPreview.anchor && wallPreview.preview
-    && tool === 'wall' ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor).extension : undefined;
+    && tool === 'wall' ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor, { free: freeDraw }).extension : undefined;
   const wallMagnet = wallPreview.anchor && wallPreview.preview
-    ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor) : undefined;
-  const boundaryDimension = start && pointer && (isBoundaryKind(tool) || tool === 'kitchen' || tool === 'patio' || tool === 'light-strip') ? drawingDimension(start, pointer, view.scale) : null;
+    ? snapWallPoint(doc, wallPreview.preview, view.scale, snapEnabled, wallPreview.anchor, { free: freeDraw }) : undefined;
+  const boundaryDimension = start && pointer && (isBoundaryKind(tool) || tool === 'garden-path' || tool === 'kitchen' || tool === 'patio' || tool === 'light-strip') ? drawingDimension(start, pointer, view.scale) : null;
   // Cota en vivo del tramo en curso de la zona, igual que en el resto de trazos.
   const zoneAnchor = zoneTool.draft.vertices.at(-1) ?? null;
   const zoneDimension = zoneTool.active && zoneAnchor && zoneTool.cursor ? drawingDimension(zoneAnchor, zoneTool.cursor, view.scale) : null;
@@ -256,26 +314,33 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
+    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
   }, [doc, pendingSpatial, pointer, snapEnabled, view.scale]);
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
+  const hint = editorHint(tool, selected, doc, !!(start || wallPreview.anchor));
   return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
+    onKeyDownCapture={roofTool.keyDown}
     onKeyDown={(e) => {
-      if (e.key === 'Escape') { cancel(); return; }
+      if (e.key === 'Escape') {
+        if (pendingSpatial) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
+        cancel(); return;
+      }
       if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
       if (!zoneTool.active) return;
       if (e.key === 'Enter') { e.preventDefault(); zoneTool.close(); }
       else if (e.key === 'Backspace') { e.preventDefault(); zoneTool.undoVertex(); }
     }} onPointerCancel={cancel}>
     {size.width > 0 && size.height > 0 && <Stage ref={stage} width={size.width} height={size.height} x={view.x} y={view.y}
+      style={ready ? undefined : { visibility: 'hidden' }}
       scaleX={view.scale} scaleY={view.scale} draggable={pan}
       onDragEnd={(e) => { if (e.target === stage.current) updateView({ ...view, ...e.target.position() }); }}
       onWheel={(e) => { e.evt.preventDefault(); zoom(e.evt.deltaY > 0 ? .9 : 1.1, stage.current?.getPointerPosition() ?? undefined); }}
       onPointerDown={(e) => {
         stage.current?.container().parentElement?.focus();
         if (pan) return;
+        if (showRoof) { roofTool.pointerDown(); return; }
         if (tool === 'walkthrough' && !readOnly) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const p = point(), state = store.getState();
@@ -318,7 +383,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
             setPointer(null); return;
           }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true });
+          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
           store.getState().placePendingSpatial(item); setPointer(null); return;
         }
         if (splitting) {
@@ -333,7 +398,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         }
         if (continuous && drawing) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
-          clickChain(); return;
+          setTypedLength(''); typedRef.current = ''; clickChain(); return;
         }
         if (drawing) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
@@ -344,6 +409,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
           }
         }
       }} onPointerMove={() => {
+        if (!pan && showRoof) { roofTool.pointerMove(); return; }
         if (!pan && zoneTool.active) { const p = point(); if (p) zoneTool.pointerMove(p); return; }
         if (!pan && placingSpatial) { const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null); if (raw && pendingSpatial) { const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 }); snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale); } return; }
         if (!pan && splitting) { setPointer(point()); return; }
@@ -352,18 +418,29 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         const p = point();
         if (p && (tool === 'wall' || tool === 'guard-wall')) setWallDraw((current) => moveWallDraw(current, p));
         else if (start) setPointer(p);
-      }} onPointerUp={() => { if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
-      onDblClick={() => { if (!pan && zoneTool.active) zoneTool.close(); }} >
+      }} onPointerUp={() => { if (!pan && showRoof) roofTool.pointerUp(); else if (!pan && zoneTool.active) zoneTool.pointerUp(); else if (!pan && marquee) finishMarquee(); else if (!pan && drawing && !continuous) finish(); }}
+      onDblClick={(event) => {
+        if (!pan && zoneTool.active) { zoneTool.close(); return; }
+        const state = store.getState();
+        if (!pan && tool === 'select' && event.target !== stage.current && state.selection.length)
+          state.openSidePanel(state.sidePanel === 'ceiling' ? 'ceiling' : 'inspector');
+      }} >
 
       {showReference && reference && referenceImage && <Layer listening={false}>
         <KonvaImage image={referenceImage} x={reference.xMm ?? 0} y={reference.yMm ?? 0} width={reference.widthMm} height={reference.heightMm}
-          opacity={referenceOpacity} listening={false} />
+          opacity={originalOpacity} listening={false} />
       </Layer>}
       {!showReference && <Layer listening={false}>{grid.map((points, i) => <Line key={i} points={points} stroke="#e0e7e4" strokeWidth={1 / view.scale} />)}</Layer>}
-      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showReference}:${presentation}`} listening={!pan && active}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
+      <Layer key={`dimension-arrows-v1:${generation}:${tool}:${doc.activeLevelId}:${dimensions}:${showFurniture}:${showWalls}:${showLighting}:${showRoof}:${showReference}:${presentation}`} listening={!pan && active && !showRoof}><DocumentLayer store={store} scale={view.scale} disabled={pan || !active || showRoof} dimensions={dimensions} presentation={presentation} showFurniture={showFurniture} showWalls={showWalls} showLighting={showLighting} referenceVisible={showReference} /></Layer>
+      {showRoof && <RoofPlanLayer tool={roofTool} scale={view.scale} disabled={pan || !active} />}
       {/* Una sola capa para todas las superposiciones no interactivas: Konva penaliza más de 5 capas por escenario. */}
       <Layer listening={false}>
-      <>{start && pointer && <Line points={(tool === 'rectangle')
+      {looseEnds.map((point, index) => <Group key={`loose-end-${point.wallId}-${index}`} x={point.x} y={point.y}>
+        <Circle radius={12 / view.scale} fill="#fff" stroke="#dc2626" strokeWidth={3 / view.scale} />
+        <Circle radius={4 / view.scale} fill="#dc2626" />
+        <Text x={16 / view.scale} y={-10 / view.scale} text="Extremo sin unir" fontSize={14 / view.scale} fill="#dc2626" />
+      </Group>)}
+      <>{start && pointer && tool !== 'measure' && <Line points={(tool === 'rectangle')
         ? [start.x, start.y, pointer.x, start.y, pointer.x, pointer.y, start.x, pointer.y, start.x, start.y]
         : continuous ? [...chain.flatMap((p) => [p.x, p.y]), pointer.x, pointer.y] : [start.x, start.y, pointer.x, pointer.y]} stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />}</>
       <>{wallPreview.anchor && wallPreview.preview && wallLength >= 50 && <>
@@ -382,8 +459,14 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         {wallMagnet.kind === 'orthogonal' && <Line points={[wallPreview.anchor.x, wallPreview.anchor.y, wallMagnet.point.x, wallMagnet.point.y]}
             stroke="#00a693" strokeWidth={2 / view.scale} dash={[8 / view.scale, 5 / view.scale]} />}</>}
         {draftDimension && <DimensionMark scale={view.scale} layout={draftDimension} />}
+        {wallPreview.preview && (tool === 'wall' || tool === 'guard-wall') && start && <Text x={wallPreview.preview.x + 16 / view.scale} y={wallPreview.preview.y + 14 / view.scale}
+          fontSize={12 / view.scale} fill="#087f75" listening={false}
+          text={typedLength ? `Medida: ${typedLength} m · pulsa Enter para aplicarla`
+            : freeDraw ? 'Sin pegarse a esquinas ni paredes' : `Teclea una medida (p. ej. 3,25) y pulsa Enter · mantén ${modifierKey()} para no pegarte a esquinas`} />}
       </>}</>
       <>{boundaryDimension && <DimensionMark layout={boundaryDimension} scale={view.scale} />}</>
+      {tool === 'measure' && start && pointer && <DimensionMark scale={view.scale}
+        layout={{ from: start, to: pointer, sourceFrom: start, sourceTo: pointer }} />}
       <>{zoneTool.active && <LightZoneDrawLayer draft={zoneTool.draft} cursor={zoneTool.cursor}
         hovered={zoneTool.hovered} rectangle={zoneTool.rectangle} scale={view.scale} />}</>
       <>{zoneDimension && <DimensionMark layout={zoneDimension} scale={view.scale} />}</>
@@ -407,49 +490,52 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>
     </Stage>}
-    {wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && wallExtension && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       Cerrar habitación · prolongar pared existente sin añadir un tramo
     </div>}
-    {!wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && !wallExtension && wallMagnet && wallMagnet.kind !== 'free' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {wallMagnet.kind === 'orthogonal' ? 'Imán activo · pared recta' : wallMagnet.kind === 'landing'
         ? 'Imán activo · borde del descansillo' : 'Imán activo · unir al vértice'}
     </div>}
     {!pan && (tool === 'wall' || tool === 'guard-wall') && !wallExtension && (!wallMagnet || wallMagnet.kind === 'free') && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {wallPreview.anchor ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
-    {continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && continuous && tool !== 'wall' && tool !== 'guard-wall' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {tool === 'light-strip' ? (start ? 'Clic para alargar la tira · Esc para terminar' : 'Clic dentro de una estancia para empezar la tira · Esc para salir')
         : tool === 'kitchen' ? (start ? 'Clic para cerrar el tramo · Esc para salir' : 'Clic junto a un muro para comenzar · el mueble se pega a su cara') : start ? 'Clic para añadir tramo · cierra el contorno o pulsa Esc' : 'Clic para comenzar · Esc para salir'}
     </div>}
-    {zoneTool.active && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && zoneTool.active && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {zoneTool.draft.parts.length ? `${zoneTool.draft.parts.length} partes marcadas · ${zoneTool.hint}` : zoneTool.hint}
     </div>}
-    {splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {!pan && splitting && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {splitPreview?.reason ?? 'Haz clic sobre la pared para añadir una esquina · Esc para cancelar'}
     </div>}
-    {placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
-      Mueve la copia y haz clic para colocarla · Esc para cancelar
+    {!pan && tool === 'measure' && <div role="status" className={styles.measureHint}>
+      <strong>{start && pointer ? `${(distance(start, pointer) / 1000).toFixed(2)} m · suelta para dejar la cota` : 'Medir: arrastra entre dos puntos del plano'}</strong>
+      <span>La medida queda en el plano. {snapEnabled ? 'Ajuste magnético activo.' : 'Ajuste libre.'} Esc cancela.</span>
     </div>}
-    {!pan && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+    {placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+      {pan ? 'Mano activa · desactívala para colocar el objeto' : 'Mueve el objeto y haz clic para colocarlo · Esc para cancelar'}
+    </div>}
+    {pan && !placingSpatial && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
+      Mano activa · arrastra para desplazar la vista · Espacio para volver
+    </div>}
+    {!pan && !showRoof && tool === 'select' && <div role="status" style={{ position: 'absolute', top: 16, left: 16, padding: 8, background: '#fff', pointerEvents: 'none' }}>
       {readOnly ? 'Diseño aprobado · usa el borrador para hacer cambios' : presentation === 'visual' ? 'Añade desde Amueblar o Construir · arrastra para mover · selecciona para editar' : 'Arrastra para seleccionar · Mayús/⌘/Ctrl suma · ⌥ resta · Flechas: 1 cm · Mayús+flechas: 10 cm · Supr elimina'}
     </div>}
-    {!pan && <CanvasSelectionMenu store={store} view={view} size={size} />}
+    <PropertyCompassOverlay document={doc} />
+    {showRoof && <RoofPlanControls tool={roofTool} onAction={onRoofAction} onClose={() => { roofTool.choose(null); onHideRoof?.(); }} />}
+    {!pan && !showRoof && <CanvasSelectionMenu store={store} view={view} size={size} />}
     {!doc.walls.length && !planObjects(doc).length && !doc.stairs?.length && !doc.ramps?.length && <div className={styles.empty}>
       <strong>Tu espacio empieza aquí</strong><span>Traza un muro, dibuja una habitación o importa tu plano.</span>
     </div>}
+    {!readOnly && !pan && !showRoof && hint && <p className={styles.hints} role="status">{hint}</p>}
     <div className={styles.navigation} aria-label="Navegación del lienzo">
-      {reference && <>
-        <button type="button" aria-pressed={showReference} onClick={() => setReferenceVisible((value) => !value)}>
-          {showReference ? 'Ocultar original' : 'Mostrar original'}
-        </button>
-        {showReference && <input type="range" min={20} max={100} value={Math.round(referenceOpacity * 100)}
-          aria-label="Opacidad del plano original" onChange={(event) => setReferenceOpacity(Number(event.target.value) / 100)} />}
-      </>}
       <button onClick={() => zoom(.8)} aria-label="Alejar" data-tooltip={shortcutHint('Alejar', 'zoomOut')}><ZoomOut size={18} aria-hidden="true" /></button>
       <span>{Math.round(view.scale * 1000)}%</span>
       <button onClick={() => zoom(1.25)} aria-label="Acercar" data-tooltip={shortcutHint('Acercar', 'zoomIn')}><ZoomIn size={18} aria-hidden="true" /></button>
       <button onClick={fit} aria-label="Encuadrar" data-tooltip={shortcutHint('Encuadrar', 'fit')}><Maximize size={18} aria-hidden="true" /></button>
-      <button aria-pressed={pan} aria-label="Mano" data-tooltip={shortcutHint(pan ? 'Salir de mano' : 'Mano', 'pan')} onClick={() => { cancel(); setPan(!pan); }}><Hand size={18} aria-hidden="true" /></button>
+      <button aria-pressed={pan} aria-label="Mano" data-tooltip={shortcutHint(pan ? 'Salir de mano' : 'Mano', 'pan')} onClick={() => setPan(!pan)}><Hand size={18} aria-hidden="true" /></button>
       {(start || wallPreview.anchor) && <button onClick={cancel}>{wallPreview.anchor ? 'Finalizar paredes' : 'Cancelar trazo'}</button>}
       {splitting && <button onClick={cancel}>Cancelar esquina</button>}
       {zoneTool.active && <>

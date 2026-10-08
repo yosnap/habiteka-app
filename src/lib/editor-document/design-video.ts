@@ -17,6 +17,10 @@ export interface DesignVideoReference {
   id: string; view: string; name: string; batchId: string | null; revision: number;
   zones: string[]; scope: string; closedRoof: boolean; url: string; issue?: string;
   preset?: RenderView['preset'];
+  lighting?: ApprovedLightingPreset;
+  interiorRoomId?: string;
+  interiorRoomName?: string;
+  visitIssue?: string;
 }
 
 /** Una vista fija distribución y muebles; las demás aportan geometría sin mezclar interiorismos. */
@@ -42,12 +46,19 @@ export function designVideoReferenceRole(reference: DesignVideoReference, refere
   return reference.closedRoof ? 'Fachadas y tejado' : 'Apoyo de geometría';
 }
 export interface DesignVideoJob {
-  type: 'video'; mode: 'construction-ai'; status: DesignVideoState; provider: 'kie'; model: string;
+  type: 'video'; mode: 'construction-ai' | 'walkthrough-ai'; status: DesignVideoState; provider: 'kie'; model: string;
   approvalId: string; approvedRevision: number; approvedFingerprint: string;
   sourceIds: string[]; sourceScopes: { id: string; options: RenderDesignOptions }[];
   includedZones: string[]; prompt: string; settings: DesignVideoSettings; durationMs: number;
   structuralConstraints?: string;
+  /** Guion enviado a KIE (en inglés); `prompt` conserva el que ve el usuario. */
+  sentPrompt?: string; promptTranslationIssue?: string;
   estimateUsd: number; credits: number; taskId?: string; assetKey?: string; error?: string;
+  title?: string;
+}
+
+export function isDesignVideoMode(mode: unknown): mode is DesignVideoJob['mode'] {
+  return mode === 'construction-ai' || mode === 'walkthrough-ai';
 }
 
 /** Tarifa KIE contrastada 01/10/2026: salida + imágenes; aquí no se adjunta vídeo de entrada. */
@@ -64,6 +75,7 @@ export function designConstructionPrompt(lighting: ApprovedLightingPreset, setti
   const layoutIndex = layout ? references.indexOf(layout) + 1 : null;
   const exteriorIndex = references.findIndex(reference => reference.closedRoof);
   return [videoGenerationPrompt('construction', lighting, { ...settings.presentation, contentScope: 'all' }),
+    'Acabado hiperrealista, como una filmación real del diseño IA aceptado. No mostrar la maqueta del editor ni sustituir el diseño por un render conceptual del plano.',
     'El ámbito es exactamente el de las imágenes elegidas y sus selecciones de diseño, no solo las habitaciones cerradas. Construir también patios, baños exteriores, escaleras, descansillos, rampas, accesos y pérgolas que estén en esas referencias. No añadir el resto de la parcela ni ocultar las partes seleccionadas por estar al exterior.',
     `Zonas expresamente incluidas: ${zones.length ? zones.join(', ') : 'el ámbito completo mostrado en las referencias'}.`,
     ...references.map((image, index) => `Referencia ${index + 1}: ${image.name}; vista ${image.view}; función: ${designVideoReferenceRole(image, references)}.`),

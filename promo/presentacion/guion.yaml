@@ -1,0 +1,51 @@
+escenas:
+  - id: gancho
+    pieza: rotulo
+    parametros: { titulo: "Imagina tu reforma antes de empezar" }
+    frases:
+      - texto: "Un plano no basta: tus clientes quieren ver cómo quedará el resultado."
+  - id: inicio
+    pieza: captura
+    parametros: { captura: landing }
+    frases:
+      - texto: "Habiteka transforma un plano en diseños que puedes revisar, aceptar y compartir."
+  - id: proyectos
+    pieza: captura
+    parametros: { captura: proyectos }
+    frases:
+      - texto: "Cada proyecto reúne plano, diseño, aprobaciones y vídeos, siempre trazados."
+  - id: plano
+    pieza: captura
+    parametros: { captura: plano }
+    frases:
+      - texto: "Importa un plano en imagen o PDF y revisa cada medida con calma antes de pasar al editor."
+        hablado: "Importa un plano desde una imagen o un documento, y revisa cada medida con calma antes de pasar al editor."
+  - id: editor
+    pieza: captura
+    parametros: { captura: editor }
+    frases:
+      - texto: "Edita paredes, acabados y mobiliario, y compruébalos al tamaño real en 3D."
+        hablado: "Edita paredes, acabados y mobiliario, y compruébalos al tamaño real en tres D."
+  - id: asistente
+    pieza: captura
+    parametros: { captura: asistente }
+    frases:
+      - texto: "Un solo asistente revisa el plano, decora las estancias y prepara el guion del vídeo."
+  - id: resultados
+    pieza: lista
+    parametros:
+      captura: disenos
+      elementos:
+        - "Plano importado con medidas revisadas"
+        - "Editor 3D con acabados y mobiliario"
+        - "Diseños de IA que aceptas tú"
+        - "Diseño encajado en su parcela real"
+        - "Vídeos que salen de la misma versión"
+    frases:
+      - texto: "Revisa y acepta los diseños antes de preparar los vídeos del mismo inmueble."
+  - id: cierre
+    pieza: logo
+    parametros: { lema: "Del plano al diseño y al vídeo", url: "habiteka.app", boton: "Empezar gratis" }
+    frases:
+      - texto: "Habiteka. Diseña tu primer proyecto gratis en habiteka.app."
+        hablado: "Habiteka: diseña tu primer proyecto gratis y muéstralo a tus clientes."

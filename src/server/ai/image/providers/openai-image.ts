@@ -47,7 +47,7 @@ export class OpenAiImageProvider implements ImageProvider {
     try {
       const response = await this.client.images.edit({
         model: this.model as never,
-        image: await this.files([request.baseImage]),
+        image: await this.files([request.baseImage, ...(request.editMask ? [request.editMask] : [])]),
         prompt: request.prompt,
         quality: 'high',
         output_format: 'png',

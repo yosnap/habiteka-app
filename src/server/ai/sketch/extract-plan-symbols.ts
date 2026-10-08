@@ -24,10 +24,13 @@ const SYMBOL_SCHEMA: JsonSchema = {
   },
 };
 
+/** Como en la lectura del plano: sin tope, Sonnet 5 gasta el límite razonando y no devuelve los símbolos. */
+const SYMBOL_REASONING = { effort: 'low' } as const;
+
 const PROMPT = [
   'Inspecciona EXCLUSIVAMENTE los símbolos de puertas y ventanas de este plano.',
   'Recorre toda la imagen de arriba abajo y de izquierda a derecha. No dibujes muros ni estancias.',
-  'Coordenadas x,y normalizadas 0–1 respecto a la imagen completa.',
+  'Coordenadas x,y normalizadas 0–1 respecto a la imagen completa, con 3 decimales como máximo.',
   'doors: una entrada por cada arco curvo de barrido visible. hinge es el centro del arco',
   'sobre el muro; openingEnd es el otro extremo del vano sobre ESE muro; arcPoint es un',
   'punto real de la curva, separado del muro. Sigue la curva original: no inviertas el arco.',
@@ -201,7 +204,8 @@ function preferFocusedSymbols(raw: RawSketch, focused: unknown, aspect: number):
     return wall ? [{ wall: wall.index, start, end }] : [];
   });
   return { ...raw, aberturas: raw.aberturas.filter((item) => {
-    if (item.tipo === 'puerta' && item.arcGeometry) {
+    // Una puerta con carpintería leída (entrada, doble…) se conserva: la relectura solo afina su arco.
+    if (item.tipo === 'puerta' && item.arcGeometry && !item.variante) {
       const center = apertureCenter(item, raw.muros);
       return !center || !centers.some((focusedCenter) =>
         Math.hypot(center.x - focusedCenter.x, center.y - focusedCenter.y) < 0.065);
@@ -274,7 +278,8 @@ export function mergePlanSymbols(
       const bdx = b.openingEnd.x - b.hinge.x, bdy = b.openingEnd.y - b.hinge.y;
       return Math.abs((adx * bdx + ady * bdy) / (Math.hypot(adx, ady) * Math.hypot(bdx, bdy))) > 0.9;
     });
-    if (same >= 0) aberturas[same] = addition;
+    // El símbolo afina el arco; la carpintería leída en la primera pasada se mantiene.
+    if (same >= 0) aberturas[same] = { ...addition, ...(aberturas[same]!.variante ? { variante: aberturas[same]!.variante } : {}) };
     else aberturas.push(addition);
   }
   return { ...raw, muros: walls, aberturas };
@@ -292,7 +297,7 @@ export async function extractPlanSymbols(
     ? await sharp(Buffer.from(source.base64, 'base64')).metadata().catch(() => null) : null;
   const result = await chat.chat({ model: '', messages: [{ role: 'user', content: [
     { type: 'text', text: PROMPT }, ...imageParts,
-  ] }], responseSchema: SYMBOL_SCHEMA, maxTokens: 4096 });
+  ] }], responseSchema: SYMBOL_SCHEMA, maxTokens: 4096, reasoning: SYMBOL_REASONING });
   const aspect = dimensions?.width && dimensions.height ? dimensions.height / dimensions.width : 1;
   const full = mergePlanSymbols(raw, result.structured, { imageHeightOverWidth: aspect });
   if (!source?.base64 || !dimensions?.width || !dimensions.height ||
@@ -309,7 +314,7 @@ export async function extractPlanSymbols(
       const focused = await chat.chat({ model: '', messages: [{ role: 'user', content: [
         { type: 'text', text: prompt },
         { type: 'image_url', base64: cropped.toString('base64'), mimeType: 'image/png' },
-      ] }], responseSchema: SYMBOL_SCHEMA, maxTokens: 4096 });
+      ] }], responseSchema: SYMBOL_SCHEMA, maxTokens: 4096, reasoning: SYMBOL_REASONING });
       const mapped = remapFocusedSymbols(focused.structured, crop, dimensions.width, dimensions.height);
       merged = mergePlanSymbols(preferFocusedSymbols(merged, mapped, aspect), mapped,
         { imageHeightOverWidth: aspect });

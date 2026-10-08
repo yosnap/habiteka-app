@@ -12,6 +12,8 @@
 import { isValidEstilo } from '@/lib/design-options';
 import type { Estilo } from '@/lib/contracts';
 import type { RenderDesignOptions } from '@/lib/editor-document/render-design-options';
+import { LIGHTING_PRESETS, type LightingPreset } from '@/lib/lighting-preset';
+import type { RoomInteriorCamera } from '@/lib/editor-document/room-interior-cameras';
 
 /** Valor de `?generar=` que pide las vistas interiores por estancia. */
 export const INTERIORS_REQUEST = 'interiores';
@@ -20,6 +22,8 @@ export interface AutoGenerateRequest {
   /** Marca de salida: vistas interiores de todas las estancias habitables. */
   interiorRooms: boolean;
   estilo?: Estilo;
+  lighting?: LightingPreset;
+  singleInterior?: boolean;
   continuation?: { batchId: string; options: RenderDesignOptions; completedViews: string[] };
   error?: string;
 }
@@ -35,11 +39,14 @@ export function interiorsEditorHref(
   projectId: string,
   zoneId: string | null,
   estilo?: Estilo,
+  pilot?: { lighting?: LightingPreset; singleInterior: boolean },
 ): string {
   const params = new URLSearchParams();
   if (zoneId) params.set('zona', zoneId);
   params.set('generar', INTERIORS_REQUEST);
   if (estilo) params.set('estilo', estilo);
+  if (pilot?.lighting) params.set('luz', pilot.lighting);
+  if (pilot?.singleInterior) params.set('toma', 'una');
   return `/projects/${projectId}?${params.toString()}`;
 }
 
@@ -47,10 +54,22 @@ export function interiorsEditorHref(
 export function parseAutoGenerate(params: {
   generar?: string;
   estilo?: string;
+  luz?: string;
+  toma?: string;
 }): AutoGenerateRequest | null {
   if (params.generar !== INTERIORS_REQUEST) return null;
   return {
     interiorRooms: true,
     ...(isValidEstilo(params.estilo) ? { estilo: params.estilo } : {}),
+    ...(LIGHTING_PRESETS.includes(params.luz as LightingPreset) ? { lighting: params.luz as LightingPreset } : {}),
+    ...(params.toma === 'una' ? { singleInterior: true } : {}),
   };
+}
+
+/** El piloto propone una sola estancia; la entrada general mantiene todas las habitables. */
+export function autoGenerateInteriorRoomIds(cameras: readonly RoomInteriorCamera[], singleInterior = false): string[] {
+  const habitable = cameras.filter(room => room.habitable);
+  if (!singleInterior) return habitable.map(room => room.roomId);
+  const first = habitable.find(room => /sal[oó]n|estar/i.test(room.name)) ?? habitable[0];
+  return first ? [first.roomId] : [];
 }

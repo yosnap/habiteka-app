@@ -5,7 +5,8 @@
  * la tabla de estancias y que, tras corregir el usuario, se materializa en el
  * editor. Sin red ni BD: testeable con fixtures.
  */
-import type { PlanDoorOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
+import type { PlanDoorOverride, PlanWallOverride, PlanZoneOutlineOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
+import { applyReviewedDoors, applyReviewedOutlines, applyReviewedWalls } from '@/lib/plan-review-geometry';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
 import {
   normalizeSketchDetailed,
@@ -19,6 +20,7 @@ import { placeFurniture } from '@/server/ai/sketch/place-furniture';
 import { cleanupApertures } from '@/server/ai/sketch/aperture-cleanup';
 import { planarizePlano } from '@/server/ai/sketch/planarize-plano';
 import { inferMissingRooms } from '@/server/ai/sketch/infer-missing-rooms';
+import { markGarageDoors } from '@/server/ai/sketch/garage-apertures';
 
 export interface BuildPlanImportOptions {
   normalize?: Partial<NormalizeOptions>;
@@ -26,6 +28,8 @@ export interface BuildPlanImportOptions {
   roomOverrides?: WrittenRoomDimensions[];
   /** Correcciones de giro/bisagra confirmadas sobre la vista revisada. */
   doorOverrides?: PlanDoorOverride[];
+  wallOverrides?: PlanWallOverride[];
+  zoneOutlineOverrides?: PlanZoneOutlineOverride[];
   /** false = no colocar mobiliario (toggle de la UI). */
   includeFurniture?: boolean;
   /**
@@ -42,12 +46,16 @@ const ROOMS_MAX_RELATIVE_CORRECTION = 0.6;
 const MAX_RASTER_FIT_SHIFT_MM = 150;
 
 export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOptions = {}): PlanImportResult {
-  const raw = normalizeEnclosedRooms(withConfirmedWidth(rawIn, options.generalWidthMm));
+  const read = normalizeEnclosedRooms(withConfirmedWidth(rawIn, options.generalWidthMm));
   const warnings: PlanImportWarning[] = [];
   // Con muros medidos y estancias leídas, las estancias SON el plano
   // (reconstrucción cerrada por construcción); si falta alguna de las dos
   // fuentes, se cae a la normalización clásica por regiones.
-  const prepared = prepareSketch(raw, options.normalize ?? {});
+  let prepared = prepareSketch(read, options.normalize ?? {});
+  // El hueco ancho en la fachada de la cochera es la puerta del coche: se marca
+  // con la escala ya medida y se prepara de nuevo para no recortar su ancho.
+  const raw = markGarageDoors(read, prepared.scale);
+  if (raw !== read) prepared = prepareSketch(raw, options.normalize ?? {});
   const scale = prepared.scale;
   const generalMismatch = generalDimensionsMismatch(raw, scale);
   if (generalMismatch) warnings.push(generalMismatch);
@@ -104,7 +112,7 @@ export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOption
   const fitted = {
     ...fit,
     corrections: keepMeasuredWalls ? [] : fit.corrections,
-    plano: applyDoorOverrides(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.doorOverrides),
+    plano: applyReviewedOutlines(applyReviewedDoors(applyReviewedWalls(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.wallOverrides), options.doorOverrides), options.zoneOutlineOverrides),
   };
 
   const interiorRooms = raw.habitaciones.filter((room) => room.exterior !== true).length;
@@ -144,31 +152,6 @@ export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOption
     exteriors: exterior.exteriors,
     furniture,
     warnings,
-  };
-}
-
-function applyDoorOverrides(plano: PlanImportResult['plano'], overrides: PlanDoorOverride[] | undefined): PlanImportResult['plano'] {
-  if (!overrides?.length) return plano;
-  const byId = new Map(overrides.map((item) => [item.apertureId, item]));
-  const walls = new Map(plano.zones.flatMap((zone) => zone.walls.map((wall) => [wall.id, wall] as const)));
-  return {
-    ...plano,
-    zones: plano.zones.map((zone) => ({
-      ...zone,
-      apertures: zone.apertures.map((aperture) => {
-        const override = byId.get(aperture.id);
-        const wall = walls.get(aperture.wallId);
-        const length = wall ? Math.hypot(wall.to.x - wall.from.x, wall.to.y - wall.from.y) : 0;
-        const half = length > 0 ? aperture.widthMm / length / 2 : 0.5;
-        return aperture.kind === 'puerta' && override
-          ? { ...aperture,
-            ...(override.swing ? { swing: override.swing } : {}),
-            ...(override.hinge ? { hinge: override.hinge } : {}),
-            ...(override.position !== undefined && Number.isFinite(override.position) && half <= 0.5
-              ? { position: Math.min(1 - half, Math.max(half, override.position)) } : {}) }
-          : aperture;
-      }),
-    })),
   };
 }
 
@@ -215,7 +198,7 @@ function generalDimensionsMismatch(raw: RawSketch, scale: { mmPerUnitX: number; 
   const metres = (mm: number) => (mm / 1000).toFixed(2).replace('.', ',');
   return {
     code: 'cotas-generales-discordantes',
-    message: `Las cotas generales indican ${metres(widthMm)} × ${metres(heightMm)} m, pero el perímetro leído mide ${metres(best.drawnWidthMm)} × ${metres(best.drawnHeightMm)} m. Comprueba la escala y los límites antes de generar.`,
+    message: `Las dimensiones globales extraídas de la imagen son ${metres(widthMm)} × ${metres(heightMm)} m, pero el perímetro leído mide ${metres(best.drawnWidthMm)} × ${metres(best.drawnHeightMm)} m. Son datos de la extracción, no cotas verificadas por el usuario. Comprueba la escala y los límites antes de generar.`,
   };
 }
 

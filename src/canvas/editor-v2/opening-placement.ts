@@ -8,6 +8,7 @@ import { assertOpeningClearance, wallOpeningClearance } from '@/lib/editor-docum
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { wallFloorElevation } from '@/lib/editor-document/floor-level';
 import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { openingType } from '@/lib/editor-document/opening-types';
 
 export interface OpeningPlacement {
   guides?: MagneticGuide[];
@@ -70,13 +71,18 @@ export function resolveOpeningPlacement(doc: EditorDocument, pointer: Point, sca
   else if (minimum > maximum + EPSILON)
     result.reason = 'La abertura no cabe entre las esquinas del muro';
   // La coronación del muro se mide desde su base: un muro apoyado en un descansillo a 1 m corona 1 m más alto.
-  else if (props.heightMm + (opening.elevationMm ?? props.elevationMm + wallFloorElevation(doc, wall, rooms)) > (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm + EPSILON)
+  else if (props.heightMm + (opening.elevationMm ?? (openingType(opening)?.elevationMm ?? props.elevationMm) + wallFloorElevation(doc, wall, rooms)) > (wall.baseElevationMm ?? 0) + wallConstruction(wall).heightMm + EPSILON)
     result.reason = 'La abertura supera la altura del muro';
   else if (doc.openings.some((other) => other.id !== opening.id && other.wallId === wall.id &&
     start < other.position * length + other.widthMm / 2 - EPSILON &&
     end > other.position * length - other.widthMm / 2 + EPSILON)) result.reason = 'Aberturas superpuestas';
   result.valid = result.reason === null;
   return result;
+}
+
+/** El identificador nuevo permite validar la copia contra el hueco original durante el arrastre. */
+export function openingForDrag(opening: Opening, duplicate: boolean): Opening {
+  return duplicate ? { ...structuredClone(opening), id: crypto.randomUUID() } : opening;
 }
 
 export function placeOpening(doc: EditorDocument, opening: Opening,
@@ -86,7 +92,8 @@ export function placeOpening(doc: EditorDocument, opening: Opening,
   next.openings = next.openings.filter((item) => item.id !== opening.id);
   // Sin elevación explícita, la abertura se mide desde el suelo de la estancia del muro (puerta a ras, ventana a 0,90 m).
   const host = next.walls.find((wall) => wall.id === placement.wallId);
-  const elevationMm = opening.elevationMm ?? openingConstruction(opening).elevationMm + (host ? wallFloorElevation(next, host) : 0);
+  const elevationMm = opening.elevationMm ?? (openingType(opening)?.elevationMm ?? openingConstruction(opening).elevationMm)
+    + (host ? wallFloorElevation(next, host) : 0);
   next.openings.push({ ...opening, ...openingConstruction(opening), elevationMm, wallId: placement.wallId, position: placement.position,
     ...(next.schemaVersion >= 4 ? { colors: opening.colors ?? { frame: '#f4f1e9', leaf: '#bb956c' } } : {}) });
   assertEditorDocument(next);

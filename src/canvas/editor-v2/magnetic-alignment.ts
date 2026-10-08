@@ -21,6 +21,8 @@ export function magneticReferences(doc: EditorDocument, exclude: string[] = [], 
   });
   for (const item of [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])])
     if (!excluded.has(item.id)) points.push(...footprintAnchors(item));
+  for (const surface of doc.terrainSurfaces ?? [])
+    if (!excluded.has(surface.id)) points.push(...footprintAnchors({ ...surface, rotation: 0 }));
   for (const boundary of doc.boundaries ?? []) if (!excluded.has(boundary.id))
     for (const gate of boundary.construction.gates) if (!excluded.has(gate.id))
       points.push(...[-.5, 0, .5].map((side) => localToWorld(boundary, { x: gate.positionMm + side * gate.widthMm, y: boundary.depthMm / 2 })));

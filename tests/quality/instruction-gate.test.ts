@@ -13,6 +13,7 @@ vi.mock('server-only', () => ({}));
 import {
   assertFreePromptQuality,
   assertInstructionQuality,
+  instructionQuality,
   CHANGE_INSTRUCTION_CHECKPOINT,
 } from '@/server/quality/instruction-gate';
 import {
@@ -20,6 +21,9 @@ import {
   instructionTargetOf,
 } from '@/server/quality/evidence/instruction-evidence';
 import { QUALITY_THRESHOLDS_KEY } from '@/server/quality/evaluate';
+import { buildEditorInstructionContext } from '@/server/quality/evidence/editor-instruction-context';
+import { emptyEditorDocument } from '@/lib/editor-document/schema';
+import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import { prisma } from '@/server/db/prisma';
 import { sealSecret } from '@/server/security/secret-box';
 import { resetDb } from '../helpers/db';
@@ -151,9 +155,51 @@ describe('assertInstructionQuality', () => {
     await changeWithGate('suelo de madera clara en el salón');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('cambiar la selección reevalúa el mismo texto; volver a la misma zona reutiliza su evaluación', async () => {
+    await withKey();
+    fetchMock.mockImplementation(async () => jevResponse(4, .98, 'none'));
+    const instruction = 'En esta area marcada falta una puerta';
+    const first = { id: 'one', bbox: { x: .1, y: .2, width: .2, height: .2 } };
+    const second = { id: 'two', bbox: { ...first.bbox, x: .5 } };
+    await instructionQuality(CTX, SCOPE, 'render3d', instruction);
+    await instructionQuality(CTX, { ...SCOPE, imageZone: first }, 'render3d', instruction);
+    await instructionQuality(CTX, { ...SCOPE, imageZone: second }, 'render3d', instruction);
+    await instructionQuality(CTX, { ...SCOPE, imageZone: { ...second, id: 'same-location' } }, 'render3d', instruction);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const sent = fetchMock.mock.calls.map(([, request]) => JSON.parse(JSON.parse(request.body).state));
+    expect(sent[0].imageSelection).toBeUndefined();
+    expect(sent[1]).toMatchObject({ userInstruction: instruction, imageSelection: { scope: 'region', bounds: first.bbox } });
+    expect(sent[2].imageSelection.bounds).toEqual(second.bbox);
+  });
 });
 
 describe('prompt libre del editor', () => {
+  it('no reutiliza un rechazo de edición al generar; reevalúa si cambian los permisos del estudio', async () => {
+    await withKey();
+    const instruction = 'Conserva las puertas y deja libres las zonas de paso, con materiales realistas.';
+    fetchMock.mockImplementationOnce(async () => jevResponse(1, .3, 'not_a_request'));
+    await expect(instructionQuality(CTX, SCOPE, 'render3d', instruction)).resolves.toMatchObject({ decision: 'block' });
+
+    const options = defaultRenderDesignOptions();
+    const context = buildEditorInstructionContext(emptyEditorDocument(), 'moderno', '', options);
+    fetchMock.mockImplementation(async () => jevResponse(3, .98, 'none'));
+    const scope = { ...SCOPE, generationContext: context };
+    await expect(assertFreePromptQuality(CTX, scope, instruction)).resolves.toMatchObject({ decision: 'proceed' });
+    await assertFreePromptQuality(CTX, scope, instruction);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await assertFreePromptQuality(CTX, { ...scope,
+      generationContext: buildEditorInstructionContext(emptyEditorDocument(), 'moderno', '', { ...options, freedom: 'free' }),
+    }, instruction);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const sent = JSON.parse(fetchMock.mock.calls[1]![1].body);
+    expect(JSON.parse(sent.state)).toMatchObject({ purpose: 'generate-design', generationContext: JSON.parse(JSON.stringify(context)) });
+    expect(JSON.stringify(sent.questions)).toContain('preservation rules');
+    const rows = await prisma.aiQualityEvaluation.findMany({ orderBy: { createdAt: 'asc' } });
+    expect(rows.map(row => row.decision)).toEqual(['block', 'proceed', 'proceed', 'proceed']);
+    expect(Number(rows[2]!.costUsd)).toBe(0);
+  });
+
   it('con dudas sigue (la confirmación la pide la puerta del plano) y con bloqueo corta', async () => {
     await withKey();
     fetchMock.mockImplementation(async () => jevResponse(3, 0.75, 'none'));

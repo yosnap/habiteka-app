@@ -5,6 +5,25 @@ import { DEFAULT_VIDEO_PRESENTATION } from '@/lib/editor-document/video-presenta
 afterEach(() => vi.unstubAllGlobals());
 const settings = { presentation: DEFAULT_VIDEO_PRESENTATION, resolution: '768P' as const };
 describe('H3 mediante KIE', () => {
+  it('envía Hailuo Standard con inicio y final, duración de texto y sin optimizador que reescriba el guion', async () => {
+    const request = vi.fn().mockResolvedValue(Response.json({ code: 200, data: { taskId: 'compact' } })); vi.stubGlobal('fetch', request);
+    const provider = new KieVideoProvider('key');
+    expect(await provider.createCompactTransition('Walk', 6, 'https://example.com/a.png', 'https://example.com/b.png')).toBe('compact');
+    expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({ model: 'hailuo/02-image-to-video-standard', input: {
+      prompt: 'Walk', duration: '6', resolution: '768P', image_url: 'https://example.com/a.png', end_image_url: 'https://example.com/b.png', prompt_optimizer: false } });
+    for (const seconds of [4, 12, 60, NaN]) await expect(provider.createCompactTransition('Walk', seconds, 'https://example.com/a.png', 'https://example.com/b.png')).rejects.toBeInstanceOf(KieSubmissionRejectedError);
+    await expect(provider.createCompactTransition('x'.repeat(1501), 6, 'https://example.com/a.png', 'https://example.com/b.png')).rejects.toBeInstanceOf(KieSubmissionRejectedError);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it('enlaza el primer y último fotograma por el contrato image-to-video y valida antes de enviar', async () => {
+    const request = vi.fn().mockResolvedValue(Response.json({ code: 200, data: { taskId: 'transition' } })); vi.stubGlobal('fetch', request);
+    const provider = new KieVideoProvider('key');
+    expect(await provider.createTransition('Walk through the door', 6, '768P', 'https://example.com/a.png', 'https://example.com/b.png')).toBe('transition');
+    expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({ model: 'minimax-h3/image-to-video', input: {
+      prompt: 'Walk through the door', duration: 6, resolution: '768P', first_frame_url: 'https://example.com/a.png', last_frame_url: 'https://example.com/b.png' } });
+    for (const seconds of [0, 3, 16, 4.5, NaN]) await expect(provider.createTransition('Walk', seconds, '768P', 'https://example.com/a.png', 'https://example.com/b.png')).rejects.toBeInstanceOf(KieSubmissionRejectedError);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
   it('envía imágenes y ocho segundos mediante el contrato oficial, sin guía de muebles del editor', async () => {
     const request = vi.fn().mockResolvedValue(Response.json({ code: 200, data: { taskId: 'task' } })); vi.stubGlobal('fetch', request);
     expect(await new KieVideoProvider('private-key').create('design prompt', settings, ['https://example.com/design.png'])).toBe('task');

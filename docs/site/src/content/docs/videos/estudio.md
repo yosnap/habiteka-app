@@ -5,34 +5,67 @@ description: Preparar construcción, publicidad o recorrido desde el estudio de 
 
 ## Abrir el estudio
 
-En cualquier proyecto, abre la pestaña **Vídeos**, o pulsa **Crear vídeo** en el editor o en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
+En cualquier proyecto, abre la pestaña **Vídeos**, el botón **Vídeos** de la cabecera del editor o **Crear vídeo** en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
+
+Vídeos es una página propia: no abre un modal sobre el plano. Las pestañas del proyecto siguen visibles. **Volver al editor** regresa a la edición y **Mis diseños** abre la galería para revisar y aceptar imágenes. Al entrar en el editor se mantiene la edición; la revisión aprobada solo se abre cuando la solicitas.
+
+Elige **Construcción**, **Publicidad** o **Primera persona**. La pieza combinada se indica como pendiente, sin un botón que parezca disponible. **Vídeos guardados** reúne los resultados existentes.
+
+Con el foco en **Crear vídeo** o **Vídeos guardados**, las flechas izquierda/derecha cambian de pestaña; **Tab** continúa hacia los controles. Los accesos **Ver en Vídeos guardados** y **Preparar publicidad con un vídeo guardado** llevan el foco a la pestaña de destino. Durante una operación en curso, el cambio de pestaña permanece desactivado. **Guía** se abre en otra pestaña del navegador.
+
+Al pasar a **Vídeos guardados**, las preparaciones H3 ya registradas permanecen allí para confirmar el envío o consultar el resultado. Volver a **Crear vídeo** inicia otra selección: los ajustes y vistas previas locales sin guardar no se conservan entre esas pestañas. Así no queda otra copia editable de una tarea que ya hayas enviado o revisado en la galería.
+
+Si falta una versión aprobada, **Revisar versión del proyecto** abre su confirmación de luz y versión dentro de Vídeos. Construcción requiere revisar también los cambios posteriores. En primera persona puedes elegir la **Versión aprobada de origen** de tus imágenes: la toma conserva aquella versión y la luz de las referencias aceptadas; no incorpora ediciones posteriores. Estas opciones no aceptan las imágenes por ti: cada render se revisa y acepta en Diseños.
+
+Para construcción, sigue tres pasos en la misma página:
+
+1. **Elige los diseños**: aparecen primero las imágenes utilizables. Si faltan, abre **Revisar y aceptar diseños**. **Actualizar diseños** vuelve a cargar las imágenes y conserva las seleccionadas que siguen disponibles. En **Gestionar imágenes y ver las no disponibles** se indica cuántas no pueden utilizarse; puedes mostrar sus motivos y limpiar la galería.
+2. **Ajusta el vídeo**: escribe un nombre y elige duración. Despliega **Calidad, sonido e indicaciones** para personalizarlo.
+3. **Revisa antes de generar**: consulta el coste previsto y pulsa **Revisar vídeo antes de generar**. Este paso prepara las referencias sin consumir IA; el envío de pago requiere su confirmación posterior.
+
+Junto al botón de preparación aparece el requisito pendiente: actualizar los datos, revisar versión y luz, elegir referencias compatibles o activar el proveedor. En Construcción, mezclar tandas bloquea el botón aunque haya una vista de distribución y un exterior; falta de cubierta, distribución o más de nueve imágenes también se explican ahí. El servidor vuelve a comprobar revisión, aceptación y coherencia de las referencias antes de preparar y enviar.
+
+**Primera persona** abre el [paseo completo](/videos/recorrido/#preparar-el-paseo-completo): elige entrada, comprueba todas las zonas y guarda el recorrido sin gasto. Después genera y acepta sus encuadres, genera tramos con extremos compartidos, revisa sus uniones y compón un MP4. Las imágenes, análisis y vídeos requieren confirmar su coste. Recupera la producción desde **Continuar un paseo guardado**. Las pruebas anteriores de una estancia permanecen en **Vídeos guardados**.
+
+Si falta la aprobación del proyecto, el estado vacío pide revisarla primero. Si faltan imágenes compatibles, aceptar cualquier imagen antigua no resuelve el bloqueo: debe corresponder a la versión y modalidad elegidas.
 
 | Opción | Qué produce | Qué necesita |
 |---|---|---|
-| Construcción → Mis diseños | Piloto H3 de 8 s; 12 s opcionales para amueblado. | Imágenes de una tanda del diseño aprobado, KIE activo y confirmación de coste/envío. |
-| Construcción → Prueba del plano 3D | 8 s de obra rápida y vuelo del modelo 3D; 12 s opcionales. | Plano y revisión aprobada; no necesita recorrido ni parcela. |
-| Publicidad → Mis diseños | Presentación de imágenes generadas con movimiento suave y fundidos. | Imágenes compatibles con el diseño aprobado, con estilo y luz coherentes. |
-| Publicidad → 3D en parcela real | 30 s de etapas sobre la ortofoto y vuelo exterior. | Parcela confirmada y revisión aprobada; no necesita ruta interior. |
-| Primera persona | Paseo por el modelo 3D editable. | Recorrido válido en la revisión aprobada. |
-| Construcción + visita | Obra y vuelo de 8 s (o 12 s), seguidos del paseo 3D. | Recorrido válido y revisión aprobada. |
+| Construcción → Mis diseños | Piloto H3 de 8 s; 12 s opcionales para amueblado. | Imágenes IA aceptadas de una tanda compatible con el plano guía aprobado, KIE activo y confirmación de coste/envío. |
+| Publicidad → Mis diseños | Presentación de imágenes generadas con movimiento suave y fundidos. | Imágenes IA aceptadas, compatibles con el plano guía aprobado, con estilo y luz coherentes. |
+| Publicidad → Vídeo guardado | Otro MP4 horizontal/vertical con panel de cotas opcional; conserva sonido y duración del original. | Montaje o H3 desde diseños aceptados, con fuentes todavía aceptadas; H3 debe estar revisado y aceptado. |
+| Primera persona | Paseo independiente de hasta 60 s, encuadres IA y tramos enlazados con Hailuo 02 Standard. | Cobertura completa, referencias aceptadas, máximo 2 € de vídeo y revisión humana de imágenes, tramos, uniones y vídeo final. |
 
-:::note[Fuente de las imágenes]
-En construcción, **Mis diseños** prepara una prueba H3 basada en tus imágenes, pendiente de revisar su fidelidad. En publicidad, **Mis diseños** monta imágenes con movimiento y fundidos. **Prueba del plano 3D**, primera persona y construcción + visita graban el modelo del editor. La película profesional validada y la inmersión continua desde renders siguen pendientes.
+:::note[Diseños aceptados como fuente]
+Todos los vídeos y visitas finales deben conservar los renders IA que hayas aceptado en **Diseños**. El plano y su 3D aportan geometría y medidas; no son material final ni una alternativa cuando faltan imágenes. La auditoría automática no sustituye **Aceptar este diseño**. Construcción y recorrido son vídeos separados, cada uno con un máximo de 60 segundos y 2 € de generación de vídeo. La construcción actual ofrece 8 o 12 segundos; no es necesario agotar el minuto. El servidor verifica el límite antes de generar. La continuidad del paseo debe comprobarse sobre los clips reales, no solo sobre sus referencias.
 :::
+
+## Poner nombre y limpiar las imágenes
+
+El campo **Nombre del vídeo (opcional)** está en los ajustes antes de preparar o crear cualquier modalidad. Admite hasta 100 caracteres. Si lo dejas vacío, se utiliza la etiqueta automática. En **Vídeos guardados → Cambiar nombre** puedes renombrar los resultados existentes; el nombre también aparece al elegir **Publicidad → Vídeo guardado**, en Diseños y en el Historial. Las tareas H3 en curso conservan sus controles de seguimiento: espera a que terminen para renombrarlas.
+
+En construcción y primera persona, despliega **Gestionar imágenes y ver las no disponibles**. En publicidad, utiliza **Mis diseños**. Puedes limpiar las imágenes:
+
+- Para quitar una sola, pasa el puntero por su miniatura y pulsa el icono de papelera. También está disponible al enfocar la tarjeta con el teclado; en pantallas táctiles se muestra directamente.
+- Para quitar varias, pulsa **Limpiar imágenes**, marca las casillas de eliminación y pulsa **Mover N a la papelera**. Estas casillas son distintas de las que eligen referencias para generar un vídeo.
+- **Seleccionar todas** permite limpiar las imágenes mostradas. **Seleccionar no válidas** facilita quitar las rechazadas en construcción o las de otra revisión en el montaje. El máximo es de 200 por selección.
+- **Deshacer limpieza** restaura la última selección retirada. **Papelera de imágenes** permite restaurarlas también después de cerrar el estudio; puedes recuperar una o todas las mostradas. La retención predeterminada es de 30 días.
+
+Puedes quitar cualquier imagen mostrada, aunque no sea válida para el vídeo. Desaparece de Diseños y del material disponible para nuevos vídeos en esa zona. Los MP4 guardados se conservan. Restaurar una imagen conserva su revisión y su rechazo: no la convierte en una referencia válida.
 
 ## Construcción desde mis diseños: prueba H3
 
-1. Elige **Construcción → Mis diseños**. La selección inicial propone una cenital (o isométrica/dron si falta) y un exterior cerrado de la tanda más reciente compatible con la aprobación. Puedes añadir vistas de apoyo de esa tanda. H3 admite de una a nueve imágenes. El piloto exige una misma tanda, al menos una cenital, isométrica o dron del conjunto y una vista del exterior con fachadas completas y cubierta visible.
-2. Comprueba las miniaturas y **Se incluye**. Se utilizan las selecciones guardadas con cada render, incluidas zonas exteriores, escaleras y rampas. No se aplica el recorte de estancias cerradas «Solo la casa». Si faltan zonas, completa las referencias del diseño antes de generar.
+1. Abre cada referencia en **Diseños** y pulsa **Aceptar este diseño** tras revisarla. Elige **Construcción** en Vídeos. La selección inicial propone una cenital (o isométrica/dron si falta) y un exterior cerrado de la tanda más reciente compatible con la aprobación. Puedes añadir vistas de apoyo de esa tanda. H3 admite de una a nueve imágenes. El piloto exige una misma tanda, al menos una cenital, isométrica o dron del conjunto y una vista del exterior con fachadas completas y cubierta visible.
+2. Comprueba las miniaturas y **Qué incluye la selección**. Se utilizan las selecciones guardadas con cada render, incluidas zonas exteriores, escaleras y rampas. No se aplica el recorte de estancias cerradas «Solo la casa». Si faltan zonas, completa las referencias del diseño antes de generar.
 3. Elige **8 s** o **12 s**, calidad **768P** para un piloto económico o **2K**, sonido solicitado e indicaciones. Se pide que los muros crezcan consecutivamente en tres segundos; el modelo debe demostrar que respeta ese ritmo.
-4. Pulsa **Preparar prueba H3**. Este paso guarda imágenes, ámbito, versión, guion y coste previsto; no envía medios a KIE ni consume IA.
-5. Revisa las imágenes y el guion preparado. **Modificar selección y guion** permite volver a los ajustes antes del envío. Confirma el envío de esas imágenes a **KIE/MiniMax**, incluida la parcela si aparece en ellas, y el presupuesto. Pulsa **Generar prueba H3** para iniciar un único intento de pago.
-6. Tras el envío aparece **Consultar resultado sin regenerar**, también disponible en **Vídeos guardados**. Recupera la tarea existente; no crea otro clip. Cuando termina, el MP4 se archiva en el proyecto y queda **Pendiente de revisar**.
+4. Pulsa **Revisar vídeo antes de generar**. Este paso guarda imágenes, ámbito, versión, guion y coste previsto; no envía medios a KIE ni consume IA.
+5. Revisa las imágenes y el guion preparado. **Modificar selección y guion** permite volver a los ajustes antes del envío. Confirma el envío de esas imágenes a **KIE/MiniMax**, incluida la parcela si aparece en ellas, y el presupuesto. Pulsa **Generar prueba H3** para iniciar un único intento de pago. El guion se muestra en español, pero al generar se traduce al inglés y se envía esa versión, que el generador sigue mejor. La traducción usa el modelo de **Análisis visual**, con un coste de céntimos. Si falla o supera el límite de H3, se envía el guion en español.
+6. **Ver en Vídeos guardados** permite continuar allí desde la tarea preparada. Tras el envío aparece **Consultar resultado sin regenerar**, también disponible en esa galería. Recupera la tarea existente; no crea otro clip. Cuando termina, el MP4 se archiva en el proyecto y queda **Pendiente de revisar**.
 7. Reproduce todo el clip y acepta o rechaza la prueba. Comprueba todas las zonas, tejado, aleros, pérgolas, huecos y muebles, también antes de colocar la cubierta. Cuenta los muebles repetidos y revisa que no aparezcan jardines o construcciones ajenos a las referencias. Comprueba el crecimiento individual de los muros y el orden de los acabados: el guion no garantiza los tiempos. Rechazar conserva el MP4, no inicia otro intento ni garantiza devolución del coste del proveedor.
 
-**Los muebles provienen de las imágenes elegidas.** Se pide conservar cantidad, posición, forma, colores y materiales del diseño: cuatro camas visibles en el diseño no se sustituyen por la cama del plano original. No se adjunta el inventario del editor. Esto es una instrucción al modelo, no una garantía de fidelidad: si cambia muebles o elimina zonas, rechaza el clip. Las vistas seccionadas ayudan a ver la distribución; **Exterior terminado**, en los ángulos de **Diseñar con IA**, aporta la referencia con fachadas y tejado completos. Si falta una vista de ese tipo, el estudio indica el motivo y bloquea la preparación y el envío de una preparación antigua.
+**Los muebles provienen de las imágenes elegidas.** Se pide conservar cantidad, posición, forma, colores y materiales del diseño: cuatro camas visibles en el diseño no se sustituyen por la cama del plano original. No se adjunta el inventario del editor. Esto es una instrucción al modelo, no una garantía de fidelidad: si cambia muebles o elimina zonas, rechaza el clip. Las vistas seccionadas ayudan a ver la distribución; **Exterior terminado**, en los ángulos de **Diseñar con IA**, aporta la referencia con fachadas y tejado completos. También vale la imagen que obtienes con [Cerrar tejado desde el modelo](/guias/imagenes/#cerrar-el-tejado-desde-el-modelo) sobre la isométrica o el dron aceptados: parte de esa misma vista, de modo que la obra puede ir del diseño sin cubierta al mismo encuadre con el tejado cerrado. Si falta una vista de ese tipo, el estudio indica el motivo y bloquea la preparación y el envío de una preparación antigua.
 
-Las miniaturas seleccionadas indican su función: **Distribución y muebles**, **Fachadas y tejado** o **Apoyo de geometría**. La cenital seleccionada tiene prioridad para todos los muebles, incluidos los del patio; si falta, se utiliza una isométrica o dron. Si no seleccionas una vista de distribución, la preparación se bloquea y explica cuál falta. El exterior fija la envolvente y el encuadre oblicuo, sin reemplazar muebles porque muestre otro interiorismo. El guion pide una cámara fija durante la obra y un desplazamiento final corto, sin forzar una vuelta completa hacia caras no documentadas. En la prueba preparada, las miniaturas están numeradas en el mismo orden del guion y del envío. Revisa esos papeles en **Guion preparado** antes del envío. Las preparaciones anteriores conservan su guion: modifica la selección para preparar otro con estas reglas.
+Las miniaturas seleccionadas indican su función: **Distribución y muebles**, **Fachadas y tejado** o **Apoyo de geometría**. Una vista interior por estancia no cuenta como **Fachadas y tejado**, aunque tenga techo: no muestra la cubierta. La cenital seleccionada tiene prioridad para todos los muebles, incluidos los del patio; si falta, se utiliza una isométrica o dron. Si no seleccionas una vista de distribución, la preparación se bloquea y explica cuál falta. El exterior fija la envolvente y el encuadre oblicuo, sin reemplazar muebles porque muestre otro interiorismo. El guion pide una cámara fija durante la obra y un desplazamiento final corto, sin forzar una vuelta completa hacia caras no documentadas. En la prueba preparada, las miniaturas están numeradas en el mismo orden del guion y del envío. Revisa esos papeles en **Guion preparado** antes del envío. Las preparaciones anteriores conservan su guion: modifica la selección para preparar otro con estas reglas.
 
 Esta prioridad resuelve qué diseño pedir cuando cambian sofás o sillas entre imágenes; no corrige las imágenes ni garantiza que el vídeo obedezca. Si las referencias contradicen muros, cubierta o accesos, completa o corrige esas referencias antes de pagar una prueba.
 
@@ -40,79 +73,38 @@ Esta prioridad resuelve qué diseño pedir cuando cambian sofás o sillas entre 
 
 Una foto cuyo recorte registrado incluye tabiques interiores aparece como **No válida para construcción**, con su selección desactivada. Se conserva en la galería, pero no puede prepararse ni enviarse a H3, incluso si estaba en una preparación antigua. Vuelve a **Diseñar con IA**, prepara esa vista y revisa la previsualización local sin coste: solo debe abrirse la fachada del lado de la cámara. Crear la nueva imagen sí consume IA.
 
+La selección desactivada impide usarla como referencia; no impide eliminarla desde su papelera o mediante **Seleccionar no válidas**.
+
 La comprobación del recorte se aplica también antes de generar nuevas imágenes. Detecta muros ocultos registrados en la captura; no acredita por sí sola que todos los píxeles de un render sean correctos.
 
 El guion preparado añade cantidad, forma, huella y posición local de escaleras, rampas y descansillos de la aprobación que estén dentro del ámbito elegido. Una rampa no debe convertirse en peldaños y un descansillo no es otra escalera. El permiso para rediseñar cocina, sanitarios y armarios no permite cambiar la estructura. Son instrucciones al generador: si duplica o mueve accesos, o borra tabiques durante el giro, rechaza el vídeo.
 
 El presupuesto de salida de 8 s con cinco referencias es **$0.32 a 768P** o **$0.52 a 2K**; cada referencia adicional a la quinta suma **$0.02**. Se muestran también los créditos que se reservarán. No se adjunta vídeo de entrada en este piloto. Tarifa orientativa contrastada el 01/10/2026; auditorías e intentos adicionales no están incluidos. [Tarifa y modelo KIE H3](https://kie.ai/minimax-h3).
 
-Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin confirmar**, revisa esa tarea antes de otra prueba. No hay reintentos automáticos de generación. Si hay identificador, puedes volver a consultar; si falla la descarga, la tarea se conserva para recuperarla sin pagar otro clip. Las cotas exactas sobre vídeo IA siguen pendientes de composición; el piloto se solicita sin cifras.
+Un envío interrumpido puede haberse aceptado en KIE: si aparece **Envío sin confirmar**, revisa esa tarea antes de otra prueba. No hay reintentos automáticos de generación. Si hay identificador, puedes volver a consultar; si falla la descarga, la tarea se conserva para recuperarla sin pagar otro clip. El piloto se solicita sin cifras. Tras revisarlo y aceptarlo, **Publicidad → Vídeo guardado** permite añadir un panel con las medidas globales del diseño aprobado, sin otra generación IA. Las cotas ancladas a la geometría y al movimiento de un clip IA siguen pendientes.
 
 El identificador de una tarea aceptada se guarda antes de registrar su coste. Si se interrumpe ese registro, **Consultar resultado sin regenerar** vuelve a conciliar el coste y los créditos de la misma tarea, sin crear ni cobrar un segundo intento. Si aparece saldo pendiente de conciliación, conserva la tarea y vuelve a consultarla cuando se recupere el servicio.
 
-## Preparar la prueba 3D sin salir del estudio
+## Publicidad y modalidades pendientes
 
-1. Elige el objetivo.
-2. En **Qué aparece en el vídeo**, elige **Solo la casa** (opción inicial) o **Todo el plano**. En **Preparar el diseño**, abre **Tejado** para revisar la cubierta exterior y **Parcela real** para situar el diseño sobre su fotografía.
-3. Para primera persona o construcción + visita, abre **Recorrido por las estancias**. Prepara una ruta automática o dibuja puntos en **Plano y recorrido**. Comprueba los tramos con **Previsualizar en 3D**.
-4. Elige luz, efectos de construcción, volumen y presentación de las medidas. Puedes preparar indicaciones en **Guion para generar con IA**.
-5. Pulsa **Guardar y aprobar revisión**. Revisa la ventana y confirma la aprobación: volverás al estudio, con las opciones elegidas conservadas.
-6. Pulsa **Crear vídeo**. Si está deshabilitado, el motivo aparece debajo: ruta, aprobación, carga o parcela pendientes.
+En publicidad, utiliza imágenes IA aceptadas o un montaje/H3 aceptado de esos diseños. Elige formato y cotas y prepara la vista previa antes de guardar o descargar. No necesitas una ruta del editor; consulta la [guía de montajes y anuncios](/videos/montaje-imagenes/).
 
-Cambiar la luz o el contenido del diseño exige revisar su aprobación. Durante la grabación los ajustes se bloquean; puedes **Cancelar creación**. La grabación usa la instantánea aprobada y no altera el plano.
+**Mis diseños** ordena el montaje en elegir imágenes, ajustar el anuncio y revisar/guardar. Tras guardarlo, **Ver en Vídeos guardados** abre los resultados. Si eliges **Vídeo guardado** y no hay originales compatibles, puedes ir a **Crear montaje con mis diseños** o **Revisar vídeos guardados**; no se propone crear un vídeo del plano 3D.
 
-Al exportar desde el estudio o desde la visita aprobada se guardan con el vídeo las opciones utilizadas de sonido, cotas, ámbito y duración. La ficha del resultado conserva esos ajustes junto a la aprobación correspondiente.
+Una prueba H3 aceptada ofrece **Preparar publicidad con un vídeo guardado**, que abre el selector de originales. Comprueba allí el vídeo que quieres utilizar y su aprobación antes de preparar el anuncio.
 
-En publicidad con imágenes, revisa la selección por ambiente y pulsa **Crear montaje**. No necesitas una ruta del editor para esta presentación.
+El panel de cotas muestra medidas globales del plano guía aprobado; no decide el mobiliario ni reconstruye el movimiento de cámara del vídeo. Las cotas geométricas con oclusiones sobre clips IA siguen pendientes.
 
-## Construcción: orden y ámbito
+La visita virtual continua no se puede crear todavía sobre diseños aceptados. Construcción y primera persona se generan como piezas independientes.
 
-En **Acabado del vídeo → Duración del vídeo**, la opción inicial es **8 s · construcción rápida**. Los muros se levantan **uno a uno en tres segundos en conjunto**, sin ampliar la duración por cada pared. Elige **12 s · más tiempo para los muebles** para dar más tiempo al amueblado y al vuelo; los muros siguen ocupando tres segundos. En **Construcción + visita**, el selector ajusta solo la obra: el paseo se añade después y el total aparece arriba.
+## Hiperrealismo y revisión
 
-| Etapa | Versión de 8 s | Versión de 12 s |
-|---|---|---|
-| Vacío | 0–0,5 s | 0–0,5 s |
-| Suelos | 0,5–1,3 s | 0,5–1,5 s |
-| Muros consecutivos | 1,3–4,3 s | 1,5–4,5 s |
-| Huecos y tejado | 4,3–5,1 s | 4,5–5,5 s |
-| Muebles | 5,1–6 s | 5,5–9 s |
-| Vuelo final | 6–8 s | 9–12 s |
-
-La cámara permanece fija durante la obra y el vuelo empieza con el edificio terminado. Los fragmentos de un mismo muro, incluidos los cierres hasta el tejado, crecen juntos. Al activar sonido, cada muro tiene un roce/impacto sincronizado con su inicio; son efectos sintetizados localmente. La duración se guarda junto al vídeo. Las exportaciones anteriores conservan su duración original.
-
-**Solo la casa** usa las estancias interiores cerradas y conserva el tejado con sus aleros. Recorta suelos y objetos fuera de ese ámbito, excluyendo jardín, piscina y decoración exterior del plano. Cámara y cotas se ajustan a la casa. Comprueba el encuadre: patios, porches y pérgolas fuera de las estancias interiores quedan fuera de esta selección; elige **Todo el plano** para incluirlos.
-
-Con una parcela confirmada, su ortofoto se conserva como fondo real. El terreno modelado del plano se retira en **Solo la casa**: la fotografía no queda tapada por una plataforma exterior. Sin parcela confirmada se utiliza el fondo neutro de la escena. La selección se conserva en los datos del vídeo; no cambia el diseño aprobado.
-
-Los muebles proceden del editor, no de una reconstrucción automática de los renders. Un rediseño generado en imágenes puede tener otros muebles: el vídeo 3D no reproduce ese nuevo interiorismo. La animación continua de esos diseños requiere la integración de clips con referencias y una revisión de continuidad; sigue pendiente.
-
-## Medidas animadas y ocultación
-
-En **Acabado del vídeo → Medidas del edificio** elige:
-
-| Opción | Resultado en el MP4 3D |
-|---|---|
-| Animadas | Ancho, fondo y altura se dibujan una a una al comienzo; después permanecen. |
-| Solo al inicio | Aparecen con un fundido y desaparecen por completo a los cuatro segundos. |
-| Fijas | Permanecen ancladas al edificio durante el vídeo. |
-| Sin medidas | No aparece ninguna cota. |
-
-**Ocultar detrás de la casa**, activado inicialmente, permite que paredes, tejado y objetos visibles tapen las cotas al girar. Las líneas y etiquetas usan profundidad 3D; no se pegan encima de la imagen. Al desactivar la opción, las cotas permanecen por delante. Su tamaño aparente se ajusta a la cámara y sus valores proceden del plano seleccionado, no de una estimación de IA. No son medidas catastrales. Los objetos transparentes pueden dejar visibles las cotas.
-
-## Preparar un guion para MiniMax H3
-
-Abre **Guion para generar con IA** y escribe tus indicaciones. **Ver guion completo** muestra la combinación de objetivo, ámbito, luz, identidad del diseño, secuencia, sonido y presentación de cotas elegidos. **Copiar guion para IA** permite llevarlo al generador. Las indicaciones adicionales se guardan junto a la siguiente exportación 3D y se pueden consultar en **Vídeos guardados**.
-
-El piloto H3 de construcción está en **Construcción → Mis diseños**. El guion portable de la prueba 3D incluye los segundos y el ritmo elegidos en el selector de construcción. El texto libre no cambia cámara, duración ni mobiliario del vídeo nativo. Utiliza **Duración del vídeo** y **Medidas del edificio** para ajustar el MP4 3D: escribir «8 segundos» o «solo al inicio» en el guion no sustituye esos ajustes.
-
-MiniMax H3 admite imágenes inicial/final o referencias de imagen, vídeo y audio. Una referencia de movimiento puede aportar el orden de obra; las imágenes del diseño aportan apariencia y muebles. La API directa trata esos dos modos como alternativas: no mezcla referencias con fotogramas inicial/final en una misma solicitud. Divide películas largas en tramos coherentes de hasta 15 segundos y revisa la identidad entre ellos. [API oficial de MiniMax](https://platform.minimax.io/docs/api-reference/video-generation-v2-create).
-
-Para rapidez, MiniMax documenta **H3 Max** como variante rápida, con salida de hasta 768P; el piloto conectado utiliza **H3 mediante KIE**, a 768P/2K. El primer clip real de 8 s/768P tardó 286 s según KIE y llegó con audio estéreo. Se rechazó por crecimiento de muros en grupos y cambios de la envolvente durante el giro: un guion con seis referencias no ha demostrado la fidelidad exigida. El tiempo de otro trabajo puede variar. Las cotas exactas sobre clips IA necesitarán composición y comprobación de cámara/oclusiones; el control actual está implementado en el MP4 3D.
+El objetivo es una filmación hiperrealista del diseño aceptado. Los guiones H3 lo solicitan, pero no lo garantizan. Comprueba cada fotograma relevante: continuidad de paredes, tejado, pérgolas, accesos, cantidad y posición de muebles, texturas y luz. Si un resultado modifica el diseño o parece una maqueta, recházalo antes de utilizarlo en publicidad.
 
 ## Revisar y descargar
 
-El MP4 se descarga y se guarda vinculado a la aprobación. Tras grabar el modelo, pulsa **Reproducir último vídeo** para revisarlo dentro del estudio. La pestaña **Vídeos guardados** reúne las modalidades, incluidos los recorridos, con reproducción y descarga.
+Los resultados aparecen en **Vídeos guardados** con reproducción y descarga. Las muestras 3D antiguas se conservan como archivo histórico, identificadas como guías; no se pueden crear nuevas ni elegirlas como originales de publicidad.
 
-Las exportaciones 3D usan 1080p, 30 fps y H.264. Los efectos de obra sintetizados añaden AAC cuando el navegador lo permite. La exportación local y el montaje no consumen IA; generar imágenes y consultar su evaluación pueden tener coste.
+**Actualizar** recarga las tareas y muestra su estado guardado más reciente. No inicia otra generación. Para consultar una tarea H3 todavía en curso utiliza **Consultar resultado sin regenerar** en su tarjeta.
 
-La reforma parcial sigue pendiente de definir qué elementos se conservan; su promoción por etapas permanece bloqueada. Los efectos disponibles no simulan la ejecución técnica de una obra ni sustituyen su planificación profesional.
+El montaje y la composición del anuncio no generan vídeo IA. Las imágenes y las pruebas H3 sí requieren su presupuesto y consentimiento. No hay generaciones automáticas ni garantía de fidelidad profesional hasta revisar el resultado real.

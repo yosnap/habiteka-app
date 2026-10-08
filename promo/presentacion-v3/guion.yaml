@@ -1,0 +1,50 @@
+escenas:
+  - id: gancho
+    pieza: rotulo
+    parametros:
+      titulo: "La reforma, sin sorpresas"
+      subtitulo: "Verlo antes de decidirlo"
+    frases:
+      - texto: "Nadie reforma a ciegas: todo el mundo quiere ver el resultado antes de empezar."
+  - id: llamada
+    pieza: foto
+    parametros: { foto: llamada }
+    frases:
+      - texto: "Y para diseñarlo, tienes que contratar a alguien que lo haga por ti."
+  - id: bocetos
+    pieza: foto
+    parametros: { foto: bocetos }
+    frases:
+      - texto: "Para construir, primero hace falta un plano."
+  - id: arquitecto
+    pieza: foto
+    parametros: { foto: arquitecto }
+    frases:
+      - texto: "Y el plano lo firma un arquitecto: semanas de espera y un precio que sube."
+  - id: maqueta
+    pieza: foto
+    parametros: { foto: maqueta }
+    frases:
+      - texto: "Hasta que veas una maqueta, nadie sabe cómo quedará tu casa."
+  - id: nombre
+    pieza: rotulo
+    parametros:
+      titulo: "Hasta que existió Habiteka"
+      subtitulo: "Tú lo planificas. El profesional lo termina."
+    frases:
+      - texto: "Hasta que apareció una forma de verlo todo tú mismo."
+  - id: flujo
+    pieza: pila
+    parametros: { capturas: [landing, proyectos, plano] }
+    frases:
+      - texto: "Importas tu plano en Habiteka y lo conviertes en un espacio real."
+  - id: disenos
+    pieza: captura
+    parametros: { captura: disenos }
+    frases:
+      - texto: "Diseñas con IA, apruebas cada render y el profesional da el último paso."
+  - id: cierre
+    pieza: logo
+    parametros: { lema: "Tú lo planificas. El profesional lo termina.", url: "habiteka.app", boton: "Empezar gratis" }
+    frases:
+      - texto: "Habiteka: la reforma empieza en tu casa, no en una oficina."

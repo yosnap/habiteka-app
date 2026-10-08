@@ -19,6 +19,34 @@ afterEach(() => {
 });
 
 describe('OpenRouterChatVisionAdapter', () => {
+  it('a un proveedor que no aplica el esquema (APIMart, NodeClub…) se lo da también escrito en las instrucciones', async () => {
+    let captured: { messages?: { role: string; content: { text?: string }[] }[] } = {};
+    const f = setClientFactory(() => ({ chat: { completions: { create: (body: typeof captured) => {
+      captured = body;
+      return Promise.resolve({ choices: [{ message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+    } } } }) as never);
+    restoreFn = () => setClientFactory(f);
+    const schema = { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'], additionalProperties: false };
+    const result = await new OpenRouterChatVisionAdapter({ apiKey: 'k', schemaInstruction: true }).chat({ ...baseReq, responseSchema: schema });
+    expect(captured.messages?.[0]).toMatchObject({ role: 'system' });
+    expect(captured.messages?.[0]?.content[0]?.text).toContain(JSON.stringify(schema));
+    expect(result.structured).toEqual({ ok: true });
+  });
+
+  it('con la API de OpenAI usa sus campos (max_completion_tokens, reasoning_effort) y limita la espera', async () => {
+    let captured: Record<string, unknown> = {}, options: { signal?: AbortSignal } | undefined;
+    const f = setClientFactory(() => ({ chat: { completions: { create: (body: Record<string, unknown>, opts?: { signal?: AbortSignal }) => {
+      captured = body; options = opts;
+      return Promise.resolve({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+    } } } }) as never);
+    restoreFn = () => setClientFactory(f);
+    await new OpenRouterChatVisionAdapter({ apiKey: 'k', openAiApi: true }).chat({ ...baseReq, model: 'gpt-5.2', maxTokens: 900, reasoning: { effort: 'low' } });
+    expect(captured).toMatchObject({ model: 'gpt-5.2', max_completion_tokens: 900, reasoning_effort: 'low' });
+    expect(captured).not.toHaveProperty('max_tokens');
+    expect(captured).not.toHaveProperty('reasoning');
+    expect(options?.signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('arma response_format json_schema strict y parsea la salida estructurada', async () => {
     let captured: Record<string, unknown> = {};
     const f = setClientFactory(
@@ -43,12 +71,14 @@ describe('OpenRouterChatVisionAdapter', () => {
     const result = await adapter.chat({
       ...baseReq,
       responseSchema: { type: 'object', properties: { objetivo: { type: 'string' } } },
+      reasoning: { effort: 'low' },
     });
 
     const rf = captured.response_format as { type: string; json_schema: { strict: boolean } };
     expect(rf.type).toBe('json_schema');
     expect(rf.json_schema.strict).toBe(true);
     expect(captured.max_tokens).toBeGreaterThan(0); // call-limit aplicado
+    expect(captured.reasoning).toEqual({ effort: 'low' });
     expect(result.structured).toEqual({ objetivo: 'reforma' });
     expect(result.usage).toEqual({ promptTokens: 5, completionTokens: 7 });
   });
@@ -99,6 +129,15 @@ describe('OpenRouterChatVisionAdapter', () => {
   it('explica cuando el modelo agota la salida sin devolver JSON', async () => {
     const f = setClientFactory(() => ({ chat: { completions: { create: () => Promise.resolve({
       choices: [{ finish_reason: 'length', message: { content: null } }], usage: {},
+    }) } } }) as never);
+    restoreFn = () => setClientFactory(f);
+    await expect(new OpenRouterChatVisionAdapter().chat({ ...baseReq, responseSchema: { type: 'object' } }))
+      .rejects.toMatchObject({ kind: 'schema', message: expect.stringContaining('agotó el límite') });
+  });
+
+  it('explica el límite también cuando el JSON llega cortado a medias', async () => {
+    const f = setClientFactory(() => ({ chat: { completions: { create: () => Promise.resolve({
+      choices: [{ finish_reason: 'length', message: { content: '{"summary":"Casa","furniture":[{"catalogId":' } }], usage: {},
     }) } } }) as never);
     restoreFn = () => setClientFactory(f);
     await expect(new OpenRouterChatVisionAdapter().chat({ ...baseReq, responseSchema: { type: 'object' } }))

@@ -1,9 +1,14 @@
 'use client';
-import { Ellipse, Group, Line, Rect } from 'react-konva';
+import { Ellipse, Group, Image as KonvaImage, Line, Rect } from 'react-konva';
 import type { EditorDocument, Furniture } from '@/lib/editor-document/schema';
 import { furnitureVolumes } from '@/lib/editor-document/furniture-volumes';
 import { furnitureAsset } from '@/lib/editor-document/furniture-assets';
 import { catalogFurnitureVolumes, isPainted, type FurnitureVolume } from '@/lib/editor-document/furniture-profiles';
+import { useFurnitureTopView } from './furniture-top-view';
+import { furnitureModel } from '@/lib/editor-document/furniture-models';
+import { isBoundary } from '@/lib/editor-document/boundary-types';
+import { hedgeModelPieces } from '@/lib/editor-document/hedge-model-pieces';
+import { porchPlanDepth } from '@/lib/editor-document/porch-volumes';
 
 interface Props {
   item: Furniture; scale: number; selected: boolean; document?: EditorDocument; visual?: boolean;
@@ -19,12 +24,24 @@ function lighten(color: string, amount: number) {
   const channels = [1, 3, 5].map((start) => parseInt(color.slice(start, start + 2), 16));
   return `#${channels.map((channel) => Math.round(channel + (255 - channel) * amount).toString(16).padStart(2, '0')).join('')}`;
 }
-/** Procedural solids in plan; GLB assets use category symbols within their envelope. */
+/**
+ * Procedural solids in plan. A piece with a 3D model is drawn with a realistic top view of that model (textures and
+ * soft shadow) once it is rendered; until then, and for pieces without a model, the category symbol.
+ */
 export function FurnitureSymbol({ item, scale, selected, document, visual = false, selectedPartId, onPartSelect, onPartMove, onPartSnap }: Props) {
   const asset = furnitureAsset(item), round = asset && ['mesa', 'alfombra'].includes(asset.key);
   const volumes = (asset ? catalogFurnitureVolumes(item) ?? furnitureVolumes(item, document) : furnitureVolumes(item, document)).toSorted((a, b) => a.top - b.top);
+  // Los tramos con piezas que se seleccionan y arrastran (cocina, cerramientos con puerta) siguen con sus volúmenes.
+  const hedge = isBoundary(item) && item.construction.infill === 'hedge' ? item : null;
+  const topView = useFurnitureTopView(furnitureModel(item) && (hedge || !volumes.some((part) => partId(part))) ? (hedge ? { ...item, widthMm: 1000 } : item) : null);
+  if (topView && !hedge) return <Group>
+    <KonvaImage image={topView} width={item.widthMm} height={porchPlanDepth(item)}
+      shadowColor="#24362f" shadowBlur={10 / scale} shadowOffsetY={3 / scale} shadowOpacity={visual ? .28 : .18} />
+    {selected && <Rect width={item.widthMm} height={item.depthMm} stroke="#087f75" strokeWidth={2 / scale} listening={false} />}
+  </Group>;
   // Los aparatos encajados se dibujan encima aunque queden bajo la encimera: en planta deben verse y poder arrastrarse.
-  const parts = [...volumes.filter((part) => !part.slotId), ...volumes.filter((part) => part.slotId)];
+  const visibleVolumes = hedge && topView ? volumes.filter((part) => part.part !== 'foliage') : volumes;
+  const parts = [...visibleVolumes.filter((part) => !part.slotId), ...visibleVolumes.filter((part) => part.slotId)];
   // Un mueble pintado se ve pintado en planta: los acentos del perfil (encimera, cojines) solo se mantienen con el color de catálogo.
   const painted = isPainted(item);
   const partFill = (part: FurnitureVolume) => painted && !part.gateId && part.part !== 'post' ? item.color! : part.color ?? item.color ?? '#b7c5be';
@@ -49,6 +66,8 @@ export function FurnitureSymbol({ item, scale, selected, document, visual = fals
         listening={interactive} onClick={(e) => { if (id && onPartSelect) { e.cancelBubble = true; onPartSelect(id); } }}
         onTap={(e) => { if (id && onPartSelect) { e.cancelBubble = true; onPartSelect(id); } }} />;
     })}
+    {hedge && topView && hedgeModelPieces({ ...hedge, x: 0, y: 0, rotation: 0 }).map((piece) =>
+      <KonvaImage key={piece.id} image={topView} x={piece.x} y={piece.y} width={piece.widthMm} height={piece.depthMm} listening={false} />)}
     {asset?.key === 'isla' && <Line points={[0, 0, item.widthMm, item.depthMm, item.widthMm, 0, 0, item.depthMm]}
       stroke="#59635c" strokeWidth={1 / scale} listening={false} />}
     {selected && <Rect width={item.widthMm} height={item.depthMm} stroke="#087f75" strokeWidth={2 / scale} listening={false} />}

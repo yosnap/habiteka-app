@@ -39,6 +39,11 @@ export interface PlanAperture {
   swing?: 'left' | 'right';
   /** Bisagra en el inicio (left) o final (right) del hueco sobre ese muro. */
   hinge?: 'left' | 'right';
+  /**
+   * Tipo de carpintería del catálogo del editor (`puerta-corredera`, `ventana-balconera`…) cuando la lectura lo
+   * distinguió. Ausente = puerta o ventana básica.
+   */
+  catalogId?: string;
 }
 
 /** Cota acotada entre dos puntos, con su valor textual. */

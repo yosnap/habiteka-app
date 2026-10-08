@@ -1,0 +1,16 @@
+/* Foto de ficha de producto de las tarjetas del catálogo: mismo fondo neutro que el render. */
+.photo { position: relative; display: block; overflow: hidden; background: #f2f0ec; }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Marcador discreto mientras se genera la foto: un barrido suave sobre el fondo neutro. */
+.placeholder {
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, .6) 50%, transparent 65%) #ece9e3;
+  background-size: 220% 100%;
+  animation: catalog-photo-sweep 1.6s ease-in-out infinite;
+}
+@keyframes catalog-photo-sweep { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }
+/* Fichas de Construir (todas las categorías, superficies y exterior): foto apaisada 3:2 a lo ancho de la ficha. */
+.cardPhoto { width: 100%; aspect-ratio: 3 / 2; border-radius: 10px; }
+.photoGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.photoGrid button { justify-content: flex-start; gap: 8px; padding: 8px; }

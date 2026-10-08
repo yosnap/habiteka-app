@@ -81,8 +81,8 @@ export function StudioNextStep({
             Extraer y revisar medidas
           </Button>
           <p className="text-ink-soft mt-2 text-xs">
-            Usa IA · 0 créditos de la app en este flujo. El redibujado previo es opcional; el
-            técnico suele facilitar la revisión.
+            No genera imágenes: hace una lectura con IA de visión, que el proveedor cobra por uso
+            (céntimos). El redibujado previo es opcional; el técnico suele facilitar la revisión.
           </p>
         </>
       )}

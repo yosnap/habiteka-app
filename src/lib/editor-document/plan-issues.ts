@@ -29,6 +29,7 @@ export type PlanIssueKind =
   | 'muros-degenerados'
   | 'huecos-sin-muro'
   | 'huecos-fuera-de-muro'
+  | 'puertas-estrechas'
   | 'suelos-sin-estancia'
   | 'accesos-incoherentes';
 
@@ -56,6 +57,7 @@ export interface PlanDefects {
   passages: number;
   openingsWithoutWall: string[];
   openingsOutsideWall: string[];
+  narrowDoorIds: string[];
   /** Estancias de acabados de suelo que ya no existen; `null` si no se pudo derivar. */
   orphanFloorFinishRoomIds: string[] | null;
   incoherentStairIds: string[];
@@ -80,6 +82,8 @@ export function planDefects(doc: EditorDocument): PlanDefects {
     openingsOutsideWall: doc.openings
       .filter((o) => walls.has(o.wallId) && !fitsInWall(doc, walls.get(o.wallId)!, o))
       .map((o) => o.id),
+    // Umbral de revisión del producto, no una certificación de accesibilidad.
+    narrowDoorIds: doc.openings.filter(o => o.kind === 'puerta' && o.widthMm < 650).map(o => o.id),
     orphanFloorFinishRoomIds: roomIds
       ? finishes.filter((finish) => !roomIds.has(finish.roomId)).map((finish) => finish.roomId)
       : null,
@@ -120,6 +124,8 @@ export function planIssueMessage(kind: PlanIssueKind, n: number): string {
       return `${count(n, 'puerta o ventana no está', 'puertas o ventanas no están')} sobre ningún muro.`;
     case 'huecos-fuera-de-muro':
       return `${count(n, 'puerta o ventana sobresale', 'puertas o ventanas sobresalen')} de su muro.`;
+    case 'puertas-estrechas':
+      return `${count(n, 'puerta tiene', 'puertas tienen')} un hueco de menos de 65 cm. Revisa su ancho en Propiedades; la IA conservará esa medida.`;
     case 'suelos-sin-estancia':
       return `${count(n, 'acabado de suelo no corresponde', 'acabados de suelo no corresponden')} a ninguna estancia.`;
     case 'accesos-incoherentes':
@@ -143,6 +149,7 @@ export function planIssues(doc: EditorDocument): PlanIssue[] {
   add('muros-degenerados', defects.degenerateWallIds, undefined, 'collapse-degenerate-walls');
   add('huecos-sin-muro', defects.openingsWithoutWall);
   add('huecos-fuera-de-muro', defects.openingsOutsideWall);
+  add('puertas-estrechas', defects.narrowDoorIds);
   // Un acabado huérfano no tiene forma en el plano: solo se puede limpiar.
   add('suelos-sin-estancia', [], defects.orphanFloorFinishRoomIds?.length ?? 0, 'prune-orphan-floor-finishes');
   add('accesos-incoherentes', [...defects.incoherentStairIds, ...defects.incoherentRampIds]);
@@ -158,7 +165,7 @@ function safeRoomIds(doc: EditorDocument): Set<string> | null {
 }
 
 /** Extremos de muro que no comparten vértice con ningún otro muro del nivel. */
-function danglingEnds(doc: EditorDocument): { loose: number; passages: number; looseWallIds: string[] } {
+export function danglingEnds(doc: EditorDocument): { loose: number; passages: number; looseWallIds: string[]; points: (Point & { wallId: string })[] } {
   const uses = new Map<string, number>();
   for (const wall of doc.walls)
     for (const id of [wall.startVertexId, wall.endVertexId])
@@ -167,6 +174,7 @@ function danglingEnds(doc: EditorDocument): { loose: number; passages: number; l
   let loose = 0,
     passages = 0;
   const looseWallIds: string[] = [];
+  const loosePoints: (Point & { wallId: string })[] = [];
   for (const { wall, points } of segments) {
     for (const [index, id] of [wall.startVertexId, wall.endVertexId].entries()) {
       if (uses.get(id) !== 1) continue;
@@ -180,11 +188,12 @@ function danglingEnds(doc: EditorDocument): { loose: number; passages: number; l
       if (gap >= PASSAGE_MIN_MM && gap <= PASSAGE_MAX_MM) passages += 1;
       else {
         loose += 1;
+        loosePoints.push({ x: end.x, y: end.y, wallId: wall.id });
         if (!looseWallIds.includes(wall.id)) looseWallIds.push(wall.id);
       }
     }
   }
-  return { loose, passages, looseWallIds };
+  return { loose, passages, looseWallIds, points: loosePoints };
 }
 
 function distanceToSegment(point: Point, a: Point, b: Point): number {

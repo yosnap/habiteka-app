@@ -12,6 +12,12 @@ import styles from './editor.module.css';
 import { wallFaces } from '@/lib/editor-document/wall-faces';
 import { SurfaceMaterialPicker } from './surface-material-picker';
 import { setWallSurface } from '@/lib/editor-document/spatial-commands';
+import { assertOpeningClearance } from '@/lib/editor-document/opening-clearance';
+import { assertOpeningTypeWidth, openingControls, openingType, openingTypesFor } from '@/lib/editor-document/opening-types';
+import { setOpeningType } from '@/lib/editor-document/opening-type-commands';
+import { OpeningLookFields } from './opening-look-fields';
+import { editDocument } from '@/canvas/editor-v2/editing-operations';
+import { PropertySection } from './property-section';
 
 type Edit = (operation: (document: EditorDocument) => EditorDocument) => boolean;
 type RampDimensionKey = 'x' | 'y' | 'widthMm' | 'depthMm' | 'riseMm' | 'elevationMm';
@@ -24,38 +30,63 @@ export function WallConstructionFields({ wall, document, edit, showSurfaceFields
 }) {
   const properties = wallConstruction(wall);
   return <>
+    <div className={styles.fields}>
     <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setWallConstruction(doc, wall.id, { heightMm }))} />
     <MeterField label="Cota base" valueMm={wall.baseElevationMm ?? 0}
       change={(baseElevationMm) => edit((doc) => setWallConstruction(doc, wall.id, { baseElevationMm }))} />
+    </div>
     {showSurfaceFields && wallFaces(document, wall).map(({ side, label }) => <SurfaceMaterialPicker key={side} label={label}
       value={properties.materials[side]} onChange={(value) => edit((doc) => setWallSurface(doc, wall.id, side, value))} />)}
-    <p className={styles.hint}>La altura se mide desde la cota base. Para un murete sobre un descansillo de 1 m, usa cota base 1 m. Cierra la habitación para identificar interior y exterior.</p>
+    <p>La altura se mide desde la cota base de la pared.</p>
   </>;
 }
 
-export function OpeningConstructionFields({ opening, edit }: { opening: Opening; edit: Edit }) {
-  const properties = openingConstruction(opening), isDoor = opening.kind === 'puerta';
+export function OpeningConstructionFields({ opening, edit, multiple = false }: { opening: Opening; edit: Edit; multiple?: boolean }) {
+  const properties = openingConstruction(opening), type = openingType(opening), isDoor = opening.kind === 'puerta' && !multiple;
+  // En selección múltiple solo se editan medidas: cada abertura validaría su tipo y su giro por separado.
+  const controls = openingControls(multiple ? null : type);
+  const toggle = (key: 'hinge' | 'swing') => edit((doc) => {
+    const value = openingConstruction(doc.openings.find((item) => item.id === opening.id)!);
+    return setOpeningConstruction(doc, opening.id, { [key]: value[key] === 'left' ? 'right' : 'left' });
+  });
   return <>
+    {type && !multiple && <PropertySection title="Tipo">
+      <label className={styles.field}>Tipo<ModernSelect aria-label="Tipo" value={type.id}
+        onChange={(event) => edit((doc) => setOpeningType(doc, opening.id, event.target.value))}>
+        {openingTypesFor(type.kind).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </ModernSelect></label>
+      <p className={styles.hint}>Al cambiar de tipo se aplican su ancho, altura, elevación y aspecto habituales si caben en el muro; si no, se conservan las medidas actuales. Este tipo admite hasta {(type.maxWidthMm / 1000).toFixed(2).replace('.', ',')} m de ancho.</p>
+    </PropertySection>}
+    {type && !multiple && <OpeningLookFields opening={opening} type={type} edit={edit} />}
+    <PropertySection title="Dimensiones">
     <div className={styles.fields}>
+      <MeterField label="Ancho" valueMm={opening.widthMm} change={(widthMm) => edit((doc) => editDocument(doc, (next) => {
+        const target = next.openings.find((item) => item.id === opening.id)!;
+        assertOpeningTypeWidth(openingType(target), widthMm);
+        target.widthMm = widthMm; assertOpeningClearance(next, target);
+      }))} />
       <MeterField label="Altura" valueMm={properties.heightMm} change={(heightMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { heightMm }))} />
-      <MeterField label="Elevación" valueMm={properties.elevationMm} change={(elevationMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { elevationMm }))} />
-      {isDoor && <NumberField label="Apertura (°)" value={properties.openAngleDeg} change={(openAngleDeg) => edit((doc) => setOpeningConstruction(doc, opening.id, { openAngleDeg }))} />}
     </div>
-    {isDoor && <div className={styles.actions}>
-      <button type="button" onClick={() => edit((doc) => {
-        const value = openingConstruction(doc.openings.find((item) => item.id === opening.id)!);
-        return setOpeningConstruction(doc, opening.id, { hinge: value.hinge === 'left' ? 'right' : 'left' });
-      })}><FlipHorizontal2 size={18} aria-hidden="true" />Cambiar bisagra</button>
-      <button type="button" onClick={() => edit((doc) => {
-        const value = openingConstruction(doc.openings.find((item) => item.id === opening.id)!);
-        return setOpeningConstruction(doc, opening.id, { swing: value.swing === 'left' ? 'right' : 'left' });
-      })}><FlipVertical2 size={18} aria-hidden="true" />Invertir apertura</button>
-      <button type="button" onClick={() => edit((doc) => {
+    </PropertySection>
+    <PropertySection title={isDoor ? 'Posición y apertura' : 'Posición'}>
+    <div className={styles.fields}>
+      <MeterField label="Elevación" valueMm={properties.elevationMm} change={(elevationMm) => edit((doc) => setOpeningConstruction(doc, opening.id, { elevationMm }))} />
+      {!multiple && <NumberField label="Centro en muro (%)" value={opening.position * 100} change={(value) => edit((doc) => editDocument(doc, (next) => {
+        const target = next.openings.find((item) => item.id === opening.id)!;
+        target.position = value / 100; assertOpeningClearance(next, target);
+      }))} />}
+      {controls.angle && <NumberField label="Apertura (°)" value={properties.openAngleDeg} change={(openAngleDeg) => edit((doc) => setOpeningConstruction(doc, opening.id, { openAngleDeg }))} />}
+    </div>
+    {(controls.hinge || controls.swing || controls.toggle) && <div className={styles.actions}>
+      {controls.hinge && <button type="button" onClick={() => toggle('hinge')}><FlipHorizontal2 size={18} aria-hidden="true" />{controls.hinge}</button>}
+      {controls.swing && <button type="button" onClick={() => toggle('swing')}><FlipVertical2 size={18} aria-hidden="true" />{controls.swing}</button>}
+      {controls.toggle && <button type="button" onClick={() => edit((doc) => {
         const value = openingConstruction(doc.openings.find((item) => item.id === opening.id)!);
         return setOpeningConstruction(doc, opening.id, { openAngleDeg: value.openAngleDeg > 0 ? 0 : 90 });
       })}>{properties.openAngleDeg > 0 ? <DoorClosed size={18} aria-hidden="true" /> : <DoorOpen size={18} aria-hidden="true" />}
-        {properties.openAngleDeg > 0 ? 'Cerrar puerta' : 'Abrir puerta'}</button>
+        {properties.openAngleDeg > 0 ? 'Cerrar puerta' : 'Abrir puerta'}</button>}
     </div>}
+    </PropertySection>
   </>;
 }
 

@@ -105,6 +105,32 @@ describe('requestDeliverableChange con puerta de calidad', () => {
 });
 
 describe('evaluateChangeInstruction', () => {
+  it('evalúa la misma zona marcada que utilizará el retoque', async () => {
+    mocks.quality.mockResolvedValue(verdict('proceed'));
+    const zone = { id: 'selected', bbox: { x: .2, y: .3, width: .15, height: .2 } };
+    const text = 'En esta area marcada falta una puerta';
+    await evaluateChangeInstruction(PROJECT, DELIVERABLE, text, zone);
+    const previewEvidence = mocks.quality.mock.calls[0]?.[2];
+    expect(previewEvidence).toMatchObject({ userInstruction: text, imageSelection: {
+      scope: 'region', coordinateSystem: 'normalized-image-0-1', bounds: zone.bbox,
+    } });
+    expect(mocks.runFeedback).not.toHaveBeenCalled();
+
+    await requestDeliverableChange(PROJECT, DELIVERABLE, text, undefined, false, zone);
+    expect(mocks.quality.mock.calls[1]?.[2]).toEqual(previewEvidence);
+    expect(mocks.runFeedback).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ zone }));
+  });
+
+  it('no consulta a Jev si la selección no es válida', async () => {
+    const invalid = { id: 'bad', bbox: { x: .9, y: .1, width: .2, height: .2 } };
+    await expect(evaluateChangeInstruction(PROJECT, DELIVERABLE, INSTRUCTION, invalid))
+      .resolves.toMatchObject({ actionError: expect.any(String) });
+    await expect(requestDeliverableChange(PROJECT, DELIVERABLE, INSTRUCTION, undefined, false, invalid))
+      .resolves.toMatchObject({ actionError: expect.any(String) });
+    expect(mocks.quality).not.toHaveBeenCalled();
+    expect(mocks.runFeedback).not.toHaveBeenCalled();
+  });
+
   it('devuelve el veredicto sin generar ni cobrar', async () => {
     mocks.quality.mockResolvedValue(verdict('confirm'));
     await expect(evaluateChangeInstruction(PROJECT, DELIVERABLE, INSTRUCTION)).resolves.toMatchObject({

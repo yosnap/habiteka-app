@@ -4,8 +4,13 @@ import type { NativeDesignFurniture } from './native-design-proposal';
 import type { RenderDesignOptions } from './render-design-options';
 import { localToWorld } from './spatial-properties';
 import type { Point } from './schema';
+import { proposalSize } from './proposal-coordinates';
 
-export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptions['additions'][number] | null {
+/** Sanitarios, cocina y electrodomésticos: equipan una vivienda vacía; solo los coloca el modo que amuebla todo. */
+const FIXTURE_PROFILES = new Set(['toilet', 'sink', 'shower', 'bath', 'kitchen', 'appliance']);
+export type ProposalCategory = RenderDesignOptions['additions'][number] | 'fixtures';
+
+export function proposalCategory(item: FurnitureCatalogEntry): ProposalCategory | null {
   if (item.id === 'habiteka:outdoor:tira-led') return 'lights';
   if (item.id === 'habiteka:outdoor:puf-exterior') return 'furniture';
   if (item.profile === 'plant') return 'plants';
@@ -14,21 +19,24 @@ export function proposalCategory(item: FurnitureCatalogEntry): RenderDesignOptio
   if (item.profile === 'lamp') return 'lights';
   if (item.kind.includes('espejo')) return 'mirrors';
   if (['rug', 'curtain', 'decor'].includes(item.profile)) return 'decor';
-  if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile)) return 'furniture';
-  return null; // No instalaciones, electrodomésticos ni construcción implícita.
+  // Los sofás de esquina, con chaise, modulares o cama también son muebles: la rinconera dibujada en un boceto se descartaba.
+  if (['sofa', 'bed', 'chair', 'table', 'cabinet', 'shelf', 'bench'].includes(item.profile) || item.profile.startsWith('sofa')) return 'furniture';
+  if (FIXTURE_PROFILES.has(item.profile)) return 'fixtures';
+  return null; // Construcción implícita: pérgolas, carpas, piscinas.
 }
 
 export function allowedProposalCatalog(item: FurnitureCatalogEntry, options: RenderDesignOptions) {
   const category = proposalCategory(item);
   return options.freedom !== 'strict' && category !== null
-    && (options.freedom === 'free' || options.additions.includes(category));
+    && (options.freedom === 'free' || (category !== 'fixtures' && options.additions.includes(category)));
 }
 
 export function allowedProposalFurniture(item: NativeDesignFurniture, options: RenderDesignOptions, zonePolygon?: Point[]) {
   const catalog = getFurnitureCatalogEntry(item.catalogId);
   if (!catalog || !allowedProposalCatalog(catalog, options)) return false;
-  const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, widthMm: catalog.widthMm, depthMm: catalog.depthMm };
-  const footprint = [[0, 0], [catalog.widthMm, 0], [catalog.widthMm, catalog.depthMm], [0, catalog.depthMm]]
+  const size = proposalSize(item, catalog);
+  const transform = { x: item.xMm, y: item.yMm, rotation: item.rotation, ...size };
+  const footprint = [[0, 0], [size.widthMm, 0], [size.widthMm, size.depthMm], [0, size.depthMm]]
     .map(([x, y]) => localToWorld(transform, { x: x!, y: y! }));
   if (zonePolygon && !polygonContainsFootprint(zonePolygon, footprint)) return false;
   if (options.placement === 'all') return true;

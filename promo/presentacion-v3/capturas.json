@@ -1,0 +1,14 @@
+{
+  "capturas": [
+    { "id": "landing", "ruta": "/" },
+    { "id": "proyectos", "ruta": "/proyectos" },
+    { "id": "plano", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/plano" },
+    { "id": "disenos", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/deliverables" }
+  ],
+  "fotos": [
+    { "id": "llamada", "imagen": "fotos/llamada.png" },
+    { "id": "bocetos", "imagen": "fotos/plano.png" },
+    { "id": "arquitecto", "imagen": "fotos/arquitecto.png" },
+    { "id": "maqueta", "imagen": "fotos/maqueta.png" }
+  ]
+}

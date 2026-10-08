@@ -17,6 +17,7 @@ import { videoDimensionMode } from '@/lib/editor-document/video-presentation';
 import { videoScopeRegions } from '@/lib/editor-document/video-content-scope';
 import { isolateSceneToZone } from './zone-scene-isolation';
 import { constructionFrame } from './construction-timeline';
+import { containVideoRect, videoFormatSize } from '@/lib/editor-document/video-format';
 
 /** Render frame a frame; la velocidad del equipo no cambia el tiempo del vídeo. */
 export async function recordWalkthrough(root: RootState, doc: EditorDocument, route: WalkthroughPath | undefined,
@@ -36,7 +37,8 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
   if ((mode === 'showcase' || mode === 'construction') && !doc.vertices.length) throw new Error('Dibuja el inmueble antes de crear el vídeo de construcción.');
   if (typeof VideoEncoder === 'undefined') throw new Error('Este navegador no permite exportar H.264. Usa un navegador con WebCodecs.');
   const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioBufferSource, canEncodeVideo, canEncodeAudio } = await import('mediabunny');
-  const width = 1920, height = 1080, fps = 30;
+  const { width, height } = videoFormatSize(presentation.format), fps = 30;
+  const sceneWidth = 1920, sceneHeight = 1080;
   // Aumenta detalle sin exceder los límites de subida en piezas largas.
   const bitrate = durationMs <= 60000 ? 12_000_000 : 7_000_000;
   if (!await canEncodeVideo('avc', { width, height, bitrate })) throw new Error('H.264 a 1080p no está disponible en este navegador.');
@@ -52,8 +54,8 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
   const videoContext = videoCanvas.getContext('2d');
   if (!videoContext) throw new Error('No se pudo preparar el lienzo del vídeo.');
   videoContext.imageSmoothingEnabled = true; videoContext.imageSmoothingQuality = 'high';
-  const supersampling = gl.capabilities.maxTextureSize >= width * 2 ? 2 : 1;
-  const renderWidth = width * supersampling, renderHeight = height * supersampling;
+  const supersampling = gl.capabilities.maxTextureSize >= sceneWidth * 2 ? 2 : 1;
+  const renderWidth = sceneWidth * supersampling, renderHeight = sceneHeight * supersampling;
   const size = gl.getSize(new Vector2()), dpr = gl.getPixelRatio(), aspect = camera.aspect, fov = camera.fov;
   const position = camera.position.clone(), quaternion = camera.quaternion.clone();
   const orbit = root.controls as unknown as { enabled: boolean; target: Vector3; update: () => void } | null;
@@ -69,7 +71,7 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
     animation = mode !== 'walkthrough' ? prepareConstructionAnimation(scene) : null;
     dimensions = videoDimensionMode(presentation) !== 'none' ? createVideoDimensionOverlay(scene, doc, camera, regions) : null;
     if (orbit) orbit.enabled = false;
-    gl.setPixelRatio(1); gl.setSize(renderWidth, renderHeight, false); camera.aspect = width / height; camera.fov = 75; camera.updateProjectionMatrix();
+    gl.setPixelRatio(1); gl.setSize(renderWidth, renderHeight, false); camera.aspect = sceneWidth / sceneHeight; camera.fov = 75; camera.updateProjectionMatrix();
     const source = new CanvasSource(videoCanvas, { codec: 'avc', bitrate });
     const audio = withSound ? new AudioBufferSource({ codec: 'aac', bitrate: 128000 }) : null;
     output.addVideoTrack(source, { frameRate: fps });
@@ -102,16 +104,22 @@ export async function recordWalkthrough(root: RootState, doc: EditorDocument, ro
         }
         if (compiled) applyWalkPose(camera, compiled.samplePose(elapsedMs - introMs), compiled.absoluteElevation ? 0 : elevationMm);
       }
-      dimensions?.update(elapsedMs, presentation, height);
+      dimensions?.update(elapsedMs, presentation, sceneHeight);
       scene.updateMatrixWorld(true); gl.render(scene, camera);
-      videoContext.drawImage(gl.domElement, 0, 0, width, height);
+      const rect = containVideoRect(sceneWidth, sceneHeight, width, height);
+      videoContext.fillStyle = '#10241d'; videoContext.fillRect(0, 0, width, height);
+      videoContext.drawImage(gl.domElement, rect.x, rect.y, rect.width, rect.height);
       if (mode === 'promotion') {
         const shot = promotionFrame(doc, elapsedMs, regions);
-        videoContext.fillStyle = '#142720d9'; videoContext.fillRect(0, height - 105, width, 105);
+        const vertical = height > width, footerHeight = vertical ? 145 : 105;
+        videoContext.fillStyle = '#142720d9'; videoContext.fillRect(0, height - footerHeight, width, footerHeight);
         videoContext.fillStyle = 'white'; videoContext.font = '28px sans-serif';
-        videoContext.fillText(shot.label, 36, height - 60);
+        videoContext.fillText(shot.label, 36, height - (vertical ? 90 : 60));
         videoContext.font = '20px sans-serif';
-        videoContext.fillText('Visualización conceptual del diseño · entorno IGN / PNOA · no representa una obra ejecutada', 36, height - 25);
+        if (vertical) {
+          videoContext.fillText('Visualización conceptual del diseño · entorno IGN / PNOA', 36, height - 55);
+          videoContext.fillText('No representa una obra ejecutada', 36, height - 25);
+        } else videoContext.fillText('Visualización conceptual del diseño · entorno IGN / PNOA · no representa una obra ejecutada', 36, height - 25);
       }
       await source.add(frame / fps, 1 / fps, { keyFrame: frame % (fps * 2) === 0 });
       if (frame % 10 === 0) { progress(frame / frames); await new Promise<void>((resolve) => setTimeout(resolve, 0)); }

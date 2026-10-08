@@ -14,12 +14,13 @@ import { duplicateSpatialItem, findSpatialItem, insertSpatialItem, type SpatialC
 import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 import { inheritFloorFinishes } from '@/lib/editor-document/floor-level';
 import type { LightZoneMode } from './light-zone-draw';
+import { OPENING_TYPES } from '@/lib/editor-document/opening-types';
 
 /** Paneles que comparten la única ranura lateral del editor: solo uno abierto a la vez. */
 export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling';
 
 /**
- * Una selección normal solo actualiza la barra de medidas: abrir Propiedades
+ * Una selección normal solo actualiza el resumen: abrir Propiedades
  * automáticamente desplaza o tapa el plano al primer clic. El lateral se abre
  * a petición; una luz o un techo sí lleva a «Techo y luces».
  */
@@ -27,15 +28,14 @@ export function sidePanelForSelection(
   current: EditorSidePanel | null,
   options: { hasSelection: boolean; lighting: boolean },
 ): EditorSidePanel | null {
-  // Quedarse sin selección solo cierra Propiedades: «Techo y luces» deselecciona
-  // por su cuenta al cambiar de ámbito o de estancia y debe seguir abierto.
-  if (!options.hasSelection) return current === 'inspector' ? null : current;
+  // El inspector conserva el buscador al pulsar en un espacio vacío del lienzo.
+  if (!options.hasSelection) return current;
   if (options.lighting) return 'ceiling';
   if (current === 'ceiling') return null;
   return current;
 }
 
-export type EditorTool = 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'kitchen' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough' | 'light-strip' | 'light-zone';
+export type EditorTool = 'garden-path' | 'valla-madera' | 'cerca-metal' | 'seto' | 'patio' | 'kitchen' | 'select' | 'wall' | 'guard-wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'measure' | 'split-wall' | 'place-object' | 'walkthrough' | 'light-strip' | 'light-zone';
 export interface EditorState {
   detailAnchor: Point | null;
   setDetailAnchor: (point: Point) => void;
@@ -82,9 +82,19 @@ export interface EditorState {
   selection: string[];
   tool: EditorTool;
   pendingOpening: Opening | null;
+  /**
+   * Tipo de puerta o ventana elegido en Construir: la herramienta lo coloca con sus medidas y no aplica la regla de
+   * la puerta de entrada en fachada, que solo decide cuando el usuario no ha elegido tipo.
+   */
+  openingTypeId: string | null;
+  boundaryCatalogId: string | null;
+  gardenPathOptions: import('@/lib/editor-document/garden-paths').GardenPathOptions | null;
+  /** Activa la herramienta de puerta o ventana con ese tipo ya elegido. */
+  beginOpeningType: (typeId: string) => void;
   copyOpening: (id: string) => void;
   copyStair: (id: string) => void;
   clipboardSpatial: SpatialClipboardItem | null;
+  clipboardOpening: Opening | null;
   pendingSpatial: SpatialClipboardItem | null;
   copySpatial: (id: string) => void;
   beginPasteSpatial: () => void;
@@ -94,6 +104,8 @@ export interface EditorState {
   cancelPendingSpatial: () => void;
   pendingSplitWallId: string | null;
   beginWallSplit: (id: string) => void;
+  /** Alt + doble clic sobre una pared: añade ahí una esquina y selecciona los dos tramos para poder arrastrarla. */
+  addCornerAt: (wallId: string, point: Point, scale: number) => boolean;
   cancelWallSplit: () => void;
   commitWallSplit: (point: Point, scale: number) => boolean;
   snap: boolean;
@@ -134,18 +146,29 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       set({ lightZoneDraw: { mode, zoneId } });
     },
     detailPanel: null,
-    setDetailPanel: (detailPanel) => set({ detailPanel }),
+    setDetailPanel: (detailPanel) => set({ detailPanel, ...(detailPanel && get().sidePanel !== 'ceiling' ? { sidePanel: 'inspector' as const } : {}) }),
     sidePanel: null,
-    openSidePanel: (sidePanel) => set({ sidePanel }),
-    closeSidePanel: () => set({ sidePanel: null }),
-    toggleSidePanel: (panel) => set({ sidePanel: get().sidePanel === panel ? null : panel }),
+    openSidePanel: (sidePanel) => set({ sidePanel, detailPanel: null }),
+    closeSidePanel: () => set({ sidePanel: null, detailPanel: null }),
+    toggleSidePanel: (panel) => set({ sidePanel: get().sidePanel === panel ? null : panel, detailPanel: null }),
     readOnly: options.readOnly ?? false,
     // Al cargar se sanea sin contar como edición: no se guarda hasta que el usuario cambie algo.
     document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(initial), { onLoad: true })), past: [], future: [], selection: [],
-    tool: 'select', pendingOpening: null, pendingSplitWallId: null, clipboardSpatial: null, pendingSpatial: null, snap: true, sequence: 0, error: null,
+    tool: 'select', pendingOpening: null, openingTypeId: null, boundaryCatalogId: null, gardenPathOptions: null, pendingSplitWallId: null, clipboardSpatial: null, clipboardOpening: null, pendingSpatial: null, snap: true, sequence: 0, error: null,
     beginWallSplit: (id) => {
       const state = get(); if (state.readOnly || !state.document.walls.some((w) => w.id === id)) return;
       set({ pendingSplitWallId: id, pendingOpening: null, tool: 'split-wall', selection: [id], error: null });
+    },
+    addCornerAt: (wallId, point, scale) => {
+      const state = get(); if (state.readOnly) return false;
+      const preview = resolveWallSplitPoint(state.document, wallId, point, scale);
+      if (!preview?.valid) { set({ error: preview?.reason ?? 'Elige un punto sobre la pared' }); return false; }
+      const newWallId = crypto.randomUUID();
+      try {
+        state.apply(applyCommand(state.document, { type: 'split-wall', wallId, position: preview.position,
+          vertexId: crypto.randomUUID(), newWallId }));
+        set({ selection: [wallId, newWallId], pendingSplitWallId: null }); return true;
+      } catch (error) { set({ error: error instanceof Error ? error.message : 'No se pudo añadir la esquina' }); return false; }
     },
     cancelWallSplit: () => {
       if (get().tool === 'split-wall') set({ pendingSplitWallId: null, tool: 'select', error: null });
@@ -168,6 +191,12 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       state.apply(placeNewObject(state.document, candidate, copy.id));
       set({ selection: [copy.id], pendingSplitWallId: null, pendingOpening: null, tool: 'select' });
     },
+    beginOpeningType: (typeId) => {
+      const type = OPENING_TYPES.find((item) => item.id === typeId);
+      if (get().readOnly || !type) return;
+      get().setTool(type.kind === 'puerta' ? 'door' : 'window');
+      set({ openingTypeId: type.id });
+    },
     copyOpening: (id) => {
       const state = get(), source = state.document.openings.find((o) => o.id === id);
       if (state.readOnly || !source) return;
@@ -176,17 +205,27 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     },
     copySpatial: (id) => {
       const state = get(), item = findSpatialItem(state.document, id);
-      if (state.readOnly || !item) return;
-      set({ clipboardSpatial: structuredClone(item), error: null });
+      if (state.readOnly) return;
+      const opening = state.document.openings.find(entry => entry.id === id);
+      if (opening) { set({ clipboardOpening: structuredClone(opening), clipboardSpatial: null, error: null }); return; }
+      if (!item) return;
+      set({ clipboardSpatial: structuredClone(item), clipboardOpening: null, error: null });
     },
     beginPasteSpatial: () => {
       const state = get();
-      if (state.readOnly || !state.clipboardSpatial) return;
+      if (state.readOnly) return;
+      if (state.clipboardOpening) {
+        const opening = { ...structuredClone(state.clipboardOpening), id: crypto.randomUUID() };
+        set({ pendingOpening: opening, pendingSpatial: null, pendingSplitWallId: null, selection: [], pan: false,
+          tool: opening.kind === 'puerta' ? 'door' : opening.kind === 'ventana' ? 'window' : 'passage', error: null });
+        return;
+      }
+      if (!state.clipboardSpatial) return;
       state.beginPlaceSpatial(duplicateSpatialItem(state.clipboardSpatial));
     },
     beginPlaceSpatial: (item) => {
       if (get().readOnly) return;
-      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', error: null });
+      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', pan: false, error: null });
     },
     placePendingSpatial: (item) => {
       const state = get();
@@ -238,16 +277,16 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       const lighting = selection.length > 0 && selection.some((id) =>
         (document.luminaires?.some((light) => light.id === id) ?? false)
         || (document.ceilings?.some((ceiling) => ceiling.id === id) ?? false));
-      set({ selection, sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: selection.length > 0, lighting }) });
+      set({ selection, detailPanel: null, sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: selection.length > 0, lighting }) });
     },
     // Cambiar de herramienta deja la ranura como estaba salvo Propiedades, que se
     // queda sin selección que mostrar; «Techo y luces» sigue abierto porque es
     // quien lanza el dibujo de una tira LED o de una zona.
-    setTool: (tool) => set({ lightZoneDraw: null, sidePanel: get().sidePanel === 'inspector' ? null : get().sidePanel, tool, magneticGuides: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
+    setTool: (tool) => set({ lightZoneDraw: null, boundaryCatalogId: null, gardenPathOptions: null, sidePanel: get().sidePanel === 'inspector' ? null : get().sidePanel, tool, magneticGuides: [], pendingOpening: null, openingTypeId: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
     setSnap: (snap) => set({ snap }),
     setError: (error) => set({ error }),
     restore: (candidate) => set({ sidePanel: null, lightZoneDraw: null, activeLightZoneId: null, document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
-      sequence: 0, selection: [], pendingOpening: null, pendingSplitWallId: null, pendingSpatial: null, tool: 'select', error: null }),
+      sequence: 0, selection: [], pendingOpening: null, openingTypeId: null, pendingSplitWallId: null, pendingSpatial: null, tool: 'select', error: null }),
   }));
 }
 export type EditorStore = ReturnType<typeof createEditorStore>;

@@ -35,7 +35,8 @@ describe('riesgos visibles en planos reales', () => {
     expect(quality.decision).toBe('block');
     expect(input.result.warnings.some((warning) =>
       warning.code === 'cotas-generales-discordantes' || warning.code === 'ajuste-desplaza-muros')).toBe(true);
-    expect(quality.reasons.join(' ')).toMatch(/cotas generales|muros de la imagen/);
+    expect(quality.reasons.join(' ')).toMatch(/dimensiones globales.*perímetro leído|muros de la imagen/);
+    expect(quality.reasons.join(' ')).toContain('no cotas verificadas por el usuario');
   });
 
   it('señala muros desplazados por el ajuste de cotas en un plano decorado', async () => {

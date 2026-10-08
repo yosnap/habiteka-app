@@ -7,8 +7,11 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { addOutdoorArea } from '@/lib/editor-document/outdoor-area';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
+import { toModelFurniture } from '@/lib/editor-document/proposal-coordinates';
 
 const item = { catalogId: 'habiteka:furniture:planta', xMm: 500, yMm: 500, rotation: 0, reason: 'Vegetación' };
+// Así lo escribe la IA: el centro de la huella.
+const answered = toModelFurniture(item);
 const options = defaultRenderDesignOptions();
 it('valida el acabado opcional del canto y exige una salida estructurada completa', () => {
   const doc = emptyEditorDocument();
@@ -49,7 +52,7 @@ it('rechaza un estilo incompatible por zona antes de consultar al proveedor', as
 });
 it('estricto impide objetos aunque el modelo los devuelva', () => {
   const doc = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
-  const raw = { summary: 'Plantas', materials: {}, furniture: [item] };
+  const raw = { summary: 'Plantas', materials: {}, furniture: [answered] };
   const strict = parseNativeDesignProposal(raw, 'moderno', doc, options);
   expect(strict.furniture).toEqual([]);
   expect(strict.summary).toContain('Se descartaron 1 objeto(s)');
@@ -66,7 +69,7 @@ it('explica qué objeto choca con otro mueble en una propuesta editable', () => 
     rotation: 0, dimensionalOrigin: 'physical', color: '#b89364' });
   const sofa = { catalogId: 'habiteka:furniture:sofa-2', xMm: 1100, yMm: 1100,
     rotation: 0, reason: 'Asiento' };
-  const result = parseNativeDesignProposal({ materials: {}, furniture: [sofa] }, 'moderno', doc,
+  const result = parseNativeDesignProposal({ materials: {}, furniture: [toModelFurniture(sofa)] }, 'moderno', doc,
     { ...options, freedom: 'controlled', additions: ['furniture'] });
   expect(result.furniture).toEqual([]);
   expect(result.summary).toContain('Sofá de dos plazas: solapa la zona de seguridad de un mueble o estructura');
@@ -74,15 +77,23 @@ it('explica qué objeto choca con otro mueble en una propuesta editable', () => 
 it('descarta muebles propuestos fuera del ámbito editable aunque el modelo los devuelva', () => {
   const house = addWallPath(emptyEditorDocument(), [{ x: 0, y: 0 }, { x: 6000, y: 0 }, { x: 6000, y: 4000 }, { x: 0, y: 4000 }], true);
   const doc = addOutdoorArea(house, { x: 6000, y: 0 }, { x: 9000, y: 4000 });
-  const raw = { summary: 'Exterior', materials: {}, furniture: [item] };
+  const raw = { summary: 'Exterior', materials: {}, furniture: [answered] };
   expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'free', designScope: 'exterior' }).furniture).toEqual([]);
-  expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'free', designScope: 'interior' }).furniture).toEqual([item]);
+  // Amueblar arrima la planta al muro más cercano: lo que importa aquí es que se conserva dentro del ámbito.
+  expect(parseNativeDesignProposal(raw, 'moderno', doc, { ...options, freedom: 'free', designScope: 'interior' }).furniture.map(({ catalogId }) => catalogId)).toEqual([item.catalogId]);
 });
-it('controlado permite solo categorías marcadas; libre no permite instalaciones', () => {
+it('controlado permite solo categorías marcadas; amueblar equipa también baños y cocina', () => {
   expect(allowedProposalFurniture(item, { ...options, freedom: 'controlled', additions: ['lights'] })).toBe(false);
   expect(allowedProposalFurniture(item, { ...options, freedom: 'controlled', additions: ['plants'] })).toBe(true);
   expect(allowedProposalFurniture(item, { ...options, freedom: 'free' })).toBe(true);
-  expect(allowedProposalFurniture({ ...item, catalogId: 'habiteka:furniture:ducha' }, { ...options, freedom: 'free' })).toBe(false);
+  for (const fixture of ['ducha', 'inodoro', 'fregadero', 'frigorifico', 'lavadora', 'mueble-cocina']) {
+    const placed = { ...item, catalogId: `habiteka:furniture:${fixture}` };
+    expect(allowedProposalFurniture(placed, { ...options, freedom: 'free' })).toBe(true);
+    expect(allowedProposalFurniture(placed, { ...options, freedom: 'controlled', additions: ['furniture', 'decor', 'lights', 'plants'] })).toBe(false);
+    expect(allowedProposalFurniture(placed, { ...options, freedom: 'strict' })).toBe(false);
+  }
+  // La construcción implícita sigue fuera de cualquier propuesta.
+  expect(allowedProposalFurniture({ ...item, catalogId: 'habiteka:outdoor:pergola' }, { ...options, freedom: 'free' })).toBe(false);
 });
 it('permite un asiento exterior y una tira LED funcional solo con sus permisos', () => {
   const seat = { ...item, catalogId: 'habiteka:outdoor:puf-exterior' };

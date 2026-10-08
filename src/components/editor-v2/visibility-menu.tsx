@@ -15,6 +15,7 @@ export interface EditorVisibility {
   walls: boolean;
   /** Símbolos de luces y contornos de techo en el plano; molestan al dibujar muros. */
   lighting: boolean;
+  roof?: boolean;
 }
 
 interface VisibilityMenuProps {
@@ -36,6 +37,7 @@ export function VisibilityMenu({ value, onChange, shortcutsEnabled, onShortcutsC
       <CheckToggle ariaLabel="Mostrar paredes" checked={value.walls} onChange={(walls) => patch({ walls })} label={<>{eye(value.walls)} Paredes</>} />
       <CheckToggle ariaLabel="Mostrar muebles" checked={value.furniture} onChange={(furniture) => patch({ furniture })} label={<>{eye(value.furniture)} Muebles</>} />
       <CheckToggle ariaLabel="Mostrar iluminación" checked={value.lighting} onChange={(lighting) => patch({ lighting })} label={<>{eye(value.lighting)} Iluminación</>} />
+      <CheckToggle ariaLabel="Mostrar y editar tejado en 2D" checked={value.roof === true} onChange={(roof) => patch({ roof })} label={<>{eye(value.roof === true)} Tejado en 2D</>} />
       <label className={styles.field}><span>Medidas</span><ModernSelect aria-label="Visibilidad de medidas" value={value.dimensions} onChange={(event) => patch({ dimensions: event.target.value as DimensionVisibility })}>
         <option value="all">Todas</option><option value="external">Solo exteriores</option><option value="none">Ocultas</option>
       </ModernSelect></label>

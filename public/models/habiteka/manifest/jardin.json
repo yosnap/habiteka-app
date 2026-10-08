@@ -1,0 +1,1149 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia jardin) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "jardin",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "arbol_platano_400": {
+   "file": "arbol_platano_400.glb",
+   "thumbnail": "thumbs/arbol_platano_400.webp",
+   "sha256": "223edc5a611bcbaf6a3a22586fb49d0036830508ac2070c4a63309d344f32d08",
+   "bytes": 1120772,
+   "triangles": 16681,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2500,
+    2500,
+    3950
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2500,
+    2500,
+    3950
+   ],
+   "family": "jardin",
+   "type": "shade_tree",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-platano",
+    "corteza": "jar-corteza-platano"
+   },
+   "textures": [
+    "jar_corteza_platano",
+    "jar_hoja_platano"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6479a84541d18558a9da7d8428cd43df664ff6de1cf40561234c114eee259d47",
+   "builtAt": "2026-10-05"
+  },
+  "arbusto_100": {
+   "file": "arbusto_100.glb",
+   "thumbnail": "thumbs/arbusto_100.webp",
+   "sha256": "c955111c2a8c7f10e658eb9bc740626b9e919ecb4745c047754fe071af6d3d4f",
+   "bytes": 428492,
+   "triangles": 5502,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    900,
+    1000
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    900,
+    1000
+   ],
+   "family": "jardin",
+   "type": "shrub",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-arbusto",
+    "corteza": "jar-corteza-fina"
+   },
+   "textures": [
+    "jar_corteza_fina",
+    "jar_hoja_arbusto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5a753415991a8cb252cfc9ef21eccebbf7f84d2a411b0cf070e348cc66187960",
+   "builtAt": "2026-10-05"
+  },
+  "cipres_jardin": {
+   "file": "cipres_jardin.glb",
+   "thumbnail": "thumbs/cipres_jardin.webp",
+   "sha256": "f71b1133400548e54ae55c7782ef0c3b6cb1a76fd246a3cf27850ba7815415cc",
+   "bytes": 737608,
+   "triangles": 22214,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1115,
+    1095,
+    3500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    900,
+    3500
+   ],
+   "family": "jardin",
+   "type": "cypress",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-conifera",
+    "corteza": "jar-corteza-fina"
+   },
+   "textures": [
+    "jar_corteza_fina"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dc5780d862c8c09cc59a21630885a685f78a0be099d015e7f21589f3bb66a040",
+   "builtAt": "2026-10-05"
+  },
+  "formio_110": {
+   "file": "formio_110.glb",
+   "thumbnail": "thumbs/formio_110.webp",
+   "sha256": "b89a3a6744d1fb37772809c67abedb63bdc3c3238e6ee81f9be8c269bdcaff57",
+   "bytes": 45324,
+   "triangles": 1224,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    600,
+    600,
+    1100
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    600,
+    600,
+    1100
+   ],
+   "family": "jardin",
+   "type": "phormium",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-formio"
+   },
+   "textures": [
+    "jar_hoja_formio"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c448ba791edfb89c2972cb3b024c6eb17d5e97b80e283d66c3620218ca38788e",
+   "builtAt": "2026-10-05"
+  },
+  "graminea_jardin": {
+   "file": "graminea_jardin.glb",
+   "thumbnail": "thumbs/graminea_jardin.webp",
+   "sha256": "6d93c4f9d990794d02f69000511dc7715b128d80c7c0a85f105a643d23373ac4",
+   "bytes": 467708,
+   "triangles": 37510,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    609,
+    609,
+    1102
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    700,
+    1100
+   ],
+   "family": "jardin",
+   "type": "aromatic",
+   "params": {
+    "species": "grass"
+   },
+   "finishes": {
+    "hojas": "jar-palmera",
+    "flor": "jar-espiga"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ad5a86656f39805e60ac93292515b2855fa0ea55687185d985bed65de8f41889",
+   "builtAt": "2026-10-05"
+  },
+  "huerto_240": {
+   "file": "huerto_240.glb",
+   "thumbnail": "thumbs/huerto_240.webp",
+   "sha256": "138898788e4f9fa4d354724da964c2d2bfbec33c4176e782d537bc0e84ed89aa",
+   "bytes": 708476,
+   "triangles": 13764,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2400,
+    1199,
+    600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2400,
+    1200,
+    600
+   ],
+   "family": "jardin",
+   "type": "raised_bed",
+   "params": {},
+   "finishes": {
+    "madera": "jar-pino",
+    "tierra": "jar-tierra",
+    "hojas": "jar-hojas-lechuga",
+    "puerros": "jar-hojas-olivo"
+   },
+   "textures": [
+    "jar_hoja_lechuga",
+    "jar_hoja_olivo",
+    "jar_pino",
+    "jar_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "677ed2d5290bacf047040479e43699ed2d30db5a8cbfa066795e4ae26ab50368",
+   "builtAt": "2026-10-05"
+  },
+  "jardinera_madera_150": {
+   "file": "jardinera_madera_150.glb",
+   "thumbnail": "thumbs/jardinera_madera_150.webp",
+   "sha256": "37a25f5d69a3c9f033f1ba05d0a33274d0735567f6ee8c3b7f6affda63560268",
+   "bytes": 729924,
+   "triangles": 11080,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    449,
+    800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    450,
+    800
+   ],
+   "family": "jardin",
+   "type": "planter_box",
+   "params": {},
+   "finishes": {
+    "madera": "jar-pino",
+    "tierra": "jar-tierra",
+    "hojas": "jar-hojas-boj"
+   },
+   "textures": [
+    "jar_hoja_boj",
+    "jar_pino",
+    "jar_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "afde58a5f63685786e0435c41d89959e831695540203b1ca706fb68900487c55",
+   "builtAt": "2026-10-05"
+  },
+  "jardinera_terracota_100": {
+   "file": "jardinera_terracota_100.glb",
+   "thumbnail": "thumbs/jardinera_terracota_100.webp",
+   "sha256": "733f97d0dd97198dd5a87fa0fb37516dbf89e53e2e58d6c3286b4ea237b2f649",
+   "bytes": 301332,
+   "triangles": 2152,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    400,
+    900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    400,
+    900
+   ],
+   "family": "jardin",
+   "type": "planter_trough",
+   "params": {},
+   "finishes": {
+    "maceta": "jar-terracota",
+    "tierra": "jar-tierra",
+    "hojas": "jar-hojas-formio"
+   },
+   "textures": [
+    "jar_hoja_formio",
+    "jar_terracota",
+    "jar_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b6203e897234e57a8f58198a2c081268e86f8b5ab1a5819ee0f43c87860dd718",
+   "builtAt": "2026-10-05"
+  },
+  "lavanda_jardin": {
+   "file": "lavanda_jardin.glb",
+   "thumbnail": "thumbs/lavanda_jardin.webp",
+   "sha256": "ae555b835d744bedb224b9953cb1af8ae2704cf4b716df6fdebfb5cc3d4528b3",
+   "bytes": 444200,
+   "triangles": 35648,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    559,
+    572,
+    656
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    650,
+    650,
+    650
+   ],
+   "family": "jardin",
+   "type": "aromatic",
+   "params": {
+    "species": "lavender"
+   },
+   "finishes": {
+    "hojas": "jar-palmera",
+    "flor": "jar-lavanda"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "78dcfa982eb3d83e8237668ea95ab5906b3f722996f5509dc2d5932433419121",
+   "builtAt": "2026-10-05"
+  },
+  "maceta_terracota_50": {
+   "file": "maceta_terracota_50.glb",
+   "thumbnail": "thumbs/maceta_terracota_50.webp",
+   "sha256": "918a50302d5cc7067767c931d3a450df6b0e9755475db0904c624c0c00ea0bbf",
+   "bytes": 256552,
+   "triangles": 928,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    500,
+    500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    500,
+    500
+   ],
+   "family": "jardin",
+   "type": "garden_pot",
+   "params": {},
+   "finishes": {
+    "maceta": "jar-terracota",
+    "tierra": "jar-tierra"
+   },
+   "textures": [
+    "jar_terracota",
+    "jar_tierra"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bf89ae775d3c9d03264d1a21e8dd65df2c446ebbf18362138ebe4f98af247ed1",
+   "builtAt": "2026-10-05"
+  },
+  "naranjo_280": {
+   "file": "naranjo_280.glb",
+   "thumbnail": "thumbs/naranjo_280.webp",
+   "sha256": "40a273635b748901140430f159e1c79c43fecac094815cbf44a4e0b942e0f659",
+   "bytes": 581512,
+   "triangles": 19927,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    2000,
+    2800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    2000,
+    2800
+   ],
+   "family": "jardin",
+   "type": "orange_tree",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-naranjo",
+    "corteza": "jar-corteza-fina",
+    "fruto": "jar-naranja"
+   },
+   "textures": [
+    "jar_corteza_fina",
+    "jar_hoja_naranjo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cb0f63afb2248ea3098f3fd5f0e95d62589e82ea6050a3055cf327118ef5dd07",
+   "builtAt": "2026-10-05"
+  },
+  "olivo_jardin_300": {
+   "file": "olivo_jardin_300.glb",
+   "thumbnail": "thumbs/olivo_jardin_300.webp",
+   "sha256": "a0cbb017ea1d0fccaaac8816e1c31a184ad535ade24d6eaa48899f75852da9ca",
+   "bytes": 1019076,
+   "triangles": 12420,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2500,
+    2500,
+    3000
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2500,
+    2500,
+    3000
+   ],
+   "family": "jardin",
+   "type": "olive_tree",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-olivo",
+    "corteza": "jar-corteza-olivo"
+   },
+   "textures": [
+    "jar_corteza_olivo",
+    "jar_hoja_olivo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5ac889f6a0c9244100660b02dd302eb86f90dc20ab9c21353acb60d7440be59e",
+   "builtAt": "2026-10-05"
+  },
+  "palmera_jardin": {
+   "file": "palmera_jardin.glb",
+   "thumbnail": "thumbs/palmera_jardin.webp",
+   "sha256": "8250f39dbb968e4013e9e56f81a1cf18047bd688a6c3ded8fb3baa337c488909",
+   "bytes": 383712,
+   "triangles": 10128,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3516,
+    3537,
+    4305
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    3600,
+    4500
+   ],
+   "family": "jardin",
+   "type": "palm",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-palmera",
+    "corteza": "jar-corteza-fina"
+   },
+   "textures": [
+    "jar_corteza_fina"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c15768a81cca59f74c738dbc9bc12da2fa0bef5288d22af112490d397e5714b3",
+   "builtAt": "2026-10-05"
+  },
+  "piedras_100": {
+   "file": "piedras_100.glb",
+   "thumbnail": "thumbs/piedras_100.webp",
+   "sha256": "3e33502b3189667787fedebad7649c215c499f67626716685e31f1e5f3946ec2",
+   "bytes": 539716,
+   "triangles": 2880,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    970,
+    686,
+    250
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    700,
+    250
+   ],
+   "family": "jardin",
+   "type": "stones",
+   "params": {},
+   "finishes": {
+    "piedra": "jar-piedra-clara"
+   },
+   "textures": [
+    "jar_piedra_clara"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6e583177f273dda9c3c3aacae521cf6bf52127021c6f51257892ae56413ca0cb",
+   "builtAt": "2026-10-05"
+  },
+  "pino_jardin": {
+   "file": "pino_jardin.glb",
+   "thumbnail": "thumbs/pino_jardin.webp",
+   "sha256": "c4e165de4822adff23816bbd49212225855e089e35650598c5fe3bb0c377fde3",
+   "bytes": 537248,
+   "triangles": 13100,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3894,
+    3727,
+    5000
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3200,
+    3200,
+    5000
+   ],
+   "family": "jardin",
+   "type": "pine",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-conifera",
+    "corteza": "jar-corteza-fina"
+   },
+   "textures": [
+    "jar_corteza_fina"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "88008dba3b3adf6f54363efa790fc3d0712156cd7be6244ce5a94d4dff9213f9",
+   "builtAt": "2026-10-05"
+  },
+  "roca_110": {
+   "file": "roca_110.glb",
+   "thumbnail": "thumbs/roca_110.webp",
+   "sha256": "36702c4dd4a5883c5bc2fb1946287eeff4bfab5534d7a469abe2e4a6fec923a9",
+   "bytes": 1008184,
+   "triangles": 240,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1100,
+    800,
+    650
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    800,
+    650
+   ],
+   "family": "jardin",
+   "type": "rock",
+   "params": {},
+   "finishes": {
+    "piedra": "jar-roca"
+   },
+   "textures": [
+    "jar_roca"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ab654ad54d8165a9485833c78ad906187900e5d6c2c0b912fd20b65fe56a466c",
+   "builtAt": "2026-10-05"
+  },
+  "romero_jardin": {
+   "file": "romero_jardin.glb",
+   "thumbnail": "thumbs/romero_jardin.webp",
+   "sha256": "81266c3cf1025a5fade649797b4a91acadbd419091107ff910859feeb39e127d",
+   "bytes": 166276,
+   "triangles": 14912,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    567,
+    555,
+    698
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    650,
+    700
+   ],
+   "family": "jardin",
+   "type": "aromatic",
+   "params": {
+    "species": "rosemary"
+   },
+   "finishes": {
+    "hojas": "jar-palmera",
+    "flor": "jar-lavanda"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "08a6561da2dfe4b63763da0c6c6c283ae26830e8a1791e49a6633284d2d13b56",
+   "builtAt": "2026-10-05"
+  },
+  "setas_40": {
+   "file": "setas_40.glb",
+   "thumbnail": "thumbs/setas_40.webp",
+   "sha256": "d7eb5d8abe3712b6d28f5bf086c6a540a9d4d774fc2e1e53b35bfbdbefb5fecb",
+   "bytes": 12408,
+   "triangles": 864,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    379,
+    341,
+    400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    450,
+    400
+   ],
+   "family": "jardin",
+   "type": "mushrooms",
+   "params": {},
+   "finishes": {
+    "sombrero": "jar-ceramica-roja",
+    "pie": "jar-ceramica-crema"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3aa214ae22d14183274dc25e4e9971df4d49b4c8e1f86dcceddf8a8d14f638e2",
+   "builtAt": "2026-10-05"
+  },
+  "seto_bajo_jardin": {
+   "file": "seto_bajo_jardin.glb",
+   "thumbnail": "thumbs/seto_bajo_jardin.webp",
+   "sha256": "d7230ad2a3cffd9ed2c6dc701dc967a335f2e8645e45858f97635f842bcf59fc",
+   "bytes": 339804,
+   "triangles": 9056,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    450,
+    500
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    450,
+    500
+   ],
+   "family": "jardin",
+   "type": "hedge",
+   "params": {
+    "hue": 0.25
+   },
+   "finishes": {
+    "hojas": "jar-hojas-boj"
+   },
+   "textures": [
+    "jar_hoja_boj"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b0a8eae6ba9772ce05ae0f9236dfa6ec1e94092bb753e57d305d80904edf4544",
+   "builtAt": "2026-10-05"
+  },
+  "seto_boj_200": {
+   "file": "seto_boj_200.glb",
+   "thumbnail": "thumbs/seto_boj_200.webp",
+   "sha256": "3f477d5c05eb747c57b45321359f7e6219258201397cfc3839cc929bd338ce63",
+   "bytes": 350800,
+   "triangles": 10488,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    600,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    600,
+    1400
+   ],
+   "family": "jardin",
+   "type": "hedge",
+   "params": {},
+   "finishes": {
+    "hojas": "jar-hojas-boj"
+   },
+   "textures": [
+    "jar_hoja_boj"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c7590d1df8a4e7765686a548721222b1d4112c3e2a857f8e89df616d883971e8",
+   "builtAt": "2026-10-05"
+  },
+  "seto_fotinia_jardin": {
+   "file": "seto_fotinia_jardin.glb",
+   "thumbnail": "thumbs/seto_fotinia_jardin.webp",
+   "sha256": "5810f7f4cb7d7e590c27ea1c19c8f9570bd937e42fd2beb57d0e165c56a8254e",
+   "bytes": 280520,
+   "triangles": 10488,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    650,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    650,
+    1400
+   ],
+   "family": "jardin",
+   "type": "hedge",
+   "params": {
+    "hue": 0.04
+   },
+   "finishes": {
+    "hojas": "jar-hojas-naranjo"
+   },
+   "textures": [
+    "jar_hoja_naranjo"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "73c266d8862f0d756154b1787dca1b0869f90b1dc782a42c8846dc1b5e27ee3b",
+   "builtAt": "2026-10-05"
+  },
+  "seto_laurel_jardin": {
+   "file": "seto_laurel_jardin.glb",
+   "thumbnail": "thumbs/seto_laurel_jardin.webp",
+   "sha256": "9421e93324cb03d9226293e614fa3df0634cc7fa1485a6c098de7d3187c1dac0",
+   "bytes": 321664,
+   "triangles": 11576,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    700,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    700,
+    1800
+   ],
+   "family": "jardin",
+   "type": "hedge",
+   "params": {
+    "hue": 0.28
+   },
+   "finishes": {
+    "hojas": "jar-hojas-arbusto"
+   },
+   "textures": [
+    "jar_hoja_arbusto"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "62c0e27a1f3ba2a90d13b35f668ef0f1ac8ca05295fe8fbd4d19995f7506941e",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "jar_corteza_fina": {
+   "source": "polyhaven",
+   "id": "bark_willow_02",
+   "title": "Bark Willow 02",
+   "authors": [
+    "Charlotte Baglioni"
+   ],
+   "pageUrl": "https://polyhaven.com/a/bark_willow_02",
+   "license": "CC0-1.0",
+   "sizeMm": 2150,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_diff_1k.jpg",
+     "bytes": 998966,
+     "md5": "384e25dd87b6b606458c9aa5f84735aa"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_nor_gl_1k.jpg",
+     "bytes": 1358916,
+     "md5": "eb381e522a4053d6ca4ce7e31c77dcd3"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_willow_02/bark_willow_02_rough_1k.jpg",
+     "bytes": 498100,
+     "md5": "ab7b9a693d9edcfeaa606b7219c64193"
+    }
+   ]
+  },
+  "jar_corteza_olivo": {
+   "source": "polyhaven",
+   "id": "bark_brown_02",
+   "title": "Bark Brown 02",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/bark_brown_02",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_diff_1k.jpg",
+     "bytes": 659592,
+     "md5": "6669cca520594bdca19f94084984ab72"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_nor_gl_1k.jpg",
+     "bytes": 1015623,
+     "md5": "1cad3fe0349a44df2d4d1c2859c79920"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_rough_1k.jpg",
+     "bytes": 337946,
+     "md5": "bbcde696e5b9418cdcb2abe638965417"
+    }
+   ]
+  },
+  "jar_corteza_platano": {
+   "source": "polyhaven",
+   "id": "bark_platanus",
+   "title": "Bark Platanus",
+   "authors": [
+    "Dimitrios Savva"
+   ],
+   "pageUrl": "https://polyhaven.com/a/bark_platanus",
+   "license": "CC0-1.0",
+   "sizeMm": 1500,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_platanus/bark_platanus_diff_1k.jpg",
+     "bytes": 906704,
+     "md5": "2824272c2b693b7784bc2515d0728a8a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_platanus/bark_platanus_nor_gl_1k.jpg",
+     "bytes": 1290168,
+     "md5": "850c131308d165e0ed3daa617a9a057f"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_platanus/bark_platanus_rough_1k.jpg",
+     "bytes": 382604,
+     "md5": "9354f1dd3df3b8b8bf4439307496841c"
+    }
+   ]
+  },
+  "jar_hoja_arbusto": {
+   "source": "ambientcg",
+   "id": "LeafSet003",
+   "title": "Leaf Set 003",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet003",
+   "license": "CC0-1.0",
+   "sizeMm": 250,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet003_1K-JPG.zip",
+     "bytes": 4672961,
+     "sha256": "612e8fbf71d8ac559d8c74cd4c39b6746dfb73e6481ad34c5f7d18b45c6dadb7"
+    }
+   ]
+  },
+  "jar_hoja_boj": {
+   "source": "ambientcg",
+   "id": "LeafSet002",
+   "title": "Leaf Set 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet002",
+   "license": "CC0-1.0",
+   "sizeMm": 250,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet002_1K-JPG.zip",
+     "bytes": 5487818,
+     "sha256": "10fdeb7cbdff8b34609f4158ceca5ef9005e9d44ee17d17ad5b656849cd5925f"
+    }
+   ]
+  },
+  "jar_hoja_formio": {
+   "source": "polyhaven",
+   "id": "anthurium_botany_01",
+   "title": "Anthurium Botany 01",
+   "authors": [
+    "Rob Tuytel",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/anthurium_botany_01",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_diff_1k.jpg",
+     "bytes": 448508,
+     "md5": "b78dfe5b3c265e5d9290c0f75a2801f3"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_nor_gl_1k.jpg",
+     "bytes": 494107,
+     "md5": "b9f023a3bf6f30ed293a35722ab14f06"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_rough_1k.jpg",
+     "bytes": 440747,
+     "md5": "38f99a8f7ff08143873cae17292551d9"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/anthurium_botany_01/anthurium_botany_01_alpha_1k.jpg",
+     "bytes": 97557,
+     "md5": "5b88c1e1a255c0f0ee24c0132a670737"
+    }
+   ]
+  },
+  "jar_hoja_lechuga": {
+   "source": "ambientcg",
+   "id": "LeafSet009",
+   "title": "Leaf Set 009",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet009",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet009_1K-JPG.zip",
+     "bytes": 5021446,
+     "sha256": "3de484d3b44366611751526eb5c69c52b260dc54f45b581272ac05e748721d2f"
+    }
+   ]
+  },
+  "jar_hoja_naranjo": {
+   "source": "ambientcg",
+   "id": "LeafSet022",
+   "title": "Leaf Set 022",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet022",
+   "license": "CC0-1.0",
+   "sizeMm": 250,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet022_1K-JPG.zip",
+     "bytes": 4312892,
+     "sha256": "b2bb1712d006c88272d7b588fa5b2c9a0a4ddf2f00bd1e1ff9703fd23c2e0eea"
+    }
+   ]
+  },
+  "jar_hoja_olivo": {
+   "source": "ambientcg",
+   "id": "LeafSet018",
+   "title": "Leaf Set 018",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet018",
+   "license": "CC0-1.0",
+   "sizeMm": 200,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet018_1K-JPG.zip",
+     "bytes": 2828704,
+     "sha256": "47874a3a882a337a89fb5ebad890bf8f1449f39ccad5cd8056a48358d6568295"
+    }
+   ]
+  },
+  "jar_hoja_platano": {
+   "source": "ambientcg",
+   "id": "LeafSet010",
+   "title": "Leaf Set 010",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=LeafSet010",
+   "license": "CC0-1.0",
+   "sizeMm": 300,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=LeafSet010_1K-JPG.zip",
+     "bytes": 3862076,
+     "sha256": "b72dbfeac10c42cbe17d34b4d744c19acdc818c064159ee9258e7e77648f3792"
+    }
+   ]
+  },
+  "jar_mantillo": {
+   "source": "polyhaven",
+   "id": "yellow_flower_mulch",
+   "title": "Yellow Flower Mulch",
+   "authors": [
+    "Dimitrios Savva"
+   ],
+   "pageUrl": "https://polyhaven.com/a/yellow_flower_mulch",
+   "license": "CC0-1.0",
+   "sizeMm": 2000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_flower_mulch/yellow_flower_mulch_diff_1k.jpg",
+     "bytes": 1000861,
+     "md5": "ac90d469d6e881b3d3aeee65ae1554d2"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_flower_mulch/yellow_flower_mulch_nor_gl_1k.jpg",
+     "bytes": 1438415,
+     "md5": "42044d4dbd9c6c065980c853bf5e931e"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/yellow_flower_mulch/yellow_flower_mulch_rough_1k.jpg",
+     "bytes": 276491,
+     "md5": "986f91566360635756ca3122f9b2e248"
+    }
+   ]
+  },
+  "jar_piedra_clara": {
+   "source": "polyhaven",
+   "id": "worn_rock_natural_01",
+   "title": "Worn Rock Natural 01",
+   "authors": [
+    "Rob Tuytel",
+    "Dimitrios Savva"
+   ],
+   "pageUrl": "https://polyhaven.com/a/worn_rock_natural_01",
+   "license": "CC0-1.0",
+   "sizeMm": 2000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_diff_1k.jpg",
+     "bytes": 854615,
+     "md5": "f410522eec19eb12e2b96ad4386b8493"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_nor_gl_1k.jpg",
+     "bytes": 910654,
+     "md5": "8645b86f5cb360b626086a4dc286340a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_rough_1k.jpg",
+     "bytes": 541768,
+     "md5": "d8f4508262dcf919d3fe6ce97ae30f98"
+    }
+   ]
+  },
+  "jar_pino": {
+   "source": "polyhaven",
+   "id": "coated_pine",
+   "title": "Coated Pine",
+   "authors": [
+    "Charlotte Baglioni",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/coated_pine",
+   "license": "CC0-1.0",
+   "sizeMm": 740,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coated_pine/coated_pine_diff_1k.jpg",
+     "bytes": 710600,
+     "md5": "9a7ae992985ad56fd22ed26196a9b405"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coated_pine/coated_pine_nor_gl_1k.jpg",
+     "bytes": 443383,
+     "md5": "2148b0edde5af6b16fbd08a9724feafc"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coated_pine/coated_pine_rough_1k.jpg",
+     "bytes": 491513,
+     "md5": "0ce8476bf398e47b0655648b3d38d4ae"
+    }
+   ]
+  },
+  "jar_roca": {
+   "source": "ambientcg",
+   "id": "Rock030",
+   "title": "Rock 030",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Rock030",
+   "license": "CC0-1.0",
+   "sizeMm": 1500,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Rock030_1K-JPG.zip",
+     "bytes": 9677446,
+     "sha256": "2fd0bc2d214e2487c19062ed0798a85dd135b41cfc12bbaed42d5acae238f989"
+    }
+   ]
+  },
+  "jar_terracota": {
+   "source": "ambientcg",
+   "id": "Clay002",
+   "title": "Clay 002",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Clay002",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Clay002_1K-JPG.zip",
+     "bytes": 7780720,
+     "sha256": "aa29a541b39ef8304a65a96ab9bbcdd44e23bcdf3822979ca1d5ec895bb0809f"
+    }
+   ]
+  },
+  "jar_tierra": {
+   "source": "polyhaven",
+   "id": "brown_mud",
+   "title": "Brown Mud",
+   "authors": [
+    "Rob Tuytel"
+   ],
+   "pageUrl": "https://polyhaven.com/a/brown_mud",
+   "license": "CC0-1.0",
+   "sizeMm": 1300,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_diff_1k.jpg",
+     "bytes": 501955,
+     "md5": "b141af27b413db140818d0a4998c394c"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_nor_gl_1k.jpg",
+     "bytes": 1011780,
+     "md5": "62df05266fa5a0adc7733a7184a15dea"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_rough_1k.jpg",
+     "bytes": 340815,
+     "md5": "fb4d5d8ef98ebee6a402955b99103a3a"
+    }
+   ]
+  }
+ }
+}

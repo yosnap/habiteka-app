@@ -7,6 +7,7 @@
  * y a `Plano2dPayload` es responsabilidad de `normalize-geometry.ts`.
  */
 import type { ApertureKind } from '@/lib/contracts';
+import type { ApertureVariant } from './aperture-types';
 
 export interface SketchPoint {
   x: number;
@@ -44,6 +45,8 @@ export interface SketchAperture {
   arcVisible?: boolean;
   /** Tres puntos observados del símbolo: bisagra, otro extremo del vano y un punto del arco. */
   arcGeometry?: { hinge: SketchPoint; openingEnd: SketchPoint; arcPoint: SketchPoint };
+  /** Carpintería que el símbolo distingue (entrada, doble hoja, corredera…); ausente = tipo básico. */
+  variante?: ApertureVariant;
 }
 
 /** Habitación etiquetada con su contorno aproximado. */

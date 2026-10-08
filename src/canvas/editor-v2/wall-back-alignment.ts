@@ -35,13 +35,51 @@ function nearestWallFace(doc: EditorDocument, item: Furniture, toleranceMm: numb
  */
 export function alignBackToWall(doc: EditorDocument, item: Furniture, toleranceMm: number): Furniture {
   const best = nearestWallFace(doc, item, toleranceMm);
-  if (!best) return item;
-  // El frente del mueble (+y local) apunta en el sentido de la normal de la cara, hacia la estancia.
-  const rotation = Math.atan2(-best.normal.x, best.normal.y) * 180 / Math.PI;
+  return best ? backAgainst(item, best) : item;
+}
+
+/** Gira el mueble con la trasera (borde y=0 local) contra la cara y el frente (+y local) hacia la estancia. */
+function backAgainst(item: Furniture, hit: Pick<WallFaceHit, 'normal' | 'face'>): Furniture {
+  const rotation = Math.atan2(-hit.normal.x, hit.normal.y) * 180 / Math.PI;
   const turned = transformAroundCenter(item, { rotation: Math.round(rotation * 100) / 100 });
   const back = localToWorld(turned, { x: 0, y: 0 });
-  const offset = (back.x - best.face.x) * best.normal.x + (back.y - best.face.y) * best.normal.y;
-  return { ...turned, x: turned.x - best.normal.x * offset, y: turned.y - best.normal.y * offset };
+  const offset = (back.x - hit.face.x) * hit.normal.x + (back.y - hit.face.y) * hit.normal.y;
+  return { ...turned, x: turned.x - hit.normal.x * offset, y: turned.y - hit.normal.y * offset };
+}
+
+/** Piezas que viven contra una pared; mesas, sillas, alfombras, plantas y lámparas se quedan como las gire el usuario. */
+const WALL_PIECES = new Set(['bed', 'sofa', 'sofa-chaise', 'sofa-corner', 'sofa-modular', 'sofa-bed', 'cabinet', 'shelf', 'kitchen',
+  'sink', 'toilet', 'bath', 'shower', 'appliance', 'screen']);
+
+/**
+ * Al arrastrar o colocar desde el catálogo, una pieza de pared cuyo centro se acerca a un muro recto se gira hacia él,
+ * como una puerta se orienta con su muro: un armario que apenas cabe se lleva ya girado a la otra pared en lugar de
+ * girarlo donde no hay sitio. Con memoria: mientras siga al alcance un muro que admite el giro que ya tiene la pieza
+ * (`preferredRotation`, el de la vista previa), lo conserva; en un rincón, un armario puesto en horizontal no salta a la
+ * pared lateral aunque su centro quede más cerca de ella. Solo gira hacia otro muro cuando el suyo queda lejos.
+ */
+export function orientToNearestWall(doc: EditorDocument, item: Furniture, toleranceMm: number, preferredRotation = item.rotation): Furniture {
+  const profile = getFurnitureCatalogEntry(item.catalogId)?.profile;
+  if (!profile || !WALL_PIECES.has(profile)) return item;
+  const center = objectCenter(item);
+  const turn = (normal: { x: number; y: number }) => ((Math.atan2(-normal.x, normal.y) * 180 / Math.PI) % 360 + 360) % 360;
+  const keeps = (normal: { x: number; y: number }) => Math.abs(((turn(normal) - preferredRotation) % 360 + 540) % 360 - 180) < 1;
+  let best: { distance: number; keeps: boolean; normal: { x: number; y: number }; face: { x: number; y: number } } | null = null;
+  for (const wall of doc.walls) {
+    if (wall.hidden || wall.curveHeightMm) continue;
+    const path = wallPath(doc, wall), a = path.at(0), u = path.tangent(0);
+    const along = (center.x - a.x) * u.x + (center.y - a.y) * u.y;
+    if (along < 0 || along > path.length) continue;
+    const across = (center.x - a.x) * -u.y + (center.y - a.y) * u.x, side = across >= 0 ? 1 : -1, normal = { x: -u.y * side, y: u.x * side };
+    const distance = Math.abs(across) - wall.thicknessMm / 2, kept = keeps(normal);
+    // Un muro que conserva el giro actual gana a cualquiera que obligue a girar; entre iguales, el más cercano.
+    if (distance <= item.depthMm / 2 + toleranceMm && (!best || (kept && !best.keeps) || (kept === best.keeps && distance < best.distance)))
+      best = { distance, keeps: kept, normal, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
+  }
+  if (!best) return item;
+  // Giro entre 0 y 360, como el resto del plano: el panel mostraba -90 donde el usuario pone 270.
+  const turned = backAgainst(item, best);
+  return { ...turned, rotation: ((turned.rotation % 360) + 360) % 360 };
 }
 
 /** Giro máximo con el que un tramo de cocina se endereza contra su muro: corrige desviaciones, no cambia de pared. */

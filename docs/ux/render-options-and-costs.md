@@ -90,14 +90,16 @@ reiniciar el proceso de desarrollo para renovar el singleton del cliente.
 
 - «Crear imágenes» → «Ver vistas de referencia» (capturas locales, requiere 3D)
   → «Generar imágenes con IA». No modifica el plano.
-- «Cambiar acabados y muebles» → «Proponer acabados y muebles con IA»
-  → revisión → «Aplicar al plano». Oculta iluminación y cámaras, que no son
-  propiedades de esta propuesta editable.
+- «Diseñar el plano» (antes «Cambiar acabados y muebles», ahora primer paso del
+  estudio) → «Proponer acabados y muebles con IA» → revisión → «Aplicar al
+  plano». Oculta iluminación y cámaras, que no son propiedades de esta
+  propuesta editable. Desde el 4 de octubre sus modos se llaman Amueblar (libre),
+  Solo categorías (controlado) y Acabados (estricto).
 - La propuesta transmite y valida las opciones en el servidor antes de consultar
   al proveedor. Estricto elimina todos los objetos nuevos; controlado restringe
-  categorías del catálogo; libre excluye instalaciones y construcción.
+  categorías del catálogo; libre excluía instalaciones y construcción; desde el 4 de octubre «Amueblar» admite sanitarios, cocina, electrodomésticos y lavadora, y solo excluye la construcción.
 - Las zonas restringen la huella completa de objetos, incluyendo cruces con
-  polígonos cóncavos. No restringen los acabados generales. Máximo cuatro objetos.
+  polígonos cóncavos. No restringen los acabados generales. El cupo de objetos (cuatro, luego ocho) se retiró el 4 de octubre.
 - Probado el formulario real en pestaña independiente: estilo destacado y ángulo
   legible con puntero encima. Fixture local confirma envío de Controlado/Plantas
   y aplicación al documento; no se han realizado llamadas IA pagadas en esta prueba.

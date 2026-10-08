@@ -19,7 +19,7 @@ export async function validatedImageTourSources(ctx: OrgContext, scope: EditorSc
     select: { id: true, payload: true, createdAt: true } });
   if (rows.length !== ids.length) fail('Alguna imagen no pertenece a este proyecto o a este ámbito.');
   const shots = await tourImagesFromRows(rows, tourDocumentReader(ctx, scope));
-  if (shots.length !== ids.length) fail('Alguna imagen elegida no tiene archivo disponible.');
+  if (shots.length !== ids.length) fail('Alguna imagen no es un diseño IA aceptado o no tiene archivo disponible. Abre Diseños y revisa su aceptación.');
   const revisions = await sameContentRevisions(ctx, scope, approved, shots.map(shot => shot.revision));
   const result = assessTourHomogeneity(shots, new Set(revisions));
   if (!result.ok) fail(result.issues.map(issue => issue.message).join(' '));

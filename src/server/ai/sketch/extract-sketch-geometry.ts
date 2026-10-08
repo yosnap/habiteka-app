@@ -22,6 +22,7 @@ import {
 } from './sketch-types';
 import { sanitizeExtractedText } from './sanitize-extracted-text';
 import { validDoorArcGeometry } from './door-arc-geometry';
+import { APERTURE_VARIANTS, parseApertureVariant } from './aperture-types';
 
 const APERTURE_KINDS = ['puerta', 'ventana', 'hueco'] as const;
 
@@ -93,6 +94,10 @@ export const SKETCH_SCHEMA: JsonSchema = {
               hinge: POINT_SCHEMA, openingEnd: POINT_SCHEMA, arcPoint: POINT_SCHEMA,
             },
           },
+          variante: {
+            type: 'string', enum: [...APERTURE_VARIANTS],
+            description: 'Solo si el símbolo lo distingue claramente. Puertas: entrada, doble, corredera, plegable, granero, corredera-central, garaje. Ventanas: balconera, corredera. Omite si dudas.',
+          },
         },
       },
     },
@@ -162,6 +167,10 @@ export function sketchPrompt(): string {
     'La imagen es un BOCETO de un plano de vivienda en planta (vista cenital), posiblemente',
     'dibujado a mano con trazos imperfectos. Extrae su GEOMETRÍA:',
     '',
+    // Con todos los decimales, un plano limpio con mucho mobiliario agotaba 16000 tokens de salida.
+    'Escribe cada coordenada, fracción o medida con 3 decimales como máximo (0.412, nunca',
+    '0.41234567): más precisión no sirve y alarga la respuesta hasta cortarla.',
+    '',
     '- muros: cada pared como UN ÚNICO segmento por su EJE CENTRAL, con extremos',
     '  (x1,y1)-(x2,y2) en coordenadas NORMALIZADAS 0–1 respecto a la imagen. Si el muro está',
     '  dibujado grueso (dos líneas paralelas), devuelve UNA sola línea por el centro, nunca las',
@@ -172,12 +181,30 @@ export function sketchPrompt(): string {
     '- aberturas: SOLO las puertas, ventanas y huecos de paso claramente dibujados, cada una',
     '  anclada a su muro por índice, con su centro como fracción 0–1 a lo largo del muro y su',
     '  ancho como fracción de la longitud del muro. En caso de duda, no la devuelvas.',
-    '  Una PUERTA exige ver el arco de barrido de la hoja: marca arcVisible=true.',
+    '  Una PUERTA abatible exige ver el arco de barrido de la hoja: marca arcVisible=true',
+    '  (las correderas y plegables, sin arco, se explican abajo en variante).',
     '  Si se ve, da arcGeometry: hinge=punto exacto de bisagra sobre el muro,',
     '  openingEnd=otro extremo del vano sobre ESE MISMO muro, arcPoint=un punto',
     '  del arco visible lejos del muro. Usa las coordenadas de la imagen 0–1;',
     '  estos puntos prevalecen sobre el índice de muro y los giros estimados.',
-    '  Si solo ves un hueco sin arco, devuelve tipo=hueco; no inventes una puerta.',
+    '  Si solo ves un hueco sin arco ni hoja dibujada, devuelve tipo=hueco; no inventes una puerta.',
+    '  variante: el tipo de carpintería, SOLO cuando el símbolo lo muestre claro (si dudas, omítela):',
+    '  · entrada: la puerta de la fachada principal por la que se entra a la vivienda, o la',
+    '    rotulada «Entrada»/«Acceso».',
+    '  · doble: dos arcos que abren desde los dos extremos del mismo vano. Da posicion y',
+    '    anchoSobreMuro del vano completo y no des arcGeometry.',
+    '  · corredera: sin arco; la hoja dibujada paralela al muro (desplazada o metida en él) o',
+    '    flechas de deslizamiento. Es tipo=puerta aunque no tenga arco (arcVisible=false).',
+    '    Las salidas acristaladas y anchas a una terraza o un patio suelen ser correderas.',
+    '  · plegable: hojas en zigzag o acordeón, sin arco; tipo=puerta.',
+    '  · granero: corredera de una hoja colgada POR FUERA de la cara del muro, paralela a él,',
+    '    con la guía dibujada a lo largo de la pared o rotulada «granero»; tipo=puerta.',
+    '  · corredera-central: dos hojas paralelas al muro que se separan desde el centro, con',
+    '    flechas hacia los dos lados; tipo=puerta, posicion y anchoSobreMuro del vano completo.',
+    '  · garaje: puerta ancha (unos 2,2 a 5 m) de un garaje, cochera o parking, sin arco, una',
+    '    línea recta por la cara interior y a veces la huella discontinua de la guía bajo el techo.',
+    '  · En ventanas: balconera si llega al suelo y sale a un balcón o una terraza; corredera',
+    '    si se ven dos hojas paralelas solapadas o flechas.',
     '  Para cada puerta, lee el ARCO dibujado: swing=left si abre hacia la normal',
     '  (-dy,dx) del muro orientado (x1,y1)→(x2,y2), right si abre al lado opuesto.',
     '  hinge=left si la bisagra está en el extremo inicial del hueco sobre ese muro,',
@@ -262,7 +289,9 @@ function parseApertures(list: unknown, wallCount: number): SketchAperture[] {
     if (typeof muro !== 'number' || !Number.isInteger(muro) || muro < 0 || muro >= wallCount)
       continue;
     if (!isUnit(posicion)) continue;
-    const observedArc = tipo === 'puerta' && arcVisible === true
+    const variante = parseApertureVariant(tipo as SketchAperture['tipo'], (a as Record<string, unknown>).variante);
+    // Los tres puntos describen UNA hoja: en una puerta de dos hojas situarían media puerta descentrada.
+    const observedArc = tipo === 'puerta' && arcVisible === true && variante !== 'doble'
       ? validDoorArcGeometry(arcGeometry) : null;
     out.push({
       tipo: tipo as SketchAperture['tipo'],
@@ -273,6 +302,7 @@ function parseApertures(list: unknown, wallCount: number): SketchAperture[] {
       ...(tipo === 'puerta' && (hinge === 'left' || hinge === 'right') ? { hinge } : {}),
       ...(tipo === 'puerta' && arcVisible === true ? { arcVisible: true } : {}),
       ...(observedArc ? { arcGeometry: observedArc } : {}),
+      ...(variante ? { variante } : {}),
     });
   }
   return out;
@@ -429,8 +459,12 @@ export async function extractSketchGeometry(
     responseSchema: SKETCH_SCHEMA,
     // La geometría de un boceto con muchos muros es un JSON largo, y los modelos
     // con razonamiento gastan parte del presupuesto en pensar: con el tope por
-    // defecto el JSON puede salir truncado (y no valida contra el schema).
-    maxTokens: 8192,
+    // defecto el JSON puede salir truncado (y no valida contra el schema). Un
+    // boceto con todo el mobiliario agotó 8192 tokens con Sonnet 5.
+    maxTokens: 16000,
+    // Sonnet 5 razona por defecto y sin tope: con un plano redibujado por IA gastó
+    // los 16000 tokens pensando (15995 de razonamiento) sin escribir el JSON.
+    reasoning: { effort: 'low' },
   });
   return parseRawSketch(result.structured);
 }

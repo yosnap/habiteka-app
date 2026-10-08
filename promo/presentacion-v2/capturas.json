@@ -1,0 +1,11 @@
+{
+  "capturas": [
+    { "id": "landing", "ruta": "/" },
+    { "id": "proyectos", "ruta": "/proyectos" },
+    { "id": "plano", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/plano" },
+    { "id": "editor", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/editor",
+      "cajas": { "ia": "button:has-text('Diseñar con IA')" } },
+    { "id": "asistente", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/chat" },
+    { "id": "disenos", "ruta": "/projects/cmu7nm84n0001evmsi8nyt1ee/deliverables" }
+  ]
+}

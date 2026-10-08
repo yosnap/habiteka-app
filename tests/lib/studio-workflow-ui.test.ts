@@ -19,7 +19,9 @@ describe('lectura del progreso y los resultados del estudio', () => {
     );
     expect(html).toContain('Plano editable');
     expect(html).toContain('Pendiente');
-    expect(html).toContain('Visita');
+    expect(html).toContain('Diseños');
+    expect(html).toContain('Vídeos');
+    expect(html).not.toContain('Visita');
   });
 
   it('muestra la versión y el origen de un render guardado', () => {

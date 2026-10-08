@@ -1,5 +1,6 @@
 import { assertBoundaryFields } from './boundary-validation';
 import { geographicSiteSchema } from './geographic-site';
+import { propertyOrientationSchema } from './property-orientation';
 import { renderBackdropSchema } from './render-backdrop';
 import { exteriorRoofSchema } from './exterior-roof';
 import { isValidEstilo } from '@/lib/design-options';
@@ -12,6 +13,7 @@ import { assertLightingSceneFields } from './lighting-scene-validation';
 import { assertLightZoneFields } from './light-zone-validation';
 import { assertDesignZoneFields } from './design-zone-validation';
 import { surfaceMaterial } from './surface-materials';
+import { isDoorHandle, isFrameFinish, isLeafDesign, isLeafFinish } from './opening-look-options';
 import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
 import { isDesignSpaceKind } from '@/lib/design-space-kind';
@@ -64,8 +66,9 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite exteriorRoof renderBackdrop${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite propertyOrientation exteriorRoof renderBackdrop${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
+  if (value.propertyOrientation !== undefined) propertyOrientationSchema.parse(value.propertyOrientation);
   if (value.geographicSite !== undefined) geographicSiteSchema.parse(value.geographicSite);
   if (value.renderBackdrop !== undefined) renderBackdropSchema.parse(value.renderBackdrop);
   if (value.exteriorRoof !== undefined) exteriorRoofSchema.parse(value.exteriorRoof);
@@ -223,7 +226,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       ids.add(e.id);
       const allowed: Record<string, string> = {
         vertices: 'id x y',
-        walls: 'id name hidden startVertexId endVertexId thicknessMm dimensionalOrigin',
+        walls: 'id name hidden classification startVertexId endVertexId thicknessMm dimensionalOrigin',
         openings: 'id name wallId kind position widthMm dimensionalOrigin',
         furniture: 'id name x y kind catalogId widthMm depthMm rotation dimensionalOrigin',
         dimensions: 'id from to label',
@@ -240,13 +243,13 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       if ((value.schemaVersion as number) >= 5 && key === 'walls')
         allowed.walls += ' curveHeightMm';
       if (construction && key === 'openings')
-        allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId';
+        allowed.openings += ' heightMm elevationMm catalogId hinge swing openAngleDeg sourceRampId leafDesign leafFinish handle frameFinish';
       if (spatial) {
         allowed.walls += ' colors';
         allowed.openings += ' colors';
         allowed.stairs += ' color';
         allowed.ramps += ' color';
-        allowed.furniture += ' heightMm elevationMm color hostId coverage rolledSides';
+        allowed.furniture += ' heightMm elevationMm color hostId coverage rolledSides porchSteps';
       }
       keys(e, allowed[key]!);
       if (e.name !== undefined) {
@@ -264,6 +267,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         positive(e.heightMm);
         nonnegative(e.elevationMm);
         if (e.hostId !== undefined) text(e.hostId);
+        if (e.porchSteps !== undefined && (e.kind !== 'porche-entrada' || typeof e.porchSteps !== 'boolean'))
+          throw new Error('Peldaños de porche inválidos');
         if (e.coverage !== undefined) { finite(e.coverage); if ((e.coverage as number) < 0 || (e.coverage as number) > 1) throw new Error('La cobertura va de 0 a 1'); }
         if (e.rolledSides !== undefined && (e.kind !== 'carpa' || !['none', 'left', 'right', 'both'].includes(e.rolledSides as string)))
           throw new Error('Laterales de carpa inválidos');
@@ -284,6 +289,8 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
         text(e.endVertexId);
         if (e.hidden !== undefined && typeof e.hidden !== 'boolean')
           throw new Error('Visibilidad de muro inválida');
+        if (e.classification !== undefined && !['interior', 'exterior'].includes(e.classification as string))
+          throw new Error('Clasificación de pared inválida');
         positive(e.thicknessMm);
         origin(e.dimensionalOrigin);
         if (e.baseElevationMm !== undefined) nonnegative(e.baseElevationMm);
@@ -316,6 +323,10 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
           if (e.openAngleDeg < 0 || e.openAngleDeg > 180)
             throw new Error('Ángulo de apertura inválido');
           if (e.sourceRampId !== undefined) text(e.sourceRampId);
+          // Aspecto opcional: sin estos campos la puerta o ventana se ve como siempre.
+          if ((e.leafDesign !== undefined && !isLeafDesign(e.leafDesign)) || (e.leafFinish !== undefined && !isLeafFinish(e.leafFinish))
+            || (e.handle !== undefined && !isDoorHandle(e.handle)) || (e.frameFinish !== undefined && !isFrameFinish(e.frameFinish)))
+            throw new Error('Diseño o acabado de abertura desconocido');
         }
       } else if (key === 'furniture') {
         text(e.kind);

@@ -1,0 +1,2888 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia textiles) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "textiles",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "cortina_onda_120_c100": {
+   "file": "cortina_onda_120_c100.glb",
+   "thumbnail": "thumbs/cortina_onda_120_c100.webp",
+   "sha256": "f261f19373c6f2f59799c3cdacd426e149e87e4756678e0bfc3011c2aac750f6",
+   "bytes": 207132,
+   "triangles": 9316,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 1,
+    "waves": 4
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "573764c64f8e62d035af58d9f0ea08347b923f60ca9c805695e3868be6831d87",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_120_c20": {
+   "file": "cortina_onda_120_c20.glb",
+   "thumbnail": "thumbs/cortina_onda_120_c20.webp",
+   "sha256": "7881e1ed1b53a61ca33cbfaafb71d17a6c4713e16fdb6c88ddadd435d6dc6d55",
+   "bytes": 205016,
+   "triangles": 9316,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.2,
+    "waves": 4
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9d32a3c0137d96993028a3aca5f89cddd101a0172c7ebb633f345e3543d269eb",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_120_c40": {
+   "file": "cortina_onda_120_c40.glb",
+   "thumbnail": "thumbs/cortina_onda_120_c40.webp",
+   "sha256": "7fc4b5aa06d687e10948093aba3f963ea6c7d2d59198ade674069968e93f2e72",
+   "bytes": 204436,
+   "triangles": 9316,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.4,
+    "waves": 4
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f7305dab3e10006216f1c7b12ff8110767d47949ce9aaf98ca0b37ea4bd8d568",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_120_c70": {
+   "file": "cortina_onda_120_c70.glb",
+   "thumbnail": "thumbs/cortina_onda_120_c70.webp",
+   "sha256": "030c2e25beaa9de61264e2113f570b5236d6f7892a7c8b096ad57523e4116d82",
+   "bytes": 206412,
+   "triangles": 9316,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.7,
+    "waves": 4
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e7140d662f1f871ee3458cf7e9329be493023edfd929d6dcfcb92fe9e1d4960b",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_180_c100": {
+   "file": "cortina_onda_180_c100.glb",
+   "thumbnail": "thumbs/cortina_onda_180_c100.webp",
+   "sha256": "d654e5126eae8e7199da879bf8d99e31ef74ee26f6cb41a8d520db9d9c18a2bf",
+   "bytes": 247664,
+   "triangles": 13252,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 1,
+    "waves": 6
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3646afd9719bee959df5ec9221057fa0de08083788ca2b6147fc489bb5b91a34",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_180_c20": {
+   "file": "cortina_onda_180_c20.glb",
+   "thumbnail": "thumbs/cortina_onda_180_c20.webp",
+   "sha256": "b48f5b3a214d8f91cb08d99924bdf18693b430097881acf24165bc0cebb88571",
+   "bytes": 244412,
+   "triangles": 13252,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.2,
+    "waves": 6
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ead2586939ecc6254736fd30e3233ef8dcccc7f5c88ed73be6816498a6bde5ba",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_180_c40": {
+   "file": "cortina_onda_180_c40.glb",
+   "thumbnail": "thumbs/cortina_onda_180_c40.webp",
+   "sha256": "516b3af28b18edb3267ae818fed6f1d9ed83a09c04edc234ee217fa9512ea3bc",
+   "bytes": 243064,
+   "triangles": 13252,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.4,
+    "waves": 6
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e206341a37c984b34b5df6ae2d95dfa0c00183bcb28b71ce156f39cce1a9c1d0",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_180_c70": {
+   "file": "cortina_onda_180_c70.glb",
+   "thumbnail": "thumbs/cortina_onda_180_c70.webp",
+   "sha256": "c4c8da61f6bde8cb5eb95326398fb7939aca2491156fadeb9d58ad1a96eb9753",
+   "bytes": 246780,
+   "triangles": 13252,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1800,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.7,
+    "waves": 6
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f4c939f3686efa8d15eddc62a44dbd45ae16dd2b5b50ac44a2fbbf6e637225fa",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_260_c100": {
+   "file": "cortina_onda_260_c100.glb",
+   "thumbnail": "thumbs/cortina_onda_260_c100.webp",
+   "sha256": "647601adecbcbf3b578a388914d3c78dfa35b98fba6f8ffb4ed0b8a1d59ea4f9",
+   "bytes": 308052,
+   "triangles": 19156,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2600,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 1,
+    "waves": 9
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5a4cbf02193c41590da1a563619967590135b0d375916c54e9b4a47b0692fcb4",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_260_c20": {
+   "file": "cortina_onda_260_c20.glb",
+   "thumbnail": "thumbs/cortina_onda_260_c20.webp",
+   "sha256": "3ede2e641559f0bff17f2decddf3bf13ce60005e6c5a773a758896ac21a8c58a",
+   "bytes": 304104,
+   "triangles": 19156,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2600,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.2,
+    "waves": 9
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "664b6da88b489de4bf16a7bbda608474666a977f8daf3b6f26be15c21a8b4f10",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_260_c40": {
+   "file": "cortina_onda_260_c40.glb",
+   "thumbnail": "thumbs/cortina_onda_260_c40.webp",
+   "sha256": "908cffc49cf328cb6acf572ed9dc0051568819799a5a3773da6c1e2f1ddad1dc",
+   "bytes": 302280,
+   "triangles": 19156,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2600,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.4,
+    "waves": 9
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9df7b63e441617535d5d3b6b37260384ddab6def08aa6efb7eb60273911df877",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_260_c70": {
+   "file": "cortina_onda_260_c70.glb",
+   "thumbnail": "thumbs/cortina_onda_260_c70.webp",
+   "sha256": "9761a116a8c3e3e4485c1b0c84ad261f139f0ba49b6d039dc4140cb40bd574a8",
+   "bytes": 306832,
+   "triangles": 19156,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2600,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.7,
+    "waves": 9
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "36359dbb97a93b115250574ef776de3d03b9f287bf78d824b8a1d6b91794bb1d",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_360_c100": {
+   "file": "cortina_onda_360_c100.glb",
+   "thumbnail": "thumbs/cortina_onda_360_c100.webp",
+   "sha256": "72db1deb360dbd496f4c32bf381946ab4dc8815064c2ac856151c46a856cb35c",
+   "bytes": 366968,
+   "triangles": 25060,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3600,
+    178,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 1,
+    "waves": 12
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b8adac945d52494958ea9d109a26d3fbaef0689e42797c7cb2a1953e79d332e7",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_360_c20": {
+   "file": "cortina_onda_360_c20.glb",
+   "thumbnail": "thumbs/cortina_onda_360_c20.webp",
+   "sha256": "9002c5484f83663967e38910e2b07f9406dbc0a31944dc5042adb1a18df397ea",
+   "bytes": 359936,
+   "triangles": 25060,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3600,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.2,
+    "waves": 12
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8be4b5175093226e4404035e05bd535c5d64470c4e79bcbd29fcbefe90a6e3f7",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_360_c40": {
+   "file": "cortina_onda_360_c40.glb",
+   "thumbnail": "thumbs/cortina_onda_360_c40.webp",
+   "sha256": "ffa231624febe6bd016084d50bc3fc1f7e9b354ea6e8d2a92e0e2b0db5edf7c6",
+   "bytes": 359092,
+   "triangles": 25060,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3600,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.4,
+    "waves": 12
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0b5a97706fb69d8efa0f0003c3c63af3e22ed0bb7f34145dc6d0b844de07e6d2",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_onda_360_c70": {
+   "file": "cortina_onda_360_c70.glb",
+   "thumbnail": "thumbs/cortina_onda_360_c70.webp",
+   "sha256": "d635e4c7d1812fb8a71a40f14d46e009220aa494b705fb137bd7731aa0243856",
+   "bytes": 365488,
+   "triangles": 25060,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3600,
+    179,
+    2395
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    180,
+    2400
+   ],
+   "family": "textiles",
+   "type": "curtain",
+   "params": {
+    "coverage": 0.7,
+    "waves": 12
+   },
+   "finishes": {
+    "tela": "textil-lino",
+    "barra": "metal-negro"
+   },
+   "textures": [
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3db7f308d98135eec86ac1c04a08fb3ed5892262fbbf8ab1bbf473dfb5862c0b",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_120_c0": {
+   "file": "cortina_vertical_120_c0.glb",
+   "thumbnail": "thumbs/cortina_vertical_120_c0.webp",
+   "sha256": "56af6ff963eb4751956fa75ec6fe71d1b318bfd536990e5df69b243d03895f23",
+   "bytes": 129096,
+   "triangles": 1064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1190,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e18e5cfea268b11d96135358909e7da57d3eadc8a9e88629afe47310974ecc36",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_120_c100": {
+   "file": "cortina_vertical_120_c100.glb",
+   "thumbnail": "thumbs/cortina_vertical_120_c100.webp",
+   "sha256": "0f6c27ec8395206dd610bd196431acc3388b875eef8bfd9c3b4f38def5ac3226",
+   "bytes": 129580,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1191,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "905e840fa3e7b97ca8b1bebd9de2e71bf4d73dc9aaf81b72a6409dc9e4df70e6",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_120_c25": {
+   "file": "cortina_vertical_120_c25.glb",
+   "thumbnail": "thumbs/cortina_vertical_120_c25.webp",
+   "sha256": "3cad88cdc9832a2446b9c2a90e75d6033dc6f38268e48c91b746eb4f0d4d817b",
+   "bytes": 129356,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1190,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b69406254d15fd584f5045fce222962e9cf0d715faccef7ca0d32bf66a9c85e0",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_120_c50": {
+   "file": "cortina_vertical_120_c50.glb",
+   "thumbnail": "thumbs/cortina_vertical_120_c50.webp",
+   "sha256": "587ac03f2b7674b7ed59ec21e567c4e9108620c855a99841eddaccad026c6c41",
+   "bytes": 129424,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1190,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "006feb9773f318835ba140ce7392cef65f95bf223b4150323237f7bb8d98048b",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_120_c75": {
+   "file": "cortina_vertical_120_c75.glb",
+   "thumbnail": "thumbs/cortina_vertical_120_c75.webp",
+   "sha256": "eff9715499a6d3a20e6042d5f052d85c5a9547005052099b311bd3e9b3fd78dd",
+   "bytes": 129504,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1190,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "49a81d23f5e766c9ca784dddff4577bc9f46acc396746152b6d8ffd55f120bf8",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_180_c0": {
+   "file": "cortina_vertical_180_c0.glb",
+   "thumbnail": "thumbs/cortina_vertical_180_c0.webp",
+   "sha256": "864a2668a81c371246de0dd38efb0e32ecb81e258965d130049b8f8f5d9a0c19",
+   "bytes": 135792,
+   "triangles": 1456,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1790,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "35058696e25044a1264d48fb992a841320babcf9eebb5cfad9d3a7532f6b6e36",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_180_c100": {
+   "file": "cortina_vertical_180_c100.glb",
+   "thumbnail": "thumbs/cortina_vertical_180_c100.webp",
+   "sha256": "dc8243c49ba0dd6290f72c539c74b50b2fb4f1d8747ed8c6921500d71b1e7009",
+   "bytes": 136412,
+   "triangles": 1468,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1790,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f0b3340e863897b33187c787af415c6048a2053bd96107d16e2fe8b046f9a9ec",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_180_c25": {
+   "file": "cortina_vertical_180_c25.glb",
+   "thumbnail": "thumbs/cortina_vertical_180_c25.webp",
+   "sha256": "c83ec0aa19495a29f773c36202d64d6cfe47b8721b477ff65b5976b918a674f3",
+   "bytes": 136080,
+   "triangles": 1468,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1790,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9ee984d218a860e1754a2da1f6a90df8e6b99a572c6276178b6ba0e3f7ca5731",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_180_c50": {
+   "file": "cortina_vertical_180_c50.glb",
+   "thumbnail": "thumbs/cortina_vertical_180_c50.webp",
+   "sha256": "df354ba370a767d839e34dba1cb79d609698afc3e68c2dae3c25febbcef1a04d",
+   "bytes": 136196,
+   "triangles": 1468,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1790,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "40b93c8b822007f63f938f1cd9bbd612f798a7616205ab56a607f81e8d1a47c1",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_180_c75": {
+   "file": "cortina_vertical_180_c75.glb",
+   "thumbnail": "thumbs/cortina_vertical_180_c75.webp",
+   "sha256": "f102b69ea83857315a4dc84dbba3e69c421b31aea4b3d571f7eb4b959b7e5dfa",
+   "bytes": 136300,
+   "triangles": 1468,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1790,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "27515ca1654241d0e06923c2575fcba4748fa54db6b70d074685a3ae5bbc9393",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_260_c0": {
+   "file": "cortina_vertical_260_c0.glb",
+   "thumbnail": "thumbs/cortina_vertical_260_c0.webp",
+   "sha256": "de6ff18fe10ae9da22e0a41aa7311587b39246c7bf51820c71ba0b87d621df7e",
+   "bytes": 145376,
+   "triangles": 2016,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2590,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "123cea84ce0c8035a15d361f248e8c3b2280b75756e059335246457bbb9fd6c5",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_260_c100": {
+   "file": "cortina_vertical_260_c100.glb",
+   "thumbnail": "thumbs/cortina_vertical_260_c100.webp",
+   "sha256": "b06e08b70be3dee2f7cb703d358194fb821a3b5d334b16e1df32f4e8e16bb4d6",
+   "bytes": 146096,
+   "triangles": 2028,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2590,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e7c0a1247f8bfcebcc31636607441e2b917ace5aa1756d41d2477b38342f02c8",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_260_c25": {
+   "file": "cortina_vertical_260_c25.glb",
+   "thumbnail": "thumbs/cortina_vertical_260_c25.webp",
+   "sha256": "7040a8da993d762b869ae9b2bccc977bf517fb8cb4b68964bb66bd967cf89499",
+   "bytes": 145676,
+   "triangles": 2028,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2590,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8b555969d8ed8f293dd5d49fb708e73ee6be3339df07c35f443085c5db53d594",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_260_c50": {
+   "file": "cortina_vertical_260_c50.glb",
+   "thumbnail": "thumbs/cortina_vertical_260_c50.webp",
+   "sha256": "cc3547c57236f56bad0e3f2abfa8dddee1af5ee73d9543b598a9c31f104823c8",
+   "bytes": 145828,
+   "triangles": 2028,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2590,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3945bccee8d600f85657db9bde75077199d5f2b88e418730b4c389b4747cb60b",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_260_c75": {
+   "file": "cortina_vertical_260_c75.glb",
+   "thumbnail": "thumbs/cortina_vertical_260_c75.webp",
+   "sha256": "114d61bc086d4a4c4829cecf30aebf9e342c12c192aa3699c3d8559991ef4896",
+   "bytes": 145968,
+   "triangles": 2028,
+   "texturePx": 512,
+   "dimensionsMm": [
+    2590,
+    100,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3ade88c75c087def758522ff38ebd9c6b43fa9cb5a4389a8bf952970cf9b87a2",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_360_c0": {
+   "file": "cortina_vertical_360_c0.glb",
+   "thumbnail": "thumbs/cortina_vertical_360_c0.webp",
+   "sha256": "1a606db2c3ee32cd2ab5985138165bdb19eb1b222fcabc51dbcfac25512bfc07",
+   "bytes": 157532,
+   "triangles": 2744,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3590,
+    99,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ab9ce826dca3b194d0fb055cba944662149a67e51a6ec72ad75923e4fb43d8d4",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_360_c100": {
+   "file": "cortina_vertical_360_c100.glb",
+   "thumbnail": "thumbs/cortina_vertical_360_c100.webp",
+   "sha256": "de9fbd7409d240e4f56dff2b8cd493292109807151278c332c3cebc088a3c520",
+   "bytes": 158620,
+   "triangles": 2756,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3590,
+    99,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "31f07e0a6d3d8d5d62c3bb2bac267aeadaabf25a29a4e8965e6259eaed57cf8d",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_360_c25": {
+   "file": "cortina_vertical_360_c25.glb",
+   "thumbnail": "thumbs/cortina_vertical_360_c25.webp",
+   "sha256": "034e212c06b8a0d8728286c4f48539ab74b098e0140e00bdfc876638baff4439",
+   "bytes": 157912,
+   "triangles": 2756,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3590,
+    99,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "de652d6c85efc4a374beafbdcc7a9f65623ab312c69e1700174f16f3447d5c28",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_360_c50": {
+   "file": "cortina_vertical_360_c50.glb",
+   "thumbnail": "thumbs/cortina_vertical_360_c50.webp",
+   "sha256": "2463321d7f5af15fd8e628865f739e0d60ff6fae07a9bb8fbe0162e1e9a75ae9",
+   "bytes": 158164,
+   "triangles": 2756,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3590,
+    99,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e0cabb7264dc065baac42a5b2843b29213abb30bc7e14913ed86f1d7f06133dd",
+   "builtAt": "2026-10-05"
+  },
+  "cortina_vertical_360_c75": {
+   "file": "cortina_vertical_360_c75.glb",
+   "thumbnail": "thumbs/cortina_vertical_360_c75.webp",
+   "sha256": "325c2a0eee02902df9771e10e4332a04b3d4d693c5d728c9b2b39a72d9b72699",
+   "bytes": 158392,
+   "triangles": 2756,
+   "texturePx": 512,
+   "dimensionsMm": [
+    3590,
+    99,
+    2400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    100,
+    2400
+   ],
+   "family": "textiles",
+   "type": "vertical_blind",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "cadena": "cromo",
+    "cordon": "textil-cordon"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1e27ce4a032cdd13b49db3b65ada8b4f6aaf7403a238289ae06c62728fb27275",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_140_c0": {
+   "file": "estor_enrollable_140_c0.glb",
+   "thumbnail": "thumbs/estor_enrollable_140_c0.webp",
+   "sha256": "f3c533a7d095da6692a2d98f9c38f812f4dac059573a42d7cb23d2a96135c730",
+   "bytes": 123812,
+   "triangles": 1064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "abf77492003cadf09f1c4c24a538335feed2992ea71b9b7e86ae5b442147447d",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_140_c100": {
+   "file": "estor_enrollable_140_c100.glb",
+   "thumbnail": "thumbs/estor_enrollable_140_c100.webp",
+   "sha256": "eb3f8e980937827c9a5f092819568a0c990e0dbcddfbd8306e5728eee3ef5db5",
+   "bytes": 124100,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "66b759a13b05a63fa1be8a57ed7f93332904580e9e715b13d5091b325e6c0355",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_140_c25": {
+   "file": "estor_enrollable_140_c25.glb",
+   "thumbnail": "thumbs/estor_enrollable_140_c25.webp",
+   "sha256": "456d276eee55de1814e03998466ac92145a0e4966e07124aae9d8bc6cac2f317",
+   "bytes": 124092,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e270fb4cc5957e6e79ae35d741c01ffadd8959a572f248781c51f93aa8871c06",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_140_c50": {
+   "file": "estor_enrollable_140_c50.glb",
+   "thumbnail": "thumbs/estor_enrollable_140_c50.webp",
+   "sha256": "8300c1e225ef250741e7dc1298f37c3046e3efe1777c04ead08564079a4926d0",
+   "bytes": 124076,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0bd468934e1e725c1b5ea966cca7191209dae7d0c2e3a3b7c17c582ba192dfbf",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_140_c75": {
+   "file": "estor_enrollable_140_c75.glb",
+   "thumbnail": "thumbs/estor_enrollable_140_c75.webp",
+   "sha256": "518a306cd4383af20d1f610cc2ff39aba35c07ba474d8cee583c8521052464e1",
+   "bytes": 124108,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    1400
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c3c1f2cdbeba3071f2a1772f66a8885be46c3d6fabc03286889a453a7d633f42",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_220_c0": {
+   "file": "estor_enrollable_220_c0.glb",
+   "thumbnail": "thumbs/estor_enrollable_220_c0.webp",
+   "sha256": "b454d03285caa6e53ecdf8ecf9900ec27949bdc7917bed0b206cb4229105ac69",
+   "bytes": 123864,
+   "triangles": 1064,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d51f42940278a4d121e96d0a2c6e9e2b48466cc6b153fa8d97b37096fdeb98cd",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_220_c100": {
+   "file": "estor_enrollable_220_c100.glb",
+   "thumbnail": "thumbs/estor_enrollable_220_c100.webp",
+   "sha256": "3245682ac70860d1b124a5ace0b3a43582e16b1fda7bf34a8af9a54c94290955",
+   "bytes": 124140,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c734fb2b10cb2e628f4b2f77ede421175eca64a041790c256df1df7a065279d0",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_220_c25": {
+   "file": "estor_enrollable_220_c25.glb",
+   "thumbnail": "thumbs/estor_enrollable_220_c25.webp",
+   "sha256": "4da2ca6bd880e24a90ca1ce517d3a704d9f63dd0e1d235d56e613322c235bfc5",
+   "bytes": 124136,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "746b801ef2f8a7ac38790bbd9febe815050d7fb2ece996d6a3ce69a257cee3b8",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_220_c50": {
+   "file": "estor_enrollable_220_c50.glb",
+   "thumbnail": "thumbs/estor_enrollable_220_c50.webp",
+   "sha256": "2bea550efc9e7d79eb695a8fff537913c34647e8b23bd0026681e7e847d33545",
+   "bytes": 124160,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f257d16e554fb6de2d445faa19a50172c46ab4f729a1ac1cb079c75b4c1fecc7",
+   "builtAt": "2026-10-05"
+  },
+  "estor_enrollable_220_c75": {
+   "file": "estor_enrollable_220_c75.glb",
+   "thumbnail": "thumbs/estor_enrollable_220_c75.webp",
+   "sha256": "1bfb1d0996b2a073d9d8b537168bd12204cb226aebc72c7425c15039aa9d3e79",
+   "bytes": 124148,
+   "triangles": 1076,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    80,
+    2200
+   ],
+   "family": "textiles",
+   "type": "roller",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "tela": "textil-tejido",
+    "perfil": "aluminio-blanco",
+    "soporte": "textil-plastico",
+    "cadena": "cromo"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5f82c2614005eeea0b35286373e09d82fa6f5db896bee97d6c6b1f864f919b62",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_140_c0": {
+   "file": "persiana_exterior_140_c0.glb",
+   "thumbnail": "thumbs/persiana_exterior_140_c0.webp",
+   "sha256": "63650e1c255a508a70003e63bd0831a9e0259099f4b743cb3a5b68981a230973",
+   "bytes": 5676,
+   "triangles": 192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ff2293646278998daad45958498a4ddd632a2f2accf3816c46632d924139027e",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_140_c100": {
+   "file": "persiana_exterior_140_c100.glb",
+   "thumbnail": "thumbs/persiana_exterior_140_c100.webp",
+   "sha256": "d676db6ab8b45f9bdc7e2678c72d77375c473111fbda93c02b08b63717fcf5bb",
+   "bytes": 17120,
+   "triangles": 1472,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f17c5c5ca07ef85c85eb8b2d96b8e75fe6749d13aa2a5d71138ccddc3943d540",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_140_c25": {
+   "file": "persiana_exterior_140_c25.glb",
+   "thumbnail": "thumbs/persiana_exterior_140_c25.webp",
+   "sha256": "72a8166e18366182aeaf063064acae217c826a55a4a9386f91ce323b6d8d010a",
+   "bytes": 8532,
+   "triangles": 512,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c471993fd57d06bdc483706ebb8e85fd45e46bd5b4d487fbeb93a21b5765c972",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_140_c50": {
+   "file": "persiana_exterior_140_c50.glb",
+   "thumbnail": "thumbs/persiana_exterior_140_c50.webp",
+   "sha256": "470f148897358e6f81e093f5a12b8bcaea15c6d8fa3077bbf883899efa6aaf60",
+   "bytes": 11404,
+   "triangles": 832,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "432a25efd6ef9441604e4791c6a3ced7c26b02e41fac0e2ced68d576512c49c0",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_140_c75": {
+   "file": "persiana_exterior_140_c75.glb",
+   "thumbnail": "thumbs/persiana_exterior_140_c75.webp",
+   "sha256": "4a133da90e801427aaa91464e37873421deb5db303b4e8d811960072b347e8c6",
+   "bytes": 14252,
+   "triangles": 1152,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    1400
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8364d11fd6f7e887c27f214b225b501d48f0fbf7c43836b2b2116535187587db",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_220_c0": {
+   "file": "persiana_exterior_220_c0.glb",
+   "thumbnail": "thumbs/persiana_exterior_220_c0.webp",
+   "sha256": "2898460c0dddca5ead9c5aef127463887d60e265139e8ed62202ead40f69de31",
+   "bytes": 5660,
+   "triangles": 192,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "04aa5cd4abc1fbaedc6cd4ce1c6495a2b61dc473587e4ff9bc6345f316b5ef48",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_220_c100": {
+   "file": "persiana_exterior_220_c100.glb",
+   "thumbnail": "thumbs/persiana_exterior_220_c100.webp",
+   "sha256": "90d57f7a00973ce933c02f51e9861ad6e3ef8ca3a8dbb7ae1bf39c418e2d8654",
+   "bytes": 24240,
+   "triangles": 2352,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    2213
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "3f6c671b3c2b785bba557ca855164f287b1605d0616d34b92f399d399b6c5f94",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_220_c25": {
+   "file": "persiana_exterior_220_c25.glb",
+   "thumbnail": "thumbs/persiana_exterior_220_c25.webp",
+   "sha256": "b586291443c1f67fcca5cb65a7bb9f7379fa7a8b4e8c70aa71dec63b33b5a3b0",
+   "bytes": 10496,
+   "triangles": 752,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d921f0d86a6593447591efcba5b07ca667f3db2818a302babdbc594214748209",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_220_c50": {
+   "file": "persiana_exterior_220_c50.glb",
+   "thumbnail": "thumbs/persiana_exterior_220_c50.webp",
+   "sha256": "b73999fc58d785ef51a577decc43da3611099c0c2fe862bebb70ca966c534cd4",
+   "bytes": 14984,
+   "triangles": 1272,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "41c28bc950c85047d2a34e1fd0ae4c0ce6060b7b011857e1f839a6fcaf7c4166",
+   "builtAt": "2026-10-05"
+  },
+  "persiana_exterior_220_c75": {
+   "file": "persiana_exterior_220_c75.glb",
+   "thumbnail": "thumbs/persiana_exterior_220_c75.webp",
+   "sha256": "520cdf1b1cb508ed738105b0419d2ada5f5466e762c93254b745805eaddb154d",
+   "bytes": 19440,
+   "triangles": 1792,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    150,
+    2200
+   ],
+   "family": "textiles",
+   "type": "shutter",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "goma": "textil-goma"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5c6092c613f194e867abe597603da7a3f0807d4956b6cf06013fad6a1d4a785e",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_140_c0": {
+   "file": "veneciana_aluminio_140_c0.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_140_c0.webp",
+   "sha256": "0aba353d11803a13da75db46b84255b7d9875d30f8ed35dd9ca648e94db82af4",
+   "bytes": 33344,
+   "triangles": 2720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ce5fd6978295e324ea1ff8fcb7164771458d3c4088123dc94184ef0da5f3193f",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_140_c100": {
+   "file": "veneciana_aluminio_140_c100.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_140_c100.webp",
+   "sha256": "edacedfcc0b5f33ddfe6444815c1db71453bd65485a14f802c52d78a1345518d",
+   "bytes": 34316,
+   "triangles": 2720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "35e879fa388d90f3ad96cdbc87be7d5b5ec0d547da945c2719f845784a9e942e",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_140_c25": {
+   "file": "veneciana_aluminio_140_c25.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_140_c25.webp",
+   "sha256": "322e212984ef6769e23fe167c277834ab520acfb243e356272bee642f96c94bd",
+   "bytes": 33604,
+   "triangles": 2720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4931e2502dc66035cf41a6ae2e4144de55ffa08fda0edc83702da5ab36c31c5c",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_140_c50": {
+   "file": "veneciana_aluminio_140_c50.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_140_c50.webp",
+   "sha256": "137f3384030a73e901887f57186a558e9eee2b2f8ae4e6aa49d57baa0bce22cc",
+   "bytes": 33856,
+   "triangles": 2720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "733beaa1d4aaead5f9f7fb352336fae64ae9af605e088d727d0835251c3bd0db",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_140_c75": {
+   "file": "veneciana_aluminio_140_c75.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_140_c75.webp",
+   "sha256": "9f4dacd505edb75db4d6bdeedc613f30fdb874b858653ca8ab9a78a557007974",
+   "bytes": 34068,
+   "triangles": 2720,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "90b3027ca89aea9f67b88886ddb4b1c833663bfb19fd7a180479f8f648ee6b6c",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_220_c0": {
+   "file": "veneciana_aluminio_220_c0.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_220_c0.webp",
+   "sha256": "67cfb5bca181015331885695202b9e06b1e57292ecf7f2331f4318fa911ed189",
+   "bytes": 46800,
+   "triangles": 4012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5554481297db2668a223d016b4223fba02d2c47357e4922b75654fdc572fc29a",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_220_c100": {
+   "file": "veneciana_aluminio_220_c100.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_220_c100.webp",
+   "sha256": "48a61504d22311866d93ae552e00e9e1d193b3bc32d756213a8035fa64de7e9c",
+   "bytes": 48796,
+   "triangles": 4012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 1
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "750c96a73c504ea0d98c39a904b3c07d6004c6db2f0c8a21f69d57ad8074d09c",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_220_c25": {
+   "file": "veneciana_aluminio_220_c25.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_220_c25.webp",
+   "sha256": "cb352c5f2ae3e5e3b600f3342742633824a9f4b7c1e2c47b89020cdfbf9c8182",
+   "bytes": 47276,
+   "triangles": 4012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.25
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "54056f93da484f7dfe068f40490f0b28cd6189cc5642cb7a0ac028f963324cb8",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_220_c50": {
+   "file": "veneciana_aluminio_220_c50.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_220_c50.webp",
+   "sha256": "bf84937fc25aef7491870c6060c97af84f77ff465eaf334216ff906d2c5caa1a",
+   "bytes": 47784,
+   "triangles": 4012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.5
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a79e00af8aabceb1e6799197bca78da21c4e43579df9485d70242d47ab517a06",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_aluminio_220_c75": {
+   "file": "veneciana_aluminio_220_c75.glb",
+   "thumbnail": "thumbs/veneciana_aluminio_220_c75.webp",
+   "sha256": "c382fb6e8abcb25d5775ffa72333fd1cbb2d20817eb172825aa1c7d6c20a67b9",
+   "bytes": 48340,
+   "triangles": 4012,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "coverage": 0.75
+   },
+   "finishes": {
+    "lamas": "textil-lacado",
+    "cordon": "textil-cordon",
+    "mando": "textil-plastico"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9c7dab12c0e2a7132073c14409d0b815d760ed30a423eabecd0f5dff6298da98",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_140_c0": {
+   "file": "veneciana_madera_140_c0.glb",
+   "thumbnail": "thumbs/veneciana_madera_140_c0.webp",
+   "sha256": "c8e78c8447374c58ecf55097aff81bdb91094e8502f877d2ae6a53cc0789df4f",
+   "bytes": 94824,
+   "triangles": 1976,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "dadec5d74fd654e4ae696678bf87768bc56d6f45d1fcd9ba8c20a785fe049fb4",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_140_c100": {
+   "file": "veneciana_madera_140_c100.glb",
+   "thumbnail": "thumbs/veneciana_madera_140_c100.webp",
+   "sha256": "7997fe5c1196d8f22280cac3bb7aef6d9edab8957083a8408ea898ca52acf402",
+   "bytes": 97572,
+   "triangles": 1976,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 1
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6d062a1d0e001181b12f004902354980f3f479f69b9fd039371c0e4eac254013",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_140_c25": {
+   "file": "veneciana_madera_140_c25.glb",
+   "thumbnail": "thumbs/veneciana_madera_140_c25.webp",
+   "sha256": "6ce260a32b1827cc0a8a296de96054c02f24fc6918f33d76fcd3efea03b33531",
+   "bytes": 95596,
+   "triangles": 1976,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.25
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a17143563b9b118bf6ae100c1503d257784b3d7c0b7e0f0aac4512c7f9d5ea9b",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_140_c50": {
+   "file": "veneciana_madera_140_c50.glb",
+   "thumbnail": "thumbs/veneciana_madera_140_c50.webp",
+   "sha256": "773ef8b7d82d63a4968e68e3044752c08433384696dd0bccd640044d59c8decd",
+   "bytes": 96336,
+   "triangles": 1976,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.5
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4d6b76345fd4d0dd2e773c8945e97ed32240023c607787cb3f9ad9206a291467",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_140_c75": {
+   "file": "veneciana_madera_140_c75.glb",
+   "thumbnail": "thumbs/veneciana_madera_140_c75.webp",
+   "sha256": "e93a5414e9e5cc0e65ce473089f22fb0d8b9d7bd32ec7dd493df611e38462dc8",
+   "bytes": 96860,
+   "triangles": 1976,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    1400
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    1400
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.75
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "5ad7908139e091edf4a987bf3ecc7f1c5c3f358e3dfa142eb14a77c41d0f788d",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_220_c0": {
+   "file": "veneciana_madera_220_c0.glb",
+   "thumbnail": "thumbs/veneciana_madera_220_c0.webp",
+   "sha256": "a075193bf79585b67ecd661d3be6171d2d4930c08df0d4f5160d14bc82ac2412",
+   "bytes": 106592,
+   "triangles": 2768,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "66a108ff247ac152f413b65630feb5d767893dcd135df4af32fd3abdf314f77b",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_220_c100": {
+   "file": "veneciana_madera_220_c100.glb",
+   "thumbnail": "thumbs/veneciana_madera_220_c100.webp",
+   "sha256": "e2fd4c758bd9d30495de6ec8eae70620422a792b32182d6eb4f5510f154a2e9c",
+   "bytes": 111480,
+   "triangles": 2768,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 1
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "69e5d60c015021f340c73e7073a4cb0f5ef9982fe132f25435c50c1cfa1e2989",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_220_c25": {
+   "file": "veneciana_madera_220_c25.glb",
+   "thumbnail": "thumbs/veneciana_madera_220_c25.webp",
+   "sha256": "5799d5e38c5bb3483f0ac87c6bf5361900abf0ea9a5e999640594f2aeb2b817a",
+   "bytes": 107816,
+   "triangles": 2768,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.25
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d4a2411a16f823032d4d4c4471c0b944caf61d82120d0f0e508db065c498dcf7",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_220_c50": {
+   "file": "veneciana_madera_220_c50.glb",
+   "thumbnail": "thumbs/veneciana_madera_220_c50.webp",
+   "sha256": "66c53e6cea83fa51721b0557ab3c28a2224c8ad314b388dd38d74c4630a5b918",
+   "bytes": 109080,
+   "triangles": 2768,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.5
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b396cc8399417b14b6d20fc561133dac391a92052ecf1309078f87bc12dc9252",
+   "builtAt": "2026-10-05"
+  },
+  "veneciana_madera_220_c75": {
+   "file": "veneciana_madera_220_c75.glb",
+   "thumbnail": "thumbs/veneciana_madera_220_c75.webp",
+   "sha256": "b8dace590927cfee89b42fe70c1d5d074f6f10bf18eb673dff64ad96333cf7c7",
+   "bytes": 110320,
+   "triangles": 2768,
+   "texturePx": 512,
+   "dimensionsMm": [
+    1196,
+    64,
+    2200
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    60,
+    2200
+   ],
+   "family": "textiles",
+   "type": "venetian",
+   "params": {
+    "wood": true,
+    "coverage": 0.75
+   },
+   "finishes": {
+    "madera": "fresno",
+    "cordon": "textil-cordon",
+    "mando": "fresno"
+   },
+   "textures": [
+    "fresno"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d7c838dc4c0d6662574e908b7aaf1408b757d0996110c514a2662aa676ec3ec7",
+   "builtAt": "2026-10-05"
+  }
+ },
+ "textures": {
+  "fresno": {
+   "source": "polyhaven",
+   "id": "ash_veneer",
+   "title": "Ash Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/ash_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_diff_1k.jpg",
+     "bytes": 592273,
+     "md5": "5be48b4be87620998cfaee5a4281169d"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_nor_gl_1k.jpg",
+     "bytes": 397524,
+     "md5": "6986a1e827968726d996b76d77f3a2ac"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ash_veneer/ash_veneer_rough_1k.jpg",
+     "bytes": 797439,
+     "md5": "175ba23d74984b0cfb1d9eac636cc255"
+    }
+   ]
+  },
+  "lino": {
+   "source": "polyhaven",
+   "id": "rough_linen",
+   "title": "Rough Linen",
+   "authors": [
+    "colormass",
+    "Rico Cilliers"
+   ],
+   "pageUrl": "https://polyhaven.com/a/rough_linen",
+   "license": "CC0-1.0",
+   "sizeMm": 271,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+     "bytes": 835801,
+     "md5": "663db789fb075462b685c1f740e58930"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+     "bytes": 916843,
+     "md5": "3350269a2e9c472aa406bd3cc1eaf2c8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+     "bytes": 1083725,
+     "md5": "a380b24cc43cff88c39510305ebf0020"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  }
+ }
+}

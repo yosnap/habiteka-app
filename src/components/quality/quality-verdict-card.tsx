@@ -33,7 +33,8 @@ interface Props {
 
 export function QualityVerdictCard({ quality, blockedNote, compact = false }: Props) {
   const band = BANDS[quality.decision];
-  const reasons = compact ? quality.reasons.slice(0, 2) : quality.reasons;
+  const uniqueReasons = [...new Set(quality.reasons)];
+  const reasons = compact ? uniqueReasons.slice(0, 2) : uniqueReasons;
   return (
     <div
       role="status"
@@ -43,7 +44,7 @@ export function QualityVerdictCard({ quality, blockedNote, compact = false }: Pr
         {band.label}
         {quality.score !== null ? `: ${quality.score} %` : ''}
       </p>
-      {quality.failOpen === false && !compact ? (
+      {quality.score === null && quality.failOpen === false && quality.decision === 'confirm' && !compact ? (
         <p className="mt-1">
           No se pudo evaluar la fiabilidad automáticamente, así que hace falta que revises el
           plano y confirmes antes de seguir.

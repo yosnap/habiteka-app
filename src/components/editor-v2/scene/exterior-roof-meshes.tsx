@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useMemo } from 'react';
-import { BufferAttribute, BufferGeometry } from 'three';
+import { BufferAttribute, BufferGeometry, DoubleSide } from 'three';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { exteriorRoofGeometry, type RoofGeometry } from '@/lib/editor-document/exterior-roof-geometry';
 import { SurfaceMaterial } from './surface-material';
 import { RoofWallClosureMesh } from './roof-wall-closure-mesh';
 import type { ExteriorWall } from '@/canvas/editor-v2/scene/types';
+import { RoofChimneyCap } from './roof-chimney-cap';
 
 function RoofPart({ part, document }: { part: RoofGeometry; document: EditorDocument }) {
   const geometry = useMemo(() => {
@@ -18,8 +19,11 @@ function RoofPart({ part, document }: { part: RoofGeometry; document: EditorDocu
   }, [part]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group userData={{ videoStage: 2, buildKey: 'exterior-roof' }}>
-    <mesh geometry={geometry} castShadow receiveShadow userData={{ sourceEntityId: 'exterior-roof' }}>
-      <SurfaceMaterial id={document.exteriorRoof!.materialId} color={document.exteriorRoof!.color} width={1} height={1} doubleSide />
+    <mesh geometry={geometry} castShadow={!part.glazing} receiveShadow userData={{ sourceEntityId: part.openingId ?? 'exterior-roof', roofGlazing: Boolean(part.glazing) }}>
+      {part.glazing ? <meshPhysicalMaterial color="#d8edf1" transparent opacity={.35} transmission={.85} roughness={.08} metalness={0} thickness={.02} side={DoubleSide} />
+        : part.chimney ? <SurfaceMaterial id="ambientcg:Bricks092" color="#ead3c0" width={1} height={1} doubleSide />
+        : part.frame ? <meshStandardMaterial color="#43494b" metalness={.65} roughness={.3} side={DoubleSide} />
+          : <SurfaceMaterial id={document.exteriorRoof!.materialId} color={document.exteriorRoof!.color} width={1} height={1} doubleSide />}
     </mesh>
   </group>;
 }
@@ -31,6 +35,10 @@ export function ExteriorRoofMeshes({ document, visible, exteriorWalls = [], cuta
   }, [document]);
   return <group visible={visible} userData={{ roofLayer: true, roofError: geometry.error }}>
     {geometry.parts.map((part, index) => <RoofPart key={index} part={part} document={document} />)}
+    {geometry.parts.filter(part => part.chimney).map(part => {
+      const opening = document.exteriorRoof?.openings?.find(item => item.id === part.openingId);
+      return opening && <RoofChimneyCap key={opening.id} opening={opening} topM={part.peakM} />;
+    })}
     {geometry.parts.flatMap((part, index) => part.wallClosures.map(closure => <RoofWallClosureMesh key={`${index}:${closure.wallId}`} part={closure} document={document}
       exterior={exteriorWalls.find(wall => wall.sourceEntityId === closure.wallId)} cutaway={cutaway} />))}
   </group>;

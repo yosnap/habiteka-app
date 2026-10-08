@@ -17,11 +17,17 @@ function fixture() {
     levelId: room.camera.levelId, quaternion: [0, 0, 0, 1], fov: room.camera.fovDeg,
     aspect: 1.6, allLevels: false, cutaway: false, lighting: 'daylight' };
   const row = { id: 'old', createdAt: new Date('2026-09-30T12:00:00Z'), payload: { assetUrl: 'https://example.com/old.png',
-    generation: { documentRevision: 144, view, options: { interiorRoomIds: [room.roomId], freedom: 'strict' } } } };
+    generation: { provider: 'kie', acceptance: { userId: 'user', acceptedAt: '2026-10-02T16:00:00Z' }, documentRevision: 144, view, options: { interiorRoomIds: [room.roomId], freedom: 'strict' } } } };
   return { doc, row, room };
 }
 
 describe('imágenes antiguas del montaje', () => {
+  it('no usa capturas nativas ni diseños sin aceptación humana', async () => {
+    const { row } = fixture(); row.payload.generation.provider = 'native';
+    expect(await tourImagesFromRows([row])).toEqual([]);
+    row.payload.generation.provider = 'kie'; delete (row.payload.generation as { acceptance?: unknown }).acceptance;
+    expect(await tourImagesFromRows([row])).toEqual([]);
+  });
   it('excluye del montaje las imágenes descartadas en una revisión posterior', async () => {
     const { row } = fixture();
     Object.assign(row.payload.generation, { review: { status: 'rejected', reason: 'Mobiliario irreconocible', reviewedAt: '2026-10-01T21:00:00Z' } });

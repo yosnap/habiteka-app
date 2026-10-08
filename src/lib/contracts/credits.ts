@@ -21,4 +21,6 @@ export interface ProviderCost {
   amountUsd: number;
   /** Unidad facturada por el proveedor (p. ej. 'image', 'megapixel'). */
   unit: string;
+  /** Importe que el proveedor informa haber descontado, cuando lo da (KIE: créditos de la tarea). */
+  confirmedUsd?: number;
 }

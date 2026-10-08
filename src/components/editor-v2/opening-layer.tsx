@@ -6,28 +6,42 @@ import type Konva from 'konva';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Opening, Point } from '@/lib/editor-document/schema';
 import { openingConstruction } from '@/lib/editor-document/construction-properties';
-import { placeOpening, resolveOpeningPlacement, type OpeningPlacement } from '@/canvas/editor-v2/opening-placement';
+import { openingForDrag, placeOpening, resolveOpeningPlacement, type OpeningPlacement } from '@/canvas/editor-v2/opening-placement';
 import { newId } from '@/canvas/editor-v2/editing-operations';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { entranceLocalPoints, landingEntranceSurfaces } from '@/lib/editor-document/landing-entrance-surface';
 import { walkableSurfaceFinish } from '@/lib/editor-document/floor-finishes';
 import { FloorSurface } from './floor-surface';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
+import { isBasicOpeningType, openingType } from '@/lib/editor-document/opening-types';
+import { openingSymbol, type SymbolStroke } from '@/lib/editor-document/opening-symbol';
+import { applyChosenOpeningType, applyDefaultDoorType, defaultDoorTypeId, openingPrototype } from '@/lib/editor-document/opening-type-commands';
 
-const GREEN = '#087f75', RED = '#ba302f', INK = '#343b3a';
+const GREEN = '#087f75', RED = '#ba302f', INK = '#343b3a', GLASS = '#a9d6ea';
+/** Grosor en píxeles de pantalla de cada trazo del símbolo por tipo. */
+const STROKE_PX: Record<SymbolStroke['role'], number> = { leaf: 3, arc: 1, glass: 3, guide: 1, pocket: 1, arrow: 1.5 };
 function Symbol({ opening, thickness, scale, active = false, continuous = false }: {
   opening: Opening; thickness: number; scale: number; active?: boolean; continuous?: boolean;
 }) {
   const props = openingConstruction(opening), hinge = props.hinge === 'left' ? -1 : 1;
   const side = props.swing === 'left' ? 1 : -1;
   const radians = props.openAngleDeg * Math.PI / 180;
+  // Las hojas de una balconera son carpintería de ventana: tinta, no el color de madera de las puertas.
+  const type = openingType(opening), leaf = opening.kind === 'puerta' ? opening.colors?.leaf ?? INK : INK;
+  // Los tipos básicos conservan su símbolo de siempre; el resto, el suyo (arco doble, corredera, zigzag…).
+  const strokes = type && !isBasicOpeningType(type) ? openingSymbol(opening, thickness) : null;
   return <>
     <Rect x={-opening.widthMm / 2} y={-thickness / 2} width={opening.widthMm} height={thickness}
       fill={continuous ? 'rgba(0,0,0,0)' : opening.colors?.frame ?? '#fafcfb'} stroke={active ? GREEN : continuous ? undefined : INK} strokeWidth={(active ? 2 : 1) / scale}
       hitStrokeWidth={16 / scale} />
-    {opening.kind === 'ventana' && <Line points={[-opening.widthMm / 2, 0, opening.widthMm / 2, 0]}
+    {strokes?.map((stroke, index) => <Line key={index} points={stroke.points} closed={stroke.closed}
+      stroke={stroke.role === 'glass' ? GREEN : stroke.role === 'leaf' && !stroke.closed ? leaf : INK}
+      strokeWidth={(stroke.closed && stroke.role === 'leaf' ? 1 : STROKE_PX[stroke.role]) / scale}
+      fill={stroke.fill === 'glass' ? GLASS : stroke.fill === 'leaf' ? leaf : undefined}
+      dash={stroke.dashed ? [6 / scale, 4 / scale] : undefined} listening={stroke.role === 'leaf'} />)}
+    {!strokes && opening.kind === 'ventana' && <Line points={[-opening.widthMm / 2, 0, opening.widthMm / 2, 0]}
       stroke={GREEN} strokeWidth={3 / scale} />}
-    {opening.kind === 'puerta' && <Group x={hinge * opening.widthMm / 2} scaleX={-hinge} scaleY={side}>
+    {!strokes && opening.kind === 'puerta' && <Group x={hinge * opening.widthMm / 2} scaleX={-hinge} scaleY={side}>
       <Arc innerRadius={opening.widthMm} outerRadius={opening.widthMm} angle={props.openAngleDeg}
         stroke={INK} strokeWidth={1 / scale} listening={false} />
       <Line points={[0, 0, opening.widthMm * Math.cos(radians), opening.widthMm * Math.sin(radians)]}
@@ -42,8 +56,9 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
   const doc = documentPreview ?? source;
   const entrances = landingEntranceSurfaces(doc);
   const selected = useStore(store, (s) => s.selection), readOnly = useStore(store, (s) => s.readOnly);
-  const pending = useStore(store, (s) => s.pendingOpening);
-  const group = useRef<Konva.Group>(null), dragged = useRef<{ node: Konva.Group; origin: Point; offset: number } | null>(null);
+  const pending = useStore(store, (s) => s.pendingOpening), chosenTypeId = useStore(store, (s) => s.openingTypeId);
+  const group = useRef<Konva.Group>(null), dragged = useRef<{ node: Konva.Group; origin: Point; offset: number; opening: Opening } | null>(null);
+  const duplicatePointer = useRef(false);
   const candidateHost = useRef<string | undefined>(undefined);
   const grabPointer = useRef<Point | null>(null);
   const [preview, setPreview] = useState<{ opening: Opening; placement: OpeningPlacement | null; pointer: Point } | null>(null);
@@ -53,15 +68,19 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     const stage = group.current?.getStage();
     if (!stage) return;
     const kind = tool === 'window' ? 'ventana' : tool === 'passage' ? 'hueco' : 'puerta';
-    const prototype: Opening = pending ?? { id: newId(), kind, wallId: '', position: .5,
-      widthMm: kind === 'ventana' ? 1200 : 900, dimensionalOrigin: 'physical' };
+    // Una abertura copiada manda sobre el tipo elegido en Construir; sin ninguno de los dos, la abertura básica.
+    const prototype: Opening = pending ?? openingPrototype(newId(), kind, chosenTypeId);
+    const chosen = pending ? undefined : prototype.catalogId;
     const move = () => {
       if (!placing) return;
       const pointer = stage.getRelativePointerPosition(); if (!pointer) return;
-      const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, prototype, candidateHost.current, 0, store.getState().snap);
+      const current = store.getState().document;
+      const placement = resolveOpeningPlacement(current, pointer, scale, prototype, candidateHost.current, 0, store.getState().snap);
       store.getState().setMagneticGuides(placement?.guides ?? []);
       candidateHost.current = placement?.wallId;
-      setPreview({ opening: prototype, placement, pointer });
+      // Sobre una fachada a la calle la vista previa ya enseña la puerta de entrada que se colocará.
+      const offered = !pending && !chosen && kind === 'puerta' && placement ? defaultDoorTypeId(current, placement.wallId) : undefined;
+      setPreview({ opening: offered ? { ...prototype, catalogId: offered } : prototype, placement, pointer });
     };
     const confirm = () => {
       if (!placing || store.getState().readOnly) return;
@@ -69,7 +88,10 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
       const state = store.getState(), placement = resolveOpeningPlacement(state.document, pointer, scale, prototype, candidateHost.current, 0, store.getState().snap);
       if (!placement?.valid) { state.setError(placement?.reason ?? 'Acerca la abertura a una pared para colocarla.'); return; }
       try {
-        state.apply(placeOpening(state.document, prototype, placement)); state.setTool('select');
+        const placed = placeOpening(state.document, prototype, placement);
+        state.apply(chosen ? applyChosenOpeningType(placed, prototype.id, chosen)
+          : !pending && kind === 'puerta' ? applyDefaultDoorType(state.document, placed, prototype.id, placement.wallId) : placed);
+        state.setTool('select');
         state.select([prototype.id]); setPreview(null);
       } catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo colocar la abertura'); }
     };
@@ -88,7 +110,7 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     element?.addEventListener('pointercancel', cancelPointer);
     return () => { stage.off('.opening'); element?.removeEventListener('keydown', cancel);
       element?.removeEventListener('pointercancel', cancelPointer); };
-  }, [placing, scale, store, tool, pending]);
+  }, [placing, scale, store, tool, pending, chosenTypeId]);
   const visiblePreview = !disabled && !readOnly && (placing || dragId) ? preview : null;
   const candidate = visiblePreview?.placement;
   const host = candidate && doc.walls.find((w) => w.id === candidate.wallId);
@@ -102,9 +124,9 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     {doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
       const wall = doc.walls.find((w) => w.id === opening.wallId)!, path = wallPath(doc, wall), direction = path.tangent(opening.position);
       const center = path.at(opening.position), angle = Math.atan2(direction.y, direction.x) * 180 / Math.PI;
-      return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id ? .35 : 1}
+      return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id && preview?.opening.id === opening.id ? .35 : 1}
         draggable={!disabled && !readOnly && tool === 'select'}
-        onPointerDown={(event) => { grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
+        onPointerDown={(event) => { duplicatePointer.current = event.evt.altKey; grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
         onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt); } }}
         onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt as unknown as MouseEvent); } }}
         onDragStart={(event) => {
@@ -112,26 +134,29 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
           const pointer = grabPointer.current ?? event.target.getStage()?.getRelativePointerPosition();
           const radians = angle * Math.PI / 180;
           dragged.current = { node: event.target as Konva.Group, origin: center,
+            opening: openingForDrag(opening, duplicatePointer.current || event.evt.altKey),
             offset: pointer ? (pointer.x - center.x) * Math.cos(radians) + (pointer.y - center.y) * Math.sin(radians) : 0 };
           setDragId(opening.id); store.getState().select([]);
         }} onDragMove={(event) => {
           const pointer = event.target.getStage()?.getRelativePointerPosition(); if (!pointer) return;
           event.target.position(center);
-          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, opening, candidateHost.current, dragged.current?.offset, store.getState().snap);
-          store.getState().setMagneticGuides(placement?.guides ?? []); candidateHost.current = placement?.wallId; setPreview({ opening, placement, pointer });
+          const prototype = dragged.current?.opening ?? opening;
+          const placement = resolveOpeningPlacement(store.getState().document, pointer, scale, prototype, candidateHost.current, dragged.current?.offset, store.getState().snap);
+          store.getState().setMagneticGuides(placement?.guides ?? []); candidateHost.current = placement?.wallId; setPreview({ opening: prototype, placement, pointer });
         }} onDragEnd={(event) => {
           event.target.position(center);
           if (!dragged.current) return;
-          const offset = dragged.current.offset; dragged.current = null;
+          const offset = dragged.current.offset, prototype = dragged.current.opening; dragged.current = null;
           const pointer = event.target.getStage()?.getRelativePointerPosition();
           const state = store.getState(), current = state.document.openings.find((o) => o.id === opening.id);
-          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, current, candidateHost.current, offset, state.snap);
+          const placement = pointer && current && resolveOpeningPlacement(state.document, pointer, scale, prototype, candidateHost.current, offset, state.snap);
+          let selectedId = opening.id;
           try {
             if (!placement?.valid || !current) throw new Error(placement?.reason ?? 'No hay una pared válida. Se conserva la ubicación anterior.');
-            state.apply(placeOpening(state.document, current, placement));
+            state.apply(placeOpening(state.document, prototype, placement)); selectedId = prototype.id;
           } catch (error) { state.setError(error instanceof Error ? error.message : 'Ubicación inválida'); }
           candidateHost.current = undefined;
-          setDragId(null); setPreview(null); state.select([opening.id]);
+          setDragId(null); setPreview(null); state.select([selectedId]);
         }}>
         <Symbol opening={opening} thickness={wall.thicknessMm} scale={scale} active={selected.includes(opening.id)}
           continuous={entrances.some((entrance) => entrance.openingId === opening.id)} />

@@ -1,0 +1,51 @@
+escenas:
+  - id: gancho
+    pieza: rotulo
+    parametros:
+      titulo: "La reforma, sin sorpresas"
+      subtitulo: "Verlo antes de decidirlo"
+    frases:
+      - texto: "Nadie reforma a ciegas: todo el mundo quiere ver el resultado antes de empezar."
+  - id: problema
+    pieza: rotulo
+    parametros:
+      titulo: "El plano no lo cuenta todo"
+      subtitulo: "¿Y la luz? ¿Y el sofá? ¿Y el pasillo?"
+    frases:
+      - texto: "Un plano no muestra cómo se vive: la luz, los muebles, el paso. Encaja… o no."
+  - id: casa
+    pieza: pila
+    parametros: { capturas: [landing, proyectos, plano] }
+    frases:
+      - texto: "Empiezas en casa: importas el plano y lo conviertes en un espacio real."
+  - id: boceto
+    pieza: detalle
+    parametros: { captura: editor, caja: ia, etiqueta: "Diseñar con IA" }
+    frases:
+      - texto: "Y lo boceteas con IA: paredes, acabados, puertas y muebles, con las medidas a salvo."
+  - id: borrador
+    pieza: abanico
+    parametros: { capturas: [plano, editor, asistente] }
+    frases:
+      - texto: "Cambia lo que quieras: cada decisión se ve al momento y se puede revisar."
+  - id: profesional
+    pieza: lista
+    parametros:
+      captura: disenos
+      elementos:
+        - "Acabados y mobiliario reales"
+        - "Medidas y estructura verificadas"
+        - "Cada diseño se aprueba antes de usarse"
+        - "Una versión única para cliente y obra"
+    frases:
+      - texto: "Después, el profesional toma el diseño y da el último paso."
+  - id: resultados
+    pieza: mosaico
+    parametros: { capturas: [disenos, editor, plano, proyectos] }
+    frases:
+      - texto: "Y de esa versión salen renders, recorrido y el vídeo de la venta."
+  - id: cierre
+    pieza: logo
+    parametros: { lema: "Tú lo planificas. El profesional lo termina.", url: "habiteka.app", boton: "Empezar gratis" }
+    frases:
+      - texto: "Habiteka: planifica en casa y deja el último paso a quien lo firme."

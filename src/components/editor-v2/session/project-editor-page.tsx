@@ -7,14 +7,15 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { ProjectEditor } from './project-editor';
 import type { AutoGenerateRequest } from '../auto-generate-request';
 import { loadStudio } from '@/server/plan/studio-repo';
+import { studioResults } from '@/lib/studio-results';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { loadRenderBatchContinuation } from '@/server/agent/editor-v2/render-batch-continuation';
 import { UserFacingError } from '@/server/errors/user-facing-error';
 
-export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId, openVideoStudio, continuationId }: {
-  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string; openVideoStudio?: boolean; continuationId?: string;
+export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, approvedId, continuationId }: {
+  projectId: string; zoneId?: string; autoGenerate?: AutoGenerateRequest | null; approvedId?: string; continuationId?: string;
 }) {
   const ctx = await requireOrgContext();
   const project = await withOrg(ctx).projects.findById(projectId);
@@ -42,10 +43,22 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
     const studio = await loadStudio(ctx, projectId);
     const imported = studio.planImport;
     const image = imported?.image ?? studio.source;
-    if (studio.planImportApplied && imported && image?.assetUrl) {
+    const background = studio.editorReference;
+    // El fondo elegido o fijado al enviar al editor manda; otra extracción o una captura del editor no lo cambian.
+    if (background?.image.assetUrl) {
+      reference = { imageUrl: background.image.assetUrl, widthMm: background.frame.width, heightMm: background.frame.height,
+        xMm: background.frame.x, yMm: background.frame.y };
+    // Proyectos anteriores: la imagen de la última extracción, salvo que sea una captura del propio editor.
+    // Guardar otra revisión no elimina la imagen de referencia del proyecto.
+    // Mostrarla no aplica la importación ni sustituye el documento del Editor.
+    } else if (imported && image?.assetUrl && !(studio.sourceKind === 'canvas' && image.assetKey === studio.plan?.assetKey)) {
       try {
         const frame = buildPlanImport(imported.raw, {
           generalWidthMm: imported.generalWidthMm,
+          roomOverrides: imported.roomOverrides,
+          doorOverrides: imported.doorOverrides,
+          wallOverrides: imported.wallOverrides,
+          zoneOutlineOverrides: imported.zoneOutlineOverrides,
           includeFurniture: false,
           normalize: imported.detected ? {
             wallsOverride: imported.detected.walls,
@@ -55,6 +68,15 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
         if (frame) reference = { imageUrl: image.assetUrl, widthMm: frame.width, heightMm: frame.height };
       } catch { /* Una extracción antigua inválida no impide abrir el editor. */ }
     }
+    // Original y redibujados de ese original: se puede cambiar de fondo sin salir del editor.
+    const sourceKey = studio.source?.assetKey;
+    const options = studioResults(studio).filter((item) => item.assetKey === sourceKey
+      || (item.kind === 'redraw' && item.sourceKey === sourceKey))
+      .map((item) => ({ assetKey: item.assetKey, label: item.kind === 'source' ? 'Plano original'
+        : item.mode === 'decorado' ? 'Redibujado decorado' : 'Redibujado técnico' }));
+    const latest = [...new Map(options.map((item) => [item.label, item])).values()];
+    if (reference && latest.length > 1) reference = { ...reference, choices: { projectId,
+      activeKey: background?.image.assetKey ?? image?.assetKey, options: latest } };
   }
 
   if (source.authority === 'v2' && source.document.renderBackdrop) {
@@ -74,7 +96,6 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
       approvedDesign={approvedDesign}
       autoOpenApproved={Boolean(approvedId)}
       reference={reference}
-      openVideoStudio={openVideoStudio}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {
         fingerprint: source.legacyFingerprint,

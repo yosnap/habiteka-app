@@ -22,6 +22,6 @@ it('guarda el acabado lateral de la rampa y conserva pendiente y pavimento', () 
     bodyMaterialId: 'polyhaven:white_plaster_02' });
   expect(mesh).toMatchObject({ rise: 1, baseHeight: 0, bodyMaterialId: 'polyhaven:white_plaster_02',
     floorFinish: { texture: 'polyhaven:brushed_concrete' } });
-  expect(render.attributes?.['acabado de laterales y cara inferior']).toBe('White Plaster 02');
+  expect(render.attributes?.['acabado de laterales y cara inferior']).toBe('Pintura blanca lisa');
   expect(editorDesignContext(saved).existingMaterialPalette.rampBodies).toContain('polyhaven:white_plaster_02');
 });

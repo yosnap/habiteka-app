@@ -6,6 +6,15 @@ import type { OrgContext } from '@/server/auth/org-context';
 
 beforeEach(resetDb);
 describe('persistencia del estudio por organización', () => {
+  it('persiste correcciones y rechaza un guardado concurrente obsoleto', async () => {
+    const organizationId = await makeOrg();
+    const ctx: OrgContext = { organizationId, userId: 'test', role: 'owner' };
+    const project = await prisma.project.create({ data: { organizationId, title: 'Revisión aislada' } });
+    await saveStudio(ctx, project.id, { planImportRevision: 'uno' });
+    await saveStudio(ctx, project.id, { planImportRevision: 'dos', detalles: 'Corrección guardada' }, { expectedImportRevision: 'uno' });
+    await expect(saveStudio(ctx, project.id, { planImportRevision: 'tres' }, { expectedImportRevision: 'uno' })).rejects.toThrow(/revisión/);
+    expect((await loadStudio(ctx, project.id)).detalles).toBe('Corrección guardada');
+  });
   it('recupera el plano y la cenital al volver al proyecto', async () => {
     const organizationId = await makeOrg();
     const ctx: OrgContext = { organizationId, userId: 'test', role: 'owner' };

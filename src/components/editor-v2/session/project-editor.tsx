@@ -13,14 +13,13 @@ import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { ApprovedDesignView } from './approved-design-view';
 
-export function ProjectEditor({ scope, projectName, initial, approvedDesign, autoOpenApproved, writable, migration, autoGenerate, reference, openVideoStudio }: {
+export function ProjectEditor({ scope, projectName, initial, approvedDesign, autoOpenApproved, writable, migration, autoGenerate, reference }: {
   scope: DraftScope; projectName: string; initial: EditorDocument; writable: boolean;
   approvedDesign: ApprovedDesign | null;
   autoOpenApproved: boolean;
   migration: { fingerprint: string; complete: boolean; issues: string[] } | null;
   autoGenerate?: AutoGenerateRequest | null;
   reference?: PlanReference | null;
-  openVideoStudio?: boolean;
 }) {
   const router = useRouter();
   const [store] = useState(() => createEditorStore(initial, { readOnly: true }));
@@ -40,7 +39,6 @@ export function ProjectEditor({ scope, projectName, initial, approvedDesign, aut
         approvedDesign={approvedDesign}
         autoGenerate={autoGenerate ?? null}
         reference={reference}
-        openVideoStudio={openVideoStudio}
       />
     );
   return <div>

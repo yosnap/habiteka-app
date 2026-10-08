@@ -20,8 +20,8 @@ const isEditable = (target: EventTarget | null) =>
 /**
  * Ranura lateral única del editor: alberga Propiedades, Catálogo, Recorrido,
  * Contexto IA y Techo y luces, uno a la vez. Se cierra con la X, con Escape y
- * al pulsar fuera, salvo mientras se dibuja con una herramienta distinta de
- * «Seleccionar» (una tira LED o una zona), donde cada clic va al plano.
+ * al pulsar fuera, salvo el catálogo, Propiedades y mientras se dibuja con una herramienta
+ * distinta de «Seleccionar» (una tira LED o una zona), donde cada clic va al plano.
  */
 export function EditorSidePanel({ store, title, children }: {
   store: EditorStore; title: string; children: ReactNode;
@@ -33,11 +33,13 @@ export function EditorSidePanel({ store, title, children }: {
       if (!(target instanceof Node) || node.contains(target)) return;
       const element = target instanceof Element ? target : target.parentElement;
       if (element?.closest(KEEP_OPEN)) return;
+      // Colocar objetos o cambiar la selección no interrumpe el panel de trabajo.
+      if (['catalog', 'inspector'].includes(store.getState().sidePanel ?? '')) return;
       if (store.getState().tool !== 'select') return;
       store.getState().closeSidePanel();
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || modalOpen() || isEditable(event.target)) return;
+      if (event.key !== 'Escape' || event.defaultPrevented || modalOpen() || isEditable(event.target) || store.getState().pendingSpatial) return;
       store.getState().closeSidePanel();
     };
     document.addEventListener('pointerdown', closeOnOutside);
