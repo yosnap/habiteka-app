@@ -7,6 +7,7 @@ import { listProjects } from '@/server/actions/projects';
 import { getProjectCovers } from '@/server/actions/project-covers';
 import { Card } from '@/components/ui/card';
 import { NewProjectButton } from '@/components/app/new-project-button';
+import { ImportProjectButton } from '@/components/app/import-project-button';
 import { ProjectCard } from '@/components/app/project-card';
 
 export const metadata = { title: 'Mis proyectos — Habiteka' };
@@ -23,7 +24,10 @@ export default async function ProyectosPage() {
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
       <div className="mb-8 flex items-center justify-between gap-4">
         <h1 className="text-ink text-2xl font-semibold tracking-tight">Mis proyectos</h1>
-        <NewProjectButton />
+        <div className="flex items-start gap-2">
+          <ImportProjectButton />
+          <NewProjectButton />
+        </div>
       </div>
 
       {projects.length === 0 ? (

@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Tarjeta de un proyecto en «Mis proyectos»: enlaza al asistente y ofrece
- * eliminarlo (soft-delete) con confirmación. Tras borrar, refresca la lista.
+ * Tarjeta de un proyecto en «Mis proyectos»: enlaza al proyecto, lo exporta como
+ * `.habiteka` y ofrece eliminarlo (soft-delete) con confirmación.
  */
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
@@ -67,13 +67,15 @@ export function ProjectCard({ id, title, createdLabel, coverUrl }: Props) {
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="text-ink-soft hover:text-danger absolute top-3 right-3 text-xs underline"
-        >
-          Eliminar
-        </button>
+        <div className="absolute top-3 right-3 flex gap-3 text-xs">
+          <a href={`/api/projects/${id}/export`} download className="text-ink-soft hover:text-brand-700 underline"
+            title="Descarga un archivo .habiteka para importarlo en otra cuenta o instalación">
+            Exportar
+          </a>
+          <button type="button" onClick={() => setConfirming(true)} className="text-ink-soft hover:text-danger underline">
+            Eliminar
+          </button>
+        </div>
       )}
     </Card>
   );

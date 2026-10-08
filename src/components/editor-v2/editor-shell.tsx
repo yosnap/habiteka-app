@@ -657,6 +657,11 @@ export function EditorShell({
             <Download size={18} aria-hidden="true" />
             <span>Exportar plano</span>
           </button>}
+          {projectId && <a href={`/api/projects/${projectId}/export`} download data-project-menu-action
+            title="Descarga el proyecto completo como .habiteka para importarlo en otra cuenta o instalación">
+            <Download size={18} aria-hidden="true" />
+            <span>Exportar proyecto</span>
+          </a>}
           {onApproveDesign && <button type="button" data-project-menu-action disabled={approveDisabled} onClick={onApproveDesign}>
             <CheckCheck size={18} aria-hidden="true" />
             {approveLabel}
