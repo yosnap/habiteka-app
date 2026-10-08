@@ -38,6 +38,7 @@ export type {
   PlanImportWarning,
   PlanDoorOverride,
   PlanWallOverride,
+  PlanZoneOutlineOverride,
   PlanImportReviewOptions,
   WrittenRoomDimensions,
 } from './plan-import-result';

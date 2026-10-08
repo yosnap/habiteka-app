@@ -133,11 +133,11 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
 
   // Acabados de suelo exterior: se asignan a la estancia DERIVADA que contiene
   // el centro de cada zona exterior (los ids de estancia dependen de los muros).
-  if (result.exteriors.length === 0) return finish(doc, issues);
-
-  // Los acabados de suelo existen desde la versión 5 del esquema; se sube el
-  // documento por la cadena oficial de migraciones (construcción → espacial →
-  // rampas) y se deja en la versión actual.
+  // Se sube siempre el documento por la cadena oficial de migraciones
+  // (construcción → espacial → rampas) y se deja en la versión actual: al
+  // abrirlo, el editor completa campos de versiones recientes (como la cota de
+  // los muebles) que una versión antigua rechazaría. Los acabados de suelo
+  // exteriores existen desde la versión 5.
   let upgraded: EditorDocument;
   try {
     upgraded = upgradeRampDocument(doc);
@@ -149,6 +149,7 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
   upgraded.columns ??= [];
   // La derivación de estancias valida el documento: la colección debe existir ya.
   upgraded.floorFinishes = [];
+  if (result.exteriors.length === 0) return finish(upgraded, issues);
   const finishes: FloorFinish[] = [];
   try {
     const rooms = deriveRooms(upgraded);

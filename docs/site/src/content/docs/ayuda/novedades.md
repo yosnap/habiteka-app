@@ -11,7 +11,9 @@ description: Funciones implementadas y trabajo pendiente.
 
 - **Cocinas abiertas como estancia propia:** al enviar un plano importado al editor, una estancia leída que se fundiría con su vecina por no tener muro, como una cocina abierta al comedor, se cierra con un límite oculto. Solo se aplica si el resultado tiene el tamaño de la estancia leída. Consulta [Importar un plano](/guias/importar-plano/#cocinas-y-estancias-abiertas).
 
-- **Tamaño de estancia con deslizador:** en la revisión del plano importado, al pulsar una estancia en «Cotas y geometría por estancia» se despliega con deslizadores de ancho y fondo, como el ancho de las puertas. Mueven el muro derecho o inferior en vivo, y la estancia vecina cede lo mismo. Se conserva al guardar la revisión, sin IA. Consulta [Importar un plano](/guias/importar-plano/#revisar-antes-de-editar).
+- **Tamaño de estancia con deslizador:** en la revisión del plano importado, al pulsar una estancia en «Cotas y geometría por estancia» se despliega con deslizadores de ancho y fondo, y eliges qué lado se mueve. Un lado con muro mueve el muro y la vecina cede lo mismo. Un lado abierto mueve el límite de la estancia. **Llevar el lado hasta la pared siguiente** alarga la estancia hasta la pared de enfrente y funde el tabique sobrante. En el panel de un muro, **Desplazar el muro entero** lo mueve en paralelo. Se conserva al guardar la revisión, sin IA. Consulta [Importar un plano](/guias/importar-plano/#revisar-antes-de-editar).
+
+- **El editor ya no falla con «Campo desconocido» al abrir un plano importado con muebles:** un plano enviado al editor sin terraza ni puertas reconocidas quedaba en un formato antiguo, y al abrirlo el editor le añadía la altura de los muebles, que ese formato rechaza. Ahora la importación produce siempre el formato actual, y los documentos antiguos se abren sin ese ajuste.
 
 - **Dibujar paredes que cruzan otras:** una pared nueva que atraviesa otra o termina sobre un límite oculto ya no da el error «Intersección de muros sin vértice compartido». Se divide en el cruce y comparte esquina. Consulta [Herramientas del editor](/editor/herramientas/).
 

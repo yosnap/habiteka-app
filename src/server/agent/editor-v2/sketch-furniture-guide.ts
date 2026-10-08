@@ -145,7 +145,7 @@ export async function loadSketchGuide(ctx: OrgContext, projectId: string, zoneId
     if (!imported?.image) return null;
     const built = buildPlanImport(imported.raw, {
       generalWidthMm: imported.generalWidthMm, roomOverrides: imported.roomOverrides, doorOverrides: imported.doorOverrides,
-      wallOverrides: imported.wallOverrides, includeFurniture: false,
+      wallOverrides: imported.wallOverrides, zoneOutlineOverrides: imported.zoneOutlineOverrides, includeFurniture: false,
       normalize: imported.detected ? { wallsOverride: imported.detected.walls, imageHeightOverWidth: imported.detected.heightOverWidth } : {},
     });
     const frame = built.sourceFrameMm;

@@ -58,6 +58,7 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
           roomOverrides: imported.roomOverrides,
           doorOverrides: imported.doorOverrides,
           wallOverrides: imported.wallOverrides,
+          zoneOutlineOverrides: imported.zoneOutlineOverrides,
           includeFurniture: false,
           normalize: imported.detected ? {
             wallsOverride: imported.detected.walls,

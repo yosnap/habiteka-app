@@ -14,8 +14,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
-import type { PlanAperture, PlanWall, PlanWallOverride, PlanImportReviewOptions, PlanDoorOverride, PlanImportResult, Plano2dPayload, WrittenRoomDimensions } from '@/lib/contracts';
-import { applyReviewedDoors, applyReviewedWalls, resizeZoneSide, reviewedWallOverrides } from '@/lib/plan-review-geometry';
+import type { PlanAperture, PlanWall, PlanWallOverride, PlanZoneOutlineOverride, PlanImportReviewOptions, PlanDoorOverride, PlanImportResult, Plano2dPayload, WrittenRoomDimensions } from '@/lib/contracts';
+import { applyReviewedDoors, applyReviewedWalls, nextWallSize, resizeZoneSide, reviewedOutlineOverrides, reviewedWallOverrides } from '@/lib/plan-review-geometry';
 import { doorSwing } from '@/lib/plan-svg/door-swing';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import type { StudioQuality } from '@/lib/studio-state';
@@ -29,7 +29,7 @@ import { PlanReviewDoorFields, PlanReviewWallFields, PlanReviewZoneFields } from
 
 /** Importación con su veredicto de fiabilidad, tal y como la devuelve el servidor. */
 export type ImportedPlan = PlanImportResult & { imageUrl: string; quality: StudioQuality;
-  revision?: string; wallOverrides?: PlanWallOverride[]; generalWidthMm?: number; includeFurniture?: boolean };
+  revision?: string; wallOverrides?: PlanWallOverride[]; zoneOutlineOverrides?: PlanZoneOutlineOverride[]; generalWidthMm?: number; includeFurniture?: boolean };
 
 export interface PlanImportActions {
   importAction: (
@@ -41,7 +41,7 @@ export interface PlanImportActions {
     projectId: string,
     roomOverrides: WrittenRoomDimensions[],
     options: PlanImportReviewOptions,
-  ) => Promise<(PlanImportResult & { quality: StudioQuality; revision?: string; wallOverrides?: PlanWallOverride[] }) | ActionErrorResult>;
+  ) => Promise<(PlanImportResult & { quality: StudioQuality; revision?: string; wallOverrides?: PlanWallOverride[]; zoneOutlineOverrides?: PlanZoneOutlineOverride[] }) | ActionErrorResult>;
   applyAction: (
     projectId: string,
     result: PlanImportResult,
@@ -92,7 +92,9 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   const [vectorOpacity, setVectorOpacity] = useState(.7);
   const [saved, setSaved] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  type GeometryEntry = { result: PlanImportResult; walls: PlanWallOverride[] };
+  type GeometryEntry = { result: PlanImportResult; walls: PlanWallOverride[]; outlines: PlanZoneOutlineOverride[] };
+  // Lados abiertos movidos a mano: el contorno de la estancia, sin muro que lo explique.
+  const [zoneOutlines, setZoneOutlines] = useState<PlanZoneOutlineOverride[]>(initialResult?.zoneOutlineOverrides ?? []);
   const [past, setPast] = useState<GeometryEntry[]>([]), [future, setFuture] = useState<GeometryEntry[]>([]);
   const sidebar = useRef<HTMLElement | null>(null);
   // Veredicto del SERVIDOR al aplicar: el plano queda en el editor «a corregir».
@@ -195,6 +197,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     setConfirmNewImport(false);
     setRevision(imported.revision);
     setWallOverrides(imported.wallOverrides ?? []);
+    setZoneOutlines(imported.zoneOutlineOverrides ?? []);
     setPast([]); setFuture([]); setSaved(false); setSelection(null);
   };
 
@@ -238,7 +241,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
           includeFurniture,
           generalWidthMm: generalWidthMm ?? null,
           doorOverrides: result ? doorOverridesFromPlan(result.plano) : [],
-          wallOverrides, revision, saveOnly: true,
+          wallOverrides, zoneOutlineOverrides: zoneOutlines, revision, saveOnly: true,
         }),
       );
       setResult(refitted);
@@ -247,7 +250,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
       setRows(refitted.writtenDimensions.map((w) => rows.find((r) => r.zoneId === w.zoneId) ?? w));
       setNeedsRefit(false);
       setConfirmApply(false);
-      setRevision(refitted.revision); setWallOverrides(refitted.wallOverrides ?? wallOverrides);
+      setRevision(refitted.revision); setWallOverrides(refitted.wallOverrides ?? wallOverrides); setZoneOutlines(refitted.zoneOutlineOverrides ?? zoneOutlines);
       setSaved(true); setConfirmLeave(false); setNeedsCorrection(false);
       setPast([]); setFuture([]);
       if (imageUrl) onSaved?.({ ...refitted, imageUrl, generalWidthMm, includeFurniture });
@@ -256,7 +259,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
 
   const editGeometry = (plano: Plano2dPayload) => {
     if (!result) return;
-    setPast(previous => [...previous.slice(-49), { result, walls: wallOverrides }]); setFuture([]);
+    setPast(previous => [...previous.slice(-49), { result, walls: wallOverrides, outlines: zoneOutlines }]); setFuture([]);
     const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
     reviewedWallOverrides(result.plano, plano).forEach(wall => merged.set(wall.wallId, wall));
     setWallOverrides([...merged.values()]); setResult({ ...result, plano }); markForRefit(); setError(null);
@@ -264,14 +267,11 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   // Estirar una estancia: vista previa en vivo mientras se desliza y un solo paso de historial al soltar.
   const zoneDrag = useRef<{ base: NonNullable<typeof result>; plano: Plano2dPayload; zoneId: string;
     field: 'widthMm' | 'heightMm'; sizeMm: number } | null>(null);
-  const resizeZone = (zoneId: string, field: 'widthMm' | 'heightMm', sizeMm: number) => {
+  const resizeZone = (zoneId: string, field: 'widthMm' | 'heightMm', sizeMm: number, side: 'min' | 'max' = 'max') => {
     if (!result || busy) return false;
     const base = zoneDrag.current?.base ?? result;
-    const plano = resizeZoneSide(base.plano, zoneId, field === 'widthMm' ? 'x' : 'y', sizeMm);
-    if (plano === base.plano) {
-      setError(`Esta estancia no tiene un muro ${field === 'widthMm' ? 'a la derecha' : 'abajo'} que se pueda mover aquí. Ajústalo en el Editor.`);
-      return false;
-    }
+    const plano = resizeZoneSide(base.plano, zoneId, field === 'widthMm' ? 'x' : 'y', sizeMm, side);
+    if (plano === base.plano) return false;
     try { applyReviewedWalls(base.plano, reviewedWallOverrides(base.plano, plano)); }
     catch (e) { setError(e instanceof Error ? e.message : 'Ese tamaño deja un muro imposible.'); return false; }
     zoneDrag.current = { base, plano, zoneId, field, sizeMm };
@@ -282,10 +282,17 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     const drag = zoneDrag.current;
     if (!drag) return;
     zoneDrag.current = null;
-    setPast(previous => [...previous.slice(-49), { result: drag.base, walls: wallOverrides }]); setFuture([]);
+    setPast(previous => [...previous.slice(-49), { result: drag.base, walls: wallOverrides, outlines: zoneOutlines }]); setFuture([]);
     const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
-    reviewedWallOverrides(drag.base.plano, drag.plano).forEach(wall => merged.set(wall.wallId, wall));
+    const movedWalls = reviewedWallOverrides(drag.base.plano, drag.plano);
+    movedWalls.forEach(wall => merged.set(wall.wallId, wall));
     setWallOverrides([...merged.values()]); setResult({ ...drag.base, plano: drag.plano });
+    // Un lado abierto no mueve muros: se conserva el contorno de la estancia.
+    if (!movedWalls.length) {
+      const outlines = new Map(zoneOutlines.map(item => [item.zoneId, item]));
+      reviewedOutlineOverrides(drag.base.plano, drag.plano, drag.zoneId).forEach(item => outlines.set(item.zoneId, item));
+      setZoneOutlines([...outlines.values()]);
+    }
     // La cota de la tabla pasa a ser la medida que ha fijado el usuario.
     setRowMm(drag.zoneId, drag.field, Math.round(drag.sizeMm));
   };
@@ -305,10 +312,10 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   const historyMove = (redo: boolean) => {
     const list = redo ? future : past, entry = list.at(-1);
     if (!entry || !result) return;
-    const current = { result, walls: wallOverrides };
+    const current = { result, walls: wallOverrides, outlines: zoneOutlines };
     if (redo) { setFuture(list.slice(0, -1)); setPast(previous => [...previous, current]); }
     else { setPast(list.slice(0, -1)); setFuture(previous => [...previous, current]); }
-    setResult(entry.result); setWallOverrides(entry.walls); markForRefit(); setError(null);
+    setResult(entry.result); setWallOverrides(entry.walls); setZoneOutlines(entry.outlines); markForRefit(); setError(null);
   };
 
   const editorUrl = `/projects/${projectId}${zona ? `?zona=${encodeURIComponent(zona)}` : ''}`;
@@ -500,7 +507,8 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
                     {open ? <tr><td colSpan={3} className="pb-2">
                       <PlanReviewZoneFields name={row.name} widthMm={row.widthMm} heightMm={row.heightMm}
                         drawn={measured ?? null} disabled={busy !== null}
-                        change={(field, valueMm) => resizeZone(row.zoneId, field, valueMm)}
+                        change={(field, valueMm, side) => resizeZone(row.zoneId, field, valueMm, side)}
+                        nextWall={(field, side) => result ? nextWallSize(result.plano, row.zoneId, field === 'widthMm' ? 'x' : 'y', side) : null}
                         commit={commitZoneResize} onClose={() => setSelection(null)} />
                     </td></tr> : mismatch ? <tr><td colSpan={3} className="pb-2 text-[11px] text-red-700">
                       Cota escrita: {metres(row.widthMm)} × {metres(row.heightMm)} · difiere más del 5 % del dibujo

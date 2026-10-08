@@ -8,6 +8,8 @@ import { fromPlanImport } from '@/lib/editor-document/adapters/plano2d-import';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { buildEditorEvidence } from '@/server/quality/evidence/editor-evidence';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
+import { parseEditorDocument } from '@/lib/editor-document/validation';
+import { normalizeEditorDocument } from '@/lib/editor-document/document-normalization';
 
 /** Casa de 6 × 4 m (ejes) con una terraza de 6 × 2 m pegada a la fachada sur (y = 4000). */
 function house(): Plano2dPayload {
@@ -72,11 +74,19 @@ describe('fromPlanImport', () => {
     expect(doc.schemaVersion).toBe(7);
   });
 
-  it('sin exteriores ni mobiliario equivale a la conversión básica', () => {
+  it('sin exteriores ni mobiliario equivale a la conversión básica, en la versión actual', () => {
     const { document } = fromPlanImport({ ...importResult(), exteriors: [], furniture: [] });
     expect(document!.walls).toHaveLength(4);
     expect(document!.furniture).toEqual([]);
-    expect(document!.floorFinishes).toBeUndefined();
+    expect(document!.floorFinishes).toEqual([]);
+    expect(document!.schemaVersion).toBe(7);
+  });
+
+  it('con mobiliario y sin exteriores se abre en el editor sin campos rechazados', () => {
+    const { document } = fromPlanImport({ ...importResult(), exteriors: [] });
+    expect(document!.furniture.length).toBeGreaterThan(0);
+    // Al abrirlo, el editor completa la cota de los muebles: el documento debe admitirla.
+    expect(() => parseEditorDocument(normalizeEditorDocument(parseEditorDocument(document!), { onLoad: true }))).not.toThrow();
   });
 
   it('conserva el centro dibujado de un mueble girado', () => {

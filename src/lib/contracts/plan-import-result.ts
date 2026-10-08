@@ -39,11 +39,18 @@ export interface PlanWallOverride {
   thicknessMm: number;
 }
 
+/** Contorno de una estancia ajustado a mano en un lado sin muro (su límite abierto). */
+export interface PlanZoneOutlineOverride {
+  zoneId: string;
+  outline: PlanPoint[];
+}
+
 export interface PlanImportReviewOptions {
   includeFurniture?: boolean;
   generalWidthMm?: number | null;
   doorOverrides?: PlanDoorOverride[];
   wallOverrides?: PlanWallOverride[];
+  zoneOutlineOverrides?: PlanZoneOutlineOverride[];
   /** Revisión que vio el usuario; evita guardar sobre una importación distinta. */
   revision?: string;
   /** Guardado determinista de la revisión, sin evaluación IA de pago. */

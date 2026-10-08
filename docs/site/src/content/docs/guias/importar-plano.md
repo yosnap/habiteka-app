@@ -32,10 +32,14 @@ Un redibujado limpio no garantiza medidas correctas: revisa las cotas igualmente
 ## Revisar antes de editar
 
 1. Pulsa **Importar este plano**.
-2. Revisa **Cotas y geometría por estancia**: cada fila muestra el ancho y el fondo dibujados. Pulsa una estancia, en la tabla o sobre el plano, y se despliega con su **Ancho (izquierda-derecha)** y su **Fondo (arriba-abajo)**, cada uno con campo y deslizador. El ancho mueve el muro derecho y el fondo el inferior. La estancia vecina cede o gana lo mismo y el cambio se ve en vivo. Si ese lado no tiene un muro que mover, o un hueco dejaría de caber, se avisa y hay que corregirlo en el Editor.
+2. Revisa **Cotas y geometría por estancia**: cada fila muestra el ancho y el fondo dibujados. Pulsa una estancia, en la tabla o sobre el plano, y se despliega con su **Ancho** y su **Fondo**. Cada uno tiene campo, deslizador y **Mover lado** (izquierdo o derecho; superior o inferior) para elegir qué lado cambia.
+   - **Lado con muro:** se mueve el muro y la estancia vecina cede o gana lo mismo.
+   - **Lado abierto** (un salón abierto al pasillo): se mueve el límite de la estancia, que en el editor será un límite oculto. Se conserva al guardar.
+   - **Llevar el lado hasta la pared siguiente:** lo alarga hasta la pared paralela más cercana. Si el lado tiene su propio tabique, este se lleva hasta esa pared y se funde con ella, como si quitaras el tabique sobrante; sus huecos pasan a la pared que queda.
+   - Si un hueco dejaría de caber, se avisa y hay que corregirlo en el Editor.
 3. Pulsa **Guardar y recalcular revisión** para conservar las correcciones en el proyecto sin volver a llamar a la IA.
 4. Si falta escala fiable, indica **Ancho total real**.
-5. Comprueba paredes, huecos y habitaciones.
+5. Comprueba paredes, huecos y habitaciones. Al pulsar un muro, **Desplazar el muro entero** lo mueve en paralelo, con sus dos extremos; arrastrar un extremo sobre el plano solo mueve esa esquina.
 6. Pulsa **Enviar al editor** y revisa la confirmación: reemplaza el plano actual del proyecto.
 
 :::tip

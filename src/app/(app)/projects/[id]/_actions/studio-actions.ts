@@ -19,7 +19,7 @@ import { rasterizeCanvasDoc } from '@/server/agent/canvas/rasterize-canvas-doc';
 import { rasterizeEditorDocument } from '@/server/agent/editor-v2/rasterize-editor-document';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { serializeDocToPrompt } from '@/canvas/serialize-doc-to-prompt';
-import type { Estilo, PlanDoorOverride, PlanWallOverride, PlanImportReviewOptions, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
+import type { Estilo, PlanDoorOverride, PlanWallOverride, PlanZoneOutlineOverride, PlanImportReviewOptions, PlanImportResult, WrittenRoomDimensions } from '@/lib/contracts';
 import type { EditorBackground, StudioQuality, StudioState } from '@/lib/studio-state';
 import { fitBackgroundFrame } from '@/server/plan/editor-background';
 import {
@@ -355,7 +355,7 @@ export async function setEditorBackgroundStudio(projectId: string, assetKey: str
       if (imported) {
         const sourceFrame = buildPlanImport(imported.raw, {
           generalWidthMm: imported.generalWidthMm, roomOverrides: imported.roomOverrides,
-          doorOverrides: imported.doorOverrides, wallOverrides: imported.wallOverrides, includeFurniture: false,
+          doorOverrides: imported.doorOverrides, wallOverrides: imported.wallOverrides, zoneOutlineOverrides: imported.zoneOutlineOverrides, includeFurniture: false,
           normalize: importNormalizeOptions(imported.detected),
         }).sourceFrameMm;
         if (sourceFrame) hints.push({ x: 0, y: 0, width: sourceFrame.width, height: sourceFrame.height });
@@ -396,7 +396,7 @@ async function refitPlanImportStudioImpl(
   projectId: string,
   roomOverrides: WrittenRoomDimensions[],
   options: PlanImportReviewOptions = {},
-): Promise<PlanImportResult & { quality: StudioQuality; revision: string; wallOverrides: PlanWallOverride[] }> {
+): Promise<PlanImportResult & { quality: StudioQuality; revision: string; wallOverrides: PlanWallOverride[]; zoneOutlineOverrides: PlanZoneOutlineOverride[] }> {
   const { ctx, state } = await context(projectId);
   if (!state.planImport) fail('Importa un plano primero.');
   if (options.revision && options.revision !== state.planImportRevision)
@@ -409,11 +409,13 @@ async function refitPlanImportStudioImpl(
   const safeOverrides = sanitizeOverrides(roomOverrides);
   const doorOverrides = sanitizeDoorOverrides(options.doorOverrides ?? state.planImport.doorOverrides);
   const wallOverrides = options.wallOverrides ?? state.planImport.wallOverrides ?? [];
+  const zoneOutlineOverrides = options.zoneOutlineOverrides ?? state.planImport.zoneOutlineOverrides ?? [];
   const includeFurniture = options.includeFurniture ?? state.planImport.includeFurniture ?? true;
   const result = buildPlanImport(raw, {
     roomOverrides: safeOverrides,
     doorOverrides,
     wallOverrides,
+    zoneOutlineOverrides,
     includeFurniture,
     ...(generalWidthMm !== undefined ? { generalWidthMm } : {}),
     normalize: importNormalizeOptions(detected),
@@ -436,6 +438,7 @@ async function refitPlanImportStudioImpl(
       ...state.planImport, roomOverrides: safeOverrides,
       doorOverrides,
       wallOverrides,
+      zoneOutlineOverrides,
       includeFurniture,
       generalWidthMm,
     },
@@ -445,7 +448,7 @@ async function refitPlanImportStudioImpl(
     planImportApplied: false,
     planImportRevision: revision,
   }, { expectedImportRevision: state.planImportRevision });
-  return { ...result, quality, revision, wallOverrides };
+  return { ...result, quality, revision, wallOverrides, zoneOutlineOverrides };
 }
 
 /**
@@ -473,6 +476,7 @@ async function applyPlanImportStudioImpl(
     roomOverrides: state.planImport.roomOverrides,
     doorOverrides: state.planImport.doorOverrides,
     wallOverrides: state.planImport.wallOverrides,
+    zoneOutlineOverrides: state.planImport.zoneOutlineOverrides,
     generalWidthMm: state.planImport.generalWidthMm,
     includeFurniture: state.planImport.includeFurniture,
   });

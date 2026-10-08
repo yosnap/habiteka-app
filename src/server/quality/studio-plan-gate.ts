@@ -50,6 +50,7 @@ export async function studioPlanQuality(
     roomOverrides: planImport.roomOverrides,
     doorOverrides: planImport.doorOverrides,
     wallOverrides: planImport.wallOverrides,
+    zoneOutlineOverrides: planImport.zoneOutlineOverrides,
     generalWidthMm: planImport.generalWidthMm,
     includeFurniture: planImport.includeFurniture,
     normalize: importNormalizeOptions(planImport.detected),

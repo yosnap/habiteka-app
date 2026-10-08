@@ -17,7 +17,8 @@ const walls = [wall('n', 0, 0, 6000, 0), wall('s', 0, 6000, 6000, 6000), wall('w
 function result(withKitchenZone: boolean): PlanImportResult {
   const zones = [
     { id: 'comedor', name: 'Comedor', walls, apertures: [], dimensions: [],
-      outline: [{ x: 80, y: 2580 }, { x: 5920, y: 2580 }, { x: 5920, y: 5920 }, { x: 80, y: 5920 }] },
+      outline: withKitchenZone ? [{ x: 80, y: 2580 }, { x: 5920, y: 2580 }, { x: 5920, y: 5920 }, { x: 80, y: 5920 }]
+        : [{ x: 80, y: 80 }, { x: 5920, y: 80 }, { x: 5920, y: 5920 }, { x: 80, y: 5920 }] },
     ...(withKitchenZone ? [{ id: 'cocina', name: 'Cocina', walls: [], apertures: [], dimensions: [],
       outline: [{ x: 80, y: 80 }, { x: 5920, y: 80 }, { x: 5920, y: 2500 }, { x: 80, y: 2500 }] }] : []),
   ];
@@ -42,7 +43,7 @@ describe('límites ocultos de planta abierta', () => {
     expect(areas[0]).toBeLessThan(17);
   });
 
-  it('no añade nada cuando las estancias ya están cerradas por muros', () => {
+  it('no añade nada cuando la estancia leída ya está cerrada por muros', () => {
     const { document } = fromPlanImport(result(false));
     expect(document!.walls.some((item) => item.id.startsWith('hidden:open'))).toBe(false);
     expect(deriveRooms(document!)).toHaveLength(1);

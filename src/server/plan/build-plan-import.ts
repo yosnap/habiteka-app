@@ -5,8 +5,8 @@
  * la tabla de estancias y que, tras corregir el usuario, se materializa en el
  * editor. Sin red ni BD: testeable con fixtures.
  */
-import type { PlanDoorOverride, PlanWallOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
-import { applyReviewedDoors, applyReviewedWalls } from '@/lib/plan-review-geometry';
+import type { PlanDoorOverride, PlanWallOverride, PlanZoneOutlineOverride, PlanImportResult, PlanImportWarning, WrittenRoomDimensions } from '@/lib/contracts';
+import { applyReviewedDoors, applyReviewedOutlines, applyReviewedWalls } from '@/lib/plan-review-geometry';
 import type { RawSketch } from '@/server/ai/sketch/sketch-types';
 import {
   normalizeSketchDetailed,
@@ -29,6 +29,7 @@ export interface BuildPlanImportOptions {
   /** Correcciones de giro/bisagra confirmadas sobre la vista revisada. */
   doorOverrides?: PlanDoorOverride[];
   wallOverrides?: PlanWallOverride[];
+  zoneOutlineOverrides?: PlanZoneOutlineOverride[];
   /** false = no colocar mobiliario (toggle de la UI). */
   includeFurniture?: boolean;
   /**
@@ -111,7 +112,7 @@ export function buildPlanImport(rawIn: RawSketch, options: BuildPlanImportOption
   const fitted = {
     ...fit,
     corrections: keepMeasuredWalls ? [] : fit.corrections,
-    plano: applyReviewedDoors(applyReviewedWalls(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.wallOverrides), options.doorOverrides),
+    plano: applyReviewedOutlines(applyReviewedDoors(applyReviewedWalls(cleanupApertures(planarizePlano(keepMeasuredWalls ? normalized : fit.plano)), options.wallOverrides), options.doorOverrides), options.zoneOutlineOverrides),
   };
 
   const interiorRooms = raw.habitaciones.filter((room) => room.exterior !== true).length;

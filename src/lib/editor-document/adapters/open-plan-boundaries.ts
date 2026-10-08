@@ -164,8 +164,11 @@ const SLIVER_M2 = 500_000;
 const slivers = (rooms: ReturnType<typeof deriveRoomsSafe>) =>
   rooms.filter((room) => polygonArea(room.boundary) < SLIVER_M2).length;
 
+// Un resto sin nombre por debajo de esto es un trozo de otra estancia; uno mayor (un pasillo
+// sin rotular) es un espacio real y puede quedar aparte.
+const LEFTOVER_M2 = 3_000_000;
 const unlabeled = (doc: EditorDocument, rooms: ReturnType<typeof deriveRoomsSafe>) =>
-  rooms.filter((room) => !doc.labels.some((label) => inside(label, room.boundary))).length;
+  rooms.filter((room) => polygonArea(room.boundary) < LEFTOVER_M2 && !doc.labels.some((label) => inside(label, room.boundary))).length;
 
 function roomArea(doc: EditorDocument, point: Point): number | null {
   const room = deriveRoomsSafe(doc).find((item) => inside(point, item.boundary));

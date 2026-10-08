@@ -78,6 +78,7 @@ export interface StudioState {
     roomOverrides?: WrittenRoomDimensions[];
     doorOverrides?: import('@/lib/contracts').PlanDoorOverride[];
     wallOverrides?: import('@/lib/contracts').PlanWallOverride[];
+    zoneOutlineOverrides?: import('@/lib/contracts').PlanZoneOutlineOverride[];
     generalWidthMm?: number;
     includeFurniture?: boolean;
     /** Imagen de la que se extrajo (subida o redibujado): la superposición del panel la usa. */
