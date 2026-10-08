@@ -3,6 +3,10 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Versión 0.6.0 — 8 de octubre de 2026
+
+- **Exportar e importar proyectos:** **Exportar** en la tarjeta de un proyecto, o **Exportar proyecto** en el menú del editor, descarga un archivo `.habiteka` con el plano, el editor, los diseños, los vídeos y sus archivos. **Importar proyecto** en **Mis proyectos** lo convierte en un proyecto nuevo en otra cuenta o instalación. Consulta [Primer proyecto](/guias/primer-proyecto/#exportar-e-importar-un-proyecto).
+
 ## Versión 0.5.1 — 8 de octubre de 2026
 
 - **Texturas de fachada en la cara correcta:** en planos con una cocina o un salón abiertos, separados con un límite oculto, el editor tomaba esas estancias por exteriores. Al aplicar un acabado a las paredes exteriores, algunas lo recibían por dentro. Ahora esos límites separan estancias interiores, y solo los de terrazas y patios marcan un espacio al aire libre, también al partirlos dibujando una pared.

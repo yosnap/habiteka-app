@@ -36,3 +36,15 @@ Para mostrar acabados y decoración, [crea imágenes](/guias/imagenes/). Para pr
 ## 7. Revisa el resultado
 
 Abre **Diseños**: imágenes, **Recorridos** y **Vídeos** se organizan por separado. **Historial** permite consultar resultados anteriores. Comprueba el vídeo completo, su versión, geometría, puertas, ventanas, tejado, pérgolas, iluminación y movimientos de cámara.
+
+## Exportar e importar un proyecto
+
+Para llevar un proyecto a otra cuenta o a otra instalación de Habiteka (por ejemplo, de tu entorno de pruebas a producción):
+
+1. **Exporta el proyecto** con **Exportar** en su tarjeta de **Mis proyectos**, o con **Exportar proyecto** en el menú del editor. Se descarga un archivo `.habiteka`.
+2. **Impórtalo** en **Mis proyectos** de la otra cuenta o instalación, con **Importar proyecto**. Se crea un proyecto nuevo con el mismo nombre y se abre al terminar.
+
+El archivo lleva el plano y su revisión, el editor con todas sus versiones y aprobaciones, los diseños y vídeos con su aceptación, y sus imágenes y archivos. No lleva la conversación del asistente ni los costes de IA. Las aprobaciones quedan a nombre de quien importa. El archivo admite hasta 500 MB.
+
+Importar no cambia el proyecto original: son dos proyectos independientes. El archivo contiene tus imágenes y diseños, así que guárdalo y compártelo con el mismo cuidado que el proyecto.
+
