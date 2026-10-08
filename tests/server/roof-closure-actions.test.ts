@@ -70,7 +70,9 @@ describe('cerrar el tejado desde el modelo', () => {
     expect(request.referenceImages).toHaveLength(2);
     expect(request.aspectRatio).toBe('16:9');
     expect(request.prompt).toContain('cuatro aguas');
-    expect(mock.chat.mock.calls[0]![0].messages[0].content.filter((part: { type: string }) => part.type === 'image_url')).toHaveLength(3);
+    // La primera llamada traduce el prompt; la revisión recibe la imagen aceptada, la maqueta y el resultado.
+    const reviewCall = mock.chat.mock.calls.find((call) => call[0].responseSchema !== undefined && call[0].messages[0].content.some((part: { type: string }) => part.type === 'image_url'))!;
+    expect(reviewCall[0].messages[0].content.filter((part: { type: string }) => part.type === 'image_url')).toHaveLength(3);
     const saved = mock.persist.mock.calls[0]![1][0];
     const generation = saved.payload.generation;
     expect(generation.view).toMatchObject({ preset: 'isometric', ceilingView: 'solid', cutaway: false });
@@ -85,10 +87,13 @@ describe('cerrar el tejado desde el modelo', () => {
 
   it('guarda descartada la imagen con tejado si la revisión falla o no responde', async () => {
     const pass = { status: 'pass', observation: 'Bien.' };
+    // Cada cierre traduce primero su prompt; sin traducción utilizable se envía en español y sigue la revisión.
+    mock.chat.mockResolvedValueOnce({ structured: {} });
     mock.chat.mockResolvedValueOnce({ structured: { roof: { status: 'fail', observation: 'Falta la chimenea.' }, framing: pass, identity: pass, photorealistic: pass } });
     await closeRoofFromModel('project', null, 'base');
     expect(mock.persist.mock.calls[0]![1][0].payload.generation.review.reason).toContain('Falta la chimenea.');
     const { aiError } = await import('@/server/ai/errors');
+    mock.chat.mockResolvedValueOnce({ structured: {} });
     mock.chat.mockRejectedValueOnce(aiError('timeout', 'El modelo no respondió'));
     await closeRoofFromModel('project', null, 'base');
     expect(mock.persist.mock.calls[1]![1][0].payload.generation.review.reason).toContain('no se completó');

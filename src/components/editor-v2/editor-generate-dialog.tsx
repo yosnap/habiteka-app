@@ -59,6 +59,8 @@ import { DesignPreviewDialog, EditorDesignDialogFrame } from './editor-design-di
 interface EditorGenerateDialogProps {
   projectId?: string; zoneId?: string | null;
   preferencesOwner?: string;
+  /** Luz de la aprobación vigente: el vídeo de primera persona solo admite interiores con ella. */
+  approvedLighting?: RenderDesignOptions['lighting'];
   document?: EditorDocument;
   capture?: RenderCapture;
   onPreview?: PreviewRender;
@@ -117,7 +119,7 @@ const DRESSED_IMAGE_OPTIONS = { freedom: 'controlled', additions: [...RENDER_ADD
 
 export function EditorGenerateDialog({
   projectId, zoneId = null,
-  preferencesOwner,
+  preferencesOwner, approvedLighting,
   document,
   capture,
   onPreview,
@@ -532,6 +534,7 @@ export function EditorGenerateDialog({
                 <RenderOptionsControls
                   editable={intent === 'editable'}
                   document={document}
+                  approvedLighting={approvedLighting}
                   options={options}
                   onChange={changeOptions}
                   disabled={busy}

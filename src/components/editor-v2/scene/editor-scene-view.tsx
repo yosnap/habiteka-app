@@ -50,7 +50,7 @@ import { SceneEnvironment } from './scene-environment';
 import { CeilingLightingMeshes } from './ceiling-lighting-meshes';
 import { viewCoverIds } from '@/lib/editor-document/view-covers';
 import { viewCutawayHosts } from '@/lib/editor-document/view-cutaway-hosts';
-import { captureCeilingView, captureCutaway, levelLightBudgets, lightingCoverage, presetCeilingView, sceneCoversHidden, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
+import { captureCeilingView, captureCutaway, captureViewPreset, levelLightBudgets, lightingCoverage, presetCeilingView, sceneCoversHidden, type BudgetLevel, type CeilingView } from './ceiling-scene-utils';
 import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
 import { resolvedStrips } from '@/lib/editor-document/light-strip-geometry';
 import { resolvedLuminaires, ceilingSurfaces, ceilingIssues as computeCeilingIssues, type CeilingIssue } from '@/lib/editor-document/ceiling-geometry';
@@ -58,6 +58,7 @@ import { SceneViewControls, type SceneViewAction, type SceneViewPreset } from '.
 import { withTimeout } from '@/lib/async-wait';
 import { renderZoneMask } from './zone-mask';
 import { isolateSceneToZone } from './zone-scene-isolation';
+import { architectureGuide } from './architecture-guide';
 import { exteriorZoneMarginMm } from './zone-structural-mask';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { planObjects } from '@/lib/editor-document/boundary-types';
@@ -293,7 +294,8 @@ function SceneView({
       let restoreZoneScene: (() => void) | null = null;
       let restoreLighting: (() => void) | null = null;
       let restoreBackground: (() => void) | null = null;
-      const capturedView = options?.view && options.view !== 'current' ? options.view : activeView;
+      let restoreArchitecture: (() => void) | null = null;
+      const capturedView = captureViewPreset(options?.view, activeView, Boolean(options?.camera));
       const aerialCapture = capturedView === 'top' || capturedView === 'isometric' || capturedView === 'drone';
       const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       try {
@@ -379,6 +381,7 @@ function SceneView({
       }
       // Para diseñar con IA la iluminación siempre cuenta; el PNG nativo captura lo que se ve.
       if (!fullResolution) restoreLighting = revealHiddenLighting(state.scene);
+      if (options?.architectureOnly) restoreArchitecture = architectureGuide(state.scene, visibleLevels.map(level => level.document));
       state.gl.render(state.scene, state.camera);
       const camera = state.camera;
       if (!('fov' in camera) || typeof camera.fov !== 'number') throw new Error('Cámara no compatible.');
@@ -392,10 +395,12 @@ function SceneView({
         preset: options?.camera ? 'custom' : options?.view && options.view !== 'current' ? options.view : activeView ?? 'custom', focus: camera.position.clone().add(camera.getWorldDirection(new Vector3())).toArray(), levelId: currentDocument.activeLevelId ?? null, levelElevationM: allLevels ? (buildingDocuments(currentDocument).find((level) => level.id === currentDocument.activeLevelId)?.elevationMm ?? 0) / 1000 : 0, position: camera.position.toArray(), quaternion: camera.quaternion.toArray(),
         fov: camera.fov, aspect: state.size.width / state.size.height, allLevels, cutaway: capturedCutaway,
         ceilingView: capturedCeilingView,
+        ...(options?.architectureOnly ? { architectureOnly: true } : {}),
         lighting: options?.lighting ?? originalLighting,
         cutawayWallIds: [...hiddenWallIds], cutawayObjectIds,
       } };
       } finally {
+        restoreArchitecture?.();
         restoreBackground?.();
         restoreZoneScene?.();
         restoreZoneWalls?.();

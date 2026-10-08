@@ -18,8 +18,13 @@ export async function renderDrawingReferences(document: EditorDocument, view: Re
     const raster = await rasterizeEditorDocument(document, undefined, { doorLeaves: true, swingArcs: false });
     return { plan: await sanitizeImageBuffer(Buffer.from(raster.base64, 'base64')) };
   }
-  if (!acceptedTop || !['front', 'back', 'left', 'right'].includes(view.preset)) return {};
+  if (!acceptedTop || !view.cutaway || !['front', 'back', 'left', 'right'].includes(view.preset)) return {};
   // La arquitectura viene del plano; el mobiliario procede de la imagen aceptada, que puede haber sido rediseñada.
   const side = view.preset as ElevationSide, image = await rasterizeEditorElevation(document, side, { cut: true, furniture: false });
-  return image ? { section: { image: await sanitizeImageBuffer(Buffer.from(image.base64, 'base64')), rooms: sectionRooms(document, side) } } : {};
+  return image ? { section: { image: await sanitizeImageBuffer(Buffer.from(image.base64, 'base64')), rooms: sectionRooms(document, side),
+    withFurniture: async (ids: string[]) => {
+      // Solo camas y sofás confirmados por la cenital aceptada: el resto del mobiliario lo pone el diseño aceptado.
+      const drawn = await rasterizeEditorElevation(document, side, { cut: true, furnitureIds: new Set(ids) });
+      return drawn ? sanitizeImageBuffer(Buffer.from(drawn.base64, 'base64')) : undefined;
+    } } } : {};
 }

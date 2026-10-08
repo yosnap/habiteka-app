@@ -19,7 +19,7 @@ function RoofPart({ part, document }: { part: RoofGeometry; document: EditorDocu
   }, [part]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group userData={{ videoStage: 2, buildKey: 'exterior-roof' }}>
-    <mesh geometry={geometry} castShadow={!part.glazing} receiveShadow userData={{ sourceEntityId: part.openingId ?? 'exterior-roof' }}>
+    <mesh geometry={geometry} castShadow={!part.glazing} receiveShadow userData={{ sourceEntityId: part.openingId ?? 'exterior-roof', roofGlazing: Boolean(part.glazing) }}>
       {part.glazing ? <meshPhysicalMaterial color="#d8edf1" transparent opacity={.35} transmission={.85} roughness={.08} metalness={0} thickness={.02} side={DoubleSide} />
         : part.chimney ? <SurfaceMaterial id="ambientcg:Bricks092" color="#ead3c0" width={1} height={1} doubleSide />
         : part.frame ? <meshStandardMaterial color="#43494b" metalness={.65} roughness={.3} side={DoubleSide} />

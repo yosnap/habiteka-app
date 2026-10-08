@@ -28,6 +28,8 @@ import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import { sameDesignContent, type ApprovedDesign, type ApprovedLightingPreset } from '@/lib/editor-document/approved-design';
 import { ApprovedDesignView } from './approved-design-view';
 import { ApprovalReviewDialog } from './approval-review-dialog';
+import { ApprovalDriftNotice } from './approval-drift-notice';
+import { sameVisualDesignContent } from '@/lib/editor-document/visual-design-content';
 
 export function EditorSession({
   scope,
@@ -86,6 +88,7 @@ export function EditorSession({
   const restoring = useRef(false);
   const status = useSyncExternalStore(queue.subscribe, queue.getSnapshot, queue.getSnapshot);
   const currentDocument = useStore(store, (state) => state.document);
+  const canUndo = useStore(store, (state) => state.past.length > 0);
   useEffect(() => {
     const unregister = registerEditorSession(scope.userId, queue);
     const watchClosed = queue.subscribe(() => {
@@ -127,6 +130,10 @@ export function EditorSession({
   const pendingChanges = hasPendingRemoteChanges(status);
   const needsApproval = useMemo(() => !approval ||
     !sameDesignContent(currentDocument, approval.document), [currentDocument, approval]);
+  // Tras «Mantener el cambio» el aviso calla hasta el siguiente cambio que siga apartándose de la aprobación.
+  const [keptDrift, setKeptDrift] = useState<EditorDocument | null>(null);
+  const showDrift = useMemo(() => Boolean(approval) && !sameVisualDesignContent(currentDocument, approval!.document)
+    && !(keptDrift && sameVisualDesignContent(currentDocument, keptDrift)), [currentDocument, approval, keptDrift]);
   const saveStatus = status.closed
     ? 'Sesión cerrada'
     : status.conflict
@@ -300,6 +307,9 @@ export function EditorSession({
       <ApprovalReviewDialog open={reviewApproval && !viewApproved} pending={approving} error={approvalError} lighting={lightingPreset}
         onLightingChange={setLightingPreset} onClose={() => setReviewApproval(false)} onConfirm={() => void approve()} />
       {approvalError && !reviewApproval && <p role="alert" className="bg-amber-100 px-4 py-2 text-sm text-amber-950">{approvalError}</p>}
+      {showDrift && !viewApproved && <ApprovalDriftNotice disabled={status.closed || Boolean(status.conflict)}
+        onUndo={canUndo ? () => store.getState().undo() : undefined} onDismiss={() => setKeptDrift(currentDocument)}
+        onApprove={status.closed || status.conflict ? undefined : () => { setApprovalError(null); setReviewApproval(true); }} />}
       {viewApproved && approval ? <ApprovedDesignView key={`${approval.id}:${approvedRouteId ?? ''}`} approval={approval} scope={scope}
         initialRouteId={approvedRouteId} onOpenVideoStudio={() => void openVideos()} onBack={() => setViewApproved(false)} /> : <EditorShell
         preferencesOwner={scope.userId}
@@ -322,6 +332,7 @@ export function EditorSession({
         allowVideoExport={false}
         lightingPreset={lightingPreset}
         onLightingChange={setLightingPreset}
+        approvedLighting={approval?.lightingPreset}
         onSaveNativeRender={async (capture) => {
           await callAction(
             saveNativeRender(scope.projectId, capture.dataUrl, scope.zoneId, capture.view),

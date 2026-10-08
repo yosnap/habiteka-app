@@ -19,6 +19,7 @@ import { projectVehicleCount, SELECTED_VIEW_IMAGE_PROMPT_VERSION } from '@/serve
 import { SIMPLE_PLAN_PROMPT_VERSION, SIMPLE_SECTION_PROMPT_VERSION } from '@/server/agent/editor-v2/simple-plan-prompt';
 import { renderDrawingReferences } from '@/server/agent/editor-v2/render-drawing-references';
 import { sectionFurnitureBrief } from '@/server/agent/editor-v2/section-furniture-brief';
+import { interiorFurnitureBrief } from '@/server/agent/editor-v2/interior-furniture-brief';
 import { prepareRenderImageRequest } from '@/server/agent/editor-v2/prepare-render-image-request';
 import { persistDeliverables } from '@/server/agent/persistence/deliverable-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/server/agent/legal/seal';
@@ -74,9 +75,10 @@ import { findBatchStyleAnchor } from '@/server/agent/editor-v2/batch-style-ancho
 import { assertRenderBatchCompatible } from '@/server/agent/editor-v2/render-batch-continuation';
 import { verifiedEditorDocument } from '@/server/agent/editor-v2/verified-editor-document';
 import { renderRoomContext } from '@/lib/editor-document/render-room-context';
-import { droneReferences, lateralDesignReference } from '@/server/agent/editor-v2/drone-references';
+import { droneReferences, lateralDesignReference, interiorDesignReference } from '@/server/agent/editor-v2/drone-references';
 import { conceptRenderSettingsSchema, NATIVE_RENDER_DATA_URL } from '@/server/agent/editor-v2/concept-render-settings';
 import { generateOrReviewRender, EXISTING_RENDER_REVIEW_VERSION } from '@/server/agent/editor-v2/existing-render-review';
+import { englishImagePrompt } from '@/server/agent/editor-v2/english-image-prompt';
 import type {
   DeliverableType,
   Estilo,
@@ -567,7 +569,8 @@ async function generateConceptRenderFromEditorImpl(
   // la pide: da estilo, pero puede arrastrar geometría de otra cámara a la nueva vista.
   const drone = await droneReferences(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.orthophotoDataUrl, parsedSettings.designReferenceId);
   const lateral = drone ? null : await lateralDesignReference(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.designReferenceId);
-  const designReference = drone ?? lateral;
+  const interior = await interiorDesignReference(ctx, { projectId, zoneId: zid }, document, view, options, parsedSettings.designReferenceId);
+  const designReference = drone ?? lateral ?? interior;
   const redesignRequested = requestedRenderRedesign(options, objetivo, promptLibre);
   const styleAnchor = designReference?.identity ?? (parsedSettings.styleAnchor === true || redesignRequested
     ? await findBatchStyleAnchor(projectId, parsedSettings.batchId) : null);
@@ -582,8 +585,12 @@ async function generateConceptRenderFromEditorImpl(
   const prepared = await prepareRenderImageRequest({ document, view, style: estilo, options,
     objective: String(objetivo), instruction: String(promptLibre), reference, zoneMask,
     styleAnchor, acceptedDesign: Boolean(designReference), environment: drone?.environment, spatial, plan,
+    describeInterior: (top) => interiorFurnitureBrief(vision, top, view, spatial.context),
     section: section && { ...section, describe: (top, names, hints) => sectionFurnitureBrief(vision, top, names, hints) } });
   const { request } = prepared;
+  // El prompt viaja en inglés, reglas y texto del usuario incluidos; se guarda el enviado para revisarlo.
+  const english = parsedSettings.existingImageDataUrl ? null : await englishImagePrompt(vision, request.prompt);
+  if (english?.translated) { request.prompt = english.prompt; request.compactPrompt = english.prompt; }
   reference = prepared.reference;
   zoneMask = prepared.zoneMask;
   const result = await generateOrReviewRender(parsedSettings.existingImageDataUrl, async () => {
@@ -596,12 +603,13 @@ async function generateConceptRenderFromEditorImpl(
   const candidate = await sanitizeOwnRenderBuffer(downloaded.raw);
   const visibleCandidate = zoneMask
     ? await sanitizeImageBuffer(await isolateZoneResult(candidate, zoneMask)) : candidate;
-  const auditReference = drone ?? (lateral && prepared.styleAnchor ? { identity: prepared.styleAnchor, lateral: true } : undefined);
+  const auditReference = interior && prepared.styleAnchor ? { identity: prepared.styleAnchor, interior: true }
+    : drone ?? (lateral && prepared.styleAnchor ? { identity: prepared.styleAnchor, lateral: true } : undefined);
   const review = await reviewRenderFidelity(vision, reference, visibleCandidate, view, zoneMask, projectVehicleCount(document),
     options.freedom === 'strict' && !isInteriorRenderMode(options) &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length)) && !drone, auditReference, options.redesignFixed,
-    redesignRequested, spatial, { reference: plan ? 'plan' : section ? 'section' : 'capture', people: options.people,
-      sectionRooms: 'sectionRooms' in prepared ? prepared.sectionRooms : undefined })
+    redesignRequested && !designReference, spatial, { reference: plan ? 'plan' : section ? 'section' : 'capture', people: options.people,
+      ...('sectionRooms' in prepared ? { sectionRooms: prepared.sectionRooms, sectionFurniture: prepared.sectionFurniture } : {}) })
     // Un PNG externo solo se guarda si supera la revisión; una imagen recién generada ya está pagada y no se pierde.
     .catch((error) => { if (parsedSettings.existingImageDataUrl) throw error; return unfinishedRenderReview(error); });
   let finalAsset = { assetUrl: result.assetUrl, assetKey: result.assetKey };
@@ -625,7 +633,7 @@ async function generateConceptRenderFromEditorImpl(
     id,
     type: 'render3d',
     payload: { type: 'render3d', assetUrl: finalAsset.assetUrl, ...(camera ? { camera } : {}), ...(finalAsset.assetKey ? { assetKey: finalAsset.assetKey } : {}),
-      generation: { ...result.generation, promptVersion, ...review, documentRevision: document.revision, view, options: generatedOptions, ...(designReference ? { referenceDesignId: designReference.deliverableId } : {}), ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
+      generation: { ...result.generation, promptVersion, ...(english?.translated ? { promptLanguage: 'en' as const, sentPrompt: english.prompt } : english?.issue ? { promptTranslationIssue: english.issue } : {}), ...review, documentRevision: document.revision, view, options: generatedOptions, ...(designReference ? { referenceDesignId: designReference.deliverableId } : {}), ...(parsedSettings.batchId ? { batchId: parsedSettings.batchId } : {}) } },
     legalSeal: DELIVERABLE_LEGAL_SEAL,
     version: 1,
   }], undefined, zid, { allowEditorV2: true });

@@ -9,12 +9,30 @@ Las dimensiones globales extraídas de una imagen son datos de la extracción, n
 
 En **Plano**, las tarjetas iniciales permiten **Subir una foto del plano**, **Dibujar un boceto**, **Importar CAD o PDF** o **Usar mi plano del editor**. Si ya existe una importación, puedes continuarla desde esa tarjeta.
 
-Si la imagen necesita limpieza, utiliza el redibujado técnico para estructura o el decorado para mobiliario. Selecciona la imagen que quieras importar. Las pestañas **Imagen del plano**, **Muros y medidas** y **Vista generada** separan el material de referencia de su interpretación. La franja de etapas muestra el estado de Original, Plano editable, Diseños y Vídeos.
+Si la imagen necesita limpieza, utiliza el redibujado técnico para estructura o el decorado para mobiliario. Sus instrucciones, como las de la vista generada, se envían al generador en inglés, con tus detalles traducidos; si la traducción falla, se envían en español. Selecciona la imagen que quieras importar. Las pestañas **Imagen del plano**, **Muros y medidas** y **Vista generada** separan el material de referencia de su interpretación. La franja de etapas muestra el estado de Original, Plano editable, Diseños y Vídeos.
+
+## Un solo camino para el plano
+
+El plano se trabaja siempre en la pestaña **Plano**: subir la imagen, revisarla y enviarla al editor. En **Asistente**, **Empezar desde mi plano** te lleva aquí. Si subiste el plano en la otra ruta del asistente, llega como original, sin gasto. **Rediseñar una habitación con una foto** es otra cosa: propone cómo quedaría una habitación y no crea un plano.
+
+Al **Extraer y revisar medidas**, se lee el plano y Jev decide si esa lectura es fiable:
+
+- **Si Jev la da por buena,** revisas el plano y lo envías al editor sin generar imágenes.
+- **Si no la da por buena,** la revisión propone **Redibujar con IA y volver a leer**:
+  - Lo redibuja como un plano técnico limpio con el modelo principal de **Render 3D** de [Modelos por uso](/admin/proveedores-ia/).
+  - Muestra el precio de esa imagen y solo genera si marcas la autorización. La lectura del redibujado se factura aparte.
+  - Se usa solo ese modelo, sin pasar a otro si falla.
+- **La nueva lectura vuelve a pasar por Jev.** Verás juntos tu original y el redibujado, y **Leer esta · sin generar** cambia entre ambos sin generar otra imagen.
+- **Si Jev tampoco da por buena el redibujado,** puedes generar otro o corregir el plano en el editor.
+
+Los demás botones que generan imágenes en esta pestaña también piden marcar su autorización con el precio: **Generar redibujado** y la vista cenital o la maqueta. En esos, si el modelo principal falla, puede usarse un respaldo de **Modelos por uso**, con su propio precio.
+
+Un redibujado limpio no garantiza medidas correctas: revisa las cotas igualmente.
 
 ## Revisar antes de editar
 
 1. Pulsa **Importar este plano**.
-2. Revisa la tabla de medidas y corrige las cotas incorrectas.
+2. Revisa **Cotas y geometría por estancia**: cada fila muestra el ancho y el fondo dibujados. Pulsa una estancia, en la tabla o sobre el plano, y se despliega con su **Ancho (izquierda-derecha)** y su **Fondo (arriba-abajo)**, cada uno con campo y deslizador. El ancho mueve el muro derecho y el fondo el inferior. La estancia vecina cede o gana lo mismo y el cambio se ve en vivo. Si ese lado no tiene un muro que mover, o un hueco dejaría de caber, se avisa y hay que corregirlo en el Editor.
 3. Pulsa **Guardar y recalcular revisión** para conservar las correcciones en el proyecto sin volver a llamar a la IA.
 4. Si falta escala fiable, indica **Ancho total real**.
 5. Comprueba paredes, huecos y habitaciones.
@@ -63,11 +81,17 @@ Después, **Enviar al editor** aplica la revisión guardada y pide confirmar la 
 
 En el Editor del proyecto, **Mostrar original** sigue disponible después de guardar otra revisión. No es necesario volver a enviar el plano para recuperar el fondo: mostrar la referencia no sustituye tus ediciones.
 
+## Cocinas y estancias abiertas
+
+Al enviar al editor, las estancias salen de los muros cerrados. Una cocina abierta al comedor no tiene muro entre ambas, así que se fundirían en una sola estancia. Para evitarlo, la importación cierra con un **límite oculto** cada estancia leída que quedaría fundida. Se traza en los tramos de su contorno sin muro. No se dibuja en el plano, en el 3D ni en las imágenes, pero separa la estancia, igual que en las terrazas.
+
+Solo se crea si la estancia resultante tiene el tamaño de la leída y no deja restos ni espacios sin nombre. Si la lectura omitió un muro real, por ejemplo entre un dormitorio y sus armarios, las estancias pueden seguir unidas. Dibuja ese muro en el editor. Para separar a mano una zona abierta, dibuja el muro en el editor y elige **Ocultar** en su menú.
+
 ## Fondo del editor
 
 El fondo que muestra **Mostrar original** en el Editor es la imagen de la que salió su plano: al **Enviar al editor**, queda fijada la imagen que importaste (el boceto o el redibujado de la IA), alineada con los muros. Otra extracción o una captura del editor no la cambian.
 
-Puedes elegir otro fondo en cualquier momento: en **Resultados del proyecto**, pulsa **Usar de fondo en el editor** en el original o en un redibujado. La imagen se alinea sola con los muros del plano del editor, sin IA ni coste, aunque el boceto no tenga sus proporciones exactas. La imagen elegida aparece marcada como **Fondo del editor**. Así puedes editar el plano sobre el redibujado de la IA, más limpio, o volver a tu boceto a mano. Una imagen sin muros reconocibles no se puede usar de fondo.
+Puedes elegir otro fondo en cualquier momento. En el **Editor**, con **Mostrar original** activo, el selector junto a la opacidad cambia entre **Plano original** y los redibujados. También puedes hacerlo en **Resultados del proyecto**, con **Usar de fondo en el editor** en el original o en un redibujado. Para alinear una imagen se parte del encaje del fondo actual: un redibujado conserva el encuadre de su original. La imagen se alinea sola con los muros del plano del editor, sin IA ni coste, aunque el boceto no tenga sus proporciones exactas. La imagen elegida aparece marcada como **Fondo del editor**. Así puedes editar el plano sobre el redibujado de la IA, más limpio, o volver a tu boceto a mano. Una imagen sin muros reconocibles no se puede usar de fondo.
 
 **Usar mi plano del editor** (**Traer el plano del editor**) crea una **Captura del editor** para generar vistas a partir del plano editable. La captura no sustituye el original del estudio ni el fondo del editor, y no se puede extraer ni usar de fondo: el plano ya es editable, y extraerlo de nuevo perdería información, como las puertas.
 

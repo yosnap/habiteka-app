@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { ShieldCheck, SlidersHorizontal, Sparkles, Sun, Sunset, Moon } from 'lucide-react';
 import type { EditorDocument } from '@/lib/editor-document/schema';
+import { LIGHTING_LABELS } from '@/lib/lighting-preset';
 import {
   RENDER_ADDITIONS,
   RENDER_ADDITION_LABELS,
@@ -25,9 +26,11 @@ interface Props {
   onChange: (options: RenderDesignOptions) => void;
   disabled?: boolean;
   editable?: boolean;
+  /** Luz de la aprobación vigente: el vídeo de primera persona solo admite interiores con ella. */
+  approvedLighting?: RenderDesignOptions['lighting'];
 }
 
-export function RenderOptionsControls({ document, options, onChange, disabled, editable }: Props) {
+export function RenderOptionsControls({ document, options, onChange, disabled, editable, approvedLighting }: Props) {
   const update = (patch: Partial<RenderDesignOptions>) => onChange({ ...options, ...patch });
   const interiorCameras: RoomInteriorCamera[] = useMemo(
     () => (document ? roomInteriorCameras(document) : []),
@@ -200,6 +203,15 @@ export function RenderOptionsControls({ document, options, onChange, disabled, e
             de tu plano. Es la forma de obtener perspectivas fieles a tus muros. Mientras esté
             activo, los ángulos generales no se usan.
           </p>
+          {/* La luz aprobada puede reutilizarse; primera persona conserva la de sus imágenes aceptadas. */}
+          {interiorMode && approvedLighting && options.lighting !== approvedLighting && (
+            <div role="status" className="mt-2 rounded-control border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950">
+              La aprobación vigente usa luz de {LIGHTING_LABELS[approvedLighting].toLowerCase()}. Primera persona conservará la luz de las imágenes aceptadas; todas las referencias de una toma deben compartirla.
+              <button type="button" disabled={disabled} className="ml-1 underline" onClick={() => update({ lighting: approvedLighting })}>
+                Usar luz de la aprobación
+              </button>
+            </div>
+          )}
           {interiorMode || !interiorCameras.length ? (
             <InteriorRoomsPicker
               cameras={interiorCameras}

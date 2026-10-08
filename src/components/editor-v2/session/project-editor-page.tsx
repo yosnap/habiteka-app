@@ -7,6 +7,7 @@ import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { ProjectEditor } from './project-editor';
 import type { AutoGenerateRequest } from '../auto-generate-request';
 import { loadStudio } from '@/server/plan/studio-repo';
+import { studioResults } from '@/lib/studio-results';
 import { buildPlanImport } from '@/server/plan/build-plan-import';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
@@ -66,6 +67,15 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
         if (frame) reference = { imageUrl: image.assetUrl, widthMm: frame.width, heightMm: frame.height };
       } catch { /* Una extracción antigua inválida no impide abrir el editor. */ }
     }
+    // Original y redibujados de ese original: se puede cambiar de fondo sin salir del editor.
+    const sourceKey = studio.source?.assetKey;
+    const options = studioResults(studio).filter((item) => item.assetKey === sourceKey
+      || (item.kind === 'redraw' && item.sourceKey === sourceKey))
+      .map((item) => ({ assetKey: item.assetKey, label: item.kind === 'source' ? 'Plano original'
+        : item.mode === 'decorado' ? 'Redibujado decorado' : 'Redibujado técnico' }));
+    const latest = [...new Map(options.map((item) => [item.label, item])).values()];
+    if (reference && latest.length > 1) reference = { ...reference, choices: { projectId,
+      activeKey: background?.image.assetKey ?? image?.assetKey, options: latest } };
   }
 
   if (source.authority === 'v2' && source.document.renderBackdrop) {

@@ -1,5 +1,87 @@
 # Referencias aceptadas y visibilidad de alzados
 
+## Continuidad de interiores y revisión v13 — 7 de octubre
+
+`interiorDesignReference` exige una cenital aceptada compatible con el documento,
+ámbito y ajustes. La biblioteca usa el mismo requisito. La generación persiste
+`referenceDesignId` y la revisión recibe la misma imagen de identidad. En interiores
+se conserva completa y sin girar: el encaje por proporción de la imagen no acredita
+una correspondencia exacta entre sus píxeles y el plano. El helper experimental de
+recorte no forma parte de este flujo.
+
+Las vistas derivadas no reciben el contrato de acabados del editor ni una orden de
+rediseñar de nuevo. Las fachadas cerradas conservan la captura con cubierta, sin
+pasar por el raster de sección. Los laterales abiertos mantienen la cenital girada;
+las otras cámaras no reciben esa descripción de orientación.
+
+La revisión solicita `referenceVisible` por hueco y rechaza desapariciones aunque
+el resumen marque éxito. Exige las estancias de la cenital completa y de la cámara
+interior. La normalización de huecos, exterior y sanitarios conserva un `fail`
+explícito. Los grupos sanitarios solo pueden normalizarse como ocultos si tampoco
+se observaron piezas en la referencia. Los informes antiguos no se reescriben.
+
+En interiores, `interiorFurnitureBrief` lee el mobiliario de la cenital antes de
+generar; una lectura vacía o sin estancia localizada detiene la imagen. La captura
+se envía en gris, una sola vez, sin su duplicado anotado. Su geometría sigue guiando
+la cámara; sus colores y modelos de muebles no fijan la apariencia final.
+
+Cuando una vista con referencia aceptada supera la revisión general,
+`accepted-design-identity-audit` compara exclusivamente las dos imágenes de diseño
+a mayor resolución, sin la maqueta ni el aprobado anterior. Registra descripciones
+separadas de origen y candidata por grupo. Un cambio o duda invalida el aprobado;
+una respuesta vacía o totalmente oculta deja la revisión incompleta. Estas llamadas
+añaden coste de visión y no certifican identidad por sí solas. Una prueba real
+detectó así sillas y taburetes sustituidos que el informe general había aprobado.
+La nueva revisión de secciones tampoco exige aplicar otra vez el rediseño original.
+El permiso original de rediseñar fijos no permite intercambiar bañera y ducha al
+cambiar de cámara. Las instrucciones de sección prohíben añadir decoración ausente
+de la cenital, incluidas plantas que una prueba lateral introducía en dormitorios.
+
+La lectura previa y la comparación independiente reciben también cuatro ampliaciones
+solapadas de la referencia aceptada cuando su resolución lo permite. No se asume
+correspondencia de píxeles con el plano ni se recorta una supuesta habitación.
+Se cuentan asientos por lado, evitando sumarlos dos veces por el solapamiento.
+Una prueba real reducía erróneamente las cantidades de sillas y taburetes;
+con ampliaciones se recuperaron las cantidades de la referencia. La cámara
+interior aporta posición y objetivo para no confundir sus lados con ejes del plano.
+Los frentes verticales ocultos en una cenital no prueban por sí solos una alteración.
+Las dos generaciones posteriores mejoraron textiles, mesillas y modelos de asientos.
+El dormitorio superó la revisión. En el salón se detectó también un falso descarte:
+el revisor contaba dos veces parte de un taburete. Desde v12 se adjuntan detalles de
+ambas imágenes, etiquetados por origen, también en interiores panorámicos; se pide
+localizar las piezas de cualquier cambio de cantidad y justificar las oclusiones.
+Esto no garantiza un recuento correcto ni permite levantar un bloqueo sin revisión.
+Además, `candidateIdentityInventory` lee primero la candidata sola, enumera piezas
+visibles y obtiene la cantidad de esa enumeración. La comparación recibe después
+esa lectura; una discrepancia que no puede situar se considera dudosa. Una lectura
+vacía o inválida bloquea la revisión. Es una llamada adicional de visión, sin una
+nueva generación de imagen ni aceptación automática.
+La revisión v13 separa primero `occlusions` (obstáculo y ubicación) de `comparisons`
+(subconjuntos observables en ambas vistas). Una fila visible se compara con esa
+misma fila, nunca con el total cenital. Las partes ocultas no se certifican; tampoco
+pueden borrar un cambio visible ni convertir una comparación vacía en aprobado.
+La prueba real del interior nuevo supera la comparación visible y el control con
+taburetes sustituidos sigue rechazándose. El resultado corregido queda pendiente
+de aceptación explícita; no se acepta por superar el control automático.
+
+## Primera persona: versión de origen y luz del diseño
+
+El estudio permite elegir una aprobación existente como versión de origen para
+primera persona. Se validan pertenencia, arquitectura y cámara contra esa revisión
+inmutable al preparar y al enviar. Los cambios posteriores del borrador no la
+sustituyen ni se incorporan al vídeo; la interfaz lo indica. Construcción mantiene
+su comprobación de versión vigente. La elección no crea ni modifica aprobaciones.
+
+La luz de primera persona procede de las referencias aceptadas, no de la maqueta
+aprobada. `designVisitSelectionIssue` exige luz registrada e igual en todas las
+imágenes; `designVisitPrompt` la toma de esa selección. El estudio muestra versión
+y luz antes de guardar la preparación, sin generar ni transferir medios todavía.
+
+Tests cubren referencia obligatoria, selección compatible, prioridades de apariencia,
+fachadas sin corte, desapariciones y contradicciones del informe. No acreditan por
+sí solos el realismo de imágenes nuevas. La primera persona continúa limitada a una
+estancia; no se implementa con este cambio un trayecto entre habitaciones.
+
 Corrección del 6 de octubre de 2026. Los proveedores devolvían imágenes, pero
 una revisión automática podía dejar pasar un lateral visualmente incoherente.
 No es un fallo de conexión ni un motivo para sustituir el diseño por el 3D.

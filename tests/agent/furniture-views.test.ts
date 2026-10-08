@@ -76,7 +76,11 @@ describe('orientación de los muebles del plano', () => {
       depthMm: 4600, heightMm: 1500, rotation: 0, elevationMm: 0, color: '#6d8a9d', dimensionalOrigin: 'physical' });
     const options = defaultRenderDesignOptions();
     const section = simpleSectionPrompt('front', 'moderno', options, '', '', ['COCHERA'], [], [], garage);
-    expect(section).toContain('COCHERA: berlina');
+    // Sin girar, los faros miran al norte: desde el frente (sur) se ve la trasera y desde atrás, los faros.
+    expect(section).toContain('COCHERA: berlina visto por detrás, con la parte trasera hacia la cámara');
+    // Desde la izquierda se ve de perfil, con el frente al norte, que en esa cámara queda a la izquierda.
+    expect(simpleSectionPrompt('left', 'moderno', options, '', '', ['COCHERA'], [], [], garage)).toContain('COCHERA: berlina visto de perfil, con el frente hacia la izquierda');
+    expect(simpleSectionPrompt('back', 'moderno', options, '', '', ['COCHERA'], [], [], garage)).toContain('COCHERA: berlina visto de frente, con los faros hacia la cámara');
     expect(section).toContain('Sin logotipos ni marcas reconocibles');
     expect(simpleSectionPrompt('front', 'moderno', options, '', '', ['SALA'], [], [], garage)).not.toContain('Vehículos visibles');
   });

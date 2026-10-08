@@ -53,3 +53,31 @@ export function PlanReviewWallFields({ wall, disabled, change, onClose }: { wall
     <p className="text-ink-soft text-xs">Los muros unidos comparten la esquina. Puedes arrastrar los dos puntos resaltados sobre el original.</p>
   </section>;
 }
+
+/** Tamaño de una estancia: deslizador como el de las puertas que estira su lado derecho o inferior. */
+export function PlanReviewZoneFields({ name, widthMm, heightMm, drawn, disabled, change, commit, onClose }: {
+  name: string; widthMm?: number; heightMm?: number; drawn: { widthMm: number; heightMm: number } | null;
+  disabled: boolean; change: (field: 'widthMm' | 'heightMm', valueMm: number) => boolean; commit: () => void; onClose: () => void;
+}) {
+  const axis = (field: 'widthMm' | 'heightMm', label: string, written: number | undefined) => {
+    const current = drawn?.[field] ?? written ?? 3000;
+    const max = Math.min(30000, Math.max(current * 2, current + 3000));
+    return <div className="grid gap-1">
+      <Field label={`${label} de ${name} (m)`} value={current / 1000} disabled={disabled || !drawn}
+        change={next => { const ok = change(field, Math.round(next * 1000)); if (ok) commit(); return ok; }} />
+      <input aria-label={`Deslizar ${label.toLowerCase()} de ${name}`} aria-valuetext={`${(current / 1000).toFixed(2)} metros`}
+        type="range" className="w-full" min={500} max={max} step={10} value={current} disabled={disabled || !drawn}
+        onChange={event => change(field, Number(event.target.value))}
+        onPointerUp={commit} onKeyUp={event => { if (event.key.startsWith('Arrow')) commit(); }} />
+      {written !== undefined && Math.abs(written - current) > 10
+        ? <p className="text-ink-soft text-[11px]">Cota escrita en el plano: {(written / 1000).toFixed(2)} m</p> : null}
+    </div>;
+  };
+  return <section className="border-line bg-surface grid gap-3 rounded-card border p-3" aria-label="Tamaño de estancia">
+    <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">{name}</h2>
+      <Button size="sm" variant="ghost" onClick={onClose} aria-label="Cerrar tamaño de estancia">×</Button></div>
+    {axis('widthMm', 'Ancho (izquierda-derecha)', widthMm)}
+    {axis('heightMm', 'Fondo (arriba-abajo)', heightMm)}
+    <p className="text-ink-soft text-xs">El ancho mueve el muro derecho y el fondo el muro inferior; la estancia vecina cede o gana lo mismo. Pulsa «Guardar y recalcular revisión» para conservarlo.</p>
+  </section>;
+}

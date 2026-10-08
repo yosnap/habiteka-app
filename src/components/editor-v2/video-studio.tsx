@@ -8,6 +8,7 @@ import type { ApprovedDesign, ApprovedLightingPreset } from '@/lib/editor-docume
 import { VIDEO_GOALS, type VideoGoal } from '@/lib/editor-document/video-studio';
 import { VideoStudioMedia } from './video-studio-media';
 import { DesignConstructionPanel } from './design-construction-panel';
+import { PropertyVisitPanel } from './property-visit-panel';
 import { Button } from '@/components/ui/button';
 
 const ICONS = { construction: Hammer, advertising: Megaphone, visit: Footprints, combined: Clapperboard };
@@ -65,13 +66,14 @@ export function VideoStudio(props: Props) {
               className={`flex gap-3 rounded-control border p-3 text-left transition-colors ${goal === option.id ? 'border-brand-500 bg-brand-50' : 'border-line hover:bg-surface-muted'}`}>
               <Icon size={20} className={goal === option.id ? 'mt-0.5 shrink-0 text-brand-600' : 'mt-0.5 shrink-0 text-ink-soft'} /><div><strong className="text-sm">{option.title}</strong><p className="mt-1 text-xs text-ink-soft">{option.description}</p></div>
             </button>; })}
-          </div><p className="mt-3 text-xs text-ink-soft">Construcción + visita en una sola pieza: próximamente.</p></div>
+          </div><p className="mt-3 text-xs text-ink-soft">Construcción y recorrido se crean como vídeos independientes. Cada uno tiene un máximo de 60 segundos y 2 € de generación de vídeo.</p></div>
           {goal === 'advertising' && <div className="mx-auto mt-5 flex w-full max-w-6xl shrink-0 flex-wrap items-center gap-2 px-5"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
             <Button variant={source === 'images' ? 'default' : 'outline'} aria-pressed={source === 'images'} size="sm" disabled={busy} onClick={() => setSource('images')}>Mis diseños</Button>
             <Button variant={source === 'clip' ? 'default' : 'outline'} aria-pressed={source === 'clip'} size="sm" disabled={busy} onClick={() => setSource('clip')}>Vídeo guardado</Button>
           </div>}
-          {(goal === 'construction' || goal === 'visit') && <DesignConstructionPanel key={goal} goal={goal === 'visit' ? 'visit' : 'construction'} scope={scope} approved={Boolean(approved)} approvalDisabled={approvalDisabled} onReviewApproval={onReviewApproval} onBusyChange={setBusy} portalContainer={container}
+          {goal === 'construction' && <DesignConstructionPanel scope={scope} approved={Boolean(approved)} approvalDisabled={approvalDisabled} onReviewApproval={onReviewApproval} onBusyChange={setBusy} portalContainer={container}
             onOpenSaved={openSaved} onCreateAdvertising={openAdvertising} />}
+          {goal === 'visit' && <PropertyVisitPanel key={`${scope.projectId}:${scope.zoneId ?? ''}:${approval?.id ?? ''}`} scope={scope} onBusyChange={setBusy} onReviewApproval={onReviewApproval} portalContainer={container} />}
           {goal === 'advertising' && <>{!approved && <div className="px-5"><Button variant="outline" disabled={busy || approvalDisabled} onClick={onReviewApproval}>Revisar versión del proyecto</Button></div>}
             <VideoStudioMedia scope={scope} gallery={false} clips={source === 'clip'} portalContainer={container} revisionKey={savedKey} onBusyChange={setBusy} onReviewApproval={onReviewApproval}
               onChooseImages={() => setSource('images')} onOpenSaved={openSaved} /></>}

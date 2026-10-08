@@ -55,6 +55,7 @@ export const KIE_UNIFIED_IMAGE_MODELS = new Set([
   'google/nano-banana',
   'nano-banana-pro',
   'nano-banana-2',
+  'nano-banana-2-1',
   'nano-banana-2-lite',
   'flux-2/pro-image-to-image',
   'flux-2/flex-image-to-image',
@@ -182,7 +183,8 @@ export class KieImageProvider implements ImageProvider {
           ...(imageUrls.length ? { image_input: imageUrls } : {}),
           ...(aspectRatio ? { aspect_ratio: normalizeAspectRatio(aspectRatio) } : {}),
           output_format: 'png',
-          resolution: '1K',
+          // 2.1 cuesta 6 créditos a 2K: se usa esa resolución para no perder detalle.
+          resolution: this.model === 'nano-banana-2-1' ? '2K' : '1K',
         };
     const response = await this.request(CREATE_TASK_URL, {
       model: this.model,

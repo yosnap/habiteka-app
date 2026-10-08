@@ -4,10 +4,12 @@ import { addOpening, addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { openingMeshes } from '@/canvas/editor-v2/scene/opening-meshes';
 import { addBuildingLevel } from '@/lib/editor-document/building-levels';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
-import { setDesignSpaceKind } from '@/lib/editor-document/spatial-properties';
+import { setDesignSpaceKind, upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { RenderView } from '@/lib/editor-document/render-view';
 import { renderSpatialContext } from '@/server/agent/editor-v2/render-spatial-context';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { renderSpatialReference, spatialReferenceSvg } from '@/server/agent/editor-v2/render-spatial-reference';
 import { selectedViewImagePrompt } from '@/server/agent/editor-v2/selected-view-image-prompt';
 
@@ -38,6 +40,26 @@ describe('referencia espacial de la generación inicial', () => {
     expect(prompt).toContain('Comedor');
     expect(prompt).toContain('"leafWidthMm":710');
     expect(prompt).toContain('NO es otra cámara');
+  });
+
+  it('dentro de una estancia solo revisa sus huecos y no el exterior', () => {
+    // La vista interior se descartaba por huecos de otras estancias y por el césped visto a través de la ventana.
+    let doc = addWallPath(plan(), [{ x: 0, y: 1500 }, { x: 4000, y: 1500 }]);
+    const south = doc.walls.find(wall => doc.vertices.find(vertex => vertex.id === wall.startVertexId)!.y === 3000
+      && doc.vertices.find(vertex => vertex.id === wall.endVertexId)!.y === 3000)!;
+    doc = addOpening(doc, south.id, { x: 2000, y: 3000 }, 'ventana');
+    doc.labels = [{ id: 'comedor', text: 'Comedor', x: 2000, y: 700 }, { id: 'salon', text: 'Salón', x: 2000, y: 2300 }];
+    doc = upgradeSpatialDocument(doc);
+    doc.furniture.push({ id: 'coche', kind: 'coche', catalogId: 'habiteka:outdoor:coche:turismo-3d', x: 5000, y: 0, widthMm: 1800,
+      depthMm: 4600, heightMm: 1500, rotation: 0, elevationMm: 0, color: '#6d8a9d', dimensionalOrigin: 'physical' });
+    const whole = renderSpatialContext(doc, view, options).levels[0]!;
+    expect(whole.openings).toHaveLength(2);
+    expect(whole.exterior!.length).toBeGreaterThan(0);
+    const comedor = deriveRoomsSafe(doc).find(room => pointInPolygon({ x: 2000, y: 700 }, room.boundary))!;
+    const inside = renderSpatialContext(doc, { ...view, preset: 'custom', roomId: comedor.id }, options).levels[0]!;
+    expect(inside.rooms.map(room => room.name)).toEqual(['Comedor']);
+    expect(inside.openings.map(opening => opening.id)).toEqual([whole.openings.find(opening => opening.kind === 'puerta')!.id]);
+    expect(inside.exterior).toEqual([]);
   });
 
   it('expresa los pasos sin hoja y los usos que comparten un recinto sin inventar una puerta', () => {

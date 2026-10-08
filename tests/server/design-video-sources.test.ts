@@ -26,7 +26,7 @@ describe('referencias del diseño para vídeo', () => {
     await expect(designVideoSources(ctx, scope, 'approval', ['design'])).rejects.toThrow('acepta su diseño');
     expect(mocks.tour).not.toHaveBeenCalled();
   });
-  it('un interior conserva la cámara verificada pero no sirve para primera persona si cambia la luz aprobada', async () => {
+  it('un interior conserva su cámara y su propia luz aunque la aprobación del plano tenga otra', async () => {
     const document = twoRoomDocument(), camera = roomInteriorCameras(document)[0]!.camera;
     const interior = row();
     Object.assign(interior.payload.generation.view, { preset: 'custom', position: camera.position, focus: camera.focus, levelId: camera.levelId,
@@ -35,9 +35,21 @@ describe('referencias del diseño para vídeo', () => {
     mocks.list.mockResolvedValue([interior]);
     const reference = (await designVideoSources(ctx, scope)).references[0]!;
     expect(reference.interiorRoomId).toBeTruthy();
-    expect(reference.visitIssue).toContain('luz de la imagen interior');
+    expect(reference.visitIssue).toBeUndefined();
+    expect(reference.lighting).toBe('daylight');
     Object.assign(interior.payload.generation.view, { lighting: 'warm' });
     expect((await designVideoSources(ctx, scope)).references[0]?.visitIssue).toBeUndefined();
+  });
+  it('primera persona verifica la aprobación de origen sin exigir que el borrador siga igual', async () => {
+    mocks.load.mockResolvedValue({ authority: 'legacy' });
+    await expect(designVideoSources(ctx, scope, 'approval', ['design'])).rejects.toThrow('ha cambiado');
+    mocks.load.mockClear();
+    const result = await designVideoSources(ctx, scope, 'approval', ['design'], 'walkthrough-ai');
+    expect(result.approved?.revision).toBe(7);
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.revisions).toHaveBeenCalled();
+    mocks.revisions.mockResolvedValue([]);
+    await expect(designVideoSources(ctx, scope, 'approval', ['design'], 'walkthrough-ai')).rejects.toThrow('otra revisión');
   });
   it('impide usar una imagen descartada posteriormente aunque su cámara conserve los tabiques', async () => {
     const bad = row();

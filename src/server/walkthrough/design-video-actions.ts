@@ -19,14 +19,21 @@ import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { designVideoStructure } from '@/lib/editor-document/design-video-structure';
 import { videoTitleSchema } from '@/lib/editor-document/video-title';
 import { designVisitPrompt, designVisitSelectionIssue } from '@/lib/editor-document/design-visit';
+import { getChatVisionAdapter } from '@/server/ai';
+import { englishImagePrompt } from '@/server/agent/editor-v2/english-image-prompt';
+import { withEditorDocuments } from '@/server/editor/document-repo';
+import { assertStandaloneVideoBudget } from './property-visit-budget';
 
-export async function loadDesignVideoReferences(scope: EditorScope) {
+const H3_PROMPT_LIMIT = 7000;
+
+export async function loadDesignVideoReferences(scope: EditorScope, approvalId?: string) {
   const ctx = await requireOrgContext();
   await prisma.$transaction(tx => assertEditorScope(tx, ctx, scope));
-  const sources = await designVideoSources(ctx, scope);
+  const sources = await designVideoSources(ctx, scope, approvalId);
+  const approvals = await withEditorDocuments(ctx).listApprovals(scope);
   const credential = await prisma.aiProviderCredential.findUnique({ where: { provider: 'kie' }, select: { enabled: true } });
   return { references: sources.references, approvalId: sources.approved?.id ?? null,
-    lighting: sources.approved?.lightingPreset, providerReady: credential?.enabled === true };
+    approvals, revision: sources.approved?.revision, lighting: sources.approved?.lightingPreset, providerReady: credential?.enabled === true };
 }
 
 /** Preparar solo lee medios propios y guarda un presupuesto; no sube referencias ni llama a KIE. */
@@ -41,14 +48,14 @@ export async function prepareDesignVisit(scope: EditorScope, approvalId: string,
 async function prepareDesignVideo(scope: EditorScope, approvalId: string, ids: string[], input: DesignVideoSettings, name: string | undefined, mode: DesignVideoJob['mode']) {
   const ctx = await requireOrgContext(), settings = designVideoSettingsSchema.parse(input);
   const title = videoTitleSchema.parse(name);
-  const sources = await designVideoSources(ctx, scope, approvalId, ids), approved = sources.approved!;
+  const sources = await designVideoSources(ctx, scope, approvalId, ids, mode), approved = sources.approved!;
   assertDesignReferences(sources, mode);
   // El piloto aún no compone medidas exactas sobre una cámara generada por IA.
   settings.presentation = { ...settings.presentation, contentScope: 'all', showDimensions: false, dimensionMode: 'none' };
   const structuralConstraints = mode === 'construction-ai' ? designVideoStructure(approved.document, sources.rows.map(row => ({ view: row.payload.generation?.view, options: row.options }))) : undefined;
   const prompt = mode === 'construction-ai' ? designConstructionPrompt(approved.lightingPreset, settings, sources.references, structuralConstraints)
-    : designVisitPrompt(approved.lightingPreset, settings, sources.references);
-  if (prompt.length > 7000) throw new Error('El guion supera el límite de H3. Acorta tus indicaciones antes de preparar.');
+    : designVisitPrompt(settings, sources.references);
+  if (prompt.length > H3_PROMPT_LIMIT) throw new Error('El guion supera el límite de H3. Acorta tus indicaciones antes de preparar.');
   const estimate = designVideoEstimate(settings, ids.length), id = crypto.randomUUID();
   const job: DesignVideoJob = { type: 'video', mode, status: 'prepared', provider: 'kie', model: DESIGN_VIDEO_MODEL,
     approvalId, approvedRevision: approved.revision, approvedFingerprint: approved.fingerprint, sourceIds: ids,
@@ -68,7 +75,8 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
   if (job.status !== 'prepared') throw new Error('Esta prueba ya se ha enviado o terminó. Consulta su estado; no se relanzará.');
   if (consent.referencesToKie !== true || !Number.isFinite(consent.maxUsd) || consent.maxUsd < job.estimateUsd)
     throw new Error('Confirma las imágenes enviadas a KIE/MiniMax y su presupuesto antes de generar.');
-  const sources = await designVideoSources(ctx, scope, job.approvalId, job.sourceIds);
+  await assertStandaloneVideoBudget(job.estimateUsd, job.durationMs);
+  const sources = await designVideoSources(ctx, scope, job.approvalId, job.sourceIds, job.mode);
   assertDesignReferences(sources, job.mode);
   if (sources.approved?.fingerprint !== job.approvedFingerprint) throw new Error('La aprobación cambió. Prepara otra prueba con la versión correcta.');
   if (!(await canUse(ctx.organizationId, 'generate')).allowed) throw new Error('Necesitas saldo de créditos para generar el vídeo.');
@@ -76,16 +84,19 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
   const provider = new KieVideoProvider(await resolveKieKey());
   let version = await updateDesignVideoJob(ctx, scope, id, row.version, { ...job, status: 'submitting' });
   const holdId = `design-video:${id}`; let reserved = false, submitted = false, taskId: string | undefined;
+  let sent: Pick<DesignVideoJob, 'sentPrompt' | 'promptTranslationIssue'> = {};
   try {
     assertCanSpend(ctx.organizationId, job.estimateUsd);
     await hold({ idempotencyKey: holdId, organizationId: ctx.organizationId, amount: job.credits, refType: 'design-video', refId: id, ttlMinutes: 1440 }); reserved = true;
+    const english = await englishVideoPrompt(ctx, scope.projectId, id, job.prompt);
+    sent = english.record;
     const urls: string[] = [];
     // La transferencia ocurre solo después de la confirmación. Se sanea cada imagen propia antes de subirla.
     for (const source of sources.rows) urls.push(await provider.uploadReference(await readRenderReference(source.payload)));
     submitted = true;
-    taskId = await provider.create(job.prompt, job.settings, urls);
+    taskId = await provider.create(english.prompt, job.settings, urls);
     // Guardar la recuperación antes del saldo: un fallo contable no debe perder una tarea ya aceptada.
-    version = await updateDesignVideoJob(ctx, scope, id, version, { ...job, status: 'generating', taskId });
+    version = await updateDesignVideoJob(ctx, scope, id, version, { ...job, ...sent, status: 'generating', taskId });
     await reconcileDesignVideoCost(ctx, id, job);
     recordOutcome(ctx.organizationId, true);
     return { status: 'generating' as const, taskId };
@@ -94,7 +105,7 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
     let message = error instanceof Error ? error.message : 'No se pudo iniciar la prueba.';
     const status = uncertain ? 'unknown' : 'failed';
     // Una respuesta dudosa puede haber consumido saldo: queda retenida y visible, nunca se reintenta createTask.
-    await updateDesignVideoJob(ctx, scope, id, version, { ...job, status, ...(taskId ? { taskId } : {}), error: message });
+    await updateDesignVideoJob(ctx, scope, id, version, { ...job, ...sent, status, ...(taskId ? { taskId } : {}), error: message });
     if (reserved) {
       try { if (uncertain) await settle(holdId); else await revert(holdId); }
       catch { message += ' El saldo sigue pendiente de conciliación; conserva esta tarea.'; }
@@ -102,6 +113,18 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
     recordOutcome(ctx.organizationId, false);
     throw new Error(`${message}${submitted && uncertain ? ' Revisa esta tarea; no prepares otro intento todavía.' : ''}`);
   }
+}
+
+/**
+ * El guion se muestra en español y se envía en inglés, como los prompts de imagen. Si la traducción falla o supera el
+ * límite de H3, se envía el original; el vídeo nunca se bloquea por ello.
+ */
+async function englishVideoPrompt(ctx: Awaited<ReturnType<typeof requireOrgContext>>, projectId: string, id: string, prompt: string) {
+  const english = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id }, 'vision')
+    .then(vision => englishImagePrompt(vision, prompt))
+    .catch((error: unknown) => ({ prompt, translated: false, issue: error instanceof Error ? error.message.slice(0, 200) : 'sin modelo de análisis visual' }));
+  if (english.translated && english.prompt.length > H3_PROMPT_LIMIT) return { prompt, record: { promptTranslationIssue: 'la traducción supera el límite de H3' } };
+  return { prompt: english.prompt, record: english.translated ? { sentPrompt: english.prompt } : english.issue ? { promptTranslationIssue: english.issue } : {} };
 }
 
 /** Ambas escrituras son idempotentes; consultar recupera también un registro de coste interrumpido. */

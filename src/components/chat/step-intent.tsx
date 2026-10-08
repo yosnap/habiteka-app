@@ -26,9 +26,9 @@ const OPTIONS: ReadonlyArray<{
 }> = [
   {
     intent: 'design',
-    title: 'Crear un diseño a partir de una foto',
+    title: 'Rediseñar una habitación con una foto (sin plano)',
     summary:
-      'Súbeme una foto de la estancia tal y como está y te propongo cómo puede quedar con el estilo que elijas.',
+      'Súbeme una foto de la habitación tal y como está y te propongo cómo puede quedar con el estilo que elijas. No crea un plano.',
     bullets: [
       'Miro la foto y te digo qué he reconocido para que lo corrijas si hace falta.',
       'Eliges estilo y qué quieres recibir (imagen del ambiente, plano, memoria de materiales).',
@@ -37,13 +37,13 @@ const OPTIONS: ReadonlyArray<{
   },
   {
     intent: 'plan',
-    title: 'Convertir mi plano al editor',
+    title: 'Empezar desde mi plano',
     summary:
-      'Súbeme el plano en planta de tu vivienda y lo paso a muros, puertas, ventanas y estancias editables.',
+      'Te llevo a la pestaña Plano: subes la imagen del plano en planta (foto, captura, PDF o boceto), la revisas y la envías al editor.',
     bullets: [
-      'Compruebo lo fiel que ha salido la lectura antes de seguir.',
-      'Lo llevo al editor, donde puedes ajustarlo y verlo en 3D.',
-      'Desde ahí generas diseños partiendo de tu plano real.',
+      'Si la lectura no es fiable, Jev te propone redibujarla con su precio antes de seguir.',
+      'Corriges cotas y esquinas, y la envías al editor para verla en 3D.',
+      'Desde el editor generas los diseños, y con los diseños aceptados, los vídeos.',
     ],
   },
 ];

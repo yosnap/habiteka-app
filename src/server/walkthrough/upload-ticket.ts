@@ -3,7 +3,8 @@ import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 export interface WalkthroughUploadTicket {
   id: string; key: string; organizationId: string; userId: string; projectId: string;
   zoneId: string | null; routeId: string; approvalId: string; approvedRevision: number;
-  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images' | 'advertising'; expires: number;
+  approvedFingerprint: string; bytes: number; durationMs: number; mode?: NativeVideoMode | 'images' | 'advertising' | 'property-visit-ai'; expires: number;
+  jobVersion?: number;
   /** Montaje con imágenes: renders que lo componen, en orden. */
   sourceIds?: string[];
   contentScope?: import('@/lib/editor-document/video-content-scope').VideoContentScope;

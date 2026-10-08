@@ -4,7 +4,8 @@
  * Asistente del proyecto. Antes de nada pregunta QUÉ quiere hacer el usuario
  * (paso 0) y de ahí salen dos rutas:
  * - `design`: crear un diseño a partir de una foto (`DesignRoute`, seis pasos).
- * - `plan`: convertir un plano al editor (`PlanRoute`: subir → fiabilidad → editor).
+ * - `plan`: convertir un plano al editor. Se hace en la pestaña Plano, el único
+ *   camino del plano: el asistente lleva allí (con la imagen, si ya se subió).
  *
  * La ruta elegida se persiste en el servidor (`set-intent`), así que al recargar
  * el asistente retoma donde estaba. Este componente solo enruta: cada ruta lleva
@@ -12,7 +13,9 @@
  */
 import { useState, useTransition } from 'react';
 import { StepIntent } from './step-intent';
-import { PlanRoute } from './plan-route';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { uploadStudio } from '@/app/(app)/projects/[id]/_actions/studio-actions';
 import { DesignRoute } from './design-route';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import type { Phase } from './wizard-steps';
@@ -57,9 +60,22 @@ export function QualificationChat({
   const [intent, setIntent] = useState<AssistantIntent | null>(initialCollected.intent ?? null);
   const [phase, setPhase] = useState<Phase>(initialPhase);
   const [error, setError] = useState<string | null>(null);
-  // Plano que venía de la ruta de diseño: la ruta del plano lo importa sin pedirlo otra vez.
-  const [handoverImage, setHandoverImage] = useState<UploadedImage | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const planoHref = `/projects/${encodeURIComponent(projectId)}/plano${zoneId ? `?zona=${encodeURIComponent(zoneId)}` : ''}`;
+
+  /** El plano se trabaja en la pestaña Plano; una imagen ya subida se guarda como su original, sin IA. */
+  const openPlano = (image: UploadedImage | null = null) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        if (image) await callAction(uploadStudio(projectId, image.base64));
+        router.push(planoHref);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo abrir el plano.');
+      }
+    });
+  };
 
   /**
    * Fija la ruta. El servidor solo admite elegirla durante la ingesta, así que
@@ -67,6 +83,7 @@ export function QualificationChat({
    * recogido ni los diseños ya generados).
    */
   const pickIntent = (value: AssistantIntent, from: Phase = phase) => {
+    if (value === 'plan') return openPlano();
     setError(null);
     startTransition(async () => {
       try {
@@ -104,20 +121,15 @@ export function QualificationChat({
   }
 
   if (intent === 'plan') {
+    // Asistentes anteriores guardaron esta ruta: ahora el plano vive en su pestaña.
     return (
-      <PlanRoute
-        projectId={projectId}
-        zoneId={zoneId}
-        initialImage={handoverImage}
-        onChangeIntent={() => {
-          setHandoverImage(null);
-          setIntent(null);
-        }}
-        onStartDesign={() => {
-          setHandoverImage(null);
-          pickIntent('design');
-        }}
-      />
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 p-4 text-sm">
+        <p>Tu plano se sube, se revisa y se envía al editor en la pestaña <strong>Plano</strong>.</p>
+        <div className="flex flex-wrap gap-3">
+          <Link className="text-brand-700 underline" href={planoHref}>Ir a la pestaña Plano</Link>
+          <button type="button" className="underline" onClick={() => setIntent(null)}>Elegir otra opción</button>
+        </div>
+      </div>
     );
   }
 
@@ -134,10 +146,7 @@ export function QualificationChat({
         setPhase(current);
         setIntent(null);
       }}
-      onConvertPlan={(current, image) => {
-        setHandoverImage(image);
-        pickIntent('plan', current);
-      }}
+      onConvertPlan={(_current, image) => openPlano(image)}
     />
   );
 }

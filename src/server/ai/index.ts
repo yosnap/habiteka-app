@@ -87,8 +87,17 @@ export async function getChatVisionAdapter(
 export async function getImageAdapterForAction(
   ctx: AiCallContext,
   action: ModelAction,
+  confirmedRoute?: { provider: string; model: string; maxUsd: number },
 ): Promise<ImageAdapter> {
-  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'nan');
+  let routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'nan');
+  if (confirmedRoute) {
+    const selected = routes.find(route => route.provider === confirmedRoute.provider && route.model === confirmedRoute.model);
+    const price = selected && allowedModel(action, selected.model, selected.provider)?.priceUsdPerUnit;
+    if (!selected || price === undefined || !Number.isFinite(confirmedRoute.maxUsd) || price > confirmedRoute.maxUsd)
+      throw new AiError('provider_down', 'El modelo o precio de imagen ya no coincide con el presupuesto confirmado.');
+    // Un encuadre presupuestado es un solo intento con este modelo, sin respaldo automático.
+    routes = [selected];
+  }
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de imagen compatible para ${action}`);
   return wrapImageAdapter(ctx, action, new FailoverImageAdapter(ctx, action, routes));
 }

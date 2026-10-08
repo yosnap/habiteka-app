@@ -15,7 +15,7 @@ import { acceptedRenderIssue } from '@/lib/editor-document/render-review';
 import { renderViewSchema } from '@/lib/editor-document/render-view';
 import { designVisitContext } from '@/lib/editor-document/design-visit';
 
-export async function designVideoSources(ctx: OrgContext, scope: EditorScope, approvalId?: string, ids?: string[]) {
+export async function designVideoSources(ctx: OrgContext, scope: EditorScope, approvalId?: string, ids?: string[], mode: 'construction-ai' | 'walkthrough-ai' = 'construction-ai') {
   const repo = withEditorDocuments(ctx);
   const approved = approvalId ? await repo.readApproval(scope, approvalId) : await repo.latestApproval(scope);
   if (ids && (!ids.length || ids.length > 9 || new Set(ids).size !== ids.length || ids.some(id => typeof id !== 'string' || !id)))
@@ -40,9 +40,13 @@ export async function designVideoSources(ctx: OrgContext, scope: EditorScope, ap
     if (rejected.length) throw new Error(rejected.map(row => `${renderImageLabel({ payload: row.payload } as Deliverable).view}: ${issues.get(row.id)}`).join(' '));
   }
   if (ids && approved) {
-    const current = await repo.load(scope);
-    if (current.authority !== 'v2' || !sameVisualDesignContent(current.document, approved.document))
-      throw new Error('El diseño ha cambiado. Revisa su aprobación antes de preparar la prueba.');
+    // La toma interior usa la aprobación inmutable elegida, también si hay un borrador posterior.
+    // Sus imágenes siguen obligadas a pertenecer a esa aprobación; no se mezcla geometría nueva.
+    if (mode !== 'walkthrough-ai') {
+      const current = await repo.load(scope);
+      if (current.authority !== 'v2' || !sameVisualDesignContent(current.document, approved.document))
+        throw new Error('El diseño ha cambiado. Revisa su aprobación antes de preparar la prueba.');
+    }
     const images = await tourImagesFromRows(ordered, tourDocumentReader(ctx, scope));
     const assessment = assessTourHomogeneity(images, valid);
     if (!assessment.ok) throw new Error(assessment.issues.map(issue => issue.message).join(' '));
@@ -54,14 +58,13 @@ export async function designVideoSources(ctx: OrgContext, scope: EditorScope, ap
     const parsedView = renderViewSchema.safeParse(view);
     const visit = approved && parsedView.success ? designVisitContext(approved.document, parsedView.data)
       : { visitIssue: 'La imagen no tiene una cámara interior verificable.' };
-    const visitLightingIssue = approved && (view?.lighting ?? row.options.lighting) !== approved.lightingPreset
-      ? 'La luz de la imagen interior no coincide con la aprobación. Genera la vista con la luz aprobada o revisa la aprobación.' : undefined;
     return { id: row.id, name: label.zone, view: label.view, preset: view?.preset, batchId: row.payload.generation?.batchId ?? null,
       revision: row.revision, scope: row.options.designScope,
       zones: row.options.regions.map(region => region.name),
-      closedRoof: view?.ceilingView === 'solid' && view.cutaway !== true,
+      // Una vista interior también tiene techo sólido y sin recorte, pero no enseña fachadas ni tejado.
+      closedRoof: view?.ceilingView === 'solid' && view.cutaway !== true && !view.roomId,
       ...(issues.get(row.id) ? { issue: issues.get(row.id)! } : {}),
-      url, ...visit, visitIssue: visit.visitIssue ?? visitLightingIssue };
+      lighting: view?.lighting ?? row.options.lighting, url, ...visit };
   }));
   return { approved, references, rows: ordered };
 }

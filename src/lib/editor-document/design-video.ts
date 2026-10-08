@@ -17,6 +17,7 @@ export interface DesignVideoReference {
   id: string; view: string; name: string; batchId: string | null; revision: number;
   zones: string[]; scope: string; closedRoof: boolean; url: string; issue?: string;
   preset?: RenderView['preset'];
+  lighting?: ApprovedLightingPreset;
   interiorRoomId?: string;
   interiorRoomName?: string;
   visitIssue?: string;
@@ -50,6 +51,8 @@ export interface DesignVideoJob {
   sourceIds: string[]; sourceScopes: { id: string; options: RenderDesignOptions }[];
   includedZones: string[]; prompt: string; settings: DesignVideoSettings; durationMs: number;
   structuralConstraints?: string;
+  /** Guion enviado a KIE (en inglés); `prompt` conserva el que ve el usuario. */
+  sentPrompt?: string; promptTranslationIssue?: string;
   estimateUsd: number; credits: number; taskId?: string; assetKey?: string; error?: string;
   title?: string;
 }

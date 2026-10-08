@@ -157,4 +157,15 @@ describe('conservación de césped, cerco y vehículos', () => {
     expect(() => validateRenderFidelity(hidden, false, context, undefined, false, [], [exterior[1]!.id]))
       .toThrow(/debe verse/);
   });
+
+  it('acepta el exterior que la maqueta de sección no muestra aunque la revisión repita su categoría', () => {
+    // La trasera se descartaba por «visibilidad contradictoria» con todo el exterior declarado no visible.
+    const hidden = verdict(); Object.assign(hidden.exteriorChecks[0]!, { status: 'not-visible',
+      observedCategory: 'surface', identityAndGeometry: 'not-visible', finish: 'not-visible' });
+    expect(validateRenderFidelity(hidden, false, context).status).toBe('passed');
+    // Si dice no visible pero describe su identidad, sigue siendo una contradicción.
+    const contradictory = verdict(); Object.assign(contradictory.exteriorChecks[0]!, { status: 'not-visible',
+      observedCategory: 'surface', identityAndGeometry: 'preserved', finish: 'preserved' });
+    expect(() => validateRenderFidelity(contradictory, false, context)).toThrow(/objetos reconocibles sustituidos|cámara o geometría/);
+  });
 });

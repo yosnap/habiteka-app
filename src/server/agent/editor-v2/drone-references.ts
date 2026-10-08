@@ -47,6 +47,15 @@ async function designReference(ctx: OrgContext, scope: EditorScope, document: Ed
 
 const LATERAL_PRESETS = Object.keys(LATERAL_ROTATION);
 
+/** Cada interior pertenece al diseño aceptado; una tanda o una revisión automática no fijan su identidad. */
+export async function interiorDesignReference(ctx: OrgContext, scope: EditorScope, document: EditorDocument,
+  view: RenderView, options: RenderDesignOptions, referenceId?: string) {
+  if (!isInteriorRenderMode(options)) return null;
+  const anchor = await designReference(ctx, scope, document, view, options, 'top', true, referenceId);
+  if (!anchor) fail('Falta una cenital aceptada compatible para generar los interiores del mismo diseño. Elígela en la biblioteca y usa sus ajustes de luz y diseño.');
+  return { identity: await readRenderReference(anchor.payload), deliverableId: anchor.id };
+}
+
 /**
  * Los laterales enseñan el interiorismo de la cenital aceptada desde otra cámara. Sin ella cada ángulo inventaba su
  * propio mobiliario y la tanda no servía para un mismo vídeo.

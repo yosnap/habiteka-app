@@ -71,10 +71,19 @@ export function renderRoomVisibility(document: EditorDocument, view: RenderView,
     }
   }
   const origin = new Vector3(...view.position), ray = new Ray(), hit = new Vector3();
-  return (point: Vector3) => {
+  const depthBeyond = (point: Vector3, afterM = 0) => {
+    ray.set(origin, point.clone().sub(origin).normalize());
+    let nearest = Infinity;
+    for (const triangle of triangles) if (ray.intersectTriangle(...triangle, false, hit)) {
+      const distance = origin.distanceTo(hit);
+      if (distance > afterM) nearest = Math.min(nearest, distance);
+    }
+    return nearest;
+  };
+  return Object.assign((point: Vector3) => {
     const distance = origin.distanceTo(point);
     ray.set(origin, point.clone().sub(origin).normalize());
     return !triangles.some(triangle => ray.intersectTriangle(...triangle, false, hit)
       && origin.distanceTo(hit) < distance - .02);
-  };
+  }, { depthBeyond });
 }

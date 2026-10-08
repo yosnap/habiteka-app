@@ -16,7 +16,10 @@ export function validateFixtureChecks(checks: FixtureCheck[], groups: CriticalFi
     const expected = groups.find(group => group.id === check.id);
     if (!expected) continue;
     const hidden = check.identityAndPlacement === 'not-visible';
-    if (hidden && !policy.fullPlan && FIXTURE_KINDS.every(kind => check.observedCounts[kind] === null)) {
+    if (hidden && check.status !== 'fail' && !policy.fullPlan
+      && FIXTURE_KINDS.every(kind =>
+        (check.observedCounts[kind] === null && check.referenceCounts[kind] === null)
+        || (expected.counts[kind] === 0 && check.observedCounts[kind] === 0 && check.referenceCounts[kind] === 0))) {
       check.status = 'not-visible'; continue;
     }
     const reasons: string[] = [];

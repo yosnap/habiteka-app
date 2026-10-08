@@ -22,5 +22,5 @@ export function unfinishedRenderReview(error: unknown) {
   if (!recoverable) throw error;
   const detail = (error instanceof Error ? error.message : String(error)).replace(/[.\s]+$/, '');
   return { review: { status: 'rejected' as const, source: 'automatic' as const, reviewedAt: new Date().toISOString(),
-    reason: `La revisión visual no se completó (${detail}). La imagen se ha guardado para no perderla, pero no puede aceptarse sin revisión. Pulsa «Volver a revisar» al abrirla si es una cenital de toda la planta; si no, revísala con «Revisar un PNG externo».` } };
+    reason: `La revisión visual no se completó (${detail}). La imagen se ha guardado para no perderla, pero no puede aceptarse sin revisión. Pulsa «Volver a revisar» al abrirla si es una cenital, frontal, trasera o lateral de toda la planta; si no, revísala con «Revisar un PNG externo».` } };
 }

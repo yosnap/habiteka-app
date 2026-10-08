@@ -53,7 +53,7 @@ describe('preparación del vídeo desde diseños', () => {
   });
   it('en primera persona exige una estancia verificable y no admite las vistas de construcción', () => {
     expect(designVideoPreparationIssue({ ...ready, goal: 'visit' })).toContain('estancia interior verificada');
-    const interior = reference('interior', { preset: 'custom', interiorRoomId: 'room', interiorRoomName: 'Salón', closedRoof: true });
+    const interior = reference('interior', { preset: 'custom', lighting: 'daylight', interiorRoomId: 'room', interiorRoomName: 'Salón', closedRoof: true });
     expect(designVideoPreparationIssue({ ...ready, goal: 'visit', references: [interior] })).toBeNull();
     expect(designVideoPreparationIssue({ ...ready, goal: 'visit', references: [interior, { ...interior, id: 'other', interiorRoomId: 'another-room' }] })).toContain('toma por estancia');
   });

@@ -10,7 +10,7 @@ export interface ReferenceGeneration {
   options?: { freedom?: string; placement?: string; regions?: unknown[]; designScope?: string; redesignFixed?: boolean };
 }
 export function requiredReferencePreset(view: RenderView, options: RenderDesignOptions): ReferencePreset | null {
-  if (isInteriorRenderMode(options)) return null;
+  if (isInteriorRenderMode(options)) return 'top';
   if (view.preset === 'drone') return 'isometric';
   return ['front', 'back', 'left', 'right', 'isometric', 'exterior'].includes(view.preset) ? 'top' : null;
 }
@@ -18,7 +18,9 @@ export function requiredReferencePreset(view: RenderView, options: RenderDesignO
 export function referenceSettingIssues(generation: ReferenceGeneration | undefined, view: RenderView, options: RenderDesignOptions) {
   const issues: string[] = [];
   if (!generation?.documentRevision) issues.push('No consta la revisión del plano.');
-  if (generation?.view?.lighting !== options.lighting) issues.push('La luz es diferente.');
+  // La cenital fija mobiliario y acabados de los interiores; su luz la elige cada vista. Exigir la misma impedía
+  // preparar interiores con la luz de la aprobación cuando la cenital aceptada era de otra hora.
+  if (!isInteriorRenderMode(options) && generation?.view?.lighting !== options.lighting) issues.push('La luz es diferente.');
   if ((generation?.view?.levelId ?? null) !== (view.levelId ?? null)) issues.push('La planta es diferente.');
   if ((generation?.view?.allLevels === true) !== (view.allLevels === true)) issues.push('El alcance de plantas es diferente.');
   if (generation?.options?.freedom !== options.freedom) issues.push('La libertad de diseño es diferente.');
@@ -41,7 +43,8 @@ export function referenceAcceptanceIssue(generation?: ReferenceGeneration) {
 export function optionsFromReference(generation: ReferenceGeneration | undefined, current: RenderDesignOptions): RenderDesignOptions | null {
   if (!generation?.options || !generation.view?.lighting) return null;
   const source = generation.options;
-  const parsed = renderDesignOptionsSchema.safeParse({ ...current, lighting: generation.view.lighting, freedom: source.freedom,
+  const lighting = isInteriorRenderMode(current) ? current.lighting : generation.view.lighting;
+  const parsed = renderDesignOptionsSchema.safeParse({ ...current, lighting, freedom: source.freedom,
     redesignFixed: source.redesignFixed === true, placement: source.placement === 'selected' ? 'selected' : 'all',
     regions: source.placement === 'selected' ? source.regions : [], designScope: source.designScope === 'house' ? 'house' : 'all' });
   return parsed.success ? parsed.data : null;

@@ -12,7 +12,7 @@ Empieza en **Vídeos** o **Crear vídeo** del proyecto. El [estudio de vídeos](
 | Presentar imágenes terminadas | [Montaje de imágenes](/videos/montaje-imagenes/) | Zoom/desplazamiento y fundidos entre renders. |
 | Adaptar un clip existente para publicidad | Publicidad → Vídeo guardado | MP4 16:9/9:16, con audio original y panel de medidas opcional. |
 | Probar construcción desde el diseño generado | Construcción → Mis diseños | Piloto H3 de 8/12 s con imágenes de una tanda; envío y coste requieren confirmación. |
-| Probar una toma interior del diseño generado | Primera persona → Mis diseños | Piloto H3 de 8/12 s dentro de una estancia; revisión manual y confirmación de coste/envío. |
+| Crear un paseo rápido por todo el inmueble | Primera persona | Hasta 60 s con Hailuo 02 a 768p, máximo 2 € de vídeo, encuadres aceptados y revisión de todas las zonas y uniones. Construcción va en otra pieza. |
 
 ## Elegir la fuente adecuada
 
@@ -22,7 +22,7 @@ Todo material final procede de diseños IA **aceptados explícitamente** en la g
 
 ## Funciones pendientes
 
-La visita virtual continua y **Construcción + visita** desde diseños aceptados siguen pendientes. Las tomas H3 disponibles de construcción e interior son pilotos con revisión manual; no acreditan aún fidelidad profesional. También están pendientes editor de tomas, música/locución y cotas geométricas que sigan la cámara en un clip IA. H3 recibe instrucciones de sonido, cuya sincronización debe revisarse.
+La visita virtual continua desde diseños aceptados sigue pendiente. Construcción y paseo se generan por separado, cada uno con un máximo de 60 segundos y 2 € de generación de vídeo. Las tomas disponibles necesitan revisión manual; no acreditan aún fidelidad profesional. También están pendientes editor de tomas, música/locución y cotas geométricas que sigan la cámara en un clip IA. H3 recibe instrucciones de sonido, cuya sincronización debe revisarse.
 
 El objetivo es hiperrealismo de filmación real conservando el diseño aceptado. Un prompt no basta para certificarlo. El botón **Recorrido** del editor comprueba geometría de la guía y no crea una visita final.
 

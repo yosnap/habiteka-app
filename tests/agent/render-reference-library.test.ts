@@ -10,7 +10,7 @@ vi.mock('@/server/storage/render-urls', () => ({ resolveRenderUrl: mocks.url }))
 import { listRenderReferences } from '@/server/agent/editor-v2/render-reference-actions';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
-import { optionsFromReference, requiredReferencePreset } from '@/lib/editor-document/render-reference-compatibility';
+import { optionsFromReference, referenceSettingIssues, requiredReferencePreset } from '@/lib/editor-document/render-reference-compatibility';
 import type { RenderView } from '@/lib/editor-document/render-view';
 
 const document = { ...emptyEditorDocument(), revision: 4 }, options = defaultRenderDesignOptions();
@@ -41,15 +41,22 @@ describe('biblioteca de referencias del diseño', () => {
     await listRenderReferences({ projectId: 'p', zoneId: 'z' }, document, view, options, result.nextCursor!);
     expect(mocks.rows.mock.calls[1]![0]).toMatchObject({ cursor: { id: 'image-39' }, skip: 1 });
   });
-  it('el dron necesita isométrica y las otras cámaras derivadas cenital; interiores no toman ancla general', () => {
+  it('el dron necesita isométrica y los interiores también necesitan la cenital aceptada', () => {
     expect(requiredReferencePreset({ ...view, preset: 'drone' }, options)).toBe('isometric');
     expect(requiredReferencePreset({ ...view, preset: 'exterior' }, options)).toBe('top');
-    expect(requiredReferencePreset(view, { ...options, designScope: 'interior', interiorRoomIds: ['room'] })).toBeNull();
+    expect(requiredReferencePreset(view, { ...options, designScope: 'interior', interiorRoomIds: ['room'] })).toBe('top');
   });
   it('recupera los ajustes compatibles del diseño sin sustituir las cámaras solicitadas', () => {
     const current = { ...options, views: ['front', 'drone'] as const };
     const result = optionsFromReference({ view: { lighting: 'afternoon' }, options: { freedom: 'controlled', redesignFixed: true, placement: 'all' } }, { ...current, views: [...current.views] });
     expect(result).toMatchObject({ lighting: 'afternoon', freedom: 'controlled', redesignFixed: true, views: ['front', 'drone'] });
     expect(optionsFromReference({ view: { lighting: 'unknown' }, options: { freedom: 'strict' } }, options)).toBeNull();
+  });
+  it('los interiores toman mobiliario de la cenital aceptada con su propia luz', () => {
+    const interior = { ...options, designScope: 'interior' as const, interiorRoomIds: ['room'], lighting: 'warm' as const, freedom: 'strict' as const };
+    const generation = row('top').payload.generation;
+    expect(referenceSettingIssues(generation, view, interior)).toEqual([]);
+    expect(referenceSettingIssues(generation, view, { ...interior, interiorRoomIds: [] })).toContain('La luz es diferente.');
+    expect(optionsFromReference(generation, interior)).toMatchObject({ lighting: 'warm', freedom: 'strict' });
   });
 });

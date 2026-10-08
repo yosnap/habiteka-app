@@ -11,7 +11,8 @@ import { rereviewableRender } from '@/lib/editor-document/render-rereview';
 import type { DeliverablePayload } from '@/lib/contracts/deliverable';
 
 const mock = vi.hoisted(() => ({ auth: vi.fn(), project: vi.fn(), zones: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(),
-  consent: vi.fn(), tos: vi.fn(), load: vi.fn(), readRevision: vi.fn(), same: vi.fn(), bytes: vi.fn(), review: vi.fn() }));
+  consent: vi.fn(), tos: vi.fn(), load: vi.fn(), readRevision: vi.fn(), same: vi.fn(), bytes: vi.fn(), review: vi.fn(),
+  lateral: vi.fn(), brief: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/server/auth/require-org-context', () => ({ requireOrgContext: mock.auth }));
@@ -23,6 +24,8 @@ vi.mock('@/server/editor/document-repo', () => ({ withEditorDocuments: () => ({ 
 vi.mock('@/server/walkthrough/tour-images', () => ({ sameVisualDesignContent: mock.same }));
 vi.mock('@/server/ai', () => ({ getChatVisionAdapter: async () => ({ chat: vi.fn() }) }));
 vi.mock('@/server/agent/editor-v2/render-asset-reader', () => ({ readRenderBytes: mock.bytes }));
+vi.mock('@/server/agent/editor-v2/drone-references', () => ({ lateralDesignReference: mock.lateral }));
+vi.mock('@/server/agent/editor-v2/section-furniture-brief', () => ({ sectionFurnitureBrief: mock.brief }));
 vi.mock('@/server/agent/editor-v2/review-render-fidelity', async (actual) => ({
   ...(await actual<typeof import('@/server/agent/editor-v2/review-render-fidelity')>()), reviewRenderFidelity: mock.review }));
 import { rereviewRenderDesign } from '@/app/(app)/projects/[id]/_actions/render-rereview-actions';
@@ -52,6 +55,8 @@ beforeEach(async () => {
   const png = await sharp({ create: { width: 320, height: 240, channels: 3, background: '#88aa66' } }).png().toBuffer();
   mock.bytes.mockResolvedValue({ raw: png, contentType: 'image/png' });
   mock.review.mockResolvedValue({ fidelity: passed });
+  mock.lateral.mockResolvedValue({ identity: { base64: png.toString('base64'), mimeType: 'image/png' }, deliverableId: 'cenital-aceptada' });
+  mock.brief.mockImplementation(async (_vision: unknown, _top: unknown, names: string[]) => ({ lines: names.map(name => `${name}: sin muebles`), pieces: names.map(() => []) }));
 });
 
 describe('volver a revisar una cenital descartada', () => {
@@ -81,9 +86,22 @@ describe('volver a revisar una cenital descartada', () => {
     mock.same.mockReturnValueOnce(false);
     expect(await rereviewRenderDesign('project', null, 'cenital')).toMatchObject({ actionError: expect.stringContaining('El plano cambió') });
     mock.findFirst.mockResolvedValueOnce({ payload: discarded({ view: { ...top, preset: 'isometric' } }), version: 3 });
-    expect(await rereviewRenderDesign('project', null, 'cenital')).toMatchObject({ actionError: expect.stringContaining('cenitales de toda la planta') });
+    expect(await rereviewRenderDesign('project', null, 'cenital')).toMatchObject({ actionError: expect.stringContaining('laterales de toda la planta') });
     expect(mock.review).not.toHaveBeenCalled();
     expect(mock.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('revisa una trasera contra su sección y la cenital aceptada que usó, sin generar otra imagen', async () => {
+    // La trasera correcta se descartaba por un fallo de la revisión y no había forma de volver a revisarla.
+    mock.findFirst.mockResolvedValueOnce({ payload: discarded({ view: { ...top, preset: 'back' }, promptVersion: 'habiteka-section-simple-v8',
+      referenceDesignId: 'cenital-aceptada' }), version: 3 });
+    expect(await rereviewRenderDesign('project', null, 'cenital')).toMatchObject({ passed: true, version: 4 });
+    expect(mock.lateral.mock.calls[0]![5]).toBe('cenital-aceptada');
+    const args = mock.review.mock.calls[0]!;
+    expect(args[3]).toMatchObject({ preset: 'back' });
+    expect(args[7]).toMatchObject({ lateral: true });
+    expect(args[11]).toMatchObject({ reference: 'section', sectionRooms: expect.any(Array), sectionFurniture: [] });
+    expect(mock.updateMany.mock.calls[0]![0].data.payload.generation.fidelity).toMatchObject({ status: 'passed' });
   });
 
   it('solo se ofrece en cenitales del plano descartadas por la revisión automática', () => {
@@ -92,6 +110,10 @@ describe('volver a revisar una cenital descartada', () => {
     expect(rereviewableRender(payload({ review: undefined, fidelity: passed }))).toBe(false);
     expect(rereviewableRender(payload({ review: { status: 'rejected', reason: 'Inodoro duplicado', reviewedAt: 'x', source: 'visual-inspection' } }))).toBe(false);
     expect(rereviewableRender(payload({ promptVersion: 'habiteka-image-from-capture-v26' }))).toBe(false);
+    // Frontal, trasera y laterales necesitan saber qué cenital aceptada usaron.
+    const back = { view: { ...top, preset: 'back' }, promptVersion: 'habiteka-section-simple-v9' };
+    expect(rereviewableRender(payload({ ...back, referenceDesignId: 'cenital-aceptada' }))).toBe(true);
+    expect(rereviewableRender(payload(back))).toBe(false);
     expect(rereviewableRender(payload({ options: { ...defaultRenderDesignOptions(), placement: 'selected',
       regions: [{ id: 'z', name: 'Zona', polygon: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }] }] } }))).toBe(false);
   });

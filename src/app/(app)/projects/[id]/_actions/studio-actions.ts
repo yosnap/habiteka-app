@@ -6,8 +6,10 @@ import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { loadStudio, saveStudio } from '@/server/plan/studio-repo';
 import { persistStudioSource, readStudioImage } from '@/server/plan/studio-image';
-import { getImageAdapterForAction } from '@/server/ai';
-import { redrawPlan, type RedrawMode } from '@/server/ai/design/redraw-plan-pipeline';
+import { getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
+import { withEnglishPrompts } from '@/server/agent/editor-v2/english-image-prompt';
+import type { RedrawMode } from '@/server/ai/design/redraw-plan-pipeline';
+import { redrawStudioSource } from '@/server/plan/studio-redraw';
 import { generateCenitalFromImage } from '@/server/ai/design/cenital-pipeline';
 import type { RenderVista } from '@/server/ai/design/room-prompt-builder';
 import { isValidEstilo } from '@/lib/design-options';
@@ -61,24 +63,8 @@ async function redrawStudioImpl(
   const { ctx, state } = await context(projectId);
   const source = parts[0] ? await persistStudioSource(parts[0].base64) : state.source;
   if (!source) fail('Sube o dibuja un plano primero.');
-  const baseline = source.assetKey !== state.source?.assetKey
-    ? { ...state, results: appendStudioResult(state, source, { kind: 'source' }) }
-    : state;
   const redrawMode: RedrawMode = mode === 'decorado' ? 'decorado' : 'tecnico';
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
-  const result = await redrawPlan({ image }, await readStudioImage(source), redrawMode);
-  // Se conserva el redibujado del otro modo: el usuario alterna entre ambos.
-  const redraws = { ...baseline.redraws, [redrawMode]: result };
-  // Otra imagen de trabajo: el veredicto y la extracción del plano anterior ya no valen.
-  const results = appendStudioResult(baseline, result, {
-    kind: 'redraw', mode: redrawMode, ...(source.assetKey ? { sourceKey: source.assetKey } : {}),
-  });
-  await saveStudio(ctx, projectId, {
-    ...baseline, source, plan: result, redrawMode, redraws, results,
-    sourceKind: 'upload', plano: undefined, escalaEstimada: undefined,
-    cenital: undefined, quality: undefined, planImport: undefined,
-    planImportApplied: false, planImportRevision: undefined,
-  });
+  const { result, results } = await redrawStudioSource(ctx, projectId, state, source, redrawMode);
   return { imageUrl: result.assetUrl, assetKey: result.assetKey, studioResult: results.find((item) => item.assetKey === result.assetKey) };
 }
 
@@ -179,7 +165,8 @@ async function cenitalStudioImpl(
   // estado guardado en el servidor, nunca del cliente.
   await assertStudioPlanQuality(ctx, projectId, state, qualityAck === true, 'cenital_estudio');
   const renderVista: RenderVista = vista === 'maqueta' ? 'maqueta' : 'cenital';
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = withEnglishPrompts(await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d'),
+    () => getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision'));
   const notes = String(detalles).slice(0, 800);
   // El ORIGINAL manda (trae el mobiliario y los sanitarios que un redibujado
   // técnico elimina); el redibujado, si existe y es distinto, acompaña como
@@ -361,7 +348,19 @@ export async function setEditorBackgroundStudio(projectId: string, assetKey: str
     const image = { assetKey, assetUrl };
     let frame: EditorBackground['frame'];
     try {
-      frame = await fitBackgroundFrame(Buffer.from((await readStudioImage(image)).base64, 'base64'), editor.document);
+      // El encaje del fondo actual y el marco de la imagen importada sirven de punto de partida.
+      const hints: EditorBackground['frame'][] = [];
+      if (state.editorReference?.frame) hints.push(state.editorReference.frame);
+      const imported = state.planImport;
+      if (imported) {
+        const sourceFrame = buildPlanImport(imported.raw, {
+          generalWidthMm: imported.generalWidthMm, roomOverrides: imported.roomOverrides,
+          doorOverrides: imported.doorOverrides, wallOverrides: imported.wallOverrides, includeFurniture: false,
+          normalize: importNormalizeOptions(imported.detected),
+        }).sourceFrameMm;
+        if (sourceFrame) hints.push({ x: 0, y: 0, width: sourceFrame.width, height: sourceFrame.height });
+      }
+      frame = await fitBackgroundFrame(Buffer.from((await readStudioImage(image)).base64, 'base64'), editor.document, hints);
     } catch (error) {
       fail(error instanceof Error ? error.message : 'No se pudo alinear la imagen con el plano.');
     }

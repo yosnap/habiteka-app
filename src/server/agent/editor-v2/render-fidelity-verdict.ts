@@ -10,6 +10,7 @@ const check = z.object({ id: z.string().min(1), status: z.enum(['pass', 'fail', 
 const criterionIds = Object.keys(RENDER_FIDELITY_CRITERIA) as [RenderFidelityCriterion, ...RenderFidelityCriterion[]];
 const criterion = z.object({ id: z.enum(criterionIds), status: z.enum(['pass', 'fail', 'uncertain']), observation: z.string().trim().min(1) });
 const openingCheck = check.extend({
+  referenceVisible: z.boolean().optional(),
   observedKind: z.enum(['puerta', 'ventana', 'hueco', 'not-visible', 'uncertain']),
   swingClear: z.enum(['clear', 'blocked', 'not-applicable', 'not-visible', 'uncertain']),
 });
@@ -29,10 +30,11 @@ const verdictSchema = z.object({
 });
 // Los proveedores con strict:true exigen todas las propiedades en required; la lectura admite informes anteriores.
 export const RENDER_FIDELITY_SCHEMA = z.toJSONSchema(verdictSchema.extend({
+  openingChecks: z.array(openingCheck.extend({ referenceVisible: z.boolean() })),
   exteriorChecks: z.array(exteriorCheck.extend({ observedVehicleType: exteriorCheck.shape.observedVehicleType.unwrap() })),
   fixtureChecks: z.array(fixtureCheckSchema),
 })) as JsonSchema;
-export const RENDER_FIDELITY_VERSION = 'spatial-fidelity-v8';
+export const RENDER_FIDELITY_VERSION = 'spatial-fidelity-v13';
 
 /** Informe del auditor incompleto o ilegible: la imagen no queda verificada, pero no hay evidencia de un defecto. */
 export class IncompleteRenderReviewError extends UserFacingError {}
@@ -70,18 +72,22 @@ export function validateRenderFidelity(value: unknown, redesignRequested: boolea
     if (!opening) continue;
     // Un hueco que el auditor declara no visible se trata como tal aunque marque su giro «no aplicable» (ventanas) o
     // deje otro estado: en las secciones casi todos los huecos quedan fuera y eso no es una incoherencia de la imagen.
-    if (item.observedKind === 'not-visible' && (item.swingClear === 'not-visible' || item.swingClear === 'not-applicable')) {
+    if (item.status !== 'fail' && item.observedKind === 'not-visible' && (item.swingClear === 'not-visible' || item.swingClear === 'not-applicable')) {
       item.status = 'not-visible'; item.swingClear = 'not-visible';
     }
     let reason: string | undefined;
     if (item.status === 'not-visible') {
-      if (item.observedKind !== 'not-visible' || item.swingClear !== 'not-visible')
+      if (item.referenceVisible || fixturePolicy.fullPlan)
+        reason = 'El hueco visible en la referencia ha desaparecido de la candidata.';
+      else if (item.observedKind !== 'not-visible' || item.swingClear !== 'not-visible')
         reason = 'La visibilidad declarada contradice la observación del hueco.';
     } else if (item.observedKind !== opening.kind) {
       reason = `El plano exige ${opening.kind === 'hueco' ? 'un paso sin puerta' : opening.kind}; la imagen muestra ${item.observedKind}.`;
     } else if (opening.kind === 'puerta' && item.swingClear !== 'clear' && !(cutawayElevation && item.swingClear === 'uncertain')) {
       reason = 'El barrido de la puerta está bloqueado o no se pudo comprobar libre.';
-    } else if (opening.kind !== 'puerta' && item.swingClear !== 'not-applicable') {
+    } else if (opening.kind !== 'puerta' && item.swingClear !== 'not-applicable'
+      // «Libre» en un paso sin hoja describe el paso despejado, no un giro: descartaba una vista interior correcta.
+      && !(opening.kind === 'hueco' && item.swingClear === 'clear')) {
       reason = 'Se ha declarado un giro de puerta en una ventana o paso sin hoja.';
     }
     if (reason) { item.status = 'fail'; item.observation = `${reason} ${item.observation}`; }
@@ -94,9 +100,11 @@ export function validateRenderFidelity(value: unknown, redesignRequested: boolea
   for (const item of exteriorChecks) {
     const expected = exterior.find(element => element.id === item.id);
     if (!expected) continue;
-    const hidden = item.observedCategory === 'not-visible' && item.identityAndGeometry === 'not-visible'
-      && item.finish === 'not-visible';
-    if (hidden && !requiredExteriorIds.includes(item.id)) { item.status = 'not-visible'; continue; }
+    // En la maqueta de sección el exterior no se ve: la revisión lo declaraba no visible copiando la categoría esperada
+    // en observedCategory, y esa copia descartaba la imagen por una contradicción que no existía.
+    const hidden = (item.observedCategory === 'not-visible' || item.status === 'not-visible')
+      && item.identityAndGeometry === 'not-visible' && item.finish === 'not-visible';
+    if (hidden && item.status !== 'fail' && !requiredExteriorIds.includes(item.id)) { item.status = 'not-visible'; continue; }
     let reason: string | undefined;
     if (hidden) reason = 'El elemento exterior debe verse en la referencia cenital completa.';
     else if (item.status === 'not-visible') reason = 'La visibilidad declarada contradice la observación del exterior.';
@@ -118,7 +126,7 @@ export function validateRenderFidelity(value: unknown, redesignRequested: boolea
   const fixtureFailures = fixtureChecks.filter(item => item.status === 'fail');
   if (fixtureFailures.length) failCriterion('objectIdentityPreserved', [...exteriorFailures, ...fixtureFailures].map(item => `${item.id}: ${item.observation}`).join('; '));
   for (const item of verdict.roomChecks) if (item.status === 'not-visible' && requiredRoomIds.includes(item.id)) {
-    item.status = 'fail'; item.observation = `La sección debe mostrar esta estancia en su hueco. ${item.observation}`;
+    item.status = 'fail'; item.observation = `La vista debe mostrar esta estancia en su lugar. ${item.observation}`;
   }
   const missingRooms = verdict.roomChecks.filter(item => item.status === 'fail' && requiredRoomIds.includes(item.id));
   if (missingRooms.length) failCriterion('roomUsesPreserved', missingRooms.map(item => `${item.id}: ${item.observation}`).join('; '));

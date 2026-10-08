@@ -4,15 +4,17 @@ import type { DesignVideoJob } from '@/lib/editor-document/design-video';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 const mock = vi.hoisted(() => ({ auth: vi.fn(), sources: vi.fn(), read: vi.fn(), update: vi.fn(), transaction: vi.fn(), createRow: vi.fn(),
-  hold: vi.fn(), settle: vi.fn(), revert: vi.fn(), key: vi.fn(), access: vi.fn(), premium: vi.fn(), cap: vi.fn(), spend: vi.fn(), outcome: vi.fn(),
-  readReference: vi.fn(), upload: vi.fn(), create: vi.fn(), status: vi.fn(), download: vi.fn(), put: vi.fn(), url: vi.fn(), usage: vi.fn(), scope: vi.fn(), deletePrepared: vi.fn() }));
+  hold: vi.fn(), settle: vi.fn(), revert: vi.fn(), key: vi.fn(), access: vi.fn(), premium: vi.fn(), cap: vi.fn(), spend: vi.fn(), outcome: vi.fn(), budget: vi.fn(),
+  readReference: vi.fn(), vision: vi.fn(), upload: vi.fn(), create: vi.fn(), status: vi.fn(), download: vi.fn(), put: vi.fn(), url: vi.fn(), usage: vi.fn(), scope: vi.fn(), deletePrepared: vi.fn() }));
 vi.mock('server-only', () => ({}));
+vi.mock('@/server/walkthrough/property-visit-budget', () => ({ assertStandaloneVideoBudget: mock.budget }));
 vi.mock('@/server/auth/require-org-context', () => ({ requireOrgContext: mock.auth }));
 vi.mock('@/server/editor/authority', () => ({ assertEditorScope: mock.scope }));
 vi.mock('@/server/db/prisma', () => ({ prisma: { $transaction: mock.transaction, usageEvent: { upsert: mock.usage } } }));
 vi.mock('@/server/walkthrough/design-video-sources', () => ({ designVideoSources: mock.sources }));
 vi.mock('@/server/walkthrough/design-video-jobs', () => ({ jobJson: (job: unknown) => job, readDesignVideoJob: mock.read, updateDesignVideoJob: mock.update }));
 vi.mock('@/server/ai/provider-key-resolver', () => ({ resolveKieKey: mock.key }));
+vi.mock('@/server/ai', () => ({ getChatVisionAdapter: mock.vision }));
 vi.mock('@/server/ai/video/kie-video', async importOriginal => {
   const actual = await importOriginal<typeof import('@/server/ai/video/kie-video')>();
   return { ...actual, KieVideoProvider: class { uploadReference = mock.upload; create = mock.create; status = mock.status; download = mock.download; } };
@@ -40,16 +42,24 @@ beforeEach(() => {
   mock.transaction.mockImplementation(fn => fn({ deliverable: { create: mock.createRow, updateMany: mock.deletePrepared } }));
   mock.deletePrepared.mockResolvedValue({ count: 1 });
   mock.access.mockResolvedValue({ allowed: true }); mock.key.mockResolvedValue('key'); mock.upload.mockResolvedValue('https://example.com/design.png');
-  mock.create.mockResolvedValue('task'); mock.status.mockResolvedValue({ state: 'pending' }); mock.url.mockResolvedValue('https://storage.example/video.mp4');
+  mock.vision.mockRejectedValue(new Error('sin modelo')); mock.create.mockResolvedValue('task'); mock.status.mockResolvedValue({ state: 'pending' }); mock.url.mockResolvedValue('https://storage.example/video.mp4');
 });
 describe('piloto de construcción desde diseños', () => {
+  it('aplica el límite de la construcción como vídeo independiente antes de cualquier gasto', async () => {
+    mock.budget.mockRejectedValueOnce(new Error('Máximo 2 € por vídeo completo'));
+    await expect(startDesignConstruction(scope, 'build', { referencesToKie: true, maxUsd: .32 })).rejects.toThrow('2 €');
+    expect(mock.budget).toHaveBeenCalledWith(.32, 8000);
+    expect(mock.hold).not.toHaveBeenCalled(); expect(mock.upload).not.toHaveBeenCalled(); expect(mock.vision).not.toHaveBeenCalled();
+  });
   it('prepara primera persona solo con interior verificado, sin reserva ni transferencia', async () => {
     const sources = await mock.sources();
     sources.references = [{ id: 'design', batchId: 'batch', name: 'Salón', view: 'Interior', zones: ['Salón'], closedRoof: true,
-      interiorRoomId: 'ground:salon', interiorRoomName: 'Salón' }];
+      lighting: 'afternoon', interiorRoomId: 'ground:salon', interiorRoomName: 'Salón' }];
     mock.sources.mockResolvedValue(sources);
     const result = await prepareDesignVisit(scope, 'approval', ['design'], settings, 'Interior del salón');
     expect(result.job).toMatchObject({ mode: 'walkthrough-ai', title: 'Interior del salón', includedZones: ['Salón'], durationMs: 8000, estimateUsd: .32 });
+    expect(result.job.prompt).toContain('luz natural de tarde');
+    expect(mock.sources).toHaveBeenCalledWith(expect.anything(), scope, 'approval', ['design'], 'walkthrough-ai');
     expect(result.job.prompt).toContain('no mostrar construcción');
     expect(result.job.structuralConstraints).toBeUndefined();
     expect(mock.create).not.toHaveBeenCalled(); expect(mock.upload).not.toHaveBeenCalled(); expect(mock.hold).not.toHaveBeenCalled();
@@ -125,6 +135,23 @@ describe('piloto de construcción desde diseños', () => {
     expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2, expect.objectContaining({ taskId: 'task', status: 'generating' }));
     expect(mock.usage).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ cost: .32, action: 'video.kie-h3.estimated' }) }));
     expect(mock.update.mock.invocationCallOrder[1]).toBeLessThan(mock.usage.mock.invocationCallOrder[0]!);
+  });
+  it('envía el guion en inglés y conserva el original para el usuario; si la traducción no cabe en H3, envía el original', async () => {
+    const english = (text: string) => ({ chat: vi.fn(async () => ({ structured: { english: text }, content: '' })) });
+    mock.read.mockResolvedValue({ version: 1, job: { ...job(), prompt: 'Conservar los muebles del diseño aceptado' } });
+    mock.vision.mockResolvedValue(english('Keep the furniture of the accepted design'));
+    await startDesignConstruction(scope, 'job', { referencesToKie: true, maxUsd: .32 });
+    expect(mock.vision).toHaveBeenCalledWith(expect.objectContaining({ organizationId: 'org', projectId: 'project', refId: 'job' }), 'vision');
+    expect(mock.create).toHaveBeenCalledWith('Keep the furniture of the accepted design', settings, ['https://example.com/design.png']);
+    expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2, expect.objectContaining({
+      prompt: 'Conservar los muebles del diseño aceptado', sentPrompt: 'Keep the furniture of the accepted design', status: 'generating' }));
+
+    const long = 'Conservar cada mueble. '.repeat(290);
+    mock.read.mockResolvedValue({ version: 1, job: { ...job(), prompt: long } });
+    mock.vision.mockResolvedValue(english('Keep every piece of furniture. '.repeat(240)));
+    await startDesignConstruction(scope, 'job', { referencesToKie: true, maxUsd: .32 });
+    expect(mock.create).toHaveBeenLastCalledWith(long, settings, ['https://example.com/design.png']);
+    expect(mock.update).toHaveBeenLastCalledWith(expect.anything(), scope, 'job', 2, expect.objectContaining({ promptTranslationIssue: 'la traducción supera el límite de H3' }));
   });
   it('conserva la tarea cuando fallan la liquidación y su limpieza; consultar la recupera sin generar otra', async () => {
     mock.settle.mockRejectedValue(new Error('saldo no disponible'));

@@ -12,6 +12,7 @@ import { isVehicle, VEHICLE_TYPE_LABELS, vehicleType } from '@/lib/editor-docume
 import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
 import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
+import { SECTION_AXES, type SectionSide } from './section-visibility';
 
 /**
  * Cenital desde el plano 2D con un prompt corto. La prueba con el mismo generador mostró que la captura 3D en
@@ -70,7 +71,7 @@ export function simplePlanPrompt(style: Estilo, options: RenderDesignOptions, ob
   return lines.map((line) => line === FURNITURE ? `${head}${capped(furniture, Math.max(0, furnitureBudget))}.` : line).join('\n');
 }
 
-export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v8';
+export const SIMPLE_SECTION_PROMPT_VERSION = 'habiteka-section-simple-v10';
 
 const SIDE: Record<string, string> = { front: 'el frente', back: 'la trasera', left: 'la izquierda', right: 'la derecha' };
 
@@ -79,7 +80,8 @@ const SIDE: Record<string, string> = { front: 'el frente', back: 'la trasera', l
  * técnico con la misma perspectiva que el resultado). La imagen 2 es la cenital aceptada recortada y girada.
  */
 export function simpleSectionPrompt(side: string, style: Estilo, options: RenderDesignOptions, objective: string,
-  instruction: string, rooms: string[], furniture: string[] = [], visibilityHints: string[] = [], document?: EditorDocument): string {
+  instruction: string, rooms: string[], furniture: string[] = [], visibilityHints: string[] = [], document?: EditorDocument,
+  drawnFurniture: string[] = []): string {
   const preferences = [objective, instruction].map((text) => text.trim()).filter(Boolean).join('. ').slice(0, 400);
   return [
     `Crea una vista fotorrealista ${estiloLabel(style)} de este inmueble como una maqueta abierta vista desde ${SIDE[side] ?? 'un lateral'}, a la altura de los ojos, a partir de la sección técnica de la imagen 1: se ha retirado esa fachada con sus ventanas, puertas, cortinas y todo lo que estaba pegado a ella, y se ve el interior de cada estancia.`,
@@ -87,11 +89,14 @@ export function simpleSectionPrompt(side: string, style: Estilo, options: Render
     'La maqueta está abierta por arriba, sin techo ni tejado. No añadas losas, vigas continuas, bloques ni bandas horizontales que cierren su parte superior. Conserva únicamente la coronación de cada muro real.',
     `La imagen 2 es el diseño interior aceptado visto desde arriba; su borde inferior es este frente. Cada estancia tiene sus mismos muebles, colores y acabados, con la misma orientación.${rooms.length ? ` Estancias de izquierda a derecha: ${rooms.join(', ')}.` : ''}`,
     'Conserva exactamente los sanitarios y placas de cocción visibles del diseño aceptado: mismo número y función, sin duplicar inodoros ni omitir la vitrocerámica. No añadas elementos ocultos para mostrarlos en este corte.',
-    ...sectionVehicleLines(document, rooms),
+    'No añadas plantas, lámparas, cuadros ni otros muebles ausentes de la referencia aceptada. Cambiar de cámara no autoriza otra decoración.',
+    ...sectionVehicleLines(document, rooms, side),
     ...rooms.flatMap((name, index) => visibilityHints[index] ? [`Visibilidad de ${name}: ${visibilityHints[index]}`] : []),
     // La lectura previa de la cenital dice cómo se ve cada mueble; sin ella queda la regla general de las camas.
     ...(furniture.length ? [`Mobiliario visto desde esta cámara, leído del diseño aceptado de la imagen 2: ${furniture.join('; ')}.`]
       : ['Una cama con el cabecero junto a la fachada retirada se ve de espaldas, con el cabecero delante y los pies hacia el fondo; con el cabecero en un tabique lateral se ve de perfil.']),
+    // Solo se dibujan las camas y sofás en que coinciden la cenital aceptada y el plano: el texto solo no bastaba.
+    ...(drawnFurniture.length ? [`Las camas y sofás dibujados en la imagen 1 tienen la orientación del diseño aceptado; reprodúcelos en ese lugar y con esa orientación: ${drawnFurniture.join('; ')}. Un bloque alto en primer plano es la trasera de un cabecero o de un respaldo, no un mueble nuevo.`] : []),
     'Encuadre: el de la imagen 1, de frente y a la altura de los ojos; nunca una vista aérea ni una planta.',
     ...(options.people ? [PEOPLE_RULE] : []),
     `Iluminación: ${lightingPhrase(options)}.`,
@@ -102,16 +107,29 @@ export function simpleSectionPrompt(side: string, style: Estilo, options: Render
 }
 
 /**
- * Tipo de cada vehículo de las estancias del corte: sin él, la berlina de la cochera salía como un SUV de una marca real.
+ * Tipo y orientación de cada vehículo de las estancias del corte: sin el tipo, la berlina de la cochera salía como un SUV
+ * de una marca real. La orientación sale del plano, que la cenital aceptada conserva porque su revisión la exige; la
+ * lectura de la cenital decía «de frente a la cámara» un coche aparcado de lado, y el generador lo siguió.
  */
-function sectionVehicleLines(document: EditorDocument | undefined, rooms: string[]): string[] {
+function sectionVehicleLines(document: EditorDocument | undefined, rooms: string[], side: string): string[] {
   if (!document) return [];
   const derived = deriveRoomsSafe(document);
   const vehicles = document.furniture.filter(isVehicle).flatMap((item) => {
     const room = derived.find((candidate) => pointInPolygon(objectCenter(item), candidate.boundary));
     const name = room && document.labels.find((label) => pointInPolygon(label, room.boundary))?.text.trim();
-    return name && rooms.includes(name) ? [`${name}: ${VEHICLE_TYPE_LABELS[vehicleType(item)]}`] : [];
+    const facing = vehicleFacing(item.rotation, side);
+    return name && rooms.includes(name) ? [`${name}: ${VEHICLE_TYPE_LABELS[vehicleType(item)]}${facing ? ` ${facing}` : ''}`] : [];
   });
-  return vehicles.length ? [`Vehículos visibles, cada uno de su tipo y nunca otro (una berlina no es un SUV ni una furgoneta): ${vehicles.join('; ')}. Sin logotipos ni marcas reconocibles.`] : [];
+  return vehicles.length ? [`Vehículos visibles, cada uno de su tipo y orientación y nunca otro (una berlina no es un SUV ni una furgoneta): ${vehicles.join('; ')}. Sin logotipos ni marcas reconocibles.`] : [];
 }
 
+/** Los faros del vehículo están en su lado local y = 0: su frente mira hacia -y girado con el vehículo. */
+function vehicleFacing(rotation: number, side: string): string | undefined {
+  const axis = SECTION_AXES[side as SectionSide];
+  if (!axis) return undefined;
+  const angle = rotation * Math.PI / 180, front = { x: Math.sin(angle), y: -Math.cos(angle) };
+  const toward = front.x * axis.toward[0] + front.y * axis.toward[1];
+  if (toward > .5) return 'visto de frente, con los faros hacia la cámara';
+  if (toward < -.5) return 'visto por detrás, con la parte trasera hacia la cámara';
+  return `visto de perfil, con el frente hacia la ${axis.h(front.x, front.y) > 0 ? 'derecha' : 'izquierda'}`;
+}

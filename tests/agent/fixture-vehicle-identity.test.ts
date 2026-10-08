@@ -35,6 +35,28 @@ const verdict = () => ({ accepted: true, cameraAndGeometryPreserved: true, objec
 const audit = (candidate: unknown) => validateRenderFidelity(candidate, false, context, undefined, false, [], [], { fullPlan: true });
 
 describe('identidad de sanitarios, vitrocerámica y vehículos', () => {
+  it('tolera ceros de categorías inexistentes cuando la cocina está oculta en ambas vistas parciales', () => {
+    const candidate = verdict(), kitchen = candidate.fixtureChecks[1]!;
+    const hidden = { ...kitchen, status: 'not-visible', identityAndPlacement: 'not-visible',
+      referenceCounts: { ...kitchen.referenceCounts, cooktop: null },
+      observedCounts: { ...kitchen.observedCounts, cooktop: null } };
+    const partial = { ...candidate, fixtureChecks: [candidate.fixtureChecks[0], hidden] };
+    expect(validateRenderFidelity(partial, false, context).status).toBe('passed');
+    expect(() => audit(partial)).toThrow(/deben verse/);
+    expect(() => validateRenderFidelity({ ...partial, fixtureChecks: [candidate.fixtureChecks[0],
+      { ...hidden, status: 'fail' }] }, false, context)).toThrow(/deben verse/);
+    expect(() => validateRenderFidelity({ ...partial, fixtureChecks: [candidate.fixtureChecks[0],
+      { ...hidden, referenceCounts: { ...hidden.referenceCounts, cooktop: 0 },
+        observedCounts: { ...hidden.observedCounts, cooktop: 0 } }] }, false, context)).toThrow(/deben verse/);
+  });
+  it.each(['fail', 'not-visible'])('no borra un %s cuando las piezas de referencia desaparecen', status => {
+    const candidate = verdict();
+    const fixture = candidate.fixtureChecks[0]!;
+    fixture.status = status;
+    fixture.identityAndPlacement = 'not-visible';
+    const missing = { ...fixture, observedCounts: Object.fromEntries(Object.keys(fixture.observedCounts).map(key => [key, null])) };
+    expect(() => validateRenderFidelity({ ...candidate, fixtureChecks: [missing, ...candidate.fixtureChecks.slice(1)] }, false, context)).toThrow('objetos reconocibles sustituidos');
+  });
   it('cuenta inodoro, lavabo y ducha distintos; incluye la placa integrada en la cocina', () => {
     expect(groups[0]?.counts).toMatchObject({ toilet: 1, washbasin: 1, shower: 1, bath: 0 });
     expect(groups[1]?.counts.cooktop).toBe(1); expect(groups[1]?.items[0]?.center).toEqual({ x: 4500, y: 6800 });
@@ -103,4 +125,3 @@ describe('identidad de sanitarios, vitrocerámica y vehículos', () => {
     expect(exteriorFurnitureSymbol({ ...van, color: '#aa2222' })).toContain('fill="#aa2222"');
   });
 });
-

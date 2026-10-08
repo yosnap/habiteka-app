@@ -3,6 +3,9 @@ import { openingConstruction } from '@/lib/editor-document/construction-properti
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { isBasicOpeningType, openingType } from '@/lib/editor-document/opening-types';
 import { worldOpeningLeaves, type WorldLeaf } from '@/lib/editor-document/opening-leaves';
+import { deriveRoomsSafe } from '@/lib/editor-document/rooms';
+import { pointInPolygon } from '@/lib/editor-document/polygon-tools';
+import { neutralizeInstruction } from '@/server/quality/evidence/instruction-evidence';
 
 export interface SpatialOpening {
   id: string;
@@ -10,6 +13,8 @@ export interface SpatialOpening {
   center: Point;
   widthMm: number;
   heightMm: number;
+  /** Usos a cada lado del hueco; no implica que estén visibles desde cualquier cámara. */
+  connectsRooms?: { name: string; anchor: Point; boundary?: Point[] }[];
   leafWidthMm?: number;
   openAngleDeg?: number;
   hinge?: string;
@@ -30,10 +35,25 @@ export const roundedPoint = ({ x, y }: Point): Point => ({ x: Math.round(x), y: 
 /** Usa las mismas hojas rígidas del 3D, también en muros curvos. */
 export function spatialOpenings(doc: EditorDocument, prefix: string): SpatialOpening[] {
   const walls = new Map(doc.walls.filter(wall => !wall.hidden).map(wall => [wall.id, wall]));
+  const rooms = deriveRoomsSafe(doc);
   return doc.openings.filter(opening => walls.has(opening.wallId)).map((opening, index) => {
-    const props = openingConstruction(opening), center = wallPath(doc, walls.get(opening.wallId)!).at(opening.position);
+    const wall = walls.get(opening.wallId)!, path = wallPath(doc, wall);
+    const props = openingConstruction(opening), center = path.at(opening.position), tangent = path.tangent(opening.position);
+    const offset = wall.thicknessMm / 2 + 100;
+    const neighbors = [-1, 1].map(sign => rooms.find(room => pointInPolygon({
+      x: center.x + tangent.y * offset * sign, y: center.y - tangent.x * offset * sign,
+    }, room.boundary)));
+    const connectsRooms = [...new Set(neighbors.filter(Boolean))].flatMap(room => {
+      const labels = doc.labels.filter(label => pointInPolygon(label, room!.boundary));
+      if (!labels.length) return [{ name: 'Recinto sin etiqueta', boundary: room!.boundary.map(roundedPoint),
+        anchor: roundedPoint({ x: room!.boundary.reduce((sum, p) => sum + p.x, 0) / room!.boundary.length,
+          y: room!.boundary.reduce((sum, p) => sum + p.y, 0) / room!.boundary.length }) }];
+      return labels.map(label => ({
+        name: neutralizeInstruction(label.text.slice(0, 100)).text, anchor: roundedPoint(label),
+      }));
+    });
     const base = { id: `${prefix}-O${index + 1}`, kind: opening.kind, center: roundedPoint(center),
-      widthMm: Math.round(opening.widthMm), heightMm: Math.round(props.heightMm) };
+      widthMm: Math.round(opening.widthMm), heightMm: Math.round(props.heightMm), connectsRooms };
     const type = openingType(opening);
     const typed = type && !isBasicOpeningType(type) ? { ...base, type: type.name } : base;
     if (opening.kind !== 'puerta') return typed;

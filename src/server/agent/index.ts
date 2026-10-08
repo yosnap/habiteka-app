@@ -15,6 +15,7 @@ import { buildPlanImport } from '@/server/plan/build-plan-import';
 import { evaluateCheckpoint } from '@/server/quality/evaluate';
 import { buildPlanEvidence } from '@/server/quality/evidence/plan-evidence';
 import { applyPlanQuality, blockingPlanImportWarning } from '@/lib/plan-quality';
+import { withEnglishPrompts } from './editor-v2/english-image-prompt';
 
 // Mínimo de muros medidos en la imagen para tratarla como una planta.
 const MIN_PLAN_WALLS = 4;
@@ -62,7 +63,8 @@ export async function getAgent(
   const vision = lazyChatAdapter(organizationId, 'vision');
   const plano2d = lazyChatAdapter(organizationId, 'plano2d');
   const memoria = lazyChatAdapter(organizationId, 'memoria');
-  const image = await getImageAdapter({ organizationId });
+  // El prompt del render se compone en español y se envía en inglés, como en el resto de generaciones.
+  const image = withEnglishPrompts(await getImageAdapter({ organizationId }), async () => vision);
   const debit = createDebitService(organizationId);
 
   return {

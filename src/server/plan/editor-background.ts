@@ -19,23 +19,30 @@ interface Box { minX: number; maxX: number; minY: number; maxY: number }
  * quedan fuera) con el de los muros del plano; después afina escala y posición de cada eje para que los muros del plano
  * caigan sobre los trazos de la imagen, aunque el boceto no tenga sus proporciones exactas.
  */
-export async function fitBackgroundFrame(image: Buffer, document: EditorDocument): Promise<Frame> {
+export async function fitBackgroundFrame(image: Buffer, document: EditorDocument, hints: readonly Frame[] = []): Promise<Frame> {
   const detected = await detectWallsFromImage(image);
-  const house = largestGroup(detected.walls);
-  if (house.length < MIN_WALLS) throw new Error('No se ven muros suficientes en esta imagen para alinearla con el plano.');
   const vertices = new Map(document.vertices.map((vertex) => [vertex.id, vertex]));
   const segments = document.walls.flatMap((wall) => {
     const a = vertices.get(wall.startVertexId), b = vertices.get(wall.endVertexId);
     return a && b ? [{ x1: a.x, y1: a.y, x2: b.x, y2: b.y }] : [];
   });
   if (segments.length < 2) throw new Error('El plano del editor no tiene muros con los que alinear la imagen.');
-  const drawn = bounds(house.flatMap((wall) => [[wall.x1, wall.y1], [wall.x2, wall.y2]]));
   const plan = bounds(segments.flatMap((wall) => [[wall.x1, wall.y1], [wall.x2, wall.y2]]));
-  if (drawn.maxX - drawn.minX < 0.05 || drawn.maxY - drawn.minY < 0.05)
-    throw new Error('Los muros de esta imagen ocupan demasiado poco para alinearla con el plano.');
-  const width = (plan.maxX - plan.minX) / (drawn.maxX - drawn.minX), height = (plan.maxY - plan.minY) / (drawn.maxY - drawn.minY);
-  const initial = { x: plan.minX - drawn.minX * width, y: plan.minY - drawn.minY * height, width, height };
-  return refine(initial, segments, distanceMap(detected.walls));
+  // Puntos de partida: el contorno del dibujo y, si los hay, encajes de otra imagen del mismo plano
+  // (un redibujado conserva el encuadre de su original). Se afinan todos y gana el que mejor encaja.
+  const starts = [...hints];
+  const house = largestGroup(detected.walls);
+  if (house.length >= MIN_WALLS) {
+    const drawn = bounds(house.flatMap((wall) => [[wall.x1, wall.y1], [wall.x2, wall.y2]]));
+    if (drawn.maxX - drawn.minX >= 0.05 && drawn.maxY - drawn.minY >= 0.05) {
+      const width = (plan.maxX - plan.minX) / (drawn.maxX - drawn.minX), height = (plan.maxY - plan.minY) / (drawn.maxY - drawn.minY);
+      starts.push({ x: plan.minX - drawn.minX * width, y: plan.minY - drawn.minY * height, width, height });
+    }
+  }
+  if (!starts.length || detected.walls.length < MIN_WALLS)
+    throw new Error('No se ven muros suficientes en esta imagen para alinearla con el plano.');
+  const map = distanceMap(detected.walls);
+  return starts.map((start) => refine(start, segments, map)).sort((a, b) => a.score - b.score)[0]!.frame;
 }
 
 /** Grupo de trazos conectados con más longitud: el dibujo de la casa. */
@@ -78,7 +85,7 @@ function distanceMap(walls: readonly SketchWall[]): Float32Array {
 }
 
 /** Ajusta escala y posición de cada eje para acercar los muros del plano a los trazos de la imagen. */
-function refine(frame: Frame, segments: readonly { x1: number; y1: number; x2: number; y2: number }[], map: Float32Array): Frame {
+function refine(frame: Frame, segments: readonly { x1: number; y1: number; x2: number; y2: number }[], map: Float32Array): { frame: Frame; score: number } {
   const samples = segments.flatMap((wall) => {
     const count = Math.max(2, Math.ceil(Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) / 150));
     return Array.from({ length: count + 1 }, (_, i) => [wall.x1 + (wall.x2 - wall.x1) * i / count, wall.y1 + (wall.y2 - wall.y1) * i / count] as const);
@@ -107,7 +114,7 @@ function refine(frame: Frame, segments: readonly { x1: number; y1: number; x2: n
       }
     }
   }
-  return best;
+  return { frame: best, score: bestScore };
 }
 
 function bounds(points: readonly (readonly number[])[]): Box {

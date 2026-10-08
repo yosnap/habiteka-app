@@ -59,6 +59,11 @@ export async function renameStudioVideo(scope: EditorScope, id: string, input: s
       if (!row || !row.payload || typeof row.payload !== 'object' || Array.isArray(row.payload)) fail('Vídeo no encontrado en este proyecto y zona.');
       if (isDesignVideoMode(row.payload.mode) && ['submitting', 'generating', 'unknown'].includes(String(row.payload.status)))
         fail('Espera a que termine o se resuelva el envío H3 antes de cambiar su nombre.');
+      if (row.payload.mode === 'property-visit-ai') {
+        const visit = row.payload as unknown as import('@/lib/editor-document/property-visit-job').PropertyVisitJob;
+        if ([...visit.images, ...visit.segments].some(item => ['submitting', 'generating', 'unknown'].includes(item.state)))
+          fail('Espera a que termine o se resuelva el envío del paseo antes de cambiar su nombre.');
+      }
       const changed = await tx.deliverable.updateMany({ where: { ...target, id, type: 'VIDEO', deletedAt: null, version: row.version },
         data: { payload: { ...row.payload, title }, version: { increment: 1 } } });
       if (changed.count !== 1) fail('El vídeo cambió en otra pestaña. Actualiza antes de cambiar el nombre.');

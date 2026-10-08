@@ -51,6 +51,14 @@ const kieImageModels: AllowedModel[] = [
     priceUsdPerUnit: 0.06,
   },
   {
+    // Publicado el 06/10/2026; KIE: 6 créditos por imagen a 2K y hasta 14 referencias.
+    id: 'nano-banana-2-1',
+    provider: 'kie',
+    label: 'Google Nano Banana 2.1',
+    status: 'current',
+    priceUsdPerUnit: 0.03,
+  },
+  {
     id: 'nano-banana-2-lite',
     provider: 'kie',
     label: 'Google Nano Banana 2 Lite',

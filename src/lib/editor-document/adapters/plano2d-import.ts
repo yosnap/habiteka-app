@@ -13,6 +13,7 @@ import { doorSwing } from '@/lib/plan-svg/door-swing';
 import { fromPlano2d } from './plano2d';
 import { vertexId } from './shared';
 import { planarizeWalls } from './planarize-walls';
+import { addOpenPlanBoundaries } from './open-plan-boundaries';
 import { deriveRooms } from '../rooms';
 import { upgradeConstructionDocument } from '../migrations';
 import { importedOpeningTypes } from '../imported-opening-types';
@@ -76,6 +77,9 @@ export function fromPlanImport(result: PlanImportResult): PlanImportConversion {
   } catch (error) {
     return { document: null, issues: [...issues, error instanceof Error ? error.message : 'Topología inválida'] };
   }
+  // Una cocina abierta al comedor no queda cerrada por muros: un límite oculto la
+  // separa para que siga siendo su propia estancia en el editor.
+  addOpenPlanBoundaries(doc, result.plano.zones, result.escalaEstimada ? 'raster' : 'physical');
 
   // Tipo de carpintería: el que distinguió la lectura y, si no, las reglas de
   // fachada (puerta de entrada) y de patio (corredera de vidrio).

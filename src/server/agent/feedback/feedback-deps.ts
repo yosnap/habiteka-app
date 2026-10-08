@@ -17,6 +17,7 @@ import { fail } from '@/server/errors/run-action';
 import type { DebitService, ImageAdapter, InpaintRequest, PlanZone } from '@/lib/contracts';
 import type { FeedbackDeps } from './feedback-orchestrator';
 import { loadDesignPlanContext } from './design-plan-context';
+import { englishImagePrompt } from '@/server/agent/editor-v2/english-image-prompt';
 import { prisma } from '@/server/db/prisma';
 
 /** Coste reservado por iteración fuera del cupo gratuito. */
@@ -50,8 +51,11 @@ export async function buildFeedbackDeps(
     where: { id: deliverable.id, deletedAt: null, project: { organizationId } }, select: { projectId: true },
   }) : null;
   const designContext = row ? await loadDesignPlanContext(organizationId, row.projectId, deliverable.id) : null;
+  // La indicación del retoque se traduce con el modelo de «Análisis visual», igual que los prompts de generación.
+  const vision = row ? await getChatVisionAdapter({ ...org, projectId: row.projectId, refId: deliverable.id }, 'vision') : null;
   return {
     designContext,
+    ...(vision ? { translateInstruction: (text: string) => englishImagePrompt(vision, text) } : {}),
     // Los retoques de imagen usan la sección «inpaint» del perfil de IA.
     image: deliverable.type === 'RENDER_3D' ? await getImageAdapterForAction({ ...org, projectId: row?.projectId }, 'inpaint') : NO_IMAGE,
     debit: free ? FREE_DEBIT : createDebitService(organizationId),

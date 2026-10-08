@@ -38,6 +38,10 @@ export type DeliverablePayload =
         options?: RenderDesignOptions;
         batchId?: string;
         referenceDesignId?: string;
+        /** Lectura de la referencia aceptada realizada sin mostrar la candidata. */
+        acceptedBrief?: string[];
+        /** Encuadre inmutable de una visita; no se reutiliza como cámara de otro estado de puertas. */
+        propertyVisit?: { id: string; imageId: string; openDoors: boolean; anchorIds: string[]; correctionSourceId?: string };
         review?: import('@/lib/editor-document/render-review').RenderReview;
         fidelity?: import('@/lib/editor-document/render-fidelity').RenderFidelityReport;
         acceptance?: { acceptedAt: string; userId: string };
@@ -45,6 +49,11 @@ export type DeliverablePayload =
         zoneComposite?: { mode: string; coverage: number };
         /** Cubierta del modelo añadida a una vista aceptada (guía de forma del plano y revisión propia). */
         roofClosure?: { baseDeliverableId: string };
+        /** Idioma del prompt enviado al generador y el texto exacto cuando se tradujo al inglés. */
+        promptLanguage?: 'en';
+        sentPrompt?: string;
+        /** Por qué se envió en español cuando la traducción no fue utilizable. */
+        promptTranslationIssue?: string;
       };
     }
   | { type: 'memoria'; markdown: string };

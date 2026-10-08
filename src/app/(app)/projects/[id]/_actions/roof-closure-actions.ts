@@ -25,6 +25,7 @@ import { readRenderBytes, readRenderReference } from '@/server/agent/editor-v2/r
 import { projectRoofModel, roofModelGuidePng } from '@/server/agent/editor-v2/roof-closure-projection';
 import { roofClosurePrompt, roofClosureReport, roofClosureReviewPrompt, ROOF_CLOSURE_PROMPT_VERSION, ROOF_REVIEW_SCHEMA } from '@/server/agent/editor-v2/roof-closure-prompt';
 import { unfinishedRenderReview } from '@/server/agent/editor-v2/review-render-fidelity';
+import { englishImagePrompt } from '@/server/agent/editor-v2/english-image-prompt';
 import { fittedOutputRatio } from '@/server/agent/editor-v2/render-reference-frame';
 import { acceptedRenderIssue } from '@/lib/editor-document/render-review';
 import { renderViewSchema } from '@/lib/editor-document/render-view';
@@ -84,7 +85,9 @@ async function closeRoofFromModelImpl(projectId: string, zoneId: string | null, 
 
   const id = `del-${projectId}-render3d-${globalThis.crypto.randomUUID()}`;
   const scopeCtx = { organizationId: ctx.organizationId, userId: ctx.userId, projectId, refId: id, batchId: generation.batchId };
-  const prompt = roofClosurePrompt(document);
+  const vision = await getChatVisionAdapter(scopeCtx, 'vision');
+  // El generador recibe la petición en inglés; si la traducción falla, en español.
+  const { prompt } = await englishImagePrompt(vision, roofClosurePrompt(document));
   const result = await (await getImageAdapterForAction(scopeCtx, 'render3d')).generate({ prompt, compactPrompt: prompt,
     aspectRatio: fittedOutputRatio(width / height)[0], referenceImages: [{ base64: base.base64, mimeType: base.mimeType }, guideImage] });
   const downloaded = await readRenderBytes(result);
@@ -96,7 +99,6 @@ async function closeRoofFromModelImpl(projectId: string, zoneId: string | null, 
     await getStorageAdapter().put({ key, body: downloaded.raw, contentType: downloaded.contentType });
     asset = { assetUrl: await getStorageAdapter().getPresignedDownloadUrl(key), assetKey: key };
   }
-  const vision = await getChatVisionAdapter(scopeCtx, 'vision');
   const review = await vision.chat({ model: '', responseSchema: ROOF_REVIEW_SCHEMA, temperature: 0, maxTokens: 2000, reasoning: { effort: 'low' },
     messages: [{ role: 'user', content: [{ type: 'text', text: roofClosureReviewPrompt(document) },
       { type: 'image_url', base64: base.base64, mimeType: base.mimeType }, { type: 'image_url', ...guideImage },

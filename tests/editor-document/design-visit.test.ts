@@ -13,7 +13,7 @@ function interiorView(): RenderView {
     quaternion: [0, 0, 0, 1], aspect: 16 / 9, allLevels: false, cutaway: false, ceilingView: 'solid' };
 }
 const reference = (id: string, extra: Partial<DesignVideoReference> = {}): DesignVideoReference => ({ id, name: 'Salón', view: 'Interior',
-  preset: 'custom', batchId: 'batch', revision: 7, zones: ['Salón'], scope: 'rooms', closedRoof: true,
+  preset: 'custom', lighting: 'daylight', batchId: 'batch', revision: 7, zones: ['Salón'], scope: 'rooms', closedRoof: true,
   url: 'https://storage.example/interior.png', interiorRoomId: 'ground:room', interiorRoomName: 'Salón', ...extra });
 describe('toma en primera persona desde diseños', () => {
   it('verifica estancia y cámara reales sin fiarse de roomId ni roomName guardados', () => {
@@ -39,11 +39,13 @@ describe('toma en primera persona desde diseños', () => {
     expect(designVisitSelectionIssue([reference('a', { issue: 'Sofá cambiado' })])).toContain('Sofá cambiado');
     expect(designVisitSelectionIssue([reference('a', { interiorRoomId: undefined })])).toContain('Falta la estancia');
     expect(designVisitSelectionIssue([])).toContain('1 a 9');
+    expect(designVisitSelectionIssue([reference('a', { lighting: undefined })])).toContain('Falta la luz');
+    expect(designVisitSelectionIssue([reference('a'), reference('b', { lighting: 'warm' })])).toContain('misma luz');
   });
   it('pide conservar muebles del diseño, no construir ni salir de la estancia y guarda indicaciones', () => {
-    const prompt = designVisitPrompt('evening', { resolution: '768P', presentation: { ...DEFAULT_VIDEO_PRESENTATION, prompt: 'acercarse al sofá' } }, [reference('a')]);
+    const prompt = designVisitPrompt({ resolution: '768P', presentation: { ...DEFAULT_VIDEO_PRESENTATION, prompt: 'acercarse al sofá' } }, [reference('a', { lighting: 'evening' })]);
     for (const text of ['8 segundos', 'Salón', 'no mostrar construcción', 'referencia 1', 'TV', 'cortinas', 'sin cortes',
-      'no inventar accesos', 'No mover ni transformar muebles', 'evening', 'acercarse al sofá']) expect(prompt).toContain(text);
+      'no inventar accesos', 'No mover ni transformar muebles', 'escena nocturna', 'acercarse al sofá']) expect(prompt).toContain(text);
     expect(prompt).not.toContain('muros consecutivos');
   });
 });

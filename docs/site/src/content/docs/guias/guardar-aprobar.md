@@ -19,6 +19,14 @@ El editor conserva y sincroniza tus cambios. El estado **Sincronizado** indica q
 
 Esta aprobación fija la geometría y las medidas del plano guía; no acepta por sí sola las imágenes IA. Abre cada render en **Diseños** y pulsa **Aceptar este diseño** después de revisarlo. Vídeos y visitas finales deben partir de esas imágenes aceptadas y conservar sus muebles y acabados. Aprobar no genera imágenes ni vídeos. Editar el borrador no modifica los resultados anteriores; cambiar geometría, encaje o luz puede requerir nuevas imágenes coherentes y su aceptación.
 
+## Aviso al cambiar un diseño aprobado
+
+En cuanto un cambio aparta el plano de la versión aprobada aparece el aviso **El plano ya no coincide con el diseño aprobado**. Basta mover un mueble 1 cm con las flechas. Las rutas, los comentarios y los rótulos movidos dentro de su estancia no cuentan. Mientras no coincida, las imágenes aceptadas con esa versión no sirven para generar nuevos interiores ni vídeos.
+
+- **Deshacer** recupera el estado anterior. Solo aparece si hay historial en esta sesión; después de recargar, deshaz el cambio a mano.
+- **Aprobar cambios** abre la revisión de la nueva versión. Después tendrás que generar y aceptar imágenes coherentes con ella.
+- **Mantener el cambio** oculta el aviso hasta el siguiente cambio.
+
 ## Si aparecen dos versiones
 
 El aviso **Otra pestaña guardó la revisión…** indica que el servidor tiene otra edición y se ha pausado el guardado para evitar sobrescribirla.

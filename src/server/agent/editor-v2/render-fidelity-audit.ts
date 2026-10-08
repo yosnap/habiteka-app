@@ -5,10 +5,12 @@ import sharp from 'sharp';
 import { renderViewVisibilityRule } from '@/lib/editor-document/render-view-visibility';
 import { FURNITURE_USE_RULE } from '@/lib/editor-document/render-review';
 import { renderSpatialRule, type RenderSpatialContext } from './render-spatial-context';
-import { RENDER_FIDELITY_SCHEMA, validateRenderFidelity } from './render-fidelity-verdict';
+import { RENDER_FIDELITY_SCHEMA, validateRenderFidelity, IncompleteRenderReviewError } from './render-fidelity-verdict';
 import { RENDER_FIDELITY_CRITERIA } from '@/lib/editor-document/render-fidelity';
 import { renderAuditDetails } from './render-audit-details';
 import { HARD_MAX_OUTPUT_TOKENS } from '@/server/ai/call-limits';
+import { auditAcceptedDesignIdentity, applyAcceptedIdentityReview } from './accepted-design-identity-audit';
+import { cameraOpeningLocations } from './accepted-interior-prompt';
 
 type Image = { base64: string; mimeType: string };
 
@@ -44,7 +46,7 @@ export async function assertRenderFidelity(
   vehicleCount = 0,
   strictExterior = false,
   /** Vista auditada del mismo diseño; en los laterales (`lateral`) es la cenital aceptada que fija el interiorismo. */
-  drone?: { identity: Image; environment?: Image; lateral?: boolean },
+  drone?: { identity: Image; environment?: Image; architecture?: Image; lateral?: boolean; interior?: boolean },
   redesignFixed = false,
   redesignRequested = redesignFixed,
   spatial?: { context: RenderSpatialContext; image: Image },
@@ -52,7 +54,11 @@ export async function assertRenderFidelity(
    * Referencia dibujada en 2D (plano o sección) en lugar de la captura del 3D, personas pedidas por el usuario y, en la
    * sección, las estancias que quedan abiertas de izquierda a derecha: todas deben verse.
    */
-  extra: { reference?: 'capture' | 'plan' | 'section'; people?: boolean; sectionRooms?: { id: string; name: string; visibilityHint?: string }[] } = {},
+  extra: { reference?: 'capture' | 'plan' | 'section'; people?: boolean; sectionRooms?: { id: string; name: string; visibilityHint?: string }[];
+    /** Camas y sofás dibujados en la sección porque su orientación coincide en la cenital aceptada y en el plano. */
+    sectionFurniture?: string[];
+    acceptedBrief?: string[];
+    openingDepths?: { id: string; beyondOpeningMm: number | null }[] } = {},
 ) {
   await assertRenderFraming(capture, candidate);
   const [source, output, area] = await Promise.all([
@@ -81,25 +87,33 @@ export async function assertRenderFidelity(
         ...(extra.sectionRooms?.length ? [`Estancias abiertas en la sección, de izquierda a derecha: ${extra.sectionRooms.map((room) => `${room.id} ${room.name}`).join(', ')}. Cada una debe verse en su hueco y en ese orden, con su uso y su mobiliario de la cenital. Si falta o en su hueco aparece otra estancia, márcala fail en roomChecks y roomUsesPreserved=false; nunca not-visible. roomChecks sigue incluyendo todas las estancias del plano: las que no están en esta lista quedan fuera del corte y son not-visible.`] : []),
         ...(extra.sectionRooms ?? []).flatMap(room => room.visibilityHint
           ? [`Visibilidad de ${room.id} ${room.name}: ${room.visibilityHint} No exijas muebles que están ocultos ni apruebes su traslado a la franja visible. Describe los objetos que realmente ves, sus cantidades y su relación con el diseño aceptado; repetir el nombre o la intención del prompt no es evidencia.`] : []),
+        // La revisión aprobaba camas giradas y descartaba otras bien orientadas por leer mal la cenital girada.
+        ...(extra.sectionFurniture?.length ? [`Las camas y sofás dibujados en la imagen 1 tienen su orientación confirmada por la cenital aceptada y por el plano: ${extra.sectionFurniture.join('; ')}. Comprueba cada uno en la candidata: si está girado (por ejemplo, una cama vista desde los pies donde debe verse por detrás), objectIdentityPreserved=fail. Si coincide, no rechaces su orientación por tu lectura de la cenital.`] : []),
         ...(extra.people ? ['El usuario pidió personas en las estancias: no las cuentes como objetos ni construcciones añadidas; rechaza solo si tapan puertas o pasos o su escala es irreal.'] : []),
         ...(details.length ? ['Antes del mapa auxiliar final hay cuatro ampliaciones de la candidata, en orden: arriba izquierda, arriba derecha, abajo izquierda, abajo derecha. Son detalles de la misma imagen para examinar hojas de puertas, sanitarios, sillas y texturas; no son referencias nuevas. Compara arquitectura en las vistas completas, sin confundir el recorte con una pérdida de muros.'] : []),
         ...(mask ? ['Imagen 3: máscara de la única zona diseñada (blanco = zona visible; negro = fondo gris claro vacío).'] : []),
         'Acepta mejoras de materiales, iluminación y realismo. La maqueta original puede tener muros cortados para ver el interior.',
+        ...(view.architectureOnly ? ['La imagen 1 omite intencionadamente el mobiliario de la maqueta: compara muebles, plantas y fuentes con el diseño aceptado, no con su ausencia en esa guía. El azul opaco en la cubierta representa vidrio; exige cubierta acristalada realista en la candidata, nunca cielo abierto.'] : []),
+        ...(spatial && view.preset === 'custom' ? [`Proyección horizontal de huecos en ESTA cámara: ${JSON.stringify(cameraOpeningLocations(view, spatial.context))}. No traslades el uso de un hueco fuera de cámara a otra ventana visible. El centro proyectado no acredita visibilidad si hay obstáculos.`] : []),
+        ...(extra.openingDepths ? [`Profundidad geométrica desde cada hueco hasta la primera estructura opaca, siguiendo la mirada: ${JSON.stringify(extra.openingDepths)}. Rechaza pasillos largos, ventanas o salidas exteriores inventados donde la guía muestra una pared próxima. Comprueba en openingChecks el tipo exacto indicado: una corredera transformada en abatible es fail, aunque ambas sean puerta y su hueco conserve posición.`] : []),
         'Antes de declarar un bloque, plataforma u ocultación NUEVOS, comprueba si ya aparecen en la imagen 1 en la misma posición relativa y proporción. Un descansillo blanco o una superficie lisa ya modelados no son construcciones añadidas. Compara el inmueble tras alinear su encuadre: acercarlo dentro del lienzo no añade geometría. Solo atribuye al candidato las pérdidas u ocultaciones que introduce respecto de la captura; si cambia un descansillo, sus límites, peldaños o barandillas visibles, recházalo.',
         'Rechaza si cambia el punto de vista, orientación, silueta, número o posición de plantas, muros, huecos, escaleras, rampas, piscina o accesos visibles.',
         'Exige identidad completa: rechaza si desaparecen o se simplifican pérgolas, carpas, cubiertas, terrazas o cualquier elemento arquitectónico visible, aunque el volumen principal se parezca.',
         renderViewVisibilityRule(view),
-        ...(drone?.lateral ? [LATERAL_DESIGN_RULE] : drone ? ['La referencia adicional del inmueble es una vista cercana auditada del MISMO diseño. Compara la identidad y el volumen de la casa con esa vista, usando la cámara de la imagen 1. Rechaza pérdidas de elementos visibles en esa cámara y cualquier casa añadida.',
+        ...(drone?.interior ? ['La referencia adicional es la CENITAL ACEPTADA SIN GIRAR del mismo diseño. Localiza la estancia interior por el mapa y sus huecos; la imagen 1 fija la cámara y la arquitectura. Compara muebles y acabados con esa estancia en la cenital, nunca con los de la maqueta. Conserva tipo, número, forma, color, posición y orientación: una mesa, silla, sofá o cama diferentes son objectIdentityPreserved=fail. No apruebes otra decoración solo porque conserva el uso de la habitación. No atribuyas a la cenital un giro que no tiene. Comprueba también lo visible por puertas y ventanas; no apruebes un paisaje inventado.']
+          : drone?.lateral ? [LATERAL_DESIGN_RULE] : drone ? ['La referencia adicional del inmueble es una vista cercana auditada del MISMO diseño. Compara la identidad y el volumen de la casa con esa vista, usando la cámara de la imagen 1. Rechaza pérdidas de elementos visibles en esa cámara y cualquier casa añadida.',
           ...(drone.environment ? [`La imagen ${mask ? 5 : 4} es la ortofoto real de la parcela. El entorno solo puede proceder de ella: conserva sus límites, caminos y vegetación sin inventar urbanización. La ortofoto no define el diseño de la casa.`] : ['La casa está aislada: conserva el fondo neutro sin paisaje.'])] : []),
         'Rechaza si sustituye el inmueble por otra casa, extiende la maqueta fuera de sus bordes, inserta una imagen del 3D dentro de otra escena, o produce un collage, superposición o doble arquitectura.',
-        drone?.lateral
+        drone
           ? 'Los muebles no pueden sustituirse: deben ser los de la cenital aceptada. Rechaza también si bloquean accesos, cambian el uso del espacio o se añaden construcciones.'
           : 'Los muebles móviles pueden sustituirse: sofás, mesas, sillas, lámparas, alfombras y cortinas. Rechaza si bloquean accesos, cambian el uso del espacio o se añaden construcciones.',
         `Rechaza cambios de función del mobiliario${spatial ? ', salvo la corrección autorizada de muebles incompatibles con el uso nombrado de una estancia' : ''}. ${FURNITURE_USE_RULE}`,
         redesignRequested
           ? 'El usuario pidió REDISEÑO REAL: redesignApplied solo es true si los elementos modificables visibles muestran cambios reconocibles de formas, mobiliario, estilo o acabados. Una copia de los mismos elementos con mejor luz o textura NO es un rediseño: recházala. Si esta cámara no muestra ningún elemento modificable, no penalices esa ausencia. Los tabiques y la distribución nunca se rediseñan en este modo.'
           : 'No se exige rediseño en esta solicitud; indica redesignApplied=true.',
-        redesignFixed
+        drone
+          ? 'FIJOS DEL DISEÑO ACEPTADO: compara forma, ubicación, cantidad y acabados con la referencia aceptada, aunque difiera de la maqueta. El permiso original de rediseño no permite volver a diseñarlos al cambiar de cámara. Muros, huecos, usos y accesos siguen fijados por el plano.'
+          : redesignFixed
           ? 'El usuario autorizó REDISEÑO DE FIJOS: admite sustituciones y acabados nuevos de cocina, isla, sanitarios y armarios empotrados dentro del ámbito permitido. No los marques como pérdida de identidad de objetos; muros, huecos, instalaciones, usos y accesos siguen protegidos.'
           : 'FIJOS PROTEGIDOS: rechaza sustituciones o cambios de forma, ubicación o acabados de cocina, isla, sanitarios y armarios empotrados. Si hay cocina en L, rechaza huecos nuevos entre tramos; conserva el color dominante de cada encimera y los frentes; un tramo beige convertido en blanco puro o marrón oscuro no es una mejora de textura.',
         'Compara también la IDENTIDAD de cada objeto exterior visible, no solo su posición. Una fila de vehículos transformada en sofás es un fallo grave aunque conserve el número y la ubicación.',
@@ -112,6 +126,7 @@ export async function assertRenderFidelity(
         ...(mask ? ['Fuera del blanco debe quedar fondo gris claro vacío. Rechaza si aparecen otras zonas del inmueble, mobiliario, terreno o construcciones.'] : []),
         'Rechaza decoración absurda aunque esté permitida: objetos sobre placas de cocina, fregaderos o inodoros; plantas sobre sillas, camas o electrodomésticos; muebles flotando, atravesando muros o tapando puertas o ventanas.',
         ...(spatial ? [renderSpatialRule(spatial.context, true, true),
+          'Para cada openingCheck, referenceVisible indica si el hueco se ve en la imagen 1, independientemente de si aparece en la candidata. Si se ve en la referencia y desaparece en la candidata, es fail: nunca not-visible. No borres un fallo observado porque otro campo diga oculto. La estancia de una cámara interior y las estancias de una cenital completa deben aparecer en roomChecks como pass o fail, nunca not-visible.',
           ...(MAP_ORIENTATION[view.preset] ? [`ORIENTACIÓN DEL MAPA EN ESTA CÁMARA: ${MAP_ORIENTATION[view.preset]} Localiza cada estancia con esta correspondencia; no compares el orden izquierda-derecha del mapa sin girarlo.`] : []),
           'Evalúa cada id de estancia en roomChecks y cada id de hueco en openingChecks, exactamente una vez y sin omitir ninguno. Describe lo que ves en la candidata, no repitas la intención del prompt. Marca fail si su uso, dimensiones relativas o funcionamiento no coinciden. Usa not-visible solo cuando la captura/máscara demuestra que queda fuera de cámara u oculto, explicando el motivo; si es visible pero dudoso o borroso, fail.',
           'En openingChecks, observedKind describe lo observado en la IMAGEN CANDIDATA, sin copiar kind del plano. Una hoja marrón abierta cruzando un paso sigue siendo puerta: un hueco no tiene hoja ni bisagras. La hoja es una tabla rígida y recta: una hoja curva, doblada o un tablón que sigue el arco de giro es fail, porque el arco del plano es solo un símbolo. Una abatible partida en dos o más tramos, en V o en abanico, también es fail: es un único panel recto, salvo que type sea plegable. swingClear=clear solo cuando todo el barrido desde cerrada hasta su apertura queda libre de muebles (en una puerta de dos hojas, el de ambas; en una corredera o plegable según type, su slideClearance, sin exigir arco de giro). Una corredera o plegable puede verse cerrada, entreabierta o abierta aunque el plano la dibuje en otra posición: eso no es un defecto ni la convierte en abatible; solo falla si aparece con arco de giro o bisagras, o si un mueble ocupa su slideClearance. blocked si golpea un escritorio, armario o cama aunque el hueco frontal esté libre; uncertain si no puedes comprobarlo; not-applicable para ventanas y huecos, not-visible solo fuera de vista. Evalúa cada openAreas en openAreaChecks: rechaza puertas o tabiques interpuestos entre sus usos aunque no exista un opening en ese punto. Devuelve todos los ids exactamente una vez.',
@@ -132,7 +147,23 @@ export async function assertRenderFidelity(
       ...(guide ? [{ type: 'image_url' as const, base64: guide.base64, mimeType: guide.mimeType }] : []),
     ] }],
   });
-  return validateRenderFidelity(result.structured, redesignRequested, spatial?.context, result.execution?.model,
-    Boolean(view.cutaway) && ['front', 'back', 'left', 'right'].includes(view.preset), extra.sectionRooms?.map((room) => room.id), requiredExteriorIds,
-    { fullPlan: extra.reference === 'plan' && !mask && !drone, acceptedDesign: Boolean(drone), redesignFixed });
+  const report = validateRenderFidelity(result.structured, redesignRequested, spatial?.context, result.execution?.model,
+    Boolean(view.cutaway) && ['front', 'back', 'left', 'right'].includes(view.preset),
+    extra.sectionRooms?.map((room) => room.id) ?? (extra.reference === 'plan' && !mask || view.roomId
+      ? spatial?.context.levels.flatMap(level => level.rooms.map(room => room.id)) : []), requiredExteriorIds,
+    { fullPlan: extra.reference === 'plan' && !mask && !drone, acceptedDesign: Boolean(drone), redesignFixed: redesignFixed && !drone });
+  if (!drone) return report;
+  let identity;
+  try {
+    identity = await auditAcceptedDesignIdentity(chat, drone.identity, candidate, view,
+      drone.interior ? 'interior' : drone.lateral ? 'lateral' : 'exterior',
+      extra.sectionRooms?.map(room => room.name) ?? (view.roomId ? spatial?.context.levels.flatMap(level => level.rooms.map(room => room.name)) : []),
+      { spatial: spatial?.context, architecture: drone.architecture, openingDepths: extra.openingDepths, acceptedBrief: extra.acceptedBrief });
+  } catch (error) {
+    // Los errores del proveedor conservan su clasificación y tratamiento de coste.
+    if (error instanceof SyntaxError || error instanceof Error && error.name === 'ZodError')
+      throw new IncompleteRenderReviewError('La comparación independiente del diseño aceptado no devolvió un informe completo.');
+    throw error;
+  }
+  return applyAcceptedIdentityReview(report, identity);
 }

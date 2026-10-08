@@ -14,6 +14,7 @@ import { RenderCleanupCardActions, RenderCleanupToolbar, useRenderCleanup } from
 import { VideoNameField } from '@/components/deliverables/video-name';
 import { defaultDesignVisitReferenceIds } from '@/lib/editor-document/design-visit';
 import { designVideoPreparationIssue } from '@/lib/editor-document/design-video-readiness';
+import { LIGHTING_LABELS } from '@/lib/lighting-preset';
 
 export function DesignConstructionPanel({ scope, approved, approvalDisabled = false, onReviewApproval, onBusyChange, onOpenSaved, onCreateAdvertising, portalContainer, goal = 'construction' }: {
   scope: EditorScope; approved: boolean; approvalDisabled?: boolean; onReviewApproval: () => void; onBusyChange: (busy: boolean) => void; portalContainer?: HTMLElement | null;
@@ -33,7 +34,7 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
   const [title, setTitle] = useState('');
   const [showOtherImages, setShowOtherImages] = useState(false);
   const cleanup = useRenderCleanup(scope, async (removed, isRemoval) => {
-    const next = await loadDesignVideoReferences(scope); setMedia(next);
+    const next = await loadDesignVideoReferences(scope, visit ? media?.approvalId ?? undefined : undefined); setMedia(next);
     if (isRemoval) setIds(current => current.filter(id => !removed.includes(id)));
   }, onBusyChange);
   useEffect(() => {
@@ -64,10 +65,10 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
   const referenceIssue = (reference: DesignVideoReference) => reference.issue || (visit ? reference.visitIssue || (!reference.interiorRoomId ? 'Falta la estancia interior verificada.' : undefined) : undefined);
   const unavailableCount = media?.references.filter(reference => referenceIssue(reference)).length ?? 0;
   const role = (reference: DesignVideoReference) => visit ? `${reference.interiorRoomName ?? 'Interior sin verificar'} · ${selected[0]?.id === reference.id ? 'Vista principal' : 'Apoyo del mismo interior'}` : designVideoReferenceRole(reference, selected);
-  async function refresh() {
+  async function refresh(approvalId = visit ? media?.approvalId ?? undefined : undefined) {
     setRefreshing(true); setLoadError(''); setError('');
     try {
-      const value = await loadDesignVideoReferences(scope); setMedia(value);
+      const value = await loadDesignVideoReferences(scope, approvalId); setMedia(value);
       setIds(current => {
         const kept = current.filter(id => value.references.some(reference => reference.id === id && !referenceIssue(reference)));
         return kept.length ? kept : visit ? defaultDesignVisitReferenceIds(value.references) : defaultDesignVideoReferenceIds(value.references);
@@ -93,6 +94,14 @@ export function DesignConstructionPanel({ scope, approved, approvalDisabled = fa
         <Link className="inline-flex rounded-control border border-line px-3 py-2 text-sm hover:bg-surface-muted" href={`/projects/${scope.projectId}/deliverables${scope.zoneId ? `?zona=${encodeURIComponent(scope.zoneId)}` : ''}`}>{visit ? 'Revisar y aceptar diseños interiores' : 'Revisar y aceptar diseños'}</Link></div>
     </div>}
     {!task && <p className="text-sm text-ink-soft">{visit ? 'Elige un interior aceptado, con paredes y techo completos. La visita continua entre habitaciones aún está pendiente.' : 'Elige una cenital y un exterior terminado con tejado de la misma tanda. Añade otras vistas si necesitas más detalle.'}</p>}
+    {visit && !task && Boolean(media?.approvals.length) && <label className="block max-w-md text-sm">Versión aprobada de origen
+      <ModernSelect aria-label="Versión aprobada de origen" value={media?.approvalId ?? ''} disabled={loading || busy || cleanup.busy}
+        portalContainer={portalContainer} popoverZIndex={150} onChange={event => void refresh(event.target.value)}>
+        {media!.approvals.map(item => <option key={item.id} value={item.id}>Revisión {item.revision} · {new Date(item.approvedAt).toLocaleDateString('es-ES')}</option>)}
+      </ModernSelect>
+      <span className="mt-1 block text-xs text-ink-soft">La toma representa esta versión y sus imágenes aceptadas. Los cambios posteriores del editor no se incluyen.</span>
+    </label>}
+    {visit && media?.revision && <p className="text-sm text-ink-soft">Versión de origen: revisión aprobada {media.revision}. La toma conserva la luz de las imágenes seleccionadas{selected[0]?.lighting ? `: ${LIGHTING_LABELS[selected[0].lighting]}` : ''}.</p>}
     {!task && <details className="rounded-control border border-line px-4 py-3 text-sm">
       <summary className="cursor-pointer text-ink-soft">Gestionar imágenes y ver las no disponibles{unavailableCount ? ` · ${unavailableCount} no disponibles` : ''}</summary>
       <div className="mt-3 space-y-3"><Button variant="outline" size="sm" disabled={busy || cleanup.busy} aria-pressed={showOtherImages} onClick={() => setShowOtherImages(!showOtherImages)}>{showOtherImages ? 'Mostrar solo imágenes utilizables' : 'Mostrar todas las imágenes'}</Button>

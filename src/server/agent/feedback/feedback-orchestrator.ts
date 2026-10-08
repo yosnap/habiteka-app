@@ -42,6 +42,8 @@ export interface FeedbackDeps {
   loadRenderBase?: (payload: unknown) => Promise<InpaintRequest['baseImage']>;
   /** Reescribe la memoria de materiales según la instrucción; sin él no es iterable. */
   reviseMemoria?: (markdown: string, instruction: string) => Promise<string>;
+  /** Lleva al inglés la indicación del usuario antes del retoque; sin él se envía tal cual. */
+  translateInstruction?: (text: string) => Promise<import('@/server/agent/editor-v2/english-image-prompt').EnglishPrompt>;
 }
 
 export interface FeedbackInput {
@@ -129,6 +131,7 @@ async function regenerate(
       baseImage,
       zone: input.zone,
       instruction: input.instruction,
+      ...(deps.translateInstruction ? { translate: deps.translateInstruction } : {}),
       planContext: deps.designContext ? { ...deps.designContext.plan, source: deps.designContext.source,
         camera: deps.designContext.camera, view: (deps.designContext.generation as Record<string, unknown> | undefined)?.view } : undefined,
     });
@@ -141,7 +144,7 @@ async function regenerate(
         ...reference,
         ...(deps.designContext?.camera ? { camera: deps.designContext.camera as Prisma.InputJsonValue } : {}),
         ...(reference.generation ? { generation: { ...reference.generation as Prisma.InputJsonObject,
-          ...result.generation, promptVersion: 'habiteka-directed-inpaint-v5' } } : {}),
+          ...result.generation, promptVersion: 'habiteka-directed-inpaint-v6', ...instructionLanguage(result.instructionTranslation) } } : {}),
         type: 'render3d',
         assetUrl: result.assetUrl,
         ...(result.assetKey ? { assetKey: result.assetKey } : {}),
@@ -212,4 +215,11 @@ function hash(text: string): string {
   let h = 0;
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
+}
+
+/** El retoque guarda la indicación tal como se envió, para poder revisar la traducción. */
+function instructionLanguage(translation: Awaited<ReturnType<typeof directedInpaint>>['instructionTranslation']) {
+  if (!translation) return {};
+  return translation.translated ? { promptLanguage: 'en' as const, sentPrompt: translation.sent }
+    : translation.issue ? { promptTranslationIssue: translation.issue } : {};
 }

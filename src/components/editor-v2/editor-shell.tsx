@@ -84,6 +84,7 @@ import styles from './editor.module.css';
 import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
+import { ReferenceBackgroundPicker } from './reference-background-picker';
 import type { SceneLightingPreset } from './scene/scene-lighting';
 
 /** Título de cada panel dentro de la ranura lateral única. */
@@ -128,6 +129,8 @@ export interface EditorShellProps {
   allowVideoExport?: boolean;
   lightingPreset?: SceneLightingPreset;
   onLightingChange?: (preset: SceneLightingPreset) => void;
+  /** Luz de la aprobación vigente, para avisar al generar interiores con otra. */
+  approvedLighting?: SceneLightingPreset;
   onSaveNativeRender?: (capture: RenderCapture) => Promise<void>;
   onGenerateDesign?: (input: {
     estilo: Estilo;
@@ -182,6 +185,7 @@ export function EditorShell({
   allowVideoExport,
   lightingPreset,
   onLightingChange,
+  approvedLighting,
   onSaveNativeRender,
   onGenerateDesign,
   onGenerateRender,
@@ -667,6 +671,7 @@ export function EditorShell({
           </button>
           {originalVisible && <input type="range" min={20} max={100} value={Math.round(originalOpacity * 100)}
             aria-label="Opacidad del plano original" onChange={(event) => setOriginalOpacity(Number(event.target.value) / 100)} />}
+          {originalVisible && reference.choices && <ReferenceBackgroundPicker choices={reference.choices} />}
         </>}
         <span className={styles.currentTool} role="status">
           {readOnly ? 'Solo lectura' : toolLabel[tool]}
@@ -871,6 +876,7 @@ export function EditorShell({
         <EditorGenerateDialog
           projectId={projectId} zoneId={zoneId}
           preferencesOwner={preferencesOwner}
+          approvedLighting={approvedLighting}
           document={store.getState().document}
           onGenerate={async (input) => {
             const requested = structuredClone(store.getState().document);

@@ -15,14 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import type { PlanAperture, PlanWall, PlanWallOverride, PlanImportReviewOptions, PlanDoorOverride, PlanImportResult, Plano2dPayload, WrittenRoomDimensions } from '@/lib/contracts';
-import { applyReviewedDoors, applyReviewedWalls, reviewedWallOverrides } from '@/lib/plan-review-geometry';
+import { applyReviewedDoors, applyReviewedWalls, resizeZoneSide, reviewedWallOverrides } from '@/lib/plan-review-geometry';
 import { doorSwing } from '@/lib/plan-svg/door-swing';
 import { callAction, type ActionErrorResult } from '@/lib/action-result';
 import type { StudioQuality } from '@/lib/studio-state';
 import { pdfFirstPageToPng } from './pdf-to-png';
 import { PlanQualityCard } from './plan-quality-card';
+import { useMountEffect } from '@/lib/use-mount-effect';
+import { PlanRedrawOffer, type RedrawComparison, type RedrawQuote } from './plan-redraw-offer';
+import { imageGenerationQuote, redrawPlanForReview, rereadPlanForReview } from '@/app/(app)/projects/[id]/_actions/plan-redraw-actions';
 import { PlanImportCanvas, type PlanReviewSelection } from './plan-import-canvas';
-import { PlanReviewDoorFields, PlanReviewWallFields } from './plan-review-fields';
+import { PlanReviewDoorFields, PlanReviewWallFields, PlanReviewZoneFields } from './plan-review-fields';
 
 /** Importación con su veredicto de fiabilidad, tal y como la devuelve el servidor. */
 export type ImportedPlan = PlanImportResult & { imageUrl: string; quality: StudioQuality;
@@ -57,7 +60,7 @@ interface Props extends PlanImportActions {
   onSaved?: (result: ImportedPlan) => void;
 }
 
-type Busy = 'import' | 'refit' | 'apply' | 'pdf' | null;
+type Busy = 'import' | 'redraw' | 'reread' | 'refit' | 'apply' | 'pdf' | null;
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitAction, applyAction, onBack, initialResult, initialGeneralWidthMm, initialIncludeFurniture, initialSelection = null, onSaved }: Props) {
@@ -72,6 +75,8 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
   const [result, setResult] = useState<PlanImportResult | null>(initialResult ?? null);
   const [quality, setQuality] = useState<StudioQuality | null>(initialResult?.quality ?? null);
   const [rows, setRows] = useState<WrittenRoomDimensions[]>(initialResult?.writtenDimensions ?? []);
+  const currentRows = rows;
+  const latestRows = useRef<WrittenRoomDimensions[] | null>(null);
   // En esta fase importamos la ESTRUCTURA; el mobiliario leído es opcional y viene desactivado.
   const [includeFurniture, setIncludeFurniture] = useState(initialResult?.includeFurniture ?? initialIncludeFurniture ?? false);
   const [overlay, setOverlay] = useState(true);
@@ -116,7 +121,13 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     warning.code === 'ajuste-desplaza-muros' && warning.message.includes('Se conservan los muros')) ?? false;
   const selectedDoor = doors.find(({ aperture }) => selection?.kind === 'door' && selection.id === aperture.id);
   const selectedWall = selection?.kind === 'wall' ? result?.plano.zones.flatMap(zone => zone.walls).find(wall => wall.id === selection.id) : null;
-  const selectElement = (next: PlanReviewSelection) => { setSelection(next); sidebar.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const selectElement = (next: PlanReviewSelection) => {
+    setSelection(next);
+    // Una estancia se despliega en su fila de la tabla; puertas y muros se editan arriba.
+    if (next?.kind === 'zone') requestAnimationFrame(() => sidebar.current?.querySelector(`[data-zone-row="${CSS.escape(next.id)}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    else sidebar.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (needsRefit) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', warn);
@@ -138,13 +149,45 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     }
   };
 
+  // Jev decide si conviene redibujar: solo entonces se consulta el precio.
+  const [quote, setQuote] = useState<RedrawQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<RedrawComparison | null>(null);
+  const loadQuote = (next: StudioQuality | null) => {
+    if (!next || next.decision === 'proceed' || quote) return;
+    setQuoteError(null);
+    void callAction(imageGenerationQuote(projectId)).then(setQuote)
+      .catch((e) => setQuoteError(e instanceof Error ? e.message : 'No se pudo calcular el precio.'));
+  };
+  // Una revisión retomada que Jev no dio por buena también muestra la propuesta.
+  useMountEffect(() => loadQuote(initialResult?.quality ?? null));
   const performImport = async (image: UploadedImage) => {
     const imported = await callAction(
       importAction(projectId, image.base64, { includeFurniture }),
     );
+    setComparison(null);
+    showImported(imported);
+  };
+  const onRedraw = (confirmed: RedrawQuote) => run('redraw', async () => {
+    const imported = await callAction(redrawPlanForReview(projectId,
+      { provider: confirmed.provider, model: confirmed.model, maxUsd: confirmed.priceUsd }));
+    setComparison({ sourceUrl: imported.sourceUrl, redrawUrl: imported.imageUrl, reading: 'tecnico' });
+    showImported(imported);
+    onSaved?.(imported);
+  });
+  const onReread = (image: 'source' | 'tecnico') => run('reread', async () => {
+    const imported = await callAction(rereadPlanForReview(projectId, image));
+    setComparison((current) => (current ? { ...current, reading: image } : current));
+    showImported(imported);
+    onSaved?.(imported);
+  });
+
+  const showImported = (imported: ImportedPlan) => {
+    loadQuote(imported.quality);
     setImageUrl(imported.imageUrl);
     setResult(imported);
     setQuality(imported.quality);
+    latestRows.current = null;
     setRows(imported.writtenDimensions);
     setGeneralWidth('');
     setNeedsRefit(false);
@@ -170,27 +213,22 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     setSaved(false); setNeedsCorrection(false);
   };
 
-  const updateRow = (zoneId: string, field: 'widthMm' | 'heightMm', value: string) => {
-    const meters = Number(value.replace(',', '.'));
-    const nextValue = value.trim() === '' || !Number.isFinite(meters) ? undefined : Math.round(meters * 1000);
-    if (value.trim() && (!nextValue || nextValue < 500 || nextValue > 30000)) {
-      setError('Las cotas de estancia deben estar entre 0,5 y 30 metros.'); return;
+  const setRowMm = (zoneId: string, field: 'widthMm' | 'heightMm', nextValue: number | undefined) => {
+    if (nextValue !== undefined && (nextValue < 500 || nextValue > 30000)) {
+      setError('Las cotas de estancia deben estar entre 0,5 y 30 metros.'); return false;
     }
-    if (rows.find((row) => row.zoneId === zoneId)?.[field] !== nextValue) markForRefit();
-    setRows((prev) =>
-      prev.map((row) =>
-        row.zoneId !== zoneId
-          ? row
-          : {
-              ...row,
-              [field]: nextValue,
-            },
-      ),
-    );
+    if (rows.find((row) => row.zoneId === zoneId)?.[field] === nextValue) return true;
+    markForRefit(); setError(null);
+    const next = rows.map((row) => (row.zoneId !== zoneId ? row : { ...row, [field]: nextValue }));
+    // El recálculo al soltar puede ocurrir antes de que React vuelva a pintar.
+    latestRows.current = next;
+    setRows(next);
+    return true;
   };
 
   const onRefit = (leave = false) =>
     run('refit', async () => {
+      const rows = latestRows.current ?? currentRows;
       const meters = Number(generalWidth.replace(',', '.'));
       const generalWidthMm = generalWidth.trim() !== '' && Number.isFinite(meters) ? Math.round(meters * 1000) : undefined;
       if (generalWidth.trim() && (!generalWidthMm || generalWidthMm < 1000 || generalWidthMm > 100000))
@@ -205,6 +243,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
       );
       setResult(refitted);
       setQuality(refitted.quality);
+      latestRows.current = null;
       setRows(refitted.writtenDimensions.map((w) => rows.find((r) => r.zoneId === w.zoneId) ?? w));
       setNeedsRefit(false);
       setConfirmApply(false);
@@ -221,6 +260,34 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
     const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
     reviewedWallOverrides(result.plano, plano).forEach(wall => merged.set(wall.wallId, wall));
     setWallOverrides([...merged.values()]); setResult({ ...result, plano }); markForRefit(); setError(null);
+  };
+  // Estirar una estancia: vista previa en vivo mientras se desliza y un solo paso de historial al soltar.
+  const zoneDrag = useRef<{ base: NonNullable<typeof result>; plano: Plano2dPayload; zoneId: string;
+    field: 'widthMm' | 'heightMm'; sizeMm: number } | null>(null);
+  const resizeZone = (zoneId: string, field: 'widthMm' | 'heightMm', sizeMm: number) => {
+    if (!result || busy) return false;
+    const base = zoneDrag.current?.base ?? result;
+    const plano = resizeZoneSide(base.plano, zoneId, field === 'widthMm' ? 'x' : 'y', sizeMm);
+    if (plano === base.plano) {
+      setError(`Esta estancia no tiene un muro ${field === 'widthMm' ? 'a la derecha' : 'abajo'} que se pueda mover aquí. Ajústalo en el Editor.`);
+      return false;
+    }
+    try { applyReviewedWalls(base.plano, reviewedWallOverrides(base.plano, plano)); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Ese tamaño deja un muro imposible.'); return false; }
+    zoneDrag.current = { base, plano, zoneId, field, sizeMm };
+    setResult({ ...base, plano }); setError(null);
+    return true;
+  };
+  const commitZoneResize = () => {
+    const drag = zoneDrag.current;
+    if (!drag) return;
+    zoneDrag.current = null;
+    setPast(previous => [...previous.slice(-49), { result: drag.base, walls: wallOverrides }]); setFuture([]);
+    const merged = new Map(wallOverrides.map(wall => [wall.wallId, wall]));
+    reviewedWallOverrides(drag.base.plano, drag.plano).forEach(wall => merged.set(wall.wallId, wall));
+    setWallOverrides([...merged.values()]); setResult({ ...drag.base, plano: drag.plano });
+    // La cota de la tabla pasa a ser la medida que ha fijado el usuario.
+    setRowMm(drag.zoneId, drag.field, Math.round(drag.sizeMm));
   };
   const updateDoor = (id: string, patch: Partial<PlanAperture>) => {
     if (!result || busy) return false;
@@ -378,7 +445,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
             number={doors.indexOf(selectedDoor) + 1} disabled={busy !== null} change={patch => updateDoor(selectedDoor.aperture.id, patch)} onClose={() => setSelection(null)} /> : null}
           {selectedWall ? <PlanReviewWallFields wall={selectedWall} disabled={busy !== null}
             change={patch => updateWall(selectedWall.id, patch)} onClose={() => setSelection(null)} /> : null}
-          {selection?.kind === 'zone' ? <p className="text-sm">Estancia resaltada. Selecciona uno de sus muros para corregir su geometría.</p> : null}
+          {selection?.kind === 'zone' ? <p className="text-sm">Estancia resaltada. Ajusta su tamaño en «Cotas y geometría por estancia» o selecciona uno de sus muros.</p> : null}
           {alignedOverlay ? <p className="text-ink-soft text-xs">Rosa: geometría extraída · negro: plano original.</p> : null}
           {overlay && imageUrl && !result.sourceFrameMm ? (
             <p className="text-ink-soft text-xs">Esta revisión antigua no conserva el marco de la imagen; se muestra el vector sin superponer.</p>
@@ -407,10 +474,10 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
           ) : null}
           <div className="border-line bg-surface rounded-card border p-3">
             <p className="text-ink mb-1 text-sm font-medium">Cotas y geometría por estancia (m)</p>
-            <p className="text-ink-soft mb-2 text-xs">La cota puede medir entre caras, ejes o extremos exteriores de las paredes. «Dibujo» muestra la caja geométrica de la estancia; compárala con el original.</p>
+            <p className="text-ink-soft mb-2 text-xs">Medidas del dibujo, entre caras interiores. Pulsa una estancia para ajustar su ancho y su fondo con deslizadores; compárala con el original.</p>
             <table className="w-full text-xs">
               <thead className="text-ink-soft">
-                <tr><th className="text-left font-normal">Estancia</th><th className="font-normal">Ancho</th><th className="font-normal">Alto</th></tr>
+                <tr><th className="text-left font-normal" colSpan={3}>Estancia · ancho × fondo</th></tr>
               </thead>
               <tbody>
                 {rows.map((row) => {
@@ -418,20 +485,25 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
                   const mismatch = Boolean(measured && (
                     differsByOverFivePercent(row.widthMm, measured.widthMm) ||
                     differsByOverFivePercent(row.heightMm, measured.heightMm)));
+                  const open = selection?.kind === 'zone' && selection.id === row.zoneId;
+                  const shown = measured ?? { widthMm: row.widthMm, heightMm: row.heightMm };
                   return <Fragment key={row.zoneId}>
-                    <tr>
-                      <td className="text-ink pr-2"><button className="text-left underline" onClick={() => selectElement({ kind: 'zone', id: row.zoneId })}>{row.name}</button></td>
-                      <td className="pr-1">
-                        <Input aria-label={`Ancho de ${row.name}`} className="h-7 px-1 text-xs" inputMode="decimal"
-                          defaultValue={metres(row.widthMm)} onBlur={(e) => updateRow(row.zoneId, 'widthMm', e.target.value)} />
-                      </td>
-                      <td>
-                        <Input aria-label={`Alto de ${row.name}`} className="h-7 px-1 text-xs" inputMode="decimal"
-                          defaultValue={metres(row.heightMm)} onBlur={(e) => updateRow(row.zoneId, 'heightMm', e.target.value)} />
+                    <tr data-zone-row={row.zoneId} className={open ? 'bg-surface-muted' : undefined}>
+                      <td className="text-ink pr-2" colSpan={3}>
+                        <button type="button" aria-expanded={open} className="flex w-full items-center justify-between gap-2 py-1 text-left"
+                          onClick={() => (open ? setSelection(null) : selectElement({ kind: 'zone', id: row.zoneId }))}>
+                          <span className="underline">{open ? '▾' : '▸'} {row.name}</span>
+                          <span className={`tabular-nums ${mismatch ? 'text-red-700' : ''}`}>{metres(shown.widthMm)} × {metres(shown.heightMm)}</span>
+                        </button>
                       </td>
                     </tr>
-                    {measured ? <tr><td colSpan={3} className={`pb-2 text-[11px] ${mismatch ? 'text-red-700' : 'text-ink-soft'}`}>
-                      Dibujo: {metres(measured.widthMm)} × {metres(measured.heightMm)}{mismatch ? ' · difiere más del 5 %' : ''}
+                    {open ? <tr><td colSpan={3} className="pb-2">
+                      <PlanReviewZoneFields name={row.name} widthMm={row.widthMm} heightMm={row.heightMm}
+                        drawn={measured ?? null} disabled={busy !== null}
+                        change={(field, valueMm) => resizeZone(row.zoneId, field, valueMm)}
+                        commit={commitZoneResize} onClose={() => setSelection(null)} />
+                    </td></tr> : mismatch ? <tr><td colSpan={3} className="pb-2 text-[11px] text-red-700">
+                      Cota escrita: {metres(row.widthMm)} × {metres(row.heightMm)} · difiere más del 5 % del dibujo
                     </td></tr> : null}
                   </Fragment>;
                 })}
@@ -482,7 +554,9 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
                 Corregir en el editor
               </Button>
             </div>
-          ) : (
+          ) : (<>
+            {quality ? <PlanRedrawOffer approved={quality.decision === 'proceed'} quote={quote} quoteError={quoteError}
+              comparison={comparison} busy={busy !== null} redrawing={busy === 'redraw'} onRedraw={onRedraw} onReread={onReread} /> : null}
             <PlanQualityCard
               quality={quality}
               needsRefit={needsRefit}
@@ -498,7 +572,7 @@ export function PlanImportPanel({ projectId, hasEditorPlan, importAction, refitA
               onApply={onApply}
               onCancel={() => setConfirmApply(false)}
             />
-          )}
+          </>)}
         </aside>
       </div>
     </div>

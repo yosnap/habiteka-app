@@ -12,10 +12,13 @@ const adapter = (chat: (request: ChatRequest) => Promise<unknown>) => ({ chat: v
 describe('lectura del mobiliario de la sección', () => {
   it('devuelve una línea por estancia en el orden de la sección e ignora las que no reconoce', async () => {
     const vision = adapter(async () => ({ structured: { rooms: [
-      { name: 'Dormitorio 2', furniture: 'cama individual de espaldas, cabecero delante' },
-      { name: 'Salón', furniture: 'sofá en L al fondo' }, { name: 'Comedor', furniture: 'mesa rectangular de perfil' }, { name: 'Pasillo', furniture: 'alfombra' }] } }));
-    expect(await sectionFurnitureBrief(vision, top, ['Salón', 'Dormitorio 2', 'Comedor']))
-      .toEqual(['Salón: sofá en L al fondo', 'Dormitorio 2: cama individual de espaldas, cabecero delante', 'Comedor: mesa rectangular de perfil']);
+      { name: 'Dormitorio 2', furniture: 'cama individual de espaldas, cabecero delante', pieces: [{ kind: 'bed', facing: 'behind' }] },
+      { name: 'Salón', furniture: 'sofá en L al fondo', pieces: [{ kind: 'sofa', facing: 'diagonal' }] },
+      { name: 'Comedor', furniture: 'mesa rectangular de perfil', pieces: [] }, { name: 'Pasillo', furniture: 'alfombra', pieces: [] }] } }));
+    expect(await sectionFurnitureBrief(vision, top, ['Salón', 'Dormitorio 2', 'Comedor'])).toEqual({
+      lines: ['Salón: sofá en L al fondo', 'Dormitorio 2: cama individual de espaldas, cabecero delante', 'Comedor: mesa rectangular de perfil'],
+      // Una orientación que no se puede clasificar deja esa estancia sin confirmar.
+      pieces: [null, [{ kind: 'bed', facing: 'behind' }], []] });
     const request = vision.chat.mock.calls[0]![0] as ChatRequest;
     expect(request.reasoning).toEqual({ effort: 'low' });
     expect((request.messages[0]!.content[0] as { text: string }).text).toContain('de izquierda a derecha: Salón, Dormitorio 2, Comedor');

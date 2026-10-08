@@ -15,6 +15,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ImageCostNote } from './image-cost-note';
 import { ModernSelect } from '@/components/ui/modern-select';
 import { ImageUpload, type UploadedImage } from '@/components/chat/image-upload';
 import {
@@ -191,6 +192,9 @@ export function PlanoStudio({
   // ("cocina con isla", "registros de placas solares en la entrada"…).
   const [detalles, setDetalles] = useState(initialState.detalles ?? '');
   const [busy, setBusy] = useState<Busy>(null);
+  // Cada imagen generada se autoriza con su precio; la autorización vale para una sola generación.
+  const [redrawAuthorized, setRedrawAuthorized] = useState(false);
+  const [cenitalAuthorized, setCenitalAuthorized] = useState(false);
   const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [archiveWarning, setArchiveWarning] = useState<string | null>(null);
@@ -317,6 +321,8 @@ export function PlanoStudio({
   };
 
   const onRegenerate = () => {
+      if (!redrawAuthorized) return;
+      setRedrawAuthorized(false);
       void run('redraw', async () => {
         const result = await callAction(redrawAction(projectId, [], redrawMode));
         rememberResult(result.studioResult, result.imageUrl);
@@ -379,7 +385,8 @@ export function PlanoStudio({
     // Desde la IMAGEN redibujada (imagen→imagen): no requiere extraer geometría.
     if (!planImageUrl) return;
     // El servidor vuelve a decidir con el veredicto guardado; esto evita el viaje.
-    if (cenitalGateBlocks(quality, cenitalAck)) return;
+    if (cenitalGateBlocks(quality, cenitalAck) || !cenitalAuthorized) return;
+    setCenitalAuthorized(false);
     return run('cenital', async () => {
       const { imageUrl, studioResult } = await callAction(
         cenitalAction(projectId, planImageUrl, estilo, detalles, vista, cenitalAck),
@@ -656,7 +663,8 @@ export function PlanoStudio({
             <div className="grid h-full place-content-center gap-3 p-6 text-center">
               <h2 className="text-ink font-medium">Aún no hay render</h2>
               <p className="text-ink-soft max-w-sm text-sm">Elige un estilo y genera una imagen cenital o una maqueta isométrica. Esto no crea una visita 3D.</p>
-              <Button disabled={busy !== null || !planImageUrl || cenitalGateBlocks(quality, cenitalAck)} onClick={onGenerateCenital}>Generar imagen con IA</Button>
+              <ImageCostNote projectId={projectId} authorized={cenitalAuthorized} onAuthorizedChange={setCenitalAuthorized} disabled={busy !== null} />
+              <Button disabled={busy !== null || !planImageUrl || !cenitalAuthorized || cenitalGateBlocks(quality, cenitalAck)} onClick={onGenerateCenital}>Generar imagen con IA</Button>
             </div>
           ) : null}
         </div>
@@ -715,8 +723,8 @@ export function PlanoStudio({
                 <option value="decorado">Decorado · con mobiliario</option>
               </ModernSelect>
               <p className="text-ink-soft my-2 text-xs">{redraws[redrawMode] ? 'Ya existe una versión de este modo; una nueva generación conservará la anterior.' : 'Este modo aún no se ha generado.'} Puede cambiar detalles: compara siempre con el original.</p>
-              <Button size="sm" variant="outline" className="w-full" disabled={busy !== null} onClick={onRegenerate}>{busy === 'redraw' ? 'Redibujando…' : `Generar redibujado ${redrawMode}`}</Button>
-              <p className="text-ink-soft mt-2 text-xs">0 créditos de la app en este flujo. La llamada IA sí tiene coste de proveedor según el modelo configurado.</p>
+              <Button size="sm" variant="outline" className="w-full" disabled={busy !== null || !redrawAuthorized} onClick={onRegenerate}>{busy === 'redraw' ? 'Redibujando…' : `Generar redibujado ${redrawMode}`}</Button>
+              <ImageCostNote projectId={projectId} authorized={redrawAuthorized} onAuthorizedChange={setRedrawAuthorized} disabled={busy !== null} />
             </div>
           ) : null}
 
@@ -772,7 +780,7 @@ export function PlanoStudio({
               type="button"
               className="mt-3 w-full"
               onClick={onGenerateCenital}
-              disabled={busy !== null || !planImageUrl || cenitalGateBlocks(quality, cenitalAck)}
+              disabled={busy !== null || !planImageUrl || !cenitalAuthorized || cenitalGateBlocks(quality, cenitalAck)}
             >
               {busy === 'cenital'
                 ? 'Generando…'
@@ -780,7 +788,7 @@ export function PlanoStudio({
                   ? 'Generar maqueta 3D'
                   : 'Generar vista cenital'}
             </Button>
-            <p className="text-ink-soft mt-2 text-xs">0 créditos de la app en este flujo. La llamada IA sí tiene coste de proveedor según el modelo configurado.</p>
+            <ImageCostNote projectId={projectId} authorized={cenitalAuthorized} onAuthorizedChange={setCenitalAuthorized} disabled={busy !== null} />
             {cenitalGateDecision(quality) === 'block' ? (
               <p className="text-ink-soft mt-2 text-xs">
                 No se generará ninguna vista con este plano hasta que lo corrijas en el editor.

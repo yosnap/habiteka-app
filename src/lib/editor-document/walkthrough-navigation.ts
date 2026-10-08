@@ -9,6 +9,7 @@ import { rampParts } from './ramp-route';
 import { localToWorld, worldToLocal } from './spatial-properties';
 import { stairLayout } from './stair-layout';
 import { isPorch, isPorchAddon, porchFloorAt } from './porch-volumes';
+import { walkthroughThresholds } from './walkthrough-thresholds';
 
 export const CAMERA_CLEARANCE_MM = 150;
 export interface WalkBlock {
@@ -91,13 +92,15 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
       .map((item) => ({ item, kind: 'furniture' as const })),
     ...(doc.columns ?? []).map((item) => ({ item, kind: 'column' as const })),
   ];
-  const floorAt = (p: Point) => stairAt(p)?.floorMm ?? porchAt(p)?.floorMm ?? rampAt(p) ??
-    roomFloorAt(p) ?? 0;
+  const thresholdAt = walkthroughThresholds(doc, p => stairAt(p)?.floorMm ?? porchAt(p)?.floorMm ?? rampAt(p) ?? roomFloorAt(p), CAMERA_CLEARANCE_MM);
+  // Una rampa o peldaño modelado manda sobre el puente del hueco: el umbral no
+  // puede convertir los últimos centímetros de una pendiente en un salto.
+  const floorAt = (p: Point) => stairAt(p)?.floorMm ?? porchAt(p)?.floorMm ?? rampAt(p) ?? thresholdAt(p)?.floorMm ?? roomFloorAt(p) ?? 0;
   const blockAt = (p: Point, eyeHeightMm = 1600): WalkBlock | null => {
     if (voids?.floor?.some((outline) => insideRoom(p, outline))) return { kind: 'floor-void', point: p };
     const room = roomAt(p);
     // Los umbrales de puerta pueden coincidir exactamente con el borde de dos estancias.
-    if (!room && rampAt(p) === null && stairAt(p) === null && porchAt(p) === null &&
+    if (!room && rampAt(p) === null && stairAt(p) === null && porchAt(p) === null && thresholdAt(p) === null &&
       !rooms.some((r) => insideRoom({ x: p.x + 1, y: p.y + 1 }, r.boundary))) {
       const edge = rampSurfaces.find(({ ramp, part }) => {
         const local = rampLocalAt(ramp, part, p);
@@ -158,9 +161,9 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
     const count = Math.max(1, Math.ceil(distance(a, b) / 10));
     if (count > 10000) return { kind: 'too-long', point: a };
     let previousFloor = floorAt(a);
-    let previousStair = stairAt(a);
+    let previousStair = stairAt(a) ?? thresholdAt(a);
     for (let i = 0; i <= count; i++) {
-      const p = interpolate(a, b, i / count), floor = floorAt(p), stair = stairAt(p);
+      const p = interpolate(a, b, i / count), floor = floorAt(p), stair = stairAt(p) ?? thresholdAt(p);
       const rise = stair?.id === previousStair?.id ? stair?.riseMm
         : stair?.riseMm ?? previousStair?.riseMm;
       const allowedStep = rise !== undefined && rise <= 220 && Math.abs(floor - previousFloor) <= rise + 1;

@@ -47,7 +47,7 @@ describe('contexto de estancias en cambios de imagen', () => {
     expect(inpaint.mock.calls[0]?.[0]).toMatchObject({ baseImage: { url: 'base' } });
     const prompt = (inpaint.mock.calls as unknown as [{ prompt: string }][])[0]![0].prompt;
     expect(prompt).toContain('Cocina');
-    expect(prompt).toContain('región enmascarada');
+    expect(prompt).toContain('masked region');
     expect(prompt).toContain('outside the selected mask');
   });
 });

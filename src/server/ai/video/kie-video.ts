@@ -3,6 +3,7 @@ import { DESIGN_VIDEO_MODEL, type DesignVideoSettings } from '@/lib/editor-docum
 import { constructionTiming } from '@/lib/editor-document/construction-timing';
 import type { SanitizedImage } from '../image/input-sanitizer';
 import { assertSafeImportUrl } from '@/server/admin/media/url-safety';
+import { PROPERTY_VISIT_MODEL, PROPERTY_VISIT_COMPACT_MODEL } from '@/lib/editor-document/property-visit-job';
 
 export class KieSubmissionUnknownError extends Error {}
 export class KieSubmissionRejectedError extends Error {}
@@ -26,11 +27,29 @@ export class KieVideoProvider {
 
   async create(prompt: string, settings: DesignVideoSettings, references: string[]) {
     if (!references.length || references.length > 9 || prompt.length > 7000) throw new KieSubmissionRejectedError('Referencias o guion fuera del límite de H3.');
+    return this.submit(DESIGN_VIDEO_MODEL, { prompt, reference_image_urls: references,
+      duration: constructionTiming(settings.presentation).durationMs / 1000, aspect_ratio: '16:9', resolution: settings.resolution });
+  }
+
+  async createTransition(prompt: string, seconds: number, resolution: '768P' | '2K', first: string, last: string) {
+    if (!Number.isInteger(seconds) || seconds < 4 || seconds > 15 || !prompt || prompt.length > 7000 ||
+      !['768P', '2K'].includes(resolution) || !first.startsWith('https://') || !last.startsWith('https://'))
+      throw new KieSubmissionRejectedError('El tramo necesita dos imágenes y una duración entre 4 y 15 segundos.');
+    return this.submit(PROPERTY_VISIT_MODEL, { prompt, duration: seconds, resolution, first_frame_url: first, last_frame_url: last });
+  }
+
+  async createCompactTransition(prompt: string, seconds: number, first: string, last: string) {
+    if (![6, 10].includes(seconds) || !prompt || prompt.length > 1500 || !first.startsWith('https://') || !last.startsWith('https://'))
+      throw new KieSubmissionRejectedError('Hailuo 02 necesita dos imágenes, 6 o 10 segundos y un guion de hasta 1500 caracteres.');
+    return this.submit(PROPERTY_VISIT_COMPACT_MODEL, { prompt, duration: String(seconds), resolution: '768P',
+      image_url: first, end_image_url: last, prompt_optimizer: false });
+  }
+
+  private async submit(model: string, input: Record<string, unknown>) {
     let response: Response;
     try {
       response = await fetch(`${API}/createTask`, { method: 'POST', headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: DESIGN_VIDEO_MODEL, input: { prompt, reference_image_urls: references,
-          duration: constructionTiming(settings.presentation).durationMs / 1000, aspect_ratio: '16:9', resolution: settings.resolution } }),
+        body: JSON.stringify({ model, input }),
         signal: AbortSignal.timeout(30000) });
     } catch { throw new KieSubmissionUnknownError('No se pudo confirmar si KIE recibió la tarea. No se relanzará ni se cobrará una segunda generación automáticamente.'); }
     let body: { code?: number; data?: { taskId?: string } };

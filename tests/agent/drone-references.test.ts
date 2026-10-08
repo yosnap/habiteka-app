@@ -6,7 +6,7 @@ vi.mock('@/server/db/prisma', () => ({ prisma: { deliverable: { findMany: mocks.
 vi.mock('@/server/walkthrough/tour-images', () => ({ sameContentRevisions: mocks.revisions }));
 vi.mock('@/server/agent/editor-v2/render-asset-reader', () => ({ readRenderReference: mocks.read }));
 vi.mock('@/server/ai/image/input-sanitizer', () => ({ sanitizeImageBuffer: mocks.sanitize }));
-import { droneReferences, lateralDesignReference } from '@/server/agent/editor-v2/drone-references';
+import { droneReferences, lateralDesignReference, interiorDesignReference } from '@/server/agent/editor-v2/drone-references';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
 import { defaultRenderDesignOptions } from '@/lib/editor-document/render-design-options';
 import type { OrgContext } from '@/server/auth/org-context';
@@ -27,6 +27,17 @@ beforeEach(() => {
   mocks.revisions.mockResolvedValue([144]); mocks.read.mockResolvedValue(image); mocks.sanitize.mockResolvedValue(image);
 });
 describe('referencias obligatorias del dron', () => {
+  it('los interiores bloquean sin cenital aceptada y guardan la referencia elegida compatible', async () => {
+    const interiorOptions = { ...options, interiorRoomIds: ['room-a'] };
+    const camera = { ...view, preset: 'custom' as const };
+    mocks.rows.mockResolvedValue([]);
+    await expect(interiorDesignReference(ctx, scope, emptyEditorDocument(), camera, interiorOptions)).rejects.toThrow('cenital aceptada');
+    mocks.rows.mockResolvedValue([{ id: 'chosen', payload: { assetKey: 'chosen.png', generation: {
+      provider: 'kie', acceptance, documentRevision: 144, view: { lighting: 'daylight' }, options: { freedom: 'strict', placement: 'all' } } } }]);
+    expect(await interiorDesignReference(ctx, scope, emptyEditorDocument(), camera, interiorOptions, 'chosen'))
+      .toMatchObject({ deliverableId: 'chosen', identity: image });
+    expect(mocks.rows.mock.calls[1]![0].where.OR).toEqual([{ payload: { path: ['generation', 'view', 'preset'], equals: 'top' } }]);
+  });
   it('no utiliza como ancla una imagen descartada en la revisión posterior', async () => {
     mocks.rows.mockResolvedValue([{ id: 'anchor', payload: { assetKey: 'own.png', generation: {
       documentRevision: 144, review: { status: 'rejected', reason: 'Cocina alterada', reviewedAt: '2026-10-01T21:00:00Z' },

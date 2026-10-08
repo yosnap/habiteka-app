@@ -9,7 +9,7 @@ Ten a mano el plano o las medidas reales y una idea del estilo que buscas. Para 
 
 ## 1. Prepara el proyecto
 
-Abre o crea un proyecto desde **Proyectos**. En **Asistente**, elige una tarjeta para empezar desde una foto o un plano y sigue los pasos de tipo de inmueble, objetivo, estilo y elementos que deben conservarse. Si ya has dibujado el plano, al final de la página está **Revisar un plano que ya has dibujado**.
+Abre o crea un proyecto desde **Proyectos**. En **Asistente**, elige **Empezar desde mi plano**, que te lleva a la pestaña **Plano** para subirlo, revisarlo y enviarlo al editor. Si solo tienes una foto de una habitación, elige **Rediseñar una habitación con una foto** y sigue los pasos de tipo de inmueble, objetivo, estilo y elementos que deben conservarse. Esta opción no crea un plano. Si ya has dibujado el plano, al final de la página está **Revisar un plano que ya has dibujado**.
 
 ## 2. Prepara el plano
 

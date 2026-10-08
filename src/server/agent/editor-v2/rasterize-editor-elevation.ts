@@ -157,9 +157,9 @@ function wallShapes(doc: EditorDocument, side: ElevationSide, cut: boolean): Sha
  * cabecero en primer plano; de frente, colchón y almohadas delante del cabecero; de perfil, el cabecero a un lado. El
  * generador sigue el dibujo de la sección mucho más que el texto, que no bastó para que dejara de girar las camas.
  */
-function furnitureShapes(doc: EditorDocument, side: ElevationSide, rooms: { boundary: Point[] }[]): Shape[] {
+function furnitureShapes(doc: EditorDocument, side: ElevationSide, rooms: { boundary: Point[] }[], only?: ReadonlySet<string>): Shape[] {
   const axis = AXES[side], layout = sectionVisibility(doc, side);
-  return doc.furniture.filter((item) => sectionPointVisible(layout, objectCenter(item)) && rooms.some((room) => pointInPolygon(objectCenter(item), room.boundary))).map((item) => {
+  return doc.furniture.filter((item) => (!only || only.has(item.id)) && sectionPointVisible(layout, objectCenter(item)) && rooms.some((room) => pointInPolygon(objectCenter(item), room.boundary))).map((item) => {
     const corners = footprint(item), hs = corners.map((p) => axis.h(p.x, p.y));
     const left = Math.min(...hs), right = Math.max(...hs), base = furnitureElevation(item), height = furnitureHeight(item);
     const depth = corners.reduce((sum, p) => sum + axis.depth(p.x, p.y), 0) / corners.length;
@@ -204,10 +204,11 @@ function meshShapes(positions: Float32Array, indices: Uint32Array, side: Elevati
 }
 
 /** Alzado técnico de una fachada o de su sección: muros, huecos con su tamaño y cota, y tejado. Sin textos ni cotas. */
-export async function rasterizeEditorElevation(doc: EditorDocument, side: ElevationSide, options: { cut?: boolean; furniture?: boolean } = {}) {
+export async function rasterizeEditorElevation(doc: EditorDocument, side: ElevationSide,
+  options: { cut?: boolean; furniture?: boolean; furnitureIds?: ReadonlySet<string> } = {}) {
   const cut = options.cut === true;
   const shapes = wallShapes(doc, side, cut);
-  if (cut && options.furniture !== false) shapes.push(...furnitureShapes(doc, side, sectionRooms(doc, side)));
+  if (cut && options.furniture !== false) shapes.push(...furnitureShapes(doc, side, sectionRooms(doc, side), options.furnitureIds));
   // La sección está abierta por arriba: no añadir una losa que no existe en la vista sin techo.
   if (!cut) for (const roof of exteriorRoofGeometry(doc)) {
     shapes.push(...meshShapes(roof.positions, roof.indices, side, ROOF));

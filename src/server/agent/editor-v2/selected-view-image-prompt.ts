@@ -28,7 +28,7 @@ const DECOR_SENSE_RULE = 'Decoración con sentido: nada sobre placas de cocina, 
 /** Personas pedidas por el usuario: dan vida a la imagen sin cambiar el diseño ni bloquear pasos. */
 export const PEOPLE_RULE = 'Añade algunas personas haciendo vida cotidiana en las estancias, a escala real y sin tapar puertas ni pasos.';
 
-export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v27';
+export const SELECTED_VIEW_IMAGE_PROMPT_VERSION = 'habiteka-image-from-capture-v30';
 
 /**
  * Cada vista se genera en una consulta independiente: sin esto el modelo reinventa materiales y tonos en cada una.
@@ -94,7 +94,7 @@ export function selectedViewImagePrompt(
   const viewName = view.preset in RENDER_VIEW_LABELS
     ? RENDER_VIEW_LABELS[view.preset as keyof typeof RENDER_VIEW_LABELS]
     : 'Cámara personalizada';
-  const additions = options.freedom === 'strict'
+  const additions = acceptedDesign ? 'Conserva los objetos del diseño aceptado; no aproveches otra cámara para añadir decoración ni muebles nuevos.' : options.freedom === 'strict'
     ? 'No añadas objetos nuevos.'
     : options.freedom === 'controlled'
       ? `Solo puedes añadir: ${options.additions.map((item) => RENDER_ADDITION_LABELS[item]).join(', ') || 'ningún objeto'}.`
@@ -119,9 +119,9 @@ export function selectedViewImagePrompt(
         : 'Respeta los cortes de la maqueta que dejan ver su interior; no extiendas el suelo o los muros más allá de sus bordes ni cierres el corte.';
   const strictOutside = !hasEnvironment && options.freedom === 'strict' && !interiorMode &&
     (view.preset !== 'custom' || Boolean(view.cutawayWallIds?.length));
-  const jointRule = options.redesignFixed ? undefined : kitchenJointRule(document, options);
-  const redesign = requestedRenderRedesign(options, objective, instruction);
-  const contractRule = redesign ? undefined : designContractRule(document);
+  const jointRule = options.redesignFixed || acceptedDesign ? undefined : kitchenJointRule(document, options);
+  const redesign = !acceptedDesign && requestedRenderRedesign(options, objective, instruction);
+  const contractRule = redesign || acceptedDesign ? undefined : designContractRule(document);
   const visibleRoomIds = new Set(cameraGuide?.rooms.map(room => room.id));
   const spatialForCamera = cameraGuide && spatial ? { ...spatial, levels: spatial.levels.map(level => ({ ...level,
     rooms: level.rooms.filter(room => visibleRoomIds.has(room.id)),
@@ -141,20 +141,20 @@ export function selectedViewImagePrompt(
     'EDICIÓN DE LA IMAGEN 1, NO DISEÑO DE OTRA CASA.',
     `Produce UNA imagen arquitectónica realista del MISMO proyecto y MISMA cámara (${viewName}). Estilo: ${estiloLabel(style)}; ${light}.`,
     ...(propertySunPrompt(document, options.lighting) ? [propertySunPrompt(document, options.lighting)] : []),
-    'La captura manda: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina y accesos visibles.',
+    'La captura fija la arquitectura y la cámara: conserva tamaño y posición del inmueble dentro del encuadre, orientación, perspectiva, silueta, plantas, muros, huecos, suelos, escaleras, rampas, terrazas, piscina y accesos visibles.',
     ...(redesign ? [RENDER_REDESIGN_RULE] : []),
-    options.redesignFixed && acceptedDesign
-      ? 'FIJOS DEL DISEÑO ACEPTADO: cocina, isla, sanitarios y armarios empotrados son los de la cenital aceptada, con su forma, posición y acabados, aunque difieran de la maqueta. No inventes otros. Conserva el uso de cada estancia, instalaciones, muros, huecos y accesos.'
+    acceptedDesign
+      ? 'FIJOS DEL DISEÑO ACEPTADO: cocina, isla, sanitarios y armarios empotrados son los de la referencia aceptada, con su forma, posición y acabados, aunque difieran de la maqueta. No inventes otros. Conserva el uso de cada estancia, instalaciones, muros, huecos y accesos.'
       : options.redesignFixed
       ? 'REDISEÑO DE FIJOS AUTORIZADO: puedes sustituir cocina, isla, sanitarios y armarios empotrados y sus acabados dentro de la zona permitida. Conserva el uso de cada estancia, instalaciones, muros, huecos y accesos; este permiso no autoriza obras de geometría.'
       : 'FIJOS PROTEGIDOS: conserva cocina, isla, sanitarios y armarios empotrados, incluidos su forma, posición y acabados. Las instrucciones estéticas no autorizan sustituirlos.',
     acceptedDesign
-      ? 'MOBILIARIO DEL DISEÑO ACEPTADO: no sustituyas ni añadas muebles respecto de la cenital aceptada; la decoración menor permitida debe ser coherente con ella. Respeta la escala, el uso y todos los pasos.'
+      ? 'MOBILIARIO DEL DISEÑO ACEPTADO: no sustituyas ni añadas muebles respecto de la referencia aceptada. Respeta la escala, el uso y todos los pasos.'
       : 'Puedes sustituir muebles móviles (sofás, mesas, sillas, lámparas, alfombras y cortinas) dentro del ámbito; respeta la escala, el uso y todos los pasos.',
     FURNITURE_USE_RULE,
     ...(briefSpatial ? [renderSpatialRule(briefSpatial, includeSpatialImageInGeneration(view))] : []),
     ...exteriorPlanSummary(exterior),
-    ...fixturePlanSummary(fixtures),
+    ...(!acceptedDesign ? fixturePlanSummary(fixtures) : []),
     ...(cameraGuide ? [
       'USOS LOCALIZADOS EN ESTA CÁMARA: las posiciones siguientes son puntos interiores visibles de las estancias en la imagen 1 (x desde la izquierda, y desde arriba, entre 0 y 1). Amuebla cada espacio según SU nombre en esa posición, no según el orden de una lista de habitaciones del plano. Los nombres ocultos no se trasladan al primer plano. Un punto no visible no implica que falte su estancia.',
       `Estancias localizadas: ${JSON.stringify(cameraGuide.rooms)}.`,
@@ -166,7 +166,11 @@ export function selectedViewImagePrompt(
     renderViewVisibilityRule(view),
     'Conserva las hojas de puerta con la apertura que muestra la captura. Exposición equilibrada: los vanos no son manchas de luz blanca; materiales y contornos nítidos, sin velo luminoso ni desenfoque artificial.',
     ...(contractRule ? [contractRule] : []),
-    ...(hasAnchor ? [(acceptedDesign ? ACCEPTED_DESIGN_RULE : ANCHOR_RULE)(hasMask ? 3 : 2)] : []),
+    ...(hasAnchor ? [acceptedDesign && interiorMode
+      ? `La imagen ${hasMask ? 3 : 2} es la CENITAL ACEPTADA SIN GIRAR del mismo inmueble. Identifica la estancia ${JSON.stringify(view.roomName ?? '')} mediante sus límites y huecos en el mapa del plano; no confundas dos estancias del mismo nombre. La cámara está en (${view.position[0]}, ${view.position[2]}) metros del plano y mira hacia (${view.focus?.[0]}, ${view.focus?.[2]}). Conserva los muebles, cantidades, orientación, colores y acabados de esa estancia en la cenital; si difieren de la maqueta, manda la cenital. La imagen 1 solo fija cámara y arquitectura. No copies la perspectiva cenital ni inventes el entorno visto por las ventanas. No copies tampoco su luz: ilumina con ${light}.`
+      : acceptedDesign && ['front', 'back', 'left', 'right'].includes(view.preset)
+        ? ACCEPTED_DESIGN_RULE(hasMask ? 3 : 2)
+        : ANCHOR_RULE(hasMask ? 3 : 2)] : []),
     ...(hasAnchor && ['drone', 'isometric', 'exterior'].includes(view.preset) ? ['VISTA LEJANA CON IDENTIDAD COMPLETA: conserva volumen, plantas, cubierta, huecos, terrazas, pérgolas y todos los elementos arquitectónicos de la referencia aceptada. No simplifiques detalles; la imagen 1 fija la cámara.'] : []),
     ...(hasEnvironment ? [
       `La imagen ${hasMask ? 4 : 3} es la ortofoto real de la parcela: úsala exclusivamente como entorno, conservando límites, caminos y vegetación. No copies edificios de la ortofoto sobre la casa del proyecto.`,

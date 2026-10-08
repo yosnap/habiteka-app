@@ -26,9 +26,27 @@ export function applyReviewedWalls(plano: Plano2dPayload, overrides: PlanWallOve
     }
   }
   const move = (point: PlanPoint) => moved.get(pointKey(point)) ?? point;
+  // Los contornos y cotas van por la cara del muro, a medio grosor del vértice:
+  // acompañan al vértice movido más cercano dentro de ese margen.
+  const halfAt = new Map<string, number>();
+  for (const wall of walls.values()) for (const end of [wall.from, wall.to]) {
+    const key = pointKey(end);
+    halfAt.set(key, Math.max(halfAt.get(key) ?? 0, wall.thicknessMm / 2));
+  }
+  const shifts = [...moved].map(([key, after]) => {
+    const [x, y] = key.split(',').map(Number) as [number, number];
+    return { x, y, dx: after.x - x, dy: after.y - y, reach: (halfAt.get(key) ?? 0) + 5 };
+  });
+  const moveFace = (point: PlanPoint) => {
+    const exact = moved.get(pointKey(point));
+    if (exact) return exact;
+    const near = shifts.filter(item => Math.abs(point.x - item.x) <= item.reach && Math.abs(point.y - item.y) <= item.reach)
+      .sort((a, b) => Math.hypot(point.x - a.x, point.y - a.y) - Math.hypot(point.x - b.x, point.y - b.y))[0];
+    return near ? { x: point.x + near.dx, y: point.y + near.dy } : point;
+  };
   const result = { ...plano, zones: plano.zones.map(zone => ({ ...zone,
-    outline: zone.outline.map(move),
-    dimensions: zone.dimensions.map(dimension => ({ ...dimension, from: move(dimension.from), to: move(dimension.to) })),
+    outline: zone.outline.map(moveFace),
+    dimensions: zone.dimensions.map(dimension => ({ ...dimension, from: moveFace(dimension.from), to: moveFace(dimension.to) })),
     walls: zone.walls.map(wall => ({ ...wall, from: move(wall.from), to: move(wall.to),
       thicknessMm: edits.get(wall.id)?.thicknessMm ?? wall.thicknessMm })),
   })) };
@@ -97,4 +115,51 @@ export function reviewedWallOverrides(base: Plano2dPayload, edited: Plano2dPaylo
     .filter(wall => { const before = source.get(wall.id); return before && (distance(before.from, wall.from) > .01
       || distance(before.to, wall.to) > .01 || before.thicknessMm !== wall.thicknessMm); })
     .map(wall => ({ wallId: wall.id, from: wall.from, to: wall.to, thicknessMm: wall.thicknessMm }));
+}
+
+/**
+ * Estira una estancia hasta `sizeMm` moviendo su lado derecho (`x`) o inferior
+ * (`y`). Se desplazan juntos el eje de ese muro, las caras de las estancias a
+ * ambos lados y los extremos de los muros que llegan a él, así que la estancia
+ * vecina cede o gana lo mismo.
+ */
+export function resizeZoneSide(plano: Plano2dPayload, zoneId: string, axis: 'x' | 'y', sizeMm: number): Plano2dPayload {
+  const zone = plano.zones.find(item => item.id === zoneId);
+  if (!zone || zone.outline.length < 3 || !Number.isFinite(sizeMm)) return plano;
+  const other = axis === 'x' ? 'y' : 'x';
+  const along = zone.outline.map(point => point[axis]);
+  const faceMin = Math.min(...along), faceMax = Math.max(...along);
+  const delta = Math.round(sizeMm - (faceMax - faceMin));
+  if (delta === 0 || sizeMm < 300) return plano;
+  const across = zone.outline.map(point => point[other]);
+  let lo = Math.min(...across), hi = Math.max(...across);
+  const walls = [...new Map(plano.zones.flatMap(item => item.walls.map(wall => [wall.id, wall] as const))).values()];
+  const onLine = (wall: (typeof walls)[number], line: number, tol: number) =>
+    Math.abs(wall.from[axis] - line) <= tol && Math.abs(wall.to[axis] - line) <= tol;
+  // El muro del lado que se mueve: el paralelo más cercano a su cara que la recorre. Puede
+  // pertenecer a la estancia vecina, así que se busca entre todos los muros.
+  const overlaps = (wall: (typeof walls)[number]) => Math.max(wall.from[other], wall.to[other]) > lo
+    && Math.min(wall.from[other], wall.to[other]) < hi;
+  const side = walls.filter(wall => onLine(wall, faceMax, wall.thicknessMm / 2 + 5) && overlaps(wall))
+    .sort((a, b) => Math.abs(a.from[axis] - faceMax) - Math.abs(b.from[axis] - faceMax))[0];
+  // Sin muro en ese lado (abierto o sin leer) no hay nada que mover: solo se cambiaría el contorno.
+  if (!side) return plano;
+  const line = side.from[axis];
+  const tol = side.thicknessMm / 2 + 5;
+  // Un muro continuo que sigue más allá de la estancia se mueve entero.
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const wall of walls) {
+      if (!onLine(wall, line, tol)) continue;
+      const a = Math.min(wall.from[other], wall.to[other]), b = Math.max(wall.from[other], wall.to[other]);
+      if (b >= lo - tol && a <= hi + tol && (a < lo || b > hi)) { lo = Math.min(lo, a); hi = Math.max(hi, b); changed = true; }
+    }
+  }
+  const shift = (point: PlanPoint): PlanPoint => Math.abs(point[axis] - line) <= tol
+    && point[other] >= lo - tol && point[other] <= hi + tol ? { ...point, [axis]: point[axis] + delta } : point;
+  return { ...plano, zones: plano.zones.map(item => ({ ...item,
+    outline: item.outline.map(shift),
+    dimensions: item.dimensions.map(dimension => ({ ...dimension, from: shift(dimension.from), to: shift(dimension.to) })),
+    walls: item.walls.map(wall => ({ ...wall, from: shift(wall.from), to: shift(wall.to) })),
+  })) };
 }

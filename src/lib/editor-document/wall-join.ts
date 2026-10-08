@@ -16,9 +16,10 @@ export interface WallSupport { wall: Wall; t: number; point: Point }
  * Muro recto sobre cuyo cuerpo cae el punto (a menos de medio espesor más una holgura), lejos de sus extremos.
  * Es la situación típica de un tabique trazado hasta la cara de una fachada: toca el muro pero no comparte vértice.
  */
-export function wallSupportAt(doc: EditorDocument, point: Point, options: { exclude?: Set<string>; endClearanceMm?: number; slackMm?: number } = {}): WallSupport | undefined {
-  const { exclude, endClearanceMm = END_CLEARANCE_MM, slackMm = 50 } = options;
-  return doc.walls.filter((wall) => !wall.hidden && !wall.curveHeightMm && !exclude?.has(wall.id))
+export function wallSupportAt(doc: EditorDocument, point: Point, options: { exclude?: Set<string>; endClearanceMm?: number; slackMm?: number; includeHidden?: boolean } = {}): WallSupport | undefined {
+  const { exclude, endClearanceMm = END_CLEARANCE_MM, slackMm = 50, includeHidden = false } = options;
+  // Los límites ocultos no atraen el imán, pero un muro que acaba sobre uno debe dividirlo igualmente.
+  return doc.walls.filter((wall) => (includeHidden || !wall.hidden) && !wall.curveHeightMm && !exclude?.has(wall.id))
     .map((wall) => { const [a, b] = wallPoints(doc, wall); return { wall, ...projectOnSegment(point, a, b) }; })
     .filter((c) => c.distance <= c.wall.thicknessMm / 2 + slackMm && c.t * c.length > endClearanceMm && (1 - c.t) * c.length > endClearanceMm)
     .sort((a, b) => a.distance - b.distance)[0];

@@ -51,7 +51,7 @@ export function RenderAcceptance({ item, projectId, saved, onChanged, onReviewed
     </p>}
     {canRereview && <>
       <Button type="button" className="w-full" variant="outline" disabled={busy || reviewing} onClick={() => void rereview()}>{reviewing ? 'Revisando…' : 'Volver a revisar'}</Button>
-      <p className="text-xs text-ink-soft">Revisa otra vez esta imagen con el plano del que salió, sin generar otra ni descargarla. Consume una revisión visual.</p>
+      <p className="text-xs text-ink-soft">Revisa otra vez esta imagen con el plano o la sección de los que salió, sin generar otra ni descargarla. Consume una revisión visual.</p>
     </>}
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

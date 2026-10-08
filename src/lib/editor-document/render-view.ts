@@ -19,6 +19,7 @@ export const renderViewSchema = z.object({
   allLevels: z.boolean(),
   cutaway: z.boolean(),
   ceilingView: z.enum(['hidden', 'transparent', 'solid']).optional(),
+  architectureOnly: z.boolean().optional(),
   lighting: z.enum(LIGHTING_PRESETS).optional(),
   cutawayWallIds: z.array(z.string().max(200)).max(10000).optional(),
   cutawayObjectIds: z.array(z.string().max(200)).max(10000).optional(),
@@ -37,5 +38,6 @@ export type CaptureRenderView = (options?: {
   lighting?: LightingPreset;
   fit?: boolean;
   camera?: CameraPose;
+  architectureOnly?: boolean;
   maskRegions?: ZoneMaskRegions;
 }) => Promise<RenderCapture>;

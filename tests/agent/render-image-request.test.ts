@@ -27,6 +27,32 @@ const base = { document, style: 'moderno' as const, options: defaultRenderDesign
   objective: '', instruction: '', reference, spatial };
 
 describe('referencias de generación por cámara', () => {
+  it('conserva el cristal azul de la guía arquitectónica y adjunta el detalle aceptado sin sustituir la cenital', async () => {
+    const anchor = await image(240, 180, '#a07850'), detail = await image(60, 60, '#9cb');
+    const { request, reference: capture } = await prepareRenderImageRequest({ ...base, reference: await image(160, 90, '#65b8d4'),
+      view: { ...viewFor('custom'), architectureOnly: true, roomId: 'room-a' }, styleAnchor: anchor, acceptedDesign: true,
+      describeInterior: async () => ({ brief: ['Fuente cuadrada'], detail }) });
+    expect(request.referenceImages).toEqual([capture, anchor, detail]);
+    expect(request.prompt).toContain('ARQUITECTURA SIN MOBILIARIO');
+    expect(request.prompt).toContain('CRISTAL REAL');
+  });
+  it('el interior conserva la referencia completa sin inventar un recorte ni imponer los acabados del editor', async () => {
+    const anchor = await image(240, 180, '#a07850');
+    const { request, styleAnchor } = await prepareRenderImageRequest({ ...base,
+      view: { ...viewFor('custom'), roomId: 'room-a', roomName: 'Salón', cutaway: false, ceilingView: 'solid' },
+      options: { ...base.options, interiorRoomIds: ['room-a'] }, styleAnchor: anchor, acceptedDesign: true,
+      describeInterior: async () => ({ brief: ['Sillas: respaldo continuo y tapizado beige'] }) });
+    expect(styleAnchor).toEqual(anchor);
+    expect(request.referenceImages).toContainEqual(anchor);
+    expect(request.referenceImages).toHaveLength(2);
+    expect(request.prompt).not.toContain('COPIA ANOTADA');
+    expect(request.prompt).toContain('CENITAL ACEPTADA SIN GIRAR');
+    expect(request.prompt).not.toContain('su borde inferior es la fachada');
+    expect(request.prompt).not.toContain('DISEÑO FIJADO');
+    expect(request.prompt).not.toContain('FIJOS PROTEGIDOS');
+    expect(request.prompt).not.toContain('Puedes sustituir muebles');
+    expect(request.prompt).toContain('respaldo continuo y tapizado beige');
+  });
   it.each(['front', 'back', 'left', 'right', 'isometric', 'drone', 'exterior', 'custom'] as const)(
     '%s mantiene la cámara sin adjuntar una segunda perspectiva cenital', async preset => {
       const { request, reference: source } = await prepareRenderImageRequest({ ...base, view: viewFor(preset) });
@@ -61,7 +87,7 @@ describe('referencias de generación por cámara', () => {
     const prepared = await prepareRenderImageRequest({ ...base, view: viewFor('front'),
       options: { ...defaultRenderDesignOptions(), people: true }, styleAnchor: await image(200, 100, '#a07850'), acceptedDesign: true,
       section: { image: section, rooms: [{ name: 'Comedor', boundary: [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }, { x: 0, y: 1000 }] }],
-        describe: async (_top, names) => names.map((name) => `${name}: mesa al fondo`) } });
+        describe: async (_top, names) => ({ lines: names.map((name) => `${name}: mesa al fondo`), pieces: names.map(() => []) }) } });
     const { request, reference: source } = prepared;
     expect(request.referenceImages).toHaveLength(2);
     expect(request.referenceImages![0]).toEqual(source);
@@ -79,14 +105,18 @@ describe('referencias de generación por cámara', () => {
   it('lee el mobiliario aceptado aunque el plano contenga otros muebles', async () => {
     const document = { ...base.document, furniture: [{ id: 'old-bed', kind: 'cama', x: 200, y: 200,
       widthMm: 400, depthMm: 600, rotation: 0, dimensionalOrigin: 'physical' as const }] };
-    const read = vi.fn(async () => ['Comedor: mesa del diseño aceptado, sin cama']);
-    const section = { image: await image(400, 150, '#e8e3d9'), rooms: [{ name: 'Comedor', boundary: [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }, { x: 0, y: 1000 }] }], describe: read };
+    const read = vi.fn(async () => ({ lines: ['Comedor: mesa del diseño aceptado, sin cama'], pieces: [[]] }));
+    const withFurniture = vi.fn();
+    const section = { image: await image(400, 150, '#e8e3d9'), rooms: [{ name: 'Comedor', boundary: [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }, { x: 0, y: 1000 }] }], describe: read, withFurniture };
     const input = { ...base, document, view: viewFor('front'), styleAnchor: await image(200, 100, '#a07850'), acceptedDesign: true, section };
     const prepared = await prepareRenderImageRequest(input);
     expect(read).toHaveBeenCalledOnce();
     expect(prepared.request.prompt).toContain('mesa del diseño aceptado');
     expect(prepared.request.prompt).not.toContain('Los muebles dibujados en la imagen 1');
-    await expect(prepareRenderImageRequest({ ...input, section: { ...section, describe: async () => [] } })).rejects.toThrow('antes de generar');
+    // La cama del plano no aparece en la lectura de la cenital aceptada: no se dibuja.
+    expect(withFurniture).not.toHaveBeenCalled();
+    expect(prepared.request.prompt).not.toContain('dibujados en la imagen 1 tienen la orientación');
+    await expect(prepareRenderImageRequest({ ...input, section: { ...section, describe: async () => ({ lines: [], pieces: [] }) } })).rejects.toThrow('antes de generar');
   });
 
   it('conserva la guía visual para la cenital que ya respetaba las estancias', async () => {
