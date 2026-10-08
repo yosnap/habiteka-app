@@ -19,7 +19,8 @@ export interface WallSupport { wall: Wall; t: number; point: Point }
 export function wallSupportAt(doc: EditorDocument, point: Point, options: { exclude?: Set<string>; endClearanceMm?: number; slackMm?: number; includeHidden?: boolean } = {}): WallSupport | undefined {
   const { exclude, endClearanceMm = END_CLEARANCE_MM, slackMm = 50, includeHidden = false } = options;
   // Los límites ocultos no atraen el imán, pero un muro que acaba sobre uno debe dividirlo igualmente.
-  return doc.walls.filter((wall) => (includeHidden || !wall.hidden) && !wall.curveHeightMm && !exclude?.has(wall.id))
+  // Un borde de patio (oculto y sin grosor) no cierra estancias: nunca se divide.
+  return doc.walls.filter((wall) => (!wall.hidden || (includeHidden && wall.thicknessMm > 10)) && !wall.curveHeightMm && !exclude?.has(wall.id))
     .map((wall) => { const [a, b] = wallPoints(doc, wall); return { wall, ...projectOnSegment(point, a, b) }; })
     .filter((c) => c.distance <= c.wall.thicknessMm / 2 + slackMm && c.t * c.length > endClearanceMm && (1 - c.t) * c.length > endClearanceMm)
     .sort((a, b) => a.distance - b.distance)[0];
@@ -28,8 +29,17 @@ export function wallSupportAt(doc: EditorDocument, point: Point, options: { excl
 /** Divide el muro de apoyo en el punto proyectado y devuelve el vértice nuevo, ya sobre el eje del muro. */
 export function joinPointToWall(doc: EditorDocument, support: WallSupport): string {
   const vertexId = crypto.randomUUID();
-  splitWall(doc, support.wall.id, support.t, vertexId, crypto.randomUUID());
+  splitWall(doc, support.wall.id, support.t, vertexId, splitPieceId(support.wall.id));
   return vertexId;
+}
+
+/**
+ * Id del tramo nuevo al dividir un muro. Un límite oculto conserva su prefijo (`hidden:…`, `outdoor:…`):
+ * de él depende que su estancia siga contando como terraza o patio y no como interior.
+ */
+export function splitPieceId(wallId: string): string {
+  const uuid = crypto.randomUUID();
+  return /^(hidden|outdoor):/.test(wallId) ? `${wallId}~${uuid.slice(0, 8)}` : uuid;
 }
 
 const DANGLING_CORNER_MM = 100, END_CLEARANCE_MM = 150, ON_AXIS_MM = 10;

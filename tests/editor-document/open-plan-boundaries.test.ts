@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 import type { PlanImportResult, PlanWall } from '@/lib/contracts';
 import { fromPlanImport } from '@/lib/editor-document/adapters/plano2d-import';
 import { deriveRooms } from '@/lib/editor-document/rooms';
+import { eligibleCeilingRooms } from '@/lib/editor-document/ceiling-geometry';
+import { selectedWallSides } from '@/lib/editor-document/wall-bulk-appearance';
+import { wallPoints } from '@/lib/editor-document/geometry';
 
 const T = 160;
 const wall = (id: string, x1: number, y1: number, x2: number, y2: number): PlanWall =>
@@ -47,5 +50,17 @@ describe('límites ocultos de planta abierta', () => {
     const { document } = fromPlanImport(result(false));
     expect(document!.walls.some((item) => item.id.startsWith('hidden:open'))).toBe(false);
     expect(deriveRooms(document!)).toHaveLength(1);
+  });
+
+  it('una estancia separada con límite de planta abierta es interior y su fachada se pinta por fuera', () => {
+    const doc = fromPlanImport(result(true)).document!;
+    expect(eligibleCeilingRooms(doc)).toHaveLength(2);
+    // Muro norte (y = 0): la cara exterior es la que mira a y < 0.
+    const north = doc.walls.find((item) => { const [a, b] = wallPoints(doc, item); return !item.hidden && a.y === 0 && b.y === 0; })!;
+    const [a, b] = wallPoints(doc, north);
+    const [outside] = selectedWallSides(doc, north.id, 'exterior');
+    // La izquierda de un muro es el lado a la izquierda de su sentido de inicio a fin.
+    const leftNormalY = b.x - a.x;
+    expect(outside === 'left' ? leftNormalY : -leftNormalY).toBeLessThan(0);
   });
 });

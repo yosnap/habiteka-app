@@ -17,7 +17,7 @@ import { upgradeConstructionDocument } from '@/lib/editor-document/migrations';
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { syncRampArrival } from '@/lib/editor-document/construction-commands';
 import { landingWallPlacement } from '@/lib/editor-document/landing-wall-placement';
-import { joinPointToWall, wallSupportAt } from '@/lib/editor-document/wall-join';
+import { joinPointToWall, splitPieceId, wallSupportAt } from '@/lib/editor-document/wall-join';
 import { splitWall } from '@/lib/editor-document/wall-commands';
 import { pruneLightingScenes } from '@/lib/editor-document/lighting-scene';
 import { followFurnitureOnMovedWalls } from './wall-furniture-follow';
@@ -85,7 +85,8 @@ function crossingVertices(doc: EditorDocument, a: Point, b: Point, created: Set<
   const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
   if (length === 0) return [];
   for (const wall of doc.walls) {
-    if (wall.curveHeightMm || created.has(wall.id)) continue;
+    // Solo las paredes que cierran estancias (las que valida la topología): un murete o un borde de patio no se divide.
+    if (wall.curveHeightMm || created.has(wall.id) || wallConstruction(wall).heightMm <= 1500) continue;
     const c = vertices.get(wall.startVertexId), d = vertices.get(wall.endVertexId);
     if (!c || !d) continue;
     const ex = d.x - c.x, ey = d.y - c.y, denom = dx * ey - dy * ex;
@@ -103,7 +104,7 @@ function crossingVertices(doc: EditorDocument, a: Point, b: Point, created: Set<
   for (const hit of hits) {
     if (hit.corner) { if (!out.includes(hit.corner)) out.push(hit.corner); continue; }
     const vertexId = newId();
-    splitWall(doc, hit.wallId, hit.u, vertexId, newId());
+    splitWall(doc, hit.wallId, hit.u, vertexId, splitPieceId(hit.wallId));
     out.push(vertexId);
   }
   return out;
