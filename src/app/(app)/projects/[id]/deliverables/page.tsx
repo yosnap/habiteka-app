@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { ArrowLeft, Clapperboard } from 'lucide-react';
+import studio from '@/components/editor-v2/workspace/studio.module.css';
 /**
  * Vista del panel de entregables de un proyecto. Carga los entregables a través
  * del repositorio con ámbito y los presenta con sus visores. El sello legal viaja
@@ -118,7 +121,14 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   ).filter((d): d is DeliverableView => d !== null);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
+    <main className={studio.gallery}>
+      <header className={studio.galleryHeader}>
+        <div><h1>Mis diseños</h1><p>Revisa las vistas, pide cambios y acepta las imágenes que quieras usar en tus vídeos.</p></div>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/projects/${encodeURIComponent(id)}${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`}><ArrowLeft size={16} />Volver al editor</Link>
+          <Link href={`/projects/${encodeURIComponent(id)}/videos${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`}><Clapperboard size={16} />Crear vídeo</Link>
+        </div>
+      </header>
       <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
       <DeliverablesPanel deliverables={deliverables} projectId={id} />
     </main>

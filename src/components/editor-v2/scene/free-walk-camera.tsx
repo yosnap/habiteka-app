@@ -9,6 +9,7 @@ import { EYE_HEIGHT_MM } from '@/lib/editor-document/room-interior-cameras';
 import type { FreeWalkController } from './free-walk-controller';
 import { LOOK_RADIANS_PER_PIXEL, thirdPersonCameraOffset, walkInputDelta, walkPitch, walkTurn } from './free-walk-input';
 import { FreeWalkAvatar } from './free-walk-avatar';
+import { useClickWalk } from './use-click-walk';
 
 const WALK_SPEED_MM_S = 2200;
 const RUN_SPEED_MM_S = 3600;
@@ -25,6 +26,7 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, viewMode,
   onToggleView: () => void;
 }) {
   const building = useMemo(() => buildingWalkNavigation(plan), [plan]);
+  const clickStep = useClickWalk(building, controller, paused);
   const initialLevelId = plan.activeLevelId ?? 'ground';
   const elevation = useCallback((levelId: string) => building.levels.find((level) => level.id === levelId)?.elevationMm ?? 0, [building]);
   const { get, invalidate, gl } = useThree();
@@ -53,6 +55,7 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, viewMode,
     camera.lookAt(focus[0], camera.position.y, focus[2]);
     invalidate();
     const down = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
         event.preventDefault(); event.stopImmediatePropagation(); keys.current.add(event.code);
@@ -100,7 +103,10 @@ export function FreeWalkCamera({ document: plan, start, focus, paused, viewMode,
     const lookVertical = Number(keys.current.has('KeyR')) - Number(keys.current.has('KeyF'));
     pitch.current = walkPitch(pitch.current, control.lookY, lookVertical, seconds);
     const speed = keys.current.has('ShiftLeft') || keys.current.has('ShiftRight') ? RUN_SPEED_MM_S : WALK_SPEED_MM_S;
-    const step = walkInputDelta(yaw.current, keys.current, control, speed * seconds);
+    const manual = keys.current.size > 0 || Boolean(control.forward || control.strafe || control.turn || control.lookX || control.lookY);
+    const automatic = clickStep(position.current, manual, speed * seconds);
+    if (automatic) yaw.current = Math.atan2(automatic.x, automatic.y);
+    const step = automatic ?? walkInputDelta(yaw.current, keys.current, control, speed * seconds);
     const previousPoint = position.current.point;
     position.current = moveBuildingWalk(building, position.current, step);
     const { levelId, point } = position.current;

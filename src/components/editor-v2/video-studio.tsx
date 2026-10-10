@@ -9,6 +9,7 @@ import { VIDEO_GOALS, type VideoGoal } from '@/lib/editor-document/video-studio'
 import { VideoStudioMedia } from './video-studio-media';
 import { DesignConstructionPanel } from './design-construction-panel';
 import { PropertyVisitPanel } from './property-visit-panel';
+import studio from './workspace/studio.module.css';
 import { Button } from '@/components/ui/button';
 
 const ICONS = { construction: Hammer, advertising: Megaphone, visit: Footprints, combined: Clapperboard };
@@ -42,7 +43,7 @@ export function VideoStudio(props: Props) {
   function openAdvertising() { setGoal('advertising'); setSource('clip'); setTab('create'); createTab.current?.focus(); }
   return <Tabs.Root value={tab} onValueChange={value => { if (!busy) setTab(value as typeof tab); }} asChild>
       <section ref={setContainer} aria-label="Estudio de vídeo"
-        className="flex min-h-0 flex-1 flex-col bg-surface text-ink [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50">
+        className={`${studio.video} flex min-h-0 flex-1 flex-col bg-surface text-ink [&_button]:cursor-pointer [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-50`}>
         <header className="mx-auto flex w-full max-w-6xl shrink-0 flex-wrap items-center justify-between gap-4 px-5 py-6">
           <div><h1 className="flex items-center gap-2 text-2xl font-semibold"><Clapperboard size={24} className="text-brand-600" />Vídeos</h1>
             <p className="mt-1 text-sm text-ink-soft">{projectName} · crea a partir de tus diseños IA aceptados.</p></div>
@@ -59,7 +60,8 @@ export function VideoStudio(props: Props) {
           <a aria-label="Guía de vídeos (se abre en otra pestaña)" className="ml-auto inline-flex min-h-11 items-center text-sm text-ink-soft underline focus-visible:outline-2 focus-visible:outline-brand-500" href={`${process.env.NODE_ENV === 'development' ? 'http://docs.localhost:3040' : 'https://docs.habiteka.app'}/videos/estudio/`} target="_blank" rel="noreferrer">Guía</a>
         </div>
         <Tabs.Content value="saved" className="min-h-0 flex-1 overflow-y-auto focus-visible:outline-2 focus-visible:outline-brand-500"><VideoStudioMedia scope={scope} gallery revisionKey={savedKey} onBusyChange={setBusy} onCreateAdvertising={openAdvertising} /></Tabs.Content>
-        <Tabs.Content value="create" className="flex min-h-0 flex-1 flex-col overflow-y-auto focus-visible:outline-2 focus-visible:outline-brand-500 data-[state=inactive]:hidden">
+        <Tabs.Content value="create" className={studio.create}>
+          <aside className={studio.tasks} aria-label="Tipo de vídeo">
           <p className="mx-auto w-full max-w-6xl px-5 pt-4 text-xs text-ink-soft">Las tareas preparadas se conservan en Vídeos guardados. Los ajustes y vistas previas sin guardar se reinician al cambiar de pestaña.</p>
           <div className="mx-auto w-full max-w-6xl px-5 pt-6"><h2 className="mb-3 text-sm font-semibold">¿Qué vídeo quieres crear?</h2><div className="grid shrink-0 gap-3 sm:grid-cols-3">
             {VIDEO_GOALS.filter(option => option.id !== 'combined').map(option => { const Icon = ICONS[option.id]; return <button type="button" key={option.id} disabled={busy} onClick={() => chooseGoal(option.id)} aria-pressed={goal === option.id}
@@ -67,6 +69,8 @@ export function VideoStudio(props: Props) {
               <Icon size={20} className={goal === option.id ? 'mt-0.5 shrink-0 text-brand-600' : 'mt-0.5 shrink-0 text-ink-soft'} /><div><strong className="text-sm">{option.title}</strong><p className="mt-1 text-xs text-ink-soft">{option.description}</p></div>
             </button>; })}
           </div><p className="mt-3 text-xs text-ink-soft">Construcción y recorrido se crean como vídeos independientes. Cada uno tiene un máximo de 60 segundos y 2 € de generación de vídeo.</p></div>
+          </aside>
+          <div className={studio.stage}>
           {goal === 'advertising' && <div className="mx-auto mt-5 flex w-full max-w-6xl shrink-0 flex-wrap items-center gap-2 px-5"><span className="mr-2 text-sm font-medium">Material del vídeo</span>
             <Button variant={source === 'images' ? 'default' : 'outline'} aria-pressed={source === 'images'} size="sm" disabled={busy} onClick={() => setSource('images')}>Mis diseños</Button>
             <Button variant={source === 'clip' ? 'default' : 'outline'} aria-pressed={source === 'clip'} size="sm" disabled={busy} onClick={() => setSource('clip')}>Vídeo guardado</Button>
@@ -77,6 +81,7 @@ export function VideoStudio(props: Props) {
           {goal === 'advertising' && <>{!approved && <div className="px-5"><Button variant="outline" disabled={busy || approvalDisabled} onClick={onReviewApproval}>Revisar versión del proyecto</Button></div>}
             <VideoStudioMedia scope={scope} gallery={false} clips={source === 'clip'} portalContainer={container} revisionKey={savedKey} onBusyChange={setBusy} onReviewApproval={onReviewApproval}
               onChooseImages={() => setSource('images')} onOpenSaved={openSaved} /></>}
+          </div>
         </Tabs.Content>
       </section>
     </Tabs.Root>;

@@ -3,6 +3,8 @@ title: Crear vídeo en un solo lugar
 description: Preparar construcción, publicidad o recorrido desde el estudio de vídeos.
 ---
 
+En escritorio, el tipo de vídeo se elige en un panel a la izquierda y sus opciones se trabajan en el área principal. En tableta y móvil, las opciones de tipo aparecen encima. Las pestañas **Crear vídeo** y **Vídeos guardados**, los controles de coste y las confirmaciones conservan su funcionamiento. **Volver al editor** conserva la zona y permite recuperar la última vista de trabajo en la misma pestaña.
+
 ## Abrir el estudio
 
 En cualquier proyecto, abre la pestaña **Vídeos**, el botón **Vídeos** de la cabecera del editor o **Crear vídeo** en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
@@ -29,12 +31,12 @@ Junto al botón de preparación aparece el requisito pendiente: actualizar los d
 
 Si falta la aprobación del proyecto, el estado vacío pide revisarla primero. Si faltan imágenes compatibles, aceptar cualquier imagen antigua no resuelve el bloqueo: debe corresponder a la versión y modalidad elegidas.
 
-| Opción | Qué produce | Qué necesita |
-|---|---|---|
-| Construcción → Mis diseños | Piloto H3 de 8 s; 12 s opcionales para amueblado. | Imágenes IA aceptadas de una tanda compatible con el plano guía aprobado, KIE activo y confirmación de coste/envío. |
-| Publicidad → Mis diseños | Presentación de imágenes generadas con movimiento suave y fundidos. | Imágenes IA aceptadas, compatibles con el plano guía aprobado, con estilo y luz coherentes. |
-| Publicidad → Vídeo guardado | Otro MP4 horizontal/vertical con panel de cotas opcional; conserva sonido y duración del original. | Montaje o H3 desde diseños aceptados, con fuentes todavía aceptadas; H3 debe estar revisado y aceptado. |
-| Primera persona | Paseo independiente de hasta 60 s, encuadres IA y tramos enlazados con Hailuo 02 Standard. | Cobertura completa, referencias aceptadas, máximo 2 € de vídeo y revisión humana de imágenes, tramos, uniones y vídeo final. |
+| Opción                      | Qué produce                                                                                        | Qué necesita                                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Construcción → Mis diseños  | Piloto H3 de 8 s; 12 s opcionales para amueblado.                                                  | Imágenes IA aceptadas de una tanda compatible con el plano guía aprobado, KIE activo y confirmación de coste/envío.          |
+| Publicidad → Mis diseños    | Presentación de imágenes generadas con movimiento suave y fundidos.                                | Imágenes IA aceptadas, compatibles con el plano guía aprobado, con estilo y luz coherentes.                                  |
+| Publicidad → Vídeo guardado | Otro MP4 horizontal/vertical con panel de cotas opcional; conserva sonido y duración del original. | Montaje o H3 desde diseños aceptados, con fuentes todavía aceptadas; H3 debe estar revisado y aceptado.                      |
+| Primera persona             | Paseo independiente de hasta 60 s, encuadres IA y tramos enlazados con Hailuo 02 Standard.         | Cobertura completa, referencias aceptadas, máximo 2 € de vídeo y revisión humana de imágenes, tramos, uniones y vídeo final. |
 
 :::note[Diseños aceptados como fuente]
 Todos los vídeos y visitas finales deben conservar los renders IA que hayas aceptado en **Diseños**. El plano y su 3D aportan geometría y medidas; no son material final ni una alternativa cuando faltan imágenes. La auditoría automática no sustituye **Aceptar este diseño**. Construcción y recorrido son vídeos separados, cada uno con un máximo de 60 segundos y 2 € de generación de vídeo. La construcción actual ofrece 8 o 12 segundos; no es necesario agotar el minuto. El servidor verifica el límite antes de generar. La continuidad del paseo debe comprobarse sobre los clips reales, no solo sobre sus referencias.

@@ -14,12 +14,12 @@ export function EditorDesignDialogFrame({ title, busy = false, expanded = false,
     <Dialog.Portal>
       <Dialog.Overlay className={`fixed inset-0 ${expanded ? 'z-[110] bg-black/75' : 'z-50 bg-black/40'}`} />
       <Dialog.Content
-        className={`bg-surface text-ink fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-card border border-line p-4 shadow-2xl sm:max-h-[94dvh] sm:p-6 ${expanded ? 'z-[111] max-w-6xl' : 'z-[51] max-w-4xl'}`}
+        className={`bg-surface text-ink fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-6xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-card border border-line p-4 shadow-2xl sm:max-h-[94dvh] sm:p-6 ${expanded ? 'z-[111]' : 'z-[51]'}`}
         onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
         onCloseAutoFocus={event => { event.preventDefault(); if (returnFocus.current?.isConnected) returnFocus.current.focus(); }}
         onInteractOutside={event => event.preventDefault()}
         onEscapeKeyDown={event => { event.stopPropagation(); if (busy) event.preventDefault(); }}>
-        <header className="flex shrink-0 items-start justify-between gap-3">
+        <header className={`flex shrink-0 items-start justify-between gap-3 ${expanded ? '' : 'mb-4 border-b border-line pb-4'}`}>
           <div className="min-w-0">
             {!expanded && <p className="text-primary text-xs font-semibold uppercase tracking-[.18em]">Estudio de diseño</p>}
             <Dialog.Title className={`break-words font-semibold ${expanded ? 'text-base' : 'mt-1 text-xl'}`}>{title}</Dialog.Title>

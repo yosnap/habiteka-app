@@ -12,8 +12,11 @@ import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { snapTerrainMove } from '@/canvas/editor-v2/terrain-transform';
 import { constrainSeatingDrag } from '@/canvas/editor-v2/seating-drag';
+import { furnitureDragConstraint } from '@/canvas/editor-v2/constrained-furniture-drag';
 
 export interface PlanDrag {
+  restoreControls?: () => void;
+  constrain?: ReturnType<typeof furnitureDragConstraint>;
   last?: Furniture;
   id: string;
   start: Point;
@@ -79,7 +82,11 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
   event.stopPropagation();
   // La barra de medidas se superpone al lienzo; el arrastre conserva su punto inicial.
   root.current?.get().gl.domElement.setPointerCapture(event.pointerId);
-  return { id: item.id, item, terrain: Boolean(terrain), duplicate: event.altKey, start, pointerId: event.pointerId };
+  const controls = root.current?.get().controls as unknown as { enabled: boolean } | null;
+  const enabled = controls?.enabled;
+  if (controls) controls.enabled = false;
+  return { id: item.id, item, terrain: Boolean(terrain), duplicate: event.altKey, start, pointerId: event.pointerId,
+    restoreControls: () => { if (controls && enabled !== undefined) controls.enabled = enabled; } };
 }
 
 export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStore, scale = .05): Furniture | TerrainSurface {
@@ -87,7 +94,10 @@ export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStor
   if (!drag.terrain) {
     const target = settlePlanItem(moved as Furniture, store);
     if (drag.duplicate) return target;
-    const placed = constrainSeatingDrag(store.getState().document, drag.last ?? drag.item as Furniture, target);
+    const doc = store.getState().document;
+    const from = drag.last ?? drag.item as Furniture;
+    drag.constrain ??= furnitureDragConstraint(doc, drag.id);
+    const placed = drag.constrain(from, constrainSeatingDrag(doc, from, target));
     drag.last = placed; return placed;
   }
   const state = store.getState();
@@ -100,6 +110,7 @@ export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStor
 export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: PlanDrag,
   store: EditorStore, root: RefObject<RootState | null>, elevationM: number): void {
   if (event.pointerId !== drag.pointerId) return;
+  drag.restoreControls?.();
   const canvas = root.current?.get().gl.domElement;
   if (canvas?.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   const point = scenePlanPoint(root, event.clientX, event.clientY, elevationM);

@@ -17,7 +17,7 @@ import type { LightZoneMode } from './light-zone-draw';
 import { OPENING_TYPES } from '@/lib/editor-document/opening-types';
 
 /** Paneles que comparten la única ranura lateral del editor: solo uno abierto a la vez. */
-export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling';
+export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling' | 'assistant' | 'scene' | 'materials' | 'visualize' | 'tools' | 'settings';
 
 /**
  * Una selección normal solo actualiza el resumen: abrir Propiedades
@@ -58,6 +58,9 @@ export interface EditorState {
   setWalkthroughPlaying: (playing: boolean) => void;
   ceilingView: 'hidden' | 'transparent' | 'solid';
   setCeilingView: (view: 'hidden' | 'transparent' | 'solid') => void;
+  /** Visibilidad de trabajo: no altera paredes lógicas, geometría, aprobación ni referencias IA. */
+  hiddenElementIds: string[];
+  setElementsVisible: (ids: string[], visible: boolean) => void;
   /** Zona de luces en la que se está trabajando; es estado de sesión, no del documento. */
   activeLightZoneId: string | null;
   setActiveLightZone: (id: string | null) => void;
@@ -137,6 +140,18 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     setWalkthroughPlaying: (walkthroughPlaying) => set({ walkthroughPlaying }),
     ceilingView: 'transparent',
     setCeilingView: (ceilingView) => set({ ceilingView }),
+    hiddenElementIds: [],
+    setElementsVisible: (ids, visible) => {
+      const state = get();
+      if (state.pendingSpatial || state.tool !== 'select') {
+        set({ error: 'Termina o cancela la tarea actual antes de cambiar la visibilidad.' }); return;
+      }
+      const hidden = new Set(state.hiddenElementIds);
+      const targets = [...ids, ...state.document.openings.filter(opening => ids.includes(opening.wallId)).map(opening => opening.id),
+        ...(state.document.luminaires ?? []).filter(light => ids.includes(light.ceilingId)).map(light => light.id)];
+      targets.forEach(id => visible ? hidden.delete(id) : hidden.add(id));
+      set({ hiddenElementIds: [...hidden], selection: visible ? state.selection : state.selection.filter(id => !hidden.has(id)) });
+    },
     activeLightZoneId: null,
     setActiveLightZone: (activeLightZoneId) => set({ activeLightZoneId }),
     lightZoneDraw: null,

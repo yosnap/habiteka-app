@@ -3,11 +3,12 @@
  * así ninguna tecla queda documentada en un sitio y cableada en otro.
  */
 export type EditorShortcutId = 'select' | 'construct' | 'furnish' | 'measure' | 'snap' | 'pan' | 'fit' | 'zoomIn' | 'zoomOut'
-  | 'wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'undo' | 'redo' | 'copy' | 'paste' | 'selectAll' | 'delete';
+  | 'wall' | 'rectangle' | 'door' | 'window' | 'passage' | 'undo' | 'redo' | 'copy' | 'paste' | 'selectAll' | 'delete' | 'commands';
 
 export interface EditorShortcut { keys: string[]; label: string }
 
 export const EDITOR_SHORTCUTS: Record<EditorShortcutId, EditorShortcut> = {
+  commands: { keys: ['k'], label: 'Ctrl/⌘ K' },
   select: { keys: ['s'], label: 'S' },
   construct: { keys: ['c'], label: 'C' },
   furnish: { keys: ['f'], label: 'F' },
@@ -37,6 +38,6 @@ export const shortcutHint = (label: string, id: EditorShortcutId) => `${label} �
 export function plainShortcutFor(key: string): EditorShortcutId | undefined {
   const lower = key.length === 1 ? key.toLowerCase() : key;
   return (Object.keys(EDITOR_SHORTCUTS) as EditorShortcutId[])
-    .filter((id) => !['undo', 'redo', 'copy', 'paste', 'selectAll'].includes(id))
+    .filter((id) => !['undo', 'redo', 'copy', 'paste', 'selectAll', 'commands'].includes(id))
     .find((id) => EDITOR_SHORTCUTS[id].keys.includes(lower));
 }

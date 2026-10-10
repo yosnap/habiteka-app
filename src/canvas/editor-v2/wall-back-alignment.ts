@@ -73,10 +73,13 @@ export function orientToNearestWall(doc: EditorDocument, item: Furniture, tolera
     const across = (center.x - a.x) * -u.y + (center.y - a.y) * u.x, side = across >= 0 ? 1 : -1, normal = { x: -u.y * side, y: u.x * side };
     const distance = Math.abs(across) - wall.thicknessMm / 2, kept = keeps(normal);
     // Un muro que conserva el giro actual gana a cualquiera que obligue a girar; entre iguales, el más cercano.
-    if (distance <= item.depthMm / 2 + toleranceMm && (!best || (kept && !best.keeps) || (kept === best.keeps && distance < best.distance)))
+    // Histéresis: salir del muro actual requiere más recorrido que entrar en otro.
+    // Así un pequeño temblor del puntero en el umbral no alterna horizontal/vertical.
+    const releaseMargin = kept ? Math.min(150, toleranceMm / 2) : 0;
+    if (distance <= item.depthMm / 2 + toleranceMm + releaseMargin && (!best || (kept && !best.keeps) || (kept === best.keeps && distance < best.distance)))
       best = { distance, keeps: kept, normal, face: { x: a.x + normal.x * wall.thicknessMm / 2, y: a.y + normal.y * wall.thicknessMm / 2 } };
   }
-  if (!best) return item;
+  if (!best) return preferredRotation === item.rotation ? item : transformAroundCenter(item, { rotation: preferredRotation });
   // Giro entre 0 y 360, como el resto del plano: el panel mostraba -90 donde el usuario pone 270.
   const turned = backAgainst(item, best);
   return { ...turned, rotation: ((turned.rotation % 360) + 360) % 360 };

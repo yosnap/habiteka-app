@@ -1,4 +1,5 @@
 'use client';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { Arc, Group, Line, Rect, Text } from 'react-konva';
@@ -53,6 +54,7 @@ function Symbol({ opening, thickness, scale, active = false, continuous = false 
 /** Provisional openings never enter history. Drag commits one validated host change. */
 export function OpeningLayer({ store, scale, disabled = false, documentPreview }: { store: EditorStore; scale: number; disabled?: boolean; documentPreview?: EditorDocument }) {
   const source = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
+  const hidden = useHiddenElements(store);
   const doc = documentPreview ?? source;
   const entrances = landingEntranceSurfaces(doc);
   const selected = useStore(store, (s) => s.selection), readOnly = useStore(store, (s) => s.readOnly);
@@ -121,7 +123,7 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
     </Group>)}
     {host && <Line points={wallPath(doc, host).samples().flatMap((p) => [p.x, p.y])} listening={false}
       stroke={candidate?.valid ? GREEN : RED} opacity={.65} strokeWidth={host.thicknessMm + 6 / scale} />}
-    {doc.openings.filter((opening) => !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
+    {doc.openings.filter((opening) => !hidden.has(opening.id) && !hidden.has(opening.wallId) && !doc.walls.find((wall) => wall.id === opening.wallId)?.hidden).map((opening) => {
       const wall = doc.walls.find((w) => w.id === opening.wallId)!, path = wallPath(doc, wall), direction = path.tangent(opening.position);
       const center = path.at(opening.position), angle = Math.atan2(direction.y, direction.x) * 180 / Math.PI;
       return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id && preview?.opening.id === opening.id ? .35 : 1}

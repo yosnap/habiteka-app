@@ -43,7 +43,7 @@ export function ConstructionMenu({ onClose, onImport, initialCategory = null, on
   const [category, setCategory] = useState<ConstructionCategory | null>(initialCategory);
   const categories = [...baseCategories, ...structureCategories,
     ...(catalogProps.onAddStair ? [{ id: 'stairs' as const, label: 'Escaleras' }] : [])];
-  return <aside className={`${styles.constructionMenu} ${ui.panel}`} aria-label="Construir" onKeyDown={(event) => {
+  return <aside className={`${styles.constructionMenu} ${ui.panel}`} data-workspace-construction aria-label="Construir" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
     <div className={styles.constructionHeading}><h2>{category === 'outdoor' ? 'Exterior y jardín' : 'Construir'}</h2>

@@ -3,6 +3,26 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Espacio de trabajo — 10 de octubre de 2026
+
+El ajuste de muebles a paredes conserva la orientación durante el arrastre y la colocación desde catálogo. En las esquinas, pequeños movimientos no alternan entre horizontal y vertical; al acercarlo claramente a otra pared, vuelve a orientarse. Soltar conserva la posición mostrada.
+
+La fila de Seleccionar, Texto y Propiedades deja de ocupar espacio en reposo. **Añadir texto** está en Herramientas y Propiedades sigue en Escena, la selección y el doble clic. Al mover un mueble en Amueblado o Modelo 3D, el arrastre se detiene ante paredes y obstáculos, permitiendo soltarlo en el último punto válido.
+
+**Opciones de escena** reúne búsqueda con Ctrl/Cmd+K, plantas apiladas/separadas/aisladas, techo, paredes, jardín, nueve estilos visuales, cuadrícula, nombres y medidas generales en metros o pies. En Modelo 3D puedes explorar el plano guía haciendo clic sobre suelo visible: el desplazamiento respeta pasos y colisiones. Son ayudas de trabajo; las referencias y visitas finales conservan sus requisitos de geometría y diseños IA aceptados.
+
+El selector de vistas pasa a botones directos con la vista activa en oscuro y herramientas rápidas desplegables. Los controles de recorrido tienen una franja reservada para evitar solapamientos con los flotantes.
+
+Las pestañas de Escena y de propiedades incorporan iconos y texto. Los acordeones de paredes con huecos y techos con luces prescinden de recuadros y líneas interiores; la sangría conserva la relación entre sus elementos.
+
+Plano 2D, Amueblado y Modelo 3D incorporan una barra izquierda de modos y tareas, con Ayuda y Ajustes abajo y paneles flotantes. Escena permite buscar y localizar elementos; Acabados abre los controles actuales; el asistente del proyecto y zona puede utilizarse junto al lienzo. El plano 2D conserva su método de construcción y herramientas.
+
+El lateral reúne siete grupos que despliegan sus opciones. Exterior está en Construir, Recorrido en Herramientas y Propiedades en Escena. Las vistas y herramientas rápidas flotan arriba; iluminación tiene su propio desplegable y la cámara queda centrada abajo. Los paneles se ajustan al contenido, con desplazamiento interno y sin arrastre, también en móvil.
+
+Escena tiene pestañas de Estructura, Mobiliario y Estancias, acordeones de paredes con puertas y ventanas, búsqueda y listas ampliables con Mostrar más. Permite localizar, renombrar mediante los campos actuales y ocultar elementos solo en el editor. Esa ocultación no cambia geometría ni referencias IA.
+
+La misma pestaña recupera la vista, las selecciones válidas y la cámara exterior por usuario, proyecto, zona y planta. Diseños tiene una galería más amplia y Vídeos separa el tipo de trabajo de sus opciones. Se mantienen guardado, backup, aprobación, aceptación de imágenes y confirmación de coste. Audio del espacio de trabajo: pendiente.
+
 ## Versión 0.6.0 — 8 de octubre de 2026
 
 - **Exportar e importar proyectos:** **Exportar** en la tarjeta de un proyecto, o **Exportar proyecto** en el menú del editor, descarga un archivo `.habiteka` con el plano, el editor, los diseños, los vídeos y sus archivos. **Importar proyecto** en **Mis proyectos** lo convierte en un proyecto nuevo en otra cuenta o instalación. Consulta [Primer proyecto](/guias/primer-proyecto/#exportar-e-importar-un-proyecto).
@@ -294,12 +314,12 @@ Estas guías corresponden a la implementación actual del repositorio. El entorn
 
 ## Pendiente
 
-| Función | Situación |
-|---|---|
-| Etapas de reforma parcial | Pendiente definición de elementos conservados. |
-| Película fotorrealista continua | Pendiente imágenes coherentes, guion y piloto de clips con presupuesto. |
-| Editor de tomas y ritmo libre | Pendiente; construcción ya permite elegir 8 o 12 s. |
-| Cotas geométricas sobre vídeo IA | Pendiente seguimiento de cámara; el panel de medidas globales sí está disponible en publicidad. |
-| Música, locución y pistas externas | Pendiente; los efectos sintetizados de construcción sí están disponibles en vídeo nativo. |
+| Función                            | Situación                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Etapas de reforma parcial          | Pendiente definición de elementos conservados.                                                  |
+| Película fotorrealista continua    | Pendiente imágenes coherentes, guion y piloto de clips con presupuesto.                         |
+| Editor de tomas y ritmo libre      | Pendiente; construcción ya permite elegir 8 o 12 s.                                             |
+| Cotas geométricas sobre vídeo IA   | Pendiente seguimiento de cámara; el panel de medidas globales sí está disponible en publicidad. |
+| Música, locución y pistas externas | Pendiente; los efectos sintetizados de construcción sí están disponibles en vídeo nativo.       |
 
 Las funciones pendientes se documentan como tales; sus guías se actualizarán cuando estén implementadas y verificadas.

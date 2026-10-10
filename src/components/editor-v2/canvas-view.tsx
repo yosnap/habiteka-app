@@ -75,6 +75,8 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const snapEnabled = useStore(store, (s) => s.snap);
   const pendingSplitWallId = useStore(store, (s) => s.pendingSplitWallId);
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
+  const [placementOrientation, setPlacementOrientation] = useState<{ item: SpatialClipboardItem; rotation: number } | null>(null);
+  const preferredPlacementRotation = placementOrientation?.item === pendingSpatial ? placementOrientation.rotation : undefined;
   const zoneTool = useLightZoneTool(store);
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
   // ⌘/Ctrl mientras se dibuja: el muro no se une a esquinas ni a muros. La medida tecleada fija la longitud del tramo.
@@ -314,8 +316,8 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
-  }, [doc, pendingSpatial, pointer, snapEnabled, view.scale]);
+    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true, preferredRotation: preferredPlacementRotation });
+  }, [doc, pendingSpatial, pointer, snapEnabled, view.scale, preferredPlacementRotation]);
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
@@ -383,7 +385,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
             setPointer(null); return;
           }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
+          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true, preferredRotation: preferredPlacementRotation });
           store.getState().placePendingSpatial(item); setPointer(null); return;
         }
         if (splitting) {
@@ -411,7 +413,15 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       }} onPointerMove={() => {
         if (!pan && showRoof) { roofTool.pointerMove(); return; }
         if (!pan && zoneTool.active) { const p = point(); if (p) zoneTool.pointerMove(p); return; }
-        if (!pan && placingSpatial) { const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null); if (raw && pendingSpatial) { const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 }); snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale); } return; }
+        if (!pan && placingSpatial) {
+          const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null);
+          if (raw && pendingSpatial) {
+            const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
+            const placed = snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, preferredPlacementRotation);
+            if (placed.rotation !== preferredPlacementRotation) setPlacementOrientation({ item: pendingSpatial, rotation: placed.rotation });
+          }
+          return;
+        }
         if (!pan && splitting) { setPointer(point()); return; }
         if (!pan && marquee) { const p = point(); if (p) setMarquee((current) => current ? { ...current, to: p } : null); return; }
         if (pan || !drawing) return;

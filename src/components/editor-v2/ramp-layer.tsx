@@ -1,4 +1,5 @@
 'use client';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapSpatialDrag } from './magnetic-drag';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
@@ -30,6 +31,7 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
   const dragging = useRef<{ node: Konva.Node; ramp: Ramp } | null>(null);
   const [guideRamp, setGuideRamp] = useState<Ramp | null>(null);
   const source = useStore(store, (state) => state.document.ramps);
+  const hidden = useHiddenElements(store);
   const ramps = documentPreview?.ramps ?? source, selection = useStore(store, (state) => state.selection);
   const tool = useStore(store, (state) => state.tool), readOnly = useStore(store, (state) => state.readOnly);
   const doc = useStore(store, (state) => state.document);
@@ -82,7 +84,7 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
     try { state.apply(updateRamp(state.document, ramp.id, { route: { ...ramp.route, ...(index === 1 ? { landingOffset: offset } : { secondOffset: offset }) } })); }
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo ubicar la parte'); }
   };
-  return <Group>{(ramps ?? []).map((ramp) => {
+  return <Group>{(ramps ?? []).filter(ramp => !hidden.has(ramp.id)).map((ramp) => {
     const active = selection.includes(ramp.id), layout = rampLayout(ramp);
     const parts = rampParts(ramp);
     const finish = walkableSurfaceFinish(ramp.materialId, ramp.color);

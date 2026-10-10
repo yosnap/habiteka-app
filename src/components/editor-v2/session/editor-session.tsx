@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { listStoryboardImages } from '@/server/walkthrough/storyboard-gallery';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useStore } from 'zustand';
@@ -39,6 +40,7 @@ export function EditorSession({
   projectName,
   autoGenerate,
   reference,
+  assistant,
 }: {
   scope: DraftScope;
   initial: EditorDocument;
@@ -47,6 +49,7 @@ export function EditorSession({
   projectName: string;
   autoGenerate?: AutoGenerateRequest | null;
   reference?: PlanReference | null;
+  assistant?: ReactNode;
 }) {
   const router = useRouter();
   const [queue] = useState(
@@ -315,6 +318,7 @@ export function EditorSession({
         preferencesOwner={scope.userId}
         store={store}
         reference={reference}
+        assistant={assistant}
         projectName={projectName}
         onOpenVideoStudio={() => void openVideos()}
         loadStoryboardImages={loadStoryboardImages}

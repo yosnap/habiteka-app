@@ -1,4 +1,9 @@
 'use client';
+import { WorkspaceSceneOptions } from '../workspace/workspace-scene-options';
+import { DEFAULT_SCENE_OPTIONS, explodedOffset, sceneOptionHiddenIds } from '../workspace/scene-options-state';
+import { SceneWorkspaceOverlays, SceneWorkspaceStyle } from './scene-workspace-overlays';
+import { WorkspaceRouteControls } from '../workspace/workspace-route-controls';
+import { SceneElementVisibility } from './scene-element-visibility';
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { TriangleAlert, X } from 'lucide-react';
 import { Canvas, type RootState } from '@react-three/fiber';
@@ -108,6 +113,8 @@ function SceneView({
   store,
   videoStudio,
   projectId,
+  navigationKey,
+  workspaceControls = false,
   presentation = 'spatial',
   allowVideoExport = false,
   onOpenApprovedRoute,
@@ -124,6 +131,8 @@ function SceneView({
   store: EditorStore;
   videoStudio?: VideoStudioScene;
   projectId?: string;
+  navigationKey?: string;
+  workspaceControls?: boolean;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
   onOpenApprovedRoute?: (routeId: string) => Promise<void>;
@@ -139,6 +148,8 @@ function SceneView({
 }) {
   const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
   const [terrainPreview, setTerrainPreview] = useState<TerrainSurface | null>(null);
+  const [sceneOptions, setSceneOptions] = useState(DEFAULT_SCENE_OPTIONS);
+  const optionHiddenIds = useMemo(() => sceneOptionHiddenIds(document, sceneOptions), [document, sceneOptions]);
   const sceneDocument = useMemo(() => terrainPreview ? { ...document,
     terrainSurfaces: document.terrainSurfaces?.map(surface => surface.id === terrainPreview.id ? terrainPreview : surface) } : document, [document, terrainPreview]);
   const studioRegions = useMemo(() => {
@@ -208,6 +219,7 @@ function SceneView({
   // Estancia en la que está la cámara. Es estado de la vista 3D, no del documento.
   const [interiorRoomId, setInteriorRoomId] = useState<string | null>(null);
   const [allLevels, setAllLevels] = useState(false);
+  const [exploded, setExploded] = useState(false);
   const multiLevelRoute = Boolean(route?.waypoints.some((point) => point.levelId));
   const renderAllLevels = allLevels || promoting || Boolean(videoStudio && videoStudio.mode !== 'walkthrough') || (multiLevelRoute && (walking || recording));
   const activeElevation = renderAllLevels ? buildingDocuments(document).find((level) => level.id === document.activeLevelId)?.elevationMm ?? 0 : 0;
@@ -249,9 +261,10 @@ function SceneView({
       ?? walkOpenFocus(start, nav.segmentFree);
     const focus: [number, number, number] = selected?.camera.focus ?? [target.x / 1000, 1.6, target.y / 1000];
     store.getState().setWalkthroughPlaying(false);
-    setAllLevels(Boolean(document.levels?.length && stairLinks.length)); setCutaway(false); setInteriorRoomId(null);
+    setAllLevels(Boolean(document.levels?.length)); setExploded(false); setCutaway(false); setInteriorRoomId(null);
+    store.getState().closeSidePanel();
+    freeWalkController.setMessage('Pulsa suelo visible para caminar; arrastra para mirar.');
     setWalkPaused(false); setFreeWalk({ start, focus });
-    void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined);
   };
   const exitFreeWalk = () => { pauseFreeWalk(); setFreeWalk(null); };
   const inside = interiorRoomId !== null && interiorCameras.some((room) => room.roomId === interiorRoomId);
@@ -456,11 +469,14 @@ function SceneView({
   ], [activeLuminaires, activeStrips, priorityRoomId, otherLevels]);
   const lightBudgets = useMemo(() => levelLightBudgets(budgetLevels).slice(1), [budgetLevels]);
   const coverage = useMemo(() => lightingCoverage(budgetLevels), [budgetLevels]);
-  const planElevationM = activeElevation / 1000;
+  const workViewDisabled = !workspaceControls || capturingPose || captureCeilings !== null || recording || exporting || walking || Boolean(freeWalk);
+  const explodedView = exploded && allLevels && !workViewDisabled;
+  const visualLevelOffset = (id: string | undefined) => explodedOffset(document, id, explodedView);
+  const planElevationM = (activeElevation + visualLevelOffset(document.activeLevelId)) / 1000;
   const pendingPlanItem = presentation === 'plan' && pendingSpatial && planHover
     ? positionedPending(pendingSpatial, planHover, store) : null;
   const onPlanPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (presentation !== 'plan' || pan) return;
+    if (pan || (presentation !== 'plan' && !planDrag.current)) return;
     const point = scenePlanPoint(root, event.clientX, event.clientY, planElevationM);
     if (!point) return;
     if (pendingSpatial) setPlanHover(point);
@@ -485,6 +501,7 @@ function SceneView({
   const onPlanPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = planDrag.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.restoreControls?.();
     const canvas = root.current?.get().gl.domElement;
     if (canvas?.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     planDrag.current = null;
@@ -513,7 +530,7 @@ function SceneView({
   const ceilingOffset = (elevationMm: number) => elevationMm < highestRenderedElevation ? -.02 : 0;
   const lost = useCallback(() => setContextLost(true), [setContextLost]);
   const manualCameraChange = useCallback(() => setActiveView(null), [setActiveView]);
-  const sceneVersion = `${document.activeLevelId ?? 'base'}:${activeElevation}:${renderAllLevels}`;
+  const sceneVersion = `${document.activeLevelId ?? 'base'}:${activeElevation}:${renderAllLevels}:${exploded && !workViewDisabled}`;
   const select = (id: string) => {
     if (!abortRecording.current && !freeWalk && !(presentation === 'plan' && (store.getState().pan || store.getState().pendingSpatial))) {
       store.getState().select([id]);
@@ -640,7 +657,7 @@ function SceneView({
       onPlanClick(event);
     }}
     onPointerMove={onPlanPointerMove} onPointerUp={onPlanPointerUp} onPointerCancel={onPlanPointerCancel}>
-    {presentation === 'spatial' && route && !freeWalk && !videoStudio && <div style={{ position: 'absolute', zIndex: 5, top: 16, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', boxShadow: '0 8px 24px #17352724', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
+    {presentation === 'spatial' && route && !freeWalk && !videoStudio && <WorkspaceRouteControls enabled={workspaceControls} anchor={sceneContainer}><div style={{ position: 'absolute', zIndex: 5, top: 16, left: 24, maxWidth: 'calc(100% - 48px)', padding: 12, borderRadius: 8, background: '#fff', color: '#22362e', boxShadow: '0 8px 24px #17352724', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} aria-label="Reproducir recorrido">
       <strong>{route.name}</strong>
       {routeExport && routeExport.durationMs > 0 && <span>{Math.ceil(routeExport.durationMs / 1000)} s de recorrido</span>}
       <button type="button" disabled={recording} onClick={() => store.getState().hideWalkthrough()}>Ocultar recorrido</button>
@@ -659,7 +676,7 @@ function SceneView({
       {routeExport?.walkthroughIssue && <span role="alert">{routeExport.walkthroughIssue}</span>}
       {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
-    </div>}
+    </div></WorkspaceRouteControls>}
     <Canvas events={scenePointerEvents} frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
       onCreated={onSceneCreated} camera={{ position: [8, 9, -10], fov: presentation === 'plan' ? 25 : 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => {
@@ -668,11 +685,16 @@ function SceneView({
       <SceneLighting key={lighting} document={document} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
       <SceneEnvironment preset={lighting} />
-      {projectId && document.geographicSite?.confirmed && <GeographicSiteScene
+      {workspaceControls && <>
+        <SceneElementVisibility store={store} extraIds={optionHiddenIds} disabled={workViewDisabled} />
+        <SceneWorkspaceStyle style={sceneOptions.style} disabled={workViewDisabled} />
+        <SceneWorkspaceOverlays document={document} options={{ ...sceneOptions, names: sceneOptions.names && presentation === 'spatial' && (ceilingView !== 'solid' || (explodedView && activeElevation < highestRenderedElevation)) }} elevationMm={activeElevation + visualLevelOffset(document.activeLevelId)} disabled={workViewDisabled} />
+      </>}
+      {projectId && document.geographicSite?.confirmed && (workViewDisabled || sceneOptions.garden) && <GeographicSiteScene
         projectId={projectId} site={document.geographicSite} onReady={setSiteReady} />}
       {videoStudio && <VideoSceneScope regions={studioRegions} disabled={recording} hideTerrain={Boolean(document.geographicSite?.confirmed)} />}
       <Bounds>
-        <group position={[0, activeElevation / 1000, 0]} onContextMenu={presentation === 'plan' ? (event) => {
+        <group position={[0, (activeElevation + visualLevelOffset(document.activeLevelId)) / 1000, 0]} onContextMenu={presentation === 'plan' ? (event) => {
           const id = sceneEntityId(event.object), item = document.furniture.find((entry) => entry.id === id);
           if (!item || store.getState().readOnly || store.getState().pendingSpatial) return;
           event.stopPropagation();
@@ -682,14 +704,17 @@ function SceneView({
           if (rect) setPlanMenu({ id: item.id,
             x: Math.max(8, Math.min(event.clientX - rect.left, rect.width - 254)),
             y: Math.max(8, Math.min(event.clientY - rect.top, rect.height - 358)) });
-        } : undefined} onPointerDown={presentation === 'plan' ? (event) => {
-          if (!store.getState().pan) planDrag.current = beginPlanDrag(event, store, root, planElevationM);
+        } : undefined} onPointerDown={presentation === 'plan' || (!workViewDisabled && !inside) ? (event) => {
+          if (!store.getState().pan) {
+            planDrag.current = beginPlanDrag(event, store, root, planElevationM);
+            if (planDrag.current) setPlanPreview({ id: planDrag.current.id, dxMm: 0, dyMm: 0, dzMm: 0 });
+          }
         } : undefined}>
           <OutdoorLighting document={document} />
           <ExteriorRoofMeshes document={document} exteriorWalls={scene.exteriorWalls} cutaway={!walking && !freeWalk && !recording && !capturingPose && wallCutaway}
-            visible={recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : !inside && presentation === 'spatial' && ceilingView !== 'hidden')} />
+            visible={(!explodedView || activeElevation === highestRenderedElevation) && (recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : !inside && presentation === 'spatial' && ceilingView !== 'hidden'))} />
           <group position={[0, ceilingOffset(activeElevation), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
-            <CeilingLightingMeshes document={document} view={walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? (presentation === 'plan' ? 'hidden' : ceilingView)}
+            <CeilingLightingMeshes document={document} view={explodedView && activeElevation < highestRenderedElevation ? 'hidden' : walking || recording || inside || freeWalk ? 'solid' : captureCeilings ?? (presentation === 'plan' ? 'hidden' : ceilingView)}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === document.activeLevelId).map((link) => link.outline)}
               selection={selection} onSelect={select} priorityRoomId={priorityRoomId} />
           </group>
@@ -729,12 +754,12 @@ function SceneView({
             </mesh>;
           })()}
         </group>
-        {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, level.elevationMm / 1000, 0]}>
+        {otherLevels.filter(() => Boolean(document.levels)).map((level, index) => <group key={level.id} position={[0, (level.elevationMm + visualLevelOffset(level.id)) / 1000, 0]}>
           <OutdoorLighting document={level.document} />
           <ExteriorRoofMeshes document={level.document} exteriorWalls={level.scene.exteriorWalls} cutaway={!walking && !freeWalk && !recording && !capturingPose && wallCutaway}
-            visible={recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : presentation === 'spatial' && ceilingView !== 'hidden')} />
+            visible={(!explodedView || level.elevationMm === highestRenderedElevation) && (recording || walking || !!freeWalk || (captureCeilings !== null ? captureCeilings !== 'hidden' : presentation === 'spatial' && ceilingView !== 'hidden'))} />
           <group position={[0, ceilingOffset(level.elevationMm), 0]} visible={showLighting} userData={{ lightingLayer: true, videoStage: 2 }}>
-            <CeilingLightingMeshes document={level.document} view={walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
+            <CeilingLightingMeshes document={level.document} view={explodedView && level.elevationMm < highestRenderedElevation ? 'hidden' : walking || recording || freeWalk ? 'solid' : captureCeilings ?? ceilingView}
               ceilingVoids={stairLinks.filter((link) => link.lowerLevelId === level.id).map((link) => link.outline)}
               lightBudget={lightBudgets[index]} shadowBudget={0} />
           </group>
@@ -761,12 +786,13 @@ function SceneView({
         <WalkCamera store={store} elevationMm={activeElevation} />
         {freeWalk && <FreeWalkCamera document={document} start={freeWalk.start} focus={freeWalk.focus}
           paused={walkPaused} viewMode={walkViewMode} controller={freeWalkController} onPause={pauseFreeWalk} onToggleView={toggleWalkView} />}
-        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording} plan={presentation === 'plan'} pan={pan}
-          onManualChange={manualCameraChange} onContextLost={lost} onApplied={onCameraApplied} />
+        <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording && !planPreview} plan={presentation === 'plan'} pan={pan}
+          onManualChange={manualCameraChange} persistenceKey={navigationKey ? `${navigationKey}:camera:${presentation}:${sceneVersion}` : undefined}
+          canPersist={() => !cameraApplied.current && !capturingPose && !walking && !freeWalk && !recording && !exporting} onContextLost={lost} onApplied={onCameraApplied} />
       </Bounds>
       {presentation === 'plan' && <SceneTerrainControls store={store} source={document} preview={terrainPreview}
         movePreview={planPreview} elevation={planElevationM} onPreview={setTerrainPreview} />}
-      {presentation === 'plan' && document.labels.map((label) => <Html key={label.id}
+      {presentation === 'plan' && (workViewDisabled || sceneOptions.names) && document.labels.map((label) => <Html key={label.id}
         position={[label.x / 1000, planElevationM + .04, label.y / 1000]} center
         style={{ pointerEvents: 'none', whiteSpace: 'nowrap', color: '#263630', fontSize: 15,
           fontWeight: 700, letterSpacing: '.01em', textShadow: '0 1px 3px #fff, 0 0 6px #fff' }}>
@@ -816,10 +842,19 @@ function SceneView({
       viewMode={walkViewMode} onToggleView={toggleWalkView}
       onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
       onExit={exitFreeWalk} onMouse={() => { setWalkPaused(false); void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined); }} />}
-    {!lightingLocked && <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
+    {!lightingLocked && (workspaceControls ? <div data-workspace-lighting>
+      <WorkspaceSceneOptions options={sceneOptions} onChange={setSceneOptions} spatial={presentation === 'spatial'}
+        floors={!allLevels ? 'solo' : exploded ? 'exploded' : 'stacked'} hasLevels={(document.levels?.length ?? 0) > 1}
+        onFloors={(value) => { setExploded(value === 'exploded'); setAllLevels(value !== 'solo'); setInteriorRoomId(null);
+          store.getState().setCeilingView(value === 'solo' ? 'hidden' : 'solid');
+          setRequest((r) => ({ sequence: r.sequence + 1, action: 'fit' })); }}
+        ceiling={ceilingView} onCeiling={(value) => store.getState().setCeilingView(value)}
+        cutaway={cutaway} onCutaway={() => setCutaway((value) => !value)} lighting={lighting} onLighting={(value) => onLightingChange?.(value)}
+        onTop={() => camera('top')} onWalk={enterFreeWalk} disabled={workViewDisabled || Boolean(pendingSpatial) || store.getState().tool !== 'select'} />
+    </div> : <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }} aria-label="Iluminación de la escena">
       {(Object.keys(SCENE_LIGHTING_LABELS) as SceneLightingPreset[]).map((preset) => <button key={preset} type="button"
         disabled={recording} aria-pressed={lighting === preset} onClick={() => onLightingChange?.(preset)}>{SCENE_LIGHTING_LABELS[preset]}</button>)}
-    </div>}
+    </div>)}
     {coverage.enabled > coverage.emitting && <div role="status" style={{ position: 'absolute', bottom: 56, right: 16, maxWidth: 300, padding: '6px 9px', borderRadius: 'var(--radius)', background: 'rgba(250, 252, 250, .94)', border: '1px solid var(--line)', color: '#294640', fontSize: 11, lineHeight: 1.35 }}>
       {coverage.emitting} de {coverage.enabled} luces iluminan en 3D (límite del navegador); el diseño con IA las usa todas.
       {' '}{inside ? 'Se priorizan las de la estancia en la que estás.' : 'Entra en una estancia para priorizar las suyas.'}
@@ -852,6 +887,8 @@ export function EditorSceneView({
   store,
   videoStudio,
   projectId,
+  navigationKey,
+  workspaceControls,
   presentation,
   allowVideoExport,
   onOpenApprovedRoute,
@@ -868,6 +905,8 @@ export function EditorSceneView({
   store: EditorStore;
   videoStudio?: VideoStudioScene;
   projectId?: string;
+  navigationKey?: string;
+  workspaceControls?: boolean;
   presentation?: 'plan' | 'spatial';
   allowVideoExport?: boolean;
   onOpenApprovedRoute?: (routeId: string) => Promise<void>;
@@ -881,7 +920,7 @@ export function EditorSceneView({
   showNotices?: boolean;
   readOnlyLabel?: string;
 }) {
-  return <SceneErrorBoundary><SceneView store={store} videoStudio={videoStudio} projectId={projectId} presentation={presentation} allowVideoExport={allowVideoExport}
+  return <SceneErrorBoundary><SceneView store={store} videoStudio={videoStudio} projectId={projectId} navigationKey={navigationKey} workspaceControls={workspaceControls} presentation={presentation} allowVideoExport={allowVideoExport}
     onOpenApprovedRoute={onOpenApprovedRoute}
     lightingPreset={lightingPreset} onLightingChange={onLightingChange} lightingLocked={lightingLocked}
     onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady}

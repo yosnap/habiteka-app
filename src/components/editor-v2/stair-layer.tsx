@@ -1,4 +1,5 @@
 'use client';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapSpatialDrag } from './magnetic-drag';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
 
@@ -30,6 +31,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
   const container = useRef<Konva.Group>(null);
   const dragging = useRef<{ node: Konva.Node; stair: Stair } | null>(null);
   const source = useStore(store, (state) => state.document.stairs);
+  const hidden = useHiddenElements(store);
   const stairs = documentPreview?.stairs ?? source;
   const selection = useStore(store, (state) => state.selection);
   const tool = useStore(store, (state) => state.tool);
@@ -87,7 +89,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
   };
 
   return <Group ref={container}>
-    {models.map(({ stair, layout, ascent }) => {
+    {models.filter(({ stair }) => !hidden.has(stair.id)).map(({ stair, layout, ascent }) => {
       const active = selection.includes(stair.id);
       const finish = walkableSurfaceFinish(stair.materialId, stair.color);
       return <Group key={stair.id} x={stair.x} y={stair.y} rotation={stair.rotation}

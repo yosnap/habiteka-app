@@ -23,18 +23,22 @@ const isEditable = (target: EventTarget | null) =>
  * al pulsar fuera, salvo el catálogo, Propiedades y mientras se dibuja con una herramienta
  * distinta de «Seleccionar» (una tira LED o una zona), donde cada clic va al plano.
  */
-export function EditorSidePanel({ store, title, children }: {
-  store: EditorStore; title: string; children: ReactNode;
+export function EditorSidePanel({ store, title, children, open = true, restoreFocus = false }: {
+  store: EditorStore; title: string; children: ReactNode; open?: boolean; restoreFocus?: boolean;
 }) {
   const attach = useCallback((node: HTMLElement | null) => {
-    if (!node) return;
+    if (!node || !open) return;
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = restoreFocus && (!active?.matches('button, a, summary') || active.closest('[data-workspace-panel]'))
+      ? node.closest('[data-mode]')?.querySelector<HTMLElement>('[data-workspace-rail] button[aria-expanded="true"]') ?? active
+      : active;
     const closeOnOutside = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Node) || node.contains(target)) return;
       const element = target instanceof Element ? target : target.parentElement;
       if (element?.closest(KEEP_OPEN)) return;
       // Colocar objetos o cambiar la selección no interrumpe el panel de trabajo.
-      if (['catalog', 'inspector'].includes(store.getState().sidePanel ?? '')) return;
+      if (['catalog', 'inspector', 'assistant', 'scene', 'materials', 'visualize', 'tools', 'settings'].includes(store.getState().sidePanel ?? '')) return;
       if (store.getState().tool !== 'select') return;
       store.getState().closeSidePanel();
     };
@@ -47,9 +51,12 @@ export function EditorSidePanel({ store, title, children }: {
     return () => {
       document.removeEventListener('pointerdown', closeOnOutside);
       document.removeEventListener('keydown', closeOnEscape);
+      if (restoreFocus) queueMicrotask(() => {
+        if (opener?.isConnected && (node.contains(document.activeElement) || document.activeElement === document.body)) opener.focus({ preventScroll: true });
+      });
     };
-  }, [store]);
-  return <div ref={attach} className={styles.sidebar} data-open="true" role="dialog" aria-label={title}>
+  }, [store, open, restoreFocus]);
+  return <div ref={attach} className={styles.sidebar} data-workspace-panel data-open={open ? 'true' : 'false'} hidden={!open} role="dialog" aria-label={title}>
     <header className={styles.sidePanelHeader}>
       <h2>{title}</h2>
       <button type="button" onClick={() => store.getState().closeSidePanel()} aria-label={`Cerrar ${title.toLowerCase()}`}>

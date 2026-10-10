@@ -233,8 +233,8 @@ function collisionLabel(doc: EditorDocument, id: string): string {
   return 'otro elemento';
 }
 /** Legacy intersections remain repairable; edits cannot introduce or deepen one. */
-export function assertSpatialPlacement(previous: EditorDocument, candidate: EditorDocument): void {
-  const before = collisions(previous), after = collisions(candidate);
+export function assertSpatialPlacement(previous: EditorDocument, candidate: EditorDocument, before = collisions(previous)): void {
+  const after = collisions(candidate);
   const columnIds = new Set([...(previous.columns ?? []), ...(candidate.columns ?? [])].map((column) => column.id));
   const structuralIds = new Set([
     ...previous.walls, ...candidate.walls,
@@ -275,6 +275,11 @@ export function assertSpatialPlacement(previous: EditorDocument, candidate: Edit
     }
   }
 }
+/** Static geometry used to detect contacts during a drag. */
+export function placementSolids(doc: EditorDocument): Solid[] {
+  return [...walls(doc), ...doorSweepSolids(doc), ...[...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].flatMap(objectSolids)];
+}
+
 /** Insert/copy beside the requested location without overlapping existing solids. */
 export function placeNewObject(previous: EditorDocument, candidate: EditorDocument, id: string): EditorDocument {
   const item = planObjects(candidate).find((f) => f.id === id) ?? candidate.stairs?.find((s) => s.id === id) ?? candidate.ramps?.find((r) => r.id === id) ?? candidate.columns?.find((c) => c.id === id);
@@ -340,7 +345,10 @@ export function snapObject(doc: EditorDocument, item: Furniture | Stair | Ramp |
   // Durante un arrastre la orientación elegida por el usuario tiene prioridad sobre el giro automático al muro.
   if (furniture) {
     // Al arrastrar o colocar, una pieza de pared se orienta al muro al que se acerca su centro.
-    const oriented = options.orientToWall ? orientToNearestWall(doc, result as Furniture, faceTolerance, options.preferredRotation) : result as Furniture;
+    // Elegir muro con el centro solicitado, antes de los imanes de esquinas y rejilla.
+    // Estos cambian al girar la huella y no deben realimentar la elección de pared.
+    const wallOriented = options.orientToWall ? orientToNearestWall(doc, item as Furniture, faceTolerance, options.preferredRotation) : item;
+    const oriented = wallOriented === item ? result as Furniture : wallOriented as Furniture;
     const positioned = options.preserveRotation ? oriented : alignBackToWall(doc, oriented, faceTolerance);
     result = restOnHost(doc, dockToWindow(doc, positioned, faceTolerance), { alignRotation: !options.preserveRotation });
   }

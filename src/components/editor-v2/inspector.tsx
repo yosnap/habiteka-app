@@ -6,7 +6,7 @@ import { BoundaryFields } from './boundary-fields';
 import { KitchenFields } from './kitchen-fields';
 import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
-import { MousePointer2, Search } from 'lucide-react';
+import { MousePointer2, Paintbrush, Ruler, Search, StickyNote } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -130,9 +130,9 @@ export function Inspector({ store }: { store: EditorStore }) {
       </>}
       {!mixed && <>
       {(appearance || comments) && <div className={properties.tabs} role="group" aria-label="Secciones de propiedades">
-        <button type="button" aria-pressed={!mode} onClick={() => store.getState().setDetailPanel(null)}>Medidas</button>
-        {appearance && <button type="button" aria-pressed={mode === 'paint'} onClick={() => store.getState().setDetailPanel('paint')}>Acabados</button>}
-        {comments && <button type="button" aria-pressed={mode === 'comments'} onClick={() => store.getState().setDetailPanel('comments')}>Notas ({doc.comments?.filter((item) => item.targetEntityId === id).length ?? 0})</button>}
+        <button type="button" aria-pressed={!mode} onClick={() => store.getState().setDetailPanel(null)}><Ruler size={17} aria-hidden="true" /><span>Medidas</span></button>
+        {appearance && <button type="button" aria-pressed={mode === 'paint'} onClick={() => store.getState().setDetailPanel('paint')}><Paintbrush size={17} aria-hidden="true" /><span>Acabados</span></button>}
+        {comments && <button type="button" aria-pressed={mode === 'comments'} onClick={() => store.getState().setDetailPanel('comments')}><StickyNote size={17} aria-hidden="true" /><span>Notas ({doc.comments?.filter((item) => item.targetEntityId === id).length ?? 0})</span></button>}
       </div>}
       {mode === 'paint' && <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
         {room ? <FloorFinishPanel store={store} embedded /> : selectedWallIds.length > 1

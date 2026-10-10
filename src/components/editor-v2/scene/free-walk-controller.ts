@@ -8,10 +8,13 @@ export class FreeWalkController {
   private lookX = 0;
   private lookY = 0;
   private pose: FreeWalkPose | null = null;
+  private message = '';
   private trail: FreeWalkPose[] = [];
   private listeners = new Set<() => void>();
 
   getPose = () => this.pose;
+  getMessage = () => this.message;
+  setMessage(message: string) { this.message = message; this.listeners.forEach((listener) => listener()); }
   getTrail = () => this.trail;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);

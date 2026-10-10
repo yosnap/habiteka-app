@@ -1,0 +1,130 @@
+.video {
+  background: var(--color-canvas);
+}
+.video > header {
+  max-width: none;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding-block: 20px;
+}
+.video > div {
+  max-width: none;
+  background: var(--color-surface);
+}
+.create {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.create[data-state='inactive'] {
+  display: none;
+}
+.tasks {
+  padding: 24px 16px;
+  border-right: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+.tasks > p {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+.tasks > div {
+  padding: 20px 0 0;
+}
+.tasks > div > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.tasks button {
+  min-height: 84px;
+}
+.tasks button[aria-pressed='true'] {
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+}
+.stage {
+  min-width: 0;
+  padding-block: 8px 24px;
+}
+.gallery {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: 24px;
+  gap: 20px;
+  overflow-y: auto;
+}
+.galleryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.galleryHeader h1 {
+  font-size: 24px;
+  font-weight: 650;
+}
+.galleryHeader p {
+  color: var(--color-ink-soft);
+  font-size: 13px;
+  margin-top: 5px;
+  max-width: 680px;
+}
+.galleryHeader a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  text-decoration: none;
+}
+.galleryHeader a:hover {
+  background: var(--color-surface-muted);
+}
+.galleryHeader a:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .create {
+    display: flex;
+    flex-direction: column;
+  }
+  .tasks {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-line);
+    padding: 16px;
+  }
+  .tasks > div > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .tasks button {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .gallery {
+    padding: 16px;
+  }
+}
+@media (max-width: 500px) {
+  .tasks > div > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tasks button {
+    flex-direction: row;
+    min-height: 64px;
+  }
+}

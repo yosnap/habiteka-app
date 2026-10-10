@@ -1,4 +1,5 @@
 'use client';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapSpatialDrag } from './magnetic-drag';
 import { Group, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -16,8 +17,9 @@ const ACCENT = '#087f75';
 const NO_COLUMNS: Column[] = [];
 export function ColumnLayer({ store, scale, disabled = false }: { store: EditorStore; scale: number; disabled?: boolean }) {
   const columns = useStore(store, (state) => state.document.columns ?? NO_COLUMNS), selected = useStore(store, (state) => state.selection);
+  const hidden = useHiddenElements(store);
   const tool = useStore(store, (state) => state.tool), readOnly = useStore(store, (state) => state.readOnly), unit = 1 / Math.max(scale, .001);
-  return <Group>{columns.map((column) => <Group key={column.id} x={column.x} y={column.y} rotation={column.rotation}
+  return <Group>{columns.filter(column => !hidden.has(column.id)).map((column) => <Group key={column.id} x={column.x} y={column.y} rotation={column.rotation}
     draggable={!disabled && !readOnly && tool === 'select'}
     onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, column.id, event.evt); } }}
     onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, column.id, event.evt as unknown as MouseEvent); } }}

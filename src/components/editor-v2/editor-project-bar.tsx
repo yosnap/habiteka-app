@@ -10,12 +10,12 @@ interface Props {
   store: EditorStore; projectName: string; saveStatus?: string;
   onSave?: () => void; saveEnabled?: boolean;
   onGenerate: () => void; canGenerate: boolean; generateDisabledReason?: string;
-  onOpenVideoStudio?: () => void; children: ReactNode;
+  onOpenVideoStudio?: () => void; onOpenTools?: () => void; children: ReactNode;
 }
 
 /** Acciones frecuentes del proyecto; las herramientas de preparación se agrupan. */
 export function EditorProjectBar({ store, projectName, saveStatus, onSave, saveEnabled,
-  onGenerate, canGenerate, generateDisabledReason, onOpenVideoStudio, children }: Props) {
+  onGenerate, canGenerate, generateDisabledReason, onOpenVideoStudio, onOpenTools, children }: Props) {
   const readOnly = useStore(store, state => state.readOnly);
   const past = useStore(store, state => state.past.length), future = useStore(store, state => state.future.length);
   const menu = useRef<HTMLDetailsElement>(null);
@@ -38,14 +38,17 @@ export function EditorProjectBar({ store, projectName, saveStatus, onSave, saveE
       <button type="button" disabled={readOnly || !future} onClick={() => store.getState().redo()} aria-label="Rehacer" title="Rehacer (⇧⌘Z)"><Redo2 size={18} /></button>
     </div>
     <div className={ui.actions}>
-      <details ref={menu} className={ui.menu} onKeyDown={event => {
+      {onOpenTools ? <><button type="button" data-side-panel-toggle onClick={onOpenTools}><Settings2 size={18} /><span>Herramientas</span></button>
+        {/* Los diálogos controlados también se abren desde Construir y el lienzo. */}
+        <div hidden>{children}</div>
+      </> : <details ref={menu} className={ui.menu} onKeyDown={event => {
         if (event.key === 'Escape' && menu.current?.open) { event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
       }}>
         <summary><Settings2 size={18} /><span>Herramientas</span></summary>
         <div className={ui.menuPanel}><p>Preparar y revisar el proyecto</p><div className={ui.menuItems} onClick={event => {
           if (event.target instanceof Element && event.target.closest('[data-side-panel-toggle], [data-project-menu-action]') && menu.current) menu.current.open = false;
         }}>{children}</div></div>
-      </details>
+      </details>}
       <button type="button" className={ui.save} onClick={onSave} disabled={readOnly || !onSave || !saveEnabled} aria-label="Guardar" title={saveEnabled ? 'Guardar cambios' : 'Todos los cambios están guardados'}><Save size={18} /></button>
       {onOpenVideoStudio && <button type="button" className={ui.video} aria-label="Vídeos" title="Vídeos" onClick={onOpenVideoStudio}><Clapperboard size={18} /><span>Vídeos</span></button>}
       <button type="button" className={ui.primary} disabled={!canGenerate} onClick={onGenerate} title={generateDisabledReason}><Sparkles size={18} /><span>Diseñar con IA</span></button>
