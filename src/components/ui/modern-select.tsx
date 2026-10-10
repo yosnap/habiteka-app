@@ -1,15 +1,17 @@
 'use client';
 
 import { Children, Fragment, isValidElement, useState, type ChangeEvent, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Select } from 'radix-ui';
 import styles from './modern-select.module.css';
+import editor from './editor-dropdown.module.css';
 
-type Props = ComponentPropsWithoutRef<'select'> & { compact?: boolean; popoverZIndex?: number; portalContainer?: HTMLElement | null };
+type Props = ComponentPropsWithoutRef<'select'> & { compact?: boolean; popoverZIndex?: number; portalContainer?: HTMLElement | null; appearance?: 'default' | 'editor' };
 interface OptionItem { value: string; label: ReactNode; disabled: boolean; group?: string; }
 
 /** Select con popover propio; acepta option/optgroup para preservar la API actual. */
-export function ModernSelect({ children, className = '', compact = false, popoverZIndex = 100, portalContainer, value, defaultValue, onChange, disabled, name, ...props }: Props) {
+export function ModernSelect({ children, className = '', compact = false, popoverZIndex = 100, portalContainer, appearance = 'default', value, defaultValue, onChange, disabled, name, ...props }: Props) {
+  const workspace = appearance === 'editor';
   const options = readOptions(children);
   const [uncontrolledValue, setUncontrolledValue] = useState(() => String(defaultValue ?? options[0]?.value ?? ''));
   const current = value !== undefined ? String(value) : uncontrolledValue;
@@ -26,16 +28,16 @@ export function ModernSelect({ children, className = '', compact = false, popove
 
   return <>{name && <input type="hidden" name={name} value={current} disabled={disabled} />}
     <Select.Root value={current || emptyValue} onValueChange={emitChange} disabled={disabled}>
-    <Select.Trigger className={`border-line bg-surface flex w-full items-center justify-between gap-2 rounded-control border py-1.5 pr-2 pl-2 text-left text-sm shadow-sm outline-none transition hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${compact ? styles.compact : ''} ${className}`} {...triggerProps}>
+    <Select.Trigger className={`border-line bg-surface flex w-full items-center justify-between gap-2 rounded-control border py-1.5 pr-2 pl-2 text-left text-sm shadow-sm outline-none transition hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${compact && !workspace ? styles.compact : ''} ${workspace ? editor.control : ''} ${className}`} {...triggerProps}>
       <Select.Value>{options.find(item => item.value === current)?.label}</Select.Value>
-      <Select.Icon><ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /></Select.Icon>
+      <Select.Icon>{workspace ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}</Select.Icon>
     </Select.Trigger>
     <Select.Portal container={portalContainer ?? undefined}>
-      <Select.Content position="popper" sideOffset={6} style={{ zIndex: popoverZIndex }} className="border-line bg-surface max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-card border shadow-xl">
-        <Select.Viewport className="p-1">
+      <Select.Content position="popper" sideOffset={workspace ? 8 : 6} style={{ zIndex: popoverZIndex }} className={`border-line bg-surface max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-card border shadow-xl ${workspace ? editor.surface : ''}`}>
+        <Select.Viewport className={workspace ? editor.selectList : 'p-1'}>
           {groups.map((group) => <Select.Group key={group || '__ungrouped'}>
             {group && <Select.Label className="px-2 py-1 text-xs font-medium text-muted-foreground">{group}</Select.Label>}
-            {options.filter((item) => (item.group ?? '') === group).map((item) => <Select.Item key={item.value} value={item.value || emptyValue} disabled={item.disabled} className="relative flex cursor-pointer items-center rounded-control py-1.5 pr-8 pl-2 text-sm outline-none data-[highlighted]:bg-primary/10 data-[state=checked]:bg-primary/15 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40">
+            {options.filter((item) => (item.group ?? '') === group).map((item) => <Select.Item key={item.value} value={item.value || emptyValue} disabled={item.disabled} className={`relative flex cursor-pointer items-center rounded-control py-1.5 pr-8 pl-2 text-sm outline-none data-[highlighted]:bg-primary/10 data-[state=checked]:bg-primary/15 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 ${workspace ? `${editor.item} ${editor.selectItem}` : ''}`}>
               <Select.ItemText>{item.label}</Select.ItemText>
               <Select.ItemIndicator className="absolute right-2"><Check className="h-4 w-4 text-primary" aria-hidden="true" /></Select.ItemIndicator>
             </Select.Item>)}

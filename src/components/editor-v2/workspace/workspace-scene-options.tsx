@@ -21,6 +21,7 @@ import { SCENE_STYLES, type SceneOptions } from './scene-options-state';
 import { SCENE_LIGHTING_LABELS, type SceneLightingPreset } from '../scene/scene-lighting';
 import type { CeilingViewOption } from '../scene/scene-view-controls';
 import ui from './workspace-scene-options.module.css';
+import { WorkspaceLabelOptions } from './workspace-label-options';
 
 type Section = 'search' | 'floors' | 'walls' | 'style' | 'overlays' | 'units' | 'preview' | null;
 export function WorkspaceSceneOptions({
@@ -39,6 +40,7 @@ export function WorkspaceSceneOptions({
   onWalk,
   disabled,
   spatial,
+  technical = false,
 }: {
   options: SceneOptions;
   onChange: (value: SceneOptions) => void;
@@ -55,6 +57,7 @@ export function WorkspaceSceneOptions({
   onWalk: () => void;
   disabled: boolean;
   spatial: boolean;
+  technical?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [section, setSection] = useState<Section>(null),
@@ -221,7 +224,7 @@ export function WorkspaceSceneOptions({
                   ['units', Ruler, 'Medidas y escala', 'Metros, pies y paso de cuadrícula'],
                   ['preview', Footprints, 'Explorar', 'Comprobar el plano caminando'],
                 ] as const
-              ).map(([id, Icon, label, hint]) => (
+              ).filter(([id]) => !technical || !['floors', 'preview'].includes(id)).map(([id, Icon, label, hint]) => (
                 <button key={id} type="button" onClick={() => setSection(id)}>
                   <Icon size={17} />
                   <span>
@@ -231,7 +234,7 @@ export function WorkspaceSceneOptions({
                   <ChevronRight size={15} />
                 </button>
               ))}
-              <button
+              {!technical && <button
                 type="button"
                 disabled={disabled || !spatial}
                 onClick={() => onCeiling(ceiling === 'hidden' ? 'solid' : 'hidden')}
@@ -240,7 +243,7 @@ export function WorkspaceSceneOptions({
                 <span>
                   {ceiling === 'hidden' ? 'Mostrar techo y cubierta' : 'Ocultar techo y cubierta'}
                 </span>
-              </button>
+              </button>}
             </>
           )}
           {section === 'search' && (
@@ -319,8 +322,8 @@ export function WorkspaceSceneOptions({
                   {options.style === id && <Check size={15} />}
                 </button>
               ))}
-              <p className={ui.hint}>Iluminación y sombras</p>
-              {Object.entries(SCENE_LIGHTING_LABELS).map(([id, label]) =>
+              {!technical && <p className={ui.hint}>Iluminación y sombras</p>}
+              {!technical && Object.entries(SCENE_LIGHTING_LABELS).map(([id, label]) =>
                 choose(label, lighting === id, () => onLighting(id as SceneLightingPreset)),
               )}
             </>
@@ -334,6 +337,8 @@ export function WorkspaceSceneOptions({
               {choose('Medidas generales', options.dimensions, () =>
                 patch({ dimensions: !options.dimensions }),
               )}
+              <WorkspaceLabelOptions value={options.nameStyle} disabled={disabled}
+                onChange={nameStyle => patch({ nameStyle })} />
             </>
           )}
           {section === 'units' && (

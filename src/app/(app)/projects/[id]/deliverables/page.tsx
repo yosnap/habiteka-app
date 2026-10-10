@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { ArrowLeft, Clapperboard } from 'lucide-react';
+import { Images, Footprints, Clapperboard } from 'lucide-react';
+import { ProjectWorkspace, ProjectRailItem } from '@/components/app/project-workspace';
 import studio from '@/components/editor-v2/workspace/studio.module.css';
 /**
  * Vista del panel de entregables de un proyecto. Carga los entregables a través
@@ -70,6 +70,8 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
     const suffix = params.toString();
     return `/projects/${encodeURIComponent(id)}/deliverables${suffix ? `?${suffix}` : ''}`;
   };
+  const rail = <ResultsRail tabs={tabs} active={activeTab} href={tabHref}
+    createHref={`/projects/${encodeURIComponent(id)}/videos${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`} />;
 
   if (activeTab !== 'disenos') {
     const videos = await Promise.all(videoRows.filter((row) =>
@@ -89,14 +91,12 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
         designHref: approvalId ? `/projects/${encodeURIComponent(id)}/editor?${designQuery}` : null,
         legalSeal: row.legalSeal };
     }));
-    return <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
-      <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
-      <a href={`/projects/${encodeURIComponent(id)}/videos${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`} className="self-start rounded-control bg-brand-600 px-4 py-3 text-sm font-medium text-white">Crear vídeo</a>
+    return <ProjectWorkspace rail={rail} label="Resultados del proyecto"><main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       {videos.length ? videos.map((video) => <VideoCard key={video.id} video={video} />) :
         <p className="text-muted-foreground p-6 text-center text-sm">{activeTab === 'recorridos'
           ? 'Aún no hay recorridos exportados de una revisión aprobada.'
           : 'Aún no hay vídeos guardados.'}</p>}
-    </main>;
+    </main></ProjectWorkspace>;
   }
 
   const sourceImages = await repo.sourceImages.list(id);
@@ -121,31 +121,27 @@ export default async function DeliverablesPage({ params, searchParams }: Props) 
   ).filter((d): d is DeliverableView => d !== null);
 
   return (
-    <main className={studio.gallery}>
+    <ProjectWorkspace rail={rail} label="Diseños del proyecto"><main className={studio.gallery}>
       <header className={studio.galleryHeader}>
         <div><h1>Mis diseños</h1><p>Revisa las vistas, pide cambios y acepta las imágenes que quieras usar en tus vídeos.</p></div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/projects/${encodeURIComponent(id)}${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`}><ArrowLeft size={16} />Volver al editor</Link>
-          <Link href={`/projects/${encodeURIComponent(id)}/videos${query.zona ? `?zona=${encodeURIComponent(query.zona)}` : ''}`}><Clapperboard size={16} />Crear vídeo</Link>
-        </div>
       </header>
-      <ResultsTabs tabs={tabs} active={activeTab} href={tabHref} />
       <DeliverablesPanel deliverables={deliverables} projectId={id} />
-    </main>
+    </main></ProjectWorkspace>
   );
 }
 
-function ResultsTabs({ tabs, active, href }: {
+function ResultsRail({ tabs, active, href, createHref }: {
   tabs: { id: ResultsTab; label: string; count: number }[];
   active: ResultsTab;
   href: (tab: ResultsTab) => string;
+  createHref: string;
 }) {
-  return <nav aria-label="Resultados del proyecto" className="border-line flex gap-2 overflow-x-auto border-b pb-3">
-    {tabs.map((tab) => <a key={tab.id} href={href(tab.id)} aria-current={active === tab.id ? 'page' : undefined}
-      className={`rounded-control shrink-0 px-4 py-2 text-sm font-medium ${active === tab.id
-        ? 'bg-emerald-800 text-white' : 'border border-line bg-surface text-ink hover:bg-emerald-50'}`}>
-      {tab.label} <span className="opacity-75">{tab.count}</span>
-    </a>)}
+  const icons = { disenos: Images, recorridos: Footprints, videos: Clapperboard };
+  return <nav aria-label="Resultados del proyecto">
+    {tabs.map(tab => <ProjectRailItem key={tab.id} href={href(tab.id)} icon={icons[tab.id]} selected={active === tab.id}>
+      {tab.label} <small>({tab.count})</small>
+    </ProjectRailItem>)}
+    <ProjectRailItem href={createHref} icon={Clapperboard}>Crear vídeo</ProjectRailItem>
   </nav>;
 }
 

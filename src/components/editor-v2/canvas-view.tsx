@@ -19,6 +19,7 @@ import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { PropertyCompassOverlay } from './property-compass';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
 import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
+import { SCENE_STYLES } from './workspace/scene-options-state';
 import type Konva from 'konva';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -66,6 +67,9 @@ const REFERENCE_WAIT_MS = 2500;
 export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, showRoof = false, onHideRoof, roofRequest, onRoofAction, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; showRoof?: boolean; onHideRoof?: () => void; roofRequest?: RoofPlacementRequest | null; onRoofAction?: (action: RoofAction) => void; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
+  const sceneOptions = useStore(store, (s) => s.sceneOptions);
+  dimensions = sceneOptions.dimensions ? dimensions : 'none';
+  showWalls = showWalls && sceneOptions.walls;
   useEffect(() => {
     const clear = () => store.getState().setMagneticGuides([]);
     window.addEventListener("mouseup", clear); window.addEventListener("pointerup", clear);
@@ -290,15 +294,15 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     setMarquee(null);
   };
   const grid = useMemo(() => {
-    if (presentation === 'visual') return [];
-    const step = view.scale < .04 ? 1000 : 500, lines: number[][] = [];
+    if (presentation === 'visual' || !sceneOptions.grid) return [];
+    const step = sceneOptions.gridStep * (sceneOptions.units === 'imperial' ? 304.8 : 1000), lines: number[][] = [];
     const left = -view.x / view.scale, top = -view.y / view.scale;
     for (let x = Math.floor(left / step) * step; x < left + size.width / view.scale; x += step)
       lines.push([x, top, x, top + size.height / view.scale]);
     for (let y = Math.floor(top / step) * step; y < top + size.height / view.scale; y += step)
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
-  }, [presentation, size, view]);
+  }, [presentation, size, view, sceneOptions.grid, sceneOptions.gridStep, sceneOptions.units]);
   const drawing = !readOnly && ['garden-path', 'valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
@@ -322,7 +326,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
   const hint = editorHint(tool, selected, doc, !!(start || wallPreview.anchor));
-  return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
+  return <div className={styles.canvas} style={{ background: SCENE_STYLES[sceneOptions.style].background }} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
     onKeyDownCapture={roofTool.keyDown}
     onKeyDown={(e) => {
       if (e.key === 'Escape') {

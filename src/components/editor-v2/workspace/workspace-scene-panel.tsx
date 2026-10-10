@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
-import { BrickWall, ChevronRight, LayoutGrid, Search, SlidersHorizontal, Sofa } from 'lucide-react';
+import { BrickWall, Camera, ChevronRight, LayoutGrid, Search, Sofa } from 'lucide-react';
+import { EDITOR_SHORTCUTS } from '@/canvas/editor-v2/editor-shortcuts';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { filterSceneTree, sceneTree, SCENE_TABS, type SceneTab } from './workspace-scene-tree';
@@ -15,14 +16,19 @@ const TAB_ICONS = { structure: BrickWall, objects: Sofa, rooms: LayoutGrid };
 export function WorkspaceScenePanel({
   store,
   onProperties,
+  onCapture,
+  tab,
+  onTabChange,
 }: {
   store: EditorStore;
   onProperties: () => void;
+  onCapture: () => void;
+  tab: SceneTab;
+  onTabChange: (tab: SceneTab) => void;
 }) {
   const document = useStore(store, (s) => s.document);
   const hidden = useStore(store, (s) => s.hiddenElementIds);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<SceneTab>('structure');
   const [limits, setLimits] = useState<Record<string, number>>({});
   const rooms = useMemo(() => {
     let rooms: ReturnType<typeof deriveRooms> = [];
@@ -40,8 +46,8 @@ export function WorkspaceScenePanel({
     document.levels?.find((item) => item.id === document.activeLevelId)?.name ?? 'Planta baja';
   return (
     <div className={ui.panelContent}>
-      <button type="button" onClick={onProperties}>
-        <SlidersHorizontal size={17} aria-hidden="true" /> Propiedades de la selección
+      <button type="button" onClick={onCapture} title="Descargar una referencia del lienzo actual">
+        <Camera size={17} aria-hidden="true" /> Capturar vista de trabajo
       </button>
       <p className={ui.eyebrow}>{level}</p>
       <div className={ui.sceneTabs} role="group" aria-label="Capas de la escena">
@@ -52,10 +58,11 @@ export function WorkspaceScenePanel({
               key={item.id}
               type="button"
               aria-pressed={tab === item.id}
-              onClick={() => setTab(item.id)}
+              onClick={() => onTabChange(item.id)}
             >
               <Icon size={17} aria-hidden="true" />
               <span>{item.label}</span>
+              <kbd>{EDITOR_SHORTCUTS[item.shortcut].label}</kbd>
             </button>
           );
         })}
@@ -73,8 +80,7 @@ export function WorkspaceScenePanel({
         />
       </label>
       <p className={ui.hint}>
-        Despliega una pared para ver sus puertas y ventanas. Localiza, renombra o cambia su
-        visibilidad.
+        Clic: localizar. Doble clic: propiedades.
       </p>
       {hidden.length > 0 && (
         <button type="button" onClick={() => store.getState().setElementsVisible(hidden, true)}>

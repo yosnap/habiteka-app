@@ -114,7 +114,7 @@ export function EditorPreparationTools({
       <ExteriorRoofPanel
         store={store}
         open={roofWorkflow.open}
-        onOpenChange={roofWorkflow.setOpen}
+        onOpenChange={(open) => { if (open) roofWorkflow.action('configure'); else roofWorkflow.setOpen(false); }}
         onPreview={() => roofWorkflow.action('preview')}
         onEditPlan={() => roofWorkflow.action('edit')}
       />

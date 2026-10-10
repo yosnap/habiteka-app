@@ -5,7 +5,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Color } from 'three';
 import type { EditorDocument } from '@/lib/editor-document/schema';
-import { roomInteriorCameras } from '@/lib/editor-document/room-interior-cameras';
+import { workspaceNameLabels } from '@/canvas/editor-v2/workspace-name-labels';
+import { nameLabelCss } from '../workspace/name-label-style';
 import { SCENE_STYLES, sceneLength, type SceneOptions } from '../workspace/scene-options-state';
 
 /** Ayudas de trabajo excluidas de las capturas de referencia y de los recorridos. */
@@ -14,13 +15,15 @@ export function SceneWorkspaceOverlays({
   options,
   elevationMm,
   disabled,
+  hiddenIds,
 }: {
   document: EditorDocument;
   options: SceneOptions;
   elevationMm: number;
   disabled: boolean;
+  hiddenIds: readonly string[];
 }) {
-  const rooms = useMemo(() => roomInteriorCameras(document), [document]);
+  const labels = useMemo(() => workspaceNameLabels(document, hiddenIds), [document, hiddenIds]);
   const vertices = document.vertices;
   if (disabled || !vertices.length) return null;
   const xs = vertices.map((p) => p.x),
@@ -53,15 +56,15 @@ export function SceneWorkspaceOverlays({
         />
       )}
       {options.names &&
-        rooms.map((room, index) => (
+        labels.map((label) => (
           <Html
-            key={room.roomId}
+            key={label.id}
             zIndexRange={[1, 0]}
-            position={[room.camera.position[0], y + 0.12, room.camera.position[2]]}
+            position={[label.x / 1000, y + 0.12, label.y / 1000]}
             center
-            style={badge}
+            style={nameLabelCss(options.nameStyle)}
           >
-            {room.name || `Estancia ${index + 1}`}
+            {label.text}
           </Html>
         ))}
       {options.dimensions && (

@@ -24,11 +24,11 @@
 }
 .spatial [data-workspace-panel] {
   position: absolute;
-  inset: 72px auto auto calc(var(--workspace-rail) + 12px);
+  inset: 72px auto 16px calc(var(--workspace-rail) + 12px);
   width: clamp(300px, 28vw, 380px);
   max-width: calc(100% - var(--workspace-rail) - 24px);
   height: auto;
-  max-height: min(680px, calc(100% - 164px));
+  max-height: none;
   margin: 0;
   grid-area: auto;
   border-radius: 16px;
@@ -37,9 +37,9 @@
 .spatial[data-mode] [data-workspace-construction] {
   left: calc(var(--workspace-rail) + 12px);
   top: 72px;
-  bottom: auto;
+  bottom: 16px;
   height: auto;
-  max-height: min(680px, calc(100% - 164px));
+  max-height: none;
   max-width: calc(100% - var(--workspace-rail) - 24px);
   border-radius: 16px;
   box-shadow: 0 12px 40px #183a3220;
@@ -76,11 +76,13 @@
   line-height: 1.2;
   text-align: center;
 }
-.spatial .rail :is(button, a):hover {
+.spatial .rail :is(button, a):hover:not(:disabled) {
   background: #ffffff14;
+  color: #e7f0ec;
   transform: none;
 }
-.spatial .rail button[aria-pressed='true'] {
+.spatial .rail button[aria-pressed='true'],
+.spatial .rail button[aria-pressed='true']:hover:not(:disabled) {
   background: #d9eee5;
   border-color: #d9eee5;
   color: #163e30;
@@ -90,6 +92,7 @@
   outline-offset: -2px;
 }
 .railEnd {
+  flex-shrink: 0;
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid #ffffff25;
@@ -108,10 +111,19 @@
   gap: 3px;
   scrollbar-width: thin;
 }
+.railHistory, .historyArrows { display: grid; gap: 2px; }
+.historyArrows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spatial .historyArrows button { min-height: 44px; min-width: 0; width: 100%; padding-inline: 0; }
+.assistantTitle { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 650; }
+.spatial .assistantActions button { min-height: 96px; padding: 18px; transition: background .15s, color .15s; }
+.spatial .assistantActions button:is(:hover, :focus-visible):not(:disabled) { background: #197660; border-color: #197660; color: white; }
+.spatial .assistantActions button:is(:hover, :focus-visible):not(:disabled) :is(svg, small) { color: white; }
+.assistantProcess { border-top: 1px solid var(--line); padding-top: 16px; }
+.assistantProcess a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-weight: 600; color: var(--brand); }
 .viewToolbar {
   position: absolute;
   top: 12px;
-  left: calc(var(--workspace-rail) + 12px);
+  left: calc(var(--workspace-rail) + 484px);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -150,9 +162,16 @@
 }
 .viewOptions.quickTools {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   left: auto;
   right: -4px;
+  width: 240px;
+  max-width: calc(100vw - var(--workspace-rail) - 24px);
+  z-index: 50;
+}
+@media (max-width: 1000px) {
+  .viewMenu:has(.quickTools) { position: static; }
+  .viewOptions.quickTools { left: 0; right: auto; }
 }
 .spatial [data-workspace-route-dock]:empty { display: none; }
 .spatial [data-workspace-route-dock] {
@@ -181,7 +200,8 @@
   overflow: auto;
 }
 .spatial [data-workspace-body]:has([data-workspace-storyboard] > *) :is([data-workspace-panel], [data-workspace-construction]) {
-  max-height: min(680px, calc(100% - 284px));
+  bottom: 212px;
+  max-height: none;
 }
 .spatial [data-workspace-lighting] {
   position: absolute;
@@ -223,15 +243,11 @@
   position: relative;
 }
 .viewOptions {
+  composes: surface items from '../../ui/editor-dropdown.module.css';
   position: absolute;
   top: calc(100% + 10px);
   left: -4px;
   width: 190px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--paper);
-  box-shadow: 0 12px 40px #183a3230;
 }
 .viewOptions > div {
   display: grid;
@@ -242,10 +258,6 @@
   gap: 4px;
   left: auto;
   right: -4px;
-}
-.spatial .viewOptions button {
-  min-height: 44px;
-  justify-content: flex-start;
 }
 /* Barra de cámara separada de los desplegables; no modifica otras escenas ni el plano. */
 .spatial [data-workspace-scene] [aria-label='Controles de la vista 3D'] {
@@ -380,7 +392,7 @@
 }
 .treeRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, 44px);
+  grid-template-columns: minmax(0, 1fr) repeat(2, 44px);
   align-items: center;
   min-width: 0;
 }
@@ -512,11 +524,11 @@
   .spatial [data-workspace-panel],
   .spatial[data-mode] [data-workspace-construction] {
     position: absolute;
-    inset: 68px auto auto calc(var(--workspace-rail) + 8px);
+    inset: 68px auto 16px calc(var(--workspace-rail) + 8px);
     width: min(380px, calc(100% - var(--workspace-rail) - 16px));
     max-width: calc(100% - var(--workspace-rail) - 16px);
     margin: 0;
-    max-height: calc(100% - 160px);
+    max-height: none;
   }
   .viewToolbar {
     top: 8px;
@@ -551,3 +563,13 @@
     display: none;
   }
 }
+/* En pantallas estrechas, proyecto y controles de vista ocupan dos bandas flotantes. */
+@media (max-width: 1000px) {
+  .viewToolbar { top: 128px; left: calc(var(--workspace-rail) + 8px); }
+  .spatial [data-workspace-lighting] { top: 128px; }
+  .spatial [data-workspace-panel], .spatial[data-mode] [data-workspace-construction] {
+    top: 188px; max-height: none;
+  }
+  .spatial [data-workspace-canvas] [role='status'][style*='top: 16px'] { top: 188px !important; }
+}
+.spatial:has([aria-label='Explorar plano guía']) [data-workspace-project] { display: none; }

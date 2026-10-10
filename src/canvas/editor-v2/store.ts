@@ -1,5 +1,6 @@
 import type { MagneticGuide } from './magnetic-alignment';
 import { createStore } from 'zustand/vanilla';
+import { DEFAULT_SCENE_OPTIONS, type SceneOptions } from './workspace-display';
 import type { EditorDocument, Opening, Point } from '@/lib/editor-document/schema';
 import { reconcileCeilings } from '@/lib/editor-document/ceiling-reconciliation';
 import { luminairePlacementIssue } from '@/lib/editor-document/ceiling-geometry';
@@ -46,6 +47,8 @@ export interface EditorState {
   focusOn: (point: Point) => void;
   /** Modo mano (desplazar el lienzo) y peticiones de vista (encuadrar, zoom) que el lienzo atiende una vez. */
   pan: boolean;
+  sceneEditing: boolean;
+  setSceneEditing: (editing: boolean) => void;
   setPan: (pan: boolean) => void;
   viewRequest: { kind: 'fit' | 'zoom-in' | 'zoom-out'; nonce: number } | null;
   requestView: (kind: 'fit' | 'zoom-in' | 'zoom-out') => void;
@@ -57,6 +60,8 @@ export interface EditorState {
   focusWalkthroughSegment: (index: number | null) => void;
   setWalkthroughPlaying: (playing: boolean) => void;
   ceilingView: 'hidden' | 'transparent' | 'solid';
+  sceneOptions: SceneOptions;
+  setSceneOptions: (options: SceneOptions) => void;
   setCeilingView: (view: 'hidden' | 'transparent' | 'solid') => void;
   /** Visibilidad de trabajo: no altera paredes lógicas, geometría, aprobación ni referencias IA. */
   hiddenElementIds: string[];
@@ -131,6 +136,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     magneticGuides: [], setMagneticGuides: (magneticGuides) => set({ magneticGuides }),
     focusPoint: null, focusOn: (point) => set({ focusPoint: { point, nonce: (get().focusPoint?.nonce ?? 0) + 1 } }),
     pan: false, setPan: (pan) => set({ pan }),
+    sceneEditing: false, setSceneEditing: (sceneEditing) => set({ sceneEditing }),
     viewRequest: null, requestView: (kind) => set({ viewRequest: { kind, nonce: (get().viewRequest?.nonce ?? 0) + 1 } }),
     walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false,
     hideWalkthrough: () => set({ walkthroughId: null, walkthroughFocusIndex: null, walkthroughPlaying: false, tool: 'select',
@@ -139,6 +145,8 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     focusWalkthroughSegment: (walkthroughFocusIndex) => set({ walkthroughFocusIndex }),
     setWalkthroughPlaying: (walkthroughPlaying) => set({ walkthroughPlaying }),
     ceilingView: 'transparent',
+    sceneOptions: DEFAULT_SCENE_OPTIONS,
+    setSceneOptions: (sceneOptions) => set({ sceneOptions }),
     setCeilingView: (ceilingView) => set({ ceilingView }),
     hiddenElementIds: [],
     setElementsVisible: (ids, visible) => {

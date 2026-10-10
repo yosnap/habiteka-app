@@ -67,26 +67,8 @@ export const SCENE_STYLES = {
   },
 } as const;
 export type SceneStyle = keyof typeof SCENE_STYLES;
-export interface SceneOptions {
-  style: SceneStyle;
-  garden: boolean;
-  walls: boolean;
-  grid: boolean;
-  names: boolean;
-  dimensions: boolean;
-  units: 'metric' | 'imperial';
-  gridStep: number;
-}
-export const DEFAULT_SCENE_OPTIONS: SceneOptions = {
-  style: 'studio',
-  garden: true,
-  walls: true,
-  grid: false,
-  names: true,
-  dimensions: false,
-  units: 'metric',
-  gridStep: 1,
-};
+import type { SceneOptions } from '@/canvas/editor-v2/workspace-display';
+export { DEFAULT_SCENE_OPTIONS, type SceneOptions } from '@/canvas/editor-v2/workspace-display';
 export function sceneLength(mm: number, units: SceneOptions['units']) {
   return units === 'imperial' ? `${(mm / 304.8).toFixed(2)} ft` : `${(mm / 1000).toFixed(2)} m`;
 }

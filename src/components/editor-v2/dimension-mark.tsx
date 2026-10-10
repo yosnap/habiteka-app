@@ -3,15 +3,16 @@ import { Arrow, Group, Line, Rect, Text } from 'react-konva';
 import type { DimensionLayout } from '@/canvas/editor-v2/dimension-layout';
 import type { Point } from '@/lib/editor-document/schema';
 import { distance } from '@/lib/editor-document/geometry';
+import { sceneLength } from './workspace/scene-options-state';
 
 /** Pixel-constant architectural dimension. The label masks the middle of the dimension line. */
-export function DimensionMark({ layout, scale, label, onSelect, onMove, onSnapMove }: {
-  layout: DimensionLayout; scale: number; label?: string; onSelect?: () => void; onMove?: (delta: Point) => void; onSnapMove?: (delta: Point) => Point;
+export function DimensionMark({ layout, scale, label, units = 'metric', onSelect, onMove, onSnapMove }: {
+  layout: DimensionLayout; scale: number; label?: string; units?: 'metric' | 'imperial'; onSelect?: () => void; onMove?: (delta: Point) => void; onSnapMove?: (delta: Point) => Point;
 }) {
   const { from, to, sourceFrom, sourceTo } = layout;
   const angle = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
   const rotation = angle > 90 ? angle - 180 : angle < -90 ? angle + 180 : angle;
-  const text = label ?? `${(distance(sourceFrom, sourceTo) / 1000).toFixed(2)} m`;
+  const text = label ?? sceneLength(distance(sourceFrom, sourceTo), units);
   const width = Math.max(64, text.length * 8 + 16) / scale;
   return <Group draggable={Boolean(onMove)} onDragStart={() => onSelect?.()}
     onDragMove={(event) => { if (onSnapMove) event.target.position(onSnapMove(event.target.position())); }}

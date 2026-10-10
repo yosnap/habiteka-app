@@ -7,6 +7,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { DerivedRoom } from '@/lib/editor-document/rooms';
 import { renameSceneElement, type SceneTreeNode } from './workspace-scene-tree';
 import ui from './workspace.module.css';
+import { SceneSpaceClassification } from './scene-space-classification';
 
 export function WorkspaceSceneRow({
   store,
@@ -30,7 +31,8 @@ export function WorkspaceSceneRow({
     if (blocked) return;
     const state = store.getState();
     state.setElementsVisible([node.id], true);
-    state.select([node.id]);
+    // Las zonas de diseño se editan aquí; no son entidades del inspector geométrico.
+    state.select(node.group === 'Zonas de diseño' ? [] : [node.id]);
     state.focusOn(node.point);
     if (properties) {
       if (node.propertiesPanel === 'ceiling') store.getState().openSidePanel('ceiling');
@@ -45,6 +47,7 @@ export function WorkspaceSceneRow({
         disabled={blocked}
         aria-pressed={selection.includes(node.id)}
         onClick={() => locate()}
+        onDoubleClick={() => { if (node.group !== 'Zonas de diseño') locate(true); }}
         title={`Localizar ${node.label}`}
       >
         {node.label}
@@ -73,15 +76,6 @@ export function WorkspaceSceneRow({
         }}
       >
         <Pencil size={15} />
-      </button>
-      <button
-        type="button"
-        disabled={blocked}
-        aria-label={`Propiedades de ${node.label}`}
-        title="Propiedades"
-        onClick={() => locate(true)}
-      >
-        <ChevronRight size={16} />
       </button>
     </div>
   );
@@ -113,6 +107,8 @@ export function WorkspaceSceneRow({
       ) : (
         row
       )}
+      {(node.group === 'Estancias' || node.group === 'Zonas de diseño') &&
+        <SceneSpaceClassification store={store} id={node.id} name={node.label} rooms={rooms} disabled={readOnly || blocked} />}
       {editing && (
         <form
           className={ui.renameForm}

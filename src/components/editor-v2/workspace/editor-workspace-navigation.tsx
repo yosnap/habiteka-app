@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { useStore } from 'zustand';
 import {
   Bot,
@@ -18,15 +18,20 @@ import { WorkspaceViewToolbar } from './workspace-view-toolbar';
 import type { EditorViewMode } from '@/canvas/editor-v2/view-mode';
 import type { EditorSidePanel } from '@/canvas/editor-v2/store';
 import ui from './workspace.module.css';
+import { WorkspaceHistoryActions } from './workspace-history-actions';
 
 type Props = ComponentProps<typeof Toolbar> & {
   mode: EditorViewMode;
   onViewChange: (mode: EditorViewMode) => void;
   onPanel: (panel: EditorSidePanel) => void;
+  onSave?: () => void;
+  saveEnabled?: boolean;
+  saveStatus?: string;
+  referenceControl?: ReactNode;
 };
 
 /** Los tres modos comparten navegación; los comandos de construcción siguen siendo los mismos. */
-export function EditorWorkspaceNavigation({ mode, onViewChange, onPanel, ...props }: Props) {
+export function EditorWorkspaceNavigation({ mode, onViewChange, onPanel, onSave, saveEnabled, saveStatus, referenceControl, ...props }: Props) {
   const { store, constructionOpen, exteriorOpen, catalogOpen } = props;
   const sidePanel = useStore(store, (s) => s.sidePanel);
   const readOnly = useStore(store, (s) => s.readOnly);
@@ -83,6 +88,7 @@ export function EditorWorkspaceNavigation({ mode, onViewChange, onPanel, ...prop
         mode={mode}
         onViewChange={onViewChange}
         onSelect={props.onSelectTool}
+        referenceControl={referenceControl}
       />
       <nav
         className={`${ui.rail} ${process.env.NODE_ENV === 'development' ? ui.development : ''}`}
@@ -108,6 +114,7 @@ export function EditorWorkspaceNavigation({ mode, onViewChange, onPanel, ...prop
           ))}
         </div>
         <div className={ui.railEnd}>
+          <WorkspaceHistoryActions store={store} onSave={onSave} saveEnabled={saveEnabled} saveStatus={saveStatus} />
           <a
             href={`${process.env.NODE_ENV === 'development' ? 'http://docs.localhost:3040' : 'https://docs.habiteka.app'}/editor/herramientas/`}
             target="_blank"

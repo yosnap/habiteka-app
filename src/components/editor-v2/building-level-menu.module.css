@@ -1,0 +1,12 @@
+.menu { composes: surface from '../ui/editor-dropdown.module.css'; position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; width: 320px; max-width: calc(100vw - 100px); max-height: 60dvh; overflow: auto; }
+.title { display: block; padding: 6px 12px 12px; font-size: 14px; font-weight: 600; }
+.trigger { composes: control from '../ui/editor-dropdown.module.css'; white-space: nowrap; max-width: 180px; }
+.trigger > span { overflow: hidden; text-overflow: ellipsis; }
+.trigger > svg { flex-shrink: 0; }
+.fields { display: grid; gap: 6px; min-width: 0; border: 0; padding: 0; }
+.fields label { display: grid; gap: 8px; min-width: 0; padding: 8px; font-size: 14px; }
+.fields input { width: 100%; min-width: 0; }
+.level { display: flex; align-items: center; gap: 6px; }
+.item { composes: item from '../ui/editor-dropdown.module.css'; }
+.delete.delete { width: 52px; min-width: 52px; justify-content: center; }
+.confirm { display: grid; gap: 6px; padding: 8px; font-size: 14px; }

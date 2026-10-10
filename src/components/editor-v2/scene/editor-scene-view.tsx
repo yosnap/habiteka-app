@@ -1,7 +1,10 @@
 'use client';
 import { WorkspaceSceneOptions } from '../workspace/workspace-scene-options';
-import { DEFAULT_SCENE_OPTIONS, explodedOffset, sceneOptionHiddenIds } from '../workspace/scene-options-state';
+import { WorkspaceSceneInteraction } from '../workspace/workspace-scene-interaction';
+import { explodedOffset, sceneOptionHiddenIds } from '../workspace/scene-options-state';
 import { SceneWorkspaceOverlays, SceneWorkspaceStyle } from './scene-workspace-overlays';
+import { workspaceNameLabels } from '@/canvas/editor-v2/workspace-name-labels';
+import { nameLabelCss } from '../workspace/name-label-style';
 import { WorkspaceRouteControls } from '../workspace/workspace-route-controls';
 import { SceneElementVisibility } from './scene-element-visibility';
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
@@ -146,9 +149,15 @@ function SceneView({
   showNotices?: boolean;
   readOnlyLabel?: string;
 }) {
-  const document = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
+  const document = useStore(store, (s) => s.document), storedSelection = useStore(store, (s) => s.selection);
+  const sceneEditing = useStore(store, s => s.sceneEditing);
+  const canEditScene = presentation === 'plan' || sceneEditing;
+  const selection = canEditScene ? storedSelection : [];
+  useEffect(() => { store.getState().setSceneEditing(false); }, [store, presentation]);
   const [terrainPreview, setTerrainPreview] = useState<TerrainSurface | null>(null);
-  const [sceneOptions, setSceneOptions] = useState(DEFAULT_SCENE_OPTIONS);
+  const sceneOptions = useStore(store, (s) => s.sceneOptions);
+  const hiddenNameIds = useStore(store, s => s.hiddenElementIds);
+  const setSceneOptions = store.getState().setSceneOptions;
   const optionHiddenIds = useMemo(() => sceneOptionHiddenIds(document, sceneOptions), [document, sceneOptions]);
   const sceneDocument = useMemo(() => terrainPreview ? { ...document,
     terrainSurfaces: document.terrainSurfaces?.map(surface => surface.id === terrainPreview.id ? terrainPreview : surface) } : document, [document, terrainPreview]);
@@ -214,6 +223,8 @@ function SceneView({
   useEffect(() => () => { abortRecording.current?.abort(); store.getState().setWalkthroughPlaying(false); }, [store]);
   const [contextLost, setContextLost] = useState(false);
   const [rendererReady, setRendererReady] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const revealCamera = useCallback(() => setCameraReady(true), []);
   // La maqueta oblicua conserva los muros; «Interior» puede abrirlos a petición.
   const [cutaway, setCutaway] = useState(false);
   // Estancia en la que está la cámara. Es estado de la vista 3D, no del documento.
@@ -528,11 +539,11 @@ function SceneView({
   // En plantas apiladas, la cara inferior del forjado y el pavimento superior
   // pueden coincidir exactamente: un pequeño espesor visual evita parpadeos.
   const ceilingOffset = (elevationMm: number) => elevationMm < highestRenderedElevation ? -.02 : 0;
-  const lost = useCallback(() => setContextLost(true), [setContextLost]);
+  const lost = useCallback(() => { setCameraReady(false); setContextLost(true); }, []);
   const manualCameraChange = useCallback(() => setActiveView(null), [setActiveView]);
   const sceneVersion = `${document.activeLevelId ?? 'base'}:${activeElevation}:${renderAllLevels}:${exploded && !workViewDisabled}`;
   const select = (id: string) => {
-    if (!abortRecording.current && !freeWalk && !(presentation === 'plan' && (store.getState().pan || store.getState().pendingSpatial))) {
+    if (canEditScene && !store.getState().readOnly && !abortRecording.current && !freeWalk && !(presentation === 'plan' && (store.getState().pan || store.getState().pendingSpatial))) {
       store.getState().select([id]);
       if (id.startsWith('room:')) store.getState().setDetailPanel('paint');
     }
@@ -647,7 +658,7 @@ function SceneView({
   return <div ref={sceneContainer} style={{ height: '100%', minHeight: 320, position: 'relative', background: '#eeede8' }} aria-label={presentation === 'plan' ? 'Plano visual cenital editable' : 'Vista 3D del plano'}
     onDoubleClick={(event) => {
       const state = store.getState();
-      if (event.target instanceof HTMLCanvasElement && state.tool === 'select' && !state.pan && state.selection.length)
+      if (canEditScene && event.target instanceof HTMLCanvasElement && state.tool === 'select' && !state.pan && state.selection.length)
         state.openSidePanel(state.sidePanel === 'ceiling' ? 'ceiling' : 'inspector');
     }}
     onContextMenuCapture={presentation === 'plan' ? (event) => event.preventDefault() : undefined}
@@ -677,10 +688,11 @@ function SceneView({
       {!routeExport?.walkthroughIssue && routeExport?.showcaseIssue && <span role="status">Vídeo muestra: {routeExport.showcaseIssue}</span>}
       {recording && <><span role="status">{recordProgress >= 1 ? 'Guardando…' : `${Math.round(recordProgress * 100)} %`}</span><button type="button" disabled={recordProgress >= 1} onClick={() => abortRecording.current?.abort()}>Cancelar</button></>}
     </div></WorkspaceRouteControls>}
-    <Canvas events={scenePointerEvents} frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
+    <Canvas style={{ visibility: cameraReady ? 'visible' : 'hidden' }} data-scene-camera-ready={cameraReady}
+      events={scenePointerEvents} frameloop="demand" shadows="percentage" dpr={[1, 1.5]} gl={{ preserveDrawingBuffer: true }}
       onCreated={onSceneCreated} camera={{ position: [8, 9, -10], fov: presentation === 'plan' ? 25 : 45, near: .01, far: 500 }}
       fallback={rendererReady ? null : unavailable} onPointerMissed={() => {
-        if (!store.getState().pan && (presentation !== 'plan' || store.getState().tool !== 'place-object')) store.getState().select([]);
+        if (canEditScene && !store.getState().pan && (presentation !== 'plan' || store.getState().tool !== 'place-object')) store.getState().select([]);
       }}>
       <SceneLighting key={lighting} document={document} preset={lighting} hasLuminaires={[document, ...otherLevels.map((level) => level.document)]
         .some((levelDocument) => resolvedLuminaires(levelDocument).length > 0)} />
@@ -688,7 +700,7 @@ function SceneView({
       {workspaceControls && <>
         <SceneElementVisibility store={store} extraIds={optionHiddenIds} disabled={workViewDisabled} />
         <SceneWorkspaceStyle style={sceneOptions.style} disabled={workViewDisabled} />
-        <SceneWorkspaceOverlays document={document} options={{ ...sceneOptions, names: sceneOptions.names && presentation === 'spatial' && (ceilingView !== 'solid' || (explodedView && activeElevation < highestRenderedElevation)) }} elevationMm={activeElevation + visualLevelOffset(document.activeLevelId)} disabled={workViewDisabled} />
+        <SceneWorkspaceOverlays document={document} hiddenIds={hiddenNameIds} options={{ ...sceneOptions, names: sceneOptions.names && presentation === 'spatial' && (ceilingView !== 'solid' || (explodedView && activeElevation < highestRenderedElevation)) }} elevationMm={activeElevation + visualLevelOffset(document.activeLevelId)} disabled={workViewDisabled} />
       </>}
       {projectId && document.geographicSite?.confirmed && (workViewDisabled || sceneOptions.garden) && <GeographicSiteScene
         projectId={projectId} site={document.geographicSite} onReady={setSiteReady} />}
@@ -704,7 +716,7 @@ function SceneView({
           if (rect) setPlanMenu({ id: item.id,
             x: Math.max(8, Math.min(event.clientX - rect.left, rect.width - 254)),
             y: Math.max(8, Math.min(event.clientY - rect.top, rect.height - 358)) });
-        } : undefined} onPointerDown={presentation === 'plan' || (!workViewDisabled && !inside) ? (event) => {
+        } : undefined} onPointerDown={presentation === 'plan' || (sceneEditing && !workViewDisabled && !inside) ? (event) => {
           if (!store.getState().pan) {
             planDrag.current = beginPlanDrag(event, store, root, planElevationM);
             if (planDrag.current) setPlanPreview({ id: planDrag.current.id, dxMm: 0, dyMm: 0, dzMm: 0 });
@@ -788,14 +800,13 @@ function SceneView({
           paused={walkPaused} viewMode={walkViewMode} controller={freeWalkController} onPause={pauseFreeWalk} onToggleView={toggleWalkView} />}
         <SceneCamera request={request} sceneVersion={sceneVersion} interior={inside} enabled={!walking && !freeWalk && !recording && !planPreview} plan={presentation === 'plan'} pan={pan}
           onManualChange={manualCameraChange} persistenceKey={navigationKey ? `${navigationKey}:camera:${presentation}:${sceneVersion}` : undefined}
-          canPersist={() => !cameraApplied.current && !capturingPose && !walking && !freeWalk && !recording && !exporting} onContextLost={lost} onApplied={onCameraApplied} />
+          canPersist={() => !cameraApplied.current && !capturingPose && !walking && !freeWalk && !recording && !exporting} onContextLost={lost} onApplied={onCameraApplied} onReady={revealCamera} />
       </Bounds>
       {presentation === 'plan' && <SceneTerrainControls store={store} source={document} preview={terrainPreview}
         movePreview={planPreview} elevation={planElevationM} onPreview={setTerrainPreview} />}
-      {presentation === 'plan' && (workViewDisabled || sceneOptions.names) && document.labels.map((label) => <Html key={label.id}
+      {presentation === 'plan' && (workViewDisabled || sceneOptions.names) && workspaceNameLabels(document, workViewDisabled ? [] : hiddenNameIds).map((label) => <Html key={label.id}
         position={[label.x / 1000, planElevationM + .04, label.y / 1000]} center
-        style={{ pointerEvents: 'none', whiteSpace: 'nowrap', color: '#263630', fontSize: 15,
-          fontWeight: 700, letterSpacing: '.01em', textShadow: '0 1px 3px #fff, 0 0 6px #fff' }}>
+        zIndexRange={[1, 0]} style={nameLabelCss(sceneOptions.nameStyle)}>
         {label.text}
       </Html>)}
       {[...new Set(document.comments?.map((c) => c.targetEntityId) ?? [])].map((id) => {
@@ -842,6 +853,12 @@ function SceneView({
       viewMode={walkViewMode} onToggleView={toggleWalkView}
       onPause={() => walkPaused ? setWalkPaused(false) : pauseFreeWalk()}
       onExit={exitFreeWalk} onMouse={() => { setWalkPaused(false); void root.current?.get().gl.domElement.requestPointerLock?.().catch(() => undefined); }} />}
+    {workspaceControls && presentation === 'spatial' && !workViewDisabled && <WorkspaceSceneInteraction
+      editing={sceneEditing} disabled={store.getState().readOnly} onChange={(editing) => {
+        const drag = planDrag.current;
+        if (drag) { drag.restoreControls?.(); planDrag.current = null; setPlanPreview(null); store.getState().setMagneticGuides([]); }
+        store.getState().setSceneEditing(editing);
+      }} />}
     {!lightingLocked && (workspaceControls ? <div data-workspace-lighting>
       <WorkspaceSceneOptions options={sceneOptions} onChange={setSceneOptions} spatial={presentation === 'spatial'}
         floors={!allLevels ? 'solo' : exploded ? 'exploded' : 'stacked'} hasLevels={(document.levels?.length ?? 0) > 1}

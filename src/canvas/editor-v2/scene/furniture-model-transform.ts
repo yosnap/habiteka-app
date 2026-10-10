@@ -1,15 +1,21 @@
-import { Box3, Color, Group, Texture, Vector3, type Material, type Mesh, type Object3D } from 'three';
+import { Box3, Color, Group, MeshPhysicalMaterial, MeshStandardMaterial, Texture, Vector3, type Material, type Mesh, type Object3D } from 'three';
 
 /** Orient first, then fit the actual bounds. Shared cached geometry is never mutated. */
 export function prepareFurnitureModel(source: Object3D, frontRotation: number, tint?: string, anisotropy = 1,
-  tintMaterialNames?: readonly string[]) {
+  tintMaterialNames?: readonly string[], vehicle = false) {
   const copy = source.clone(true), materials: Material[] = [];
   copy.traverse((object) => {
     const mesh = object as Mesh;
     if (!mesh.isMesh) return;
     mesh.castShadow = true; mesh.receiveShadow = true;
     const cloneMaterial = (original: Material) => {
-      const material = original.clone() as Material & { color?: Color };
+      const material = (vehicle && original.name === 'pintura' && original instanceof MeshStandardMaterial
+        ? MeshStandardMaterial.prototype.copy.call(new MeshPhysicalMaterial(), original) : original.clone()) as Material & { color?: Color };
+      // Barniz de carrocería: reflejos legibles desde ángulos oblicuos sin cambiar la luz de la casa.
+      if (vehicle && material instanceof MeshPhysicalMaterial && original.name === 'pintura') {
+        material.clearcoat = .8; material.clearcoatRoughness = .18;
+        material.envMapIntensity = 2;
+      }
       // El color pintado sustituye al color base del material (multiplicarlo nunca podía aclarar una madera
       // marrón); la textura, la rugosidad, la opacidad y el vidrio se conservan.
       if (tint && material.color && (!tintMaterialNames || tintMaterialNames.includes(original.name)) &&

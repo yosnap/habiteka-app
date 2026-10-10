@@ -3,17 +3,21 @@ title: Crear vídeo en un solo lugar
 description: Preparar construcción, publicidad o recorrido desde el estudio de vídeos.
 ---
 
-En escritorio, el tipo de vídeo se elige en un panel a la izquierda y sus opciones se trabajan en el área principal. En tableta y móvil, las opciones de tipo aparecen encima. Las pestañas **Crear vídeo** y **Vídeos guardados**, los controles de coste y las confirmaciones conservan su funcionamiento. **Volver al editor** conserva la zona y permite recuperar la última vista de trabajo en la misma pestaña.
+El estudio tiene una barra verde a la izquierda, también en móvil, con dos grupos principales: **Crear vídeo** y **Vídeos guardados**. **Crear vídeo** abre un panel lateral flotante con **Construcción**, **Publicidad** y **Primera persona**. Esas modalidades son opciones del grupo, no botones adicionales de la barra verde. Al elegir una, el panel se cierra y queda visible su preparación; Crear vídeo sigue marcado porque estás dentro de ese grupo. Pulsa de nuevo Crear vídeo para cambiar la modalidad. Puedes cerrar el panel con su botón de cierre o **Escape** desde sus controles.
+
+**Vídeos guardados** cierra el panel de creación y abre la galería de resultados y tareas existentes. No muestra modalidades de creación: para preparar otro vídeo, vuelve a Crear vídeo. Los controles de coste y las confirmaciones conservan su funcionamiento.
 
 ## Abrir el estudio
 
-En cualquier proyecto, abre la pestaña **Vídeos**, el botón **Vídeos** de la cabecera del editor o **Crear vídeo** en la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
+En cualquier proyecto, abre **Vídeos** desde el desplegable flotante, **Visualizar → Vídeos** desde el editor, o **Crear vídeo** desde el lateral de Diseños o la vista aprobada. El estudio reúne preparación, ajustes, creación y resultados. Conserva la zona activa del proyecto.
 
-Vídeos es una página propia: no abre un modal sobre el plano. Las pestañas del proyecto siguen visibles. **Volver al editor** regresa a la edición y **Mis diseños** abre la galería para revisar y aceptar imágenes. Al entrar en el editor se mantiene la edición; la revisión aprobada solo se abre cuando la solicitas.
+Vídeos es una página propia. El flotante muestra el icono rosa y el nombre de la sección actual; su desplegable permite volver al Editor o abrir Diseños. La indicación de que los vídeos parten de diseños IA aceptados aparece sobre las opciones de la modalidad, sin otra cabecera de navegación duplicada.
+
+**Guardado y límites** despliega las reglas de conservación de tareas y el límite de duración y coste de construcción y primera persona.
 
 Elige **Construcción**, **Publicidad** o **Primera persona**. La pieza combinada se indica como pendiente, sin un botón que parezca disponible. **Vídeos guardados** reúne los resultados existentes.
 
-Con el foco en **Crear vídeo** o **Vídeos guardados**, las flechas izquierda/derecha cambian de pestaña; **Tab** continúa hacia los controles. Los accesos **Ver en Vídeos guardados** y **Preparar publicidad con un vídeo guardado** llevan el foco a la pestaña de destino. Durante una operación en curso, el cambio de pestaña permanece desactivado. **Guía** se abre en otra pestaña del navegador.
+Con el foco en **Crear vídeo** o **Vídeos guardados**, las flechas arriba/abajo cambian de opción; **Tab** continúa hacia los controles. Los accesos **Ver en Vídeos guardados** y **Preparar publicidad con un vídeo guardado** llevan el foco a la opción de destino. Durante una operación en curso, el cambio permanece desactivado. **Guía** se abre en otra pestaña del navegador.
 
 Al pasar a **Vídeos guardados**, las preparaciones H3 ya registradas permanecen allí para confirmar el envío o consultar el resultado. Volver a **Crear vídeo** inicia otra selección: los ajustes y vistas previas locales sin guardar no se conservan entre esas pestañas. Así no queda otra copia editable de una tarea que ya hayas enviado o revisado en la galería.
 

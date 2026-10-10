@@ -11,12 +11,12 @@ import { setEditorBackgroundStudio } from '@/app/(app)/projects/[id]/_actions/st
 import { callAction } from '@/lib/action-result';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
 
-export function ReferenceBackgroundPicker({ choices }: { choices: NonNullable<PlanReference['choices']> }) {
+export function ReferenceBackgroundPicker({ choices, portalContainer }: { choices: NonNullable<PlanReference['choices']>; portalContainer?: HTMLElement | null }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return <>
-    <span style={{ width: 200, flex: '0 0 auto' }}><ModernSelect compact aria-label="Imagen de fondo" value={choices.activeKey ?? ''} disabled={pending}
+    <span style={{ width: 200, flex: '0 0 auto' }}><ModernSelect appearance="editor" aria-label="Imagen de fondo" value={choices.activeKey ?? ''} disabled={pending} portalContainer={portalContainer}
       onChange={(event) => {
         const assetKey = event.target.value;
         if (!assetKey || assetKey === choices.activeKey) return;

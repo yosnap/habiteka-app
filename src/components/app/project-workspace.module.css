@@ -1,0 +1,21 @@
+.frame { position: relative; display: flex; flex: 1; min-height: 0; min-width: 0; --project-rail-width: 82px; }
+.panel { position: absolute; z-index: 35; top: 12px; bottom: 16px; left: calc(var(--project-rail-width) + 12px); width: 320px; max-width: calc(100% - var(--project-rail-width) - 24px); overflow-y: auto; border: 1px solid var(--color-line); border-radius: 16px; background: var(--color-surface); box-shadow: 0 12px 40px #183a3220; }
+.withPanel > .content { padding-left: 344px; }
+.rail { display: flex; flex-direction: column; gap: 3px; flex: 0 0 82px; width: 82px; min-height: 0; padding: 10px 5px; overflow: hidden; background: #203c35; color: #e7f0ec; }
+.tasks { display: grid; flex: 1; min-height: 0; align-content: safe center; gap: 3px; overflow-y: auto; scrollbar-width: thin; }
+.tasks > nav { display: grid; gap: 3px; }
+.footer { flex-shrink: 0; padding-top: 12px; border-top: 1px solid #ffffff25; }
+.content { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; }
+.content > * { min-width: 0; }
+.rail .item span { max-width: 100%; }
+.rail :is(.item, [role='tab'], .footer a) { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 100%; min-height: 55px; padding: 7px 3px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #e7f0ec; text-align: center; font-size: 10px; line-height: 1.2; text-decoration: none; flex-shrink: 0; cursor: pointer; }
+.rail svg { width: 21px; height: 21px; flex-shrink: 0; }
+.rail :is(.item, [role='tab'], .footer a):hover:not(:disabled) { background: #ffffff14; color: #e7f0ec; transform: none; }
+.rail :is(.item, [role='tab']):is([aria-current='page'], [aria-pressed='true'], [data-state='active']),
+.rail :is(.item, [role='tab']):is([aria-current='page'], [aria-pressed='true'], [data-state='active']):hover:not(:disabled) { background: #d9eee5; border-color: #d9eee5; color: #163e30; }
+.rail :is(.item, [role='tab']):focus-visible { outline: 2px solid #b3ebd2; outline-offset: -2px; }
+.rail :is(.item, [role='tab']):disabled { opacity: .5; cursor: not-allowed; }
+.rail [role='tablist'] { display: grid; gap: 3px; }
+@media (max-width: 600px) { .rail { flex-basis: 70px; width: 70px; } }
+@media (max-width: 900px) { .withPanel > .content { padding-left: 0; } }
+@media (max-width: 600px) { .frame { --project-rail-width: 70px; } }

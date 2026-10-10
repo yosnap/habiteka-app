@@ -8,6 +8,7 @@ import {
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { editDocument, interiorPoint, newId } from '@/canvas/editor-v2/editing-operations';
+import { renameDesignZone } from '@/lib/editor-document/design-zone-commands';
 
 export type SceneTab = 'structure' | 'objects' | 'rooms';
 export interface SceneTreeNode extends PlanElementEntry {
@@ -17,9 +18,9 @@ export interface SceneTreeNode extends PlanElementEntry {
   propertiesPanel?: 'ceiling';
 }
 export const SCENE_TABS = [
-  { id: 'structure', label: 'Estructura' },
-  { id: 'objects', label: 'Mobiliario' },
-  { id: 'rooms', label: 'Estancias' },
+  { id: 'structure', label: 'Estructura', shortcut: 'sceneStructure' },
+  { id: 'objects', label: 'Mobiliario', shortcut: 'sceneObjects' },
+  { id: 'rooms', label: 'Estancias', shortcut: 'sceneRooms' },
 ] as const;
 
 /** Paredes y huecos mantienen la relación real wallId; el índice no se duplica. */
@@ -82,7 +83,11 @@ export function sceneTree(document: EditorDocument, rooms: DerivedRoom[]): Scene
       },
     ];
   });
-  return [...nodes.filter((node) => !nested.has(node.id)), ...floors, ...ceilings];
+  const zones: SceneTreeNode[] = (document.designZones ?? []).map(zone => ({
+    id: zone.id, label: zone.name, group: 'Zonas de diseño', point: interiorPoint(zone.polygon),
+    children: [], renamable: true, hideable: false,
+  }));
+  return [...nodes.filter((node) => !nested.has(node.id)), ...floors, ...ceilings, ...zones];
 }
 
 export function filterSceneTree(
@@ -95,8 +100,8 @@ export function filterSceneTree(
       tab === 'objects'
         ? node.group === 'Objetos'
         : tab === 'rooms'
-          ? node.group === 'Estancias'
-          : !['Objetos', 'Estancias'].includes(node.group),
+          ? ['Estancias', 'Zonas de diseño'].includes(node.group)
+          : !['Objetos', 'Estancias', 'Zonas de diseño'].includes(node.group),
     )
     .flatMap((node) => {
       if (!query.trim() || matchesQuery(node, query)) return [node];
@@ -112,6 +117,7 @@ export function renameSceneElement(
   value: string,
   rooms: DerivedRoom[],
 ): EditorDocument {
+  if (document.designZones?.some(zone => zone.id === id)) return renameDesignZone(document, id, value);
   const name = value.trim().slice(0, 100),
     room = rooms.find((item) => item.id === id);
   return editDocument(document, (next) => {

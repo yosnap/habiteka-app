@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useStore } from 'zustand';
 import { Magnet, MousePointer2, Ruler, SlidersHorizontal } from 'lucide-react';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -14,11 +14,13 @@ export function WorkspaceViewToolbar({
   mode,
   onViewChange,
   onSelect,
+  referenceControl,
 }: {
   store: EditorStore;
   mode: EditorViewMode;
   onViewChange: (mode: EditorViewMode) => void;
   onSelect: () => void;
+  referenceControl?: ReactNode;
 }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const tool = useStore(store, (s) => s.tool);
@@ -87,6 +89,7 @@ export function WorkspaceViewToolbar({
           </button>
         </div>
       </details>
+      {referenceControl}
     </div>
   );
 }

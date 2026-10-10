@@ -151,9 +151,11 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       record(finish);
       keys(
         finish,
-        'roomId color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture',
+        'roomId classification color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture',
       );
       text(finish.roomId);
+      if (finish.classification !== undefined && !['interior', 'exterior'].includes(finish.classification as string))
+        throw new Error('Clasificación de estancia inválida');
       if (!finish.roomId.startsWith('room:')) throw new Error('Identidad de habitación inválida');
       let boundary: unknown;
       try {

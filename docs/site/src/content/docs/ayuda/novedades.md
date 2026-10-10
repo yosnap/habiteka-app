@@ -5,6 +5,34 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## Espacio de trabajo — 10 de octubre de 2026
 
+**Navegación segura en 3D:** Mover vista es el modo inicial, también dentro de habitaciones. Un flotante a la derecha permite activar Editar. Navegar no selecciona ni arrastra elementos y bloquea su desplazamiento o eliminación por teclado. La carrocería de los vehículos incorpora barniz y reflejos en ambas vistas; pintarla conserva los demás materiales.
+
+**Desplegables consistentes:** navegación, plantas, herramientas rápidas, referencia y Opciones comparten fondo, separación entre filas y selección gris suave del menú Editor. Imagen de fondo y Fuente usan el mismo estilo; el selector de fuentes tiene ancho completo para evitar texto e iconos comprimidos.
+
+**Referencia dentro del flotante:** Mostrar original pasa al lado del selector 2D/Amueblado/3D. Su menú reúne visibilidad, opacidad y selección del plano original o un redibujado disponible, eliminando la franja superior dedicada a esos controles.
+
+**Vistas y etiquetas coherentes:** Amueblado y Modelo 3D esperan a tener la cámara preparada antes de mostrar la escena. Herramientas rápidas muestra Seleccionar, Medir y Ajuste en filas claras. Opciones también aparece en Plano 2D; comparte fondo, nombres, visibilidad, cuadrícula y unidades con las vistas visuales. Superposiciones permite personalizar la fuente, tamaño, negrita, colores, fondo y redondeado de los nombres, con el mismo aspecto en las tres vistas. Los ajustes se recuerdan durante la pestaña del proyecto y las cotas y áreas automáticas de 2D admiten metros o pies.
+
+**Modalidades de vídeo en un panel:** la barra izquierda distingue Crear vídeo y Vídeos guardados. Construcción, Publicidad y Primera persona se eligen desde el panel flotante de Crear vídeo, que se cierra tras elegir una modalidad y se puede reabrir desde el grupo. Vídeos guardados abre la galería sin opciones de creación.
+
+**Laterales uniformes:** Editor, Plano, Diseños y Vídeos comparten tamaño de iconos y botones, con las opciones centradas verticalmente. El hover conserva el contraste tanto en opciones normales como seleccionadas, sin mover los botones.
+
+**Navegación coherente entre secciones:** el botón flotante muestra el icono de color de la vista actual. Plano incorpora un flotante de etapas y una barra verde para sus vistas y Nuevo plano. Diseños mueve Diseños, Recorridos, Vídeos y Crear vídeo al lateral. Vídeos mueve Crear vídeo y Vídeos guardados a la barra verde; Construcción, Publicidad y Primera persona aparecen al elegir Crear vídeo. El desplegable común sustituye los enlaces duplicados de vuelta al Editor y Mis diseños.
+
+**Asistente simplificado:** Diseñar con IA es un título. Las dos acciones principales son Diseñar el plano con IA y Generar diseños, con resaltado verde y texto blanco al pasar el cursor o enfocarlas. El formulario por pasos deja de aparecer dentro del panel; Cambiar el proceso abre el asistente completo del proyecto y zona sin reiniciar el plano.
+
+**Guardar las muestras de desarrollo:** Guardar permite dar un nombre y crear un proyecto editable con los cambios actuales. Requiere iniciar sesión, conserva la copia local y no sustituye proyectos existentes ni aprueba diseños.
+
+Todos los paneles de la izquierda aprovechan la altura disponible de la pantalla, como Amueblar, con desplazamiento interno y espacio reservado para los controles superiores y el recorrido inferior. Abrir Tejado desde Herramientas cierra el panel anterior para evitar que permanezca detrás del diálogo.
+
+**Navegación del proyecto en el flotante:** Editor, Plano, Asistente, Diseños, Vídeos e Historial comparten el mismo desplegable, con el nombre de la sección actual y los colores originales de sus iconos. Sustituye la fila de pestañas del proyecto. En el editor está junto a la planta; en las demás páginas tiene espacio reservado sobre el contenido. El botón y las opciones tienen texto grande y filas amplias. En móvil, el nombre del proyecto del editor ocupa una fila propia sobre ambos controles. Las muestras independientes ofrecen acceso a Mis proyectos. La cabecera y las pestañas de resultados de Diseños conservan su altura para evitar que las imágenes se solapen con ellas.
+
+El aviso amarillo de las muestras de desarrollo puede cerrarse y recordar su cierre durante la pestaña; **Muestra** permite reabrirlo. Deshacer y Rehacer comparten una sola fila en el lateral.
+
+**Más espacio para el lienzo:** proyecto, estado de guardado y planta pasan a un flotante superior. Guardar, Deshacer y Rehacer quedan encima de Ayuda en el lateral. Asistente reúne las acciones de diseño con IA y explica cuándo no están disponibles; Vídeos sigue en Visualizar. Herramientas conserva su grupo lateral y desaparece el acceso duplicado de la cabecera.
+
+**Escena simplificada:** doble clic abre Propiedades y las filas mantienen nombre, renombrado y visibilidad. Alt/Option+1/2/3 abre sus pestañas. Estancias y zonas de diseño permiten guardar Interior/Exterior o volver a Automático. Capturar vista de trabajo descarga el lienzo como referencia marcada, sin generar imágenes finales ni gastar IA.
+
 El ajuste de muebles a paredes conserva la orientación durante el arrastre y la colocación desde catálogo. En las esquinas, pequeños movimientos no alternan entre horizontal y vertical; al acercarlo claramente a otra pared, vuelve a orientarse. Soltar conserva la posición mostrada.
 
 La fila de Seleccionar, Texto y Propiedades deja de ocupar espacio en reposo. **Añadir texto** está en Herramientas y Propiedades sigue en Escena, la selección y el doble clic. Al mover un mueble en Amueblado o Modelo 3D, el arrastre se detiene ante paredes y obstáculos, permitiendo soltarlo en el último punto válido.

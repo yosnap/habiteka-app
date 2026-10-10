@@ -10,8 +10,8 @@ export function StudioEntryChoices({ upload, drawing, pending, hasImport, onSket
     { label: hasImport ? 'Continuar importación' : 'Importar CAD o PDF', detail: 'Lee el plano y revisa sus medidas.', icon: FileUp, color: 'bg-sky-100 text-sky-700', onClick: onImport },
     { label: 'Usar mi plano del editor', detail: 'Continúa desde lo que ya has dibujado.', icon: DraftingCompass, color: 'bg-amber-100 text-amber-700', onClick: onEditor },
   ];
-  return <div className="grid gap-4 text-left sm:grid-cols-2">
-    <section className="flex flex-col justify-center rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5"><h2 className="mb-2 font-semibold">Subir una foto del plano</h2><p className="mb-4 text-sm text-ink-soft">Empieza desde una imagen o un escaneo.</p>{upload}</section>
+  return <div className="grid min-w-0 gap-4 text-left sm:grid-cols-2">
+    <section className="flex min-w-0 flex-col justify-center rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal"><h2 className="mb-2 font-semibold">Subir una foto del plano</h2><p className="mb-4 text-sm text-ink-soft">Empieza desde una imagen o un escaneo.</p>{upload}</section>
     {choices.map(({ label, detail, icon: Icon, color, onClick }) => <button type="button" key={label} disabled={pending} onClick={onClick}
       className="group flex min-h-40 flex-col items-start rounded-2xl border border-line bg-surface p-5 text-left transition hover:border-brand-500 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50">
       <span className={`mb-4 grid size-12 place-items-center rounded-2xl ${color}`}><Icon size={25} /></span>

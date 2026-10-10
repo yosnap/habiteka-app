@@ -1,0 +1,14 @@
+/* Reserva espacio para el flotante: las cabeceras y las imágenes empiezan debajo. */
+.dock { position: relative; flex-shrink: 0; height: 80px; z-index: 45; }
+.bar { position: absolute; top: 12px; left: 16px; display: flex; align-items: center; gap: 20px; width: 460px; max-width: calc(100% - 32px); min-height: 56px; padding: 6px 10px; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-surface); color: var(--color-ink); box-shadow: 0 4px 14px #183a321a; }
+.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.withRail::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 82px; background: #203c35; }
+.withRail .bar { left: 94px; max-width: calc(100% - 110px); }
+.tools { position: absolute; top: 12px; left: 570px; right: 12px; min-width: 0; }
+.tools:empty { display: none; }
+@media (max-width: 1280px) {
+  .dock:has(.tools > *) { height: 148px; }
+  .tools { left: 94px; top: 80px; }
+}
+@media (max-width: 600px) { .bar { top: 8px; left: 8px; max-width: calc(100% - 16px); gap: 12px; } .dock { height: 72px; } }
+@media (max-width: 600px) { .withRail::before { width: 70px; } .withRail .bar { left: 78px; max-width: calc(100% - 86px); } .tools { left: 78px; top: 76px; right: 8px; } }

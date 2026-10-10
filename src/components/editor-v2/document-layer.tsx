@@ -1,5 +1,8 @@
 'use client';
 import { planDrawOrder } from '@/lib/editor-document/plan-draw-order';
+import { PlanNameLabel } from './plan-name-label';
+import { workspaceNameLabels } from '@/canvas/editor-v2/workspace-name-labels';
+import { sceneOptionHiddenIds } from './workspace/scene-options-state';
 import { useHiddenElements } from './workspace/use-hidden-elements';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { linearPartOwner } from '@/lib/editor-document/linear-part-owner';
@@ -46,7 +49,6 @@ import { editableOutdoorRoom, moveOutdoorRoom } from '@/lib/editor-document/outd
 import { roomAt } from '@/lib/editor-document/outdoor-attach';
 import { duplicateSpatialItem, insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
-import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { FloorSurface } from './floor-surface';
 import { layeredTerrainSurfaces, updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
@@ -59,7 +61,9 @@ import { TerrainTransformControls } from './terrain-transform-controls';
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
 export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', presentation = 'technical', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; presentation?: 'technical' | 'visual'; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
-  const hidden = useHiddenElements(store);
+  const hiddenElements = useHiddenElements(store);
+  const options = useStore(store, s => s.sceneOptions);
+  const hidden = new Set([...hiddenElements, ...sceneOptionHiddenIds(source, options)]);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
   const [wallMoveSnap, setWallMoveSnap] = useState<WallMoveSnap | null>(null);
@@ -199,7 +203,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : wallInk}
             lineCap="butt" strokeWidth={wall.thicknessMm} hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />}
         {(dimensions === 'all' || (dimensions === 'external' && rooms.value.filter((room) => room.wallIds.includes(wall.id)).length === 1)) &&
-          <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}
+          <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale} units={options.units}
             label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />}
       </Group>;
     })}
@@ -251,20 +255,22 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           width={Math.max(32 / scale, f.widthMm - 8 / scale)} height={13 / scale} align="center" fontSize={11 / scale}
           wrap="none" ellipsis fill={INK} listening={false} />}
     </Group>)}
-    {doc.dimensions.filter(d => !hidden.has(d.id) && (tool === 'measure' || selected.includes(d.id) || (dimensions !== 'none' && dimensions !== 'external'))).map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
+    {doc.dimensions.filter(d => !hidden.has(d.id) && (tool === 'measure' || selected.includes(d.id) || (dimensions !== 'none' && dimensions !== 'external'))).map((d) => <DimensionMark key={d.id} scale={scale} label={d.label} units={options.units}
       layout={{ from: d.from, to: d.to, sourceFrom: d.from, sourceTo: d.to }}
       onSnapMove={(raw) => { const state = store.getState(), result = alignPoints(source, [d.from, d.to].map((p) => ({ x: p.x + raw.x, y: p.y + raw.y })), scale, state.snap, [d.id]); state.setMagneticGuides(result.guides); return { x: raw.x + result.delta.x, y: raw.y + result.delta.y }; }}
       onMove={!readOnly && tool === 'select' ? (delta) => run(() => store.getState().apply(nudgeSpatialEntities(source, [d.id], delta))) : undefined}
       onSelect={tool === 'select' ? () => store.getState().select([d.id]) : undefined} />)}
-    {doc.labels.filter(label => !hidden.has(label.id) && !rooms.value.some(room => hidden.has(room.id) && insideRoom(label, room.boundary))).map((label) => <Text key={label.id} {...label} text={label.text} fontSize={14 / scale}
-      fill={INK} draggable={!readOnly && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
-      onClick={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} onTap={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} />)}
+    {options.names && workspaceNameLabels(doc).filter(label => !hidden.has(label.id) && (!label.roomId || !hidden.has(label.roomId))).map((label) => <PlanNameLabel key={label.id}
+      x={label.x} y={label.y} text={label.text} viewScale={scale} style={options.nameStyle}
+      draggable={label.editable && !readOnly && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
+      onClick={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)}
+      onTap={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)} />)}
     {dimensions !== 'none' && rooms.value.filter(room => !hidden.has(room.id)).map((room) => {
       const p = interiorPoint(room.boundary);
-      return <Group key={`area:${room.id}`} x={p.x} y={p.y} listening={false}>
+      return <Group key={`area:${room.id}`} x={p.x} y={p.y + (options.names ? (options.nameStyle.size * 1.2 + 8) / 2 + 14 : 0) / scale} listening={false}>
         <Rect x={-45 / scale} y={-12 / scale} width={90 / scale} height={24 / scale} fill={PAPER} cornerRadius={4 / scale} />
         <Text x={-45 / scale} y={-7 / scale} width={90 / scale} align="center"
-          text={`${(room.areaMm2 / 1e6).toFixed(2)} m²`} fontSize={13 / scale} fill={INK} />
+          text={options.units === 'imperial' ? `${(room.areaMm2 / 92903.04).toFixed(2)} ft²` : `${(room.areaMm2 / 1e6).toFixed(2)} m²`} fontSize={13 / scale} fill={INK} />
       </Group>;
     })}
     {!readOnly && !disabled && tool === 'select' && <VertexHandles store={store} source={source} scale={scale}

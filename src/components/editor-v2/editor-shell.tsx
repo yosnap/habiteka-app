@@ -2,6 +2,8 @@
 import { EditorPreparationTools } from './workspace/editor-preparation-tools';
 import { EditorWorkspaceNavigation } from './workspace/editor-workspace-navigation';
 import { WorkspaceScenePanel } from './workspace/workspace-scene-panel';
+import type { SceneTab } from './workspace/workspace-scene-tree';
+import { captureWorkspaceReference } from './workspace/capture-workspace-reference';
 import { WorkspaceAssistantPanel } from './workspace/workspace-assistant-panel';
 import { WorkspaceMaterialsPanel } from './workspace/workspace-materials-panel';
 import { WorkspaceVisualizePanel } from './workspace/workspace-visualize-panel';
@@ -9,6 +11,8 @@ import { WorkspaceSettingsPanel } from './workspace/workspace-settings-panel';
 import { useWorkspaceSelection } from './workspace/use-workspace-selection';
 import { workspaceViewKey } from './workspace/workspace-view-state';
 import { useWorkspaceView } from './workspace/use-workspace-view';
+import { useWorkspaceDisplay } from './workspace/use-workspace-display';
+import { WorkspacePlanOptions } from './workspace/workspace-plan-options';
 import workspace from './workspace/workspace.module.css';
 import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import dynamic from 'next/dynamic';
@@ -78,10 +82,10 @@ import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } 
 import { zoneCaptureRegions } from '@/lib/editor-document/zone-capture-regions';
 import { renderScopeRegions } from '@/lib/editor-document/render-scope-regions';
 import styles from './editor.module.css';
-import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
+import { EDITOR_SHORTCUTS, plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
-import { ReferenceBackgroundPicker } from './reference-background-picker';
+import { WorkspaceReferenceMenu } from './workspace/workspace-reference-menu';
 import type { SceneLightingPreset } from './scene/scene-lighting';
 
 /** Título de cada panel dentro de la ranura lateral única. */
@@ -199,6 +203,7 @@ export function EditorShell({
     selection = useStore(store, (s) => s.selection);
   const designSpaceKind = useStore(store, (s) => s.document.designSpaceKind);
   const readOnly = useStore(store, (s) => s.readOnly);
+  const sceneEditing = useStore(store, s => s.sceneEditing);
   const tool = useStore(store, (s) => s.tool);
   const detailPanel = useStore(store, (s) => s.detailPanel);
   // Ranura lateral única: Propiedades, Catálogo, Recorrido, Contexto IA y Techo y
@@ -220,6 +225,7 @@ export function EditorShell({
   const hideWalkthrough = () => store.getState().hideWalkthrough();
   // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
   const [preferences, setPreferences] = useState(loadEditorPreferences);
+  const [sceneTab, setSceneTab] = useState<SceneTab>('structure');
   const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
   const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
   const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
@@ -232,6 +238,7 @@ export function EditorShell({
   }), [store]);
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
   const [mode, setMode] = useWorkspaceView(preferencesOwner, projectId, zoneId);
+  useWorkspaceDisplay(store, preferencesOwner, projectId, zoneId);
   useWorkspaceSelection(store, preferencesOwner, projectId, zoneId);
   const roofWorkflow = useRoofWorkflow(store, visibility, setVisibility, setMode, () => setConstruction(false));
   const [localLighting, setLocalLighting] = useState<SceneLightingPreset>('daylight');
@@ -541,6 +548,12 @@ export function EditorShell({
         return;
       }
       if (!shortcutsEnabled) return;
+      if (event.altKey && !command && !event.shiftKey && state.tool === 'select' && !state.pendingSpatial) {
+        const key = /^Digit[123]$/.test(event.code) ? event.code.slice(-1) : event.key;
+        const tabs = [['sceneStructure', 'structure'], ['sceneObjects', 'objects'], ['sceneRooms', 'rooms']] as const;
+        const match = tabs.find(([id]) => EDITOR_SHORTCUTS[id].keys.includes(key));
+        if (match) { event.preventDefault(); setConstruction(false); setSceneTab(match[1]); state.openSidePanel('scene'); return; }
+      }
       if (!command && !event.altKey) {
         const shortcut = plainShortcutFor(event.key);
         const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
@@ -575,11 +588,13 @@ export function EditorShell({
       }
       if (command && event.key.toLowerCase() === 'v') {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         state.beginPasteSpatial();
         return;
       }
       if (command && event.key.toLowerCase() === 'a') {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         state.select(selectableEntityIds(state.document));
         return;
       }
@@ -595,6 +610,7 @@ export function EditorShell({
                 : null;
       if (delta && state.selection.length) {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         const stepMm = event.shiftKey ? 100 : 10;
         try {
           state.apply(
@@ -610,6 +626,7 @@ export function EditorShell({
       }
       if ((event.key !== 'Delete' && event.key !== 'Backspace') || !state.selection.length) return;
       event.preventDefault();
+      if (mode === '3d' && !state.sceneEditing) return;
       try {
         state.apply(deleteEntities(state.document, state.selection));
         state.select([]);
@@ -642,22 +659,9 @@ export function EditorShell({
         store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
       }
     }} aria-label={`Editor de ${projectName}`}>
-      <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus}
-        onSave={onSave} saveEnabled={saveEnabled} onGenerate={() => openGenerate()}
-        canGenerate={!readOnly && Boolean(projectId && onGenerateDesign && onGenerateRender && generateEnabled)}
-        generateDisabledReason={generateDisabledReason} onOpenVideoStudio={onOpenVideoStudio}
-        onOpenTools={() => togglePanel('tools')}>
-          {sidePanel === 'tools' ? null : preparationTools}
-      </EditorProjectBar>
-      {(tool !== 'select' || readOnly || (mode === '2d' && reference)) && <div className={styles.secondary}>
-        {mode === '2d' && reference && <>
-          <button type="button" aria-pressed={originalVisible} onClick={() => setOriginalVisible(!originalVisible)}>
-            {originalVisible ? 'Ocultar original' : 'Mostrar original'}
-          </button>
-          {originalVisible && <input type="range" min={20} max={100} value={Math.round(originalOpacity * 100)}
-            aria-label="Opacidad del plano original" onChange={(event) => setOriginalOpacity(Number(event.target.value) / 100)} />}
-          {originalVisible && reference.choices && <ReferenceBackgroundPicker choices={reference.choices} />}
-        </>}
+      {/* Una sola instancia conserva los diálogos de preparación abiertos desde el lienzo. */}
+      {sidePanel !== 'tools' && <div hidden>{preparationTools}</div>}
+      {(tool !== 'select' || readOnly) && <div className={styles.secondary}>
         <span className={styles.currentTool} role="status">
           {readOnly ? 'Solo lectura' : toolLabel[tool]}
         </span>
@@ -683,7 +687,11 @@ export function EditorShell({
       )}
       <div data-workspace-route-dock />
       <div className={styles.workspace} data-workspace-body>
+        <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus} projectId={projectId} zoneId={zoneId} />
         <EditorWorkspaceNavigation
+          referenceControl={mode === '2d' && reference ? <WorkspaceReferenceMenu reference={reference} visible={originalVisible}
+            opacity={originalOpacity} onVisible={setOriginalVisible} onOpacity={setOriginalOpacity} /> : undefined}
+          onSave={onSave} saveEnabled={saveEnabled} saveStatus={saveStatus}
           mode={mode} onViewChange={next => { setConstruction(false); setMode(next); }} onPanel={togglePanel}
           store={store}
           exteriorOpen={construction && constructionCategory === 'outdoor'}
@@ -718,6 +726,7 @@ export function EditorShell({
             roofRequest={roofWorkflow.request} onRoofAction={roofWorkflow.action}
             reference={reference} originalVisible={originalVisible} originalOpacity={originalOpacity} />
         </div>
+        {mode === '2d' && <WorkspacePlanOptions store={store} visibility={visibility} onVisibility={setVisibility} />}
         {mode !== '2d' && (
           <div
             className={styles.sceneHost}
@@ -790,7 +799,8 @@ export function EditorShell({
         )}
         {sidePanel && sidePanel !== 'assistant' && (
           <EditorSidePanel store={store} title={SIDE_PANEL_TITLES[sidePanel]} restoreFocus>
-            {sidePanel === 'scene' && <WorkspaceScenePanel store={store} onProperties={() => openPanel('inspector')} />}
+            {sidePanel === 'scene' && <WorkspaceScenePanel store={store} tab={sceneTab} onTabChange={setSceneTab}
+              onCapture={() => run(() => captureWorkspaceReference(mode === '2d' ? canvasHost.current : canvasHost.current?.parentElement ?? null))} onProperties={() => openPanel('inspector')} />}
             {sidePanel === 'visualize' && <WorkspaceVisualizePanel canGenerate={canGenerate} onGenerate={intent => openGenerate(null, intent)} onVideos={onOpenVideoStudio} />}
             {sidePanel === 'tools' && <div className={workspace.tools}>{preparationTools}</div>}
             {sidePanel === 'settings' && <WorkspaceSettingsPanel store={store} visibility={visibility} onVisibilityChange={setVisibility}
@@ -827,19 +837,22 @@ export function EditorShell({
           </EditorSidePanel>
         )}
         {assistantStarted && <EditorSidePanel store={store} title="Asistente de diseño" open={sidePanel === 'assistant'} restoreFocus>
-          <WorkspaceAssistantPanel store={store} assistant={assistant} canGenerate={canGenerate} onGenerate={intent => openGenerate(null, intent)} />
+          <WorkspaceAssistantPanel store={store} assistant={assistant} canGenerate={canGenerate} projectAvailable={Boolean(projectId)}
+            disabledReason={readOnly ? 'Este proyecto está en modo de solo lectura.' : !projectId ? 'Abre un proyecto guardado para diseñar con IA.' : generateDisabledReason}
+            processHref={projectId ? `/projects/${encodeURIComponent(projectId)}/chat${zoneId ? `?zona=${encodeURIComponent(zoneId)}` : ''}` : undefined}
+            onGenerate={intent => openGenerate(null, intent)} />
         </EditorSidePanel>}
         <div className={styles.storyboardHost} data-workspace-storyboard>
           <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
             onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
         </div>
       </div>
-      <SelectionPropertiesBar
+      {(mode !== '3d' || sceneEditing) && <><SelectionPropertiesBar
         store={store}
         onProperties={() => openPanel('inspector')}
       />
       <ElementDetailsPanel key={`${selection[0]}:${detailPanel}`} store={store} />
-      {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}
+      {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}</>}
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
           projectId={projectId} zoneId={zoneId}
