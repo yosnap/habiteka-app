@@ -9,13 +9,24 @@ import { MeterField, NumberField } from './property-number-field';
 import { PropertySection } from './property-section';
 import { isPorch, porchAccess } from '@/lib/editor-document/porch-volumes';
 import styles from './editor.module.css';
+import { ModernSelect } from '@/components/ui/modern-select';
+import { loungerBackrest, setLoungerBackrest } from '@/lib/editor-document/lounger-backrest';
 
 export function FurnitureProperties({ furniture, multiple, edit }: {
   furniture: ReturnType<typeof planObjects>[number]; multiple: boolean;
   edit: (operation: (document: EditorDocument) => EditorDocument) => boolean;
 }) {
   const values = { ...furniture, ...furnitureSpatial(furniture) };
+  const backrest = !multiple && !isBoundary(furniture) && !isKitchenRun(furniture) ? loungerBackrest(furniture) : undefined;
   return <>
+    {backrest && <PropertySection title="Respaldo de la tumbona">
+      <label className={styles.field}><span>Posición del respaldo</span>
+        <ModernSelect appearance="editor" value={backrest.raised ? 'raised' : 'flat'}
+          onChange={event => edit(doc => setLoungerBackrest(doc, furniture.id, event.target.value === 'raised'))}>
+          <option value="flat">Tumbado</option><option value="raised">Inclinado</option>
+        </ModernSelect>
+      </label>
+    </PropertySection>}
     <PropertySection title="Dimensiones">
       <div className={styles.fields}>
         {([['widthMm', 'Ancho'], ['depthMm', 'Fondo'], ['heightMm', 'Altura']] as const).map(([key, label]) =>

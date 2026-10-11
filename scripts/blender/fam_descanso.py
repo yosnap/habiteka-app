@@ -18,7 +18,22 @@ class PlacedPiece:
         return self.piece.add(geo.transform(mesh, loc=self.position), slot, grain, sharp)
 
 
+class MirroredPiece:
+    """Refleja la litera completa, incluida la abertura de barandilla junto a la escalera."""
+    def __init__(self, piece): self.piece = piece
+
+    def add(self, bm, slot, grain='x', sharp=35):
+        mirrored = geo.mirrored_x(bm)
+        bm.free()
+        self.piece.add(mirrored, slot, grain, sharp)
+
+
 def bunk(piece, spec):
+    if spec['params'].get('ladder') == 'left': piece = MirroredPiece(piece)
+    build_bunk(piece, spec)
+
+
+def build_bunk(piece, spec):
     """Dos somieres, colchones, ropa de cama, barandillas superiores y escalera lateral."""
     w, d, h = [value / 1000 for value in spec['dims']]
     lower = spec['params'].get('lowerWidth', 900) / 1000

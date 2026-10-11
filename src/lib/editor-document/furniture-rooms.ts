@@ -47,6 +47,7 @@ const ALSO_IN: readonly (readonly [FurnitureRoom, (entry: FurnitureCatalogEntry)
   ['cocina', matches(/lavadora|secadora/)],
   // Garaje: solo estanterías metálicas.
   ['garaje', matches(/estanteria[-_](oficina|acero)/)],
+  ['garaje', matches(/coche_|vehiculo_|moto_|scooter_|bicicleta_/)],
 ];
 
 /** Estancias en que se ofrece la pieza: la suya primero y después aquellas en que también sirve. */

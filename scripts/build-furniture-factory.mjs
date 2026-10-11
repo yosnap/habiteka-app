@@ -31,6 +31,7 @@ import sharp from 'sharp';
 import { compressDocument, createGltfIO, measureDocument, measureElevation, triangleCount } from './lib/glb-optimize.mjs';
 import { GENERATOR_VERSION, buildLibrary, expandSpecs, loadFamilies, selectPieces } from './furniture-factory/catalog-specs.mjs';
 import { writeContactSheets } from './furniture-factory/contact-sheets.mjs';
+import { needsFurnitureProxy } from './furniture-factory/collision-eligibility.mjs';
 import { AUTHOR, LICENSE, OUT_DIR, THUMBS_DIR, readManifest, writeManifest, writeRegistry } from './furniture-factory/registry.mjs';
 import { resolveFinish, textureProvenance } from './furniture-factory/textures-prepare.mjs';
 
@@ -237,7 +238,7 @@ async function main() {
   // inicial las dejaría fuera de catalog.json.
   const current = await loadFamilies({ fresh: true });
   const entries = await writeRegistry(expandSpecs(current, buildLibrary(current)), current.map((family) => family.id));
-  const collisionIds = todo.filter((piece) => ['table', 'chair', 'bench'].includes(piece.profile) && !failures.includes(piece.id)).map((piece) => piece.id);
+  const collisionIds = todo.filter((piece) => needsFurnitureProxy(piece) && !failures.includes(piece.id)).map((piece) => piece.id);
   if (collisionIds.length) await new Promise((resolve, reject) => {
     const child = spawn('bun', ['run', path.join(ROOT, 'scripts/build-furniture-collision-proxies.ts'), `--only=${collisionIds.join(',')}`],
       { cwd: ROOT, stdio: 'inherit' });

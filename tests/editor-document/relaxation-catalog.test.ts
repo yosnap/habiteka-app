@@ -23,7 +23,7 @@ describe('literas, cortinas, comedores completos y chill out', () => {
   });
   it('ofrece tres tipos de litera en dormitorio e infantil con modelo y alturas de dos niveles', () => {
     const bunkBeds = searchFurnitureCatalog('litera', 'dormitorio');
-    expect(bunkBeds).toHaveLength(4);
+    expect(bunkBeds).toHaveLength(8);
     expect(new Set(bunkBeds.map((entry) => entry.productId)).size).toBe(3);
     for (const entry of bunkBeds) {
       expect(furnitureRooms(entry)).toEqual(expect.arrayContaining(['dormitorio', 'infantil']));
@@ -31,6 +31,8 @@ describe('literas, cortinas, comedores completos y chill out', () => {
       expect(furnitureModel({ catalogId: entry.id })?.thumbnailUrl).toBeTruthy();
     }
     expect(bunkBeds.find((entry) => entry.id.includes('familiar'))!.variantLabel).toContain('135');
+    expect(bunkBeds.filter(entry => entry.variantLabel.includes('Escalera izquierda'))).toHaveLength(4);
+    expect(bunkBeds.filter(entry => entry.variantLabel.includes('Escalera derecha'))).toHaveLength(4);
   });
 
   it('coloca cada comedor con mesa y sillas como un objeto y evita las sillas automáticas adicionales', () => {

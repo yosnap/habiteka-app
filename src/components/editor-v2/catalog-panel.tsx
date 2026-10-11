@@ -29,9 +29,9 @@ function CatalogCard({ variants, onAdd, readOnly, actionLabel = 'Añadir al plan
     <p className={styles.material}>{item.material} · {item.style}</p>
     {asset && <details className={styles.material}><summary>Detalles y créditos</summary>
       <p>{asset.author} · {asset.license}</p><p>{asset.source}</p>
-      <p>Adaptado en tamaño/orientación; tinte opcional. Símbolo 2D aproximado y colisión por caja conservadora.</p>
-      {asset.attributionRequired && <p><a href="https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlamVelvetSofa" target="_blank" rel="noreferrer">Modelo original</a>{' · '}
-        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">Licencia CC BY 4.0</a></p>}
+      <p>{asset.modifications ?? 'Adaptado en tamaño/orientación; tinte opcional.'} Símbolo 2D aproximado y colisión por caja conservadora.</p>
+      {asset.attributionRequired && <p><a href={asset.sourceUrl ?? 'https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlamVelvetSofa'} target="_blank" rel="noreferrer">Modelo original</a>{' · '}
+        <a href={asset.licenseUrl ?? 'https://creativecommons.org/licenses/by/4.0/'} target="_blank" rel="noreferrer">Licencia {asset.license}</a></p>}
     </details>}
     {variants.length > 1 ? <label className={styles.variant}>Variante
       <ModernSelect value={item.id} onChange={(event) => setSelectedId(event.target.value)} aria-label={`Variante de ${item.label}`}>
@@ -88,6 +88,6 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false, onPackages, inc
       </div><button type="button" className={styles.all} onClick={() => setAll(true)}>Ver todos los muebles</button>
     </> : <div className={styles.items}>{groups.map((variants) => <CatalogCard key={variants[0]!.productId} variants={variants} onAdd={onAdd} readOnly={readOnly} actionLabel={actionLabel} />)}</div>}
     {!showHome && !groups.length ? <div className={styles.empty}><p>No hay muebles con estos filtros.</p><button type="button" onClick={reset}>Limpiar filtros</button></div> : null}
-    {!actionLabel && <p className={styles.note}>Elige un mueble y pulsa sobre el plano para colocarlo. Árboles, piscinas y vallas están en Exterior.</p>}
+    {!actionLabel && <p className={styles.note}>Elige un mueble y pulsa sobre el plano para colocarlo. Piscinas, árboles y vallas están en Construir → Exterior y jardín.</p>}
   </aside>;
 }

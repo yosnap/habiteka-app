@@ -18,6 +18,8 @@ export const FINISHES = {
   'veh-gris': flat('metal', '#6a7379', .28, 'Gris metalizado', { metallic: .7, coat: 1 }),
   'veh-blanco': flat('paint', '#d5d7d4', .30, 'Blanco de carrocería', { coat: 1 }),
   'ext-agua': flat('glass', '#53a4b4', .12, 'Agua'),
+  'ext-agua-piscina': flat('paint', '#279eb6', .16, 'Agua de piscina', { coat: .85 }),
+  'ext-liner-piscina': flat('paint', '#80c7d6', .35, 'Revestimiento interior de piscina'),
   'ext-faro': flat('paint', '#e5eff3', .12, 'Difusor'),
   'ext-piloto': flat('paint', '#9d1c1b', .16, 'Piloto rojo', { coat: .7 }),
   'ext-pintura': flat('paint', '#66818c', .2, 'Pintura metalizada', { metallic: .65, coat: 1 }),
@@ -49,6 +51,7 @@ const rows = [
 export const PRODUCTS = rows.map(([product, type, label, w, d, h, params = {}]) => ({
   product, type, label, profile: 'decor', style: 'Contemporáneo', hidden: true, mainSlot: type === 'car' ? 'pintura' : 'madera',
   finishes: type === 'car' ? { ...finishes, vidrio: 'veh-cristal', goma: 'veh-goma', freno: 'veh-freno', espejo: 'veh-espejo',
-    led: 'veh-led', 'led-rojo': 'veh-led-rojo', pintura: ({ compact: 'veh-plata', saloon: 'veh-azul', suv: 'veh-gris', van: 'veh-blanco' })[params.vehicle] } : finishes, params,
+    led: 'veh-led', 'led-rojo': 'veh-led-rojo', pintura: ({ compact: 'veh-plata', saloon: 'veh-azul', suv: 'veh-gris', van: 'veh-blanco' })[params.vehicle] }
+    : type === 'pool' ? { ...finishes, agua: 'ext-agua-piscina', liner: 'ext-liner-piscina' } : finishes, params,
   variants: [{ key: 'exterior', size: `${w/1000} × ${d/1000} m`, dims: [w,d,h], proposal: true }],
 }));

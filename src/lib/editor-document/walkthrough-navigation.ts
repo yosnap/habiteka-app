@@ -4,6 +4,8 @@ import { deriveRooms } from './rooms';
 import { insideRoom, ceilingSurfaces } from './ceiling-geometry';
 import { distance, interpolate } from './geometry';
 import { furnitureVolumes } from './furniture-volumes';
+import { furnitureCollisionVolumes } from './furniture-collision-volumes';
+import { getFurnitureCatalogEntry } from './furniture-catalog';
 import { wallPath } from './wall-path';
 import { rampParts } from './ramp-route';
 import { localToWorld, worldToLocal } from './spatial-properties';
@@ -86,11 +88,14 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
     }
     return null;
   };
-  const outdoor = planObjects(doc).filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item, volumes: furnitureVolumes(item) }));
+  const airy = (item: { kind: string; catalogId?: string }) => /sombrilla|hamaca/.test(`${item.kind} ${item.catalogId}`);
+  const outdoor = planObjects(doc).filter((item) => item.catalogId?.startsWith('habiteka:outdoor:')).map((item) => ({ item,
+    volumes: airy(item) ? furnitureCollisionVolumes(item, doc) : furnitureVolumes(item, doc) }));
   const obstacles = [
     ...planObjects(doc).filter((item) => !item.catalogId?.startsWith('habiteka:outdoor:'))
-      .map((item) => ({ item, kind: 'furniture' as const })),
-    ...(doc.columns ?? []).map((item) => ({ item, kind: 'column' as const })),
+      .filter(item => getFurnitureCatalogEntry(item.catalogId)?.profile !== 'rug')
+      .map((item) => ({ item, kind: 'furniture' as const, volumes: airy(item) ? furnitureCollisionVolumes(item, doc) : null })),
+    ...(doc.columns ?? []).map((item) => ({ item, kind: 'column' as const, volumes: null })),
   ];
   const thresholdAt = walkthroughThresholds(doc, p => stairAt(p)?.floorMm ?? porchAt(p)?.floorMm ?? rampAt(p) ?? roomFloorAt(p), CAMERA_CLEARANCE_MM);
   // Una rampa o peldaño modelado manda sobre el puente del hueco: el umbral no
@@ -145,7 +150,15 @@ export function walkthroughNavigation(doc: EditorDocument, zoneIds?: string[], v
       if (partIndex >= 0) return { kind: 'outdoor', point: p, entityId: item.id,
         part: item.kind === 'carpa' ? volumes[partIndex]!.walkthroughPart ?? 'poste' : undefined };
     }
-    for (const { item, kind } of obstacles) {
+    for (const { item, kind, volumes } of obstacles) {
+      if (volumes) {
+        const local = worldToLocal(item, p);
+        if (volumes.some(v => v.top > floorAt(p) + 100 && v.bottom < floorAt(p) + eyeHeightMm + 100
+          && local.x > v.x - CAMERA_CLEARANCE_MM && local.x < v.x + v.widthMm + CAMERA_CLEARANCE_MM
+          && local.y > v.y - CAMERA_CLEARANCE_MM && local.y < v.y + v.depthMm + CAMERA_CLEARANCE_MM))
+          return { kind, point: p, entityId: item.id };
+        continue;
+      }
       const angle = -item.rotation * Math.PI / 180, dx = p.x - item.x, dy = p.y - item.y;
       const x = dx * Math.cos(angle) - dy * Math.sin(angle), y = dx * Math.sin(angle) + dy * Math.cos(angle);
       if (x > -CAMERA_CLEARANCE_MM && x < item.widthMm + CAMERA_CLEARANCE_MM &&

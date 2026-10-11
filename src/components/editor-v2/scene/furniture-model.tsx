@@ -19,7 +19,7 @@ function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: 
   const asset = furnitureModel(item)!, { scene } = useGLTF(asset.url, false, true), tint = modelTint(item);
   const spatial = furnitureSpatial(item), center = objectCenter(item);
   const anisotropy = useThree((state) => Math.min(8, state.gl.capabilities.getMaxAnisotropy()));
-  const vehicle = item.catalogId?.startsWith('habiteka:outdoor:coche') ?? false;
+  const vehicle = item.catalogId?.startsWith('habiteka:outdoor:coche') || /^(turismo_|vehiculo_|furgoneta_|coche_|moto_|scooter_|bicicleta_)/.test(asset.key);
   const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames, vehicle),
     [scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames, vehicle]);
   useEffect(() => () => prepared.dispose(), [prepared]);

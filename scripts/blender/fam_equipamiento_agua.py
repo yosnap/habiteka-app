@@ -9,24 +9,33 @@ def water(p,w,d,z):
 
 
 def pool(p,spec):
-    w,d,h=(v/1000 for v in spec['dims']); rim=h*.78; thick=.13
-    p.add(g.box(w,d,.08,.03),'blanco')
+    """Vaso elevado de paneles de madera, liner azul, coronamiento y escalera a ambos lados."""
+    w,d,h=(v/1000 for v in spec['dims']); rim=h-.25; thick=.12
+    p.add(g.box(w,d,.06,.02),'madera')
     for y in [-d/2+thick/2,d/2-thick/2]:
-        p.add(g.box(w,thick,rim,.025,at=(0,y,0)),'blanco')
-        p.add(g.box(w+.05,.2,.06,.025,at=(0,y,rim)),'piedra')
+        p.add(g.box(w,thick,rim,.018,at=(0,y,0)),'madera')
+        p.add(g.box(w,.2,.055,.016,at=(0,y,rim)),'piedra')
+        p.add(g.box(w-.24,.008,rim-.1,.002,at=(0,y-math.copysign(thick/2,y),.07)),'liner')
     for x in [-w/2+thick/2,w/2-thick/2]:
-        p.add(g.box(thick,d,rim,.025,at=(x,0,0)),'blanco')
-        p.add(g.box(.2,d,.06,.025,at=(x,0,rim)),'piedra')
-    # Juntas del revestimiento exterior y perfiles de refuerzo.
-    for i in range(max(2,int(w/.35))):
-        x=-w/2+(i+.5)*w/max(2,int(w/.35))
-        for y in [-d/2-.003,d/2+.003]: p.add(g.box(.012,.008,rim-.1,.002,at=(x,y,.05)),'inox')
-    water(p,w-.28,d-.28,rim-.1)
-    for x in [w*.27,w*.27+.42]:
-        p.add(g.tube([(x,-d/2+.32,.1),(x,-d/2+.32,h-.1),(x,-d/2+.18,h),
-                     (x,-d/2-.1,h),(x,-d/2-.18,h-.1),(x,-d/2-.18,.02)],.022,12),'inox')
-    for z in [.2,.45,.7,.95]:
-        if z<rim: p.add(g.box(.45,.16,.04,.012,at=(w*.27+.21,-d/2+.32,z)),'inox')
+        p.add(g.box(thick,d-.24,rim,.018,at=(x,0,0)),'madera')
+        p.add(g.box(.2,d,.055,.016,at=(x,0,rim)),'piedra')
+        p.add(g.box(.008,d-.24,rim-.1,.002,at=(x-math.copysign(thick/2,x),0,.07)),'liner')
+    # Listones horizontales y montantes de refuerzo: detalles legibles en la vista exterior.
+    for z in [.08+i*.16 for i in range(max(1,int(rim/.16)))]:
+        for sy in [-1,1]: p.add(g.box(w,.012,.008,.002,at=(0,sy*(d/2+.004),z)),'metal')
+        for sx in [-1,1]: p.add(g.box(.012,d,.008,.002,at=(sx*(w/2+.004),0,z)),'metal')
+    for i in range(max(3,int(w/1.2))):
+        x=-w/2+.12+i*(w-.24)/max(1,max(3,int(w/1.2))-1)
+        for sy in [-1,1]: p.add(g.box(.07,.04,rim,.008,at=(x,sy*d/2,0)),'madera')
+    water(p,w-.28,d-.28,rim-.12)
+    cx=w*.27
+    for x in [cx-.22,cx+.22]:
+        p.add(g.tube([(x,-d/2+.34,.09),(x,-d/2+.34,rim+.03),(x,-d/2+.12,h-.04),
+                     (x,-d/2-.12,h-.04),(x,-d/2-.38,rim+.03),(x,-d/2-.38,.02)],.024,14),'inox')
+    for z in [.2+i*.25 for i in range(max(1,int(rim/.25)))]:
+        for y in [-d/2+.34,-d/2-.38]:
+            p.add(g.box(.45,.18,.045,.012,at=(cx,y,z)),'blanco')
+            for x in [cx-.22,cx+.22]: p.add(g.box(.06,.21,.025,.005,at=(x,y,z-.02)),'inox')
 
 
 def pond(p,spec):

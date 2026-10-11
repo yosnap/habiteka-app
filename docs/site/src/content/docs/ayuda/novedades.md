@@ -5,9 +5,21 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## Bloqueos, grupos y paquetes — 11 de octubre de 2026
 
+**Bloqueos, grupos y paquetes:** Escena incorpora un candado antes del ojo de cada fila. Bloquear una pieza protege todo su grupo frente a movimiento, edición, sustitución y borrado. Escena y Propiedades permiten agrupar selecciones y guardarlas en **Mis paquetes**, una biblioteca personal disponible en todos los proyectos y dispositivos. Construir y Amueblar comparten el acceso, con filtros Muebles, Construcción y Mixtos. Cada paquete se coloca con un clic en Plano 2D y crea una copia independiente. **Sustituir** abre el catálogo desde Propiedades o el menú del elemento, conservando posición y grupo. [Guía de uso](/editor/grupos-paquetes/).
+
+## Catálogo ampliado — 11 de octubre de 2026
+
+**Respaldo de tumbonas:** las versiones de teca y aluminio permiten cambiar entre tumbado e inclinado desde las propiedades del mueble colocado, conservando posición, giro y escala, con deshacer y rehacer.
+
+**Piscinas en Construir y tumbonas:** todas las piscinas se eligen en Construir → Exterior y jardín → Agua y drenaje, en lugar del catálogo de muebles y sus propuestas automáticas. La elevada rectangular mejora su vaso, paneles de madera, refuerzos, liner azul, borde y escalera interior/exterior, conservando las dimensiones guardadas. Amueblar → Exterior ofrece Tumbona de exterior en teca, aluminio y una nueva variante de aluminio con respaldo tumbado.
+
+**Vehículos reales:** Tesla Model 3 de 2018 y Ford Mustang GT de 2005 disponibles en Exterior y Garaje, con el mismo modelo en Amueblado y 3D. Créditos CC BY 4.0 en sus fichas. Se retiran los vehículos procedurales de las nuevas inserciones, conservándolos en los planos existentes. Motos y bicicletas reales pendientes de modelos autorizados.
+
 La cámara ajusta automáticamente la precisión de profundidad al alejarse en Amueblado y 3D, evitando manchas por superficies próximas en techos y carrocerías. Dentro de las habitaciones conserva la navegación cercana.
 
-**Bloqueos, grupos y paquetes:** Escena incorpora un candado antes del ojo de cada fila. Bloquear una pieza protege todo su grupo frente a movimiento, edición, sustitución y borrado. Escena y Propiedades permiten agrupar selecciones y guardarlas en **Mis paquetes**, una biblioteca personal disponible en todos los proyectos y dispositivos. Construir y Amueblar comparten el acceso, con filtros Muebles, Construcción y Mixtos. Cada paquete se coloca con un clic en Plano 2D y crea una copia independiente. **Sustituir** abre el catálogo desde Propiedades o el menú del elemento, conservando posición y grupo. [Guía de uso](/editor/grupos-paquetes/).
+**Solapamientos y paso:** alfombras y felpudos admiten muebles encima al añadirlos y arrastrarlos, incluso con identificadores importados que contienen dos puntos, y no bloquean la cámara. Sombrillas y hamacas dejan libres los espacios sin geometría, conservando las colisiones de sus partes reales. Felpudos finos pueden ocupar el barrido de puertas.
+
+47 piezas nuevas fabricadas con modelos y miniaturas: pequeños aparatos de cocina, armarios superiores, floreros, librerías, estanterías, felpudos, alfombras, hamacas, piscinas redondas y enterradas, sombra, barbacoas, calle y aceras, juegos y mobiliario de parque, luces colgantes y aire acondicionado. Las literas añaden escalera izquierda a cada acabado existente, conservando la derecha. Los armarios superiores mantienen su altura de montaje sin atraer los aparatos que se colocan sobre una encimera. Las piscinas enterradas representan la parte visible a ras de suelo, sin excavar el terreno.
 
 ## Espacio de trabajo — 10 de octubre de 2026
 
