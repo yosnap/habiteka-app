@@ -46,6 +46,8 @@ import { addMixedGarden } from '@/lib/editor-document/garden-compositions';
 import { applySurfacePreset } from '@/lib/editor-document/outdoor-surface-presets';
 import { Inspector } from './inspector';
 import { CatalogPanel } from './catalog-panel';
+import { ElementPackagesPanel } from './element-packages-panel';
+import { ReplaceElementPanel } from './replace-element-panel';
 import { ConstructionMenu } from './construction-menu';
 import { SelectionPropertiesBar } from './selection-properties-bar';
 import { ElementDetailsPanel } from './element-details-panel';
@@ -90,6 +92,7 @@ import type { SceneLightingPreset } from './scene/scene-lighting';
 
 /** Título de cada panel dentro de la ranura lateral única. */
 const SIDE_PANEL_TITLES: Record<SidePanelId, string> = {
+  packages: 'Mis paquetes', replace: 'Sustituir elemento',
   inspector: 'Propiedades', catalog: 'Amueblar', walkthrough: 'Recorrido',
   context: 'Contexto IA', ceiling: 'Techo y luces', assistant: 'Asistente de diseño',
   scene: 'Escena', materials: 'Acabados', visualize: 'Visualizar', tools: 'Herramientas', settings: 'Ajustes',
@@ -541,7 +544,7 @@ export function EditorShell({
         command = event.metaKey || event.ctrlKey;
       // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
       if (event.key === 'Escape') {
-        if (state.pendingSpatial) { event.preventDefault(); state.cancelPendingSpatial(); return; }
+        if (state.pendingSpatial || state.pendingPackage) { event.preventDefault(); state.cancelPendingSpatial(); return; }
         if (state.tool !== 'select') state.setTool('select');
         if (state.selection.length) state.select([]);
         setConstruction(false); state.closeSidePanel();
@@ -744,6 +747,7 @@ export function EditorShell({
         {construction && (
           <ConstructionMenu
             key={constructionCategory ?? 'all'}
+            onPackages={() => { setConstruction(false); openPanel('packages'); }}
             initialCategory={constructionCategory}
             onRoofAction={roofWorkflow.action}
             onPath={(options) => { if (store.getState().readOnly) return; chooseTool('garden-path'); store.setState({ gardenPathOptions: options }); }}
@@ -809,8 +813,11 @@ export function EditorShell({
               onProperties={() => openPanel('inspector')} onCeiling={() => openPanel('ceiling')}
               onPaint={() => { openPanel('inspector'); store.getState().setDetailPanel('paint'); }} />}
             {sidePanel === 'inspector' && <Inspector store={store} />}
+            {sidePanel === 'packages' && <ElementPackagesPanel store={store} onPlace={() => { setMode('2d'); setVisibility({ ...visibility, roof: false }); }} />}
+            {sidePanel === 'replace' && <ReplaceElementPanel store={store} />}
             {sidePanel === 'catalog' && (
               <CatalogPanel
+                onPackages={() => openPanel('packages')}
                 readOnly={readOnly}
                 onClose={closePanel}
                 onAdd={(item) =>

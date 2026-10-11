@@ -18,7 +18,7 @@ function Thumbnail({ item }: { item: FurnitureCatalogEntry }) {
   const source = useMemo(() => catalogEntryPhotoSource(item), [item]);
   return <CatalogPhoto source={source} className={styles.thumbnail} />;
 }
-function CatalogCard({ variants, onAdd, readOnly }: { variants: FurnitureCatalogEntry[]; onAdd: (item: FurnitureCatalogEntry) => void; readOnly: boolean }) {
+function CatalogCard({ variants, onAdd, readOnly, actionLabel = 'Añadir al plano' }: { variants: FurnitureCatalogEntry[]; onAdd: (item: FurnitureCatalogEntry) => void; readOnly: boolean; actionLabel?: string }) {
   const [selectedId, setSelectedId] = useState(variants[0]!.id);
   const item = variants.find((entry) => entry.id === selectedId) ?? variants[0]!;
   const asset = furnitureAsset({ catalogId: item.id });
@@ -38,11 +38,12 @@ function CatalogCard({ variants, onAdd, readOnly }: { variants: FurnitureCatalog
         {variants.map((variant) => <option value={variant.id} key={variant.id}>{variant.variantLabel}</option>)}
       </ModernSelect>
     </label> : null}
-    <button type="button" className={styles.add} disabled={readOnly} onClick={() => onAdd(item)} aria-label={`Añadir ${item.label}${item.variantLabel !== 'Original' ? ` · ${item.variantLabel}` : ''}`}>Añadir al plano</button>
+    <button type="button" className={styles.add} disabled={readOnly} onClick={() => onAdd(item)} aria-label={`${actionLabel}: ${item.label}${item.variantLabel !== 'Original' ? ` · ${item.variantLabel}` : ''}`}>{actionLabel}</button>
   </article>;
 }
-export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
+export function CatalogPanel({ onAdd, onClose, readOnly = false, onPackages, includeConstruction = false, actionLabel }: {
   onAdd: (item: FurnitureCatalogEntry) => void; onClose: () => void; readOnly?: boolean;
+  onPackages?: () => void; includeConstruction?: boolean; actionLabel?: string;
 }) {
   const [query, setQuery] = useState(''), [room, setRoom] = useState(''), [style, setStyle] = useState('');
   const [category, setCategory] = useState('');
@@ -51,14 +52,15 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
   const showHome = !query.trim() && !room && !category && !style && !all;
   const groups = useMemo(() => {
     const result = new Map<string, FurnitureCatalogEntry[]>();
-    for (const item of searchFurnitureCatalog(query, room, style).filter((item) => !constructionGroup(item) && matchesCatalogCategory(item, category))) result.set(item.productId, [...(result.get(item.productId) ?? []), item]);
+    for (const item of searchFurnitureCatalog(query, room, style).filter((item) => (includeConstruction || !constructionGroup(item)) && matchesCatalogCategory(item, category))) result.set(item.productId, [...(result.get(item.productId) ?? []), item]);
     return [...result.values()];
-  }, [query, room, style, category]);
+  }, [query, room, style, category, includeConstruction]);
   const reset = () => { setQuery(''); setRoom(''); setStyle(''); setCategory(''); setAll(false); };
   return <aside className={styles.catalog} aria-label="Catálogo de muebles" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
     <div className={styles.filters}>
+      {onPackages && <button type="button" onClick={onPackages}>Mis paquetes</button>}
       {!showHome && <button type="button" className={styles.back} onClick={reset}><ArrowLeft size={16} />Todas las habitaciones y categorías</button>}
       <label className={styles.search}><span><Search size={16} />Buscar en el catálogo</span><input type="search" name="furniture-search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Sofá, mesa, lavabo…" /></label>
       {!showHome && <><h3 className={styles.selectionTitle}>{room ? FURNITURE_ROOMS[room as FurnitureRoom] : CATALOG_CATEGORIES.find(item => item.id === category)?.label ?? 'Todos los muebles'}</h3><details><summary className={styles.filterSummary}><SlidersHorizontal size={14} />Filtrar por estancia y estilo</summary><div className={styles.filterRow}>
@@ -84,8 +86,8 @@ export function CatalogPanel({ onAdd, onClose, readOnly = false }: {
           <CatalogNavigationImage room={item.room} categoryId={item.id} /><span className={styles.roomLabel}>{item.label}</span>
         </button>)}
       </div><button type="button" className={styles.all} onClick={() => setAll(true)}>Ver todos los muebles</button>
-    </> : <div className={styles.items}>{groups.map((variants) => <CatalogCard key={variants[0]!.productId} variants={variants} onAdd={onAdd} readOnly={readOnly} />)}</div>}
+    </> : <div className={styles.items}>{groups.map((variants) => <CatalogCard key={variants[0]!.productId} variants={variants} onAdd={onAdd} readOnly={readOnly} actionLabel={actionLabel} />)}</div>}
     {!showHome && !groups.length ? <div className={styles.empty}><p>No hay muebles con estos filtros.</p><button type="button" onClick={reset}>Limpiar filtros</button></div> : null}
-    <p className={styles.note}>Elige un mueble y pulsa sobre el plano para colocarlo. Árboles, piscinas y vallas están en Exterior.</p>
+    {!actionLabel && <p className={styles.note}>Elige un mueble y pulsa sobre el plano para colocarlo. Árboles, piscinas y vallas están en Exterior.</p>}
   </aside>;
 }

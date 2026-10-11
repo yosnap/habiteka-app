@@ -8,6 +8,7 @@ import type { EditorStore } from '@/canvas/editor-v2/store';
 import { deriveRooms } from '@/lib/editor-document/rooms';
 import { filterSceneTree, sceneTree, SCENE_TABS, type SceneTab } from './workspace-scene-tree';
 import { WorkspaceSceneRow } from './workspace-scene-row';
+import { ElementGroupActions } from '../element-group-actions';
 import ui from './workspace.module.css';
 
 const TAB_ICONS = { structure: BrickWall, objects: Sofa, rooms: LayoutGrid };
@@ -46,6 +47,7 @@ export function WorkspaceScenePanel({
     document.levels?.find((item) => item.id === document.activeLevelId)?.name ?? 'Planta baja';
   return (
     <div className={ui.panelContent}>
+      <ElementGroupActions store={store} />
       <button type="button" onClick={onCapture} title="Descargar una referencia del lienzo actual">
         <Camera size={17} aria-hidden="true" /> Capturar vista de trabajo
       </button>
@@ -80,7 +82,7 @@ export function WorkspaceScenePanel({
         />
       </label>
       <p className={ui.hint}>
-        Clic: localizar. Doble clic: propiedades.
+        Clic: localizar el grupo. Doble clic: propiedades de la pieza. Candado: bloquear el grupo.
       </p>
       {hidden.length > 0 && (
         <button type="button" onClick={() => store.getState().setElementsVisible(hidden, true)}>

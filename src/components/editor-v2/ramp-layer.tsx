@@ -1,4 +1,5 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
 import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapSpatialDrag } from './magnetic-drag';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
@@ -89,14 +90,14 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
     const parts = rampParts(ramp);
     const finish = walkableSurfaceFinish(ramp.materialId, ramp.color);
     return <Group key={ramp.id} x={ramp.x} y={ramp.y} rotation={ramp.rotation} name={`ramp:${ramp.id}`}
-      draggable={selectable && !readOnly} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
+      draggable={selectable && !readOnly && !isElementLocked(doc, ramp.id)} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
       onDragStart={(event) => { event.cancelBubble = true; dragging.current = { node: event.target, ramp }; setGuideRamp(ramp); store.getState().select([ramp.id]); }}
       onDragMove={(event) => { event.cancelBubble = true;
         const snapped = snapSpatialDrag(store, { ...ramp, ...event.target.position() }, scale) as Ramp;
         event.target.position(snapped); setGuideRamp(snapped); }}
       onDragEnd={(event) => drop(ramp, event)}>
       {parts.map((part, index) => <Group key={index} x={part.x} y={part.y} rotation={part.rotation} listening={selectable}
-        draggable={index > 0 && active && !readOnly && !disabled} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
+        draggable={index > 0 && active && !readOnly && !disabled && !isElementLocked(doc, ramp.id)} onClick={(event) => select(ramp.id, event)} onTap={(event) => select(ramp.id, event)}
         onDragEnd={(event) => movePart(ramp, index, part, event)}>
         <FloorSurface points={[{ x: 0, y: 0 }, { x: ramp.widthMm, y: 0 }, { x: ramp.widthMm, y: part.depthMm }, { x: 0, y: part.depthMm }]}
           finish={finish} selected={active} scale={scale}
@@ -113,10 +114,10 @@ export function RampLayer({ store, scale, disabled = false, documentPreview }: R
       </Group>)}
       {active && parts.map((part, index) => <Group key={`handle:${index}`} x={part.x} y={part.y} rotation={part.rotation}>
         <Circle x={ramp.widthMm / 2} y={part.depthMm} radius={9 * unit} fill="white" stroke={ACCENT} strokeWidth={2 * unit}
-          draggable={!readOnly && !disabled} onDragEnd={(event) => resizePart(ramp, index, event)} />
+          draggable={!readOnly && !disabled && !isElementLocked(doc, ramp.id)} onDragEnd={(event) => resizePart(ramp, index, event)} />
       </Group>)}
       {active && <Circle x={ramp.widthMm} y={ramp.depthMm / 2} radius={9 * unit} fill="white" stroke={ACCENT} strokeWidth={2 * unit}
-        draggable={!readOnly && !disabled} onDragEnd={(event) => resizeWidth(ramp, event)} />}
+        draggable={!readOnly && !disabled && !isElementLocked(doc, ramp.id)} onDragEnd={(event) => resizeWidth(ramp, event)} />}
       {active && ramp.route && <Group x={parts[1]!.x} y={parts[1]!.y} onClick={(event) => { event.cancelBubble = true; rotateSecondFlight(ramp); }}
         onTap={(event) => { event.cancelBubble = true; rotateSecondFlight(ramp); }}>
         <Circle x={ramp.widthMm / 2} y={parts[1]!.depthMm / 2} radius={14 * unit} fill="white" stroke={ACCENT} strokeWidth={2 * unit} />

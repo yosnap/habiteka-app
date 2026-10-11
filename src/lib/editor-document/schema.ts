@@ -277,6 +277,9 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
+  /** Organización y protección de edición, propias de cada planta. */
+  elementGroups?: { id: string; name: string; elementIds: string[] }[];
+  lockedElementIds?: string[];
   propertyOrientation?: import('./property-orientation').PropertyOrientation;
   renderBackdrop?: import('./render-backdrop').RenderBackdrop;
   exteriorRoof?: import('./exterior-roof').ExteriorRoof;

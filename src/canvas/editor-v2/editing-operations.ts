@@ -1,4 +1,5 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
+import { expandElementGroups, pruneElementGroups } from '@/lib/editor-document/element-groups';
 import { nudgeElements } from './nudge-elements';
 import type { EditorDocument, Point, Opening } from '@/lib/editor-document/schema';
 import type { CatalogEntry } from '@/canvas/catalog';
@@ -26,7 +27,7 @@ export const newId = () => globalThis.crypto.randomUUID();
 export function editDocument(doc: EditorDocument, edit: (next: EditorDocument) => void) {
   const next = structuredClone(doc);
   edit(next);
-  const reconciled = reconcileCeilings(doc, next);
+  const reconciled = pruneElementGroups(reconcileCeilings(doc, next));
   assertEditorDocument(reconciled);
   return reconciled;
 }
@@ -252,6 +253,7 @@ export function interiorPoint(polygon: Point[]): Point {
   return best;
 }
 export function deleteEntities(doc: EditorDocument, ids: string[]) {
+  ids = expandElementGroups(doc, ids);
   return editDocument(doc, (next) => {
     if (next.terrainSurfaces) next.terrainSurfaces = next.terrainSurfaces.filter((surface) => !ids.includes(surface.id));
     next.walls = next.walls.filter((w) => !ids.includes(w.id));
@@ -285,6 +287,8 @@ export function deleteEntities(doc: EditorDocument, ids: string[]) {
   });
 }
 export function moveEntity(doc: EditorDocument, id: string, delta: Point) {
+  const grouped = expandElementGroups(doc, [id]);
+  if (grouped.length > 1) return nudgeElements(doc, grouped, delta);
   const spatial = [...planObjects(doc), ...(doc.stairs ?? []), ...(doc.ramps ?? []), ...(doc.columns ?? [])].some((f) => f.id === id);
   const moved = editDocument(spatial ? upgradeSpatialDocument(doc) : doc, (next) => {
     const wall = next.walls.find((w) => w.id === id);

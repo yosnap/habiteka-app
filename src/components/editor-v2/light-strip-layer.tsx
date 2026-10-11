@@ -1,4 +1,5 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
 import { useMemo } from 'react';
 import { useStore } from 'zustand';
 import { Circle, Group, Line, Text } from 'react-konva';
@@ -54,7 +55,7 @@ export function LightStripLayer({ store, scale, disabled }: { store: EditorStore
         {(active || strip.kind === 'free') && <Text x={middle.x + 8 / scale} y={middle.y - 18 / scale}
           text={`${(lengthMm / 1000).toFixed(2)} m${strip.derived ? '' : ' · a mano'}`}
           fill={ink} fontSize={12 / scale} listening={false} />}
-        {active && !state.readOnly && state.tool === 'select' && pathMm.map((point, index) => <Circle key={index}
+        {active && !state.readOnly && !isElementLocked(doc, strip.id) && state.tool === 'select' && pathMm.map((point, index) => <Circle key={index}
           x={point.x} y={point.y} radius={6 / scale} fill="#ffffff" stroke={ink} strokeWidth={2 / scale}
           hitStrokeWidth={18 / scale} draggable
           onDragMove={(event) => event.target.position(snapPointDrag(store, event.target.position(), scale, [strip.id]))}

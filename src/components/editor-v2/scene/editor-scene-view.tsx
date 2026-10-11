@@ -827,6 +827,7 @@ function SceneView({
     {presentation === 'plan' && planMenu && (() => {
       const item = document.furniture.find((entry) => entry.id === planMenu.id);
       return item && <ScenePlanContextMenu document={document} item={item} x={planMenu.x} y={planMenu.y}
+        onReplace={document.furniture.some(entry => entry.id === item.id) ? () => { store.getState().select([item.id], true); store.getState().openSidePanel('replace'); setPlanMenu(null); } : undefined}
         onRotate={(degrees) => editPlanItem((current) => updateFurniture(document, current.id, { rotation: (current.rotation + degrees + 360) % 360 }))}
         onHost={(hostId) => editPlanItem((current) => {
           const host = planObjects(document).find((entry) => entry.id === hostId);

@@ -13,6 +13,9 @@ import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { snapTerrainMove } from '@/canvas/editor-v2/terrain-transform';
 import { constrainSeatingDrag } from '@/canvas/editor-v2/seating-drag';
 import { furnitureDragConstraint } from '@/canvas/editor-v2/constrained-furniture-drag';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
+import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
 
 export interface PlanDrag {
   restoreControls?: () => void;
@@ -74,6 +77,7 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
   const state = store.getState();
   if (event.button !== 0 || state.readOnly || state.tool !== 'select') return null;
   const id = sceneEntityId(event.object);
+  if (id && isElementLocked(state.document, id)) return null;
   const furniture = planObjects(state.document).find((entry) => entry.id === id);
   const terrain = state.document.terrainSurfaces?.find((entry) => entry.id === id);
   const item = furniture ?? terrain;
@@ -125,6 +129,11 @@ export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: P
     if (drag.duplicate) {
       const copy = duplicatePlanElement(state.document, drag.id, { x: next.x - drag.item.x, y: next.y - drag.item.y });
       state.apply(copy.document); store.getState().select([copy.id]); return;
+    }
+    const grouped = expandElementGroups(state.document, [drag.id]);
+    if (grouped.length > 1) {
+      state.apply(nudgeElements(state.document, grouped, { x: next.x - drag.item.x, y: next.y - drag.item.y }));
+      state.select(grouped); return;
     }
     state.apply(drag.terrain ? updateTerrainSurface(state.document, drag.id, { x: next.x, y: next.y })
       : updateFurniture(state.document, drag.id, {

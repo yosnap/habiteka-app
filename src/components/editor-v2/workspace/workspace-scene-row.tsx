@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useStore } from 'zustand';
-import { ChevronRight, Eye, EyeOff, Pencil, Check, X } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff, Pencil, Check, X, Lock, LockOpen } from 'lucide-react';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { clickSelect } from '@/canvas/editor-v2/selection-click';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { DerivedRoom } from '@/lib/editor-document/rooms';
 import { renameSceneElement, type SceneTreeNode } from './workspace-scene-tree';
@@ -23,16 +26,20 @@ export function WorkspaceSceneRow({
   const selection = useStore(store, (s) => s.selection);
   const hidden = useStore(store, (s) => s.hiddenElementIds);
   const readOnly = useStore(store, (s) => s.readOnly);
+  const locked = useStore(store, s => isElementLocked(s.document, node.id));
+  const selected = useStore(store, s => expandElementGroups(s.document, [node.id]).some(id => selection.includes(id)));
   const blocked = useStore(store, (s) => Boolean(s.pendingSpatial) || s.tool !== 'select');
   const [editing, setEditing] = useState(false),
     [name, setName] = useState(node.label);
   const visible = !hidden.includes(node.id);
-  const locate = (properties = false) => {
+  const locate = (properties = false, event?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
     if (blocked) return;
     const state = store.getState();
     state.setElementsVisible([node.id], true);
     // Las zonas de diseño se editan aquí; no son entidades del inspector geométrico.
-    state.select(node.group === 'Zonas de diseño' ? [] : [node.id]);
+    if (node.group === 'Zonas de diseño') state.select([]);
+    else if (properties) state.select([node.id], node.group !== 'Grupos');
+    else clickSelect(store, node.id, event);
     state.focusOn(node.point);
     if (properties) {
       if (node.propertiesPanel === 'ceiling') store.getState().openSidePanel('ceiling');
@@ -45,12 +52,18 @@ export function WorkspaceSceneRow({
         type="button"
         className={ui.treeName}
         disabled={blocked}
-        aria-pressed={selection.includes(node.id)}
-        onClick={() => locate()}
+        aria-pressed={selected}
+        onClick={event => locate(false, event)}
         onDoubleClick={() => { if (node.group !== 'Zonas de diseño') locate(true); }}
         title={`Localizar ${node.label}`}
       >
         {node.label}
+      </button>
+      <button type="button" disabled={readOnly || blocked} aria-pressed={locked}
+        aria-label={`${locked ? 'Desbloquear' : 'Bloquear'} ${node.label}`}
+        title={locked ? 'Desbloquear elemento y su grupo' : 'Bloquear elemento y su grupo'}
+        onClick={() => store.getState().setElementsLocked([node.id], !locked)}>
+        {locked ? <Lock size={16} /> : <LockOpen size={16} />}
       </button>
       <button
         type="button"
@@ -67,7 +80,7 @@ export function WorkspaceSceneRow({
       </button>
       <button
         type="button"
-        disabled={readOnly || blocked || !node.renamable}
+        disabled={readOnly || locked || blocked || !node.renamable}
         aria-label={`Renombrar ${node.label}`}
         title="Renombrar"
         onClick={() => {
@@ -81,17 +94,17 @@ export function WorkspaceSceneRow({
   );
   return (
     <div className={ui.treeNode}>
+      {row}
       {node.children.length ? (
         <details className={ui.wallBranch}>
           <summary>
             <ChevronRight size={14} className={ui.branchChevron} aria-hidden="true" />
-            {node.label}
+            Ver contenido
             <span>
               {node.children.length}{' '}
-              {node.group === 'Techos' ? 'luces' : node.children.length === 1 ? 'hueco' : 'huecos'}
+              {node.group === 'Grupos' ? 'elementos' : node.group === 'Techos' ? 'luces' : node.children.length === 1 ? 'hueco' : 'huecos'}
             </span>
           </summary>
-          {row}
           <div className={ui.treeChildren}>
             {node.children.map((child) => (
               <WorkspaceSceneRow
@@ -104,11 +117,9 @@ export function WorkspaceSceneRow({
             ))}
           </div>
         </details>
-      ) : (
-        row
-      )}
+      ) : null}
       {(node.group === 'Estancias' || node.group === 'Zonas de diseño') &&
-        <SceneSpaceClassification store={store} id={node.id} name={node.label} rooms={rooms} disabled={readOnly || blocked} />}
+        <SceneSpaceClassification store={store} id={node.id} name={node.label} rooms={rooms} disabled={readOnly || locked || blocked} />}
       {editing && (
         <form
           className={ui.renameForm}

@@ -1,4 +1,7 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
+import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
 import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapPointDrag } from './magnetic-drag';
 import { useMemo } from 'react';
@@ -69,14 +72,15 @@ export function CeilingLightingLayer({ store, scale, disabled }: { store: Editor
     {(doc.luminaires ?? []).filter(light => !hidden.has(light.id) && !hidden.has(light.ceilingId)).map((light) => {
       const active = state.selection.includes(light.id), ink = active ? '#087f75' : '#75521d';
       const enabled = effective.get(light.id) ?? light.enabled;
-      return <Group key={light.id} x={light.x} y={light.y} draggable={!state.readOnly && state.tool === 'select'}
+      return <Group key={light.id} x={light.x} y={light.y} draggable={!state.readOnly && state.tool === 'select' && !isElementLocked(doc, light.id)}
         onClick={(e) => pick(e, light.id)}
         onTap={(e) => pick(e, light.id)}
         onDragStart={() => { if (!store.getState().selection.includes(light.id)) state.select([light.id]); }}
         onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [light.id]))}
         onDragEnd={(e) => {
           const point = e.target.position(); e.target.position({ x: light.x, y: light.y });
-          try { const current = store.getState(); current.apply(updateLuminaire(current.document, light.id, point)); }
+          try { const current = store.getState(), grouped = expandElementGroups(current.document, [light.id]);
+            current.apply(grouped.length > 1 ? nudgeElements(current.document, grouped, { x: point.x - light.x, y: point.y - light.y }) : updateLuminaire(current.document, light.id, point)); }
           catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo mover la luminaria'); }
         }}>
         <Circle radius={9 / scale} fill={enabled ? '#fff3c4' : '#eef1ef'} stroke={ink} strokeWidth={(active ? 2.5 : 1.5) / scale} hitStrokeWidth={26 / scale} />

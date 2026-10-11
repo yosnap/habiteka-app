@@ -36,9 +36,12 @@ import { FurnitureProperties } from './furniture-properties';
 import { ElementDetailsPanel } from './element-details-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { SelectionElementActions } from './selection-element-actions';
+import { ElementGroupActions } from './element-group-actions';
+import { lockedElementIds } from '@/lib/editor-document/element-locks';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
-  const readOnly = useStore(store, (s) => s.readOnly);
+  const storeReadOnly = useStore(store, (s) => s.readOnly);
+  const readOnly = storeReadOnly || selection.some(id => lockedElementIds(doc).has(id));
   const [query, setQuery] = useState(''), id = selection[0];
   const detailPanel = useStore(store, (s) => s.detailPanel);
   const gateOwner = boundaryGateOwner(doc, id), slotOwner = kitchenSlotOwner(doc, id), partOwner = gateOwner ?? slotOwner;
@@ -86,6 +89,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const selectedRooms = rooms.filter((item) => selection.includes(item.id));
   const canDelete = selectedRooms.length === 0 || (selection.length === 1 && outdoor);
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
+    <ElementGroupActions store={store} />
     <details key={id ? 'selected' : 'empty'} open={!id || undefined} className={properties.searchToggle}>
       <summary>{id ? 'Buscar o cambiar de elemento' : 'Buscar en el plano'}</summary>
     <div className={properties.searchFields}>
@@ -184,9 +188,9 @@ export function Inspector({ store }: { store: EditorStore }) {
             current.apply(room && outdoor ? deleteOutdoorRoom(current.document, room.id) : deleteEntities(current.document, selection));
             current.select([]);
           } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo eliminar la selección.'); }
-        }}>Eliminar{multiple ? ` (${selection.length})` : ''}</button>
+        }}>Eliminar{doc.elementGroups?.some(group => group.elementIds.some(member => selection.includes(member))) ? ' grupo' : ''}{multiple ? ` (${selection.length})` : ''}</button>
     </div>
     </>}
-    <p className={styles.hint}>{readOnly ? 'Modo solo lectura.' : 'Ctrl/Cmd + Z deshace. Escape cierra el panel. Puedes cambiar de selección sin cerrarlo.'}</p>
+    <p className={styles.hint}>{readOnly ? storeReadOnly ? 'Modo solo lectura.' : 'Selección bloqueada: usa el candado en Escena para desbloquearla.' : 'Ctrl/Cmd + Z deshace. Escape cierra el panel. Puedes cambiar de selección sin cerrarlo.'}</p>
   </aside>;
 }

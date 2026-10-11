@@ -20,6 +20,8 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Furniture, Point } from '@/lib/editor-document/schema';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
+import { lockedElementIds } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
 import { WalkthroughLayer } from './walkthrough-layer';
 import { CeilingLightingLayer } from './ceiling-lighting-layer';
 import { LightStripLayer } from './light-strip-layer';
@@ -73,6 +75,8 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
+  const locked = lockedElementIds(source);
+  const selectionLocked = selected.some(id => locked.has(id));
   const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls && !hidden.has(wall.id));
   const wallInk = referenceVisible ? '#df254b' : presentation === 'visual' ? '#e8e5df' : INK;
   // Muros que el usuario ocultó: se ven como guía discontinua y se pueden seleccionar para volver a mostrarlos.
@@ -106,7 +110,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     if (point) store.getState().addCornerAt(id, point, scale);
   };
   // Arrastrar un elemento que forma parte de una selección múltiple desplaza toda la selección de una vez.
-  const groupOf = (id: string) => { const ids = store.getState().selection; return ids.length > 1 && ids.includes(id) ? ids : null; };
+  const groupOf = (id: string) => { const ids = store.getState().selection, members = expandElementGroups(source, [id]); return members.length > 1 ? members : ids.length > 1 && ids.includes(id) ? ids : null; };
   const dragGroup = (ids: string[], delta: Point) => run(() => { store.getState().apply(nudgeSpatialEntities(source, ids, delta)); store.getState().select(ids); });
   const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>, previewRotation?: number) => {
     const target = e.target, state = store.getState();
@@ -187,7 +191,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {visibleWalls.map((wall) => {
       const [a, b] = wallPoints(doc, wall), active = selected.includes(wall.id);
       const miter = wallMiterPolygon(doc, wall);
-      return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && tool === 'select'}
+      return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && !locked.has(wall.id) && tool === 'select'}
         onDragStart={(event) => { duplicateDrag.current = event.evt.altKey; if (!groupOf(wall.id)) store.getState().select([wall.id]); }}
         onDragMove={(event) => {
           if (groupOf(wall.id)) return;
@@ -219,7 +223,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
     {planDrawOrder(planObjects(doc)).filter((f) => !hidden.has(f.id) && (showFurniture || 'construction' in f)).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
-      draggable={!readOnly && tool === 'select'} onDragStart={(e) => {
+      draggable={!readOnly && !locked.has(f.id) && tool === 'select'} onDragStart={(e) => {
         seatingPreview.current = f;
         furnitureDragStart.current = e.target.getStage()?.getRelativePointerPosition() ?? null;
         duplicateDrag.current = e.evt.altKey;
@@ -262,7 +266,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       onSelect={tool === 'select' ? () => store.getState().select([d.id]) : undefined} />)}
     {options.names && workspaceNameLabels(doc).filter(label => !hidden.has(label.id) && (!label.roomId || !hidden.has(label.roomId))).map((label) => <PlanNameLabel key={label.id}
       x={label.x} y={label.y} text={label.text} viewScale={scale} style={options.nameStyle}
-      draggable={label.editable && !readOnly && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
+      draggable={label.editable && !readOnly && !locked.has(label.id) && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
       onClick={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)}
       onTap={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)} />)}
     {dimensions !== 'none' && rooms.value.filter(room => !hidden.has(room.id)).map((room) => {
@@ -273,15 +277,15 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           text={options.units === 'imperial' ? `${(room.areaMm2 / 92903.04).toFixed(2)} ft²` : `${(room.areaMm2 / 1e6).toFixed(2)} m²`} fontSize={13 / scale} fill={INK} />
       </Group>;
     })}
-    {!readOnly && !disabled && tool === 'select' && <VertexHandles store={store} source={source} scale={scale}
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && <VertexHandles store={store} source={source} scale={scale}
       selected={selected} rooms={rooms.value} preview={preview} onPreview={setPreview} />}
-    {!readOnly && !disabled && tool === 'select' && doc.walls.filter((w) => selected.includes(w.id) && w.curveHeightMm).map((wall) =>
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && doc.walls.filter((w) => selected.includes(w.id) && w.curveHeightMm).map((wall) =>
       <CurveHandle key={wall.id} doc={doc} wall={wall} store={store} scale={scale} onPreview={setObjectPreview} />)}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <ObjectTransformControls
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && <ObjectTransformControls
       key={selected[0]} store={store} source={source} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && source.terrainSurfaces?.filter(surface => surface.id === selected[0]).map(surface =>
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && source.terrainSurfaces?.filter(surface => surface.id === selected[0]).map(surface =>
       <TerrainTransformControls key={surface.id} store={store} source={source} surface={surface} scale={scale} onPreview={setObjectPreview} />)}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     <WalkthroughLayer store={store} scale={scale} disabled={disabled} />
     {showLighting && <><LightStripLayer store={store} scale={scale} disabled={disabled} /><CeilingLightingLayer store={store} scale={scale} disabled={disabled} /></>}

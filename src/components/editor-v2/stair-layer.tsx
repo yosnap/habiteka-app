@@ -1,4 +1,5 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
 import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapSpatialDrag } from './magnetic-drag';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
@@ -94,7 +95,7 @@ export function StairLayer({ store, scale, disabled = false, documentPreview }: 
       const finish = walkableSurfaceFinish(stair.materialId, stair.color);
       return <Group key={stair.id} x={stair.x} y={stair.y} rotation={stair.rotation}
         name={`stair:${stair.id}`} listening={!disabled}
-        draggable={selectable && !readOnly && !active}
+        draggable={selectable && !readOnly && !active && !isElementLocked(store.getState().document, stair.id)}
         onClick={(event) => select(stair.id, event)} onTap={(event) => select(stair.id, event)}
         onDragStart={(event) => {
           event.cancelBubble = true;

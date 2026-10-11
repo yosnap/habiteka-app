@@ -1,6 +1,7 @@
 'use client';
 import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/lib/editor-document/boundary-types';
 import { danglingEnds } from '@/lib/editor-document/plan-issues';
+import { packageBounds } from '@/lib/editor-document/package-geometry';
 
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
@@ -79,6 +80,8 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const snapEnabled = useStore(store, (s) => s.snap);
   const pendingSplitWallId = useStore(store, (s) => s.pendingSplitWallId);
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
+  const pendingPackage = useStore(store, s => s.pendingPackage);
+  const packageSize = useMemo(() => pendingPackage ? packageBounds(pendingPackage.document) : null, [pendingPackage]);
   const [placementOrientation, setPlacementOrientation] = useState<{ item: SpatialClipboardItem; rotation: number } | null>(null);
   const preferredPlacementRotation = placementOrientation?.item === pendingSpatial ? placementOrientation.rotation : undefined;
   const zoneTool = useLightZoneTool(store);
@@ -316,7 +319,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const zoneAnchor = zoneTool.draft.vertices.at(-1) ?? null;
   const zoneDimension = zoneTool.active && zoneAnchor && zoneTool.cursor ? drawingDimension(zoneAnchor, zoneTool.cursor, view.scale) : null;
   const splitting = tool === 'split-wall' && !readOnly;
-  const placingSpatial = tool === 'place-object' && !readOnly && !!pendingSpatial;
+  const placingSpatial = tool === 'place-object' && !readOnly && (!!pendingSpatial || !!pendingPackage);
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
@@ -330,7 +333,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     onKeyDownCapture={roofTool.keyDown}
     onKeyDown={(e) => {
       if (e.key === 'Escape') {
-        if (pendingSpatial) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
+        if (pendingSpatial || pendingPackage) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
         cancel(); return;
       }
       if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
@@ -380,6 +383,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         if (placingSpatial) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const raw = stage.current?.getRelativePointerPosition();
+          if (raw && pendingPackage) { store.getState().placePendingPackage(raw); return; }
           if (!raw || !pendingSpatial) return;
           // Un aparato de cocina soltado sobre un tramo se encaja en él como hueco.
           const drop = 'kind' in pendingSpatial && !('stepCount' in pendingSpatial) ? kitchenSlotDrop(doc, pendingSpatial, raw) : null;
@@ -501,6 +505,10 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         <Text width={spatialPreview.widthMm} y={spatialPreview.depthMm / 2 - 7 / view.scale} align="center" fill="#087f75" fontSize={12 / view.scale}
           text={`${placementLabel(spatialPreview)} · clic para colocar · Esc cancela`} />
       </Group>}</>
+      {pendingPackage && packageSize && pointer && <Group listening={false} x={pointer.x - packageSize.width / 2} y={pointer.y - packageSize.height / 2}>
+        <Rect width={packageSize.width} height={packageSize.height} fill="#00a69322" stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />
+        <Text width={packageSize.width} align="center" fontSize={14 / view.scale} fill="#087f75" text={pendingPackage.name} />
+      </Group>}
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>
     </Stage>}

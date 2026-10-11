@@ -21,6 +21,8 @@ export function SelectionElementActions({ store, edit }: {
   if (!opening && !spatial) return null;
   return <PropertySection title="Acciones del elemento">
     <div className={styles.actions}>
+      {(state.document.furniture.some(item => item.id === id) || (opening && opening.kind !== 'hueco')) &&
+        <button type="button" onClick={() => state.openSidePanel('replace')}>Sustituir</button>}
       {spatial && <button type="button" onClick={() => state.copySpatial(id)}><Copy size={16} aria-hidden="true" />Copiar</button>}
       {furniture && <button type="button" onClick={() => edit((doc) => updateFurniture(doc, id, { rotation: (furniture.rotation + 90) % 360 }))}>
         <RotateCw size={16} aria-hidden="true" />Girar 90°</button>}

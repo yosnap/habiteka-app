@@ -3,6 +3,10 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Bloqueos, grupos y paquetes — 11 de octubre de 2026
+
+**Bloqueos, grupos y paquetes:** Escena incorpora un candado antes del ojo de cada fila. Bloquear una pieza protege todo su grupo frente a movimiento, edición, sustitución y borrado. Escena y Propiedades permiten agrupar selecciones y guardarlas en **Mis paquetes**, una biblioteca personal disponible en todos los proyectos y dispositivos. Construir y Amueblar comparten el acceso, con filtros Muebles, Construcción y Mixtos. Cada paquete se coloca con un clic en Plano 2D y crea una copia independiente. **Sustituir** abre el catálogo desde Propiedades o el menú del elemento, conservando posición y grupo. [Guía de uso](/editor/grupos-paquetes/).
+
 ## Espacio de trabajo — 10 de octubre de 2026
 
 **Navegación segura en 3D:** Mover vista es el modo inicial, también dentro de habitaciones. Un flotante a la derecha permite activar Editar. Navegar no selecciona ni arrastra elementos y bloquea su desplazamiento o eliminación por teclado. La carrocería de los vehículos incorpora barniz y reflejos en ambas vistas; pintarla conserva los demás materiales.

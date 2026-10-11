@@ -9,6 +9,7 @@ import { planObjects } from '@/lib/editor-document/boundary-types';
 import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { editDocument, interiorPoint, newId } from '@/canvas/editor-v2/editing-operations';
 import { renameDesignZone } from '@/lib/editor-document/design-zone-commands';
+import { ELEMENT_COLLECTIONS } from '@/lib/editor-document/element-groups';
 
 export type SceneTab = 'structure' | 'objects' | 'rooms';
 export interface SceneTreeNode extends PlanElementEntry {
@@ -87,7 +88,26 @@ export function sceneTree(document: EditorDocument, rooms: DerivedRoom[]): Scene
     id: zone.id, label: zone.name, group: 'Zonas de diseño', point: interiorPoint(zone.polygon),
     children: [], renamable: true, hideable: false,
   }));
-  return [...nodes.filter((node) => !nested.has(node.id)), ...floors, ...ceilings, ...zones];
+  const roots = [...nodes.filter((node) => !nested.has(node.id)), ...floors, ...ceilings, ...zones];
+  const all = new Map<string, SceneTreeNode>();
+  const indexNode = (node: SceneTreeNode) => { all.set(node.id, node); node.children.forEach(indexNode); };
+  roots.forEach(indexNode);
+  // También representa miembros que no salen normalmente en el índice (tiras LED, etiquetas interiores…).
+  for (const key of ELEMENT_COLLECTIONS) for (const item of document[key] ?? []) if (!all.has(item.id)) {
+    all.set(item.id, { id: item.id, label: 'name' in item && item.name ? item.name : 'text' in item ? item.text : 'kind' in item ? item.kind : 'Elemento',
+      group: 'Elementos', point: 'x' in item ? { x: item.x, y: item.y } : { x: 0, y: 0 },
+      children: [], renamable: false, hideable: true });
+  }
+  const members = new Set((document.elementGroups ?? []).flatMap(group => group.elementIds));
+  const grouped: SceneTreeNode[] = (document.elementGroups ?? []).flatMap(group => {
+    const children = group.elementIds.flatMap(id => all.get(id) ? [all.get(id)!] : []);
+    if (!children.length) return [];
+    const nestedIds = new Set(children.flatMap(child => child.children.map(item => item.id)));
+    return [{ id: group.id, label: group.name, group: 'Grupos', point: children[0]!.point,
+      children: children.filter(child => !nestedIds.has(child.id)), renamable: true, hideable: true }];
+  });
+  const removeGrouped = (node: SceneTreeNode): SceneTreeNode => ({ ...node, children: node.children.filter(child => !members.has(child.id)).map(removeGrouped) });
+  return [...roots.filter(node => !members.has(node.id)).map(removeGrouped), ...grouped];
 }
 
 export function filterSceneTree(
@@ -95,19 +115,20 @@ export function filterSceneTree(
   tab: SceneTab,
   query: string,
 ): SceneTreeNode[] {
+  const matching = (node: SceneTreeNode): SceneTreeNode[] => {
+    if (!query.trim() || matchesQuery(node, query)) return [node];
+    const children = node.children.flatMap(matching);
+    return children.length ? [{ ...node, children }] : [];
+  };
   return nodes
     .filter((node) =>
       tab === 'objects'
-        ? node.group === 'Objetos'
+        ? ['Objetos', 'Grupos'].includes(node.group)
         : tab === 'rooms'
           ? ['Estancias', 'Zonas de diseño'].includes(node.group)
           : !['Objetos', 'Estancias', 'Zonas de diseño'].includes(node.group),
     )
-    .flatMap((node) => {
-      if (!query.trim() || matchesQuery(node, query)) return [node];
-      const children = node.children.filter((child) => matchesQuery(child, query));
-      return children.length ? [{ ...node, children }] : [];
-    });
+    .flatMap(matching);
 }
 
 /** Usa los campos de nombre existentes, incluido el texto de las estancias; nunca crea alias paralelos. */
@@ -121,6 +142,8 @@ export function renameSceneElement(
   const name = value.trim().slice(0, 100),
     room = rooms.find((item) => item.id === id);
   return editDocument(document, (next) => {
+    const group = next.elementGroups?.find(item => item.id === id);
+    if (group) { if (name) group.name = name; return; }
     if (room) {
       const label = next.labels.find((item) => insideRoom(item, room.boundary));
       if (label) {

@@ -4,6 +4,7 @@ import { addWallPath } from '@/canvas/editor-v2/editing-operations';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { prepareViewChange, viewForTool, viewModeBlockedReason } from '@/canvas/editor-v2/view-mode';
 import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
+import { extractElementPackage } from '@/lib/editor-document/element-packages';
 
 const house = () => addWallPath(emptyEditorDocument(), [
   { x: -1000, y: 500 }, { x: 6000, y: 500 }, { x: 6000, y: 5500 }, { x: -1000, y: 5500 },
@@ -58,6 +59,22 @@ describe('navegación con una tarea activa', () => {
     expect(store.getState().document.furniture).toHaveLength(1);
     store.getState().undo();
     expect(store.getState().document.furniture).toHaveLength(0);
+  });
+
+  it('mantiene un paquete en Plano 2D hasta colocarlo o cancelarlo', () => {
+    const source = house();
+    const pack = { name: 'Paredes', document: extractElementPackage(source, source.walls.map(wall => wall.id)) };
+    const store = createEditorStore(emptyEditorDocument());
+    store.getState().beginPlacePackage(pack);
+    const before = store.getState();
+    expect(prepareViewChange(store, '2d', 'visual')).toBe(false);
+    expect(prepareViewChange(store, '2d', '3d')).toBe(false);
+    expect(prepareViewChange(store, '2d', '2d')).toBe(true);
+    expect(store.getState()).toBe(before);
+    expect(viewModeBlockedReason('place-object', 'visual', true)).toContain('paquete');
+    store.getState().cancelPendingSpatial();
+    expect(store.getState()).toMatchObject({ pendingPackage: null, tool: 'select', past: [] });
+    expect(prepareViewChange(store, '2d', 'visual')).toBe(true);
   });
 
   it('cancelar el objeto conserva el catálogo y no crea una edición', () => {

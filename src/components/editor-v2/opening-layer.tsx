@@ -1,4 +1,7 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
+import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
 import { useHiddenElements } from './workspace/use-hidden-elements';
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
@@ -127,7 +130,7 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
       const wall = doc.walls.find((w) => w.id === opening.wallId)!, path = wallPath(doc, wall), direction = path.tangent(opening.position);
       const center = path.at(opening.position), angle = Math.atan2(direction.y, direction.x) * 180 / Math.PI;
       return <Group key={opening.id} x={center.x} y={center.y} rotation={angle} opacity={dragId === opening.id && preview?.opening.id === opening.id ? .35 : 1}
-        draggable={!disabled && !readOnly && tool === 'select'}
+        draggable={!disabled && !readOnly && !isElementLocked(doc, opening.id) && tool === 'select'}
         onPointerDown={(event) => { duplicatePointer.current = event.evt.altKey; grabPointer.current = event.target.getStage()?.getRelativePointerPosition() ?? null; }}
         onClick={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt); } }}
         onTap={(event) => { if (tool === 'select') { event.cancelBubble = true; clickSelect(store, opening.id, event.evt as unknown as MouseEvent); } }}
@@ -155,7 +158,10 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
           let selectedId = opening.id;
           try {
             if (!placement?.valid || !current) throw new Error(placement?.reason ?? 'No hay una pared válida. Se conserva la ubicación anterior.');
-            state.apply(placeOpening(state.document, prototype, placement)); selectedId = prototype.id;
+            const grouped = expandElementGroups(state.document, [opening.id]);
+            state.apply(grouped.length > 1 && prototype.id === opening.id
+              ? nudgeElements(state.document, grouped, { x: placement.center.x - center.x, y: placement.center.y - center.y })
+              : placeOpening(state.document, prototype, placement)); selectedId = prototype.id;
           } catch (error) { state.setError(error instanceof Error ? error.message : 'Ubicación inválida'); }
           candidateHost.current = undefined;
           setDragId(null); setPreview(null); state.select([selectedId]);

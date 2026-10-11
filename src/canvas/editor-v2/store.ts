@@ -16,9 +16,13 @@ import { normalizeEditorDocument } from '@/lib/editor-document/document-normaliz
 import { inheritFloorFinishes } from '@/lib/editor-document/floor-level';
 import type { LightZoneMode } from './light-zone-draw';
 import { OPENING_TYPES } from '@/lib/editor-document/opening-types';
+import { expandElementGroups, pruneElementGroups } from '@/lib/editor-document/element-groups';
+import { assertLockedElementsUnchanged, setElementLocks } from '@/lib/editor-document/element-locks';
+import { upgradeLightingDocument } from '@/lib/editor-document/lighting-migration';
+import { insertElementPackage, type ElementPackage } from '@/lib/editor-document/element-packages';
 
 /** Paneles que comparten la única ranura lateral del editor: solo uno abierto a la vez. */
-export type EditorSidePanel = 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling' | 'assistant' | 'scene' | 'materials' | 'visualize' | 'tools' | 'settings';
+export type EditorSidePanel = 'packages' | 'replace' | 'inspector' | 'catalog' | 'walkthrough' | 'context' | 'ceiling' | 'assistant' | 'scene' | 'materials' | 'visualize' | 'tools' | 'settings';
 
 /**
  * Una selección normal solo actualiza el resumen: abrir Propiedades
@@ -66,6 +70,7 @@ export interface EditorState {
   /** Visibilidad de trabajo: no altera paredes lógicas, geometría, aprobación ni referencias IA. */
   hiddenElementIds: string[];
   setElementsVisible: (ids: string[], visible: boolean) => void;
+  setElementsLocked: (ids: string[], locked: boolean) => void;
   /** Zona de luces en la que se está trabajando; es estado de sesión, no del documento. */
   activeLightZoneId: string | null;
   setActiveLightZone: (id: string | null) => void;
@@ -104,6 +109,9 @@ export interface EditorState {
   clipboardSpatial: SpatialClipboardItem | null;
   clipboardOpening: Opening | null;
   pendingSpatial: SpatialClipboardItem | null;
+  pendingPackage: Pick<ElementPackage, 'name' | 'document'> | null;
+  beginPlacePackage: (pack: Pick<ElementPackage, 'name' | 'document'>) => void;
+  placePendingPackage: (point: Point) => void;
   copySpatial: (id: string) => void;
   beginPasteSpatial: () => void;
   /** Deja un elemento nuevo siguiendo al ratón para colocarlo con un clic (alta desde catálogo). */
@@ -122,7 +130,7 @@ export interface EditorState {
   apply: (document: EditorDocument) => void;
   undo: () => void;
   redo: () => void;
-  select: (ids: string[]) => void;
+  select: (ids: string[], individual?: boolean) => void;
   setTool: (tool: EditorTool) => void;
   setSnap: (enabled: boolean) => void;
   setError: (error: string | null) => void;
@@ -149,12 +157,34 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     setSceneOptions: (sceneOptions) => set({ sceneOptions }),
     setCeilingView: (ceilingView) => set({ ceilingView }),
     hiddenElementIds: [],
+    pendingPackage: null,
+    beginPlacePackage: (pack) => {
+      if (get().readOnly) return;
+      get().setTool('place-object');
+      set({ pendingPackage: structuredClone(pack), pan: false, sidePanel: null });
+    },
+    placePendingPackage: (point) => {
+      const state = get();
+      if (state.readOnly || !state.pendingPackage || state.tool !== 'place-object') return;
+      try {
+        const result = insertElementPackage(state.document, state.pendingPackage, point);
+        state.apply(result.document);
+        set({ pendingPackage: null, selection: result.ids, tool: 'select', error: null });
+      } catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo colocar el paquete.'); }
+    },
+    setElementsLocked: (ids, locked) => {
+      const state = get();
+      if (state.readOnly) return;
+      try { state.apply(setElementLocks(locked ? upgradeLightingDocument(state.document) : state.document, ids, locked)); }
+      catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo cambiar el bloqueo.'); }
+    },
     setElementsVisible: (ids, visible) => {
       const state = get();
       if (state.pendingSpatial || state.tool !== 'select') {
         set({ error: 'Termina o cancela la tarea actual antes de cambiar la visibilidad.' }); return;
       }
       const hidden = new Set(state.hiddenElementIds);
+      ids = [...new Set([...ids, ...expandElementGroups(state.document, ids)])];
       const targets = [...ids, ...state.document.openings.filter(opening => ids.includes(opening.wallId)).map(opening => opening.id),
         ...(state.document.luminaires ?? []).filter(light => ids.includes(light.ceilingId)).map(light => light.id)];
       targets.forEach(id => visible ? hidden.delete(id) : hidden.add(id));
@@ -239,7 +269,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       if (state.readOnly) return;
       if (state.clipboardOpening) {
         const opening = { ...structuredClone(state.clipboardOpening), id: crypto.randomUUID() };
-        set({ pendingOpening: opening, pendingSpatial: null, pendingSplitWallId: null, selection: [], pan: false,
+        set({ pendingPackage: null, pendingOpening: opening, pendingSpatial: null, pendingSplitWallId: null, selection: [], pan: false,
           tool: opening.kind === 'puerta' ? 'door' : opening.kind === 'ventana' ? 'window' : 'passage', error: null });
         return;
       }
@@ -248,7 +278,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     },
     beginPlaceSpatial: (item) => {
       if (get().readOnly) return;
-      set({ pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', pan: false, error: null });
+      set({ pendingPackage: null, pendingSpatial: item, pendingOpening: null, pendingSplitWallId: null, selection: [], tool: 'place-object', pan: false, error: null });
     },
     placePendingSpatial: (item) => {
       const state = get();
@@ -259,13 +289,13 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       } catch (error) { set({ error: error instanceof Error ? error.message : 'No se pudo colocar la copia.' }); }
     },
     cancelPendingSpatial: () => {
-      if (get().tool === 'place-object') set({ pendingSpatial: null, tool: 'select', error: null });
+      if (get().tool === 'place-object') set({ pendingPackage: null, pendingSpatial: null, tool: 'select', error: null });
     },
     apply: (candidate) => {
       if (get().readOnly) throw new Error('Este documento está en modo solo lectura');
       const state = get();
       // Los restos invisibles de contornos de patio anteriores se retiran en cada edición: parten estancias y bloquean suelos.
-      let document = parseEditorDocument(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate))));
+      let document = parseEditorDocument(pruneElementGroups(normalizeEditorDocument(inheritFloorFinishes(state.document, reconcileCeilings(state.document, candidate)))));
       if (document.activeLevelId === state.document.activeLevelId)
         document = relieveFurnitureForThickerWalls(state.document, document);
       for (const light of document.luminaires ?? []) {
@@ -276,6 +306,7 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
         }
       }
       if (JSON.stringify(document) === JSON.stringify(state.document)) return;
+      assertLockedElementsUnchanged(state.document, document);
       // Navigation compares the target level with itself, never with objects on another floor.
       const previousLevel = document.activeLevelId !== state.document.activeLevelId
         ? state.document.levels?.find((l) => l.id === document.activeLevelId)?.document ?? document : state.document;
@@ -295,8 +326,9 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
       set({ document, past: [...state.past, state.document], future: state.future.slice(1), sidePanel: sidePanelForSelection(state.sidePanel, { hasSelection: false, lighting: false }),
         sequence: state.sequence + 1, selection: [], pendingSplitWallId: null, tool: state.tool === 'split-wall' ? 'select' : state.tool, error: null });
     },
-    select: (selection) => {
+    select: (selection, individual = false) => {
       const state = get(), document = state.document;
+      if (!individual) selection = expandElementGroups(document, selection);
       const lighting = selection.length > 0 && selection.some((id) =>
         (document.luminaires?.some((light) => light.id === id) ?? false)
         || (document.ceilings?.some((ceiling) => ceiling.id === id) ?? false));
@@ -305,10 +337,10 @@ export function createEditorStore(initial: EditorDocument, options: { readOnly?:
     // Cambiar de herramienta deja la ranura como estaba salvo Propiedades, que se
     // queda sin selección que mostrar; «Techo y luces» sigue abierto porque es
     // quien lanza el dibujo de una tira LED o de una zona.
-    setTool: (tool) => set({ lightZoneDraw: null, boundaryCatalogId: null, gardenPathOptions: null, sidePanel: get().sidePanel === 'inspector' ? null : get().sidePanel, tool, magneticGuides: [], pendingOpening: null, openingTypeId: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
+    setTool: (tool) => set({ pendingPackage: null, lightZoneDraw: null, boundaryCatalogId: null, gardenPathOptions: null, sidePanel: get().sidePanel === 'inspector' ? null : get().sidePanel, tool, magneticGuides: [], pendingOpening: null, openingTypeId: null, pendingSplitWallId: null, pendingSpatial: null, selection: [], error: null }),
     setSnap: (snap) => set({ snap }),
     setError: (error) => set({ error }),
-    restore: (candidate) => set({ sidePanel: null, lightZoneDraw: null, activeLightZoneId: null, document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
+    restore: (candidate) => set({ pendingPackage: null, sidePanel: null, lightZoneDraw: null, activeLightZoneId: null, document: parseEditorDocument(normalizeEditorDocument(parseEditorDocument(candidate), { onLoad: true })), past: [], future: [],
       sequence: 0, selection: [], pendingOpening: null, openingTypeId: null, pendingSplitWallId: null, pendingSpatial: null, tool: 'select', error: null }),
   }));
 }
