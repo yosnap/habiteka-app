@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type ComponentRef } fr
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useBounds } from '@react-three/drei';
 import { MOUSE, PerspectiveCamera, Vector3 } from 'three';
-import { cameraFitDistance } from './camera-fit';
+import { cameraFitDistance, sceneCameraNear } from './camera-fit';
 import { readWorkspaceCamera, saveWorkspaceCamera } from '../workspace/workspace-camera-state';
 
 export type SceneCameraPreset = 'top' | 'isometric' | 'front' | 'back' | 'left' | 'right' | 'drone';
@@ -65,6 +65,12 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
   // Campo de visión de fuera, guardado al entrar en una estancia para devolverlo al salir.
   const exteriorFov = useRef<number | null>(null);
   const { get, invalidate, gl, size } = useThree();
+  useFrame(() => {
+    const camera = get().camera, orbit = controls.current;
+    if (!initialized.current || !orbit || !(camera instanceof PerspectiveCamera) || canPersist?.() === false) return;
+    const near = sceneCameraNear(camera.position.distanceTo(orbit.target), interior || lastAction.current === 'interior');
+    if (Math.abs(camera.near - near) > 1e-6) { camera.near = near; camera.updateProjectionMatrix(); }
+  });
   const persistCamera = useCallback(() => {
     const camera = get().camera, orbit = controls.current;
     // Las capturas temporales y las visitas nunca sobrescriben la vista de trabajo.
@@ -85,6 +91,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     lastSequence.current = request.sequence;
     if (restored) {
       camera.position.fromArray(restored.position); orbit.target.fromArray(restored.target); camera.fov = restored.fov;
+      camera.near = sceneCameraNear(camera.position.distanceTo(orbit.target), interior);
       camera.far = Math.max(500, camera.position.distanceTo(orbit.target) * 20);
       orbit.maxDistance = Math.max(300, camera.position.distanceTo(orbit.target) * 10);
       camera.updateProjectionMatrix(); camera.lookAt(orbit.target); orbit.update(); invalidate();
@@ -137,7 +144,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
       const distance = cameraFitDistance(extent, direction, verticalFov, camera.aspect);
       orbit.target.copy(center);
       orbit.maxDistance = Math.max(300, distance * 10);
-      camera.near = Math.min(.01, distance / 1000);
+      camera.near = sceneCameraNear(distance, interior);
       camera.far = Math.max(500, distance * 20);
       camera.position.copy(center).addScaledVector(direction, distance);
       camera.updateProjectionMatrix();
@@ -148,7 +155,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     initialized.current = true;
     persistCamera();
     onApplied?.(request.sequence);
-  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied, plan, persistenceKey, onManualChange, persistCamera]);
+  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied, plan, interior, persistenceKey, onManualChange, persistCamera]);
   // Release the external browser subscription when the 3D view unmounts.
   useEffect(() => {
     const canvas = gl.domElement;

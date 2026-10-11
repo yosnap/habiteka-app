@@ -5,6 +5,8 @@ description: Qué hace cada herramienta y cómo revisar sus resultados.
 
 ## Cómo orientarte
 
+La precisión de la cámara se ajusta automáticamente con el zoom en Amueblado y 3D para que superficies muy próximas, como techo y tapizado interior, no produzcan manchas. Las vistas interiores mantienen el recorte cercano de 1 cm.
+
 **Escena** incorpora candados antes del ojo para proteger los elementos y sus grupos. Puedes **Agrupar**, **Desagrupar** y **Guardar como paquete** desde Escena o Propiedades. **Mis paquetes**, accesible también desde Construir y Amueblar, es una biblioteca de tu cuenta compartida entre todos tus proyectos. **Sustituir** permite elegir otro modelo para una pieza. Consulta [Bloqueos, grupos y paquetes](/editor/grupos-paquetes/) para conocer la selección individual, la colocación y los límites.
 Todas las secciones del proyecto comparten un **desplegable flotante** para navegar a **Asistente, Plano, Editor, Diseños, Vídeos e Historial**, o volver a **Mis proyectos**. El botón muestra la sección actual y la marca en el menú. Los iconos conservan sus colores: Asistente violeta, Plano azul, Editor verde, Diseños ámbar, Vídeos rosa e Historial gris. En el editor, el botón **Editor** está junto al selector de planta. En las demás páginas aparece junto al nombre del proyecto, con espacio reservado sobre el contenido para evitar solapamientos. Los enlaces conservan la zona seleccionada en las secciones que trabajan por zona; Plano abre el flujo general del proyecto. En una muestra independiente, este menú explica que necesitas abrir un proyecto y ofrece Mis proyectos.
 
