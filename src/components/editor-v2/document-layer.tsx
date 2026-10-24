@@ -1,5 +1,9 @@
 'use client';
 import { planDrawOrder } from '@/lib/editor-document/plan-draw-order';
+import { PlanNameLabel } from './plan-name-label';
+import { workspaceNameLabels } from '@/canvas/editor-v2/workspace-name-labels';
+import { sceneOptionHiddenIds } from './workspace/scene-options-state';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import { linearPartOwner } from '@/lib/editor-document/linear-part-owner';
 import { isKitchenRun } from '@/lib/editor-document/kitchen-run-types';
@@ -16,6 +20,8 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { EditorStore } from '@/canvas/editor-v2/store';
 import type { EditorDocument, Furniture, Point } from '@/lib/editor-document/schema';
 import { updateFurniture } from '@/lib/editor-document/spatial-commands';
+import { lockedElementIds } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
 import { WalkthroughLayer } from './walkthrough-layer';
 import { CeilingLightingLayer } from './ceiling-lighting-layer';
 import { LightStripLayer } from './light-strip-layer';
@@ -45,7 +51,6 @@ import { editableOutdoorRoom, moveOutdoorRoom } from '@/lib/editor-document/outd
 import { roomAt } from '@/lib/editor-document/outdoor-attach';
 import { duplicateSpatialItem, insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { clickSelect } from '@/canvas/editor-v2/selection-click';
-import { insideRoom } from '@/lib/editor-document/ceiling-geometry';
 import { FloorSurface } from './floor-surface';
 import { layeredTerrainSurfaces, updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { wallPath, wallStrip } from '@/lib/editor-document/wall-path';
@@ -58,15 +63,21 @@ import { TerrainTransformControls } from './terrain-transform-controls';
 const INK = WALL_PLAN_COLOR, ACCENT = '#087f75', PAPER = '#fafcfb';
 export function DocumentLayer({ store, scale, disabled = false, dimensions = 'all', presentation = 'technical', showFurniture = true, showWalls = true, showLighting = true, referenceVisible = false }: { store: EditorStore; scale: number; disabled?: boolean; dimensions?: DimensionVisibility; presentation?: 'technical' | 'visual'; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; referenceVisible?: boolean }) {
   const source = useStore(store, (s) => s.document), selected = useStore(store, (s) => s.selection);
+  const hiddenElements = useHiddenElements(store);
+  const options = useStore(store, s => s.sceneOptions);
+  const hidden = new Set([...hiddenElements, ...sceneOptionHiddenIds(source, options)]);
   const [preview, setPreview] = useState<VertexPreview | null>(null);
   const [objectPreview, setObjectPreview] = useState<EditorDocument | null>(null);
   const [wallMoveSnap, setWallMoveSnap] = useState<WallMoveSnap | null>(null);
   const duplicateDrag = useRef(false);
   const seatingPreview = useRef<Furniture | null>(null);
+  const furnitureDragStart = useRef<Point | null>(null);
   const doc = !disabled ? preview?.document ?? objectPreview ?? source : source;
   const tool = useStore(store, (s) => s.tool);
   const readOnly = useStore(store, (s) => s.readOnly);
-  const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls);
+  const locked = lockedElementIds(source);
+  const selectionLocked = selected.some(id => locked.has(id));
+  const visibleWalls = doc.walls.filter((wall) => !wall.hidden && showWalls && !hidden.has(wall.id));
   const wallInk = referenceVisible ? '#df254b' : presentation === 'visual' ? '#e8e5df' : INK;
   // Muros que el usuario ocultó: se ven como guía discontinua y se pueden seleccionar para volver a mostrarlos.
   // Los bordes lógicos de patios y del perímetro exterior no son muros del usuario y siguen sin dibujarse.
@@ -99,7 +110,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     if (point) store.getState().addCornerAt(id, point, scale);
   };
   // Arrastrar un elemento que forma parte de una selección múltiple desplaza toda la selección de una vez.
-  const groupOf = (id: string) => { const ids = store.getState().selection; return ids.length > 1 && ids.includes(id) ? ids : null; };
+  const groupOf = (id: string) => { const ids = store.getState().selection, members = expandElementGroups(source, [id]); return members.length > 1 ? members : ids.length > 1 && ids.includes(id) ? ids : null; };
   const dragGroup = (ids: string[], delta: Point) => run(() => { store.getState().apply(nudgeSpatialEntities(source, ids, delta)); store.getState().select(ids); });
   const drag = (id: string, origin: Point, e: KonvaEventObject<DragEvent>, previewRotation?: number) => {
     const target = e.target, state = store.getState();
@@ -113,7 +124,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     const object = planObjects(state.document).find((f) => f.id === id);
     const to = wall ? snapWallMove(state.document, wall, target.position(), scale, state.snap).delta
       // Se suelta con el giro que mostraba la vista previa al acercarse a un muro.
-      : object ? snapObject(state.document, { ...object, ...target.position(), rotation: previewRotation ?? object.rotation }, scale, state.snap, { preserveRotation: true, orientToWall: true })
+      : object ? seatingPreview.current ?? snapObject(state.document, { ...object, ...target.position(), rotation: previewRotation ?? object.rotation }, scale, state.snap, { preserveRotation: true, orientToWall: true })
         : target.position();
     target.position(origin);
     if (wall && duplicating) {
@@ -134,7 +145,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     if (object) state.select([id]);
   };
   return <Group listening={!disabled}>
-    {layeredTerrainSurfaces(doc).map((surface) => <FloorSurface key={surface.id}
+    {layeredTerrainSurfaces(doc).filter(surface => !hidden.has(surface.id)).map((surface) => <FloorSurface key={surface.id}
       points={[{ x: surface.x, y: surface.y }, { x: surface.x + surface.widthMm, y: surface.y },
         { x: surface.x + surface.widthMm, y: surface.y + surface.depthMm }, { x: surface.x, y: surface.y + surface.depthMm }]}
       finish={{ roomId: surface.id, color: surface.color, texture: surface.texture, tileSizeMm: surface.tileSizeMm, rotation: surface.rotation }}
@@ -147,7 +158,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
         { if (duplicate) { const copy = duplicatePlanElement(source, surface.id, delta); store.getState().apply(copy.document); store.getState().select([copy.id]); return; }
           const group = groupOf(surface.id); if (group) return dragGroup(group, delta);
           store.getState().apply(updateTerrainSurface(source, surface.id, { x: surface.x + delta.x, y: surface.y + delta.y })); }) : undefined} />)}
-    {rooms.value.map((room) => {
+    {rooms.value.filter(room => !hidden.has(room.id)).map((room) => {
       const points = room.boundary;
       return <FloorSurface key={room.id} points={points} finish={floorFinish(doc, room.id)} scale={scale}
         referenceVisible={referenceVisible} presentation={presentation}
@@ -166,7 +177,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           clickSelect(store, room.id, event);
         } : undefined} />;
     })}
-    {(doc.designZones ?? []).flatMap((zone) => zone.floorFinish ? rooms.value.flatMap((room) =>
+    {(doc.designZones ?? []).flatMap((zone) => zone.floorFinish ? rooms.value.filter(room => !hidden.has(room.id)).flatMap((room) =>
       designZoneRoomParts(zone, room).map((piece, index) => <FloorSurface key={`${zone.id}:${room.id}:${index}`}
         points={piece[0]!.map(([x, y]) => ({ x, y }))}
         finish={{ ...zone.floorFinish!, roomId: room.id }} scale={scale} selected={false}
@@ -174,13 +185,13 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {rooms.error && <Text text={rooms.error} x={0} y={-500} fontSize={13 / scale} fill={INK} listening={false} />}
     {/* A landing is a support surface; its fill must stay beneath the protection walls built on its perimeter. */}
     <RampLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
-    {junctions.filter((join) => doc.walls.filter((wall) => wall.startVertexId === join.id || wall.endVertexId === join.id).length !== 2)
+    {junctions.filter((join) => doc.walls.some(wall => !hidden.has(wall.id) && (wall.startVertexId === join.id || wall.endVertexId === join.id)) && doc.walls.filter((wall) => wall.startVertexId === join.id || wall.endVertexId === join.id).length !== 2)
       .map((join) => <Line key={`join:${join.id}`} points={join.points.flatMap((p) => [p.x, p.y])}
       closed fill={wallInk} opacity={referenceVisible ? 0.78 : 1} listening={false} />)}
     {visibleWalls.map((wall) => {
       const [a, b] = wallPoints(doc, wall), active = selected.includes(wall.id);
       const miter = wallMiterPolygon(doc, wall);
-      return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && tool === 'select'}
+      return <Group key={wall.id} opacity={referenceVisible && !active ? 0.78 : 1} draggable={!readOnly && !locked.has(wall.id) && tool === 'select'}
         onDragStart={(event) => { duplicateDrag.current = event.evt.altKey; if (!groupOf(wall.id)) store.getState().select([wall.id]); }}
         onDragMove={(event) => {
           if (groupOf(wall.id)) return;
@@ -196,7 +207,7 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           : <Line points={[a.x, a.y, b.x, b.y]} stroke={preview?.error ? '#ba302f' : active ? ACCENT : wallInk}
             lineCap="butt" strokeWidth={wall.thicknessMm} hitStrokeWidth={Math.max(wall.thicknessMm, 18 / scale)} />}
         {(dimensions === 'all' || (dimensions === 'external' && rooms.value.filter((room) => room.wallIds.includes(wall.id)).length === 1)) &&
-          <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale}
+          <DimensionMark layout={wallDimensionLayout(doc, wall, rooms.value, scale)} scale={scale} units={options.units}
             label={wall.curveHeightMm ? `${(wallPath(doc, wall).length / 1000).toFixed(2)} m · arco` : undefined} />}
       </Group>;
     })}
@@ -211,9 +222,10 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
     {showWalls && <OpeningLayer store={store} scale={scale} disabled={disabled || !!preview} documentPreview={doc} />}
     <StairLayer store={store} scale={scale} disabled={disabled} documentPreview={doc} />
     <ColumnLayer store={store} scale={scale} disabled={disabled} />
-    {planDrawOrder(planObjects(doc)).filter((f) => showFurniture || 'construction' in f).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
-      draggable={!readOnly && tool === 'select'} onDragStart={(e) => {
+    {planDrawOrder(planObjects(doc)).filter((f) => !hidden.has(f.id) && (showFurniture || 'construction' in f)).map((f) => <Group key={f.id} x={f.x} y={f.y} rotation={f.rotation}
+      draggable={!readOnly && !locked.has(f.id) && tool === 'select'} onDragStart={(e) => {
         seatingPreview.current = f;
+        furnitureDragStart.current = e.target.getStage()?.getRelativePointerPosition() ?? null;
         duplicateDrag.current = e.evt.altKey;
         if (groupOf(f.id)) return;
         // Con Mayús/⌘/Ctrl un clic con un leve arrastre (trackpad) no rompe la selección múltiple: el objeto se suma a ella.
@@ -222,11 +234,15 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
       }}
       onDragMove={(e) => {
         if (groupOf(f.id)) return;
-        const snapped = snapSpatialDrag(store, { ...f, ...e.target.position(), rotation: f.rotation }, scale, e.target.rotation());
+        const pointer = e.target.getStage()?.getRelativePointerPosition(), start = furnitureDragStart.current;
+        // El origen de Konva cambia con el giro automático. El gesto se calcula siempre
+        // desde el mismo punto de agarre, no desde el origen de la huella ya girada.
+        const position = pointer && start ? { x: f.x + pointer.x - start.x, y: f.y + pointer.y - start.y } : e.target.position();
+        const snapped = snapSpatialDrag(store, { ...f, ...position }, scale, seatingPreview.current?.rotation ?? f.rotation);
         const placed = duplicateDrag.current ? snapped : constrainSeatingDrag(store.getState().document, seatingPreview.current ?? f, snapped as Furniture);
         seatingPreview.current = placed as Furniture; e.target.position(placed); e.target.rotation(placed.rotation);
       }}
-      onDragEnd={(e) => { const turned = e.target.rotation(); e.target.rotation(f.rotation); drag(f.id, f, e, turned); seatingPreview.current = null; }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
+      onDragEnd={(e) => { const turned = e.target.rotation(); e.target.rotation(f.rotation); drag(f.id, f, e, turned); seatingPreview.current = null; furnitureDragStart.current = null; }} onClick={(e) => choose(f.id, e)} onTap={(e) => choose(f.id, e)}>
       {getFurnitureCatalogEntry(f.catalogId) || isKitchenRun(f) ? <FurnitureSymbol visual={presentation === 'visual'} onPartSnap={(id, delta) => {
         const owner = linearPartOwner(store.getState().document, id); if (!owner) return delta;
         const raw = localToWorld(owner.item, { x: owner.positionMm + delta, y: owner.item.depthMm / 2 });
@@ -243,31 +259,33 @@ export function DocumentLayer({ store, scale, disabled = false, dimensions = 'al
           width={Math.max(32 / scale, f.widthMm - 8 / scale)} height={13 / scale} align="center" fontSize={11 / scale}
           wrap="none" ellipsis fill={INK} listening={false} />}
     </Group>)}
-    {doc.dimensions.filter(d => tool === 'measure' || selected.includes(d.id) || (dimensions !== 'none' && dimensions !== 'external')).map((d) => <DimensionMark key={d.id} scale={scale} label={d.label}
+    {doc.dimensions.filter(d => !hidden.has(d.id) && (tool === 'measure' || selected.includes(d.id) || (dimensions !== 'none' && dimensions !== 'external'))).map((d) => <DimensionMark key={d.id} scale={scale} label={d.label} units={options.units}
       layout={{ from: d.from, to: d.to, sourceFrom: d.from, sourceTo: d.to }}
       onSnapMove={(raw) => { const state = store.getState(), result = alignPoints(source, [d.from, d.to].map((p) => ({ x: p.x + raw.x, y: p.y + raw.y })), scale, state.snap, [d.id]); state.setMagneticGuides(result.guides); return { x: raw.x + result.delta.x, y: raw.y + result.delta.y }; }}
       onMove={!readOnly && tool === 'select' ? (delta) => run(() => store.getState().apply(nudgeSpatialEntities(source, [d.id], delta))) : undefined}
       onSelect={tool === 'select' ? () => store.getState().select([d.id]) : undefined} />)}
-    {doc.labels.map((label) => <Text key={label.id} {...label} text={label.text} fontSize={14 / scale}
-      fill={INK} draggable={!readOnly && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
-      onClick={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} onTap={(e) => choose(rooms.value.find((r) => /patio|terraza/i.test(label.text) && insideRoom(label, r.boundary))?.id ?? label.id, e)} />)}
-    {dimensions !== 'none' && rooms.value.map((room) => {
+    {options.names && workspaceNameLabels(doc).filter(label => !hidden.has(label.id) && (!label.roomId || !hidden.has(label.roomId))).map((label) => <PlanNameLabel key={label.id}
+      x={label.x} y={label.y} text={label.text} viewScale={scale} style={options.nameStyle}
+      draggable={label.editable && !readOnly && !locked.has(label.id) && tool === 'select'} onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [label.id]))} onDragEnd={(e) => drag(label.id, label, e)}
+      onClick={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)}
+      onTap={(e) => choose(!label.editable || /patio|terraza/i.test(label.text) ? label.roomId ?? label.id : label.id, e)} />)}
+    {dimensions !== 'none' && rooms.value.filter(room => !hidden.has(room.id)).map((room) => {
       const p = interiorPoint(room.boundary);
-      return <Group key={`area:${room.id}`} x={p.x} y={p.y} listening={false}>
+      return <Group key={`area:${room.id}`} x={p.x} y={p.y + (options.names ? (options.nameStyle.size * 1.2 + 8) / 2 + 14 : 0) / scale} listening={false}>
         <Rect x={-45 / scale} y={-12 / scale} width={90 / scale} height={24 / scale} fill={PAPER} cornerRadius={4 / scale} />
         <Text x={-45 / scale} y={-7 / scale} width={90 / scale} align="center"
-          text={`${(room.areaMm2 / 1e6).toFixed(2)} m²`} fontSize={13 / scale} fill={INK} />
+          text={options.units === 'imperial' ? `${(room.areaMm2 / 92903.04).toFixed(2)} ft²` : `${(room.areaMm2 / 1e6).toFixed(2)} m²`} fontSize={13 / scale} fill={INK} />
       </Group>;
     })}
-    {!readOnly && !disabled && tool === 'select' && <VertexHandles store={store} source={source} scale={scale}
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && <VertexHandles store={store} source={source} scale={scale}
       selected={selected} rooms={rooms.value} preview={preview} onPreview={setPreview} />}
-    {!readOnly && !disabled && tool === 'select' && doc.walls.filter((w) => selected.includes(w.id) && w.curveHeightMm).map((wall) =>
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && doc.walls.filter((w) => selected.includes(w.id) && w.curveHeightMm).map((wall) =>
       <CurveHandle key={wall.id} doc={doc} wall={wall} store={store} scale={scale} onPreview={setObjectPreview} />)}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <ObjectTransformControls
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && <ObjectTransformControls
       key={selected[0]} store={store} source={source} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && source.terrainSurfaces?.filter(surface => surface.id === selected[0]).map(surface =>
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && source.terrainSurfaces?.filter(surface => surface.id === selected[0]).map(surface =>
       <TerrainTransformControls key={surface.id} store={store} source={source} surface={surface} scale={scale} onPreview={setObjectPreview} />)}
-    {!readOnly && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
+    {!readOnly && !selectionLocked && !disabled && tool === 'select' && selected.length === 1 && <OpeningResizeControls
       key={`opening:${selected[0]}`} store={store} source={source} preview={doc} id={selected[0]!} scale={scale} onPreview={setObjectPreview} />}
     <WalkthroughLayer store={store} scale={scale} disabled={disabled} />
     {showLighting && <><LightStripLayer store={store} scale={scale} disabled={disabled} /><CeilingLightingLayer store={store} scale={scale} disabled={disabled} /></>}

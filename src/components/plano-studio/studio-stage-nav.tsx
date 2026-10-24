@@ -27,11 +27,11 @@ export function StudioStageNav({
     { name: 'Vídeos', status: hasVideo ? 'Vídeo guardado' : 'Pendiente', icon: Clapperboard },
   ];
   return (
-    <ol aria-label="Progreso del inmueble" className="flex flex-wrap gap-2">
+    <ol aria-label="Progreso del inmueble" className="flex min-h-14 items-center gap-2 overflow-x-auto rounded-xl border border-line bg-surface p-2 shadow-sm">
       {stages.map((stage) => (
         <li
           key={stage.name}
-          className="flex items-center gap-2 rounded-full bg-surface-muted px-3 py-2 text-xs"
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs"
         >
           <span className="text-ink-soft">{stage.status === 'Listo' ? <Check size={15} className="text-emerald-600" /> : <stage.icon size={15} />}</span>
           <span className="text-ink font-medium">{stage.name}</span>

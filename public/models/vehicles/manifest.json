@@ -1,0 +1,65 @@
+[
+  {
+    "id": "coche_tesla_model_3_2018",
+    "label": "Tesla Model 3 · 2018",
+    "author": "Ameer Studio",
+    "uid": "5ef9b845aaf44203b6d04e2c677e444f",
+    "sourceFile": "tesla-model-3-2018.glb",
+    "lengthMm": 4694,
+    "rotation": 1,
+    "file": "coche_tesla_model_3_2018.glb",
+    "thumbnail": "coche_tesla_model_3_2018.webp",
+    "sha256": "26898fc2e4b2f2d5a170437b048d7104e39f342dd0502f8f9b991d279d375c96",
+    "sourceSha256": "d6d78c9bd1bd9c7ca87a07509a2e7b6585995fcbdec054f297167ba7c15cd878",
+    "downloadUrl": "https://raw.githubusercontent.com/nesdesignco/FormDrive/main/public/models/tesla-model-3-2018.glb",
+    "source": "https://sketchfab.com/3d-models/5ef9b845aaf44203b6d04e2c677e444f",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "dimensionsMm": [
+      2185,
+      4694,
+      1407
+    ],
+    "bytes": 1495788,
+    "triangles": 98080,
+    "attributionRequired": true,
+    "paintMaterialNames": [
+      "pintura",
+      "pintura_primary.001",
+      "pintura_primary.002",
+      "pintura_primary.004"
+    ],
+    "modifications": "Escala uniforme, orientación y pivote; caras interiores visibles solo desde dentro, reducción de geometría, texturas WebP de hasta 1024 px y compresión meshopt.",
+    "verifiedAt": "2026-10-11"
+  },
+  {
+    "id": "coche_ford_mustang_gt_2005",
+    "label": "Ford Mustang GT · 2005",
+    "author": "Ricy",
+    "uid": "26b6b60cf2804370ac3c64424242dc1f",
+    "sourceFile": "mustang-2005.glb",
+    "lengthMm": 4775,
+    "rotation": 0,
+    "file": "coche_ford_mustang_gt_2005.glb",
+    "thumbnail": "coche_ford_mustang_gt_2005.webp",
+    "sha256": "2294e849b4ce101c8ff693fa896fdab39cf18dc73dda15442784b4ecfd7ad11f",
+    "sourceSha256": "50028ce61dd4f6b210d710d354d2312f0a2cac0d24056d09d20f039abaaa243b",
+    "downloadUrl": "https://raw.githubusercontent.com/nesdesignco/FormDrive/main/public/models/mustang-2005.glb",
+    "source": "https://sketchfab.com/3d-models/26b6b60cf2804370ac3c64424242dc1f",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "dimensionsMm": [
+      2140,
+      4775,
+      1410
+    ],
+    "bytes": 1859836,
+    "triangles": 82015,
+    "attributionRequired": true,
+    "paintMaterialNames": [
+      "pintura"
+    ],
+    "modifications": "Escala uniforme, orientación y pivote; caras interiores visibles solo desde dentro, reducción de geometría, texturas WebP de hasta 1024 px y compresión meshopt.",
+    "verifiedAt": "2026-10-11"
+  }
+]

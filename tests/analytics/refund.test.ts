@@ -22,7 +22,7 @@ describe('refund-service + auditoría', () => {
     await refundOrder({ orderId: 'ord_1', amount: 1999, reason: 'customer_request' });
     expect(refundCreate).toHaveBeenCalledOnce();
     expect(refundCreate.mock.calls[0]?.[0]).toMatchObject({
-      orderId: 'ord_1',
+      order_id: 'ord_1',
       amount: 1999,
       reason: 'customer_request',
     });

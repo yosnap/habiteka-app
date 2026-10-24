@@ -11,16 +11,17 @@ const views = [
   { mode: '3d', label: 'Modelo 3D', Icon: Box },
 ] as const;
 
-export function EditorViewSwitch({ store, mode, onChange }: {
-  store: EditorStore; mode: EditorViewMode; onChange: (mode: EditorViewMode) => void;
+export function EditorViewSwitch({ store, mode, onChange, compact = false }: {
+  store: EditorStore; mode: EditorViewMode; onChange: (mode: EditorViewMode) => void; compact?: boolean;
 }) {
   const tool = useStore(store, (state) => state.tool);
+  const pendingPackage = useStore(store, (state) => Boolean(state.pendingPackage));
   return <div className={styles.viewSwitch} role="group" aria-label="Vista del espacio" data-side-panel-toggle>
     {views.map(({ mode: next, label, Icon }) => {
-      const reason = viewModeBlockedReason(tool, next);
-      return <button key={next} type="button" aria-pressed={mode === next} disabled={Boolean(reason)} title={reason ?? undefined}
+      const reason = viewModeBlockedReason(tool, next, pendingPackage);
+      return <button key={next} type="button" aria-label={label} aria-pressed={mode === next} disabled={Boolean(reason)} title={reason ?? label}
         onClick={() => { if (prepareViewChange(store, mode, next)) onChange(next); }}>
-        <Icon size={16} aria-hidden="true" />{label}
+        <Icon size={16} aria-hidden="true" /><span data-view-label={next}>{compact ? next === '2d' ? '2D' : next === '3d' ? '3D' : label : label}</span>
       </button>;
     })}
   </div>;

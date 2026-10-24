@@ -43,6 +43,30 @@ describe('orientación de muebles contra la pared al arrastrar', () => {
 });
 
 describe('memoria del giro en los rincones', () => {
+  it('no alterna de pared con pequeñas oscilaciones y cambia al llevarlo claramente a otra', () => {
+    const doc = room();
+    let rotation = 0;
+    const move = (cx: number, cy: number) => {
+      const placed = snapObject(doc, piece('habiteka:furniture:armario', cx, cy), .08, true,
+        { preserveRotation: true, orientToWall: true, preferredRotation: rotation }) as Furniture;
+      rotation = placed.rotation;
+      return placed;
+    };
+    for (const cy of [665, 680, 670, 690, 660, 680]) expect(move(375, cy).rotation).toBe(0);
+    expect(move(375, 1100).rotation).toBe(270);
+    expect(move(2000, 1500).rotation).toBe(270);
+    for (const cy of [680, 670, 690, 660]) expect(move(375, cy).rotation).toBe(270);
+    expect(move(1600, 375).rotation).toBe(0);
+  });
+
+  it('repetir el mismo punto tras un giro mantiene posición y orientación', () => {
+    const doc = room(), raw = piece('habiteka:furniture:armario', 375, 1500);
+    const first = snapObject(doc, raw, .08, true, { preserveRotation: true, orientToWall: true, preferredRotation: 0 });
+    for (let i = 0; i < 20; i++) {
+      expect(snapObject(doc, raw, .08, true, { preserveRotation: true, orientToWall: true, preferredRotation: first.rotation })).toEqual(first);
+    }
+  });
+
   it('un armario en horizontal no salta a la pared lateral aunque su centro quede más cerca de ella', () => {
     // Centro a 300 mm de la pared de arriba y a 250 de la izquierda: sin memoria se giraba en vertical.
     const item = piece('habiteka:furniture:armario', 325, 375);

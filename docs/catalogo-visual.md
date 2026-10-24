@@ -1,8 +1,36 @@
 # Imágenes de navegación del catálogo
 
-Actualizado: 5 de octubre de 2026.
+Actualizado: 11 de octubre de 2026.
 
 ## Alcance
+
+### Cocina, movilidad y exterior (11 de octubre de 2026)
+
+**Piscinas y tumbonas:** `constructionGroup` clasifica `habiteka:model:piscina_*` como Agua y drenaje. El catálogo de Construir usa ahora `FURNITURE_CATALOG`, con la misma clasificación de sus filtros, y el de muebles excluye esas construcciones. `listedForProposal` no ofrece las piscinas como mobiliario automático. Se mantienen los ids y el almacenamiento de los planos, sin una migración de entidades. Las piscinas enterradas siguen siendo coronamiento visible, sin excavación.
+
+Se regenera `piscina_elevada_exterior` con paneles de madera y refuerzos horizontales, liner interior, coronamiento continuo, peldaños interiores/exteriores y agua PBR opaca azul para evitar que desaparezca contra el fondo de la escena. Las entidades previas mantienen sus dimensiones; el render normaliza el GLB a ellas. `tumbona` conserva los ids de teca/aluminio y añade `tumbona_aluminio_tumbada`; `backrestDeg` define su posición estática en la fábrica, no un mecanismo animado del editor. Las tres variantes se agrupan en Tumbona de exterior, dentro de Amueblar → Exterior.
+
+El catálogo añade `tumbona_teca_tumbada`, completando cuatro variantes. `lounger-backrest.ts` cambia el `catalogId` entre las dos posiciones de cada acabado y ajusta la altura proporcionalmente, conservando la escala, posición, giro y campos del mueble. FurnitureProperties ofrece el selector solo para una tumbona seleccionada; usa la validación y el historial de edición existentes. No modifica los controles de giro, confirmados por el usuario.
+
+Los GLB y miniaturas de piscinas llevan `?v=<sha256,12>` para invalidar la caché de carga y fotos al regenerarlos bajo el mismo identificador.
+
+**Vehículos reales:** `scripts/import-real-vehicles.mjs` verifica autor y licencia CC BY 4.0 mediante la API pública de Sketchfab e importa las copias distribuidas por FormDrive de Tesla Model 3 2018 (Ameer Studio) y Ford Mustang GT 2005 (Ricy). `public/models/vehicles/manifest.json` registra fuente original, autor, licencia, hash del original y del optimizado, dimensiones, modificaciones y fecha de comprobación. Los créditos también se conservan en los extras del GLB y en Detalles y créditos de la tarjeta. Las marcas no implican afiliación con Habiteka.
+
+`real-vehicles.ts` integra las identidades `habiteka:vehicle:*`. Optimización meshopt con posiciones a 16 bits (la fábrica conserva 14 por defecto), texturas WebP hasta 1024 px y aproximadamente 98 000/82 000 triángulos, con 1,43/1,78 MiB respectivamente: presupuesto separado de la fábrica propia para conservar detalles reconocibles. Escala uniforme por longitud, pivote al suelo y frente +Z; fotos del modelo optimizado. Carga bajo demanda con los mecanismos del editor, mismos materiales en Amueblado y 3D. Colisiones por envolvente conservadora, sin física de conducción. Amueblar los ofrece en Exterior/Garaje; el catálogo de Construir los añade a Pavimentos y parking y excluye los genéricos anteriores.
+
+`isLegacyVehicle` excluye los coches, motos y bicicletas procedurales de nuevas inserciones y propuestas. Se mantienen resolución y assets para documentos históricos, sin rebautizarlos ni sustituir sus geometrías por otra marca. Las motos y bicicletas reales están pendientes de assets autorizados. La siguiente descripción de movilidad documenta la fabricación histórica; no su disponibilidad actual.
+
+Los vehículos importados conservan sus normales y se renderizan con una sola cara por superficie: las caras interiores de techo y tapizado no aparecen desde fuera ni se mezclan con la carrocería en la cenital. La comprobación visual se realiza en Comet sobre una muestra independiente, sin editar inmuebles privados.
+
+`sceneCameraNear` adapta el recorte cercano de la cámara entre 1 y 10 cm según la distancia de órbita, incluyendo restauración y zoom. Sustituye el valor diminuto que podía quedar al inicializar una escena aún cargando. Dentro de estancias sigue en 1 cm; las capturas temporales no se sobrescriben. Evita pérdidas de precisión del buffer de profundidad en superficies muy próximas, comprobadas numéricamente a 24 bits y visualmente en Comet.
+
+Se añaden 55 piezas: `complementos` (19), `movilidad` (8), `ocio` (24) y cuatro literas izquierdas en `descanso`. Cada pieza tiene GLB, miniatura, dimensiones medidas y procedencia. Las mesas, sillas, bancos, sombrillas y hamacas cuentan además con sólidos de colisión calibrados; las demás piezas conservan sus volúmenes de respaldo. Construcción local en Blender, sin proveedores IA. Los ids antiguos de literas conservan la escalera derecha; los nuevos terminan en `_izquierda`, con la geometría completa reflejada y normales restauradas, incluida la abertura de la barandilla.
+
+Los módulos superiores tienen cota de 1450–1500 mm; split a 2100 mm, lámpara a 2000 mm y guirnalda según su base visible. `object-host-rest.ts` excluye del apoyo automático las piezas montadas desde 1400 mm: no son superficies de encimera ni objetos para subir a ellas. Piscinas y climatización tampoco se apoyan encima de muebles. Las piscinas enterradas son coronamiento y agua de 90 mm, no un vaso elevado ni una excavación del terreno. Calle/acera son piezas repetibles y el parque no tiene animaciones. Las luminarias de catálogo representan el equipo; no añaden una simulación eléctrica o climática.
+
+Los vehículos históricos conservan pintura, neumáticos, cristales, llantas y luces independientes. En las ruedas de radios se retiran los cierres centrales de la primitiva de revolución para evitar discos opacos. Solo los modelos reales autorizados se ofrecen ahora en Exterior y Garaje. Todos los modelos siguen siendo guías; los resultados finales requieren diseños IA aceptados.
+
+La fábrica y el generador de colisiones comparten `collision-eligibility.mjs`: mesas, sillas, bancos, sombrillas y hamacas requieren proxies calibrados. La navegación usa esos sólidos para sombrillas y hamacas y omite los revestimientos del suelo. Los demás obstáculos mantienen sus reglas previas. La política de revestimientos usa ids completos, se comparte entre alta y validación/arrastre y mantiene muros y barridos incompatibles bloqueados. El margen bajo puertas es de 30 mm respecto a la cota del barrido. Una calibración ausente o desactualizada conserva el volumen de respaldo; nunca se sustituye por un objeto sin colisión.
 
 ### Literas, comedores y descanso (6 de octubre de 2026)
 

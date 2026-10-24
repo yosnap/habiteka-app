@@ -18,6 +18,7 @@ import { distance, EPSILON, wallPoints } from './geometry';
 import { assertPlanarTopology } from './topology';
 import { isDesignSpaceKind } from '@/lib/design-space-kind';
 import { wallPath } from './wall-path';
+import { assertElementOrganization } from './element-groups';
 
 function record(value: unknown): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -66,7 +67,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
   const designSpace = (value.schemaVersion as number) >= 7;
   keys(
     value,
-    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite propertyOrientation exteriorRoof renderBackdrop${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
+    `schemaVersion revision units calibration importReview vertices walls openings furniture dimensions labels terrainSurfaces designStyle designZones geographicSite propertyOrientation exteriorRoof renderBackdrop elementGroups lockedElementIds${construction ? ' stairs' : ''}${ramps ? ' ramps columns' : ''}${spatial ? ' comments' : ''}${(value.schemaVersion as number) >= 5 ? ' floorFinishes levels activeLevelId' : ''}${designSpace ? ' designSpaceKind' : ''}${(value.schemaVersion as number) >= 8 ? ' ceilings luminaires' : ''}${(value.schemaVersion as number) >= 9 ? ' walkthroughs' : ''}${(value.schemaVersion as number) >= 10 ? ' boundaries' : ''}${(value.schemaVersion as number) >= 11 ? ' kitchenRuns' : ''}${(value.schemaVersion as number) >= 12 ? ' lightStrips lightingScenes lightZones' : ''}`,
   );
   if (value.propertyOrientation !== undefined) propertyOrientationSchema.parse(value.propertyOrientation);
   if (value.geographicSite !== undefined) geographicSiteSchema.parse(value.geographicSite);
@@ -151,9 +152,11 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
       record(finish);
       keys(
         finish,
-        'roomId color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture',
+        'roomId classification color texture tileSizeMm rotation elevationMm slabThicknessMm undersideColor undersideTexture',
       );
       text(finish.roomId);
+      if (finish.classification !== undefined && !['interior', 'exterior'].includes(finish.classification as string))
+        throw new Error('Clasificación de estancia inválida');
       if (!finish.roomId.startsWith('room:')) throw new Error('Identidad de habitación inválida');
       let boundary: unknown;
       try {
@@ -420,6 +423,7 @@ export function assertEditorDocument(value: unknown): asserts value is EditorDoc
     assertLightZoneFields(value, ids);
   }
   assertDesignZoneFields(value.designZones, ids);
+  assertElementOrganization(value);
   // All structural fields above are checked before accessing cross-entity geometry.
   const doc = value as unknown as EditorDocument;
   if (

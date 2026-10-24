@@ -79,11 +79,15 @@ export const PRODUCTS = [
     ],
   },
   {
-    product: 'tumbona', type: 'lounger', label: 'Tumbona o chaise longue de exterior', profile: 'sofa-chaise', style: 'Mediterráneo',
+    product: 'tumbona', type: 'lounger', label: 'Tumbona de exterior', profile: 'sofa-chaise', style: 'Mediterráneo',
     mainSlot: 'madera', finishes: { madera: 'teca', tapiceria: 'tejido-exterior-crudo', patas: 'metal-negro' },
     variants: [
       { key: 'teca', size: '70 × 195 cm', dims: [700, 1950, 860], proposal: true },
+      { key: 'teca_tumbada', size: 'Teca · respaldo tumbado', dims: [700, 1950, 390], params: { backrestDeg: 0 } },
       { key: 'aluminio', size: '70 × 195 cm', dims: [700, 1950, 860], params: { frame: 'estructura' },
+        finishes: { madera: undefined, estructura: 'aluminio-blanco', tapiceria: 'tejido-exterior-gris' } },
+      { key: 'aluminio_tumbada', size: 'Aluminio · respaldo tumbado', dims: [700, 1950, 390],
+        params: { frame: 'estructura', backrestDeg: 0 },
         finishes: { madera: undefined, estructura: 'aluminio-blanco', tapiceria: 'tejido-exterior-gris' } },
     ],
   },

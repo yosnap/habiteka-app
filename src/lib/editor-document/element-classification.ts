@@ -5,6 +5,7 @@ import { KITCHEN_RUN_CATALOG_ID, KITCHEN_RUN_LABEL } from './kitchen-run-types';
 export const CONSTRUCTION_GROUPS = ['Vegetación', 'Cerramientos', 'Pavimentos y parking', 'Agua y drenaje', 'Sombra y equipamiento'] as const;
 export function constructionGroup(item: { kind: string; id?: string; catalogId?: string }): string | undefined {
   const id = item.catalogId ?? item.id ?? '';
+  if (/^habiteka:model:piscina_/.test(id)) return 'Agua y drenaje';
   if (!id.startsWith('habiteka:outdoor:')) return undefined;
   if (['puf-exterior', 'tira-led'].includes(item.kind)) return undefined;
   if (['arbol', 'arbusto', 'planta-exterior', 'maceta-exterior', 'jardinera-exterior', 'huerto', 'roca', 'piedras', 'setas'].includes(item.kind)) return 'Vegetación';

@@ -1,0 +1,81 @@
+.root {
+  position: relative;
+}
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+}
+.menu {
+  composes: surface items from '../../ui/editor-dropdown.module.css';
+  position: absolute;
+  right: -4px;
+  top: calc(100% + 10px);
+  width: min(300px, calc(100vw - 90px));
+  max-height: min(620px, var(--scene-options-available, 65vh));
+  overflow: auto;
+}
+.menu > button > span {
+  flex: 1;
+}
+.menu small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.menu kbd {
+  font-size: 10px;
+  white-space: nowrap;
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.menu input {
+  width: 100%;
+  min-width: 0;
+  margin-block: 6px;
+  padding: 8px;
+}
+.menu label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+}
+.menu select {
+  min-width: 0;
+  flex: 1;
+}
+.swatch {
+  width: 18px;
+  height: 18px;
+  flex: none !important;
+  border: 1px solid #0002;
+  border-radius: 5px;
+}
+.hint {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.labelFormat { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 12px; min-width: 0; }
+.labelFormat legend { font-size: 14px; font-weight: 600; line-height: 1.4; padding: 8px; }
+.labelPreview { display: flex; justify-content: center; align-items: center; min-height: 70px; background: #d5ded8; border-radius: 8px; margin: 4px 8px 8px; }
+.menu .labelFormat label { font-size: 14px; justify-content: space-between; min-height: 44px; }
+.menu .labelFormat .fontField { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+.menu .labelFormat input { margin: 0; width: auto; min-width: 0; }
+.menu .labelFormat input[type='range'] { flex: 1; width: 75px; padding: 0; }
+.menu .labelFormat input[type='color'] { width: 44px; height: 36px; padding: 3px; }
+.menu .labelFormat [role='combobox'] { width: 100%; min-width: 0; }
+.menu .labelFormat input[type='checkbox'] { min-height: auto; min-width: auto; width: 18px; height: 18px; }
+.menu .labelFormat output { min-width: 34px; font-size: 11px; }
+.reset { composes: item from '../../ui/editor-dropdown.module.css'; }
+@media (max-width: 600px) {
+  .trigger > span {
+    display: none;
+  }
+}

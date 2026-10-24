@@ -5,7 +5,7 @@ import { assertTestDatabaseUrl } from './src/server/db/test-database-guard';
 
 // Carga las variables locales (DATABASE_URL) para los tests de integración que
 // corren contra una Postgres real. En CI, DATABASE_URL llega del entorno del job.
-loadEnv({ path: ['.env.local', '.env'] });
+loadEnv({ path: ['.env.local', '.env'], quiet: true });
 assertTestDatabaseUrl(process.env.DATABASE_URL);
 process.env.HABITEKA_TEST_RUN = '1';
 

@@ -16,13 +16,13 @@ export async function createGltfIO(verbosity = Logger.Verbosity.WARN) {
 }
 
 /** Aplica la cadena de optimización. `simplifyRatio` reduce la malla cuando el modelo excede el presupuesto. */
-export async function compressDocument(document, { maxTexturePx = 1024, simplifyRatio } = {}) {
+export async function compressDocument(document, { maxTexturePx = 1024, simplifyRatio, quantizePosition = 14 } = {}) {
   await document.transform(
     dedup(), flatten(), join(), weld(),
     ...(simplifyRatio ? [simplify({ simplifier: MeshoptSimplifier, ratio: simplifyRatio, error: 0.001 })] : []),
     prune(), center({ pivot: 'below' }),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [maxTexturePx, maxTexturePx], quality: 85 }),
-    meshopt({ encoder: MeshoptEncoder, level: 'medium' }),
+    meshopt({ encoder: MeshoptEncoder, level: 'medium', quantizePosition }),
   );
   return document;
 }

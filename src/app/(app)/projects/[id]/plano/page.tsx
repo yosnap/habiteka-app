@@ -95,10 +95,10 @@ export default async function PlanoStudioPage({ params }: Props) {
           includeFurniture: initialState.planImport.includeFurniture,
         }
       : null;
-  // El layout del proyecto ya reserva la cabecera y las pestañas (flex + min-h-0);
+  // El layout del proyecto ya reserva los flotantes (flex + min-h-0);
   // aquí basta con ocupar el hueco restante en vez de restar un alto fijo.
   return (
-    <main className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
+    <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <PlanoStudio
         key={`${id}:${initialState.plan?.assetKey ?? 'sin-plano'}:${initialState.planImportRevision ?? 'sin-revision'}`}
         projectId={id}

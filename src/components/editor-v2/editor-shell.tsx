@@ -1,28 +1,31 @@
 'use client';
+import { EditorPreparationTools } from './workspace/editor-preparation-tools';
+import { EditorWorkspaceNavigation } from './workspace/editor-workspace-navigation';
+import { WorkspaceScenePanel } from './workspace/workspace-scene-panel';
+import type { SceneTab } from './workspace/workspace-scene-tree';
+import { captureWorkspaceReference } from './workspace/capture-workspace-reference';
+import { WorkspaceAssistantPanel } from './workspace/workspace-assistant-panel';
+import { WorkspaceMaterialsPanel } from './workspace/workspace-materials-panel';
+import { WorkspaceVisualizePanel } from './workspace/workspace-visualize-panel';
+import { WorkspaceSettingsPanel } from './workspace/workspace-settings-panel';
+import { useWorkspaceSelection } from './workspace/use-workspace-selection';
+import { workspaceViewKey } from './workspace/workspace-view-state';
+import { useWorkspaceView } from './workspace/use-workspace-view';
+import { useWorkspaceDisplay } from './workspace/use-workspace-display';
+import { WorkspacePlanOptions } from './workspace/workspace-plan-options';
+import workspace from './workspace/workspace.module.css';
 import { isBoundaryKind } from '@/lib/editor-document/linear-boundary';
 import dynamic from 'next/dynamic';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
 import type { NativeVideoMode } from '@/lib/editor-document/native-video';
 import type { QualityVerdict } from '@/lib/quality-verdict';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore } from 'zustand';
 import {
-  BrainCircuit,
-  CheckCheck,
-  Download,
-  Eye,
-  Footprints,
-  Lightbulb,
-  SlidersHorizontal,
-  Type,
   X,
 } from 'lucide-react';
 import type { EditorSidePanel as SidePanelId, EditorStore, EditorTool } from '@/canvas/editor-v2/store';
-import { GeographicSitePanel } from './geographic-site-panel';
-import { ExteriorRoofPanel } from './exterior-roof-panel';
-import { PropertyOrientationPanel } from './property-orientation-panel';
 import { useRoofWorkflow } from './use-roof-workflow';
-import { EditorViewSwitch } from './editor-view-switch';
 import { viewForTool } from '@/canvas/editor-v2/view-mode';
 import type { EditorDocument, Point, Stair } from '@/lib/editor-document/schema';
 import { addColumn, addRamp, addStair } from '@/lib/editor-document/construction-commands';
@@ -38,12 +41,13 @@ import {
   shapePoints,
 } from '@/canvas/editor-v2/editing-operations';
 import { selectableEntityIds } from '@/canvas/editor-v2/marquee-selection';
-import { Toolbar } from './toolbar';
 import { addTerrainSurface, suggestedPavingSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { addMixedGarden } from '@/lib/editor-document/garden-compositions';
 import { applySurfacePreset } from '@/lib/editor-document/outdoor-surface-presets';
 import { Inspector } from './inspector';
 import { CatalogPanel } from './catalog-panel';
+import { ElementPackagesPanel } from './element-packages-panel';
+import { ReplaceElementPanel } from './replace-element-panel';
 import { ConstructionMenu } from './construction-menu';
 import { SelectionPropertiesBar } from './selection-properties-bar';
 import { ElementDetailsPanel } from './element-details-panel';
@@ -53,12 +57,11 @@ import { sameCameraPose, type StoryboardGalleryImage } from '@/lib/contracts/sto
 import { setStoryboardImage } from '@/lib/editor-document/walkthrough-storyboard';
 import { WalkthroughPanel } from './walkthrough-panel';
 import { StoryboardPanel } from './storyboard-panel';
-import { VisibilityMenu, type EditorVisibility } from './visibility-menu';
+import { type EditorVisibility } from './visibility-menu';
 import { loadEditorPreferences, saveEditorPreferences } from './editor-preferences';
 import { CeilingLightingPanel } from './ceiling-lighting-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { EditorProjectBar } from './editor-project-bar';
-import { SelectByKindMenu } from './select-by-kind-menu';
 import { FurnitureContextPanel } from './furniture-context-panel';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { placeNewObject } from '@/canvas/editor-v2/spatial-placement';
@@ -81,16 +84,18 @@ import { addDesignZone, removeDesignZone, renameDesignZone, reshapeDesignZone } 
 import { zoneCaptureRegions } from '@/lib/editor-document/zone-capture-regions';
 import { renderScopeRegions } from '@/lib/editor-document/render-scope-regions';
 import styles from './editor.module.css';
-import { plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
+import { EDITOR_SHORTCUTS, plainShortcutFor, type EditorShortcutId } from '@/canvas/editor-v2/editor-shortcuts';
 import { EditorSidePanel } from './editor-side-panel';
 import type { PlanReference } from '@/lib/editor-document/plan-reference';
-import { ReferenceBackgroundPicker } from './reference-background-picker';
+import { WorkspaceReferenceMenu } from './workspace/workspace-reference-menu';
 import type { SceneLightingPreset } from './scene/scene-lighting';
 
 /** Título de cada panel dentro de la ranura lateral única. */
 const SIDE_PANEL_TITLES: Record<SidePanelId, string> = {
+  packages: 'Mis paquetes', replace: 'Sustituir elemento',
   inspector: 'Propiedades', catalog: 'Amueblar', walkthrough: 'Recorrido',
-  context: 'Contexto IA', ceiling: 'Techo y luces',
+  context: 'Contexto IA', ceiling: 'Techo y luces', assistant: 'Asistente de diseño',
+  scene: 'Escena', materials: 'Acabados', visualize: 'Visualizar', tools: 'Herramientas', settings: 'Ajustes',
 };
 
 /** Plazo para que la escena 3D quede lista: aquí tarda decenas de segundos. */
@@ -107,6 +112,7 @@ const EditorSceneView = dynamic(
 export interface EditorShellProps {
   store: EditorStore;
   projectName: string;
+  assistant?: ReactNode;
   reference?: PlanReference | null;
   loadStoryboardImages?: () => Promise<StoryboardGalleryImage[]>;
   saveStatus?: string;
@@ -163,6 +169,7 @@ export interface EditorShellProps {
 export function EditorShell({
   store,
   projectName,
+  assistant,
   reference,
   loadStoryboardImages,
   saveStatus,
@@ -199,11 +206,13 @@ export function EditorShell({
     selection = useStore(store, (s) => s.selection);
   const designSpaceKind = useStore(store, (s) => s.document.designSpaceKind);
   const readOnly = useStore(store, (s) => s.readOnly);
+  const sceneEditing = useStore(store, s => s.sceneEditing);
   const tool = useStore(store, (s) => s.tool);
   const detailPanel = useStore(store, (s) => s.detailPanel);
   // Ranura lateral única: Propiedades, Catálogo, Recorrido, Contexto IA y Techo y
   // luces comparten sitio y solo uno está abierto. El estado vive en el store.
   const sidePanel = useStore(store, (s) => s.sidePanel);
+  const [assistantStarted, setAssistantStarted] = useState(false);
   const [construction, setConstruction] = useState(false);
   const [constructionCategory, setConstructionCategory] = useState<'outdoor' | null>(null);
   const openPanel = useCallback((panel: SidePanelId) => {
@@ -212,12 +221,14 @@ export function EditorShell({
   }, [store]);
   const togglePanel = useCallback((panel: SidePanelId) => {
     setConstruction(false);
+    if (panel === 'assistant') setAssistantStarted(true);
     store.getState().toggleSidePanel(panel);
   }, [store]);
   const closePanel = useCallback(() => store.getState().closeSidePanel(), [store]);
   const hideWalkthrough = () => store.getState().hideWalkthrough();
   // Vista y atajos se recuerdan entre recargas; el estado inicial se lee del navegador y cada cambio se guarda.
   const [preferences, setPreferences] = useState(loadEditorPreferences);
+  const [sceneTab, setSceneTab] = useState<SceneTab>('structure');
   const visibility = preferences.visibility, shortcutsEnabled = preferences.shortcutsEnabled;
   const setVisibility = (next: EditorVisibility) => setPreferences((current) => { const value = { ...current, visibility: next }; saveEditorPreferences(value); return value; });
   const setShortcutsEnabled = (next: boolean) => setPreferences((current) => { const value = { ...current, shortcutsEnabled: next }; saveEditorPreferences(value); return value; });
@@ -229,7 +240,9 @@ export function EditorShell({
     });
   }), [store]);
   const selectedLuminaire = useStore(store, (s) => (s.document.luminaires?.some((light) => s.selection.includes(light.id)) ?? false) || (s.document.ceilings?.some((ceiling) => s.selection.includes(ceiling.id)) ?? false));
-  const [mode, setMode] = useState<'2d' | 'visual' | '3d'>('2d');
+  const [mode, setMode] = useWorkspaceView(preferencesOwner, projectId, zoneId);
+  useWorkspaceDisplay(store, preferencesOwner, projectId, zoneId);
+  useWorkspaceSelection(store, preferencesOwner, projectId, zoneId);
   const roofWorkflow = useRoofWorkflow(store, visibility, setVisibility, setMode, () => setConstruction(false));
   const [localLighting, setLocalLighting] = useState<SceneLightingPreset>('daylight');
   const sceneLighting = lightingPreset ?? localLighting;
@@ -239,7 +252,7 @@ export function EditorShell({
       const nextMode = viewForTool(mode, next.tool);
       if (nextMode !== mode) setMode(nextMode);
     }
-  }), [mode, store]);
+  }), [mode, store, setMode]);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [generateIntent, setGenerateIntent] = useState<'editable' | 'image'>('image');
   const [generateSetup, setGenerateSetup] = useState(autoGenerate);
@@ -274,7 +287,7 @@ export function EditorShell({
       message: 'La vista 3D no terminó de cargar. Espera a que aparezca el modelo y vuelve a intentarlo.',
     });
     return captureView.current!;
-  }, []);
+  }, [setMode]);
   const previewRender = useCallback(async (options: RenderDesignOptions) => {
     const capture = await awaitScene();
     const view = options.views[0] ?? 'current';
@@ -531,13 +544,19 @@ export function EditorShell({
         command = event.metaKey || event.ctrlKey;
       // Escape: deselecciona (cierra propiedades) y recoge los paneles laterales; el lienzo cancela además su trazo.
       if (event.key === 'Escape') {
-        if (state.pendingSpatial) { event.preventDefault(); state.cancelPendingSpatial(); return; }
+        if (state.pendingSpatial || state.pendingPackage) { event.preventDefault(); state.cancelPendingSpatial(); return; }
         if (state.tool !== 'select') state.setTool('select');
         if (state.selection.length) state.select([]);
         setConstruction(false); state.closeSidePanel();
         return;
       }
       if (!shortcutsEnabled) return;
+      if (event.altKey && !command && !event.shiftKey && state.tool === 'select' && !state.pendingSpatial) {
+        const key = /^Digit[123]$/.test(event.code) ? event.code.slice(-1) : event.key;
+        const tabs = [['sceneStructure', 'structure'], ['sceneObjects', 'objects'], ['sceneRooms', 'rooms']] as const;
+        const match = tabs.find(([id]) => EDITOR_SHORTCUTS[id].keys.includes(key));
+        if (match) { event.preventDefault(); setConstruction(false); setSceneTab(match[1]); state.openSidePanel('scene'); return; }
+      }
       if (!command && !event.altKey) {
         const shortcut = plainShortcutFor(event.key);
         const toolByShortcut: Partial<Record<EditorShortcutId, EditorTool>> = {
@@ -572,11 +591,13 @@ export function EditorShell({
       }
       if (command && event.key.toLowerCase() === 'v') {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         state.beginPasteSpatial();
         return;
       }
       if (command && event.key.toLowerCase() === 'a') {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         state.select(selectableEntityIds(state.document));
         return;
       }
@@ -592,6 +613,7 @@ export function EditorShell({
                 : null;
       if (delta && state.selection.length) {
         event.preventDefault();
+        if (mode === '3d' && !state.sceneEditing) return;
         const stepMm = event.shiftKey ? 100 : 10;
         try {
           state.apply(
@@ -607,6 +629,7 @@ export function EditorShell({
       }
       if ((event.key !== 'Delete' && event.key !== 'Backspace') || !state.selection.length) return;
       event.preventDefault();
+      if (mode === '3d' && !state.sceneEditing) return;
       try {
         state.apply(deleteEntities(state.document, state.selection));
         state.select([]);
@@ -619,65 +642,29 @@ export function EditorShell({
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
   }, [construction, constructionCategory, mode, readOnly, shortcutsEnabled, store]);
+  const canGenerate = !readOnly && Boolean(projectId && onGenerateDesign && onGenerateRender && generateEnabled);
+  const addText = () => run(() => {
+    const id = newId();
+    store.getState().apply(editDocument(store.getState().document, (next) => next.labels.push({ id, ...center, text: 'Texto' })));
+    store.getState().setTool('select'); store.getState().select([id]); openPanel('inspector');
+  });
+  const preparationTools = <EditorPreparationTools onAddText={addText} store={store} readOnly={readOnly} visibility={visibility}
+    onVisibilityChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled}
+    sidePanel={sidePanel} selectedLuminaire={selectedLuminaire} openPanel={openPanel} togglePanel={togglePanel} closePanel={closePanel}
+    roofWorkflow={roofWorkflow} sceneLighting={sceneLighting} onLightingChange={preset => { setLocalLighting(preset); onLightingChange?.(preset); }}
+    projectId={projectId} videoResultsHref={videoResultsHref} onExport={onExport} onApproveDesign={onApproveDesign}
+    onOpenApproved={onOpenApproved} approveDisabled={approveDisabled} approveLabel={approveLabel} />;
   return (
-    <section className={styles.shell} data-mode={mode} tabIndex={-1} onPointerDownCapture={(event) => {
+    <section className={`${styles.shell} ${workspace.spatial}`} data-mode={mode} tabIndex={-1} onPointerDownCapture={(event) => {
       if (event.target instanceof HTMLCanvasElement) {
         // El lienzo devuelve el foco desde los campos: ⌘C/⌘V actúan sobre la selección.
         event.currentTarget.focus({ preventScroll: true });
         store.getState().setDetailAnchor({ x: event.clientX, y: event.clientY });
       }
     }} aria-label={`Editor de ${projectName}`}>
-      <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus}
-        onSave={onSave} saveEnabled={saveEnabled} onGenerate={() => openGenerate()}
-        canGenerate={!readOnly && Boolean(projectId && onGenerateDesign && onGenerateRender && generateEnabled)}
-        generateDisabledReason={generateDisabledReason} onOpenVideoStudio={onOpenVideoStudio}>
-          <VisibilityMenu value={visibility} onChange={setVisibility} shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} />
-          <SelectByKindMenu store={store} onSelect={() => { if (visibility.roof) setVisibility({ ...visibility, roof: false }); }} />
-          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'walkthrough'}
-            onClick={() => { if (sidePanel === 'walkthrough') closePanel(); else openPanel('walkthrough'); }}>
-            <Footprints size={18} aria-hidden="true" />
-            {sidePanel === 'walkthrough' ? 'Cerrar panel de recorrido' : 'Recorrido'}
-          </button>
-          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'context'} onClick={() => togglePanel('context')}><BrainCircuit size={18} aria-hidden="true" />Contexto IA</button>
-          <button type="button" data-side-panel-toggle aria-pressed={sidePanel === 'ceiling'}
-            onClick={() => { if (sidePanel === 'ceiling' && selectedLuminaire) store.getState().select([]); togglePanel('ceiling'); }}><Lightbulb size={18} aria-hidden="true" />Techo y luces</button>
-          <ExteriorRoofPanel store={store} open={roofWorkflow.open} onOpenChange={roofWorkflow.setOpen}
-            onPreview={() => roofWorkflow.action('preview')} onEditPlan={() => roofWorkflow.action('edit')} />
-          <PropertyOrientationPanel store={store} lighting={sceneLighting} onLightingChange={preset => { setLocalLighting(preset); onLightingChange?.(preset); }} />
-          {projectId && <GeographicSitePanel store={store} projectId={projectId} readOnly={readOnly} approvalDisabled={approveDisabled}
-            videoResultsHref={videoResultsHref} onOpenApproved={onOpenApproved} onReviewApproval={onApproveDesign ? () => {
-              const light = store.getState().document.geographicSite?.lighting;
-              if (light) onLightingChange?.(light);
-              onApproveDesign();
-            } : undefined} />}
-          {onExport && <button
-            type="button"
-            onClick={onExport}
-          >
-            <Download size={18} aria-hidden="true" />
-            <span>Exportar plano</span>
-          </button>}
-          {projectId && <a href={`/api/projects/${projectId}/export`} download data-project-menu-action
-            title="Descarga el proyecto completo como .habiteka para importarlo en otra cuenta o instalación">
-            <Download size={18} aria-hidden="true" />
-            <span>Exportar proyecto</span>
-          </a>}
-          {onApproveDesign && <button type="button" data-project-menu-action disabled={approveDisabled} onClick={onApproveDesign}>
-            <CheckCheck size={18} aria-hidden="true" />
-            {approveLabel}
-          </button>}
-          {onOpenApproved && <button type="button" data-project-menu-action onClick={onOpenApproved}><Eye size={18} aria-hidden="true" />Ver aprobado</button>}
-      </EditorProjectBar>
-      <div className={styles.secondary}>
-        <EditorViewSwitch store={store} mode={mode} onChange={(next) => { setConstruction(false); setMode(next); }} />
-        {mode === '2d' && reference && <>
-          <button type="button" aria-pressed={originalVisible} onClick={() => setOriginalVisible(!originalVisible)}>
-            {originalVisible ? 'Ocultar original' : 'Mostrar original'}
-          </button>
-          {originalVisible && <input type="range" min={20} max={100} value={Math.round(originalOpacity * 100)}
-            aria-label="Opacidad del plano original" onChange={(event) => setOriginalOpacity(Number(event.target.value) / 100)} />}
-          {originalVisible && reference.choices && <ReferenceBackgroundPicker choices={reference.choices} />}
-        </>}
+      {/* Una sola instancia conserva los diálogos de preparación abiertos desde el lienzo. */}
+      {sidePanel !== 'tools' && <div hidden>{preparationTools}</div>}
+      {(tool !== 'select' || readOnly) && <div className={styles.secondary}>
         <span className={styles.currentTool} role="status">
           {readOnly ? 'Solo lectura' : toolLabel[tool]}
         </span>
@@ -687,39 +674,7 @@ export function EditorShell({
             {tool === 'place-object' ? 'Cancelar colocación' : 'Finalizar'}
           </button>
         )}
-        <button
-          type="button"
-          disabled={readOnly}
-          onClick={() =>
-            run(() => {
-              const id = newId();
-              store
-                .getState()
-                .apply(
-                  editDocument(store.getState().document, (next) =>
-                    next.labels.push({ id, ...center, text: 'Texto' }),
-                  ),
-                );
-              store.getState().setTool('select');
-              store.getState().select([id]);
-              openPanel('inspector');
-            })
-          }
-        >
-          <Type size={18} aria-hidden="true" />
-          Texto
-        </button>
-        <button
-          type="button"
-          data-side-panel-toggle
-          aria-pressed={sidePanel === 'inspector'}
-          aria-expanded={sidePanel === 'inspector'}
-          onClick={() => togglePanel('inspector')}
-        >
-          <SlidersHorizontal size={18} aria-hidden="true" />
-          Propiedades{selection.length ? ` (${selection.length})` : ''}
-        </button>
-      </div>
+      </div>}
       {preparingPoint && <p role="status">Preparando la vista del recorrido…</p>}
       {error && (
         <div className={styles.error} role="alert">
@@ -733,8 +688,14 @@ export function EditorShell({
           <button onClick={() => store.getState().setError(null)}>Cerrar aviso</button>
         </div>
       )}
-      <div className={styles.workspace}>
-        <Toolbar
+      <div data-workspace-route-dock />
+      <div className={styles.workspace} data-workspace-body>
+        <EditorProjectBar store={store} projectName={projectName} saveStatus={saveStatus} projectId={projectId} zoneId={zoneId} />
+        <EditorWorkspaceNavigation
+          referenceControl={mode === '2d' && reference ? <WorkspaceReferenceMenu reference={reference} visible={originalVisible}
+            opacity={originalOpacity} onVisible={setOriginalVisible} onOpacity={setOriginalOpacity} /> : undefined}
+          onSave={onSave} saveEnabled={saveEnabled} saveStatus={saveStatus}
+          mode={mode} onViewChange={next => { setConstruction(false); setMode(next); }} onPanel={togglePanel}
           store={store}
           exteriorOpen={construction && constructionCategory === 'outdoor'}
           onExterior={() => { store.getState().setTool('select'); setConstructionCategory('outdoor'); setConstruction(!construction || constructionCategory !== 'outdoor'); closePanel(); }}
@@ -754,6 +715,7 @@ export function EditorShell({
         />
         <div
           className={styles.canvasHost}
+          data-workspace-canvas
           hidden={mode !== '2d'}
           ref={canvasHost}
           onPointerDownCapture={() => {
@@ -767,22 +729,25 @@ export function EditorShell({
             roofRequest={roofWorkflow.request} onRoofAction={roofWorkflow.action}
             reference={reference} originalVisible={originalVisible} originalOpacity={originalOpacity} />
         </div>
+        {mode === '2d' && <WorkspacePlanOptions store={store} visibility={visibility} onVisibility={setVisibility} />}
         {mode !== '2d' && (
           <div
             className={styles.sceneHost}
+            data-workspace-scene
             onPointerDownCapture={() => {
               if (construction) setConstruction(false);
             }}
           >
-            <EditorSceneView key={mode} store={store} projectId={projectId} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
+            <EditorSceneView key={mode} store={store} projectId={projectId} navigationKey={workspaceViewKey(preferencesOwner, projectId, zoneId) ?? undefined} presentation={mode === 'visual' ? 'plan' : 'spatial'} allowVideoExport={allowVideoExport}
               onOpenApprovedRoute={onOpenApprovedRoute}
-              lightingPreset={sceneLighting} onLightingChange={(preset) => { setLocalLighting(preset); onLightingChange?.(preset); }}
+              workspaceControls lightingPreset={sceneLighting} onLightingChange={(preset) => { setLocalLighting(preset); onLightingChange?.(preset); }}
               onSaveNativeVideo={onSaveNativeVideo} onSaveNativeRender={onSaveNativeRender} onCaptureReady={onCaptureReady} showLighting={visibility.lighting} />
           </div>
         )}
         {construction && (
           <ConstructionMenu
             key={constructionCategory ?? 'all'}
+            onPackages={() => { setConstruction(false); openPanel('packages'); }}
             initialCategory={constructionCategory}
             onRoofAction={roofWorkflow.action}
             onPath={(options) => { if (store.getState().readOnly) return; chooseTool('garden-path'); store.setState({ gardenPathOptions: options }); }}
@@ -836,11 +801,23 @@ export function EditorShell({
             })}
           />
         )}
-        {sidePanel && (
-          <EditorSidePanel store={store} title={SIDE_PANEL_TITLES[sidePanel]}>
+        {sidePanel && sidePanel !== 'assistant' && (
+          <EditorSidePanel store={store} title={SIDE_PANEL_TITLES[sidePanel]} restoreFocus>
+            {sidePanel === 'scene' && <WorkspaceScenePanel store={store} tab={sceneTab} onTabChange={setSceneTab}
+              onCapture={() => run(() => captureWorkspaceReference(mode === '2d' ? canvasHost.current : canvasHost.current?.parentElement ?? null))} onProperties={() => openPanel('inspector')} />}
+            {sidePanel === 'visualize' && <WorkspaceVisualizePanel canGenerate={canGenerate} onGenerate={intent => openGenerate(null, intent)} onVideos={onOpenVideoStudio} />}
+            {sidePanel === 'tools' && <div className={workspace.tools}>{preparationTools}</div>}
+            {sidePanel === 'settings' && <WorkspaceSettingsPanel store={store} visibility={visibility} onVisibilityChange={setVisibility}
+              shortcutsEnabled={shortcutsEnabled} onShortcutsChange={setShortcutsEnabled} projectId={projectId} onExport={onExport} />}
+            {sidePanel === 'materials' && <WorkspaceMaterialsPanel hasSelection={selection.length > 0}
+              onProperties={() => openPanel('inspector')} onCeiling={() => openPanel('ceiling')}
+              onPaint={() => { openPanel('inspector'); store.getState().setDetailPanel('paint'); }} />}
             {sidePanel === 'inspector' && <Inspector store={store} />}
+            {sidePanel === 'packages' && <ElementPackagesPanel store={store} onPlace={() => { setMode('2d'); setVisibility({ ...visibility, roof: false }); }} />}
+            {sidePanel === 'replace' && <ReplaceElementPanel store={store} />}
             {sidePanel === 'catalog' && (
               <CatalogPanel
+                onPackages={() => openPanel('packages')}
                 readOnly={readOnly}
                 onClose={closePanel}
                 onAdd={(item) =>
@@ -866,17 +843,23 @@ export function EditorShell({
             {sidePanel === 'ceiling' && <CeilingLightingPanel store={store} />}
           </EditorSidePanel>
         )}
-        <div className={styles.storyboardHost}>
+        {assistantStarted && <EditorSidePanel store={store} title="Asistente de diseño" open={sidePanel === 'assistant'} restoreFocus>
+          <WorkspaceAssistantPanel store={store} assistant={assistant} canGenerate={canGenerate} projectAvailable={Boolean(projectId)}
+            disabledReason={readOnly ? 'Este proyecto está en modo de solo lectura.' : !projectId ? 'Abre un proyecto guardado para diseñar con IA.' : generateDisabledReason}
+            processHref={projectId ? `/projects/${encodeURIComponent(projectId)}/chat${zoneId ? `?zona=${encodeURIComponent(zoneId)}` : ''}` : undefined}
+            onGenerate={intent => openGenerate(null, intent)} />
+        </EditorSidePanel>}
+        <div className={styles.storyboardHost} data-workspace-storyboard>
           <StoryboardPanel loadImages={loadStoryboardImages} imageRevision={imageRevision} store={store} onHide={hideWalkthrough} busy={preparingPoint || generateOpen}
             onDesignPoint={!readOnly && generateEnabled && projectId && onGenerateDesign && onGenerateRender ? (id) => void designWalkthroughPoint(id) : undefined} />
         </div>
       </div>
-      <SelectionPropertiesBar
+      {(mode !== '3d' || sceneEditing) && <><SelectionPropertiesBar
         store={store}
         onProperties={() => openPanel('inspector')}
       />
       <ElementDetailsPanel key={`${selection[0]}:${detailPanel}`} store={store} />
-      {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}
+      {sidePanel !== 'ceiling' && <FloorFinishPanel store={store} />}</>}
       {generateOpen && projectId && onGenerateDesign && onGenerateRender && (
         <EditorGenerateDialog
           projectId={projectId} zoneId={zoneId}

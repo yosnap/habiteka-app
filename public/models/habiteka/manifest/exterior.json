@@ -940,8 +940,46 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "27c8ed34208759225572c51c04c538ef7578119cbcb06ba3c8c9d57a3ad8bd84",
-   "builtAt": "2026-10-05"
+   "specHash": "fa92214060b6c907bee4ae83bf54192cad180b4d607d444102f75aef26982729",
+   "builtAt": "2026-10-11"
+  },
+  "tumbona_aluminio_tumbada": {
+   "file": "tumbona_aluminio_tumbada.glb",
+   "thumbnail": "thumbs/tumbona_aluminio_tumbada.webp",
+   "sha256": "962e91e15471bfb4df26f8a9f5359793cce5e8d48bcb80a2afeb812de82ea9ea",
+   "bytes": 391812,
+   "triangles": 7480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    760,
+    1941,
+    408
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    1950,
+    390
+   ],
+   "family": "exterior",
+   "type": "lounger",
+   "params": {
+    "frame": "estructura",
+    "backrestDeg": 0
+   },
+   "finishes": {
+    "tapiceria": "tejido-exterior-gris",
+    "patas": "metal-negro",
+    "estructura": "aluminio-blanco"
+   },
+   "textures": [
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fb701019090b3d6481b808902dcc7fa8b495856c8e48367773b4aa409f0c1190",
+   "builtAt": "2026-10-11"
   },
   "tumbona_teca": {
    "file": "tumbona_teca.glb",
@@ -976,8 +1014,46 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "f1830d10a1131b6f50c6a88fc4f838f7029326b9d089035d9cd851ece7e015e1",
-   "builtAt": "2026-10-05"
+   "specHash": "7c050a859374c2328aa81c538cc9363a57675ff86891f87f9c2ebb74c0da98bd",
+   "builtAt": "2026-10-11"
+  },
+  "tumbona_teca_tumbada": {
+   "file": "tumbona_teca_tumbada.glb",
+   "thumbnail": "thumbs/tumbona_teca_tumbada.webp",
+   "sha256": "efa899be95836bcd21c84321a3354c435c4f02fab39a38e189b5e80025617c35",
+   "bytes": 691852,
+   "triangles": 7480,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    760,
+    1941,
+    408
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    700,
+    1950,
+    390
+   ],
+   "family": "exterior",
+   "type": "lounger",
+   "params": {
+    "backrestDeg": 0
+   },
+   "finishes": {
+    "madera": "teca",
+    "tapiceria": "tejido-exterior-crudo",
+    "patas": "metal-negro"
+   },
+   "textures": [
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "aa0466f8fc735771621181bfdca88becbb699b0d58263964ea1d52d30ac1897d",
+   "builtAt": "2026-10-11"
   }
  },
  "textures": {

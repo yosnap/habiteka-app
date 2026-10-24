@@ -16,6 +16,7 @@ import ui from './construction-menu.module.css';
 interface ConstructionMenuProps extends Omit<ConstructionCatalogProps, 'category'> {
   onClose: () => void;
   onImport?: () => void;
+  onPackages?: () => void;
   initialCategory?: ConstructionCategory | null;
   onTerrain?: () => void;
   onPaving?: (preset?: OutdoorSurfacePresetId) => void;
@@ -39,15 +40,16 @@ const structureCategories = [
   { id: 'ramps', label: 'Rampas' },
 ] as const;
 
-export function ConstructionMenu({ onClose, onImport, initialCategory = null, onTerrain, onPaving, onPath, onMixedGarden, ...catalogProps }: ConstructionMenuProps) {
+export function ConstructionMenu({ onClose, onImport, onPackages, initialCategory = null, onTerrain, onPaving, onPath, onMixedGarden, ...catalogProps }: ConstructionMenuProps) {
   const [category, setCategory] = useState<ConstructionCategory | null>(initialCategory);
   const categories = [...baseCategories, ...structureCategories,
     ...(catalogProps.onAddStair ? [{ id: 'stairs' as const, label: 'Escaleras' }] : [])];
-  return <aside className={`${styles.constructionMenu} ${ui.panel}`} aria-label="Construir" onKeyDown={(event) => {
+  return <aside className={`${styles.constructionMenu} ${ui.panel}`} data-workspace-construction aria-label="Construir" onKeyDown={(event) => {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
   }}>
     <div className={styles.constructionHeading}><h2>{category === 'outdoor' ? 'Exterior y jardín' : 'Construir'}</h2>
       <button type="button" onClick={onClose} aria-label="Cerrar construcción"><X size={20} aria-hidden="true" /></button>
+      {onPackages && <button type="button" onClick={onPackages}>Mis paquetes</button>}
     </div>
     <div className={ui.content}>
       {category ? <>

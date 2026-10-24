@@ -1,0 +1,359 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia movilidad) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "movilidad",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "bicicleta_montana_base": {
+   "file": "bicicleta_montana_base.glb",
+   "thumbnail": "thumbs/bicicleta_montana_base.webp",
+   "sha256": "d696f2fb8a2a73aa96a7ed6dd0394a333897527caafe00f6fa6fbcecf2665109",
+   "bytes": 89484,
+   "triangles": 8116,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    723,
+    1850,
+    1122
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    720,
+    1850,
+    1100
+   ],
+   "family": "movilidad",
+   "type": "bicycle",
+   "params": {},
+   "finishes": {
+    "pintura": "veh-azul",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "174f6433facfd2bec38fc69a9188e163a5452c147a9d1d3c9f098718308094a5",
+   "builtAt": "2026-10-10"
+  },
+  "bicicleta_urbana_base": {
+   "file": "bicicleta_urbana_base.glb",
+   "thumbnail": "thumbs/bicicleta_urbana_base.webp",
+   "sha256": "4461223545035675fbf0d97752a67cd67903f43f364266742adb704a8ee5145c",
+   "bytes": 98812,
+   "triangles": 8888,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    653,
+    1800,
+    1122
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    650,
+    1800,
+    1100
+   ],
+   "family": "movilidad",
+   "type": "bicycle",
+   "params": {
+    "basket": true
+   },
+   "finishes": {
+    "pintura": "veh-blanco",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "90836e12114f9153de293454f2801566142794e13fc7bfd0aa2171a50029f021",
+   "builtAt": "2026-10-10"
+  },
+  "coche_coupe_base": {
+   "file": "coche_coupe_base.glb",
+   "thumbnail": "thumbs/coche_coupe_base.webp",
+   "sha256": "d7a9b9ec154782d61704d21e0c6961bb44935e6f22e4149ab1fd4662fe1c917a",
+   "bytes": 320532,
+   "triangles": 35984,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1841,
+    4488,
+    1303
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1850,
+    4450,
+    1300
+   ],
+   "family": "movilidad",
+   "type": "car",
+   "params": {
+    "vehicle": "saloon",
+    "coupe": true
+   },
+   "finishes": {
+    "pintura": "veh-plata",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "de9a8bfb10a826e04daa37cecc5edacfdbf439acef8fefc68458208ab5003ae7",
+   "builtAt": "2026-10-10"
+  },
+  "coche_urbano_base": {
+   "file": "coche_urbano_base.glb",
+   "thumbnail": "thumbs/coche_urbano_base.webp",
+   "sha256": "0157a0a9bb6fc7dff1ce2f2944392f2c50c96b0f1cf84d1ffa074ca6b4c25c05",
+   "bytes": 326408,
+   "triangles": 36024,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1642,
+    3541,
+    1485
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1650,
+    3500,
+    1450
+   ],
+   "family": "movilidad",
+   "type": "car",
+   "params": {
+    "vehicle": "compact"
+   },
+   "finishes": {
+    "pintura": "veh-blanco",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0c35640ee5d97a6b88d26bb485ded2e30b1a9b9e36b7bebe7594d99f039d65c5",
+   "builtAt": "2026-10-10"
+  },
+  "moto_carretera_base": {
+   "file": "moto_carretera_base.glb",
+   "thumbnail": "thumbs/moto_carretera_base.webp",
+   "sha256": "13279754ed4d2e019a22d178780771f794fdf2433cdb617bc20284e23490b001",
+   "bytes": 99980,
+   "triangles": 9300,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    783,
+    2150,
+    1210
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    780,
+    2150,
+    1150
+   ],
+   "family": "movilidad",
+   "type": "motorcycle",
+   "params": {},
+   "finishes": {
+    "pintura": "veh-azul",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d68e798548d653ca0667e8aa9254165b1b9c5606dfa18612dc477b4cbc20a7d5",
+   "builtAt": "2026-10-10"
+  },
+  "moto_trail_base": {
+   "file": "moto_trail_base.glb",
+   "thumbnail": "thumbs/moto_trail_base.webp",
+   "sha256": "44f1f6cf9a94ec1cd173f05e6720e3db575fcd1b266cb98de564b1ca07d9d1e7",
+   "bytes": 99968,
+   "triangles": 9300,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    883,
+    2200,
+    1410
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    880,
+    2200,
+    1350
+   ],
+   "family": "movilidad",
+   "type": "motorcycle",
+   "params": {
+    "trail": true
+   },
+   "finishes": {
+    "pintura": "veh-blanco",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "05fe8a8a898a1343b06afd7178c19a637f3cf728d4ce822616e79825559bc353",
+   "builtAt": "2026-10-10"
+  },
+  "scooter_urbano_base": {
+   "file": "scooter_urbano_base.glb",
+   "thumbnail": "thumbs/scooter_urbano_base.webp",
+   "sha256": "759f8310fa446c10d25d4e0d3641764e5fd79a4ebeac3bd9ac35e0274a488988",
+   "bytes": 101900,
+   "triangles": 9440,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    743,
+    1850,
+    1210
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    740,
+    1850,
+    1150
+   ],
+   "family": "movilidad",
+   "type": "motorcycle",
+   "params": {
+    "scooter": true
+   },
+   "finishes": {
+    "pintura": "veh-plata",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "a6f68bc99ce42ba93e86b8d3237581f1852f3494a97ad62aa0ff4342422f2da1",
+   "builtAt": "2026-10-10"
+  },
+  "vehiculo_monovolumen_base": {
+   "file": "vehiculo_monovolumen_base.glb",
+   "thumbnail": "thumbs/vehiculo_monovolumen_base.webp",
+   "sha256": "65f42b847bdbba5dfb9a859a84e4e3bce0e6d8e11ca8e13de684c33de25ff7d3",
+   "bytes": 333700,
+   "triangles": 37700,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1890,
+    4737,
+    1829
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1900,
+    4700,
+    1850
+   ],
+   "family": "movilidad",
+   "type": "car",
+   "params": {
+    "vehicle": "suv"
+   },
+   "finishes": {
+    "pintura": "veh-gris",
+    "goma": "veh-goma",
+    "vidrio": "veh-cristal",
+    "inox": "ext-inox",
+    "freno": "veh-freno",
+    "metal": "ext-metal",
+    "faro": "ext-faro",
+    "led": "veh-led",
+    "blanco": "ext-blanco",
+    "piloto": "ext-piloto",
+    "led-rojo": "veh-led-rojo",
+    "espejo": "veh-espejo"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fe934308ff75e852263a0616a742f31a83ce502f092e9d604d8211105704c3ad",
+   "builtAt": "2026-10-10"
+  }
+ },
+ "textures": {}
+}

@@ -76,6 +76,7 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
 
 /** Clave de un modelo CC0 (habiteka:asset:<clave>) o id completo de un mueble propio (habiteka:model:<pieza>). */
 const asset = (key: string) => furnitureAsset({ catalogId: key.includes(':') ? key : `habiteka:asset:${key}` });
+const VEHICLE_PAINT_MATERIALS = ['pintura'];
 
 /**
  * Modelo 3D con que se ve la pieza: el suyo (o su equivalente realista), el estado de cortina o persiana que
@@ -83,7 +84,8 @@ const asset = (key: string) => furnitureAsset({ catalogId: key.includes(':') ? k
  */
 export function furnitureModel(item: Pick<Furniture, 'catalogId'> & Partial<Pick<Furniture, 'widthMm' | 'heightMm' | 'coverage' | 'rolledSides'>>) {
   const garden = gardenModelId(item);
-  if (garden) { const model = asset(garden); if (model) return model; }
+  if (garden) { const model = asset(garden); if (model) return item.catalogId?.startsWith('habiteka:outdoor:coche')
+    ? { ...model, tintMaterialNames: VEHICLE_PAINT_MATERIALS } : model; }
   const own = furnitureAsset(item);
   if (own) return REALISTIC_ASSET_REPLACEMENTS[own.key] ? asset(REALISTIC_ASSET_REPLACEMENTS[own.key]!) ?? own : own;
   const key = windowDressingModelId(item) ?? (item.catalogId ? CATALOG_MODELS[item.catalogId] : undefined);

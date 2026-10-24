@@ -25,6 +25,7 @@ model User {
   consents       ConsentRecord[]
   tosAcceptances TosAcceptance[]
   cookieConsents CookieConsent[]
+  elementPackages ElementPackage[]
 
   @@index([email])
   @@map("user")
@@ -137,6 +138,7 @@ model Invitation {
   expiresAt      DateTime
   inviterId      String
   inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
 
   @@index([organizationId])
   @@map("invitation")

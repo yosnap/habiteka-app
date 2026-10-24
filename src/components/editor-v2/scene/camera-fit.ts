@@ -1,5 +1,11 @@
 import { Vector3 } from 'three';
 
+/** Un near diminuto mezcla superficies cercanas del modelo; el interior mantiene la distancia de 1 cm. */
+export function sceneCameraNear(distance: number, interior = false): number {
+  if (interior || !Number.isFinite(distance)) return .01;
+  return Math.min(.1, Math.max(.01, distance / 100));
+}
+
 /** Fit the eight bounds corners in camera space, not an oversized bounding sphere. */
 export function cameraFitDistance(extent: Vector3, direction: Vector3, verticalFov: number, aspect: number, margin = 1.08): number {
   const backward = direction.clone().normalize();

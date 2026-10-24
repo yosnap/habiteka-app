@@ -1,5 +1,6 @@
 import manifest from '../../../public/models/cc0/manifest.json';
 import { HABITEKA_MODEL_ASSETS } from './habiteka-furniture';
+import { REAL_VEHICLE_ASSETS } from './real-vehicles';
 import type { Furniture } from './schema';
 import type { FurnitureCatalogEntry, FurnitureProfile, FurnitureRoom } from './furniture-catalog';
 
@@ -114,6 +115,9 @@ interface ModelAsset {
   attributionRequired: boolean;
   sha256: string;
   thumbnailUrl?: string;
+  sourceUrl?: string;
+  licenseUrl?: string;
+  modifications?: string;
 }
 const assets = new Map<string, ModelAsset>(definitions.map(([key]) => {
   const provenance = manifest.assets.find((item) => item.kind === key)!;
@@ -127,6 +131,7 @@ const assets = new Map<string, ModelAsset>(definitions.map(([key]) => {
 }));
 // Muebles propios de la fábrica de Blender: mismo contrato que los modelos CC0, con su foto de producto como miniatura.
 for (const [catalogId, asset] of HABITEKA_MODEL_ASSETS) assets.set(catalogId, asset);
+for (const [catalogId, asset] of REAL_VEHICLE_ASSETS) assets.set(catalogId, asset);
 /**
  * Modelos antiguos de estilo plano (Poly Pizza) con equivalente realista: en planta y en 3D se ven con el realista
  * (Poly Haven o alfombra CC0), porque con colores planos el plano parecía un borrador. El catálogo ya no los ofrece

@@ -1,4 +1,5 @@
 import { planObjects } from '@/lib/editor-document/boundary-types';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { upgradeSpatialDocument } from '@/lib/editor-document/spatial-properties';
 import { deriveRooms } from '@/lib/editor-document/rooms';
@@ -13,6 +14,7 @@ import { followFurnitureOnMovedWalls } from './wall-furniture-follow';
 
 /** Traslación única: vértices compartidos y elementos seleccionados nunca se desplazan dos veces. */
 export function nudgeElements(source: EditorDocument, ids: string[], delta: Point): EditorDocument {
+  ids = expandElementGroups(source, ids);
   let doc = upgradeSpatialDocument(source);
   const selected = new Set(ids), vertices = new Set<string>();
   const rooms = deriveRooms(source).filter((r) => selected.has(r.id) || source.ceilings?.some((c) => selected.has(c.id) && c.roomId === r.id));
@@ -40,6 +42,12 @@ export function nudgeElements(source: EditorDocument, ids: string[], delta: Poin
   for (const dim of doc.dimensions) if (selected.has(dim.id)) {
     dim.from = { x: dim.from.x + delta.x, y: dim.from.y + delta.y }; dim.to = { x: dim.to.x + delta.x, y: dim.to.y + delta.y };
   }
+  for (const zone of doc.designZones ?? []) if (selected.has(zone.id))
+    zone.polygon.forEach(point => { point.x += delta.x; point.y += delta.y; });
+  for (const zone of doc.lightZones ?? []) if (selected.has(zone.id))
+    zone.polygonsMm.flat().forEach(point => { point.x += delta.x; point.y += delta.y; });
+  for (const strip of doc.lightStrips ?? []) if (selected.has(strip.id))
+    strip.pathMm.forEach(point => { point.x += delta.x; point.y += delta.y; });
   for (const room of rooms) {
     const shifts = room.vertexIds.map((id) => { const before = source.vertices.find((v) => v.id === id)!, after = doc.vertices.find((v) => v.id === id)!; return { x: after.x - before.x, y: after.y - before.y }; });
     for (const label of doc.labels) if (!selected.has(label.id) && insideRoom(label, room.boundary)) {

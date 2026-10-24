@@ -1,6 +1,7 @@
 'use client';
 import { Component, Suspense, useEffect, useMemo, type ReactNode } from 'react';
-import { Edges, Html, useGLTF } from '@react-three/drei';
+import { Edges, useGLTF } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { useThree } from '@react-three/fiber';
 import type { Furniture } from '@/lib/editor-document/schema';
 import { furnitureModel, modelTint } from '@/lib/editor-document/furniture-models';
@@ -19,8 +20,9 @@ function LoadedModel({ item, selected, onSelect }: { item: Furniture; selected: 
   const asset = furnitureModel(item)!, { scene } = useGLTF(asset.url, false, true), tint = modelTint(item);
   const spatial = furnitureSpatial(item), center = objectCenter(item);
   const anisotropy = useThree((state) => Math.min(8, state.gl.capabilities.getMaxAnisotropy()));
-  const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames),
-    [scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames]);
+  const vehicle = item.catalogId?.startsWith('habiteka:outdoor:coche') || /^(turismo_|vehiculo_|furgoneta_|coche_|moto_|scooter_|bicicleta_)/.test(asset.key);
+  const prepared = useMemo(() => prepareFurnitureModel(scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames, vehicle),
+    [scene, asset.frontRotation, tint, anisotropy, asset.tintMaterialNames, vehicle]);
   useEffect(() => () => prepared.dispose(), [prepared]);
   return <group position={[center.x / 1000, spatial.elevationMm / 1000, center.y / 1000]}
     rotation={[0, -item.rotation * Math.PI / 180, 0]} onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
@@ -42,11 +44,11 @@ export function FurnitureModel({ item, boxes, selected, onSelect }: {
   const asset = furnitureModel(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
   const fallback = (failed: boolean) => <group userData={{ modelLoadState: failed ? 'failed' : 'loading' }}>
     {boxes.map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
-    <Html center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
+    <SceneHtml center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
       <span role={failed ? 'alert' : 'status'} style={{ background: '#fff', color: '#36443d', padding: 4, fontSize: 11, whiteSpace: 'nowrap' }}>
         {failed ? 'Modelo no disponible · volumen simplificado' : 'Cargando modelo 3D…'}
       </span>
-    </Html>
+    </SceneHtml>
   </group>;
   return <ModelBoundary key={asset.url} fallback={fallback(true)}>
     <Suspense fallback={fallback(false)}><LoadedModel item={item} selected={selected} onSelect={onSelect} />

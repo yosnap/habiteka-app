@@ -20,6 +20,7 @@ import { SelectionContextMenu, type SelectionContextAction } from './selection-c
 import { wallPath } from '@/lib/editor-document/wall-path';
 import { fillWallWithOpening } from '@/lib/editor-document/opening-clearance';
 import { defaultWallCurve, setWallCurve } from '@/lib/editor-document/curve-commands';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
 
 export function CanvasSelectionMenu({ store, view, size }: {
   store: EditorStore; view: Point & { scale: number }; size: { width: number; height: number };
@@ -55,7 +56,7 @@ export function CanvasSelectionMenu({ store, view, size }: {
   if (wall?.curveHeightMm) position = { ...position, y: position.y - 160 / view.scale };
   const run = (operation: () => void) => { try { operation(); }
     catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo editar'); } };
-  const actions: SelectionContextAction[] = room && !outdoor ? [] : [{ id: 'delete', label: 'Eliminar', icon: Trash2, danger: true,
+  const actions: SelectionContextAction[] = room && !outdoor ? [] : [{ id: 'delete', label: doc.elementGroups?.some(group => group.elementIds.includes(id)) ? 'Eliminar grupo' : 'Eliminar', icon: Trash2, danger: true,
     onSelect: () => run(() => { state.apply(outdoor ? deleteOutdoorRoom(doc, id) : deleteEntities(doc, [id])); state.select([]); }) }];
   if (gateOwner) actions.push({ id: 'toggle-gate', label: gateOwner.gate.openAngleDeg ? 'Cerrar puerta' : 'Abrir puerta', icon: DoorOpen,
     onSelect: () => run(() => state.apply(putBoundaryGate(doc, gateOwner.boundary.id, { ...gateOwner.gate, openAngleDeg: gateOwner.gate.openAngleDeg ? 0 : 90 }))) });
@@ -90,9 +91,11 @@ export function CanvasSelectionMenu({ store, view, size }: {
     { id: 'copy-stair', label: 'Copiar escalera', icon: Copy, onSelect: () => run(() => state.copyStair(id)) });
   if (furniture || ramp || column) actions.push({ id: 'copy-spatial', label: 'Copiar', icon: Copy,
     onSelect: () => state.copySpatial(id) });
+  if (doc.furniture.some(item => item.id === id) || (opening && opening.kind !== 'hueco'))
+    actions.push({ id: 'replace', label: 'Sustituir', icon: Copy, onSelect: () => state.openSidePanel('replace') });
   const clamp = (n: number, limit: number) => Math.max(Math.min(120, limit / 2), Math.min(limit - 120, n));
   return <SelectionContextMenu anchor={{ x: clamp(position.x * view.scale + view.x, size.width),
     y: clamp(position.y * view.scale + view.y, size.height) }}
     label={text ? 'texto' : dimension ? 'medida' : light ? 'luz' : room ? (outdoor ? 'patio / terraza' : 'suelo') : wall ? 'pared' : opening?.kind ?? (stair ? 'escalera' : ramp ? 'rampa' : column ? 'columna' : 'elemento')}
-    actions={actions.map((action) => ({ ...action, disabled: state.readOnly }))} onClose={() => state.select([])} />;
+    actions={actions.map((action) => ({ ...action, disabled: state.readOnly || isElementLocked(doc, id) }))} onClose={() => state.select([])} />;
 }

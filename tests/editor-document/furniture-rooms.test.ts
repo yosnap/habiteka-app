@@ -73,7 +73,7 @@ describe('estancias del catálogo', () => {
     expect(ids('lavadero')).toEqual(expect.arrayContaining(['habiteka:furniture:lavadora', 'habiteka:furniture:secadora', 'habiteka:furniture:pila-lavadero']));
     const garage = searchFurnitureCatalog('', 'garaje');
     expect(garage.length).toBeGreaterThan(0);
-    expect(garage.every((item) => item.profile === 'shelf')).toBe(true);
+    expect(garage.every((item) => item.profile === 'shelf' || /coche_|vehiculo_|moto_|scooter_|bicicleta_/.test(item.id))).toBe(true);
     // La búsqueda por texto encuentra también la estancia secundaria.
     expect(searchFurnitureCatalog('lavadora baño').some((item) => item.id === 'habiteka:furniture:lavadora')).toBe(true);
   });

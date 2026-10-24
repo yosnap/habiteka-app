@@ -18,7 +18,8 @@ import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControl
  * que el objeto quede apoyado encima (p.ej. TV sobre estantería).
  */
 import { Suspense, useMemo, memo, useRef, useEffect, useCallback } from 'react';
-import { useGLTF, Clone, Html } from '@react-three/drei';
+import { useGLTF, Clone } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { useThree, useFrame } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Box3, Vector3, Group, Raycaster, Plane, Vector2, type Mesh } from 'three';
@@ -501,7 +502,7 @@ function SelectionOverlay({
       </mesh>
 
       {/* pointerEvents:none en el wrapper evita bloquear OrbitControls */}
-      <Html
+      <SceneHtml
         center
         position={[0, h + 0.3, 0]}
         zIndexRange={[100, 0]}
@@ -516,7 +517,7 @@ function SelectionOverlay({
           onClose={onDeselect}
           onSwap={onSwap}
         />
-      </Html>
+      </SceneHtml>
     </>
   );
 }

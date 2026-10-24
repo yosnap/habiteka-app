@@ -1,4 +1,8 @@
 'use client';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
+import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
+import { useHiddenElements } from './workspace/use-hidden-elements';
 import { snapPointDrag } from './magnetic-drag';
 import { useMemo } from 'react';
 import { useStore } from 'zustand';
@@ -30,6 +34,7 @@ function SpotSymbol({ light, enabled, ink, scale }: { light: Luminaire; enabled:
 /** Ceiling outlines never capture pointer events; only light symbols are interactive. */
 export function CeilingLightingLayer({ store, scale, disabled }: { store: EditorStore; scale: number; disabled: boolean }) {
   const state = useStore(store), doc = state.document;
+  const hidden = useHiddenElements(store);
   const surfaces = useMemo(() => {
     try { return ceilingSurfaces(doc); } catch { return []; }
   }, [doc]);
@@ -62,19 +67,20 @@ export function CeilingLightingLayer({ store, scale, disabled }: { store: Editor
         <Text x={top.x + 6 / scale} y={top.y - 20 / scale} text={zone.name} fill="#7a4fd1" fontSize={12 / scale} />
       </Group>;
     })}
-    {surfaces.filter(({ ceiling }) => state.selection.includes(ceiling.id) || doc.luminaires?.some((light) => light.ceilingId === ceiling.id && state.selection.includes(light.id))).map(({ ceiling, room }) => <Line key={ceiling.id}
+    {surfaces.filter(({ ceiling }) => !hidden.has(ceiling.id) && (state.selection.includes(ceiling.id) || doc.luminaires?.some((light) => light.ceilingId === ceiling.id && state.selection.includes(light.id)))).map(({ ceiling, room }) => <Line key={ceiling.id}
       points={room.boundary.flatMap((point) => [point.x, point.y])} closed stroke="#087f75" strokeWidth={1.5 / scale} dash={[6 / scale, 4 / scale]} listening={false} />)}
-    {(doc.luminaires ?? []).map((light) => {
+    {(doc.luminaires ?? []).filter(light => !hidden.has(light.id) && !hidden.has(light.ceilingId)).map((light) => {
       const active = state.selection.includes(light.id), ink = active ? '#087f75' : '#75521d';
       const enabled = effective.get(light.id) ?? light.enabled;
-      return <Group key={light.id} x={light.x} y={light.y} draggable={!state.readOnly && state.tool === 'select'}
+      return <Group key={light.id} x={light.x} y={light.y} draggable={!state.readOnly && state.tool === 'select' && !isElementLocked(doc, light.id)}
         onClick={(e) => pick(e, light.id)}
         onTap={(e) => pick(e, light.id)}
         onDragStart={() => { if (!store.getState().selection.includes(light.id)) state.select([light.id]); }}
         onDragMove={(e) => e.target.position(snapPointDrag(store, e.target.position(), scale, [light.id]))}
         onDragEnd={(e) => {
           const point = e.target.position(); e.target.position({ x: light.x, y: light.y });
-          try { const current = store.getState(); current.apply(updateLuminaire(current.document, light.id, point)); }
+          try { const current = store.getState(), grouped = expandElementGroups(current.document, [light.id]);
+            current.apply(grouped.length > 1 ? nudgeElements(current.document, grouped, { x: point.x - light.x, y: point.y - light.y }) : updateLuminaire(current.document, light.id, point)); }
           catch (error) { state.setError(error instanceof Error ? error.message : 'No se pudo mover la luminaria'); }
         }}>
         <Circle radius={9 / scale} fill={enabled ? '#fff3c4' : '#eef1ef'} stroke={ink} strokeWidth={(active ? 2.5 : 1.5) / scale} hitStrokeWidth={26 / scale} />

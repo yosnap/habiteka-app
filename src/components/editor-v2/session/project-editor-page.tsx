@@ -4,6 +4,7 @@ import { withOrg } from '@/server/db/scoped-repo';
 import { withEditorDocuments } from '@/server/editor/document-repo';
 import { fromCanvasV1 } from '@/lib/editor-document/adapters/canvas-v1';
 import { emptyEditorDocument } from '@/lib/editor-document/schema';
+import { ProjectAssistant } from '@/components/chat/project-assistant';
 import { ProjectEditor } from './project-editor';
 import type { AutoGenerateRequest } from '../auto-generate-request';
 import { loadStudio } from '@/server/plan/studio-repo';
@@ -96,6 +97,7 @@ export async function ProjectEditorPage({ projectId, zoneId, autoGenerate, appro
       approvedDesign={approvedDesign}
       autoOpenApproved={Boolean(approvedId)}
       reference={reference}
+      assistant={<ProjectAssistant projectId={projectId} zoneId={zoneId ?? null} />}
       writable={source.authority === 'v2' && source.writable}
       migration={source.authority === 'legacy' ? {
         fingerprint: source.legacyFingerprint,

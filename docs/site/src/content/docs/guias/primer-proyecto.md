@@ -9,7 +9,7 @@ Ten a mano el plano o las medidas reales y una idea del estilo que buscas. Para 
 
 ## 1. Prepara el proyecto
 
-Abre o crea un proyecto desde **Proyectos**. En **Asistente**, elige **Empezar desde mi plano**, que te lleva a la pestaña **Plano** para subirlo, revisarlo y enviarlo al editor. Si solo tienes una foto de una habitación, elige **Rediseñar una habitación con una foto** y sigue los pasos de tipo de inmueble, objetivo, estilo y elementos que deben conservarse. Esta opción no crea un plano. Si ya has dibujado el plano, al final de la página está **Revisar un plano que ya has dibujado**.
+Abre o crea un proyecto desde **Proyectos**. En **Asistente**, elige **Empezar desde mi plano**, que te lleva a la pestaña **Plano** para subirlo, revisarlo y enviarlo al editor. Si solo tienes una foto de una habitación, elige **Rediseñar una habitación con una foto** y sigue los pasos de tipo de inmueble, objetivo, estilo y elementos que deben conservarse. Esta opción no crea un plano. Si ya has dibujado el plano, al final de la página está **Revisar un plano dibujado**.
 
 ## 2. Prepara el plano
 
@@ -20,6 +20,8 @@ Si tienes una foto o PDF, abre **Plano** y sigue [Importar un plano](/guias/impo
 En **Editor**, revisa paredes, puertas, ventanas, plantas, suelos, acabados y muebles. **Construir** presenta las categorías de estructura; **Amueblar** organiza el catálogo por habitaciones y categorías; **Exterior** reúne jardín, terreno y pavimento. **Propiedades** muestra los ajustes de la selección. Usa **Medir** para las distancias y **Modelo 3D** para comprobar la distribución y el paso entre estancias.
 
 Desde **Herramientas**, configura [Techos y luces](/editor/techos-luces-tejado/) y **Tejado**. Un falso techo no define el tejado exterior.
+
+En **Plano 2D**, **Amueblado** y **Modelo 3D**, el lateral reúne siete grupos que despliegan opciones, con **Ayuda** y **Ajustes** abajo. Los paneles flotantes permiten abrir catálogo, acabados, escena y asistente junto al inmueble. En móvil, cierra el panel para volver a manejar la escena. Cambia de vista desde la barra flotante superior. El **Plano 2D** conserva su método de construcción y herramientas. [Guía del espacio de trabajo](/editor/herramientas/#espacio-de-trabajo-del-editor).
 
 ## 4. Prepara la parcela, si la necesitas
 
@@ -47,4 +49,3 @@ Para llevar un proyecto a otra cuenta o a otra instalación de Habiteka (por eje
 El archivo lleva el plano y su revisión, el editor con todas sus versiones y aprobaciones, los diseños y vídeos con su aceptación, y sus imágenes y archivos. No lleva la conversación del asistente ni los costes de IA. Las aprobaciones quedan a nombre de quien importa. El archivo admite hasta 500 MB.
 
 Importar no cambia el proyecto original: son dos proyectos independientes. El archivo contiene tus imágenes y diseños, así que guárdalo y compártelo con el mismo cuidado que el proyecto.
-

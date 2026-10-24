@@ -1,0 +1,1215 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia ocio) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "ocio",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "acera_modular_base": {
+   "file": "acera_modular_base.glb",
+   "thumbnail": "thumbs/acera_modular_base.webp",
+   "sha256": "2b1d6a2f4fc4eca8ce99b328b6e6133a4b9c954725646c78a950415feafb89cc",
+   "bytes": 490768,
+   "triangles": 168,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1500,
+    3000,
+    122
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1500,
+    3000,
+    120
+   ],
+   "family": "ocio",
+   "type": "sidewalk",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "639c79e29fd28b25d151fb8cd40e7a97391497dab0e0598a144f2e14dbc2daae",
+   "builtAt": "2026-10-10"
+  },
+  "aire_acondicionado_exterior_base": {
+   "file": "aire_acondicionado_exterior_base.glb",
+   "thumbnail": "thumbs/aire_acondicionado_exterior_base.webp",
+   "sha256": "8ec40a57a17a1aba3940fbb9327b8d255b5b7dd883cd6d0535693faf57417c70",
+   "bytes": 20068,
+   "triangles": 1524,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    378,
+    600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    350,
+    600
+   ],
+   "family": "ocio",
+   "type": "ac",
+   "params": {
+    "outdoor": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "426637346a1e7259060ce186dfa44dc8e75a414f7da721315ae390587ce92fa2",
+   "builtAt": "2026-10-10"
+  },
+  "aire_acondicionado_split_base": {
+   "file": "aire_acondicionado_split_base.glb",
+   "thumbnail": "thumbs/aire_acondicionado_split_base.webp",
+   "sha256": "2a6233f194c683d062f2acc59f9af9db99b4bc01eef7e59e7258bfe337d6e213",
+   "bytes": 13796,
+   "triangles": 952,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    900,
+    260,
+    300
+   ],
+   "elevationMm": 2100,
+   "specDimensionsMm": [
+    900,
+    230,
+    300
+   ],
+   "family": "ocio",
+   "type": "ac",
+   "params": {
+    "elev": 2100
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "14dfaacc62f36df8f9fcb4ae2b9de0447b84e1edd43612b23e4bfdeee5147576",
+   "builtAt": "2026-10-10"
+  },
+  "alfombra_yute_rectangular_base": {
+   "file": "alfombra_yute_rectangular_base.glb",
+   "thumbnail": "thumbs/alfombra_yute_rectangular_base.webp",
+   "sha256": "db5bac281e8c953a032667f3b4699e1efb4865e26362c7bb839d0c00f7b4fe3b",
+   "bytes": 617432,
+   "triangles": 536,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2000,
+    3000,
+    13
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    3000,
+    12
+   ],
+   "family": "ocio",
+   "type": "rug",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "082680d06fe57912438ac3df0b4c0363243667a7727b2f4f00b9c3c21ee0aada",
+   "builtAt": "2026-10-10"
+  },
+  "alfombra_yute_redonda_base": {
+   "file": "alfombra_yute_redonda_base.glb",
+   "thumbnail": "thumbs/alfombra_yute_redonda_base.webp",
+   "sha256": "9ccc65b9bff3b9a6e1eb7ef9b8adc378180797ed25b96b0bcc51d8747da30177",
+   "bytes": 747696,
+   "triangles": 10240,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    1800,
+    13
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    1800,
+    12
+   ],
+   "family": "ocio",
+   "type": "rug",
+   "params": {
+    "round": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d5826350bb1460d170224204a0ba89dc5e6e5a4c33c5dc000a4531a6def30f05",
+   "builtAt": "2026-10-10"
+  },
+  "banco_parque_base": {
+   "file": "banco_parque_base.glb",
+   "thumbnail": "thumbs/banco_parque_base.webp",
+   "sha256": "832b4adbabd54735c8878425134d6ebcbd6de8a83118a987a689d9a90d00be42",
+   "bytes": 313204,
+   "triangles": 1540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1600,
+    489,
+    910
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1600,
+    650,
+    850
+   ],
+   "family": "ocio",
+   "type": "park_bench",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7111c6ddfac6ac913c4a521000aa74de210273ae37b09c93d6eda4082bf4abe0",
+   "builtAt": "2026-10-10"
+  },
+  "barbacoa_compacta_base": {
+   "file": "barbacoa_compacta_base.glb",
+   "thumbnail": "thumbs/barbacoa_compacta_base.webp",
+   "sha256": "55ca945f52714676d770b417864d998a8a7795a79e8c88091821d7ba2e81518c",
+   "bytes": 27148,
+   "triangles": 2316,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    900,
+    616,
+    1050
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    900,
+    600,
+    1100
+   ],
+   "family": "ocio",
+   "type": "grill",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "c3f6b4106b33d9db422ae56ad1a2a71d7c2deaff96567a9f9ef4f57f157a18a4",
+   "builtAt": "2026-10-10"
+  },
+  "barbacoa_obra_grande_base": {
+   "file": "barbacoa_obra_grande_base.glb",
+   "thumbnail": "thumbs/barbacoa_obra_grande_base.webp",
+   "sha256": "6ec6908c50ed4fe3be5697a9c64cfe01bc858e53643a4b58b060df73fa81aaf1",
+   "bytes": 511500,
+   "triangles": 1772,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1800,
+    800,
+    1600
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1800,
+    800,
+    1600
+   ],
+   "family": "ocio",
+   "type": "grill",
+   "params": {
+    "masonry": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "475a227de45e8ec90824874b2f29dd37e88b3afed7e88e4478f6762bbb4795eb",
+   "builtAt": "2026-10-10"
+  },
+  "calle_doble_sentido_base": {
+   "file": "calle_doble_sentido_base.glb",
+   "thumbnail": "thumbs/calle_doble_sentido_base.webp",
+   "sha256": "326bb17c890ce73380824423aa3aa277ae372dcbc0edf5106f7180bec63b6e13",
+   "bytes": 490880,
+   "triangles": 72,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    6000,
+    4000,
+    80
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    6000,
+    4000,
+    80
+   ],
+   "family": "ocio",
+   "type": "street",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "cfee8fd9543eb263d0155885177552c410dd2ba38bbaef4d1e4ccc6a3a2a2ec1",
+   "builtAt": "2026-10-10"
+  },
+  "columpio_parque_doble_base": {
+   "file": "columpio_parque_doble_base.glb",
+   "thumbnail": "thumbs/columpio_parque_doble_base.webp",
+   "sha256": "adf362ac5bbc74699bb3e40824fd8248340314a24a9a72f01636a429d81ec004",
+   "bytes": 305592,
+   "triangles": 964,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3600,
+    1912,
+    2392
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3600,
+    1800,
+    2300
+   ],
+   "family": "ocio",
+   "type": "swing",
+   "params": {
+    "seats": 2
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "d6239da576cee6757b5590f6e22398996f9a9b6b074d2a1a0eaaeef1ec5549ae",
+   "builtAt": "2026-10-10"
+  },
+  "columpio_parque_simple_base": {
+   "file": "columpio_parque_simple_base.glb",
+   "thumbnail": "thumbs/columpio_parque_simple_base.webp",
+   "sha256": "ff4c024cdfb4f1ba76e5738613058285c455af3f1dea41749325e8e4e80186cb",
+   "bytes": 302044,
+   "triangles": 632,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2400,
+    1912,
+    2392
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2400,
+    1800,
+    2300
+   ],
+   "family": "ocio",
+   "type": "swing",
+   "params": {
+    "seats": 1
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "56dc3a0995ec3d8615a2ad4b3bdd9aa38b7f60f48efe0a4c4e047838bd42a150",
+   "builtAt": "2026-10-10"
+  },
+  "farola_parque_base": {
+   "file": "farola_parque_base.glb",
+   "thumbnail": "thumbs/farola_parque_base.webp",
+   "sha256": "f50b7ac5aebea5d81c00a1f1abedddba860b207bb5a6facb3080ce137ae7a8fc",
+   "bytes": 7740,
+   "triangles": 508,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    500,
+    3296
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    500,
+    3200
+   ],
+   "family": "ocio",
+   "type": "streetlight",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f5a31c25db9c1ca80ec9c6d48bc600cfa44c841906ff32dc658089593a72b4f2",
+   "builtAt": "2026-10-10"
+  },
+  "guirnalda_luces_base": {
+   "file": "guirnalda_luces_base.glb",
+   "thumbnail": "thumbs/guirnalda_luces_base.webp",
+   "sha256": "15f261fbbc911b0fdcf0b2736e954d91bd1a821c4a3e5dcc77fb5f1a8d86af8a",
+   "bytes": 35628,
+   "triangles": 3776,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3003,
+    64,
+    366
+   ],
+   "elevationMm": 2290,
+   "specDimensionsMm": [
+    3000,
+    160,
+    450
+   ],
+   "family": "ocio",
+   "type": "lights",
+   "params": {
+    "elev": 2200
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0c199921a9952a53eb0633c74f85f1e8ba28403fa7e38c972216b3626722ecff",
+   "builtAt": "2026-10-10"
+  },
+  "hamaca_soporte_madera_base": {
+   "file": "hamaca_soporte_madera_base.glb",
+   "thumbnail": "thumbs/hamaca_soporte_madera_base.webp",
+   "sha256": "4588d819314e07818c4ef9321ff17deb940867e67a0514c785bad93df5da146f",
+   "bytes": 635124,
+   "triangles": 2672,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    2773,
+    1414
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    3200,
+    1400
+   ],
+   "family": "ocio",
+   "type": "hammock",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "46c8223f544ff8064f912c0fea38403d3dca88394f6c0dec5eff3418b7097d47",
+   "builtAt": "2026-10-10"
+  },
+  "hamaca_soporte_metal_base": {
+   "file": "hamaca_soporte_metal_base.glb",
+   "thumbnail": "thumbs/hamaca_soporte_metal_base.webp",
+   "sha256": "c15df64baa51db672e76d79b4dd3214b73b89e9c9eaa28b1bd6fbd7d539a8c20",
+   "bytes": 343372,
+   "triangles": 2672,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1100,
+    2605,
+    1315
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    3000,
+    1300
+   ],
+   "family": "ocio",
+   "type": "hammock",
+   "params": {
+    "metal": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "2c145c9a300288b2409a909508ce4496a8f9abd71332215575aa6f298cfea559",
+   "builtAt": "2026-10-10"
+  },
+  "lampara_colgante_cocina_base": {
+   "file": "lampara_colgante_cocina_base.glb",
+   "thumbnail": "thumbs/lampara_colgante_cocina_base.webp",
+   "sha256": "17ff018dbde67339d1101c5bed060c937cb0c72800d4e747d5fd4e6cc6c0bfd0",
+   "bytes": 11280,
+   "triangles": 716,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    350,
+    350,
+    700
+   ],
+   "elevationMm": 2000,
+   "specDimensionsMm": [
+    350,
+    350,
+    700
+   ],
+   "family": "ocio",
+   "type": "pendant",
+   "params": {
+    "elev": 2000
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "aa164f921ee3ac4c14f515df917174f3f36e613639f86ef524fbe1223c825a23",
+   "builtAt": "2026-10-10"
+  },
+  "papelera_parque_base": {
+   "file": "papelera_parque_base.glb",
+   "thumbnail": "thumbs/papelera_parque_base.webp",
+   "sha256": "3b521173a9f8abd87068c44dd231f4fb5ae7c72911bf63fbd1d3711452d79d97",
+   "bytes": 319348,
+   "triangles": 1984,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    432,
+    432,
+    768
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    450,
+    450,
+    800
+   ],
+   "family": "ocio",
+   "type": "bin",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "df82dc8bb2a189a6ee7a8f6ba5fce513c557bbb48ae60731a6cf2a12334a751c",
+   "builtAt": "2026-10-10"
+  },
+  "piscina_enterrada_rectangular_base": {
+   "file": "piscina_enterrada_rectangular_base.glb",
+   "thumbnail": "thumbs/piscina_enterrada_rectangular_base.webp",
+   "sha256": "e385705e6fc9cfbc867f909c12c4476e1f72a8a70b4bffa4cc1f1b724b0fe8cf",
+   "bytes": 500620,
+   "triangles": 940,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    6000,
+    3000,
+    90
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    6000,
+    3000,
+    90
+   ],
+   "family": "ocio",
+   "type": "pool",
+   "params": {
+    "buried": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "da4d71aa4c84eb660f058a075fe7735167b85d970d5671470d083aeb7f65e898",
+   "builtAt": "2026-10-10"
+  },
+  "piscina_enterrada_redonda_base": {
+   "file": "piscina_enterrada_redonda_base.glb",
+   "thumbnail": "thumbs/piscina_enterrada_redonda_base.webp",
+   "sha256": "ddc94dc48ec9f590d773071b851d2ab6940e88adc94023f061046acd37f60879",
+   "bytes": 507888,
+   "triangles": 1248,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    4000,
+    4000,
+    93
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    4000,
+    4000,
+    90
+   ],
+   "family": "ocio",
+   "type": "pool",
+   "params": {
+    "buried": true,
+    "round": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "7e4f73fbd38038b7b1b9696b5889812394155d3e32674cd693000af620c02b0e",
+   "builtAt": "2026-10-10"
+  },
+  "piscina_redonda_elevada_base": {
+   "file": "piscina_redonda_elevada_base.glb",
+   "thumbnail": "thumbs/piscina_redonda_elevada_base.webp",
+   "sha256": "87b913f929257e2bada18fd6f798bd0ab8cc0a48340ad85d74a88f26e948c646",
+   "bytes": 515912,
+   "triangles": 1864,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    4000,
+    4300,
+    1359
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    4000,
+    4000,
+    1200
+   ],
+   "family": "ocio",
+   "type": "pool",
+   "params": {
+    "round": true
+   },
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "4bbfff76a936cfd11997d1b032c78e82b639eb92f25d3c591abd00a47a2d3ccc",
+   "builtAt": "2026-10-10"
+  },
+  "sombrilla_compacta_base": {
+   "file": "sombrilla_compacta_base.glb",
+   "thumbnail": "thumbs/sombrilla_compacta_base.webp",
+   "sha256": "c9cf9076924d90a7cce245c232129aa6e1c34a469883226213bf8103858dd902",
+   "bytes": 1114940,
+   "triangles": 1724,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2006,
+    2006,
+    2300
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    2000,
+    2000,
+    2300
+   ],
+   "family": "ocio",
+   "type": "umbrella",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "aa84dc25ee4f2343cfd0adebfb1da75a395d97572f1224eda94beaf28a062be0",
+   "builtAt": "2026-10-10"
+  },
+  "sombrilla_grande_base": {
+   "file": "sombrilla_grande_base.glb",
+   "thumbnail": "thumbs/sombrilla_grande_base.webp",
+   "sha256": "1e7c6d711c720d385b39cb4c3a25f1d85ebaa887cf748f44891f212133578d34",
+   "bytes": 1114768,
+   "triangles": 1724,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    3504,
+    3504,
+    2700
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    3500,
+    3500,
+    2700
+   ],
+   "family": "ocio",
+   "type": "umbrella",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e49f3e48cc6f9e9c24c02831588ecab16f8df1d8ab468eb6d4d13623abd5c61b",
+   "builtAt": "2026-10-10"
+  },
+  "tobogan_parque_base": {
+   "file": "tobogan_parque_base.glb",
+   "thumbnail": "thumbs/tobogan_parque_base.webp",
+   "sha256": "0e88a59272bf2ad65c8503385a237c8177f7a81459243466edc8446846fda149",
+   "bytes": 325652,
+   "triangles": 3260,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    770,
+    2441,
+    2133
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    3000,
+    2100
+   ],
+   "family": "ocio",
+   "type": "slide",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "b2fc681d71bfd138281afeff899e2208934bc83453e220d87a2b5374fe303503",
+   "builtAt": "2026-10-10"
+  },
+  "toldo_balcon_base": {
+   "file": "toldo_balcon_base.glb",
+   "thumbnail": "thumbs/toldo_balcon_base.webp",
+   "sha256": "fa77a4264ce7575b7ee0bcace4014d5415114239b16339e3f787c7b744bb7e70",
+   "bytes": 333276,
+   "triangles": 1640,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    2400,
+    1826,
+    620
+   ],
+   "elevationMm": 1880,
+   "specDimensionsMm": [
+    2400,
+    1800,
+    2500
+   ],
+   "family": "ocio",
+   "type": "awning",
+   "params": {},
+   "finishes": {
+    "madera": "teca",
+    "metal": "ext-metal",
+    "inox": "ext-inox",
+    "tela": "tejido-exterior-crudo",
+    "piedra": "jar-piedra-clara",
+    "blanco": "ext-blanco",
+    "agua": "ocio-agua",
+    "pintura": "ocio-azul",
+    "rojo": "ocio-rojo",
+    "asfalto": "ocio-asfalto",
+    "goma": "ext-goma",
+    "vidrio": "ext-vidrio"
+   },
+   "textures": [
+    "jar_piedra_clara",
+    "teca",
+    "tejido"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e2032f3bfbc60f451c553803ac97c0fcaa6eb6d8d2acc907983ea28355b4b466",
+   "builtAt": "2026-10-10"
+  }
+ },
+ "textures": {
+  "jar_piedra_clara": {
+   "source": "polyhaven",
+   "id": "worn_rock_natural_01",
+   "title": "Worn Rock Natural 01",
+   "authors": [
+    "Rob Tuytel",
+    "Dimitrios Savva"
+   ],
+   "pageUrl": "https://polyhaven.com/a/worn_rock_natural_01",
+   "license": "CC0-1.0",
+   "sizeMm": 2000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_diff_1k.jpg",
+     "bytes": 854615,
+     "md5": "f410522eec19eb12e2b96ad4386b8493"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_nor_gl_1k.jpg",
+     "bytes": 910654,
+     "md5": "8645b86f5cb360b626086a4dc286340a"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/worn_rock_natural_01/worn_rock_natural_01_rough_1k.jpg",
+     "bytes": 541768,
+     "md5": "d8f4508262dcf919d3fe6ce97ae30f98"
+    }
+   ]
+  },
+  "teca": {
+   "source": "polyhaven",
+   "id": "teak_veneer",
+   "title": "Teak Veneer",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/teak_veneer",
+   "license": "CC0-1.0",
+   "sizeMm": 1000,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_diff_1k.jpg",
+     "bytes": 612194,
+     "md5": "0ca1914271448bcec9989ccaf46ea6b8"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_nor_gl_1k.jpg",
+     "bytes": 410625,
+     "md5": "7c7d3c362775233d89523b44e5771c73"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/teak_veneer/teak_veneer_rough_1k.jpg",
+     "bytes": 731629,
+     "md5": "bc875070660548e52189959794f23f1b"
+    }
+   ]
+  },
+  "tejido": {
+   "source": "ambientcg",
+   "id": "Fabric062",
+   "title": "Fabric 062",
+   "authors": [
+    "ambientCG"
+   ],
+   "pageUrl": "https://ambientcg.com/view?id=Fabric062",
+   "license": "CC0-1.0",
+   "sizeMm": 400,
+   "downloads": [
+    {
+     "url": "https://ambientcg.com/get?file=Fabric062_1K-JPG.zip",
+     "bytes": 8521939,
+     "sha256": "9d7a17762001afdd369cd1cad4d698b5dfa7e8bc527d9c9a4a8c0470f8a16a6d"
+    }
+   ]
+  }
+ }
+}

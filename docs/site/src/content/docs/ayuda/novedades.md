@@ -3,6 +3,78 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Actualización de plataforma — 24 de octubre de 2026
+
+Habiteka se ha actualizado internamente (Next.js 16.4, React 19.3 y sus librerías de acceso, pagos, plano y 3D). El editor, los pagos y el acceso funcionan igual: no cambia ningún paso ni atajo. Las subidas de archivos (importar proyectos y vídeos) se han adaptado al nuevo almacenamiento del servidor sin cambiar su uso.
+
+**Créditos y suscripciones:** solo la compra de un paquete de créditos suma créditos al saldo. El alta y las renovaciones de una suscripción ya no añaden créditos de paquete por error.
+
+## Bloqueos, grupos y paquetes — 11 de octubre de 2026
+
+**Bloqueos, grupos y paquetes:** Escena incorpora un candado antes del ojo de cada fila. Bloquear una pieza protege todo su grupo frente a movimiento, edición, sustitución y borrado. Escena y Propiedades permiten agrupar selecciones y guardarlas en **Mis paquetes**, una biblioteca personal disponible en todos los proyectos y dispositivos. Construir y Amueblar comparten el acceso, con filtros Muebles, Construcción y Mixtos. Cada paquete se coloca con un clic en Plano 2D y crea una copia independiente. **Sustituir** abre el catálogo desde Propiedades o el menú del elemento, conservando posición y grupo. [Guía de uso](/editor/grupos-paquetes/).
+
+## Catálogo ampliado — 11 de octubre de 2026
+
+**Respaldo de tumbonas:** las versiones de teca y aluminio permiten cambiar entre tumbado e inclinado desde las propiedades del mueble colocado, conservando posición, giro y escala, con deshacer y rehacer.
+
+**Piscinas en Construir y tumbonas:** todas las piscinas se eligen en Construir → Exterior y jardín → Agua y drenaje, en lugar del catálogo de muebles y sus propuestas automáticas. La elevada rectangular mejora su vaso, paneles de madera, refuerzos, liner azul, borde y escalera interior/exterior, conservando las dimensiones guardadas. Amueblar → Exterior ofrece Tumbona de exterior en teca, aluminio y una nueva variante de aluminio con respaldo tumbado.
+
+**Vehículos reales:** Tesla Model 3 de 2018 y Ford Mustang GT de 2005 disponibles en Exterior y Garaje, con el mismo modelo en Amueblado y 3D. Créditos CC BY 4.0 en sus fichas. Se retiran los vehículos procedurales de las nuevas inserciones, conservándolos en los planos existentes. Motos y bicicletas reales pendientes de modelos autorizados.
+
+La cámara ajusta automáticamente la precisión de profundidad al alejarse en Amueblado y 3D, evitando manchas por superficies próximas en techos y carrocerías. Dentro de las habitaciones conserva la navegación cercana.
+
+**Solapamientos y paso:** alfombras y felpudos admiten muebles encima al añadirlos y arrastrarlos, incluso con identificadores importados que contienen dos puntos, y no bloquean la cámara. Sombrillas y hamacas dejan libres los espacios sin geometría, conservando las colisiones de sus partes reales. Felpudos finos pueden ocupar el barrido de puertas.
+
+47 piezas nuevas fabricadas con modelos y miniaturas: pequeños aparatos de cocina, armarios superiores, floreros, librerías, estanterías, felpudos, alfombras, hamacas, piscinas redondas y enterradas, sombra, barbacoas, calle y aceras, juegos y mobiliario de parque, luces colgantes y aire acondicionado. Las literas añaden escalera izquierda a cada acabado existente, conservando la derecha. Los armarios superiores mantienen su altura de montaje sin atraer los aparatos que se colocan sobre una encimera. Las piscinas enterradas representan la parte visible a ras de suelo, sin excavar el terreno.
+
+## Espacio de trabajo — 10 de octubre de 2026
+
+**Navegación segura en 3D:** Mover vista es el modo inicial, también dentro de habitaciones. Un flotante a la derecha permite activar Editar. Navegar no selecciona ni arrastra elementos y bloquea su desplazamiento o eliminación por teclado. La carrocería de los vehículos incorpora barniz y reflejos en ambas vistas; pintarla conserva los demás materiales.
+
+**Desplegables consistentes:** navegación, plantas, herramientas rápidas, referencia y Opciones comparten fondo, separación entre filas y selección gris suave del menú Editor. Imagen de fondo y Fuente usan el mismo estilo; el selector de fuentes tiene ancho completo para evitar texto e iconos comprimidos.
+
+**Referencia dentro del flotante:** Mostrar original pasa al lado del selector 2D/Amueblado/3D. Su menú reúne visibilidad, opacidad y selección del plano original o un redibujado disponible, eliminando la franja superior dedicada a esos controles.
+
+**Vistas y etiquetas coherentes:** Amueblado y Modelo 3D esperan a tener la cámara preparada antes de mostrar la escena. Herramientas rápidas muestra Seleccionar, Medir y Ajuste en filas claras. Opciones también aparece en Plano 2D; comparte fondo, nombres, visibilidad, cuadrícula y unidades con las vistas visuales. Superposiciones permite personalizar la fuente, tamaño, negrita, colores, fondo y redondeado de los nombres, con el mismo aspecto en las tres vistas. Los ajustes se recuerdan durante la pestaña del proyecto y las cotas y áreas automáticas de 2D admiten metros o pies.
+
+**Modalidades de vídeo en un panel:** la barra izquierda distingue Crear vídeo y Vídeos guardados. Construcción, Publicidad y Primera persona se eligen desde el panel flotante de Crear vídeo, que se cierra tras elegir una modalidad y se puede reabrir desde el grupo. Vídeos guardados abre la galería sin opciones de creación.
+
+**Laterales uniformes:** Editor, Plano, Diseños y Vídeos comparten tamaño de iconos y botones, con las opciones centradas verticalmente. El hover conserva el contraste tanto en opciones normales como seleccionadas, sin mover los botones.
+
+**Navegación coherente entre secciones:** el botón flotante muestra el icono de color de la vista actual. Plano incorpora un flotante de etapas y una barra verde para sus vistas y Nuevo plano. Diseños mueve Diseños, Recorridos, Vídeos y Crear vídeo al lateral. Vídeos mueve Crear vídeo y Vídeos guardados a la barra verde; Construcción, Publicidad y Primera persona aparecen al elegir Crear vídeo. El desplegable común sustituye los enlaces duplicados de vuelta al Editor y Mis diseños.
+
+**Asistente simplificado:** Diseñar con IA es un título. Las dos acciones principales son Diseñar el plano con IA y Generar diseños, con resaltado verde y texto blanco al pasar el cursor o enfocarlas. El formulario por pasos deja de aparecer dentro del panel; Cambiar el proceso abre el asistente completo del proyecto y zona sin reiniciar el plano.
+
+**Guardar las muestras de desarrollo:** Guardar permite dar un nombre y crear un proyecto editable con los cambios actuales. Requiere iniciar sesión, conserva la copia local y no sustituye proyectos existentes ni aprueba diseños.
+
+Todos los paneles de la izquierda aprovechan la altura disponible de la pantalla, como Amueblar, con desplazamiento interno y espacio reservado para los controles superiores y el recorrido inferior. Abrir Tejado desde Herramientas cierra el panel anterior para evitar que permanezca detrás del diálogo.
+
+**Navegación del proyecto en el flotante:** Editor, Plano, Asistente, Diseños, Vídeos e Historial comparten el mismo desplegable, con el nombre de la sección actual y los colores originales de sus iconos. Sustituye la fila de pestañas del proyecto. En el editor está junto a la planta; en las demás páginas tiene espacio reservado sobre el contenido. El botón y las opciones tienen texto grande y filas amplias. En móvil, el nombre del proyecto del editor ocupa una fila propia sobre ambos controles. Las muestras independientes ofrecen acceso a Mis proyectos. La cabecera y las pestañas de resultados de Diseños conservan su altura para evitar que las imágenes se solapen con ellas.
+
+El aviso amarillo de las muestras de desarrollo puede cerrarse y recordar su cierre durante la pestaña; **Muestra** permite reabrirlo. Deshacer y Rehacer comparten una sola fila en el lateral.
+
+**Más espacio para el lienzo:** proyecto, estado de guardado y planta pasan a un flotante superior. Guardar, Deshacer y Rehacer quedan encima de Ayuda en el lateral. Asistente reúne las acciones de diseño con IA y explica cuándo no están disponibles; Vídeos sigue en Visualizar. Herramientas conserva su grupo lateral y desaparece el acceso duplicado de la cabecera.
+
+**Escena simplificada:** doble clic abre Propiedades y las filas mantienen nombre, renombrado y visibilidad. Alt/Option+1/2/3 abre sus pestañas. Estancias y zonas de diseño permiten guardar Interior/Exterior o volver a Automático. Capturar vista de trabajo descarga el lienzo como referencia marcada, sin generar imágenes finales ni gastar IA.
+
+El ajuste de muebles a paredes conserva la orientación durante el arrastre y la colocación desde catálogo. En las esquinas, pequeños movimientos no alternan entre horizontal y vertical; al acercarlo claramente a otra pared, vuelve a orientarse. Soltar conserva la posición mostrada.
+
+La fila de Seleccionar, Texto y Propiedades deja de ocupar espacio en reposo. **Añadir texto** está en Herramientas y Propiedades sigue en Escena, la selección y el doble clic. Al mover un mueble en Amueblado o Modelo 3D, el arrastre se detiene ante paredes y obstáculos, permitiendo soltarlo en el último punto válido.
+
+**Opciones de escena** reúne búsqueda con Ctrl/Cmd+K, plantas apiladas/separadas/aisladas, techo, paredes, jardín, nueve estilos visuales, cuadrícula, nombres y medidas generales en metros o pies. En Modelo 3D puedes explorar el plano guía haciendo clic sobre suelo visible: el desplazamiento respeta pasos y colisiones. Son ayudas de trabajo; las referencias y visitas finales conservan sus requisitos de geometría y diseños IA aceptados.
+
+El selector de vistas pasa a botones directos con la vista activa en oscuro y herramientas rápidas desplegables. Los controles de recorrido tienen una franja reservada para evitar solapamientos con los flotantes.
+
+Las pestañas de Escena y de propiedades incorporan iconos y texto. Los acordeones de paredes con huecos y techos con luces prescinden de recuadros y líneas interiores; la sangría conserva la relación entre sus elementos.
+
+Plano 2D, Amueblado y Modelo 3D incorporan una barra izquierda de modos y tareas, con Ayuda y Ajustes abajo y paneles flotantes. Escena permite buscar y localizar elementos; Acabados abre los controles actuales; el asistente del proyecto y zona puede utilizarse junto al lienzo. El plano 2D conserva su método de construcción y herramientas.
+
+El lateral reúne siete grupos que despliegan sus opciones. Exterior está en Construir, Recorrido en Herramientas y Propiedades en Escena. Las vistas y herramientas rápidas flotan arriba; iluminación tiene su propio desplegable y la cámara queda centrada abajo. Los paneles se ajustan al contenido, con desplazamiento interno y sin arrastre, también en móvil.
+
+Escena tiene pestañas de Estructura, Mobiliario y Estancias, acordeones de paredes con puertas y ventanas, búsqueda y listas ampliables con Mostrar más. Permite localizar, renombrar mediante los campos actuales y ocultar elementos solo en el editor. Esa ocultación no cambia geometría ni referencias IA.
+
+La misma pestaña recupera la vista, las selecciones válidas y la cámara exterior por usuario, proyecto, zona y planta. Diseños tiene una galería más amplia y Vídeos separa el tipo de trabajo de sus opciones. Se mantienen guardado, backup, aprobación, aceptación de imágenes y confirmación de coste. Audio del espacio de trabajo: pendiente.
+
 ## Versión 0.6.0 — 8 de octubre de 2026
 
 - **Exportar e importar proyectos:** **Exportar** en la tarjeta de un proyecto, o **Exportar proyecto** en el menú del editor, descarga un archivo `.habiteka` con el plano, el editor, los diseños, los vídeos y sus archivos. **Importar proyecto** en **Mis proyectos** lo convierte en un proyecto nuevo en otra cuenta o instalación. Consulta [Primer proyecto](/guias/primer-proyecto/#exportar-e-importar-un-proyecto).
@@ -294,12 +366,12 @@ Estas guías corresponden a la implementación actual del repositorio. El entorn
 
 ## Pendiente
 
-| Función | Situación |
-|---|---|
-| Etapas de reforma parcial | Pendiente definición de elementos conservados. |
-| Película fotorrealista continua | Pendiente imágenes coherentes, guion y piloto de clips con presupuesto. |
-| Editor de tomas y ritmo libre | Pendiente; construcción ya permite elegir 8 o 12 s. |
-| Cotas geométricas sobre vídeo IA | Pendiente seguimiento de cámara; el panel de medidas globales sí está disponible en publicidad. |
-| Música, locución y pistas externas | Pendiente; los efectos sintetizados de construcción sí están disponibles en vídeo nativo. |
+| Función                            | Situación                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Etapas de reforma parcial          | Pendiente definición de elementos conservados.                                                  |
+| Película fotorrealista continua    | Pendiente imágenes coherentes, guion y piloto de clips con presupuesto.                         |
+| Editor de tomas y ritmo libre      | Pendiente; construcción ya permite elegir 8 o 12 s.                                             |
+| Cotas geométricas sobre vídeo IA   | Pendiente seguimiento de cámara; el panel de medidas globales sí está disponible en publicidad. |
+| Música, locución y pistas externas | Pendiente; los efectos sintetizados de construcción sí están disponibles en vídeo nativo.       |
 
 Las funciones pendientes se documentan como tales; sus guías se actualizarán cuando estén implementadas y verificadas.
