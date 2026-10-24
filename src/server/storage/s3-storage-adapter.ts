@@ -95,6 +95,9 @@ export function getStorageAdapter(): StorageAdapter {
     endpoint,
     // MinIO requiere acceso por path; un S3 gestionado lo ignora sin problema.
     forcePathStyle: Boolean(endpoint),
+    // Sin checksum por defecto: el SDK firmaría en las URL de subida el CRC32 de un
+    // cuerpo vacío y un S3 estricto (SeaweedFS, AWS) rechazaría el archivo real.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
     credentials: { accessKeyId, secretAccessKey },
   });
   cached = new S3StorageAdapter(client, bucket);
