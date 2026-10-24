@@ -16,7 +16,12 @@ const nextConfig: NextConfig = {
     ] };
   },
   // 10 MB de imagen ocupan ~13,4 MB al codificarse como base64.
-  experimental: { serverActions: { bodySizeLimit: '16mb' } },
+  experimental: {
+    serverActions: { bodySizeLimit: '16mb' },
+    // Barriles enormes que Next no optimiza por defecto: sin esto cada ruta que
+    // los importa compila la librería entera en dev.
+    optimizePackageImports: ['@react-three/drei', 'radix-ui'],
+  },
   // El chequeo de tipos de `next build` sin caché necesita varios GB de RAM y
   // ahoga al VPS que construye la imagen. CI ya ejecuta `tsc --noEmit` como
   // puerta antes de mergear, así que el build de la imagen (y solo ese, vía la
