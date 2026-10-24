@@ -23,6 +23,9 @@ function buildClient() {
     credentials: { accessKeyId, secretAccessKey },
     // MinIO en modo path-style: http://host/bucket/key
     forcePathStyle: !!endpoint,
+    // Sin checksum por defecto: el SDK firmaría en las URL de subida el CRC32 de un
+    // cuerpo vacío y un S3 estricto (SeaweedFS, AWS) rechazaría el archivo real.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
   });
 }
 
