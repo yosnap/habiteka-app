@@ -37,6 +37,7 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ### Fixed — 2026-10-24
 
+- Imagen Docker: la etapa de build ejecuta `next build` con Node 22 (copiado de `node:22-slim`). Sin Node, el runtime de Bun 1.3.12 no carga los módulos precompilados de Next 16.4 y el build fallaba al recopilar `/api/billing/checkout`.
 - Créditos de Polar: el webhook `order.paid` solo acredita un paquete cuando el pedido es una compra suelta (`billing_reason = purchase`). Las altas y renovaciones de suscripción, que Polar también notifica como `order.paid` con los mismos metadatos, ya no suman créditos de paquete.
 
 ### Changed — 2026-10-24

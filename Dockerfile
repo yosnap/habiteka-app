@@ -34,6 +34,9 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build bun install --fro
 # ---------- Stage 2: build ----------
 FROM oven/bun:1.3.12 AS builder
 WORKDIR /app
+# `next build` se ejecuta con Node: sin él, el shebang de `next` cae en el
+# runtime de Bun, que no carga los módulos precompilados de Next 16.4.
+COPY --from=node:22-slim /usr/local/bin/node /usr/local/bin/node
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 COPY --from=documentation /docs/dist ./public/documentacion
