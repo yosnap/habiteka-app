@@ -2,6 +2,12 @@
 
 Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.0] — 2026-10-24
+
+### Added
+
+- Nueva página de inicio centrada en el producto: plano que se dibuja y se convierte en la foto amueblada, demo de plano interactiva, comparador plano/diseño, escena 3D con muebles del catálogo, vídeos simulados y proyectos de muestra rotulados como ejemplos ilustrativos. Sin planes ni precios.
+
 ## [0.4.0] — 2026-10-02
 
 ### Added
