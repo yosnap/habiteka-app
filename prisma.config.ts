@@ -3,7 +3,7 @@ import { defineConfig, env } from 'prisma/config';
 
 // Carga `.env.local` (dev) y `.env` como respaldo, para que la URL de la base de
 // datos esté disponible al ejecutar los comandos de Prisma CLI.
-loadEnv({ path: ['.env.local', '.env'] });
+loadEnv({ path: ['.env.local', '.env'], quiet: true });
 
 // Schema multi-fichero: cada dominio en su `.prisma` bajo `prisma/schema/`.
 // En Prisma 7 la URL de conexión para Migrate vive aquí (ya no en el schema);

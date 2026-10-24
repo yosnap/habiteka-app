@@ -138,7 +138,7 @@ export function OpeningLayer({ store, scale, disabled = false, documentPreview }
           candidateHost.current = opening.wallId;
           const pointer = grabPointer.current ?? event.target.getStage()?.getRelativePointerPosition();
           const radians = angle * Math.PI / 180;
-          dragged.current = { node: event.target as Konva.Group, origin: center,
+          dragged.current = { node: event.currentTarget as Konva.Group, origin: center,
             opening: openingForDrag(opening, duplicatePointer.current || event.evt.altKey),
             offset: pointer ? (pointer.x - center.x) * Math.cos(radians) + (pointer.y - center.y) * Math.sin(radians) : 0 };
           setDragId(opening.id); store.getState().select([]);

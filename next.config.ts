@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // `server.js` que Node ejecuta sin el árbol completo de node_modules. Es lo
   // que arranca la imagen Docker que construye Dokploy.
   output: 'standalone',
+  // `next dev` añade por defecto un bloque propio a AGENTS.md; las instrucciones
+  // del repositorio las mantiene el equipo.
+  agentRules: false,
   async rewrites() {
     // Un único servidor y despliegue: el subdominio sirve el HTML de Starlight
     // incorporado a public/documentacion durante el build.

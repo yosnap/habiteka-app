@@ -67,17 +67,17 @@ Habiteka es un **monolito modular** Next.js full-stack. El núcleo es un canvas 
 |---|---|---|
 | Package manager / scripts / tests | Bun (`bun install`, `bun run`, `bun test`) | 1.x |
 | Runtime servidor (prod/Docker) | Node.js (servidor de Next standalone) | 22 LTS |
-| Framework | Next.js (App Router, RSC, Server Actions) | 16.2.x |
-| UI runtime | React | 19.2.x |
-| Lenguaje | TypeScript | 5.x |
+| Framework | Next.js (App Router, RSC, Server Actions) | 16.4.x |
+| UI runtime | React | 19.3.x |
+| Lenguaje | TypeScript | 6.0.x (TS 7 nativo aún no es compatible con typescript-eslint ni con el typecheck de Next) |
 | Estilos | Tailwind CSS v4 + shadcn/ui | v4 |
-| Canvas | Konva + react-konva | 10.3 |
+| Canvas | Konva + react-konva | 10.9 |
 | Base de datos | PostgreSQL (JSONB para estado de canvas) | 16+ |
 | ORM | Prisma | 7.x |
-| Auth | Better Auth (self-host) | 1.6 |
+| Auth | Better Auth (self-host) | 1.7 |
 | IA chat/visión | OpenAI SDK → OpenRouter (baseURL) | — |
 | Imagen/Render 3D | Proveedor de imagen (FLUX/Nano Banana/Imagen) vía adaptador | — |
-| Pagos | Polar.sh (Merchant of Record) | — |
+| Pagos | Polar.sh (Merchant of Record), SDK 1.x con API `2026-10` | — |
 | Tiempo real (votación) | Polling MVP → WebSocket post-MVP | — |
 
 > **Runtime — Bun como herramienta, Node como servidor:** Bun es el package manager y ejecutor de scripts/tests del repo (sustituye a npm/pnpm: `bun install`, `bun run dev`, `bun test`). El **servidor de Next en producción/Docker corre sobre Node.js** (servidor `standalone` oficial), porque servir Next sobre el runtime de Bun aún arrastra incompatibilidades con Next 16 standalone, Prisma y libs nativas. Decisión de menor riesgo: velocidad de Bun en dev/CI, estabilidad de Node en prod.

@@ -35,6 +35,15 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Changed — 2026-10-24
+
+- Actualización de plataforma sin cambios de flujo para el usuario: Next.js 16.4.3, React 19.3, Prisma 7.10, Better Auth 1.7, openai 7, Polar SDK 1.0, Konva 10.9, Three 0.186, Tailwind 4.3, TypeScript 6.0, Vitest 5 y dotenv 18, entre otras.
+- Polar pasa al cliente versionado `@polar-sh/sdk/2026-10`: parámetros y payloads en snake_case, `validateEvent` asíncrono y eventos de tipo desconocido aceptados sin efecto (202).
+- Migración aditiva `invitation.createdAt`, que exige el plugin de organizaciones de Better Auth 1.7.
+- Las etiquetas HTML de la escena 3D usan `SceneHtml` (`src/lib/scene-html.tsx`), que fija el contenedor de `Html` desde el primer render: con @react-three/fiber 9.8 el cambio de contenedor creaba dos raíces de React por etiqueta y podía vaciarlas o fallar al salir del 3D (pmndrs/drei#2867).
+- `agentRules: false` en `next.config.ts`: `next dev` deja de añadir su bloque propio a `AGENTS.md`.
+- Se mantienen ESLint 9 (los plugins de `eslint-config-next` aún no admiten ESLint 10), TypeScript 6 (TS 7 no expone la API que usan typescript-eslint y Next), `@types/node` 22 (el runtime es Node 22) y Prisma 7 (Prisma 8 sigue en RC).
+
 ### Added — 2026-09-23
 
 - Jev (TypeSafe) como capa de fiabilidad: evalúa el plano, las instrucciones y los resultados antes de gastar en generaciones de pago; con fiabilidad media explica el porqué al usuario y pide confirmar, con baja manda a corregir el plano. Credencial y umbrales en el panel de admin; panel de eficacia calidad × coste. Sin Jev disponible, las generaciones de pago piden confirmación expresa.
