@@ -50,13 +50,13 @@ Abre `http://docs.localhost:3040`: mismos proceso y puerto que la aplicación. D
 
 ## Vincular el dominio en el despliegue existente
 
-1. En el servicio actual de Habiteka en Dokploy, añade `docs.habiteka.app` como **otro dominio del mismo servicio**, apuntando al mismo puerto 3000.
-2. En el proveedor DNS que gestione el dominio (actualmente Hostinger), crea el registro DNS de ese subdominio hacia el destino que ya usa la aplicación. No hace falta crear otro proyecto ni servidor para la documentación.
+1. En la aplicación `habiteka` de Coolify, añade `docs.habiteka.app` como **otro dominio del mismo servicio**, apuntando al mismo puerto 3000.
+2. En el proveedor DNS que gestione el dominio (actualmente Hostinger, con los servidores DNS de dns-parking), crea el registro DNS de ese subdominio hacia el destino que ya usa la aplicación. No hace falta crear otro proyecto ni servidor para la documentación.
 3. Mantén el hostname `docs.habiteka.app` en la petición que llega a Next; el routing distingue documentación por el host.
 4. Configura TLS/HTTPS en el proxy del servicio con el procedimiento existente.
 5. Publica el mismo repositorio/rama por su flujo habitual y comprueba portada, página interior, CSS, búsqueda y que el dominio principal sigue mostrando la app.
 
-La configuración del repositorio no crea por sí sola DNS ni el dominio de Dokploy. No marques la publicación como terminada hasta comprobar el HTTPS público.
+La configuración del repositorio no crea por sí sola DNS ni el dominio de Coolify. No marques la publicación como terminada hasta comprobar el HTTPS público.
 
 ## Estructura del manual
 
@@ -100,6 +100,6 @@ Configuración según [Starlight: instalación manual](https://starlight.astro.b
 
 ## Publicación verificada — 2 de octubre de 2026
 
-El DNS de Hostinger y el dominio adicional del mismo servicio de Dokploy están configurados. La documentación se sirve desde el mismo despliegue de Habiteka, sin una aplicación separada.
+El DNS de Hostinger y el dominio adicional de la misma aplicación de Coolify están configurados (migrado desde Dokploy el 24 de octubre de 2026). La documentación se sirve desde el mismo despliegue de Habiteka, sin una aplicación separada.
 
 Se verificaron por HTTPS la portada, `/videos/tipos/`, los estilos CSS y el JavaScript de búsqueda de Pagefind, con respuestas 200. Esta comprobación pública confirma la publicación de `https://docs.habiteka.app`.
