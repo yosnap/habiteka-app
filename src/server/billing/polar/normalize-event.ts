@@ -18,6 +18,7 @@ interface RawPolarEvent {
     product_id?: string;
     status?: string;
     customer_id?: string;
+    billing_reason?: string;
   };
 }
 
@@ -42,6 +43,9 @@ export function normalizeEvent(raw: RawPolarEvent, ctx: NormalizeContext): Billi
   if (!organizationId) return null;
 
   if (raw.type === 'order.paid') {
+    // Polar también emite `order.paid` en cada alta y renovación de suscripción;
+    // solo una compra suelta (`purchase`) corresponde a un paquete de créditos.
+    if (raw.data.billing_reason !== 'purchase') return null;
     return {
       kind: 'order_paid',
       eventId: ctx.eventId,
