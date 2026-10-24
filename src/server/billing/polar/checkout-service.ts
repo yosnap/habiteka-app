@@ -18,8 +18,8 @@ export async function createCheckout(input: CheckoutInput): Promise<{ url: strin
   const successUrl = process.env.BILLING_SUCCESS_URL ?? 'https://habiteka.app/billing/success';
   const checkout = await getPolarClient().checkouts.create({
     products: [input.productId],
-    successUrl,
-    customerEmail: input.customerEmail,
+    success_url: successUrl,
+    customer_email: input.customerEmail,
     metadata: {
       organizationId: input.organizationId,
       ...(input.plan ? { plan: input.plan } : {}),
