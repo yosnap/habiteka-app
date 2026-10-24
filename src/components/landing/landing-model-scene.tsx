@@ -1,9 +1,11 @@
 'use client';
 /**
  * Escena 3D ligera de la home: un rincón de salón con muebles reales del
- * catálogo (GLB CC0), orbitable con ratón o dedo. Se carga en diferido.
+ * catálogo (GLB CC0), orbitable con el ratón. Se carga en diferido, deja de
+ * dibujar fuera de pantalla y no gira sola con movimiento reducido.
  */
 import { Canvas } from '@react-three/fiber';
+import { useReducedMotion } from 'motion/react';
 import { ContactShadows, OrbitControls, useGLTF } from '@react-three/drei';
 import { Suspense } from 'react';
 
@@ -44,21 +46,22 @@ function Room() {
   );
 }
 
-export default function LandingModelScene() {
+export default function LandingModelScene({ active }: { active: boolean }) {
+  const reduced = useReducedMotion();
   return (
-    <Canvas shadows dpr={[1, 1.75]} camera={{ position: [3.3, 2.3, 3.6], fov: 38 }} gl={{ antialias: true }}>
+    <Canvas frameloop={active ? 'always' : 'never'} shadows dpr={[1, 1.75]} camera={{ position: [3.3, 2.3, 3.6], fov: 38 }} gl={{ antialias: true }}>
       <color attach="background" args={['#efe6d8']} />
       <hemisphereLight args={['#fff6e8', '#b8a58c', 0.9]} />
       <directionalLight position={[4, 6, 3]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
       <Suspense fallback={null}>
         <Room />
-        <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={8} blur={2.4} far={2} />
+        <ContactShadows frames={1} position={[0, 0.01, 0]} opacity={0.45} scale={8} blur={2.4} far={2} />
       </Suspense>
       <OrbitControls
         target={[0, 0.4, -0.3]}
         enablePan={false}
         enableZoom={false}
-        autoRotate
+        autoRotate={!reduced}
         autoRotateSpeed={0.6}
         minPolarAngle={0.5}
         maxPolarAngle={1.35}

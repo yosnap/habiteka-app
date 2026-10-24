@@ -15,6 +15,7 @@ import { LandingCTA } from '@/components/landing/landing-cta';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { DevNavPanel } from '@/components/landing/dev-nav-panel';
 import { displayFont } from '@/components/landing/landing-fonts';
+import { LandingMotion } from '@/components/landing/landing-motion';
 
 const devLoginEnabled =
   process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_LOGIN === 'true';
@@ -42,28 +43,30 @@ export default async function Home() {
   }
 
   return (
-    <div className={`${displayFont.variable} bg-surface flex min-h-full flex-col`}>
-      <LandingHeader />
-      <main className="flex-1">
-        <LandingHero />
-        <LandingMarquee />
-        <LandingHowItWorks />
-        <LandingDemo />
-        <LandingBento />
-        <LandingVideos />
-        <LandingGallery />
-        <LandingTrust />
-        <LandingFaq />
-        <LandingCTA />
-        {showDevPanel ? (
-          <DevNavPanel
-            userName={user?.name}
-            isAdmin={user?.role === 'admin'}
-            canvasProjectId={canvasProjectId}
-          />
-        ) : null}
-      </main>
-      <LandingFooter />
-    </div>
+    <LandingMotion>
+      <div className={`${displayFont.variable} bg-surface flex min-h-full flex-col`}>
+        <LandingHeader />
+        <main className="flex-1">
+          <LandingHero />
+          <LandingMarquee />
+          <LandingHowItWorks />
+          <LandingDemo />
+          <LandingBento />
+          <LandingVideos />
+          <LandingGallery />
+          <LandingTrust />
+          <LandingFaq />
+          <LandingCTA />
+          {showDevPanel ? (
+            <DevNavPanel
+              userName={user?.name}
+              isAdmin={user?.role === 'admin'}
+              canvasProjectId={canvasProjectId}
+            />
+          ) : null}
+        </main>
+        <LandingFooter />
+      </div>
+    </LandingMotion>
   );
 }

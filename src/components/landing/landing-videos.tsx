@@ -9,20 +9,29 @@ import { Reveal } from './landing-reveal';
 import { AtlasPhoto, ExampleBadge, SectionIntro } from './landing-ui';
 import styles from './landing.module.css';
 
-function FrameLoop({ frames, cotas }: { frames: PhotoKey[]; cotas?: string[] }) {
+function FrameLoop({ frames }: { frames: PhotoKey[] }) {
   return (
     <>
       {frames.map((key, index) => (
         <div key={key} className={`absolute inset-0 ${styles.frame}`} style={{ animationDelay: `${index * 4}s` }}>
           <AtlasPhoto photo={PHOTOS[key]} decorative className="size-full" />
-          {cotas?.[index] ? (
-            <span className="absolute top-1/2 left-1/2 flex -translate-x-1/2 items-center gap-2 font-mono text-xs text-white drop-shadow sm:text-sm">
-              <span className="h-px w-10 bg-white sm:w-20" />{cotas[index]}<span className="h-px w-10 bg-white sm:w-20" />
-            </span>
-          ) : null}
         </div>
       ))}
     </>
+  );
+}
+
+/** Panel fijo con las medidas globales del diseño aprobado, como el del montaje real. */
+function GlobalDimensions() {
+  return (
+    <dl className="absolute bottom-20 left-5 grid grid-cols-3 gap-x-4 rounded-xl bg-black/55 px-4 py-2.5 font-mono text-[0.7rem] text-white backdrop-blur sm:text-xs">
+      {[['Ancho', '14,20 m'], ['Fondo', '9,60 m'], ['Alto', '6,40 m']].map(([label, value]) => (
+        <div key={label}>
+          <dt className="text-white/60">{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -39,7 +48,7 @@ function PlayerChrome({ label }: { label: string }) {
   );
 }
 
-const WALK = ['Recibidor', 'Salón', 'Comedor', 'Cocina', 'Dormitorio', 'Terraza'];
+const WALK = ['Recibidor', 'Salón', 'Comedor', 'Cocina', 'Pasillo', 'Dormitorio'];
 
 export function LandingVideos() {
   return (
@@ -58,14 +67,15 @@ export function LandingVideos() {
         <div className="mt-14 grid gap-5 lg:grid-cols-[2.2fr_1fr]">
           <Reveal className="flex min-w-0 flex-col gap-4">
             <div aria-label="Simulación de un montaje publicitario horizontal" role="img" className="relative aspect-video overflow-hidden rounded-[1.5rem] ring-1 ring-white/10">
-              <FrameLoop frames={['salon', 'cocina', 'comedor', 'exterior']} cotas={['5,20 m', '4,00 m', '3,40 m', '']} />
+              <FrameLoop frames={['salon', 'cocina', 'comedor', 'exterior']} />
+              <GlobalDimensions />
               <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/55 to-transparent" />
               <span className="font-display absolute top-12 left-5 text-2xl sm:top-5 font-medium text-white drop-shadow sm:text-4xl">Casa de campo en Teruel</span>
               <PlayerChrome label="16:9" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Montaje publicitario 16:9 o 9:16</h3>
-              <p className="mt-1 text-white/65">Con las medidas del diseño sobreimpresas si quieres.</p>
+              <p className="mt-1 text-white/65">Con un panel de medidas globales del diseño (ancho, fondo y alto), si quieres.</p>
             </div>
           </Reveal>
           <Reveal delay={0.1} className="flex flex-col gap-4">
@@ -83,14 +93,16 @@ export function LandingVideos() {
               <h3 className="min-w-0 text-xl font-semibold">Paseo en primera persona</h3>
               <span className="font-display text-brand-100 ml-auto shrink-0 text-3xl whitespace-nowrap italic">60 s</span>
             </div>
-            <p className="mt-2 text-white/65">Un recorrido continuo de hasta un minuto por todo el inmueble, estancia a estancia.</p>
+            <p className="mt-2 text-white/65">Un paseo rápido de hasta 60 s por las zonas de una planta, generado por tramos desde tus diseños aceptados. Revisas cada tramo antes de componer el vídeo.</p>
             <div className="relative mt-8" aria-hidden="true">
               <div className="flex gap-1">
                 {WALK.map((room) => (
                   <span key={room} className="min-w-0 flex-1 truncate rounded-md bg-white/10 px-1 sm:px-2 py-2 text-center text-[0.7rem] text-white/75 sm:text-xs">{room}</span>
                 ))}
               </div>
-              <span className={`bg-brand-500 absolute -top-2 -bottom-2 w-0.5 rounded-full shadow-[0_0_14px_2px_var(--color-brand-500)] ${styles.playhead}`} />
+              <span className={`absolute inset-x-0 -top-2 -bottom-2 ${styles.playhead}`}>
+                <span className="bg-brand-500 block h-full w-0.5 rounded-full shadow-[0_0_14px_2px_var(--color-brand-500)]" />
+              </span>
               <div className="mt-3 flex justify-between font-mono text-[0.7rem] text-white/45"><span>0:00</span><span>0:30</span><span>1:00</span></div>
             </div>
           </Reveal>

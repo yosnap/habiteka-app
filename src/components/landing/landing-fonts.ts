@@ -3,7 +3,7 @@ import { Fraunces } from 'next/font/google';
 
 export const displayFont = Fraunces({
   variable: '--font-fraunces',
-  subsets: ['latin', 'latin-ext', 'vietnamese'],
+  subsets: ['latin'],
   style: ['normal', 'italic'],
   display: 'swap',
 });

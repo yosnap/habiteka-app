@@ -4,7 +4,7 @@
  * estancia muestra su diseño. Las estancias también se eligen con botones reales
  * para teclado y lectores de pantalla.
  */
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,6 @@ function openingRect({ x, y, width, axis, along }: Door) {
 
 export function PlanDemo() {
   const [selectedId, setSelectedId] = useState('salon');
-  const reduced = useReducedMotion();
   const selected = DEMO_ROOMS.find((room) => room.id === selectedId) ?? DEMO_ROOMS[0]!;
 
   return (
@@ -69,7 +68,7 @@ export function PlanDemo() {
                   className={cn('stroke-white/80 transition-[fill] duration-300', active ? 'fill-[oklch(0.62_0.16_40/0.35)]' : 'fill-white/[0.02] hover:fill-white/10')}
                   strokeWidth={6} />
                 <text x={x + w / 2} y={y + h / 2 - 4} textAnchor="middle" className={cn('text-[17px] font-semibold', active ? 'fill-white' : 'fill-white/75')}>{room.name}</text>
-                {h > 100 ? <text x={x + w / 2} y={y + h / 2 + 18} textAnchor="middle" className="fill-white/45 font-mono text-[12px]">{room.size}</text> : null}
+                {h > 100 ? <text x={x + w / 2} y={y + h / 2 + 18} textAnchor="middle" className="fill-white/45 font-mono text-[12px] max-sm:hidden">{room.size}</text> : null}
               </g>
             );
           })}
@@ -110,10 +109,10 @@ export function PlanDemo() {
           <motion.div
             key={selected.id}
             className="absolute inset-0"
-            initial={{ opacity: 0, scale: reduced ? 1 : 1.06 }}
+            initial={{ opacity: 0, scale: 1.06 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduced ? 0.15 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             <AtlasPhoto photo={PHOTOS[selected.photo]} className="size-full" />
           </motion.div>

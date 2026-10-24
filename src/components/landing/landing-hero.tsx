@@ -5,9 +5,12 @@
 import { FileImage, FileText, PenLine, Ruler } from 'lucide-react';
 import { HeroPlanReveal } from './hero-plan-reveal';
 import { HeroTitle } from './hero-title';
-import { Reveal } from './landing-reveal';
 import { CtaLink } from './landing-ui';
+import hero from './hero.module.css';
 import styles from './landing.module.css';
+
+// El hero no usa `Reveal`: su contenido se pinta sin esperar a la hidratación.
+const appear = (delay: number, className = '') => ({ className: `${hero.fadeUp} ${className}`, style: { animationDelay: `${delay}s` } });
 
 const FORMATS = [
   { label: 'Foto', icon: FileImage },
@@ -25,24 +28,24 @@ export function LandingHero() {
 
       <div className="mx-auto grid w-full max-w-7xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:gap-12 lg:pt-24 lg:pb-28">
         <div className="flex flex-col items-start gap-7">
-          <Reveal y={12}>
+          <div {...appear(0)}>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3.5 py-1.5 text-xs font-medium text-white/80 ring-1 ring-white/15">
               <span className="bg-brand-500 size-1.5 rounded-full" aria-hidden="true" />
               Plano · Diseño con IA · Vídeo
             </span>
-          </Reveal>
+          </div>
           <HeroTitle />
-          <Reveal delay={0.45}>
+          <div {...appear(0.45)}>
             <p className="max-w-xl text-lg leading-relaxed text-pretty text-white/70 sm:text-xl">
               Sube el plano de tu vivienda, complétalo en 2D y 3D y genera diseños fotorrealistas
               que respetan su distribución. Después, preséntalo con imágenes y vídeos.
             </p>
-          </Reveal>
-          <Reveal delay={0.55} className="flex flex-wrap items-center gap-3">
+          </div>
+          <div {...appear(0.55, 'flex flex-wrap items-center gap-3')}>
             <CtaLink href="/registro" arrow>Crear cuenta</CtaLink>
             <CtaLink href="#demo" variant="light">Probar la demo</CtaLink>
-          </Reveal>
-          <Reveal delay={0.65} className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/55">
+          </div>
+          <div {...appear(0.65, 'flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/55')}>
             <span>Empieza con:</span>
             {FORMATS.map(({ label, icon: Icon }) => (
               <span key={label} className="inline-flex items-center gap-1.5 text-white/80">
@@ -50,11 +53,11 @@ export function LandingHero() {
                 {label}
               </span>
             ))}
-          </Reveal>
+          </div>
         </div>
-        <Reveal delay={0.3} y={40}>
+        <div {...appear(0.3)}>
           <HeroPlanReveal />
-        </Reveal>
+        </div>
       </div>
     </section>
   );

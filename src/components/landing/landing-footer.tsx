@@ -22,14 +22,14 @@ export function LandingFooter() {
           </div>
           <div className="grid grid-cols-2 gap-10 text-sm">
             <nav aria-label="Producto" className="flex flex-col gap-3">
-              <span className="text-xs font-semibold tracking-[0.18em] text-white/40 uppercase">Producto</span>
+              <span className="text-xs font-semibold tracking-[0.18em] text-white/55 uppercase">Producto</span>
               <a href="#como-funciona" className={link}>Cómo funciona</a>
               <a href="#funciones" className={link}>Funciones</a>
               <a href="#videos" className={link}>Vídeos</a>
               <a href="#ejemplos" className={link}>Ejemplos</a>
             </nav>
             <nav aria-label="Ayuda y cuenta" className="flex flex-col gap-3">
-              <span className="text-xs font-semibold tracking-[0.18em] text-white/40 uppercase">Ayuda</span>
+              <span className="text-xs font-semibold tracking-[0.18em] text-white/55 uppercase">Ayuda</span>
               <a href={DOCS_URL} className={link}>Guía de usuario</a>
               <Link href="/registro" className={link}>Crear cuenta</Link>
               <Link href="/acceder" className={link}>Acceder</Link>
@@ -43,7 +43,7 @@ export function LandingFooter() {
           home son ejemplos ilustrativos. Antes de ejecutar una reforma, valida las propuestas con un
           profesional cualificado que firme el proyecto técnico.
         </p>
-        <p className="mt-8 text-xs text-white/40">© {new Date().getFullYear()} Habiteka</p>
+        <p className="mt-8 text-xs text-white/55">© {new Date().getFullYear()} Habiteka</p>
       </div>
     </footer>
   );

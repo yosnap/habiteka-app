@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { CATEGORIES_ATLAS, PHOTOS } from './landing-examples';
 import { LandingModel3d } from './landing-model-3d';
 import { Reveal } from './landing-reveal';
-import { AtlasPhoto, SectionIntro } from './landing-ui';
+import { AtlasPhoto, ExampleBadge, SectionIntro } from './landing-ui';
 import styles from './landing.module.css';
 
 function Card({ title, body, children, className, delay = 0, media }: {
@@ -91,13 +91,14 @@ export function LandingBento() {
             media={
               <AtlasPhoto photo={PHOTOS.iluminacion} className="relative aspect-[3/2]">
                 <span aria-hidden="true" className={`absolute top-[12%] left-[38%] h-[46%] w-[30%] rounded-xl border-2 border-dashed border-white bg-white/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] ${styles.selection}`} />
+                <ExampleBadge className="absolute top-3 right-3" />
               </AtlasPhoto>
             } />
           <Card
             className="sm:col-span-2"
             title="Tu casa en su parcela real"
             body="Sobre la ortofoto oficial IGN/PNOA, con escala, giro, norte y sol. Tapa la casa actual para ver el antes y el después."
-            media={<AtlasPhoto photo={PHOTOS.exterior} className="relative aspect-[5/3] sm:aspect-[16/7]"><SunOverlay /></AtlasPhoto>}
+            media={<AtlasPhoto photo={PHOTOS.exterior} className="relative aspect-[5/3] sm:aspect-[16/7]"><SunOverlay /><ExampleBadge className="absolute top-3 right-3" /></AtlasPhoto>}
           />
           <Card delay={0.05} title="Importa el plano que tengas" body="Lectura revisada y cotas por estancia editables antes de pasar al editor.">
             <ul className="mt-3 grid grid-cols-2 gap-2">
@@ -111,7 +112,7 @@ export function LandingBento() {
           <Card delay={0.1} title="Tus proyectos, portables" body="Exporta el proyecto completo en un archivo .habiteka e impórtalo en otra cuenta.">
             <div className="bg-night mt-3 flex items-center gap-3 rounded-xl px-4 py-3 font-mono text-sm text-white">
               <FileDown className="text-brand-100 size-5 shrink-0" aria-hidden="true" />
-              <span className="truncate">casa-teruel.habiteka</span>
+              <span className="truncate">mi-casa.habiteka</span>
             </div>
           </Card>
         </div>

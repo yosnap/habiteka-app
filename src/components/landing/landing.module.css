@@ -76,9 +76,10 @@
   animation: playhead 12s linear infinite;
 }
 
+/* El cabezal se mueve con `transform` sobre una capa de ancho completo (sin layout por frame). */
 @keyframes playhead {
-  from { left: 0%; }
-  to { left: 100%; }
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
 }
 
 .float {
@@ -103,5 +104,5 @@
   .glow, .marquee, .progress, .playhead, .float, .selection { animation: none; }
   .frame { animation: none; opacity: 0; }
   .frame:first-child { opacity: 1; }
-  .playhead { left: 35%; }
+  .playhead { transform: translateX(35%); }
 }
