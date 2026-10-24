@@ -1,0 +1,76 @@
+/*
+ * Animaciones del hero en CSS puro: se pintan antes de que cargue JavaScript (el
+ * titular nunca depende de la hidratación) y el servidor y el cliente producen el
+ * mismo HTML. Con movimiento reducido todo queda quieto y se ve la foto final.
+ */
+
+/* Titular y textos: suben y aparecen escalonados con `animation-delay`. */
+.rise {
+  display: block;
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from { transform: translateY(110%); }
+  to { transform: translateY(0); }
+}
+
+.fadeUp {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bucle de 9 s: el plano se dibuja, un barrido lo convierte en foto y vuelve a empezar. */
+.draw {
+  stroke-dasharray: 1;
+  animation: draw 9s ease-in-out infinite;
+}
+
+@keyframes draw {
+  0% { stroke-dashoffset: 1; opacity: 1; }
+  30% { stroke-dashoffset: 0; opacity: 1; }
+  90% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.labels {
+  animation: labels 9s ease-in-out infinite;
+}
+
+@keyframes labels {
+  0%, 20% { opacity: 0; }
+  30%, 90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.photo {
+  animation: photo 9s ease-in-out infinite;
+}
+
+@keyframes photo {
+  0%, 42% { clip-path: inset(0 100% 0 0); }
+  60%, 88% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 100%); }
+}
+
+/* La línea de luz viaja con `transform` (sin recalcular el layout en cada frame). */
+.sweep {
+  animation: sweep 9s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0%, 42% { transform: translateX(0); opacity: 0; }
+  43% { opacity: 1; }
+  60% { transform: translateX(100%); opacity: 1; }
+  62%, 100% { transform: translateX(100%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .fadeUp { animation: none; }
+  .draw, .labels, .sweep { animation: none; opacity: 0; }
+  .photo { animation: none; clip-path: none; }
+}
