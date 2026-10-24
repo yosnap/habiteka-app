@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { Color } from 'three';
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { workspaceNameLabels } from '@/canvas/editor-v2/workspace-name-labels';
@@ -57,7 +57,7 @@ export function SceneWorkspaceOverlays({
       )}
       {options.names &&
         labels.map((label) => (
-          <Html
+          <SceneHtml
             key={label.id}
             zIndexRange={[1, 0]}
             position={[label.x / 1000, y + 0.12, label.y / 1000]}
@@ -65,26 +65,26 @@ export function SceneWorkspaceOverlays({
             style={nameLabelCss(options.nameStyle)}
           >
             {label.text}
-          </Html>
+          </SceneHtml>
         ))}
       {options.dimensions && (
         <>
-          <Html
+          <SceneHtml
             zIndexRange={[1, 0]}
             position={[x, y + 0.05, minZ / 1000 - 0.6]}
             center
             style={badge}
           >
             {sceneLength(maxX - minX, options.units)}
-          </Html>
-          <Html
+          </SceneHtml>
+          <SceneHtml
             zIndexRange={[1, 0]}
             position={[maxX / 1000 + 0.6, y + 0.05, z]}
             center
             style={badge}
           >
             {sceneLength(maxZ - minZ, options.units)}
-          </Html>
+          </SceneHtml>
         </>
       )}
     </group>

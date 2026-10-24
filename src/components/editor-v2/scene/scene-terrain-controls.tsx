@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, type PointerEvent } from 'react';
-import { Html, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { useThree } from '@react-three/fiber';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -90,7 +91,7 @@ export function SceneTerrainControls({ store, source, preview, movePreview, elev
       color="#087f75" lineWidth={2} depthTest={false} raycast={() => undefined} />
     {guides.map((guide, index) => <Line key={index} points={[position(guide.from.x, guide.from.y), position(guide.to.x, guide.to.y)]}
       color="#087f75" lineWidth={1} dashed dashSize={.1} gapSize={.05} depthTest={false} raycast={() => undefined} />)}
-    {[...TERRAIN_HANDLES, [.5, .5] as const].map(([hx, hy], index) => <Html key={index} center zIndexRange={[3, 2]}
+    {[...TERRAIN_HANDLES, [.5, .5] as const].map(([hx, hy], index) => <SceneHtml key={index} center zIndexRange={[3, 2]}
       position={position(current.x + hx * current.widthMm, current.y + hy * current.depthMm)}>
       <button type="button" aria-label={index === 8 ? 'Mover superficie' : `Redimensionar superficie: tirador ${index + 1}`}
         style={{ display: 'grid', placeItems: 'center', width: index === 8 ? 28 : 14, height: index === 8 ? 28 : 14, minWidth: 0, minHeight: 0,
@@ -100,6 +101,6 @@ export function SceneTerrainControls({ store, source, preview, movePreview, elev
         onLostPointerCapture={event => end(event.nativeEvent, false)}>
         {index === 8 ? '✥' : null}
       </button>
-    </Html>)}
+    </SceneHtml>)}
   </group>;
 }

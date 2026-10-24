@@ -1,6 +1,7 @@
 'use client';
 import { Component, Suspense, useEffect, useMemo, type ReactNode } from 'react';
-import { Edges, Html, useGLTF } from '@react-three/drei';
+import { Edges, useGLTF } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { useThree } from '@react-three/fiber';
 import type { Furniture } from '@/lib/editor-document/schema';
 import { furnitureModel, modelTint } from '@/lib/editor-document/furniture-models';
@@ -43,11 +44,11 @@ export function FurnitureModel({ item, boxes, selected, onSelect }: {
   const asset = furnitureModel(item)!, spatial = furnitureSpatial(item), center = objectCenter(item);
   const fallback = (failed: boolean) => <group userData={{ modelLoadState: failed ? 'failed' : 'loading' }}>
     {boxes.map((box) => <BoxMesh key={box.id} box={box} selected={selected} onSelect={onSelect} />)}
-    <Html center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
+    <SceneHtml center position={[center.x / 1000, (spatial.elevationMm + spatial.heightMm) / 1000 + .1, center.y / 1000]}>
       <span role={failed ? 'alert' : 'status'} style={{ background: '#fff', color: '#36443d', padding: 4, fontSize: 11, whiteSpace: 'nowrap' }}>
         {failed ? 'Modelo no disponible · volumen simplificado' : 'Cargando modelo 3D…'}
       </span>
-    </Html>
+    </SceneHtml>
   </group>;
   return <ModelBoundary key={asset.url} fallback={fallback(true)}>
     <Suspense fallback={fallback(false)}><LoadedModel item={item} selected={selected} onSelect={onSelect} />

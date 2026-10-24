@@ -13,7 +13,8 @@ import { Canvas, type RootState } from '@react-three/fiber';
 import { scenePointerEvents } from './scene-pointer-events';
 import { flushSync } from 'react-dom';
 import type { CaptureRenderView, RenderCapture } from '@/lib/editor-document/render-view';
-import { Bounds, Edges, Html } from '@react-three/drei';
+import { Bounds, Edges } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { Color, Vector3, PerspectiveCamera } from 'three';
 import { cameraPoseSchema } from '@/lib/contracts/walkthrough-keyframe';
 import { commentAnchor } from '@/lib/editor-document/comment-anchor';
@@ -804,17 +805,17 @@ function SceneView({
       </Bounds>
       {presentation === 'plan' && <SceneTerrainControls store={store} source={document} preview={terrainPreview}
         movePreview={planPreview} elevation={planElevationM} onPreview={setTerrainPreview} />}
-      {presentation === 'plan' && (workViewDisabled || sceneOptions.names) && workspaceNameLabels(document, workViewDisabled ? [] : hiddenNameIds).map((label) => <Html key={label.id}
+      {presentation === 'plan' && (workViewDisabled || sceneOptions.names) && workspaceNameLabels(document, workViewDisabled ? [] : hiddenNameIds).map((label) => <SceneHtml key={label.id}
         position={[label.x / 1000, planElevationM + .04, label.y / 1000]} center
         zIndexRange={[1, 0]} style={nameLabelCss(sceneOptions.nameStyle)}>
         {label.text}
-      </Html>)}
+      </SceneHtml>)}
       {[...new Set(document.comments?.map((c) => c.targetEntityId) ?? [])].map((id) => {
         const comments = document.comments!.filter((c) => c.targetEntityId === id), p = commentAnchor(document, comments[0]!);
-        return p && <Html key={id} position={[p.x / 1000, (p.elevationMm + activeElevation) / 1000 + .15, p.y / 1000]} center>
+        return p && <SceneHtml key={id} position={[p.x / 1000, (p.elevationMm + activeElevation) / 1000 + .15, p.y / 1000]} center>
           <button type="button" aria-label={`Ver ${comments.length} comentarios del elemento`} style={{ background: '#087f75', color: 'white', borderRadius: 20, padding: '4px 10px' }}
             onClick={(e) => { e.stopPropagation(); select(id); store.getState().setDetailPanel('comments'); }}>{comments.length}</button>
-        </Html>;
+        </SceneHtml>;
       })}
     </Canvas>
     {!recording && !videoStudio && <PropertyCompassOverlay document={document} />}

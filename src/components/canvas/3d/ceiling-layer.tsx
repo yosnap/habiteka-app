@@ -13,7 +13,7 @@ import { captureCanvasPointer, releaseCanvasPointer, setCanvasCursor, setControl
  *   - pendant_lamp  → esfera colgante + cable desde el techo (lámpara colgante).
  */
 import { memo, useCallback, useEffect, useRef } from 'react';
-import { Html } from '@react-three/drei';
+import { SceneHtml } from '@/lib/scene-html';
 import { useThree } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
@@ -95,7 +95,7 @@ function CeilingSelectionOverlay({
         <boxGeometry args={[w + 0.04, h + 0.04, d + 0.04]} />
         <meshBasicMaterial color="#2196f3" wireframe />
       </mesh>
-      <Html
+      <SceneHtml
         center
         position={[0, -(h / 2 + 0.3), 0]}
         zIndexRange={[100, 0]}
@@ -109,7 +109,7 @@ function CeilingSelectionOverlay({
           onDelete={() => { removeObject(item.id); onDeselect(); }}
           onClose={onDeselect}
         />
-      </Html>
+      </SceneHtml>
     </>
   );
 }
