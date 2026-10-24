@@ -659,7 +659,7 @@ async function estimateConceptRenderFromEditorImpl(
   await assertProjectInOrg(ctx, projectId);
   if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > MAX_RENDER_PASSES)
     fail(`El número de generaciones debe ser un entero entre 1 y ${MAX_RENDER_PASSES}.`);
-  const route = (await resolveRoutes('render3d'))[0];
+  const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
   if (!route) fail('No hay modelo de render configurado.');
   const price = allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
   if (price === undefined || !Number.isFinite(price) || price < 0)

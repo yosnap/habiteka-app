@@ -72,7 +72,7 @@ describe('model-routing (allowlist + límite de respaldos)', () => {
       data: { action: 'chat', primaryModel: 'p', fallbacks: ['a', 'b', 'c', 'd', 'e'] },
     });
     invalidate();
-    const route = await resolveRoute('chat');
+    const route = await resolveRoute('chat', 'org-sin-eleccion');
     expect(route.fallbacks.length).toBeLessThanOrEqual(MAX_FALLBACKS);
   });
 
@@ -87,7 +87,7 @@ describe('model-routing (allowlist + límite de respaldos)', () => {
       },
     });
     invalidate();
-    const route = await resolveRoute('chat');
+    const route = await resolveRoute('chat', 'org-sin-eleccion');
     expect(route.baseURL).toBeNull();
   });
 });

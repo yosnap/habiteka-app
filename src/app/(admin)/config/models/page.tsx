@@ -17,9 +17,12 @@ import { ModelConfigForm } from '@/components/admin/model-config-form';
 import { allowedModels, PRICE_CEILING } from '@/server/admin/config/model-allowlist';
 import { MODEL_PROFILES } from '@/server/admin/config/model-profiles';
 import type { ModelAction } from '@/generated/prisma/enums';
+import { modelAdoption } from '@/server/admin/config/model-adoption';
+import { MODEL_USE_GUIDE } from '@/lib/ai-model-guide';
 
 export default async function ModelsPage() {
   const [configs, kie, nan, openAi, openRouter, typesafe, customProfiles, customProviders, builtInModels] = await Promise.all([adminListModelConfig(), adminGetKieProviderStatus(), adminGetNanProviderStatus(), adminGetOpenAiProviderStatus(), adminGetOpenRouterProviderStatus(), adminGetTypesafeProviderStatus(), adminListCustomModelProfiles(), adminListCustomProviders(), adminListBuiltInModelProviders(), loadCustomRegistry()]);
+  const adoption = await modelAdoption();
   const actions: ModelAction[] = ['vision', 'chat', 'plano2d', 'render3d', 'inpaint', 'memoria'];
   const savedByAction = new Map(configs.map((config) => [config.action, config]));
   const options = Object.fromEntries(actions.map((action) => {
@@ -31,7 +34,10 @@ export default async function ModelsPage() {
   const initial = Object.fromEntries(configs.map((config) => [config.action, { primaryModel: config.primaryModel, provider: config.provider ?? 'openrouter', enabled: config.enabled, backups: config.backups }])) as Partial<Record<ModelAction, { primaryModel: string; provider: string; enabled: boolean; backups: { model: string; provider: string }[] }>>;
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold tracking-tight">Modelos de IA por acción</h1>
+      <header>
+        <h1 className="text-ink text-xl font-semibold tracking-tight">Proveedores y modelos de IA</h1>
+        <p className="text-ink-soft mt-1 max-w-3xl text-sm">Aquí decides qué modelos ofrece Habiteka y cuál recomienda para cada uso. Cada organización genera con sus propias claves y puede elegir sus modelos en <strong>Mi perfil › Modelos de IA</strong>. Las claves de esta página son las de la plataforma: solo las usan este panel, Jev y tu cuenta admin.</p>
+      </header>
       <AiConfigurationTabs
         providerSettings={<div className="grid gap-4 lg:grid-cols-4">
           <OpenRouterProviderForm configured={openRouter.configured} enabled={openRouter.enabled} keyHint={openRouter.keyHint} />
@@ -41,7 +47,18 @@ export default async function ModelsPage() {
           <div className="lg:col-span-4"><BuiltInModelsPanel providers={builtInModels} ceilings={PRICE_CEILING} /></div>
           <div className="lg:col-span-4"><CustomProvidersPanel providers={customProviders} ceilings={PRICE_CEILING} /></div>
         </div>}
-        modelMapping={<><ModelConfigForm actions={actions} options={options} initial={initial} profiles={[...Object.values(MODEL_PROFILES), ...customProfiles]}
+        modelMapping={<><div className="border-line bg-muted/30 mb-4 rounded-card border p-4">
+          <p className="text-ink text-sm font-medium">Qué afecta a los usuarios</p>
+          <p className="text-ink-soft mt-1 text-sm">La recomendación se aplica a cada organización mientras no elija sus propios modelos para ese uso. Si cambias un modelo recomendado, solo lo notan las organizaciones que no lo han personalizado; si retiras un modelo del catálogo, quien lo usaba vuelve a la recomendación.</p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {MODEL_USE_GUIDE.map((use) => (
+              <li key={use.action} className="bg-surface border-line rounded-control border px-3 py-2 text-sm">
+                <span className="text-ink font-medium">{use.label}</span>
+                <span className="text-ink-soft block text-xs">{adoption.customized[use.action] ?? 0} de {adoption.organizations} organizaciones con modelos propios</span>
+              </li>
+            ))}
+          </ul>
+        </div><ModelConfigForm actions={actions} options={options} initial={initial} profiles={[...Object.values(MODEL_PROFILES), ...customProfiles]}
           customProviders={customProviders.filter((provider) => provider.saved).map(({ id, label }) => ({ id, label }))} customActions={CUSTOM_MODEL_ACTIONS} />
       <table className="w-full text-sm">
         <thead className="text-muted-foreground text-left">

@@ -33,7 +33,7 @@ export async function savePropertyVisit(rawScope: EditorScope, rawInput: z.input
     throw new Error('Elige una cenital aceptada y un exterior con tejado aceptado, de esta versión y luz.');
   const scene = propertyVisitDocument(sources.approved.document, input.openDoors);
   const plan = planPropertyVisit(scene.document, input.entryId), sequence = propertyVisitSequence(plan);
-  const route = (await resolveRoutes('render3d'))[0];
+  const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
   const price = route && allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
   if (!route || price === undefined || !Number.isFinite(price) || price < 0) throw new Error('Falta un precio conocido para las imágenes.');
   const job: PropertyVisitJob = { type: 'video', mode: 'property-visit-ai', title: 'Paseo completo del inmueble',

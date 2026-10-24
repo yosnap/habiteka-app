@@ -43,7 +43,7 @@ describe('bloqueo de la generación sin clave de la organización', () => {
     const error = await (await getChatVisionAdapter(ctx, 'chat')).chat(request).catch((caught) => caught);
     expect(error).toBeInstanceOf(AiError);
     expect(error.kind).toBe('missing_key');
-    expect(error.message).toBe('Para usar esta función, tu organización necesita su propia clave de OpenRouter o OpenAI. Añádela en Ajustes › Claves de IA (/ajustes/claves-ia).');
+    expect(error.message).toBe('Para usar esta función, tu organización necesita su propia clave de OpenRouter o OpenAI. Añádela en Mi perfil › Claves de IA (/perfil/claves-ia).');
     expect(fixture.chat).not.toHaveBeenCalled();
   });
 
@@ -57,7 +57,7 @@ describe('bloqueo de la generación sin clave de la organización', () => {
     fixture.routes = [{ provider: 'kie', model: 'nano-banana', baseURL: null, fallbacks: [] }];
     fixture.key.mockImplementation(async (_scope, provider: string) => { throw missing(provider); });
     const image = await getImageAdapterForAction(ctx, 'render3d');
-    await expect(image.generate({ prompt: 'salón' } as never)).rejects.toMatchObject({ kind: 'missing_key', message: expect.stringMatching(/clave de KIE.*Ajustes › Claves de IA/) });
+    await expect(image.generate({ prompt: 'salón' } as never)).rejects.toMatchObject({ kind: 'missing_key', message: expect.stringMatching(/clave de KIE.*Mi perfil › Claves de IA/) });
   });
 
   it('un fallo real del proveedor sigue mostrándose tal cual', async () => {

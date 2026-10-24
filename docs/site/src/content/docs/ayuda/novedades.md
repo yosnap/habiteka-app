@@ -3,9 +3,17 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Mi perfil y modelos por organización — 24 de octubre de 2026
+
+**Mi perfil:** nuevo acceso en la cabecera con cinco secciones: **Resumen** (claves, modelos elegidos, uso de IA de los últimos 30 días, proyectos y créditos, con los pasos pendientes para generar), **Datos personales** (nombre y contraseña), **Organización** (nombre y miembros), **Claves de IA** (que pasan de `/ajustes/claves-ia` a `/perfil/claves-ia`) y **Modelos de IA**. [Guía de uso](/guias/mi-perfil/).
+
+**Cada organización elige sus modelos:** en **Modelos de IA** eliges el modelo principal y hasta tres respaldos para el asistente, el análisis visual, la interpretación de planos, la memoria, las imágenes y los retoques. Cada función explica qué conviene y muestra el recomendado por Habiteka, el precio y si tienes la clave de su proveedor. Mientras no elijas, se usa el recomendado. Si Habiteka cambia la recomendación, solo afecta a las funciones que no has personalizado.
+
+**Administración:** navegación agrupada (Personas, Inteligencia artificial y Plataforma), accesos a la aplicación y a Mi perfil, y la pestaña **Modelos por uso** pasa a llamarse **Modelos recomendados**, con cuántas organizaciones han elegido sus propios modelos en cada uso.
+
 ## Claves de IA propias — 24 de octubre de 2026
 
-**Claves de IA de tu organización:** Habiteka genera ahora con las claves de tu propia organización, no con las de la plataforma. Cada uso lo cobra tu proveedor directamente en tu cuenta. En **Claves de IA**, en la cabecera, puedes añadir, probar sin gastar y borrar las claves de OpenRouter, KIE, OpenAI, NaN y los proveedores compatibles disponibles. Solo el propietario o un administrador de la organización las cambia. Si a una función le falta la clave de su proveedor, se bloquea con un aviso que dice qué clave añadir. Si tienes la de un modelo de respaldo, se usa ese. [Guía de uso](/guias/claves-ia/).
+**Claves de IA de tu organización:** Habiteka genera ahora con las claves de tu propia organización, no con las de la plataforma. Cada uso lo cobra tu proveedor directamente en tu cuenta. En **Mi perfil › Claves de IA** puedes añadir, probar sin gastar y borrar las claves de OpenRouter, KIE, OpenAI, NaN y los proveedores compatibles disponibles. Solo el propietario o un administrador de la organización las cambia. Si a una función le falta la clave de su proveedor, se bloquea con un aviso que dice qué clave añadir. Si tienes la de un modelo de respaldo, se usa ese. [Guía de uso](/guias/claves-ia/).
 
 ## Nueva página de inicio — 24 de octubre de 2026
 

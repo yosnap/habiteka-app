@@ -1,15 +1,14 @@
 'use client';
 
 /**
- * Cabecera del área autenticada: marca, saldo de créditos y menú de cuenta.
+ * Cabecera del área autenticada: marca, saldo de créditos, acceso a «Mi perfil» y cierre de sesión.
  * Recibe sesión y saldo del layout de servidor; adapta la densidad al espacio
  * de trabajo del proyecto. Los permisos se validan siempre en el servidor.
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House } from 'lucide-react';
+import { House, UserRound } from 'lucide-react';
 import { SignOutButton } from './sign-out-button';
-import { AI_KEYS_SETTINGS_PATH } from '@/lib/ai-keys-settings';
 
 interface Props {
   userName?: string;
@@ -27,9 +26,6 @@ export function AppHeader({ userName, balance, isAdmin }: Props) {
           <span className="grid size-7 place-items-center rounded-lg bg-brand-50 text-brand-700"><House size={16} /></span>Habiteka
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
-          <Link href={AI_KEYS_SETTINGS_PATH} className="text-ink-soft hover:text-ink">
-            Claves de IA
-          </Link>
           <Link href="/ayuda" className="text-ink-soft hover:text-ink">
             Ayuda
           </Link>
@@ -44,7 +40,11 @@ export function AppHeader({ userName, balance, isAdmin }: Props) {
           >
             {balance} créditos
           </span>
-          {userName ? <span className="text-ink-soft hidden sm:inline">{userName}</span> : null}
+          <Link href="/perfil" className="text-ink-soft hover:text-ink inline-flex items-center gap-1.5" title="Mi perfil: datos, organización, claves y modelos de IA">
+            <UserRound size={14} aria-hidden />
+            <span>Mi perfil</span>
+            {userName ? <span className="text-ink hidden font-medium sm:inline">· {userName}</span> : null}
+          </Link>
           <SignOutButton />
         </div>
       </div>

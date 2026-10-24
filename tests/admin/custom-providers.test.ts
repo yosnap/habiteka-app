@@ -37,7 +37,7 @@ describe('modelos de OpenRouter, NaN y OpenAI habilitados desde el panel', () =>
     await loadCustomRegistry();
     expect(allowedModels('vision')).toContainEqual(expect.objectContaining({ id: 'qwen/qwen3-vl-235b', provider: 'openrouter', label: 'Qwen3 VL' }));
     await replaceModelConfigs(ADMIN, [{ action: 'vision', primaryModel: 'gpt-5.2', provider: 'openai', enabled: true, backups: [{ model: 'qwen/qwen3-vl-235b', provider: 'openrouter' }] }]);
-    expect(await resolveRoutes('vision')).toEqual([
+    expect(await resolveRoutes('vision', 'org-sin-eleccion')).toEqual([
       expect.objectContaining({ provider: 'openai', model: 'gpt-5.2', baseURL: 'https://api.openai.com/v1' }),
       expect.objectContaining({ provider: 'openrouter', model: 'qwen/qwen3-vl-235b' }),
     ]);
@@ -60,7 +60,7 @@ describe('modelos de OpenRouter, NaN y OpenAI habilitados desde el panel', () =>
     await loadCustomRegistry();
     expect(allowedModels('vision')).toContainEqual(expect.objectContaining({ id: 'claude-sonnet-5', provider: 'kie', label: 'Claude Sonnet 5' }));
     await replaceModelConfigs(ADMIN, [{ action: 'vision', primaryModel: 'claude-sonnet-5', provider: 'kie', enabled: true, backups: [] }]);
-    expect(await resolveRoutes('vision')).toEqual([expect.objectContaining({ provider: 'kie', model: 'claude-sonnet-5', baseURL: 'https://api.kie.ai/claude' })]);
+    expect(await resolveRoutes('vision', 'org-sin-eleccion')).toEqual([expect.objectContaining({ provider: 'kie', model: 'claude-sonnet-5', baseURL: 'https://api.kie.ai/claude' })]);
   });
 
   it('no se habilita otra vez un modelo que ya viene incluido para ese uso', async () => {
@@ -109,7 +109,7 @@ describe('proveedores propios en el panel y en las rutas', () => {
     expect((await prisma.aiCustomProvider.findUnique({ where: { id: 'apimart' } }))?.baseUrl).toBe('https://api.apimart.ai/v1');
     await saveCustomModel(ADMIN, { providerId: 'apimart', model: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', actions: ['vision', 'chat'], priceUsdPerUnit: 3 });
     await replaceModelConfigs(ADMIN, [{ action: 'vision', primaryModel: 'claude-sonnet-4-5', provider: 'apimart', enabled: true, backups: [] }]);
-    expect(await resolveRoutes('vision')).toEqual([expect.objectContaining({ model: 'claude-sonnet-4-5', provider: 'apimart', baseURL: 'https://api.apimart.ai/v1' })]);
+    expect(await resolveRoutes('vision', 'org-sin-eleccion')).toEqual([expect.objectContaining({ model: 'claude-sonnet-4-5', provider: 'apimart', baseURL: 'https://api.apimart.ai/v1' })]);
     // En uso no se puede quitar ni el modelo ni el proveedor.
     await expect(deleteCustomModel(ADMIN, 'apimart', 'claude-sonnet-4-5')).rejects.toThrow(/vision/);
     await expect(deleteCustomProvider(ADMIN, 'apimart')).rejects.toThrow(/vision/);

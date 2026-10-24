@@ -5,7 +5,7 @@ description: Guardado, parcela, imágenes y exportación.
 
 ## Una función dice que falta una clave de IA
 
-Tu organización no tiene la clave de ningún proveedor de los modelos que usa esa función. Añade una de las que nombra el aviso en **Claves de IA** y pulsa **Probar**. Si no puedes guardarla, pide al propietario o a un administrador de la organización que la añada. [Claves de IA](/guias/claves-ia/).
+Tu organización no tiene la clave de ningún proveedor de los modelos que usa esa función. Añade una de las que nombra el aviso en **Mi perfil › Claves de IA** y pulsa **Probar**, o elige en **Mi perfil › Modelos de IA** un modelo de un proveedor del que ya tengas clave. Si no puedes guardarla, pide al propietario o a un administrador de la organización que la añada. [Claves de IA](/guias/claves-ia/).
 
 ## El editor dice que otra pestaña guardó una revisión
 

@@ -104,7 +104,7 @@ export function ModelConfigForm({ actions, options, initial, profiles, customPro
   };
 
   return <section className="flex max-w-3xl flex-col gap-4 rounded-card border border-line p-4">
-    <div><h2 className="font-medium">Modelos por uso</h2><p className="text-sm text-muted-foreground">Elige un modelo para cada capacidad. Los cambios se guardan todos juntos.</p></div>
+    <div><h2 className="font-medium">Modelos recomendados</h2><p className="text-sm text-muted-foreground">Elige el modelo recomendado para cada capacidad. Los cambios se guardan todos juntos.</p></div>
     <div className="flex flex-wrap items-end gap-3 rounded-control bg-muted/30 p-3">
       <label className="text-sm">Perfil automático<ModernSelect className="mt-1" value={profileId} onChange={(event) => setProfileId(event.target.value)}>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</ModernSelect></label>
       <Button type="button" size="sm" disabled={pending} onClick={applyProfile}>{pending ? 'Aplicando…' : 'Aplicar perfil'}</Button>

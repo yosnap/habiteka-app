@@ -111,6 +111,7 @@ model Organization {
   zones         ProjectZone[]
   catalogItems  CatalogItem[]
   aiCredentials OrganizationAiCredential[]
+  modelRoutes   OrganizationModelRoute[]
 
   @@map("organization")
 }

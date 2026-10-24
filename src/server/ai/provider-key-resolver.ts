@@ -28,7 +28,7 @@ export async function resolveProviderKey(scope: ProviderKeyScope, provider: stri
   });
   if (own) return open(own.encryptedApiKey, provider);
   if (member.user.role === 'admin') return resolvePlatformProviderKey(provider);
-  throw aiError('missing_key', `Tu organización no tiene clave de ${providerLabel(provider)}. Añádela en Ajustes › Claves de IA (${AI_KEYS_SETTINGS_PATH}).`);
+  throw aiError('missing_key', `Tu organización no tiene clave de ${providerLabel(provider)}. Añádela en Mi perfil › Claves de IA (${AI_KEYS_SETTINGS_PATH}).`);
 }
 
 export async function resolveKieKey(scope: ProviderKeyScope): Promise<string> {

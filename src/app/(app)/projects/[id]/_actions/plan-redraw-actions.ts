@@ -26,7 +26,7 @@ export async function imageGenerationQuote(projectId: string) {
   return runAction(async () => {
     const ctx = await requireOrgContext();
     await loadStudio(ctx, projectId);
-    const route = (await resolveRoutes('render3d')).find((item) => item.provider !== 'nan');
+    const route = (await resolveRoutes('render3d', ctx.organizationId)).find((item) => item.provider !== 'nan');
     const model = route && allowedModel('render3d', route.model, route.provider);
     if (!route || !model) fail('No hay un modelo de imagen configurado para generar imágenes.');
     return { provider: route.provider, model: route.model, label: model.label, priceUsd: model.priceUsdPerUnit };

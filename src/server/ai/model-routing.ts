@@ -1,5 +1,5 @@
 /**
- * Resuelve la ruta efectiva (modelo + respaldos + gateway) para una acción.
+ * Resuelve la ruta efectiva (modelo + respaldos + gateway) para una acción y una organización.
  *
  * Aplica dos invariantes de seguridad/robustez sobre lo que devuelve la config:
  *  - como mucho 3 modelos de respaldo (límite de OpenRouter);
@@ -9,6 +9,7 @@
 import type { ModelAction } from '@/generated/prisma/enums';
 import { getModelRoutes } from './model-config-loader';
 import { BUILT_IN_MODEL_PROVIDERS, customProvider, loadCustomRegistry } from './custom-ai-providers';
+import { organizationRouteTargets } from './organization-model-routes';
 
 export const MAX_FALLBACKS = 3;
 
@@ -33,8 +34,15 @@ export interface ResolvedRoute {
   fallbacks: string[];
 }
 
-export async function resolveRoutes(action: ModelAction): Promise<ResolvedRoute[]> {
-  const [routes] = await Promise.all([getModelRoutes(action), loadCustomRegistry()]);
+/**
+ * Cadena de la organización para un uso: la que eligió en su perfil o, si no eligió (o se le retiraron todos sus
+ * modelos), la recomendada en el panel de admin.
+ */
+export async function resolveRoutes(action: ModelAction, organizationId: string): Promise<ResolvedRoute[]> {
+  // El registro de proveedores propios se carga antes: la allowlist que filtra la elección lo necesita.
+  await loadCustomRegistry();
+  const [recommended, own] = await Promise.all([getModelRoutes(action), organizationRouteTargets(organizationId, action)]);
+  const routes = own.length > 0 ? own : recommended;
   return routes.slice(0, MAX_FALLBACKS + 1).map((route) => {
     const provider = resolveProvider(route.provider);
     return { model: route.model, provider, baseURL: resolveBaseURL(route.baseURL, provider), fallbacks: [] };
@@ -42,8 +50,8 @@ export async function resolveRoutes(action: ModelAction): Promise<ResolvedRoute[
 }
 
 /** @deprecated Usa resolveRoutes: preservado temporalmente para consumidores externos. */
-export async function resolveRoute(action: ModelAction): Promise<ResolvedRoute> {
-  const [route, ...backups] = await resolveRoutes(action);
+export async function resolveRoute(action: ModelAction, organizationId: string): Promise<ResolvedRoute> {
+  const [route, ...backups] = await resolveRoutes(action, organizationId);
   if (!route) throw new Error(`No hay ruta de IA para ${action}`);
   return { ...route, primaryModel: route.model, fallbacks: backups.map((backup) => backup.model) };
 }

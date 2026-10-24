@@ -21,6 +21,7 @@ export default defineConfig({
         { label: 'Tu primer proyecto', slug: 'guias/primer-proyecto' },
         { label: 'Importar un plano', slug: 'guias/importar-plano' },
         { label: 'Guardar y aprobar', slug: 'guias/guardar-aprobar' },
+        { label: 'Mi perfil', slug: 'guias/mi-perfil' },
         { label: 'Claves de IA', slug: 'guias/claves-ia' },
       ] },
       { label: 'Diseñar el inmueble', items: [

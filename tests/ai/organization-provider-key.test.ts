@@ -42,7 +42,7 @@ describe('resolución de claves por organización', () => {
     const error = await resolveKieKey(scope).catch((caught) => caught);
     expect(error).toBeInstanceOf(AiError);
     expect(error.kind).toBe('missing_key');
-    expect(error.message).toMatch(/Tu organización no tiene clave de KIE.*Ajustes › Claves de IA/);
+    expect(error.message).toMatch(/Tu organización no tiene clave de KIE.*Mi perfil › Claves de IA/);
     expect(db.platform).not.toHaveBeenCalled();
   });
 

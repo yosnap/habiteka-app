@@ -82,7 +82,7 @@ describe('model-config-ops', () => {
     await updateModelConfig(ADMIN, {
       action: 'render3d', primaryModel: 'nano-banana-2-lite', backups: [], enabled: true, provider: 'kie',
     });
-    await expect(resolveRoute('render3d')).resolves.toMatchObject({ primaryModel: 'nano-banana-2-lite', provider: 'kie' });
+    await expect(resolveRoute('render3d', 'org-sin-eleccion')).resolves.toMatchObject({ primaryModel: 'nano-banana-2-lite', provider: 'kie' });
     await expect(updateModelConfig(ADMIN, {
       action: 'chat', primaryModel: 'openai/gpt-4o', backups: [], enabled: true, provider: 'kie',
     })).rejects.toBeInstanceOf(ConfigValidationError);

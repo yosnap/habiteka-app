@@ -5,7 +5,7 @@ description: Añadir, probar y borrar las claves de OpenRouter, KIE, OpenAI y ot
 
 Habiteka genera los diseños, las imágenes, el asistente y los vídeos con **las claves de IA de tu organización**. Cada uso lo cobra el proveedor directamente en tu cuenta. Habiteka no añade ningún cargo y no usa claves de la plataforma por ti.
 
-Ábrelas desde **Claves de IA**, en la cabecera de la aplicación (o en `/ajustes/claves-ia`).
+Ábrelas en **Mi perfil › Claves de IA** (en la cabecera de la aplicación, **Mi perfil**), o en `/perfil/claves-ia`. La dirección anterior, `/ajustes/claves-ia`, te lleva allí.
 
 ## Qué proveedores admite
 
@@ -17,7 +17,7 @@ La página muestra una tarjeta por proveedor:
 - **NaN**: texto y visión.
 - Los proveedores compatibles con OpenAI que haya añadido la administración de Habiteka, como **APIMart**.
 
-El modelo de cada función lo decide la administración de Habiteka en **Modelos por uso**, con un modelo principal y sus respaldos. Para que una función se pueda usar, tu organización necesita la clave del proveedor de alguno de esos modelos. Si te falta la del principal pero tienes la de un respaldo, se usa el respaldo.
+Cada función usa un modelo principal y sus respaldos: los recomendados por Habiteka o los que elijas en [Mi perfil › Modelos de IA](/guias/mi-perfil/#modelos-de-ia). Para que una función se pueda usar, tu organización necesita la clave del proveedor de alguno de esos modelos. Si te falta la del principal pero tienes la de un respaldo, se usa el respaldo.
 
 ## Añadir una clave
 

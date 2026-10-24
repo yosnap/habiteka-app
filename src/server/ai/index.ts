@@ -51,7 +51,7 @@ export async function getChatVisionAdapter(
 ): Promise<ChatVisionAdapter> {
   // El orden es el de «Modelos por uso»: el primario y después sus respaldos, sin reordenar ni exigir un proveedor.
   // OpenAI y KIE entran con los modelos de texto y visión habilitados en el panel (en KIE, los Claude); no sus modelos de imagen.
-  const routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'kie' || isKieChatModel(route.model));
+  const routes = (await resolveRoutes(action, ctx.organizationId)).filter((route) => route.provider !== 'kie' || isKieChatModel(route.model));
   if (routes.length === 0) throw new AiError('provider_down', `No hay ruta de chat compatible para ${action}`);
 
   return {
@@ -91,7 +91,7 @@ export async function getImageAdapterForAction(
   action: ModelAction,
   confirmedRoute?: { provider: string; model: string; maxUsd: number },
 ): Promise<ImageAdapter> {
-  let routes = (await resolveRoutes(action)).filter((route) => route.provider !== 'nan');
+  let routes = (await resolveRoutes(action, ctx.organizationId)).filter((route) => route.provider !== 'nan');
   if (confirmedRoute) {
     const selected = routes.find(route => route.provider === confirmedRoute.provider && route.model === confirmedRoute.model);
     const price = selected && allowedModel(action, selected.model, selected.provider)?.priceUsdPerUnit;

@@ -16,9 +16,9 @@ export interface AiKeyRow { provider: string; label: string; baseUrl: string; co
 
 export function OrganizationAiKeysPanel({ keys, canEdit }: { keys: AiKeyRow[]; canEdit: boolean }) {
   return (
-    <div className="mt-6 flex flex-col gap-3">
+    <div className="grid gap-3 xl:grid-cols-2">
       {!canEdit ? (
-        <p className="bg-muted text-ink-soft rounded-card border border-line p-3 text-sm">
+        <p className="bg-muted text-ink-soft rounded-card border border-line p-3 text-sm xl:col-span-2">
           Solo el propietario o un administrador de la organización puede cambiar las claves. Aquí ves cuáles hay.
         </p>
       ) : null}

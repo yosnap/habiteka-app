@@ -5,8 +5,8 @@ import { useState, type ReactNode } from 'react';
 type Tab = 'providers' | 'models' | 'quality';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'providers', label: 'Configuración IA' },
-  { id: 'models', label: 'Modelos por uso' },
+  { id: 'providers', label: 'Proveedores y catálogo' },
+  { id: 'models', label: 'Modelos recomendados' },
   { id: 'quality', label: 'Jev (TypeSafe)' },
 ];
 

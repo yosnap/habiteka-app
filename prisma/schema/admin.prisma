@@ -52,6 +52,21 @@ model AiModelRoute {
   @@map("ai_model_route")
 }
 
+// Modelos que una organización eligió para un uso de IA: principal (posición 0) y respaldos, en orden. Sin filas
+// para un uso, la organización usa los modelos recomendados del panel (AiModelRoute).
+model OrganizationModelRoute {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  action         ModelAction
+  position       Int
+  provider       String
+  model          String
+  updatedAt      DateTime     @updatedAt
+
+  @@id([organizationId, action, position])
+  @@map("organization_model_route")
+}
+
 // Perfiles reutilizables de mapeo IA. Los perfiles de sistema viven en código;
 // esta tabla guarda las variantes personalizadas creadas desde administración.
 model AiModelProfile {
