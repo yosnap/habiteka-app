@@ -35,6 +35,10 @@ Coolify (VPS Humanitek)
   rechaza las subidas firmadas que llevan el checksum de un cuerpo vacío.
 - **Variables:** todas son solo de runtime (no «Available at Buildtime»); con
   `NODE_ENV=production` en el build se omitirían las devDependencies.
+- **Healthcheck de Coolify desactivado:** Coolify lo ejecuta con `curl`/`wget`
+  dentro del contenedor y la imagen `node:22-slim` no los incluye, así que el
+  deploy se marcaba como fallido aunque la app arrancara. `GET /api/health`
+  sigue disponible para monitorización externa.
 - **TLS:** lo termina el proxy Traefik integrado de Coolify.
 
 ## Entornos
