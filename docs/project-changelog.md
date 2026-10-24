@@ -2,6 +2,12 @@
 
 Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.1] — 2026-10-24
+
+### Fixed
+
+- Las tarjetas de funciones de la página de inicio ya no repiten la animación de entrada en Safari móvil: la entrada y el efecto al pasar el ratón van en capas distintas.
+
 ## [0.8.0] — 2026-10-24
 
 ### Added
