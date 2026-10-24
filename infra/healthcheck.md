@@ -1,7 +1,7 @@
 # Contrato del healthcheck — `GET /api/health`
 
-> Implementado en `src/app/api/health/route.ts`; lo consume el proxy de
-> Dokploy. Este documento fija el contrato.
+> Implementado en `src/app/api/health/route.ts`; lo consume el healthcheck de la
+> aplicación en Coolify. Este documento fija el contrato.
 
 ## Contrato
 
@@ -23,5 +23,5 @@
 
 ## Consumidores
 
-- **Dokploy:** healthcheck de la aplicación para conmutar tráfico tras un deploy.
+- **Coolify:** healthcheck de la aplicación para conmutar tráfico tras un deploy.
 - **Comprobación manual** tras un deploy o un rollback: `curl -i <URL>/api/health`.
