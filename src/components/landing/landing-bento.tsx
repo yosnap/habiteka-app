@@ -16,12 +16,16 @@ function Card({ title, body, children, className, delay = 0, media }: {
   title: string; body: string; children?: ReactNode; className?: string; delay?: number; media?: ReactNode;
 }) {
   return (
-    <Reveal delay={delay} className={cn('group border-line bg-surface flex flex-col overflow-hidden rounded-[1.5rem] border transition duration-500 hover:-translate-y-1 hover:shadow-[var(--shadow-float)]', className)}>
-      {media ? <div className="relative flex-1 overflow-hidden">{media}</div> : null}
-      <div className="flex flex-col gap-2 p-6">
-        <h3 className="text-ink text-lg font-semibold tracking-tight">{title}</h3>
-        <p className="text-ink-soft text-sm leading-relaxed">{body}</p>
-        {children}
+    // La entrada (motion) y el efecto al pasar el ratón (transición CSS) van en capas
+    // distintas: si comparten elemento, Safari repite la subida al terminar la entrada.
+    <Reveal delay={delay} className={cn('flex', className)}>
+      <div className="group border-line bg-surface flex w-full flex-col overflow-hidden rounded-[1.5rem] border transition duration-500 hover:-translate-y-1 hover:shadow-[var(--shadow-float)]">
+        {media ? <div className="relative flex-1 overflow-hidden">{media}</div> : null}
+        <div className="flex flex-col gap-2 p-6">
+          <h3 className="text-ink text-lg font-semibold tracking-tight">{title}</h3>
+          <p className="text-ink-soft text-sm leading-relaxed">{body}</p>
+          {children}
+        </div>
       </div>
     </Reveal>
   );
