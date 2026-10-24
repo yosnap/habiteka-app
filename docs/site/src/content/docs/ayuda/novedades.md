@@ -5,7 +5,7 @@ description: Funciones implementadas y trabajo pendiente.
 
 ## Actualización de plataforma — 24 de octubre de 2026
 
-Habiteka se ha actualizado internamente (Next.js 16.4, React 19.3 y sus librerías de acceso, pagos, plano y 3D). El editor, los pagos y el acceso funcionan igual: no cambia ningún paso ni atajo.
+Habiteka se ha actualizado internamente (Next.js 16.4, React 19.3 y sus librerías de acceso, pagos, plano y 3D). El editor, los pagos y el acceso funcionan igual: no cambia ningún paso ni atajo. Las subidas de archivos (importar proyectos y vídeos) se han adaptado al nuevo almacenamiento del servidor sin cambiar su uso.
 
 **Créditos y suscripciones:** solo la compra de un paquete de créditos suma créditos al saldo. El alta y las renovaciones de una suscripción ya no añaden créditos de paquete por error.
 
