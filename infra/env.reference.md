@@ -1,22 +1,22 @@
 # Catálogo de variables y secrets por entorno
 
-> Nombres, sin valores. Los valores se configuran en **Dokploy** (aplicación →
-> Environment). Fuente de los nombres de aplicación: [`.env.example`](../.env.example).
+> Nombres, sin valores. Los valores se configuran en **Coolify** (aplicación →
+> Environment Variables), todos como variables solo de runtime. Fuente de los nombres de aplicación: [`.env.example`](../.env.example).
 
 ## Dónde vive cada secret
 
 | Ámbito | Dónde se configura |
 |---|---|
-| Runtime de la app | Dokploy → aplicación → Environment |
+| Runtime de la app | Coolify → aplicación `habiteka` → Environment Variables |
 
-No hay secrets de despliegue en GitHub: Dokploy despliega por push de la app de
-GitHub instalada en el panel, sin webhook desde CI.
+No hay secrets de despliegue en GitHub: Coolify despliega por push de la GitHub
+App instalada en el panel, sin webhook desde CI.
 
-## Secrets de la aplicación (runtime — Dokploy)
+## Secrets de la aplicación (runtime — Coolify)
 
 | Variable | Tipo | Notas |
 |---|---|---|
-| `DATABASE_URL` | secret | Apunta al servicio Postgres de Dokploy del mismo entorno (host interno del servicio) |
+| `DATABASE_URL` | secret | Apunta a la Postgres de Coolify del mismo entorno (host interno: nombre del contenedor de la base de datos) |
 | `BETTER_AUTH_SECRET` | secret | Distinto por entorno |
 | `BETTER_AUTH_URL` | config | URL pública del entorno (staging/prod) |
 | `ADMIN_SECRETS_KEY` | secret | Base64 de 32 bytes; cifra las credenciales de proveedores de IA guardadas en BD. Si falta, en producción se deriva de `BETTER_AUTH_SECRET` (mejor clave propia) |
@@ -31,7 +31,7 @@ GitHub instalada en el panel, sin webhook desde CI.
 | `IMAGE_PROVIDER` | config | `flux` / `nano-banana` / `imagen` |
 | `IMAGE_PROVIDER_KEY` | secret | Render 3D / inpainting |
 | `POLAR_ACCESS_TOKEN` / `POLAR_WEBHOOK_SECRET` / `POLAR_ORGANIZATION_ID` | secret | Pagos |
-| `STORAGE_ENDPOINT` / `STORAGE_REGION` / `STORAGE_BUCKET` | config | Apunta al storage S3-compatible (MinIO en Dokploy o S3/R2 externo) |
+| `STORAGE_ENDPOINT` / `STORAGE_REGION` / `STORAGE_BUCKET` | config | Apunta al storage S3-compatible (SeaweedFS en Coolify, `https://s3.habiteka.app`, o S3/R2 externo) |
 | `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` | secret | Credenciales del storage |
 | `PORT` | config | Puerto que sirve el contenedor (p. ej. 3000); el proxy mapea |
 | `NODE_ENV` | config | `production` |

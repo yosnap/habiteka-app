@@ -4,7 +4,7 @@
 # la app en producción — servir Next sobre el runtime de Bun aún arrastra
 # incompatibilidades con el modo standalone, Prisma y libs nativas. Por eso el
 # build usa `oven/bun` y el runner final usa `node:slim` ejecutando `server.js`
-# del output standalone. Dokploy construye esta imagen desde el repo en cada
+# del output standalone. Coolify construye esta imagen desde el repo en cada
 # push a la rama vinculada.
 #
 # Migraciones: el output standalone de Next no incluye la CLI de Prisma, así que
@@ -74,7 +74,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Puerto de producción configurable; el proxy de Dokploy mapea a este puerto.
+# Puerto de producción configurable; el proxy de Coolify mapea a este puerto.
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 

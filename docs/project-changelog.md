@@ -35,6 +35,10 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Changed — 2026-10-24 (infraestructura)
+
+- Producción migrada de Dokploy a Coolify 4.5 (servidor Humanitek): app `habiteka`, Postgres 17 `habiteka-db` y SeaweedFS `habiteka-almacen` en lugar de MinIO. Datos y bucket copiados y verificados; runbooks en `infra/`.
+
 ### Fixed — 2026-10-24
 
 - Almacenamiento S3: los clientes usan `requestChecksumCalculation: 'WHEN_REQUIRED'`. El SDK firmaba en las URL de subida el CRC32 de un cuerpo vacío; MinIO lo ignoraba, pero un S3 estricto (SeaweedFS, AWS) rechazaba el archivo con `BadDigest`. Sin cambios para el usuario.
