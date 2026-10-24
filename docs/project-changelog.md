@@ -35,6 +35,10 @@ Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Ch
 
 ## [Unreleased]
 
+### Fixed — 2026-10-24
+
+- Créditos de Polar: el webhook `order.paid` solo acredita un paquete cuando el pedido es una compra suelta (`billing_reason = purchase`). Las altas y renovaciones de suscripción, que Polar también notifica como `order.paid` con los mismos metadatos, ya no suman créditos de paquete.
+
 ### Changed — 2026-10-24
 
 - Actualización de plataforma sin cambios de flujo para el usuario: Next.js 16.4.3, React 19.3, Prisma 7.10, Better Auth 1.7, openai 7, Polar SDK 1.0, Konva 10.9, Three 0.186, Tailwind 4.3, TypeScript 6.0, Vitest 5 y dotenv 18, entre otras.
