@@ -3,7 +3,9 @@ title: Proveedores y modelos de IA
 description: Habilitar modelos de OpenRouter, NaN, OpenAI, APIMart u otro proveedor compatible con OpenAI y elegirlos por uso.
 ---
 
-Esta página es para quien administra Habiteka. Además de OpenRouter, OpenAI, KIE y NaN (también para texto y visión), puedes añadir cualquier proveedor que acepte peticiones en el formato de OpenAI, como APIMart o NodeClub.ai. Basta con su URL base y su API key. Sus modelos aparecen después en **Modelos por uso**, junto a los demás.
+Esta página es para quien administra Habiteka. Las claves que guardas aquí son las **de la plataforma**: solo las usan este panel (probar conexión y ver modelos), Jev y la cuenta admin cuando su organización no tiene clave propia. El resto de organizaciones genera con sus propias claves, que añade en [Claves de IA](/guias/claves-ia/). Lo que eliges en **Modelos por uso** sigue mandando para todos.
+
+ Además de OpenRouter, OpenAI, KIE y NaN (también para texto y visión), puedes añadir cualquier proveedor que acepte peticiones en el formato de OpenAI, como APIMart o NodeClub.ai. Basta con su URL base y su API key. Sus modelos aparecen después en **Modelos por uso**, junto a los demás.
 
 Solo sirven para texto y visión: **Análisis visual**, **Asistente**, **Interpretación de planos** y **Memoria**. Las imágenes y los vídeos siguen con KIE, OpenRouter u OpenAI.
 

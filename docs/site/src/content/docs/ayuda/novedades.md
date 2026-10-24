@@ -3,6 +3,10 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Claves de IA propias — 24 de octubre de 2026
+
+**Claves de IA de tu organización:** Habiteka genera ahora con las claves de tu propia organización, no con las de la plataforma. Cada uso lo cobra tu proveedor directamente en tu cuenta. En **Claves de IA**, en la cabecera, puedes añadir, probar sin gastar y borrar las claves de OpenRouter, KIE, OpenAI, NaN y los proveedores compatibles disponibles. Solo el propietario o un administrador de la organización las cambia. Si a una función le falta la clave de su proveedor, se bloquea con un aviso que dice qué clave añadir. Si tienes la de un modelo de respaldo, se usa ese. [Guía de uso](/guias/claves-ia/).
+
 ## Nueva página de inicio — 24 de octubre de 2026
 
 **Página de inicio:** habiteka.app se ha rediseñado por completo. Abre con un plano técnico que se dibuja solo y se convierte en la foto amueblada, y recorre el proceso en cinco pasos: importar el plano, completarlo en el editor 2D y 3D, generar diseños con IA, aceptarlos y presentarlos. Puedes probar en la propia página un plano de ejemplo (al tocar una estancia aparece su diseño), un comparador arrastrable entre plano guía y diseño y una pieza 3D con muebles del catálogo que se gira con el ratón (en pantallas táctiles gira sola y no bloquea el desplazamiento). También muestra las funciones del editor, la parcela real, los vídeos (montaje 16:9 y 9:16, piloto de construcción y paseo de hasta 60 s por las zonas de una planta, generado por tramos), proyectos de muestra, cómo apruebas y aceptas cada resultado y preguntas frecuentes. Los proyectos y fotogramas de la home son ejemplos ilustrativos y van rotulados como tales. No muestra planes ni precios, y las animaciones se detienen si tu sistema tiene activado reducir el movimiento. El uso de la aplicación no cambia.

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { House } from 'lucide-react';
 import { SignOutButton } from './sign-out-button';
+import { AI_KEYS_SETTINGS_PATH } from '@/lib/ai-keys-settings';
 
 interface Props {
   userName?: string;
@@ -26,6 +27,9 @@ export function AppHeader({ userName, balance, isAdmin }: Props) {
           <span className="grid size-7 place-items-center rounded-lg bg-brand-50 text-brand-700"><House size={16} /></span>Habiteka
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
+          <Link href={AI_KEYS_SETTINGS_PATH} className="text-ink-soft hover:text-ink">
+            Claves de IA
+          </Link>
           <Link href="/ayuda" className="text-ink-soft hover:text-ink">
             Ayuda
           </Link>

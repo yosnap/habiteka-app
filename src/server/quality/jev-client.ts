@@ -12,7 +12,7 @@ import 'server-only';
  * degradar o cortar) sin leer códigos HTTP. La clave nunca se registra.
  */
 import { aiError, type AiError } from '@/server/ai/errors';
-import { resolveProviderKey } from '@/server/ai/provider-key-resolver';
+import { resolvePlatformProviderKey } from '@/server/ai/provider-key-resolver';
 
 export const TYPESAFE_PROVIDER = 'typesafe';
 export const JEV_DEFAULT_MODEL = 'jev-latest';
@@ -68,7 +68,7 @@ export async function askJev(
   options: AskJevOptions = {},
 ): Promise<JevResult> {
   assertQuestions(questions);
-  const apiKey = options.apiKey ?? (await resolveProviderKey(TYPESAFE_PROVIDER));
+  const apiKey = options.apiKey ?? (await resolvePlatformProviderKey(TYPESAFE_PROVIDER));
   const model = options.model ?? JEV_DEFAULT_MODEL;
   const body = JSON.stringify({ state, model, questions });
 

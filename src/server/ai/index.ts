@@ -24,6 +24,7 @@ import { ProviderImageAdapter, createActiveProvider } from './image/provider-ima
 import { KieImageProvider } from './image/providers/kie-image';
 import { OpenAiImageProvider } from './image/providers/openai-image';
 import { resolveKieKey, resolveProviderKey } from './provider-key-resolver';
+import { missingKeysError } from './missing-keys-error';
 import { getStorageAdapter } from '@/server/storage/s3-storage-adapter';
 import { resolveRoutes, type ResolvedRoute } from './model-routing';
 import { AiError, aiError, canFailover } from './errors';
@@ -40,7 +41,8 @@ import { protectedInpaint } from './image/protected-inpaint';
 const CHAT_ESTIMATE_USD = 0.05;
 const IMAGE_ESTIMATE_USD = 0.05;
 
-export type AiCallContext = AiCostScope;
+/** Toda llamada de IA lleva la organización que paga y el usuario que la pide: la clave se resuelve con ambos. */
+export type AiCallContext = AiCostScope & { userId: string };
 
 /** Adaptador de chat/visión con el modelo resuelto por acción y guardia de gasto. */
 export async function getChatVisionAdapter(
@@ -62,7 +64,7 @@ export async function getChatVisionAdapter(
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
-        recordOutcome(ctx.organizationId, false);
+        recordFailure(ctx.organizationId, err);
         throw err;
       }
     },
@@ -72,7 +74,7 @@ export async function getChatVisionAdapter(
         yield* streamWithChatFailover(ctx, action, routes, req);
         recordOutcome(ctx.organizationId, true);
       } catch (err) {
-        recordOutcome(ctx.organizationId, false);
+        recordFailure(ctx.organizationId, err);
         throw err;
       }
     },
@@ -118,7 +120,7 @@ function wrapImageAdapter(ctx: AiCallContext, _action: ModelAction, inner: Image
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
-        recordOutcome(ctx.organizationId, false);
+        recordFailure(ctx.organizationId, err);
         throw err;
       }
     },
@@ -131,26 +133,26 @@ function wrapImageAdapter(ctx: AiCallContext, _action: ModelAction, inner: Image
         recordOutcome(ctx.organizationId, true);
         return result;
       } catch (err) {
-        recordOutcome(ctx.organizationId, false);
+        recordFailure(ctx.organizationId, err);
         throw err;
       }
     },
   };
 }
 
-async function createImageAdapter(route: ResolvedRoute): Promise<ImageAdapter> {
+async function createImageAdapter(ctx: AiCallContext, route: ResolvedRoute): Promise<ImageAdapter> {
   if (route.provider === 'kie') {
     let storage;
     try { storage = getStorageAdapter(); } catch { storage = undefined; }
-    return new ProviderImageAdapter(new KieImageProvider(await resolveKieKey(), storage, route.model));
+    return new ProviderImageAdapter(new KieImageProvider(await resolveKieKey(ctx), storage, route.model));
   }
   if (route.provider === 'openai') {
     let storage;
     try { storage = getStorageAdapter(); } catch { storage = undefined; }
-    return new ProviderImageAdapter(new OpenAiImageProvider(await resolveProviderKey('openai'), storage));
+    return new ProviderImageAdapter(new OpenAiImageProvider(await resolveProviderKey(ctx, 'openai'), storage));
   }
   enforceModelJurisdiction(route.model);
-  return new ProviderImageAdapter(createActiveProvider(route.model, await resolveProviderKey('openrouter')));
+  return new ProviderImageAdapter(createActiveProvider(route.model, await resolveProviderKey(ctx, 'openrouter')));
 }
 
 /** Claude en KIE usa el formato de mensajes de Anthropic; el resto de proveedores, el de OpenAI. */
@@ -168,12 +170,13 @@ async function withChatFailover<T extends ChatResult>(
   const requestId = randomUUID();
   let lastError: unknown;
   const failures: string[] = [];
+  const errors: unknown[] = [];
   for (const [attempt, route] of routes.entries()) {
     const started = performance.now();
     const model = req.model || route.model;
     try {
       enforceModelJurisdiction(model);
-      const apiKey = await resolveProviderKey(route.provider);
+      const apiKey = await resolveProviderKey(ctx, route.provider);
       const adapter = chatAdapterFor(route, apiKey);
       // El failover se ejecuta aquí, intento a intento. No delegarlo al gateway:
       // ocultaría qué proveedor/modelo respondió y rompería la trazabilidad real.
@@ -188,9 +191,12 @@ async function withChatFailover<T extends ChatResult>(
       // Un modelo que no devuelve el JSON completo (límite de salida, respuesta vacía) también pasa al respaldo.
       const incomplete = !!req.responseSchema && error instanceof AiError && error.kind === 'schema';
       if (!canFailover(error) && !incomplete) throw error;
+      errors.push(error);
       failures.push(`${route.provider} · ${model}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+  const blocked = missingKeysError(errors, routes);
+  if (blocked) throw blocked;
   // Con varias rutas, el último error escondía por qué falló el primario: se dicen todos.
   if (failures.length > 1 && lastError instanceof AiError)
     throw aiError(lastError.kind, `Ningún modelo configurado respondió. ${failures.join(' | ')}`, lastError);
@@ -200,6 +206,7 @@ async function withChatFailover<T extends ChatResult>(
 async function* streamWithChatFailover(ctx: AiCallContext, action: ModelAction, routes: ResolvedRoute[], req: ChatRequest): AsyncIterable<ChatDelta> {
   const requestId = randomUUID();
   let lastError: unknown;
+  const errors: unknown[] = [];
   for (const [attempt, route] of routes.entries()) {
     let emitted = false;
     let recorded = false;
@@ -208,7 +215,7 @@ async function* streamWithChatFailover(ctx: AiCallContext, action: ModelAction, 
     const model = req.model || route.model;
     try {
       enforceModelJurisdiction(model);
-      const apiKey = await resolveProviderKey(route.provider);
+      const apiKey = await resolveProviderKey(ctx, route.provider);
       const adapter = chatAdapterFor(route, apiKey);
       for await (const delta of adapter.chatStream({ ...req, model, fallbackModels: undefined })) {
         emitted = true;
@@ -223,13 +230,14 @@ async function* streamWithChatFailover(ctx: AiCallContext, action: ModelAction, 
       await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'error', latencyMs: elapsed(started), units, costType: 'unknown', errorCode: aiErrorCode(error) });
       recorded = true;
       if (emitted || !canFailover(error)) throw error;
+      errors.push(error);
     } finally {
       // Si el consumidor cancela el stream después del primer delta, el intento
       // existió pero no hay coste final fiable ni respuesta completa.
       if (!recorded) await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'error', latencyMs: elapsed(started), units, costType: 'unknown', errorCode: 'stream_cancelled' });
     }
   }
-  throw lastError;
+  throw missingKeysError(errors, routes) ?? lastError;
 }
 
 class FailoverImageAdapter implements ImageAdapter {
@@ -246,10 +254,11 @@ class FailoverImageAdapter implements ImageAdapter {
   private async run(operationName: 'generate' | 'inpaint', operation: (adapter: ImageAdapter) => Promise<ImageResult>): Promise<ImageResult> {
     const requestId = randomUUID();
     let lastError: unknown;
+    const errors: unknown[] = [];
     for (const [attempt, route] of this.routes.entries()) {
       const started = performance.now();
       try {
-        const result = await operation(await createImageAdapter(route));
+        const result = await operation(await createImageAdapter(this.ctx, route));
         // El importe que confirma el proveedor manda; sin él, la misma tarifa estimada que la previsualización.
         const confirmed = result.cost.confirmedUsd;
         const costUsd = confirmed ?? allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
@@ -261,10 +270,16 @@ class FailoverImageAdapter implements ImageAdapter {
         const providerTaskId = (error as { providerTaskId?: unknown } | null)?.providerTaskId;
         await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'error', latencyMs: elapsed(started), units: typeof providerTaskId === 'string' ? { providerTaskId } : undefined, costType: 'unknown', errorCode: aiErrorCode(error) });
         if (!canFailover(error)) throw error;
+        errors.push(error);
       }
     }
-    throw lastError;
+    throw missingKeysError(errors, this.routes) ?? lastError;
   }
+}
+
+/** Una clave que la organización aún no ha añadido no es un fallo del proveedor: no abre el cortacircuitos. */
+function recordFailure(organizationId: string, error: unknown): void {
+  if (!(error instanceof AiError && error.kind === 'missing_key')) recordOutcome(organizationId, false);
 }
 
 function elapsed(started: number): number {

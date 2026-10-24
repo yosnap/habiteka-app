@@ -77,6 +77,21 @@ model AiProviderCredential {
   @@map("ai_provider_credential")
 }
 
+// Clave de proveedor de IA de cada organización (OpenRouter, KIE, OpenAI, NaN o un compatible del panel). Cada
+// organización paga su propio uso: la generación usa esta clave y solo la cuenta admin cae en AiProviderCredential.
+model OrganizationAiCredential {
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider        String
+  encryptedApiKey String
+  keyHint         String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@id([organizationId, provider])
+  @@map("organization_ai_credential")
+}
+
 // Proveedor de IA compatible con OpenAI añadido desde el panel (APIMart, NodeClub.ai…). Su clave vive en
 // AiProviderCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
 model AiCustomProvider {

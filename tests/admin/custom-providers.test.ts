@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 // La lista de modelos se pide con la clave del proveedor; aquí no hay claves reales.
-vi.mock('@/server/ai/provider-key-resolver', () => ({ resolveProviderKey: async () => 'k', resolveKieKey: async () => 'k' }));
+vi.mock('@/server/ai/provider-key-resolver', () => ({ resolvePlatformProviderKey: async () => 'k', resolveKieKey: async () => 'k' }));
 import { prisma } from '@/server/db/prisma';
 import { deleteCustomModel, deleteCustomProvider, listBuiltInModelProviders, listCustomProviders, listProviderModels, saveCustomModel, saveCustomProvider, validBaseUrl } from '@/server/admin/config/custom-provider-ops';
 import { replaceModelConfigs } from '@/server/admin/config/model-config-ops';

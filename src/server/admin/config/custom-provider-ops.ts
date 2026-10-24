@@ -8,7 +8,7 @@ import type { ModelAction } from '@/generated/prisma/enums';
 import { prisma } from '@/server/db/prisma';
 import { invalidateModelConfig } from '@/server/ai';
 import { BUILT_IN_MODEL_PROVIDERS, BUILT_IN_PROVIDERS, CUSTOM_MODEL_ACTIONS, CUSTOM_PROVIDER_PRESETS, invalidateCustomRegistry, isKieChatModel, KIE_CHAT_MODELS } from '@/server/ai/custom-ai-providers';
-import { resolveProviderKey } from '@/server/ai/provider-key-resolver';
+import { resolvePlatformProviderKey } from '@/server/ai/provider-key-resolver';
 import { apimartPrices, kieChatPrices } from '@/server/ai/provider-pricing';
 import { writeAudit } from '../audit';
 import { configError } from './config-errors';
@@ -120,7 +120,7 @@ export async function listProviderModels(id: string): Promise<{ models: Provider
   if (id === 'kie') return kieCatalog();
   const provider = BUILT_IN_MODEL_PROVIDERS[id] ?? await prisma.aiCustomProvider.findUnique({ where: { id } });
   if (!provider) throw configError('Guarda el proveedor con su clave antes de probarlo');
-  const apiKey = await resolveProviderKey(id);
+  const apiKey = await resolvePlatformProviderKey(id);
   let response: Response;
   try {
     response = await fetch(`${provider.baseUrl}/models`, { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(15000), redirect: 'error' });

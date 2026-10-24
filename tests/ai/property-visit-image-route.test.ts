@@ -12,7 +12,7 @@ vi.mock('@/server/analytics/ai-cost-recorder', () => ({ recordAiAttempt: vi.fn()
 vi.mock('@/server/ai/guard/spend-guard', () => ({ assertCanSpend: vi.fn(), recordOutcome: vi.fn() }));
 vi.mock('@/server/privacy/jurisdiction-allowlist', () => ({ enforceModelJurisdiction: vi.fn() }));
 import { getImageAdapterForAction, AiError } from '@/server/ai';
-const ctx = { organizationId: 'org' }, confirmed = { provider: 'kie', model: 'primary', maxUsd: .15 };
+const ctx = { organizationId: 'org', userId: 'user' }, confirmed = { provider: 'kie', model: 'primary', maxUsd: .15 };
 beforeEach(() => { vi.resetAllMocks(); m.price.mockReturnValue({ priceUsdPerUnit: .15 }); });
 describe('modelo presupuestado de un encuadre', () => {
   it('un fallo del modelo autorizado no activa el respaldo ni un segundo cobro', async () => {

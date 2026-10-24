@@ -819,7 +819,7 @@ export async function recommendDecoration(
     fail('El plano está vacío: añade elementos antes de pedir sugerencias.');
   }
 
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'chat');
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId }, 'chat');
   return runRecommend(chat, estilo, String(objetivo ?? '').slice(0, 200), description);
 }
 
@@ -839,7 +839,7 @@ export async function detectPlanFromPhoto(
   await assertTosAccepted(ctx.userId);
 
   // Usa el adaptador de VISIÓN (la detección lee una imagen), no el de chat texto.
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId }, 'vision');
   return detectLayout(chat, imageParts);
 }
 
@@ -867,7 +867,7 @@ export async function redrawPlanFromImage(
   );
   if (!source?.base64) fail('Falta la imagen del plano.');
 
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await redrawPlan(
     { image },
     { base64: source.base64, ...(source.mimeType ? { mimeType: source.mimeType } : {}) },
@@ -957,7 +957,7 @@ export async function generateCenitalFromRedrawn(
   );
 
   const source = await imageBytesFromTrustedUrl(imageUrl);
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await generateCenitalFromImage(
     { image },
     source,
@@ -994,7 +994,7 @@ export async function generateCenitalFromPlano(
     'cenital_plano',
   );
 
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await generateCenital({ image }, plano, estilo);
   return { imageUrl: result.assetUrl };
 }

@@ -59,6 +59,11 @@ export function customProvider(id: string): CustomProvider | undefined {
   return registry?.providers.get(id);
 }
 
+/** Nombre legible de un proveedor para los mensajes: el integrado, el añadido en el panel o su id en mayúsculas. */
+export function providerLabel(id: string): string {
+  return BUILT_IN_MODEL_PROVIDERS[id]?.label ?? registry?.providers.get(id)?.label ?? id.toUpperCase();
+}
+
 /** Modelos habilitados desde el panel para un uso (de proveedores propios o integrados), con el nombre del proveedor. */
 export function customModels(action: ModelAction): (CustomModel & { providerLabel: string; builtIn: boolean })[] {
   if (!registry) return [];

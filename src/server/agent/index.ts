@@ -25,9 +25,9 @@ const MIN_PLAN_WALLS = 4;
  * llamada: una sección que no se usa en este turno (o mal configurada) no impide
  * arrancar el agente, y el error, si lo hay, salta donde se usa.
  */
-function lazyChatAdapter(organizationId: string, action: ModelAction): ChatVisionAdapter {
+function lazyChatAdapter(scope: { organizationId: string; userId: string }, action: ModelAction): ChatVisionAdapter {
   let adapter: Promise<ChatVisionAdapter> | undefined;
-  const resolve = () => (adapter ??= getChatVisionAdapter({ organizationId }, action));
+  const resolve = () => (adapter ??= getChatVisionAdapter(scope, action));
   return {
     chat: async (req) => (await resolve()).chat(req),
     chatStream: async function* (req) {
@@ -59,12 +59,13 @@ export async function getAgent(
 ): Promise<AgentSession> {
   // Cada uso de IA toma su sección del perfil: conversación ('chat'), análisis de
   // imágenes ('vision'), plano 2D ('plano2d') y memoria de materiales ('memoria').
-  const chat = await getChatVisionAdapter({ organizationId }, 'chat');
-  const vision = lazyChatAdapter(organizationId, 'vision');
-  const plano2d = lazyChatAdapter(organizationId, 'plano2d');
-  const memoria = lazyChatAdapter(organizationId, 'memoria');
+  const scope = { organizationId, userId };
+  const chat = await getChatVisionAdapter(scope, 'chat');
+  const vision = lazyChatAdapter(scope, 'vision');
+  const plano2d = lazyChatAdapter(scope, 'plano2d');
+  const memoria = lazyChatAdapter(scope, 'memoria');
   // El prompt del render se compone en español y se envía en inglés, como en el resto de generaciones.
-  const image = withEnglishPrompts(await getImageAdapter({ organizationId }), async () => vision);
+  const image = withEnglishPrompts(await getImageAdapter(scope), async () => vision);
   const debit = createDebitService(organizationId);
 
   return {

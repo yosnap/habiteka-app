@@ -82,7 +82,7 @@ async function requestDeliverableChangeImpl(
   );
 
   const result = await runFeedback(
-    await buildFeedbackDeps(ctx.organizationId, deliverable),
+    await buildFeedbackDeps({ organizationId: ctx.organizationId, userId: ctx.userId }, deliverable),
     {
       organizationId: ctx.organizationId,
       deliverableId,

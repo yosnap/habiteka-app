@@ -20,7 +20,9 @@ import {
 const projectId = process.argv[2];
 if (!projectId) throw new Error('Uso: bun scripts/verify-studio-live.ts <projectId>');
 const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
-const context = { organizationId: project.organizationId };
+// La clave se resuelve como en la app: la de la organización, o la del panel si el más antiguo de sus miembros es admin.
+const member = await prisma.member.findFirstOrThrow({ where: { organizationId: project.organizationId }, orderBy: { createdAt: 'asc' } });
+const context = { organizationId: project.organizationId, userId: member.userId };
 const model = process.argv[3];
 const output = `plans/reports/studio-live-260908${model ? '-' + model.replace(/[^a-z0-9-]/gi, '-') : ''}`;
 await mkdir(output, { recursive: true });

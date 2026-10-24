@@ -110,6 +110,7 @@ model Organization {
   sourceImages  SourceImage[]
   zones         ProjectZone[]
   catalogItems  CatalogItem[]
+  aiCredentials OrganizationAiCredential[]
 
   @@map("organization")
 }

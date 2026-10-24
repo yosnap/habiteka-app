@@ -37,7 +37,7 @@ export async function importPlanFromImage(
   nextState: StudioState,
 ): Promise<PlanImportStudioResult> {
   const image = await readStudioImage(imageRef);
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId }, 'vision');
   const { raw, detected } = await extractPlanSource(
     chat,
     [{ type: 'image_url', base64: image.base64, mimeType: image.mimeType }],

@@ -81,7 +81,7 @@ export async function startDesignConstruction(scope: EditorScope, id: string, co
   if (sources.approved?.fingerprint !== job.approvedFingerprint) throw new Error('La aprobación cambió. Prepara otra prueba con la versión correcta.');
   if (!(await canUse(ctx.organizationId, 'generate')).allowed) throw new Error('Necesitas saldo de créditos para generar el vídeo.');
   await assertGlobalCap(await isPremium(ctx.organizationId));
-  const provider = new KieVideoProvider(await resolveKieKey());
+  const provider = new KieVideoProvider(await resolveKieKey(ctx));
   let version = await updateDesignVideoJob(ctx, scope, id, row.version, { ...job, status: 'submitting' });
   const holdId = `design-video:${id}`; let reserved = false, submitted = false, taskId: string | undefined;
   let sent: Pick<DesignVideoJob, 'sentPrompt' | 'promptTranslationIssue'> = {};
@@ -153,7 +153,7 @@ export async function checkDesignConstruction(scope: EditorScope, id: string) {
   const ctx = await requireOrgContext(), row = await readDesignVideoJob(ctx, scope, id), job = row.job;
   if (!job.taskId || !['generating', 'unknown'].includes(job.status)) return { id, job, url: job.assetKey ? await getStorageAdapter().getPresignedDownloadUrl(job.assetKey) : null };
   await reconcileDesignVideoCost(ctx, id, job);
-  const provider = new KieVideoProvider(await resolveKieKey()), result = await provider.status(job.taskId);
+  const provider = new KieVideoProvider(await resolveKieKey(ctx)), result = await provider.status(job.taskId);
   if (result.state === 'pending') return { id, job, url: null };
   const next: DesignVideoJob = result.state === 'failed' ? { ...job, status: 'failed', error: 'KIE informa que la generación falló. Revisa el saldo del proveedor antes de otro intento.' }
     : { ...job, status: 'review', assetKey: `videos/${ctx.organizationId}/${scope.projectId}/${id}.mp4`, error: undefined };

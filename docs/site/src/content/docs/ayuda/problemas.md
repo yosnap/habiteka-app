@@ -3,6 +3,10 @@ title: Resolver problemas
 description: Guardado, parcela, imágenes y exportación.
 ---
 
+## Una función dice que falta una clave de IA
+
+Tu organización no tiene la clave de ningún proveedor de los modelos que usa esa función. Añade una de las que nombra el aviso en **Claves de IA** y pulsa **Probar**. Si no puedes guardarla, pide al propietario o a un administrador de la organización que la añada. [Claves de IA](/guias/claves-ia/).
+
 ## El editor dice que otra pestaña guardó una revisión
 
 Hay dos documentos que deben resolverse. Descarga ambas versiones y sigue [Guardar y aprobar](/guias/guardar-aprobar/#si-aparecen-dos-versiones). Cerrar el aviso no reanuda el guardado. No elijas una versión sin comprobar qué quieres conservar.
