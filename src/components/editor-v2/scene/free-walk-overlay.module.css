@@ -5,6 +5,7 @@
 .overlay .toolbar button:hover:not(:disabled), .overlay .toolbar button:focus-visible { color: #fff; background: #237b6b; }
 .toolbar button:focus-visible, .pad button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .hint { font-size: 12px; }
+.walkMessage { position: absolute; left: 12px; bottom: 155px; max-width: min(380px, calc(100% - 24px)); padding: 8px 12px; border-radius: 8px; background: #12201de8; font-size: 12px; }
 .paused { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 12px 18px; border-radius: 8px; background: rgba(18, 32, 29, .9); }
 .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 24px; line-height: 1; font-weight: 300; text-shadow: 0 1px 3px #10231f, 1px 0 3px #10231f; }
 .miniMap { position: absolute; top: 66px; right: 16px; width: 216px; padding: 7px; border-radius: 10px; background: rgba(18, 32, 29, .88); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); pointer-events: none; }
@@ -29,3 +30,4 @@
 @media (max-width: 680px) { .hint, .mouseButton, .turnButton { display: none; } .toolbar { left: 8px; right: 8px; width: auto; max-width: calc(100% - 16px); flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; } .toolbar button { min-height: 36px; } }
 @media (max-width: 680px) { .miniMap { top: 80px; right: 10px; width: 104px; padding: 5px; } .miniMapTitle { font-size: 10px; } }
 @media (max-width: 680px) { .guide { bottom: 132px; min-width: 0; max-width: calc(100% - 32px); padding: 8px 10px; } .guide strong { font-size: 14px; } .guideDestination { font-size: 11px; } }
+@media (max-width: 680px) { .walkMessage { bottom: 240px; font-size: 11px; } .look { width: 86px; } .pad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); } }

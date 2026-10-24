@@ -1,4 +1,4 @@
-/** Proxies conservadores de mesas y asientos, derivados de sus GLB y la misma orientación del editor. */
+/** Sólidos calibrados de mesas, asientos, sombrillas y hamacas, derivados del GLB visible en el editor. */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { Box3, Matrix4, Triangle, Vector3 } from 'three';
@@ -7,12 +7,13 @@ import { createGltfIO } from './lib/glb-optimize.mjs';
 import { collisionVoxels } from './lib/model-collision-voxels';
 import { FURNITURE_CATALOG } from '../src/lib/editor-document/furniture-catalog';
 import { furnitureModel } from '../src/lib/editor-document/furniture-models';
+import { needsFurnitureProxy, furnitureProxyCellMm } from './furniture-factory/collision-eligibility.mjs';
 
 const output = 'src/lib/editor-document/generated/furniture-collision-proxies.json';
 const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).split(',');
 type RecordEntry = ReturnType<typeof collisionVoxels> & { sha256: string; frontRotation: number };
 const registry: Record<string, RecordEntry> = only ? JSON.parse(await readFile(output, 'utf8').catch(() => '{}')) : {};
-const assets = new Map(FURNITURE_CATALOG.filter((entry) => ['table', 'chair', 'bench'].includes(entry.profile))
+const assets = new Map(FURNITURE_CATALOG.filter(needsFurnitureProxy)
   .map((entry) => furnitureModel({ catalogId: entry.id })).filter((asset) => asset !== undefined).map((asset) => [asset.key, asset]));
 const io = await createGltfIO(Logger.Verbosity.ERROR);
 for (const asset of assets.values()) {
@@ -32,7 +33,7 @@ for (const asset of assets.values()) {
     }
   });
   const bounds = new Box3(); triangles.forEach((triangle) => [triangle.a, triangle.b, triangle.c].forEach((point) => bounds.expandByPoint(point)));
-  registry[asset.key] = { ...collisionVoxels(triangles, bounds), sha256, frontRotation: asset.frontRotation };
+  registry[asset.key] = { ...collisionVoxels(triangles, bounds, furnitureProxyCellMm(asset.key)), sha256, frontRotation: asset.frontRotation };
   console.log(`${asset.key}: ${registry[asset.key]!.boxes.length} sólidos`);
 }
 await mkdir('src/lib/editor-document/generated', { recursive: true });

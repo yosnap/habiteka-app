@@ -4,7 +4,7 @@ export const FAMILY = { id: 'descanso', label: 'Literas, comedores y descanso', 
 const bedding = { sabanas: 'algodon-blanco', edredon: 'lino-salvia' };
 const cushions = { tapiceria: 'tejido-exterior-crudo', patas: 'aluminio-antracita' };
 
-export const PRODUCTS = [
+const products = [
   {
     product: 'litera_madera', type: 'bunk', label: 'Litera de madera con escalera', profile: 'bed', style: 'Nórdico',
     finishes: { madera: 'roble', ...bedding },
@@ -55,3 +55,13 @@ export const PRODUCTS = [
     ],
   },
 ];
+
+// Los ids existentes conservan la escalera derecha; cada acabado tiene su gemelo izquierdo.
+export const PRODUCTS = products.map(product => product.type !== 'bunk' ? product : {
+  ...product,
+  variants: product.variants.flatMap(variant => [
+    { ...variant, size: `${variant.size} · Escalera derecha`, params: { ...variant.params, ladder: 'right' } },
+    { ...variant, key: `${variant.key}_izquierda`, size: `${variant.size} · Escalera izquierda`,
+      proposal: false, params: { ...variant.params, ladder: 'left' } },
+  ]),
+});

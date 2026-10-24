@@ -6,7 +6,7 @@ import { BoundaryFields } from './boundary-fields';
 import { KitchenFields } from './kitchen-fields';
 import { isKitchenRun, kitchenSlotOwner } from '@/lib/editor-document/kitchen-run-types';
 import { useMemo, useState } from 'react';
-import { MousePointer2, Search } from 'lucide-react';
+import { MousePointer2, Paintbrush, Ruler, Search, StickyNote } from 'lucide-react';
 import { matchesQuery, planElementIndex } from '@/lib/editor-document/plan-element-index';
 import { useStore } from 'zustand';
 import { ModernSelect } from '@/components/ui/modern-select';
@@ -36,9 +36,12 @@ import { FurnitureProperties } from './furniture-properties';
 import { ElementDetailsPanel } from './element-details-panel';
 import { FloorFinishPanel } from './floor-finish-panel';
 import { SelectionElementActions } from './selection-element-actions';
+import { ElementGroupActions } from './element-group-actions';
+import { lockedElementIds } from '@/lib/editor-document/element-locks';
 export function Inspector({ store }: { store: EditorStore }) {
   const doc = useStore(store, (s) => s.document), selection = useStore(store, (s) => s.selection);
-  const readOnly = useStore(store, (s) => s.readOnly);
+  const storeReadOnly = useStore(store, (s) => s.readOnly);
+  const readOnly = storeReadOnly || selection.some(id => lockedElementIds(doc).has(id));
   const [query, setQuery] = useState(''), id = selection[0];
   const detailPanel = useStore(store, (s) => s.detailPanel);
   const gateOwner = boundaryGateOwner(doc, id), slotOwner = kitchenSlotOwner(doc, id), partOwner = gateOwner ?? slotOwner;
@@ -86,6 +89,7 @@ export function Inspector({ store }: { store: EditorStore }) {
   const selectedRooms = rooms.filter((item) => selection.includes(item.id));
   const canDelete = selectedRooms.length === 0 || (selection.length === 1 && outdoor);
   return <aside className={styles.inspector} aria-label="Propiedades de selección">
+    <ElementGroupActions store={store} />
     <details key={id ? 'selected' : 'empty'} open={!id || undefined} className={properties.searchToggle}>
       <summary>{id ? 'Buscar o cambiar de elemento' : 'Buscar en el plano'}</summary>
     <div className={properties.searchFields}>
@@ -130,9 +134,9 @@ export function Inspector({ store }: { store: EditorStore }) {
       </>}
       {!mixed && <>
       {(appearance || comments) && <div className={properties.tabs} role="group" aria-label="Secciones de propiedades">
-        <button type="button" aria-pressed={!mode} onClick={() => store.getState().setDetailPanel(null)}>Medidas</button>
-        {appearance && <button type="button" aria-pressed={mode === 'paint'} onClick={() => store.getState().setDetailPanel('paint')}>Acabados</button>}
-        {comments && <button type="button" aria-pressed={mode === 'comments'} onClick={() => store.getState().setDetailPanel('comments')}>Notas ({doc.comments?.filter((item) => item.targetEntityId === id).length ?? 0})</button>}
+        <button type="button" aria-pressed={!mode} onClick={() => store.getState().setDetailPanel(null)}><Ruler size={17} aria-hidden="true" /><span>Medidas</span></button>
+        {appearance && <button type="button" aria-pressed={mode === 'paint'} onClick={() => store.getState().setDetailPanel('paint')}><Paintbrush size={17} aria-hidden="true" /><span>Acabados</span></button>}
+        {comments && <button type="button" aria-pressed={mode === 'comments'} onClick={() => store.getState().setDetailPanel('comments')}><StickyNote size={17} aria-hidden="true" /><span>Notas ({doc.comments?.filter((item) => item.targetEntityId === id).length ?? 0})</span></button>}
       </div>}
       {mode === 'paint' && <fieldset disabled={readOnly} className="m-0 min-w-0 border-0 p-0">
         {room ? <FloorFinishPanel store={store} embedded /> : selectedWallIds.length > 1
@@ -184,9 +188,9 @@ export function Inspector({ store }: { store: EditorStore }) {
             current.apply(room && outdoor ? deleteOutdoorRoom(current.document, room.id) : deleteEntities(current.document, selection));
             current.select([]);
           } catch (error) { store.getState().setError(error instanceof Error ? error.message : 'No se pudo eliminar la selección.'); }
-        }}>Eliminar{multiple ? ` (${selection.length})` : ''}</button>
+        }}>Eliminar{doc.elementGroups?.some(group => group.elementIds.some(member => selection.includes(member))) ? ' grupo' : ''}{multiple ? ` (${selection.length})` : ''}</button>
     </div>
     </>}
-    <p className={styles.hint}>{readOnly ? 'Modo solo lectura.' : 'Ctrl/Cmd + Z deshace. Escape cierra el panel. Puedes cambiar de selección sin cerrarlo.'}</p>
+    <p className={styles.hint}>{readOnly ? storeReadOnly ? 'Modo solo lectura.' : 'Selección bloqueada: usa el candado en Escena para desbloquearla.' : 'Ctrl/Cmd + Z deshace. Escape cierra el panel. Puedes cambiar de selección sin cerrarlo.'}</p>
   </aside>;
 }

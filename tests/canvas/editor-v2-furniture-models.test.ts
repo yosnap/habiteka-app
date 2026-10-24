@@ -1,9 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Box3, BoxGeometry, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { Box3, BoxGeometry, Color, Group, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Vector3 } from 'three';
 import { prepareFurnitureModel } from '@/canvas/editor-v2/scene/furniture-model-transform';
 import { furnitureModel } from '@/lib/editor-document/furniture-models';
 
 describe('independent normalized GLB instances', () => {
+  it('añade barniz solo a la carrocería sin alterar material original ni neumáticos', () => {
+    const paint = new MeshStandardMaterial({ name: 'pintura', color: '#456789', metalness: .65, roughness: .24 });
+    const rubber = new MeshStandardMaterial({ name: 'goma', color: '#121212', roughness: .88 });
+    const source = new Group(); source.add(new Mesh(new BoxGeometry(), paint), new Mesh(new BoxGeometry(), rubber));
+    const prepared = prepareFurnitureModel(source, 0, undefined, 1, ['pintura'], true);
+    const materials: MeshStandardMaterial[] = [];
+    prepared.object.traverse(object => { if (object instanceof Mesh) materials.push(object.material as MeshStandardMaterial); });
+    expect(materials[0]).toBeInstanceOf(MeshPhysicalMaterial);
+    expect(materials[0]).toMatchObject({ clearcoat: .8, clearcoatRoughness: .18, metalness: .65, roughness: .24, ior: 1.5, envMapIntensity: 2 });
+    expect(materials[0]!.color).toEqual(paint.color);
+    expect(materials[1]).not.toBeInstanceOf(MeshPhysicalMaterial);
+    expect(materials[1]!.roughness).toBe(.88);
+    expect(paint).not.toBeInstanceOf(MeshPhysicalMaterial);
+    prepared.dispose();
+  });
   it.each([0, Math.PI / 2, Math.PI, -Math.PI / 2])('orients then normalizes a displaced model at %s', (angle) => {
     const source = new Group(), mesh = new Mesh(new BoxGeometry(2, 3, 4), new MeshStandardMaterial());
     mesh.position.set(8, -5, 20); source.add(mesh);

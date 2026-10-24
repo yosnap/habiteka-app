@@ -30,10 +30,11 @@ import { PlanImportPanel, type ImportedPlan, type PlanImportActions } from './pl
 import { PlanImageViewer } from './plan-image-viewer';
 import { PlanImportCanvas, type PlanReviewSelection } from './plan-import-canvas';
 import { StudioStageNav } from './studio-stage-nav';
+import { PlanWorkspace } from './plan-workspace';
 import { StudioResultsPanel, type StudioDeliverableView } from './studio-results-panel';
 import { StudioNextStep } from './studio-next-step';
 import { StudioEntryChoices } from './studio-entry-choices';
-import { FileImage, LayoutTemplate, Sparkles } from 'lucide-react';
+import { LayoutTemplate } from 'lucide-react';
 import {
   CenitalQualityGate,
   cenitalGateBlocks,
@@ -487,10 +488,14 @@ export function PlanoStudio({
       ?? (previewResult.sourceKey === sourceKey ? originalUrl : null)
     : null;
   const visibleUrl = previewResult?.url ?? (tab === 'render' ? cenitalUrl : planImageUrl);
+  const stage = <StudioStageNav hasSource={!!originalUrl} hasImport={!!importResult && !importApplied}
+    hasEditorPlan={!planImageUrl ? hasEditorPlan : hasEditorPlan && (importApplied || fromCanvas)}
+    hasDesignImages={deliverables.some(item => item.type === 'RENDER_3D') || resultViews.some(item => item.kind === 'render')}
+    hasVideo={deliverables.some(item => item.type === 'VIDEO')} />;
 
   if (importing) {
     return (
-      <PlanImportPanel
+      <PlanWorkspace stage={stage} tab={tab} pending={busy !== null}><PlanImportPanel
         projectId={projectId}
         hasEditorPlan={hasEditorPlan || importApplied}
         importAction={importAction}
@@ -502,20 +507,18 @@ export function PlanoStudio({
         initialGeneralWidthMm={importResult === initialImport ? initialGeneralWidthMm : undefined}
         initialIncludeFurniture={importResult === initialImport ? initialIncludeFurniture : false}
         onBack={() => { setImporting(false); setReviewSelection(null); router.refresh(); }}
-      />
+      /></PlanWorkspace>
     );
   }
 
   // ── Estado 1: sin plano — el boceto es el único protagonista ───────────────
   if (!planImageUrl && !previewResult) {
     return (
+      <PlanWorkspace stage={stage} tab={tab} pending={busy !== null} onTabChange={showTab}>
       <div className="flex min-h-full flex-col gap-5 bg-surface-muted/40 p-5 lg:h-full lg:p-6">
-        <StudioStageNav hasSource={false} hasImport={false} hasEditorPlan={hasEditorPlan}
-          hasDesignImages={deliverables.some((item) => item.type === 'RENDER_3D')}
-          hasVideo={deliverables.some((item) => item.type === 'VIDEO')} />
-        <div className="grid flex-1 place-items-center gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid min-w-0 flex-1 place-items-center gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div
-          className="w-full max-w-4xl rounded-2xl bg-surface p-5 text-center sm:p-7"
+          className="min-w-0 w-full max-w-4xl rounded-2xl bg-surface p-5 text-center sm:p-7"
         >
           <span className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-sky-100 text-sky-700"><LayoutTemplate size={26} /></span>
           <h1 className="text-ink mb-2 text-2xl font-semibold">¿Cómo empezamos tu plano?</h1>
@@ -562,46 +565,16 @@ export function PlanoStudio({
           onBackground={hasEditorPlan ? onBackground : undefined}
         />
         </div>
-      </div>
+      </div></PlanWorkspace>
     );
   }
 
   // ── Estados 2+: plano protagonista + acciones a la derecha ─────────────────
   return (
+    <PlanWorkspace stage={stage} tab={tab} pending={busy !== null} onTabChange={showTab} onNew={() => setConfirmNew(true)}>
     <div className="flex min-h-full flex-col gap-4 bg-surface-muted/40 p-5 lg:h-full lg:p-6">
-      <StudioStageNav
-        hasSource={!!originalUrl}
-        hasImport={!!importResult && !importApplied}
-        hasEditorPlan={hasEditorPlan && (importApplied || fromCanvas)}
-        hasDesignImages={deliverables.some((item) => item.type === 'RENDER_3D') || resultViews.some((item) => item.kind === 'render')}
-        hasVideo={deliverables.some((item) => item.type === 'VIDEO')}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1" role="tablist" aria-label="Vista">
-          <TabButton active={tab === 'plano'} onClick={() => showTab('plano')}>
-            <FileImage size={16} />Imagen del plano
-          </TabButton>
-          <TabButton
-            active={tab === 'vector'}
-            onClick={() => showTab('vector')}
-          >
-            <LayoutTemplate size={16} />Muros y medidas
-          </TabButton>
-          <TabButton
-            active={tab === 'render'}
-            onClick={() => showTab('render')}
-          >
-            <Sparkles size={16} />Vista generada
-          </TabButton>
-        </div>
-        <div className="flex items-center gap-1">
-          {tab === 'vector' && importResult?.sourceFrameMm ? <label className="mr-3 flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={vectorOverlay} onChange={event => setVectorOverlay(event.target.checked)} />Superponer sobre el original</label> : null}
-          <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmNew(true)} disabled={busy !== null}>
-            ← Nuevo plano
-          </Button>
-        </div>
-      </div>
+      {tab === 'vector' && importResult?.sourceFrameMm ? <label className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={vectorOverlay} onChange={event => setVectorOverlay(event.target.checked)} />Superponer sobre el original</label> : null}
       {confirmNew ? (
         <div className="rounded-control border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" role="alert">
           <p>Las imágenes guardadas seguirán en el proyecto. La revisión de medidas aún no enviada al editor se sustituirá al empezar otro plano.</p>
@@ -814,30 +787,6 @@ export function PlanoStudio({
           ) : null}
         </aside>
       </div>
-    </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`rounded-control px-3 py-1.5 text-sm transition-colors ${
-        active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-ink-soft hover:text-ink'
-      }`}
-    >
-      {children}
-    </button>
+    </div></PlanWorkspace>
   );
 }

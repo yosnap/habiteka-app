@@ -1,0 +1,15 @@
+.surface.surface { padding: 8px; border: 1px solid var(--line, var(--color-line)); border-radius: 14px; background: var(--paper, var(--color-surface)); color: var(--ink, var(--color-ink)); box-shadow: 0 12px 32px #183a3226; }
+.items { display: grid; gap: 6px; }
+.item.item, .items.items > :is(button, a) { display: flex; align-items: center; gap: 12px; min-height: 52px; min-width: 0; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: transparent; color: var(--ink, var(--color-ink)); font-size: 16px; line-height: 1.4; font-weight: 400; text-align: left; text-decoration: none; cursor: pointer; }
+.item.item:hover:not(:disabled), .item.item[data-highlighted], .items.items > :is(button, a):hover:not(:disabled) { background: #183a320c; color: var(--ink, var(--color-ink)); transform: none; }
+.item.item:is([aria-current='page'], [aria-pressed='true'], [data-state='checked']), .items.items > :is(button, a):is([aria-current='page'], [aria-pressed='true']) { background: #183a3212; color: var(--ink, var(--color-ink)); font-weight: 600; border-color: transparent; }
+.item.item:is([aria-current='page'], [aria-pressed='true'], [data-state='checked']):hover:not(:disabled), .items.items > :is(button, a):is([aria-current='page'], [aria-pressed='true']):hover:not(:disabled) { background: #183a3212; color: var(--ink, var(--color-ink)); }
+.item.item:focus-visible, .items.items > :is(button, a):focus-visible { outline: 2px solid var(--brand, #23796a); outline-offset: -2px; }
+.item.item svg, .items.items > :is(button, a) svg { flex-shrink: 0; }
+.control.control.control { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line, var(--color-line)); border-radius: 10px; background: var(--surface, var(--color-surface-muted)); color: var(--ink, var(--color-ink)); font-size: 16px; line-height: 1.4; box-shadow: none; }
+.control.control:hover:not(:disabled) { background: #183a320c; color: var(--ink, var(--color-ink)); transform: none; }
+.control.control > span:first-child { min-width: 0; flex: 1; }
+.control.control > span:last-child { flex: none; }
+.selectList { display: grid; gap: 6px; padding: 0; }
+.selectList > div { display: grid; gap: 6px; }
+.selectItem.selectItem { padding-right: 38px; }

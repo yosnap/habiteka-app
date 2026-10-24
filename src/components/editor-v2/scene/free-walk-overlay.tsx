@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useRef, useSyncExternalStore, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import type { FreeWalkController } from './free-walk-controller';
 import type { EditorDocument, Point } from '@/lib/editor-document/schema';
 import { FreeWalkMap } from './free-walk-map';
@@ -28,9 +28,11 @@ export function FreeWalkOverlay({ paused, viewMode, controller, document, start,
     onPointerCancel: () => { controller.move(axis, 0); },
     onLostPointerCapture: () => { controller.move(axis, 0); },
   });
-  return <div className={styles.overlay} aria-label="Visita inmersiva">
+  const message = useSyncExternalStore(controller.subscribe, controller.getMessage, controller.getMessage);
+  return <div className={styles.overlay} aria-label="Explorar plano guía">
     <div className={styles.toolbar}>
-      <strong>Visita inmersiva</strong>
+      <strong>Explorar plano guía</strong>
+      <span className={styles.hint}>Pulsa suelo visible para caminar · arrastra para mirar</span>
       <span className={styles.hint}>↑/↓ caminar · ←/→ girar · A/D lateral · Mayús correr · R/F mirar arriba/abajo · V cambiar vista</span>
       <button type="button" className={styles.mouseButton} onClick={onMouse}>Activar ratón</button>
       <button type="button" className={styles.turnButton} disabled={paused} onClick={() => controller.look(-180, 0)}>↶ Girar izquierda</button>
@@ -41,7 +43,8 @@ export function FreeWalkOverlay({ paused, viewMode, controller, document, start,
       <button type="button" onClick={onPause}>{paused ? 'Continuar' : 'Pausar'}</button>
       <button type="button" onClick={onExit}>Salir</button>
     </div>
-    {paused && <div className={styles.paused} role="status">Visita en pausa</div>}
+    {paused && <div className={styles.paused} role="status">Exploración en pausa</div>}
+    {message && !paused && <div className={styles.walkMessage} role="status">{message}</div>}
     {viewMode === 'first' && <div className={styles.crosshair} aria-hidden="true">+</div>}
     <FreeWalkMap document={document} start={start} controller={controller} />
     <FreeWalkGuide document={document} start={start} controller={controller} />

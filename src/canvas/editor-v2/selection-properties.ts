@@ -33,5 +33,5 @@ export function selectPropertyElement(store: EditorStore, id: string) {
   const state = store.getState();
   if (state.tool !== 'select') state.setTool('select');
   state.openSidePanel('inspector');
-  state.select(id ? [id] : []);
+  state.select(id ? [id] : [], true);
 }

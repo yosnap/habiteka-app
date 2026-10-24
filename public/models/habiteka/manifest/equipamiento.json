@@ -624,14 +624,14 @@
   "piscina_elevada_exterior": {
    "file": "piscina_elevada_exterior.glb",
    "thumbnail": "thumbs/piscina_elevada_exterior.webp",
-   "sha256": "fb57e3ae4583f201fb5c341577a54af4cda479f02a97b66afb9e1b0051841c36",
-   "bytes": 589604,
-   "triangles": 12188,
+   "sha256": "a765c7789934e187cd357333df87bd57d012fdb1e2bb050dcd6187db1d35b288",
+   "bytes": 954020,
+   "triangles": 18628,
    "texturePx": 1024,
    "dimensionsMm": [
-    6070,
-    3237,
-    1521
+    6080,
+    3525,
+    1482
    ],
    "elevationMm": 0,
    "specDimensionsMm": [
@@ -649,12 +649,13 @@
     "goma": "ext-goma",
     "tela": "tejido-exterior-crudo",
     "vidrio": "ext-vidrio",
-    "agua": "ext-agua",
+    "agua": "ext-agua-piscina",
     "piedra": "jar-piedra-clara",
     "pintura": "ext-pintura",
     "faro": "ext-faro",
     "piloto": "ext-piloto",
-    "blanco": "ext-blanco"
+    "blanco": "ext-blanco",
+    "liner": "ext-liner-piscina"
    },
    "textures": [
     "jar_piedra_clara",
@@ -664,8 +665,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "5d88c45c65c395e0f5d0627d405626e4c1b6ce8d1b6eb9b14e8bb3b2f4b106fb",
-   "builtAt": "2026-10-05"
+   "specHash": "7eb3c219ab241ed99cf5bd7e1e19f2aecc56bb69a5d3f97c09ae3d914f3a42ee",
+   "builtAt": "2026-10-11"
   },
   "porche_entrada_exterior": {
    "file": "porche_entrada_exterior.glb",

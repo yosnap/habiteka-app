@@ -12,8 +12,14 @@ import { restOnHost } from '@/lib/editor-document/object-host-rest';
 import { updateTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
 import { snapTerrainMove } from '@/canvas/editor-v2/terrain-transform';
 import { constrainSeatingDrag } from '@/canvas/editor-v2/seating-drag';
+import { furnitureDragConstraint } from '@/canvas/editor-v2/constrained-furniture-drag';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
+import { expandElementGroups } from '@/lib/editor-document/element-groups';
+import { nudgeElements } from '@/canvas/editor-v2/nudge-elements';
 
 export interface PlanDrag {
+  restoreControls?: () => void;
+  constrain?: ReturnType<typeof furnitureDragConstraint>;
   last?: Furniture;
   id: string;
   start: Point;
@@ -71,6 +77,7 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
   const state = store.getState();
   if (event.button !== 0 || state.readOnly || state.tool !== 'select') return null;
   const id = sceneEntityId(event.object);
+  if (id && isElementLocked(state.document, id)) return null;
   const furniture = planObjects(state.document).find((entry) => entry.id === id);
   const terrain = state.document.terrainSurfaces?.find((entry) => entry.id === id);
   const item = furniture ?? terrain;
@@ -79,7 +86,11 @@ export function beginPlanDrag(event: ThreeEvent<PointerEvent>, store: EditorStor
   event.stopPropagation();
   // La barra de medidas se superpone al lienzo; el arrastre conserva su punto inicial.
   root.current?.get().gl.domElement.setPointerCapture(event.pointerId);
-  return { id: item.id, item, terrain: Boolean(terrain), duplicate: event.altKey, start, pointerId: event.pointerId };
+  const controls = root.current?.get().controls as unknown as { enabled: boolean } | null;
+  const enabled = controls?.enabled;
+  if (controls) controls.enabled = false;
+  return { id: item.id, item, terrain: Boolean(terrain), duplicate: event.altKey, start, pointerId: event.pointerId,
+    restoreControls: () => { if (controls && enabled !== undefined) controls.enabled = enabled; } };
 }
 
 export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStore, scale = .05): Furniture | TerrainSurface {
@@ -87,7 +98,10 @@ export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStor
   if (!drag.terrain) {
     const target = settlePlanItem(moved as Furniture, store);
     if (drag.duplicate) return target;
-    const placed = constrainSeatingDrag(store.getState().document, drag.last ?? drag.item as Furniture, target);
+    const doc = store.getState().document;
+    const from = drag.last ?? drag.item as Furniture;
+    drag.constrain ??= furnitureDragConstraint(doc, drag.id);
+    const placed = drag.constrain(from, constrainSeatingDrag(doc, from, target));
     drag.last = placed; return placed;
   }
   const state = store.getState();
@@ -100,6 +114,7 @@ export function planDragPosition(drag: PlanDrag, point: Point, store: EditorStor
 export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: PlanDrag,
   store: EditorStore, root: RefObject<RootState | null>, elevationM: number): void {
   if (event.pointerId !== drag.pointerId) return;
+  drag.restoreControls?.();
   const canvas = root.current?.get().gl.domElement;
   if (canvas?.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   const point = scenePlanPoint(root, event.clientX, event.clientY, elevationM);
@@ -114,6 +129,11 @@ export function finishPlanDrag(event: ReactPointerEvent<HTMLDivElement>, drag: P
     if (drag.duplicate) {
       const copy = duplicatePlanElement(state.document, drag.id, { x: next.x - drag.item.x, y: next.y - drag.item.y });
       state.apply(copy.document); store.getState().select([copy.id]); return;
+    }
+    const grouped = expandElementGroups(state.document, [drag.id]);
+    if (grouped.length > 1) {
+      state.apply(nudgeElements(state.document, grouped, { x: next.x - drag.item.x, y: next.y - drag.item.y }));
+      state.select(grouped); return;
     }
     state.apply(drag.terrain ? updateTerrainSurface(state.document, drag.id, { x: next.x, y: next.y })
       : updateFurniture(state.document, drag.id, {

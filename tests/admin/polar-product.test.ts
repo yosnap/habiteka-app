@@ -46,7 +46,7 @@ describe('createPolarProduct', () => {
       recurringInterval: 'month',
       settingKey: 'polar_plan_product_id',
     });
-    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ recurringInterval: 'month' });
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ recurring_interval: 'month' });
   });
 
   it('rechaza un precio no positivo sin llamar a Polar', async () => {

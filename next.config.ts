@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // `server.js` que Node ejecuta sin el árbol completo de node_modules. Es lo
   // que arranca la imagen Docker que construye Dokploy.
   output: 'standalone',
+  // `next dev` añade por defecto un bloque propio a AGENTS.md; las instrucciones
+  // del repositorio las mantiene el equipo.
+  agentRules: false,
   async rewrites() {
     // Un único servidor y despliegue: el subdominio sirve el HTML de Starlight
     // incorporado a public/documentacion durante el build.
@@ -16,7 +19,12 @@ const nextConfig: NextConfig = {
     ] };
   },
   // 10 MB de imagen ocupan ~13,4 MB al codificarse como base64.
-  experimental: { serverActions: { bodySizeLimit: '16mb' } },
+  experimental: {
+    serverActions: { bodySizeLimit: '16mb' },
+    // Barriles enormes que Next no optimiza por defecto: sin esto cada ruta que
+    // los importa compila la librería entera en dev.
+    optimizePackageImports: ['@react-three/drei', 'radix-ui'],
+  },
   // El chequeo de tipos de `next build` sin caché necesita varios GB de RAM y
   // ahoga al VPS que construye la imagen. CI ya ejecuta `tsc --noEmit` como
   // puerta antes de mergear, así que el build de la imagen (y solo ese, vía la

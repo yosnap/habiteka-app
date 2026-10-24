@@ -33,6 +33,11 @@ function firstContact(a: BoundedSolid, b: BoundedSolid, delta: Point): number {
   return entry < 1 && exit > 0 ? Math.max(0, entry) : 1;
 }
 
+/** Barrido compartido por los arrastres visuales; no muestrea saltos del puntero. */
+export function firstSolidContact(a: Solid, b: Solid, delta: Point): number {
+  return firstContact(bounded(a), bounded(b), delta);
+}
+
 /** Solo el arrastre individual de mesa/asiento: se detiene ante piezas físicas y permite rodearlas. */
 export function constrainSeatingDrag(doc: EditorDocument, from: Furniture, target: Furniture): Furniture {
   const start = bounds({ polygon: footprint(from) }), end = bounds({ polygon: footprint(target) });

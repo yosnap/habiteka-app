@@ -46,8 +46,8 @@ export async function createPolarProduct(
   const product = await getPolarClient().products.create({
     name: input.name,
     description: input.description,
-    recurringInterval: input.recurringInterval ?? null,
-    prices: [{ amountType: 'fixed', priceAmount: input.priceAmount }],
+    recurring_interval: input.recurringInterval ?? null,
+    prices: [{ amount_type: 'fixed', price_amount: input.priceAmount }],
   });
 
   // El checkout referencia el producto por este id; guardarlo evita tocar el .env.

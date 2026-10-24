@@ -1,7 +1,8 @@
 import { OUTDOOR_CATALOG } from './outdoor-catalog';
+import { REAL_VEHICLE_CATALOG, isLegacyVehicle } from './real-vehicles';
 import type { Furniture } from './schema';
 import { ASSET_CATALOG, REALISTIC_ASSET_REPLACEMENTS } from './furniture-assets';
-import { HABITEKA_FURNITURE_CATALOG } from './habiteka-furniture';
+import { HABITEKA_FURNITURE_CATALOG, HABITEKA_LEGACY_VEHICLE_CATALOG } from './habiteka-furniture';
 import { furnitureRooms } from './furniture-rooms';
 
 export type FurnitureProfile = 'outdoor' | 'sofa' | 'sofa-chaise' | 'sofa-corner' | 'sofa-modular' | 'sofa-bed' | 'bed' | 'chair' | 'table' | 'cabinet' | 'shelf' | 'kitchen' | 'sink' | 'toilet' | 'bath' | 'shower' | 'lamp' | 'plant' | 'decor' | 'rug'
@@ -105,7 +106,7 @@ const essentials = [
   entry('persiana-vertical', 'Persiana de lamas verticales', 'decoracion', 'vertical-blind', [1800, 100, 2400], 'Tejido', '#d5d2c8', 'Lamas verticales giratorias', 'Contemporáneo'),
   entry('persiana-exterior', 'Persiana enrollable exterior', 'exterior', 'shutter', [1200, 150, 1400], 'Aluminio', '#b9bcb6', 'Cajón y lamas enrollables sobre la ventana', 'Contemporáneo', 900),
 ];
-const ALL_FURNITURE: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...HABITEKA_FURNITURE_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
+const ALL_FURNITURE: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...HABITEKA_FURNITURE_CATALOG, ...HABITEKA_LEGACY_VEHICLE_CATALOG, ...REAL_VEHICLE_CATALOG, ...OUTDOOR_CATALOG, ...essentials.flatMap((item) => {
   if (item.kind === 'cama-doble') return [item, variant(item, 'king', 'King · 180 cm', { widthMm: 1800, color: '#9caaa6', material: 'Tela acolchada y madera' })];
   if (item.kind === 'sofa-3') return [item, variant(item, 'piel', 'Piel · 250 cm', { widthMm: 2500, material: 'Piel', color: '#8e5e42', style: 'Clásico' })];
   if (item.kind === 'mesa-comedor') return [item, variant(item, 'grande', 'Nogal · 200 cm', { widthMm: 2000, depthMm: 1000, material: 'Nogal', color: '#785b43', style: 'Clásico' })];
@@ -125,7 +126,7 @@ const ALL_FURNITURE: readonly FurnitureCatalogEntry[] = [...ASSET_CATALOG, ...HA
  * duplicaban a ese modelo, pero siguen resolviéndose por id para los documentos que ya los usan.
  */
 export const FURNITURE_CATALOG: readonly FurnitureCatalogEntry[] = ALL_FURNITURE.filter((item) =>
-  !(item.id.startsWith('habiteka:asset:') && REALISTIC_ASSET_REPLACEMENTS[item.id.slice('habiteka:asset:'.length)]));
+  !isLegacyVehicle(item) && !(item.id.startsWith('habiteka:asset:') && REALISTIC_ASSET_REPLACEMENTS[item.id.slice('habiteka:asset:'.length)]));
 const catalogById = new Map(ALL_FURNITURE.map((item) => [item.id, item]));
 export function getFurnitureCatalogEntry(catalogId?: string): FurnitureCatalogEntry | undefined {
   return catalogId ? catalogById.get(catalogId) : undefined;

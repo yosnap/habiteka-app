@@ -1,0 +1,13 @@
+.root { position: relative; }
+.root summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 6px 10px; border-radius: 9px; font-size: 13px; white-space: nowrap; cursor: pointer; list-style: none; }
+.root summary::-webkit-details-marker { display: none; }
+.root summary:hover { background: var(--surface); }
+.root summary:focus-visible { outline: 2px solid var(--brand); }
+.menu { composes: surface items from '../../ui/editor-dropdown.module.css'; position: absolute; top: calc(100% + 10px); right: -4px; z-index: 50; width: 300px; max-width: calc(100vw - 94px); max-height: calc(100dvh - 140px); overflow: auto; }
+.menu > button { justify-content: space-between; }
+.menu label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 12px 8px; font-size: 14px; }
+.menu input { width: 100%; padding: 0; }
+.picker { display: grid; gap: 8px; padding: 8px; font-size: 14px; }
+.picker > span { width: 100% !important; }
+@media (max-width: 1280px) { .root summary span { display: none; } .root summary { width: 44px; padding: 6px; } }
+@media (max-width: 1000px) { .root { position: static; } .menu { left: 0; right: auto; max-height: max(80px, calc(100dvh - 280px)); } }

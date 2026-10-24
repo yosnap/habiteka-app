@@ -5,9 +5,63 @@ description: Qué hace cada herramienta y cómo revisar sus resultados.
 
 ## Cómo orientarte
 
-Las pestañas **Asistente, Plano, Editor, Diseños, Vídeos e Historial** se mantienen en la parte superior del proyecto. En el editor, la cabecera reúne planta, deshacer/rehacer, guardado, **Vídeos** y **Diseñar con IA**.
+**Escena** incorpora candados antes del ojo para proteger los elementos y sus grupos. Puedes **Agrupar**, **Desagrupar** y **Guardar como paquete** desde Escena o Propiedades. **Mis paquetes**, accesible también desde Construir y Amueblar, es una biblioteca de tu cuenta compartida entre todos tus proyectos. **Sustituir** permite elegir otro modelo para una pieza. Consulta [Bloqueos, grupos y paquetes](/editor/grupos-paquetes/) para conocer la selección individual, la colocación y los límites.
+
+Todas las secciones del proyecto comparten un **desplegable flotante** para navegar a **Asistente, Plano, Editor, Diseños, Vídeos e Historial**, o volver a **Mis proyectos**. El botón muestra la sección actual y la marca en el menú. Los iconos conservan sus colores: Asistente violeta, Plano azul, Editor verde, Diseños ámbar, Vídeos rosa e Historial gris. En el editor, el botón **Editor** está junto al selector de planta. En las demás páginas aparece junto al nombre del proyecto, con espacio reservado sobre el contenido para evitar solapamientos. Los enlaces conservan la zona seleccionada en las secciones que trabajan por zona; Plano abre el flujo general del proyecto. En una muestra independiente, este menú explica que necesitas abrir un proyecto y ofrece Mis proyectos.
+
+En las muestras de desarrollo, **Guardar → Crear proyecto y guardar** permite dar un nombre y conservar el plano actual en un proyecto nuevo. Requiere una sesión iniciada: si falta, inicia sesión en otra pestaña y vuelve a guardar en la muestra. Solo se abre el proyecto tras confirmar el guardado; la copia de la muestra sigue conservada en esa pestaña. No sustituye ningún proyecto existente ni acepta diseños IA. El archivo JSON de respaldo por sí solo no crea un proyecto.
+
+El flotante también reúne estado de guardado y selector de planta. **Guardar**, **Deshacer** y **Rehacer** están en el lateral izquierdo, encima de Ayuda. El **Asistente del lateral** reúne las acciones del estudio bajo el título **Diseñar con IA**; el Asistente del menú del proyecto abre su página completa. **Diseños** contiene los diseños guardados y **Visualizar → Vídeos** abre el estudio de vídeos. Ya no hay una cabecera fija con esas acciones en el editor.
+
+El botón de sección también muestra su icono de color. **Plano**, **Diseños** y **Vídeos** comparten una barra verde izquierda para sus opciones. Plano reúne sus tres vistas y Nuevo plano; Diseños reúne Diseños, Recorridos, Vídeos y Crear vídeo; Vídeos permite alternar Crear vídeo y Vídeos guardados. Para volver al Editor o ir a otra sección, usa el desplegable flotante.
+
+Todos los paneles de la izquierda —**Construir, Amueblar, Acabados, Visualizar, Asistente, Escena, Herramientas**, ajustes y propiedades— aprovechan la altura disponible del lienzo, también en móvil. El contenido largo se desplaza dentro del panel. Se respeta el espacio de los controles superiores y, cuando está visible, la tira de recorrido inferior. Al abrir **Tejado** desde Herramientas, el panel anterior se cierra para dejar visible únicamente su diálogo sobre el lienzo. **Techo y luces** sustituye al panel lateral anterior.
 
 Abre **Herramientas** para visibilidad, selección por tipo, recorrido del plano, contexto IA, techo y luces, tejado, parcela real, exportación y aprobación. Solo aparecen las acciones disponibles para ese proyecto. Los botones, enlaces, tarjetas que abren opciones y desplegables muestran el cursor de mano; los controles deshabilitados se distinguen visualmente.
+
+Las barras de Editor, Plano, Diseños y Vídeos usan el mismo tamaño de iconos y botones. Las opciones se centran verticalmente en el espacio disponible; si no caben, se pueden desplazar. Al pasar el cursor conservan texto claro sobre verde oscuro; la opción seleccionada mantiene fondo verde claro y texto oscuro. La ayuda permanece al pie cuando está disponible.
+
+Los desplegables de navegación, plantas, herramientas rápidas, referencia y Opciones comparten el aspecto del menú Editor: fondo claro, filas amplias separadas y selección gris suave con texto oscuro. Los selectores de imagen de fondo y fuente usan ese mismo formato; la fuente se elige desde un control de ancho completo para leer todas sus opciones.
+
+En Vídeos, **Crear vídeo** es un grupo como los del editor: abre un panel flotante con Construcción, Publicidad y Primera persona. Elegir una modalidad cierra el panel y muestra sus controles. Crear vídeo permanece marcado como grupo activo; puedes volver a pulsarlo para cambiar de modalidad. Vídeos guardados abre la galería y cierra el panel de creación.
+
+### Espacio de trabajo del editor
+
+Plano 2D, Amueblado y Modelo 3D tienen siete grupos en la barra izquierda: **Construir, Amueblar, Acabados, Visualizar, Asistente, Escena y Herramientas**. Pulsa un grupo para desplegar sus opciones. **Exterior y jardín** está dentro de Construir, **Recorrido** dentro de Herramientas y **Escena** reúne los elementos del plano. También puedes abrir Propiedades desde la barra de selección o con doble clic sobre un elemento.
+
+La barra flotante muestra **2D, Amueblado y 3D** como botones directos; la vista activa tiene fondo oscuro. En móvil, Amueblado se identifica por su icono. **Herramientas rápidas** despliega Seleccionar, Medir y Ajuste en filas amplias con icono y texto. Medir abre las cotas del plano. **Opciones** está arriba a la derecha en las tres vistas: permite ocultar nombres, medidas, paredes o jardín, elegir cuadrícula y unidades, y personalizar el formato de las etiquetas. En Amueblado y Modelo 3D también incluye iluminación; los controles de cámara están centrados abajo. El plano 2D conserva su trazado, selección, cotas, imanes, herramientas y atajos.
+
+Al mostrar un recorrido en 3D, sus controles ocupan una franja propia sobre el espacio de trabajo para evitar que el selector o los paneles los tapen. La lista inferior de vistas tiene desplazamiento propio y los paneles dejan espacio libre para los controles de cámara, también en móvil.
+
+Los menús y paneles flotan sobre el lienzo, con altura ajustada al contenido y desplazamiento interno cuando hace falta. Dejan libre la barra de cámara inferior y no se pueden arrastrar. Abres un panel de trabajo a la vez y puedes cerrarlo con su X o Escape; Escape dentro de un campo o con una colocación pendiente conserva la prioridad de esa tarea. En móvil, ciérralo para volver a manejar la escena. Los grupos se desplazan dentro de la barra si falta altura; **Ayuda** y **Ajustes** siguen accesibles abajo.
+
+- **Escena** reúne Estructura, Mobiliario y Estancias de la planta actual. Estructura incluye paredes, suelos, techos y elementos de construcción. Cada grupo es un acordeón; las paredes muestran sus puertas y ventanas y los techos sus luminarias. Las listas muestran doce elementos inicialmente y **Mostrar más** añade hasta veinticuatro. La búsqueda conserva el elemento principal cuando coincide uno de sus hijos.
+- **Acabados** lleva a la apariencia y propiedades de la selección, suelo de las estancias y techo e iluminación. Las opciones siguen dependiendo del tipo de elemento; no cambia los materiales automáticamente.
+- **Visualizar** despliega Diseñar el plano, Crear imágenes y, si está disponible, Vídeos. Abrir este menú no genera ni acepta resultados. Las dos primeras opciones abren el estudio actual; Vídeos guarda primero mediante el flujo existente.
+- **Asistente** destaca dos acciones bajo el título Diseñar con IA: **Diseñar el plano con IA** prepara propuestas de muebles y acabados; **Generar diseños** prepara imágenes, vistas y opciones. Las tarjetas se resaltan en verde con texto blanco al pasar el cursor o enfocarlas con el teclado. Ambas abren el estudio para revisar antes de generar: no ejecutan ni aceptan resultados al pulsarlas. Debajo aparece la planta y selección actuales; la selección no se envía automáticamente a la IA. El formulario por pasos ya no aparece dentro del panel. **Cambiar el proceso** abre el asistente completo del mismo proyecto y zona para revisar el flujo guardado, sin reiniciar ni borrar el plano.
+- **Herramientas** reúne los controles existentes de preparación, parcela, orientación y sol, tejados, recorridos, exportación y aprobación. No incorpora cálculos ni servicios externos.
+- **Ajustes**, al pie de la barra, reúne visibilidad, atajos, ajuste geométrico y exportación/importación del proyecto `.habiteka`. Importar una copia crea su proyecto mediante el flujo existente. Los borradores locales y su recuperación siguen funcionando. Guarda antes de descargar: el archivo procede de la revisión del servidor.
+- **Ayuda** abre esta guía en otra pestaña. El audio del espacio de trabajo todavía no está implementado.
+
+Al regresar desde Diseños, Vídeos o el asistente, la misma pestaña recupera la vista por usuario, proyecto y zona. Recupera la selección solo si sus elementos siguen en la planta activa; descarta referencias inexistentes. La cámara exterior se conserva por vista y planta, separada de las cámaras de generación y recorridos. Una vista interior se vuelve a elegir desde sus controles. Estos ajustes son locales a esta pestaña; no sustituyen el guardado ni recuperan trazos sin terminar.
+
+#### Localizar, renombrar y ocultar en Escena
+
+Consulta también [Opciones de escena](/editor/opciones-escena/) para plantas separadas, estilos, cuadrícula, nombres, unidades y exploración por clic.
+
+Las pestañas **Estructura, Mobiliario y Estancias** muestran icono y texto. Las paredes con huecos se despliegan sin recuadros: la sangría identifica sus puertas y ventanas. En Propiedades, **Medidas, Acabados y Notas** también tienen iconos junto a sus nombres, tanto en escritorio como en móvil.
+
+Pulsa el nombre para seleccionar y localizar un elemento; el doble clic abre sus propiedades. Las filas muestran solo nombre, visibilidad y renombrado; medidas y acabados permanecen en Propiedades. El lápiz permite cambiar su nombre y guardar con la marca de verificación; Escape cancela el campo. Usa los nombres del documento: las estancias se renombran mediante su etiqueta existente. Los cambios de nombre se guardan y se pueden deshacer como las demás ediciones.
+
+El ojo oculta o muestra un elemento solo en la visualización del editor, también en 2D. Ocultar una pared oculta sus puertas y ventanas y retira esos elementos de la selección; **Mostrar elementos ocultos** restaura todo lo ocultado desde Escena. La ocultación dura mientras sigas en esta sesión de edición: no elimina elementos, no convierte un muro en límite lógico y no cambia medidas o colisiones. Las referencias para generar con IA y los recorridos conservan la geometría completa; esta ocultación no sustituye los controles de cubierta o techo.
+
+**Alt+1**, **Alt+2** y **Alt+3** abren Escena en Estructura, Mobiliario y Estancias. Requieren los atajos activados, Seleccionar activo y el foco fuera de campos de texto. En Mac se utiliza Option. B y F conservan sus herramientas.
+
+En **Estancias** también aparecen las zonas de diseño. El selector **Automático / Interior / Exterior** guarda el tipo de espacio, permite deshacer y conserva los acabados. Automático mantiene la detección existente por nombres y límites. La clasificación explícita de una estancia tiene prioridad sobre la de una zona que la cubra completamente; una zona parcial no reclasifica toda la habitación. Esto actualiza qué recintos se consideran interiores para techos y selección de acabados, sin crear ni borrar paredes. Las zonas permiten renombrado y clasificación, pero no ocultación ni edición de su contorno desde esta lista.
+
+**Capturar vista de trabajo**, en la cabecera del contenido de Escena, descarga un PNG del lienzo 2D, Amueblado o 3D con la cámara y visibilidad actuales. Incluye una marca de referencia del plano guía; no incluye menús ni etiquetas HTML superpuestas al 3D. No genera con IA, no consume créditos y no es una imagen final de diseño.
+
+Termina o cancela el dibujo o la colocación antes de localizar, renombrar, clasificar u ocultar. En solo lectura puedes ajustar visibilidad, pero no nombres. Los techos y luminarias conservan su panel específico y no tienen nombre editable propio. Las piezas internas de cocina y cerramientos mantienen su acceso a Propiedades; su nombre y visibilidad se trabajan desde el elemento principal. Cambia de planta con el selector del flotante superior para recorrer sus capas.
 
 En **Diseñar con IA**, actualizar las vistas de referencia solo vuelve a capturar el 3D; no modifica la geometría. Los avisos de importación pueden seguir pendientes de comparación con el original. Si la fiabilidad exige confirmación, revisa el plano y marca **He revisado el plano y quiero generar con estos avisos** para habilitar la generación. Un bloqueo requiere corregir el plano y no se elimina con esta casilla.
 
@@ -17,7 +71,7 @@ En el estudio de diseño, **Toda la planta**, **Solo la casa** y **Zonas concret
 
 Al marcar zonas en modo **Estancia**, pulsar una estancia ya marcada no la añade otra vez. En las zonas permitidas de **Diseñar el plano** la quita; en las zonas de diseño guardadas en el plano, elige la zona que ya existe. Esto funciona aunque hayas alcanzado el máximo de zonas. **Proponer acabados y muebles con IA** reserva ahora margen para la respuesta. Antes el modelo de visión podía agotar el límite pensando y fallar con «El modelo agotó el límite de respuesta sin devolver el diseño».
 
-**Diseñar con IA** abre el estudio en el paso de la vista en la que estás: desde **Plano 2D**, en **Diseñar el plano**, sin pasar al 3D; desde **Amueblado** o **Modelo 3D**, en **Crear imágenes**.
+**Asistente → Diseñar con IA** abre el estudio en el paso de la vista en la que estás: desde **Plano 2D**, en **Diseñar el plano**, sin pasar al 3D; desde **Amueblado** o **Modelo 3D**, en **Crear imágenes**.
 
 El estudio de diseño tiene dos pasos, en este orden. **1. Diseñar el plano**: la IA coloca muebles, baños, cocina y acabados en el plano 2D, y de ahí en el 3D, sin crear imágenes; un plano sin muebles abre el estudio en este paso. La vista previa es la propia planta 2D: este paso no cambia al 3D ni captura vistas. **2. Crear imágenes**: genera los renders del plano ya diseñado, sin modificarlo; con las imágenes que aceptes se crean después los vídeos.
 
@@ -49,19 +103,39 @@ Si importaste el plano desde un boceto, la lectura reconoce también cunas, lite
 
 **Qué parte del inmueble diseñar** limita cualquiera de los modos a un área: toda la planta, solo la casa, solo el interior, solo el exterior (patio y caras exteriores de los muros, es decir, la fachada), estancias concretas como un dormitorio, un baño o la cocina, o una zona dibujada.
 
-La propuesta trabaja solo sobre la planta. La IA recibe el plano 2D en vista cenital, con cada puerta y el arco de su giro (dos arcos en una de dos hojas; la hoja y su guía, sin arco, en una corredera), y coloca los muebles en él; no usa alzados ni capturas de otras vistas. Por eso el estudio ya no ofrece elegir una vista de referencia, y la vista previa es la cenital del 3D editable, sin coste. Antes de enseñarte la propuesta, Jev la revisa dibujada sobre la planta. Comprueba que las camas tengan el cabecero contra un muro, que ningún mueble invada el giro de una puerta ni tape un paso, que queden unos 70 cm libres y que los sofás miren a la zona de estar. Si encuentra problemas, la IA corrige la propuesta una vez con esos motivos. La revisión añade una consulta de visión, y la corrección otra cuando hace falta. La propuesta no tiene un número máximo de objetos. La IA amuebla y decora cada estancia del ámbito por completo, como una vivienda lista para vivir, y solo repite piezas cuando el uso lo pide: las sillas de una mesa o las mesillas de cada cama. La luz de día o de noche no forma parte de la propuesta: se elige después al crear las imágenes, que iluminan las lámparas colocadas. La variedad de la decoración depende del catálogo, que hoy tiene un solo jarrón y ningún espejo ni cuadro: la IA pone menos decoración antes que repetir la misma pieza en todas las estancias.
+La propuesta trabaja solo sobre la planta. La IA recibe el plano 2D en vista cenital, con cada puerta y el arco de su giro (dos arcos en una de dos hojas; la hoja y su guía, sin arco, en una corredera), y coloca los muebles en él; no usa alzados ni capturas de otras vistas. Por eso el estudio ya no ofrece elegir una vista de referencia, y la vista previa es la cenital del 3D editable, sin coste. Antes de enseñarte la propuesta, Jev la revisa dibujada sobre la planta. Comprueba que las camas tengan el cabecero contra un muro, que ningún mueble invada el giro de una puerta ni tape un paso, que queden unos 70 cm libres y que los sofás miren a la zona de estar. Si encuentra problemas, la IA corrige la propuesta una vez con esos motivos. La revisión añade una consulta de visión, y la corrección otra cuando hace falta. La propuesta no tiene un número máximo de objetos. La IA amuebla y decora cada estancia del ámbito por completo, como una vivienda lista para vivir, y solo repite piezas cuando el uso lo pide: las sillas de una mesa o las mesillas de cada cama. La luz de día o de noche no forma parte de la propuesta: se elige después al crear las imágenes, que iluminan las lámparas colocadas. La decoración utiliza los objetos disponibles en el catálogo, incluidos los nuevos floreros; la IA evita repetir la misma pieza en todas las estancias.
 
-**Ver en el plano** cierra el diálogo, vuelve al Plano 2D y muestra los muros afectados aunque estuvieran ocultos. Los extremos sin unir de los muros seleccionados aparecen con un círculo rojo y la etiqueta **Extremo sin unir**; la vista se centra en esos puntos. Cambia la selección para retirar las marcas. **Mostrar/Ocultar original** y su opacidad están en la barra superior junto a las vistas, fuera del lienzo. El original es el fondo elegido para el editor: la imagen de la que salió el plano o la que marques en el estudio con **Usar de fondo en el editor** (por ejemplo, el redibujado de la IA o tu boceto). Consulta [Fondo del editor](/guias/importar-plano/#fondo-del-editor).
+**Ver en el plano** cierra el diálogo, vuelve al Plano 2D y muestra los muros afectados aunque estuvieran ocultos. Los extremos sin unir de los muros seleccionados aparecen con un círculo rojo y la etiqueta **Extremo sin unir**; la vista se centra en esos puntos. Cambia la selección para retirar las marcas. **Mostrar original** se abre junto a 2D/Amueblado/3D en el flotante del lienzo. Reúne mostrar/ocultar la referencia, opacidad y selección del original o de los redibujados disponibles, sin una franja superior adicional. En pantallas estrechas se identifica por su icono de imagen. El original es el fondo elegido para el editor: la imagen de la que salió el plano o la que marques en el estudio con **Usar de fondo en el editor** (por ejemplo, el redibujado de la IA o tu boceto). Consulta [Fondo del editor](/guias/importar-plano/#fondo-del-editor).
 
 **Opcional: subir un PNG existente para revisarlo** es una herramienta plegada para un archivo que ya tengas guardado; su presencia no significa que se haya generado una imagen. No hace falta usarla para crear nuevas imágenes. Al abrirla, sube el PNG, selecciona su vista de referencia y pulsa **Revisar y guardar imagen existente**. La revisión con IA tiene coste; guardarlo no equivale a aceptar el diseño.
 
 ### Restablecer una muestra local
+
+El aviso amarillo de la muestra se cierra con su **X** y permanece cerrado al recargar esa pestaña. El botón **Muestra**, abajo a la derecha, permite volver a leerlo y acceder a Restablecer muestra. Cerrarlo también retira la confirmación de restablecimiento, sin cambiar el plano ni su copia. Deshacer y Rehacer están juntos, en una fila del lateral encima de Ayuda.
 
 Las muestras de desarrollo `/dev/editor-v2` son lienzos independientes, disponibles solo en desarrollo. **Restablecer muestra** recupera el documento original de esa muestra, cancela trazos y colocaciones pendientes, cierra paneles y vuelve a **Plano 2D** encuadrado. La cámara 3D se reinicia al volver a abrir esa vista. Aparece **Muestra restablecida** como confirmación, incluso si el documento ya era el original.
 
 Puedes pulsar **Deshacer** para recuperar el documento anterior al restablecimiento. Se conservan tus preferencias generales de visibilidad y atajos. La copia sigue limitada a esa pestaña y el estado de guardado indica si puede conservarse al recargar. Esta acción no modifica proyectos guardados.
 
 ## Cocina y pilares
+
+Alfombras y felpudos permiten colocar y arrastrar camas, mesas y otros muebles encima en 2D, Amueblado y la edición de 3D. No bloquean el paso del recorrido guía. Los revestimientos de hasta 30 mm pueden compartir el barrido de una puerta a su misma cota; los muros y los obstáculos altos siguen bloqueando.
+
+Sombrillas y hamacas utilizan las partes de su modelo para las colisiones. Puedes aprovechar el aire bajo la lona de una sombrilla y las zonas libres de la huella de una hamaca; el poste, soportes, asiento y tejido que ocupan el espacio siguen siendo obstáculos. La cámara mantiene su margen de separación. No se permite atravesar esas partes físicas ni superponerles otro mueble.
+
+El catálogo incluye batidora de vaso, licuadora, robot multifunción tipo Thermomix, amasadora y microondas compacto o retro. Se apoyan sobre la encimera al colocarlos encima, sin subirse automáticamente a los armarios superiores. Estos armarios se buscan como **Armario superior**, **Vitrina superior**, **Módulo superior abierto** o **Estantería superior**; se colocan a 1,45–1,50 m del suelo de la estancia y permiten ajustar su cota en Propiedades. Son piezas independientes del tramo de cocina modular.
+
+También puedes buscar felpudos, alfombras tejidas, floreros y nuevas librerías y estanterías. En **Infantil** o **Dormitorio**, las literas ofrecen variantes **Escalera izquierda** y **Escalera derecha**, vistas desde el frente del mueble. El lado se elige en las variantes del producto; girar la litera cambia su orientación, no el lado de la escalera. Las literas existentes conservan la escalera derecha.
+
+En **Exterior** y **Garaje** hay Tesla Model 3 y Ford Mustang GT; las motos y bicicletas reales están pendientes de modelos autorizados. En **Amueblar → Exterior** encontrarás hamacas con soporte, sombrillas, toldos, barbacoas, calle con aceras, acera modular, tobogán, columpios, banco, papelera y farola. Las calles y aceras son módulos que puedes colocar y repetir; no trazan una red vial automáticamente. Los juegos de parque son modelos estáticos.
+
+**Tumbonas:** en **Amueblar → Exterior**, busca «tumbona». La ficha **Tumbona de exterior** ofrece teca y aluminio, ambos con respaldo inclinado o tumbado. Una vez colocada, abre sus propiedades y cambia **Respaldo de la tumbona → Posición del respaldo**. Conserva ubicación, giro, acabado y escala; cambia la altura correspondiente al respaldo. Puedes deshacerlo. Son dos posiciones, sin una animación de reclinado.
+
+**Piscinas:** son elementos de construcción. Abre **Construir → Exterior y jardín → Agua y drenaje** o busca «piscina» en ese panel. Allí están la elevada rectangular con escalera, la elevada redonda y las enterradas rectangular y redonda. Ya no aparecen entre los muebles de Amueblar ni se proponen como mobiliario automático.
+
+Las piscinas enterradas representan el borde bajo y el agua visibles a ras del terreno: la altura de su ficha corresponde a esa parte visible, no a la profundidad del vaso. No excavan ni modifican el terreno del plano. La elevada rectangular tiene paneles de madera, refuerzos, revestimiento interior azul, coronamiento y escalera con peldaños interiores y exteriores. Su agua se ve azul en Amueblado y 3D. Los planos existentes conservan la identidad y las medidas de sus piscinas.
+
+Busca **Guirnalda de luces** y **Lámpara colgante de cocina** en Iluminación; conservan su cota de suspensión y no se apoyan en encimeras. El aire acondicionado ofrece unidad de pared, montada inicialmente a 2,10 m, y unidad exterior. Son modelos de equipamiento; no simulan climatización. Para iluminar la escena utiliza también las herramientas de luces existentes.
 
 En **Amueblar → Habitaciones → Cocina**, busca **Vitrocerámica** para añadir la placa independiente de cuatro zonas (60 × 52 cm). Tiene cristal negro, aros de cocción y controles táctiles. Suéltala sobre una encimera o isla para apoyarla a su altura; también puedes ajustar la cota en Propiedades. El modelo representa los 8 mm visibles sobre la encimera. Las medidas de las fichas se muestran en metros con hasta tres decimales para conservar espesores pequeños (0,008 m). El color modifica el cristal conservando las marcas y el marco.
 
@@ -71,17 +145,17 @@ Los pilares recortan el fondo del mueble de cocina, conservando la parte frontal
 
 ## Vistas y selección
 
-| Control | Para qué sirve |
-|---|---|
-| Plano 2D | Revisar trazado y dimensiones. |
-| Amueblado | Trabajar con la representación visual del plano. |
-| Modelo 3D | Revisar volumen, acabados y circulación de la guía. |
-| Seleccionar | Seleccionar elementos o arrastrar un marco de selección. |
-| Propiedades | Cambiar parámetros del elemento seleccionado. |
-| Medir | Arrastrar entre dos puntos para dejar una cota con su distancia. |
-| Texto | Añadir etiquetas al plano. |
+| Control     | Para qué sirve                                                   |
+| ----------- | ---------------------------------------------------------------- |
+| Plano 2D    | Revisar trazado y dimensiones.                                   |
+| Amueblado   | Trabajar con la representación visual del plano.                 |
+| Modelo 3D   | Revisar volumen, acabados y circulación de la guía.              |
+| Seleccionar | Seleccionar elementos o arrastrar un marco de selección.         |
+| Propiedades | Cambiar parámetros del elemento seleccionado.                    |
+| Medir       | Arrastrar entre dos puntos para dejar una cota con su distancia. |
+| Texto       | Añadir etiquetas desde **Herramientas → Añadir texto**.                                       |
 
-Cambiar entre **Plano 2D**, **Amueblado** y **Modelo 3D** conserva la selección, el panel abierto y la sección de Propiedades. El selector de cámaras de Modelo 3D también conserva la selección. Al entrar en Amueblado se prepara la vista cenital; al entrar en Modelo 3D, la isométrica. El encuadre manual de esas dos vistas no se recuerda al salir de ellas.
+Cambiar entre **Plano 2D**, **Amueblado** y **Modelo 3D** conserva la selección, el panel abierto y la sección de Propiedades. El selector de cámaras de Modelo 3D también conserva la selección. Amueblado empieza en vista cenital y Modelo 3D en isométrica cuando aún no hay cámara guardada; cada uno recupera su encuadre manual de la misma pestaña, usuario, proyecto, zona y disposición de plantas. La escena espera a tener la cámara lista para evitar saltos de perspectiva. Los ajustes de nombres, formato, visibilidad, cuadrícula y unidades se comparten entre las tres vistas.
 
 **Paredes externas** selecciona los muros visibles que delimitan una sola estancia interior, incluyendo los que dan a patios; no se limita al perímetro de la parcela. **Paredes internas** incluye los que separan dos interiores y los tabiques abiertos dentro de una estancia. La clasificación de estancias excluye las etiquetadas como patio, terraza, jardín, balcón, exterior, porche o loggia y las delimitadas por límites lógicos exteriores. Un pasillo delimitado así también puede hacer que sus paredes entren en la selección externa. Revisa sus límites y etiquetas si debería ser interior.
 
@@ -106,6 +180,8 @@ Activa **Medir** o pulsa **M**. En Plano 2D, arrastra desde el primer punto hast
 Con **Ajuste** activo (**A**), los puntos se alinean con referencias del plano. La medida se consulta también en **Propiedades** y en el buscador de elementos, dentro de **Medidas**. Puedes mover la cota arrastrándola, eliminarla o deshacer su creación; no cambia las dimensiones de paredes ni muebles.
 
 La cota seleccionada y las cotas manuales mientras usas Medir se muestran aunque **Herramientas → Vista → Medidas** esté en **Ocultas** o **Solo exteriores**. Al dejar de seleccionarla se vuelve a aplicar ese filtro; puedes recuperarla desde el buscador de Propiedades.
+
+La franja contextual se oculta cuando Seleccionar está activo. Solo aparece si necesitas terminar o cancelar una herramienta, consultar el estado de solo lectura o manejar la referencia del plano 2D. Para añadir una etiqueta, abre **Herramientas → Añadir texto**; se crea seleccionada y se abre Propiedades para editarla.
 
 ## Propiedades de la selección
 
@@ -144,40 +220,40 @@ En **Construir → Puertas** y **Construir → Ventanas** hay una tarjeta por ti
 
 Cada puerta o ventana tiene un **Tipo** que también puedes cambiar en Propiedades. Al cambiarlo se aplican su ancho, su altura, su elevación y su aspecto habituales solo si caben: sin invadir una esquina ni otra abertura, sin superar la altura del muro y sin chocar con un mueble. Si no caben, se prueba a cambiar solo la altura y la elevación, después solo el ancho y, si tampoco, el tipo cambia conservando las medidas actuales (recortadas al ancho máximo del tipo). Cada tipo tiene un **ancho máximo** real: si escribes un ancho mayor, el editor lo rechaza y te dice el máximo.
 
-| Tipo | Medida habitual | Ancho máximo | Plano 2D | 3D |
-| --- | --- | --- | --- | --- |
-| Puerta abatible | 0,90 × 2,10 m | 1,25 m | Hoja y arco de giro | Hoja sobre bisagras |
-| Puerta de dos hojas | 1,40 × 2,10 m | 1,80 m | Dos hojas y dos arcos | Dos hojas que abren hacia el mismo lado |
-| Puerta vidriera | 0,90 × 2,10 m | 1,25 m | Hoja azul vidrio y arco | Bastidor con vidrio y zócalo macizo |
-| Puerta plegable (acordeón) | 0,80 × 2,10 m | 2,40 m | Zigzag de cuatro paneles | Paneles plegados en zigzag junto a la jamba |
-| Puerta pivotante | 1,10 × 2,40 m | 1,60 m | Hoja que cruza el muro, arco grande y arco pequeño al otro lado del eje | Hoja que gira sobre un eje a un quinto de su canto |
-| Puerta de cristal templado | 0,90 × 2,10 m | 1,10 m | Hoja fina azul vidrio y arco | Luna sin bastidor con pernios y tirador de acero |
-| Puerta de vaivén | 0,80 × 2,10 m | 1,00 m | Arco continuo y arco discontinuo hacia la otra cara | Hoja con placa de protección de acero abajo, en las dos caras |
-| Puerta de entrada blindada | 0,95 × 2,10 m | 1,20 m | Hoja gruesa rellena y arco | Hoja de 7 cm, marco ancho, pomo centrado por fuera, escudo y mirilla |
-| Puerta de entrada de hoja y media | 1,20 × 2,10 m | 1,50 m | Hoja principal con arco y hoja estrecha fija sin arco | Hoja principal (70 %) y hoja fija estrecha, con mirilla |
-| Puerta corredera vista | 0,90 × 2,10 m | 1,40 m | Hoja paralela por fuera del muro, guía discontinua y flecha; sin arco | Hoja colgada de una galería por la cara elegida |
-| Puerta corredera empotrada | 0,80 × 2,10 m | 1,20 m | Cajón discontinuo dentro del muro, hoja y flecha; sin arco | La hoja entra en el muro y deja ver su canto |
-| Corredera de granero | 1,00 × 2,10 m | 1,50 m | Hoja por fuera del muro, guía continua y flecha | Hoja que tapa el dintel, pletina negra con ruedas y colgadores vistos |
-| Corredera de dos hojas al centro | 1,40 × 2,10 m | 2,40 m | Dos hojas por fuera del muro, guía y dos flechas hacia los lados | Dos hojas que se recogen cada una hacia su lado |
-| Corredera de vidrio a patio o terraza | 1,80 × 2,10 m | 3,20 m | Dos hojas acristaladas que se cruzan y flecha | Dos hojas de vidrio sobre un carril |
-| Corredera elevadora de cuatro hojas a patio o terraza | 3,20 × 2,20 m | 4,00 m | Cuatro hojas acristaladas y dos flechas | Dos hojas fijas en los extremos y dos centrales que se abren por delante de ellas |
-| Puerta de garaje seccional | 2,50 × 2,13 m | 5,00 m | Panel por la cara interior, guías discontinuas bajo el techo y flecha hacia dentro | Paneles ranurados; abierta, se recogen en horizontal bajo el techo |
-| Puerta enrollable (garaje o local) | 2,50 × 2,20 m | 5,00 m | Persiana por la cara interior y cajón discontinuo | Lamas que se recogen en un cajón sobre el hueco |
-| Puerta de garaje basculante | 2,50 × 2,10 m | 5,00 m | Panel, huella discontinua de la hoja abierta y flecha hacia la calle | Chapa nervada que, abierta, queda horizontal asomando un tercio a la calle |
-| Puerta de garaje corredera lateral | 2,50 × 2,10 m | 5,00 m | Como la corredera vista | Hoja ranurada que se recoge a lo largo de la pared |
-| Portón exterior corredero en pared | 3,00 × 2,00 m | 6,00 m | Hoja paralela al muro, guía y flecha, sin arco | Hoja de lamas antracita que se recoge junto al muro |
-| Puerta de garaje batiente de dos hojas | 2,50 × 2,10 m | 5,00 m | Dos hojas y dos arcos | Dos hojas con cuarterones |
-| Ventana | 1,20 × 1,20 m a 0,90 m | 2,60 m | Línea de vidrio | Marco, montante central y vidrio (la de siempre) |
-| Ventana abatible de una hoja | 0,60 × 1,20 m a 0,90 m | 0,90 m | Línea de vidrio y arco discontinuo | Una hoja acristalada |
-| Ventana abatible de dos hojas | 1,20 × 1,20 m a 0,90 m | 1,80 m | Línea de vidrio y dos arcos discontinuos | Dos hojas acristaladas |
-| Ventana oscilobatiente | 0,80 × 1,20 m a 0,90 m | 1,20 m | Línea de vidrio y arco discontinuo | Una hoja con su manilla por la cara interior |
-| Ventana de tres hojas | 1,80 × 1,20 m a 0,90 m | 2,70 m | Línea de vidrio y tres arcos discontinuos | Tres hojas acristaladas |
-| Ventana con fijo superior (montante) | 1,20 × 1,60 m a 0,70 m | 1,80 m | Línea de vidrio y dos arcos discontinuos | Dos hojas bajo un travesaño y un vidrio fijo encima |
-| Ventana de guillotina | 0,90 × 1,50 m a 0,90 m | 1,50 m | Dos líneas de vidrio, una por hoja | Dos hojas en carriles distintos, una sobre otra |
-| Ventana corredera | 1,20 × 1,20 m a 0,90 m | 3,00 m | Dos líneas de vidrio desplazadas que se solapan | Dos hojas en carriles distintos |
-| Balconera (hasta el suelo) | 1,20 × 2,10 m desde el suelo | 1,80 m | Dos hojas y dos arcos continuos | Dos hojas acristaladas hasta el suelo |
-| Ventana fija | 1,00 × 1,20 m a 0,90 m | 3,00 m | Doble línea de vidrio | Un solo vidrio sin montante |
-| Ventanal fijo hasta el suelo | 1,50 × 2,10 m desde el suelo | 4,00 m | Doble línea de vidrio | Un vidrio fijo de suelo a dintel |
+| Tipo                                                  | Medida habitual              | Ancho máximo | Plano 2D                                                                           | 3D                                                                                |
+| ----------------------------------------------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Puerta abatible                                       | 0,90 × 2,10 m                | 1,25 m       | Hoja y arco de giro                                                                | Hoja sobre bisagras                                                               |
+| Puerta de dos hojas                                   | 1,40 × 2,10 m                | 1,80 m       | Dos hojas y dos arcos                                                              | Dos hojas que abren hacia el mismo lado                                           |
+| Puerta vidriera                                       | 0,90 × 2,10 m                | 1,25 m       | Hoja azul vidrio y arco                                                            | Bastidor con vidrio y zócalo macizo                                               |
+| Puerta plegable (acordeón)                            | 0,80 × 2,10 m                | 2,40 m       | Zigzag de cuatro paneles                                                           | Paneles plegados en zigzag junto a la jamba                                       |
+| Puerta pivotante                                      | 1,10 × 2,40 m                | 1,60 m       | Hoja que cruza el muro, arco grande y arco pequeño al otro lado del eje            | Hoja que gira sobre un eje a un quinto de su canto                                |
+| Puerta de cristal templado                            | 0,90 × 2,10 m                | 1,10 m       | Hoja fina azul vidrio y arco                                                       | Luna sin bastidor con pernios y tirador de acero                                  |
+| Puerta de vaivén                                      | 0,80 × 2,10 m                | 1,00 m       | Arco continuo y arco discontinuo hacia la otra cara                                | Hoja con placa de protección de acero abajo, en las dos caras                     |
+| Puerta de entrada blindada                            | 0,95 × 2,10 m                | 1,20 m       | Hoja gruesa rellena y arco                                                         | Hoja de 7 cm, marco ancho, pomo centrado por fuera, escudo y mirilla              |
+| Puerta de entrada de hoja y media                     | 1,20 × 2,10 m                | 1,50 m       | Hoja principal con arco y hoja estrecha fija sin arco                              | Hoja principal (70 %) y hoja fija estrecha, con mirilla                           |
+| Puerta corredera vista                                | 0,90 × 2,10 m                | 1,40 m       | Hoja paralela por fuera del muro, guía discontinua y flecha; sin arco              | Hoja colgada de una galería por la cara elegida                                   |
+| Puerta corredera empotrada                            | 0,80 × 2,10 m                | 1,20 m       | Cajón discontinuo dentro del muro, hoja y flecha; sin arco                         | La hoja entra en el muro y deja ver su canto                                      |
+| Corredera de granero                                  | 1,00 × 2,10 m                | 1,50 m       | Hoja por fuera del muro, guía continua y flecha                                    | Hoja que tapa el dintel, pletina negra con ruedas y colgadores vistos             |
+| Corredera de dos hojas al centro                      | 1,40 × 2,10 m                | 2,40 m       | Dos hojas por fuera del muro, guía y dos flechas hacia los lados                   | Dos hojas que se recogen cada una hacia su lado                                   |
+| Corredera de vidrio a patio o terraza                 | 1,80 × 2,10 m                | 3,20 m       | Dos hojas acristaladas que se cruzan y flecha                                      | Dos hojas de vidrio sobre un carril                                               |
+| Corredera elevadora de cuatro hojas a patio o terraza | 3,20 × 2,20 m                | 4,00 m       | Cuatro hojas acristaladas y dos flechas                                            | Dos hojas fijas en los extremos y dos centrales que se abren por delante de ellas |
+| Puerta de garaje seccional                            | 2,50 × 2,13 m                | 5,00 m       | Panel por la cara interior, guías discontinuas bajo el techo y flecha hacia dentro | Paneles ranurados; abierta, se recogen en horizontal bajo el techo                |
+| Puerta enrollable (garaje o local)                    | 2,50 × 2,20 m                | 5,00 m       | Persiana por la cara interior y cajón discontinuo                                  | Lamas que se recogen en un cajón sobre el hueco                                   |
+| Puerta de garaje basculante                           | 2,50 × 2,10 m                | 5,00 m       | Panel, huella discontinua de la hoja abierta y flecha hacia la calle               | Chapa nervada que, abierta, queda horizontal asomando un tercio a la calle        |
+| Puerta de garaje corredera lateral                    | 2,50 × 2,10 m                | 5,00 m       | Como la corredera vista                                                            | Hoja ranurada que se recoge a lo largo de la pared                                |
+| Portón exterior corredero en pared                    | 3,00 × 2,00 m                | 6,00 m       | Hoja paralela al muro, guía y flecha, sin arco                                     | Hoja de lamas antracita que se recoge junto al muro                               |
+| Puerta de garaje batiente de dos hojas                | 2,50 × 2,10 m                | 5,00 m       | Dos hojas y dos arcos                                                              | Dos hojas con cuarterones                                                         |
+| Ventana                                               | 1,20 × 1,20 m a 0,90 m       | 2,60 m       | Línea de vidrio                                                                    | Marco, montante central y vidrio (la de siempre)                                  |
+| Ventana abatible de una hoja                          | 0,60 × 1,20 m a 0,90 m       | 0,90 m       | Línea de vidrio y arco discontinuo                                                 | Una hoja acristalada                                                              |
+| Ventana abatible de dos hojas                         | 1,20 × 1,20 m a 0,90 m       | 1,80 m       | Línea de vidrio y dos arcos discontinuos                                           | Dos hojas acristaladas                                                            |
+| Ventana oscilobatiente                                | 0,80 × 1,20 m a 0,90 m       | 1,20 m       | Línea de vidrio y arco discontinuo                                                 | Una hoja con su manilla por la cara interior                                      |
+| Ventana de tres hojas                                 | 1,80 × 1,20 m a 0,90 m       | 2,70 m       | Línea de vidrio y tres arcos discontinuos                                          | Tres hojas acristaladas                                                           |
+| Ventana con fijo superior (montante)                  | 1,20 × 1,60 m a 0,70 m       | 1,80 m       | Línea de vidrio y dos arcos discontinuos                                           | Dos hojas bajo un travesaño y un vidrio fijo encima                               |
+| Ventana de guillotina                                 | 0,90 × 1,50 m a 0,90 m       | 1,50 m       | Dos líneas de vidrio, una por hoja                                                 | Dos hojas en carriles distintos, una sobre otra                                   |
+| Ventana corredera                                     | 1,20 × 1,20 m a 0,90 m       | 3,00 m       | Dos líneas de vidrio desplazadas que se solapan                                    | Dos hojas en carriles distintos                                                   |
+| Balconera (hasta el suelo)                            | 1,20 × 2,10 m desde el suelo | 1,80 m       | Dos hojas y dos arcos continuos                                                    | Dos hojas acristaladas hasta el suelo                                             |
+| Ventana fija                                          | 1,00 × 1,20 m a 0,90 m       | 3,00 m       | Doble línea de vidrio                                                              | Un solo vidrio sin montante                                                       |
+| Ventanal fijo hasta el suelo                          | 1,50 × 2,10 m desde el suelo | 4,00 m       | Doble línea de vidrio                                                              | Un vidrio fijo de suelo a dintel                                                  |
 
 Las elevaciones se miden desde el suelo de la estancia del muro. Los planos guardados antes de existir los tipos se abren como **Puerta abatible** y **Ventana**, con el mismo dibujo y el mismo modelo de siempre.
 
@@ -251,6 +327,8 @@ El catálogo incluye modelos 3D realistas de Poly Haven, con licencia CC0. Los e
 
 **Muebles realistas en el plano:** los muebles con modelo 3D se dibujan en **Plano 2D** y en **Amueblado** con su vista desde arriba real (texturas, cojines, almohadas) y una sombra suave, en lugar de volúmenes de color. La primera vez que aparece cada modelo tarda una fracción de segundo; hasta entonces se ve el símbolo de siempre. Las piezas del catálogo que coloca **Amueblar** (camas, mesillas, sofás, sillones, mesas de comedor y de centro, sillas, taburetes, armarios, cómodas, aparadores, mueble de TV, estanterías, escritorio, lámparas, sanitarios, frigorífico y plantas) usan también un modelo realista, escalado a sus medidas. El color de catálogo conserva las texturas del modelo, y si pintas la pieza, el modelo toma ese color. El horno de pie sigue con su dibujo sencillo porque aún no tiene modelo a su medida.
 
+**Arrastrar con límites:** en **Amueblado** y **Modelo 3D**, el mueble de la planta activa se detiene al encontrar una pared, otro objeto o el espacio de apertura de una puerta. Puedes soltarlo en ese límite o retroceder para rodear el obstáculo. El control comprueba también el trayecto cuando el puntero salta al otro lado. Mantiene las reglas de altura, objetos apoyados y sillas bajo mesas. En 3D, arrastra una zona vacía para girar la cámara. Duplicar con Alt/Option conserva la validación de la posición final; este freno continuo corresponde al movimiento individual.
+
 **Sillas bajo las mesas:** en **Plano 2D** y **Amueblado**, arrastra una silla o un banco hacia la mesa. Puede entrar por el hueco libre bajo el tablero; el arrastre individual se detiene si toca una pata, un pie central, un travesaño o el tablero. También cuenta el respaldo y los brazos del asiento. Retira un poco la silla y muévela hacia el hueco entre los soportes para rodearlos. Las medidas, el giro y la elevación de ambas piezas se tienen en cuenta. El arrastre conserva el giro mientras entra: orienta primero la silla con Propiedades. Al mover varios elementos juntos se comprueba la posición final. La detección utiliza una aproximación conservadora del modelo, con un pequeño margen; modelos sin geometría de colisión vigente mantienen su envolvente de seguridad.
 
 **Baño al amueblar:** el inodoro, la bañera, la bañera compacta, el plato de ducha y la columna que coloca **Amueblar** se ven con los modelos de baño de Habiteka (inodoro con cisterna vista, bañeras de faldón con grifo de repisa, plato extraplano de resina y columna de suelo), a su medida y sin deformarse. El plato de ducha del catálogo mide ahora 3 cm de alto, como un plato extraplano; los planos que ya lo tenían conservan su altura. El lavabo con mueble mantiene su modelo anterior, porque mide 85 cm hasta la encimera y los lavabos nuevos llegan a 1,05 m con el grifo. Los muebles de lavabo, los espejos y el resto de la colección se eligen desde el catálogo, en **Baño**.
@@ -268,7 +346,7 @@ Las macetas son de barro con plato, cerámica blanca, cesta de fibra u hormigón
 
 El potus colgante aparece a su altura, colgado del techo. La **Planta de interior** del catálogo y la que coloca **Amueblar** se ven como el ficus lyrata de 1,20 m en maceta de barro, a la medida de la pieza. Si pintas una planta, cambia el color de la maceta; las hojas y la tierra conservan el suyo.
 
-Con **Ajuste** activo, al colocar o arrastrar una pieza que va contra la pared (armario, sofá, cama, cómoda, estantería, sanitario o electrodoméstico) cerca de un muro, se gira sola con la trasera contra él, como una puerta en su muro. Así puedes llevar ya girado un armario que no cabe girarlo donde está. Mientras la pared con la que ya está orientada siga a su alcance, la pieza conserva ese giro: un armario puesto en horizontal en un rincón no salta a la pared lateral. Solo se gira hacia otro muro cuando se aleja del suyo; mesas, sillas, alfombras, plantas y lámparas conservan el giro que les diste.
+Con **Ajuste** activo en **Plano 2D**, al colocar o arrastrar una pieza que va contra la pared (armario, sofá, cama, cómoda, estantería, sanitario o electrodoméstico) cerca de un muro, se gira sola con la trasera contra él, como una puerta en su muro. Así puedes llevar ya girado un armario que no cabe girarlo donde está. Mientras la pared con la que ya está orientada siga a su alcance, la pieza conserva ese giro: un armario puesto en horizontal en un rincón no salta a la pared lateral. Hay un margen de salida para que pequeños movimientos no alternen entre horizontal y vertical. El punto de agarre se mantiene al girar y soltar conserva la posición de la vista previa. Al separarla conserva la última orientación; al acercarla claramente a otra pared se adapta a ella. Esto también se aplica a la colocación desde el catálogo. Mesas, sillas, alfombras, plantas y lámparas conservan el giro que les diste.
 
 En la vista cenital, las alfombras se pintan debajo de todo y las sillas y bancos debajo de la mesa. **Ocultar original** se recuerda en el navegador: al recargar, el boceto sigue oculto hasta que pulses **Mostrar original**, igual que su opacidad.
 
@@ -294,7 +372,11 @@ En **Caminos**, elige acabado, ancho entre 0,30 y 10 m, bordillos y vegetación 
 
 La piscina, estanque, fuente, barbacoas, carpas, toldo y sombrilla disponen de modelos con piezas y materiales separados. La carpa conserva las opciones de recoger laterales.
 
-Los vehículos incluyen **Coche compacto**, **Turismo moderno (berlina)**, **SUV** y **Furgoneta**, con carrocerías distintas, pasos de rueda, neumáticos, llantas, cristales, retrovisores y ópticas. Sus medidas iniciales (ancho × largo × alto) son 1,75 × 4 × 1,45 m; 1,80 × 4,60 × 1,50 m; 1,90 × 4,70 × 1,75 m; y 2 × 5,20 × 2,30 m, respectivamente. Puedes editar sus medidas, giro y color en Propiedades. El color cambia la pintura y conserva cristales, neumáticos, llantas y luces. Sin pintar, cada modelo trae su pintura de fábrica (compacto plata, berlina azul, SUV gris y furgoneta blanca), que es la que muestra **Pintar → Color de la carrocería** y la que reciben las imágenes con IA. Los vehículos ya guardados conservan sus medidas y muestran la nueva geometría.
+En **Amueblar → Exterior** o **Garaje**, busca **Tesla Model 3 · 2018** o **Ford Mustang GT · 2005**. También están en **Construir → Exterior y jardín → Pavimentos y parking**. Son modelos de esas marcas y vehículos reales, con sus carrocerías, interiores, ruedas y materiales originales. Se ven con el mismo modelo en Amueblado y 3D. Las medidas iniciales corresponden a la geometría importada, incluyendo retrovisores; puedes editar tamaño, giro y color en Propiedades. El tinte modifica solo la carrocería.
+
+**Detalles y créditos** incluye el autor, el enlace al modelo original, la licencia CC BY 4.0 y las adaptaciones realizadas. Tesla: Ameer Studio; Ford: Ricy. Los coches, motos y bicicletas procedurales anteriores dejan de ofrecerse para nuevas inserciones; los planos que ya los contienen conservan sus elementos y dimensiones. Las motos, bicicletas y demás marcas reales quedan pendientes de modelos autorizados; no se sustituyen por vehículos inventados con un nombre comercial.
+
+La precisión de la cámara se ajusta automáticamente con el zoom en Amueblado y 3D para que superficies muy próximas, como techo y tapizado interior, no produzcan manchas. Las vistas interiores mantienen el recorte cercano de 1 cm.
 
 Estos modelos sirven para colocar y medir elementos en el editor. El acabado visual sigue admitiendo mejoras; no sustituye los diseños IA aceptados del inmueble.
 
@@ -302,19 +384,19 @@ Estos modelos sirven para colocar y medir elementos en el editor. El acabado vis
 
 El selector de material (suelo, caras de pared, forjado, cubiertas, pilares, frentes de cocina y terreno) muestra unos 190 materiales con miniatura y nombre en español. Escribe en **Buscar material** (por ejemplo, «roble», «metro» o «gotelé») o elige una **Categoría**:
 
-| Categoría | Ejemplos |
-| --- | --- |
-| Parqué y tarima | Roble natural, claro y gris, pino, arce, nogal, cerezo, wengué, espiga, tablero, Versalles, laminados |
-| Baldosas y porcelánico | Porcelánico gris, blanco brillo, negro, pizarra y efecto caliza, gres, dameros |
-| Baldosa hidráulica y barro | Hidráulicos azules y geométrico ocre, barro octogonal con taco, barro de patio |
-| Mármol / Piedra y terrazo | Carrara, Thassos, crema marfil, Emperador, negro Marquina, travertino, granito, pizarra, terrazos |
-| Microcemento y hormigón | Microcemento blanco roto, gris claro, arena, beige y gris oscuro; hormigón pulido y liso |
-| Moqueta | Lana beige, bucle crudo, gris claro, gris jaspeada, beige de cuadros, azul marino |
-| Azulejo de pared | Metro blanco, crema, azul, verde y rosa, zellige verde, cuadrado blanco, mosaico hexagonal |
-| Pintura y estuco | Estuco blanco liso y fino, gotelé, pintura blanca, beige, arena, gris perla, gris piedra y antracita |
-| Ladrillo visto | Rojo con junta blanca, rojo oscuro, naranja, amarillo, rústico, pintado y encalado |
-| Madera (paredes y muebles) | Friso de lamas, machihembrado blanco, tablas, chapa de nogal y wengué, abedul |
-| Fachada | Enfoscado rugoso, blanco y ocre, ladrillo caravista, mampostería, sillería, lajas, lamas grises |
+| Categoría                  | Ejemplos                                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Parqué y tarima            | Roble natural, claro y gris, pino, arce, nogal, cerezo, wengué, espiga, tablero, Versalles, laminados |
+| Baldosas y porcelánico     | Porcelánico gris, blanco brillo, negro, pizarra y efecto caliza, gres, dameros                        |
+| Baldosa hidráulica y barro | Hidráulicos azules y geométrico ocre, barro octogonal con taco, barro de patio                        |
+| Mármol / Piedra y terrazo  | Carrara, Thassos, crema marfil, Emperador, negro Marquina, travertino, granito, pizarra, terrazos     |
+| Microcemento y hormigón    | Microcemento blanco roto, gris claro, arena, beige y gris oscuro; hormigón pulido y liso              |
+| Moqueta                    | Lana beige, bucle crudo, gris claro, gris jaspeada, beige de cuadros, azul marino                     |
+| Azulejo de pared           | Metro blanco, crema, azul, verde y rosa, zellige verde, cuadrado blanco, mosaico hexagonal            |
+| Pintura y estuco           | Estuco blanco liso y fino, gotelé, pintura blanca, beige, arena, gris perla, gris piedra y antracita  |
+| Ladrillo visto             | Rojo con junta blanca, rojo oscuro, naranja, amarillo, rústico, pintado y encalado                    |
+| Madera (paredes y muebles) | Friso de lamas, machihembrado blanco, tablas, chapa de nogal y wengué, abedul                         |
+| Fachada                    | Enfoscado rugoso, blanco y ocre, ladrillo caravista, mampostería, sillería, lajas, lamas grises       |
 
 También siguen **Tela** y **Exterior** (césped, gravilla, adoquines y pavimentos). Los materiales que ya usaban tus planos conservan su identidad y su aspecto; solo cambian su nombre al español y, en algunos, la categoría.
 
@@ -346,7 +428,7 @@ Al añadir terreno o pavimento se abre **Amueblado**, con la superficie seleccio
 
 Gestiona niveles desde el selector de planta. En **Herramientas**, configura [Techos y luces](/editor/techos-luces-tejado/) por estancia o abre **Recorrido** para comprobar una ruta en el plano. Los vídeos finales se preparan desde los diseños IA aceptados en **Vídeos**.
 
-Al abrir el editor o aprobar cambios sigues en edición. **Herramientas → Ver aprobado** abre la revisión, con **Plano 2D**, **Modelo 3D** y **Volver al editor**. Los avisos de objetos aproximados y estancias sin techo están en **Detalles de la guía: objetos y techos**. Los recorridos de la guía no se activan automáticamente. El botón **Vídeos** de la cabecera del editor guarda primero los cambios pendientes y abre la página de Vídeos; si hay un conflicto o no se pueden sincronizar, permanece en el editor y explica el motivo.
+Al abrir el editor o aprobar cambios sigues en edición. **Herramientas → Ver aprobado** abre la revisión, con **Plano 2D**, **Modelo 3D** y **Volver al editor**. Los avisos de objetos aproximados y estancias sin techo están en **Detalles de la guía: objetos y techos**. Los recorridos de la guía no se activan automáticamente. El botón **Visualizar → Vídeos** guarda primero los cambios pendientes y abre la página de Vídeos; si hay un conflicto o no se pueden sincronizar, permanece en el editor y explica el motivo.
 
 ## Navegación 3D
 

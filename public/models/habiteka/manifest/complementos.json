@@ -1,0 +1,744 @@
+{
+ "_comment": "Muebles propios de Habiteka (familia complementos) generados con scripts/build-furniture-factory.mjs (Blender). Geometría propia; texturas CC0 1.0 de Poly Haven y ambientCG con su procedencia.",
+ "family": "complementos",
+ "author": "Habiteka (modelo propio)",
+ "license": "LicenseRef-Habiteka",
+ "generatorVersion": "1.1.0",
+ "models": {
+  "armario_alto_cocina_600_base": {
+   "file": "armario_alto_cocina_600_base.glb",
+   "thumbnail": "thumbs/armario_alto_cocina_600_base.webp",
+   "sha256": "034a6448cb8a630c609bc98bce7022ad65e7df40017abc0202f76f249f3cc275",
+   "bytes": 449904,
+   "triangles": 752,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    600,
+    406,
+    700
+   ],
+   "elevationMm": 1450,
+   "specDimensionsMm": [
+    600,
+    350,
+    700
+   ],
+   "family": "complementos",
+   "type": "wall_cabinet",
+   "params": {
+    "doors": 1,
+    "elev": 1450
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "9a95dc111e5246fbd85bac8dc7a385ebaddc3cf977e7db5f01b5501093d3e97a",
+   "builtAt": "2026-10-10"
+  },
+  "armario_alto_cocina_900_base": {
+   "file": "armario_alto_cocina_900_base.glb",
+   "thumbnail": "thumbs/armario_alto_cocina_900_base.webp",
+   "sha256": "0134cb6e172c03c36df7a5aac62a5a98c710b17aa440e128800d06f5a3a4cf6e",
+   "bytes": 452660,
+   "triangles": 1048,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    900,
+    406,
+    700
+   ],
+   "elevationMm": 1450,
+   "specDimensionsMm": [
+    900,
+    350,
+    700
+   ],
+   "family": "complementos",
+   "type": "wall_cabinet",
+   "params": {
+    "doors": 2,
+    "elev": 1450
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "24f72126a88c95d9e02251e2ed74defa0f9a769bfd14d861f68840d3392b26ec",
+   "builtAt": "2026-10-10"
+  },
+  "armario_alto_cocina_abierto_base": {
+   "file": "armario_alto_cocina_abierto_base.glb",
+   "thumbnail": "thumbs/armario_alto_cocina_abierto_base.webp",
+   "sha256": "f26ab41bb7c7a443747c106a38a04a204de8990459b43e9ddda713ffa9f77b47",
+   "bytes": 444844,
+   "triangles": 456,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    600,
+    350,
+    700
+   ],
+   "elevationMm": 1450,
+   "specDimensionsMm": [
+    600,
+    350,
+    700
+   ],
+   "family": "complementos",
+   "type": "wall_cabinet",
+   "params": {
+    "open": true,
+    "elev": 1450
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "45931a942a1f14e4b048f70a45aaf5acf02150a145ce09fbdd4ecd4c404ee1aa",
+   "builtAt": "2026-10-10"
+  },
+  "armario_alto_cocina_vitrina_base": {
+   "file": "armario_alto_cocina_vitrina_base.glb",
+   "thumbnail": "thumbs/armario_alto_cocina_vitrina_base.webp",
+   "sha256": "ee8cb1da391aa75c3a3db884c44d806759f2e1f4cfa452a1eb3fb5ff299c123f",
+   "bytes": 451960,
+   "triangles": 792,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    406,
+    700
+   ],
+   "elevationMm": 1450,
+   "specDimensionsMm": [
+    800,
+    350,
+    700
+   ],
+   "family": "complementos",
+   "type": "wall_cabinet",
+   "params": {
+    "doors": 2,
+    "glass": true,
+    "elev": 1450
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "797fb7b487bbc4b6f2c9f64a0b354b544fba9ab369fb112a492e0a020e935942",
+   "builtAt": "2026-10-10"
+  },
+  "batidora_amasadora_base": {
+   "file": "batidora_amasadora_base.glb",
+   "thumbnail": "thumbs/batidora_amasadora_base.webp",
+   "sha256": "46827aecdfe327b019b5e15a83c36c233694eece930e1de407596912a0278084",
+   "bytes": 20964,
+   "triangles": 1560,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    250,
+    390,
+    339
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    250,
+    390,
+    350
+   ],
+   "family": "complementos",
+   "type": "mixer",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-rojo",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fac5aaa92fb5e96fef21cf840e38be015e2a57899bec6a45ee438f7733ec3ebe",
+   "builtAt": "2026-10-10"
+  },
+  "batidora_vaso_base": {
+   "file": "batidora_vaso_base.glb",
+   "thumbnail": "thumbs/batidora_vaso_base.webp",
+   "sha256": "7c7c3c69eff6078a36928e6bd93519b76914aa703ffcc50d7439fdd9acb4c7b6",
+   "bytes": 15696,
+   "triangles": 1052,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    218,
+    255,
+    407
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    210,
+    240,
+    420
+   ],
+   "family": "complementos",
+   "type": "blender",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-crema",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bde8b62446866282b9ef0f78db0698f1779dd69ba3cc65fddbd8c917bd98bc9a",
+   "builtAt": "2026-10-10"
+  },
+  "estante_cocina_pared_base": {
+   "file": "estante_cocina_pared_base.glb",
+   "thumbnail": "thumbs/estante_cocina_pared_base.webp",
+   "sha256": "19bb1831de83a6d69ae74292a3494eb423543e48c5cd4efc234633c19eef81a0",
+   "bytes": 444812,
+   "triangles": 456,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    260,
+    400
+   ],
+   "elevationMm": 1500,
+   "specDimensionsMm": [
+    1000,
+    260,
+    400
+   ],
+   "family": "complementos",
+   "type": "wall_cabinet",
+   "params": {
+    "open": true,
+    "elev": 1500
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "bdce6d8050293e4a46c58818bed06d74bd4ad4c32d0c5bc30ab370bdefe8b3cd",
+   "builtAt": "2026-10-10"
+  },
+  "estanteria_abierta_base": {
+   "file": "estanteria_abierta_base.glb",
+   "thumbnail": "thumbs/estanteria_abierta_base.webp",
+   "sha256": "df3cbec741338b3b9dee13d47ec54e123b8a63c47c3e98f479f0696ab6ab56d4",
+   "bytes": 445968,
+   "triangles": 504,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1000,
+    350,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1000,
+    350,
+    1800
+   ],
+   "family": "complementos",
+   "type": "bookcase",
+   "params": {
+    "columns": 2,
+    "rows": 5,
+    "open": true
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e05000d20aaae1688aea1276b6ae47d911c02387b54a84d86d00eb7e89324258",
+   "builtAt": "2026-10-10"
+  },
+  "felpudo_coco_base": {
+   "file": "felpudo_coco_base.glb",
+   "thumbnail": "thumbs/felpudo_coco_base.webp",
+   "sha256": "4863c013ee49dc164c8ece2ca1c6983171dc260d19384ee7294f3a2360f04065",
+   "bytes": 11408,
+   "triangles": 808,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    750,
+    450,
+    20
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    750,
+    450,
+    18
+   ],
+   "family": "complementos",
+   "type": "mat",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-coco",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e2274ac73bf406f2decc7adfc52de08b1de6df2e7decb03f9f41c9c6373151ab",
+   "builtAt": "2026-10-10"
+  },
+  "felpudo_goma_base": {
+   "file": "felpudo_goma_base.glb",
+   "thumbnail": "thumbs/felpudo_goma_base.webp",
+   "sha256": "11921ebdddc34e5a48dbde8ed7d35bb5598875f86094ab7c3eed4e88993399de",
+   "bytes": 8220,
+   "triangles": 628,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    800,
+    500,
+    18
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    800,
+    500,
+    15
+   ],
+   "family": "complementos",
+   "type": "mat",
+   "params": {
+    "rubber": true
+   },
+   "finishes": {
+    "carcasa": "comp-negro",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0cdec0f5cc308eddc0a4acf3c1468d8dd4c784f5f7be4d22ebdd7233071d67f8",
+   "builtAt": "2026-10-10"
+  },
+  "florero_azul_base": {
+   "file": "florero_azul_base.glb",
+   "thumbnail": "thumbs/florero_azul_base.webp",
+   "sha256": "2e24298b4a9ee3b0fc8e1345b415f593845ece7f93f2f899090b7311d8e763c7",
+   "bytes": 10064,
+   "triangles": 960,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    160,
+    160,
+    380
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    160,
+    160,
+    380
+   ],
+   "family": "complementos",
+   "type": "vase",
+   "params": {
+    "narrow": true
+   },
+   "finishes": {
+    "carcasa": "comp-azul"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "38d65c9ff794bd342da8a8819d5ca962b962cca9cbb87d8f0fe1ae167127ff00",
+   "builtAt": "2026-10-10"
+  },
+  "florero_ceramica_base": {
+   "file": "florero_ceramica_base.glb",
+   "thumbnail": "thumbs/florero_ceramica_base.webp",
+   "sha256": "841b6600ee1767c72fb5812a37f1a888e91ff8bce856966126900dab5089d6fb",
+   "bytes": 10036,
+   "triangles": 960,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    180,
+    180,
+    320
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    180,
+    180,
+    320
+   ],
+   "family": "complementos",
+   "type": "vase",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-ceramica"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "6c73bb9d49b90a242f01518e2a0897e06729dbc98a690d5d8da752fefd005539",
+   "builtAt": "2026-10-10"
+  },
+  "florero_cristal_base": {
+   "file": "florero_cristal_base.glb",
+   "thumbnail": "thumbs/florero_cristal_base.webp",
+   "sha256": "5ec68475f551746ad94ac4fa6cd7c3bb5bf57218f0be87da8b45baa96134dfdc",
+   "bytes": 6308,
+   "triangles": 384,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    150,
+    150,
+    280
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    150,
+    150,
+    280
+   ],
+   "family": "complementos",
+   "type": "vase",
+   "params": {
+    "straight": true
+   },
+   "finishes": {
+    "carcasa": "ext-vidrio"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "ae9b11868f892cf5332f2fc0d2ebec63c334819afa68f0ecfab9c60eed448075",
+   "builtAt": "2026-10-10"
+  },
+  "libreria_baja_libros_base": {
+   "file": "libreria_baja_libros_base.glb",
+   "thumbnail": "thumbs/libreria_baja_libros_base.webp",
+   "sha256": "6f531f953d9a3430839fca908f9b0a7c251a13557fde42c2ea7c238f18b2e9d6",
+   "bytes": 470268,
+   "triangles": 2640,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1200,
+    320,
+    900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1200,
+    320,
+    900
+   ],
+   "family": "complementos",
+   "type": "bookcase",
+   "params": {
+    "columns": 3,
+    "rows": 2
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "20bd966e0adfb3e4443b651c199c39e151a2e160d880704102d9ab57db835a92",
+   "builtAt": "2026-10-10"
+  },
+  "libreria_estrecha_base": {
+   "file": "libreria_estrecha_base.glb",
+   "thumbnail": "thumbs/libreria_estrecha_base.webp",
+   "sha256": "f91ce641940ece8c2220568a7b3986fdfe51a45cec02c017dcff1c81172d3cd4",
+   "bytes": 478376,
+   "triangles": 3492,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    500,
+    320,
+    1900
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    500,
+    320,
+    1900
+   ],
+   "family": "complementos",
+   "type": "bookcase",
+   "params": {
+    "columns": 1,
+    "rows": 5
+   },
+   "finishes": {
+    "madera": "roble",
+    "sobre": "roble",
+    "frentes": "lacado-blanco",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "libro": "comp-azul",
+    "papel": "comp-crema"
+   },
+   "textures": [
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "e776d0e94bee5b99bda574dcef26aa2708774aafe25776ceb7ec6d21023cd194",
+   "builtAt": "2026-10-10"
+  },
+  "licuadora_base": {
+   "file": "licuadora_base.glb",
+   "thumbnail": "thumbs/licuadora_base.webp",
+   "sha256": "4b07807dad351b383eb135e4e18266c47538830f80c81df1514349f77735e8a6",
+   "bytes": 13636,
+   "triangles": 820,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    221,
+    288,
+    380
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    260,
+    280,
+    400
+   ],
+   "family": "complementos",
+   "type": "juicer",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-crema",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "8ce10fe80f06d86915133fd5cb1647de3228f8582a4610287654c01eb08bb565",
+   "builtAt": "2026-10-10"
+  },
+  "microondas_compacto_base": {
+   "file": "microondas_compacto_base.glb",
+   "thumbnail": "thumbs/microondas_compacto_base.webp",
+   "sha256": "e8399710ece6a5f06a169279b153ca47376f56c5cd483db7d3a2126f7d8da0b2",
+   "bytes": 16040,
+   "triangles": 1132,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    440,
+    393,
+    260
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    440,
+    340,
+    260
+   ],
+   "family": "complementos",
+   "type": "microwave",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-crema",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "0c0eeb88ff62523d31a7dc7e9cae66843d8eb08bc05749748134b418478c30f5",
+   "builtAt": "2026-10-10"
+  },
+  "microondas_retro_base": {
+   "file": "microondas_retro_base.glb",
+   "thumbnail": "thumbs/microondas_retro_base.webp",
+   "sha256": "3095f47dcda4137c39752c77701b24deeecc3068e481a1c4df7f869c2c15ad91",
+   "bytes": 16144,
+   "triangles": 1132,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    480,
+    412,
+    280
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    480,
+    360,
+    280
+   ],
+   "family": "complementos",
+   "type": "microwave",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-rojo",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "fa4200896a954254e8988f5120c73dbee0ad44b100fc30b8bb9e2bad11c79d90",
+   "builtAt": "2026-10-10"
+  },
+  "robot_cocina_base": {
+   "file": "robot_cocina_base.glb",
+   "thumbnail": "thumbs/robot_cocina_base.webp",
+   "sha256": "2d3cf3ede87f438a194da2415d9f7dd4c1006093e26459d8b686c20d86a70376",
+   "bytes": 18708,
+   "triangles": 1348,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    320,
+    372,
+    336
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    320,
+    360,
+    350
+   ],
+   "family": "complementos",
+   "type": "processor",
+   "params": {},
+   "finishes": {
+    "carcasa": "comp-crema",
+    "metal": "ext-inox",
+    "vidrio": "ext-vidrio",
+    "negro": "comp-negro"
+   },
+   "textures": [],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "43418004e40472fedd1ea88b62a36ce9c98840d22a2309d119c58619b723e7e2",
+   "builtAt": "2026-10-10"
+  }
+ },
+ "textures": {
+  "roble": {
+   "source": "polyhaven",
+   "id": "oak_veneer_01",
+   "title": "Oak Veneer 01",
+   "authors": [
+    "Jenelle van Heerden"
+   ],
+   "pageUrl": "https://polyhaven.com/a/oak_veneer_01",
+   "license": "CC0-1.0",
+   "sizeMm": 1830,
+   "downloads": [
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+     "bytes": 641756,
+     "md5": "39a99df4e328d62d74f3122722a64a95"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+     "bytes": 484844,
+     "md5": "d05406f5fdaf51f0d7b115b35d9af1b7"
+    },
+    {
+     "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+     "bytes": 865194,
+     "md5": "a19b44176a078b9ae93314133848c9aa"
+    }
+   ]
+  }
+ }
+}

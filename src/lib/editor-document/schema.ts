@@ -160,6 +160,8 @@ export interface Label extends Point {
 }
 export interface FloorFinish {
   roomId: string;
+  /** Uso explícito del recinto; ausente conserva la detección automática. */
+  classification?: 'interior' | 'exterior';
   color: string;
   texture: 'none' | 'wood' | 'tile' | `polyhaven:${string}` | `outdoor:${string}`;
   tileSizeMm: number;
@@ -262,6 +264,7 @@ export interface LightZone {
 export interface DesignZone {
   id: string;
   name: string;
+  classification?: 'interior' | 'exterior';
   polygon: Point[];
   /** Acabado visual de esta parte del suelo; la cota estructural sigue en FloorFinish. */
   floorFinish?: Pick<FloorFinish, 'texture' | 'color' | 'tileSizeMm' | 'rotation'>;
@@ -274,6 +277,9 @@ export interface BuildingLevel {
   document?: EditorDocument;
 }
 export interface EditorDocument {
+  /** Organización y protección de edición, propias de cada planta. */
+  elementGroups?: { id: string; name: string; elementIds: string[] }[];
+  lockedElementIds?: string[];
   propertyOrientation?: import('./property-orientation').PropertyOrientation;
   renderBackdrop?: import('./render-backdrop').RenderBackdrop;
   exteriorRoof?: import('./exterior-roof').ExteriorRoof;

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createEditorStore } from '@/canvas/editor-v2/store';
@@ -13,13 +14,14 @@ import type { PlanReference } from '@/lib/editor-document/plan-reference';
 import type { ApprovedDesign } from '@/lib/editor-document/approved-design';
 import { ApprovedDesignView } from './approved-design-view';
 
-export function ProjectEditor({ scope, projectName, initial, approvedDesign, autoOpenApproved, writable, migration, autoGenerate, reference }: {
+export function ProjectEditor({ scope, projectName, initial, approvedDesign, autoOpenApproved, writable, migration, autoGenerate, reference, assistant }: {
   scope: DraftScope; projectName: string; initial: EditorDocument; writable: boolean;
   approvedDesign: ApprovedDesign | null;
   autoOpenApproved: boolean;
   migration: { fingerprint: string; complete: boolean; issues: string[] } | null;
   autoGenerate?: AutoGenerateRequest | null;
   reference?: PlanReference | null;
+  assistant?: ReactNode;
 }) {
   const router = useRouter();
   const [store] = useState(() => createEditorStore(initial, { readOnly: true }));
@@ -38,7 +40,7 @@ export function ProjectEditor({ scope, projectName, initial, approvedDesign, aut
         initial={initial}
         approvedDesign={approvedDesign}
         autoGenerate={autoGenerate ?? null}
-        reference={reference}
+        reference={reference} assistant={assistant}
       />
     );
   return <div>

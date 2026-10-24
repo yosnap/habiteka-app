@@ -10,6 +10,8 @@ export function isSurfaceHost(item: Furniture): boolean {
   if (isKitchenRun(item)) return true;
   if (isBoundary(item)) return false;
   const entry = getFurnitureCatalogEntry(item.catalogId);
+  // Un módulo alto de pared no es una encimera para el apoyo automático de aparatos pequeños.
+  if ((entry?.elevationMm ?? 0) >= 1400) return false;
   return entry ? SURFACE_PROFILES.has(entry.profile) : /mesa|mueble|armario|aparador|comoda|escritorio|encimera|table|cabinet|desk/i.test(item.kind);
 }
 /**
@@ -20,6 +22,7 @@ export function canRestOnHost(item: Furniture): boolean {
   if (isBoundary(item) || isKitchenRun(item)) return false;
   const entry = getFurnitureCatalogEntry(item.catalogId), heightMm = furnitureSpatial(item).heightMm;
   if (!entry) return heightMm <= 600 && !isSurfaceHost(item);
+  if ((entry.elevationMm ?? 0) >= 1400 || /piscina_|aire_acondicionado_/.test(entry.id)) return false;
   if (entry.profile === 'screen' || entry.profile === 'plant') return true;
   if (entry.profile === 'decor') return heightMm <= 600;
   return (entry.profile === 'lamp' || entry.profile === 'appliance') && heightMm <= 600;

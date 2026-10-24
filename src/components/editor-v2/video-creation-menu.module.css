@@ -1,0 +1,15 @@
+.menu { min-height: 100%; color: var(--color-ink); }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--color-line); }
+.header h2 { font-size: 18px; font-weight: 650; }
+.header button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--color-line); border-radius: 10px; background: var(--color-surface-muted); }
+.header button:hover { background: #d9eee5; color: #163e30; }
+.options { display: grid; gap: 12px; padding: 16px; }
+.options p { font-size: 13px; line-height: 1.6; color: var(--color-ink-soft); }
+.options button { display: flex; align-items: flex-start; gap: 12px; padding: 16px; min-height: 90px; text-align: left; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-surface); color: var(--color-ink); }
+.options svg { flex-shrink: 0; margin-top: 2px; }
+.options span { display: grid; gap: 5px; }
+.options strong { font-size: 15px; }
+.options small { font-size: 12px; line-height: 1.5; }
+.options button[aria-pressed='true'] { background: #d9eee5; border-color: #b9d8c8; color: #163e30; }
+.options button:hover:not(:disabled) { background: #197660; border-color: #197660; color: white; }
+.menu button:focus-visible { outline: 2px solid #197660; outline-offset: 2px; }

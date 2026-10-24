@@ -23,14 +23,14 @@ function OpeningTypePhoto({ card }: { card: OpeningTypeCard }) {
  * Construir → Puertas o Ventanas: una tarjeta con foto por tipo, las puertas agrupadas por apartados; al pulsarla, la
  * herramienta queda lista con ese tipo.
  */
-export function OpeningTypeCatalog({ kind, readOnly, onChoose }: { kind: OpeningTypeKind; readOnly: boolean; onChoose: (card: OpeningTypeCard) => void }) {
+export function OpeningTypeCatalog({ kind, readOnly, onChoose, replacing = false }: { kind: OpeningTypeKind; readOnly: boolean; onChoose: (card: OpeningTypeCard) => void; replacing?: boolean }) {
   const sections = useMemo(() => openingTypeSections(kind), [kind]);
   return <div className={styles.constructionCatalog}>
-    <h3>{intro[kind].title}</h3><p>{intro[kind].detail}</p>
+    <h3>{intro[kind].title}</h3><p>{replacing ? 'Elige el tipo que sustituirá la abertura seleccionada. Se aplican las medidas del tipo cuando caben en el muro.' : intro[kind].detail}</p>
     {sections.map((section) => <section key={section.id} aria-label={section.title ?? intro[kind].title}>
       {section.title && <h4>{section.title}</h4>}
       <div className={`${styles.constructionCards} ${photo.photoGrid}`}>{section.cards.map((card) =>
-        <button type="button" key={card.typeId} disabled={readOnly} onClick={() => onChoose(card)} aria-label={`Colocar ${card.label}`}>
+        <button type="button" key={card.typeId} disabled={readOnly} onClick={() => onChoose(card)} aria-label={`${replacing ? 'Sustituir por' : 'Colocar'} ${card.label}`}>
           <OpeningTypePhoto card={card} /><strong>{card.label}</strong><small>{card.detail}</small>
         </button>)}</div>
     </section>)}

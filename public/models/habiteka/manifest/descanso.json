@@ -26,7 +26,8 @@
    "family": "descanso",
    "type": "bunk",
    "params": {
-    "lowerWidth": 1350
+    "lowerWidth": 1350,
+    "ladder": "right"
    },
    "finishes": {
     "madera": "roble",
@@ -41,8 +42,48 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "9246ad5c76b50e898bbb2f221ef04e577ed99ed5ba06afbd5914ba26616f2628",
-   "builtAt": "2026-10-06"
+   "specHash": "a26785deeae2a2ca9bc4c9b72a79fbd23224ae41c790ed04e134e4930ff4b866",
+   "builtAt": "2026-10-10"
+  },
+  "litera_familiar_135_90_izquierda": {
+   "file": "litera_familiar_135_90_izquierda.glb",
+   "thumbnail": "thumbs/litera_familiar_135_90_izquierda.webp",
+   "sha256": "aaedab50033ab248adc0df87b3840edaa634ec3e95aabae569031c352b2106bf",
+   "bytes": 1120696,
+   "triangles": 9716,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1513,
+    2010,
+    1850
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1550,
+    2020,
+    1850
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {
+    "lowerWidth": 1350,
+    "ladder": "left"
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "31b7f076958e540e5bf5542c8dc7f99f856072bc05c4f45777876241513ce54c",
+   "builtAt": "2026-10-10"
   },
   "litera_madera_90": {
    "file": "litera_madera_90.glb",
@@ -64,7 +105,9 @@
    ],
    "family": "descanso",
    "type": "bunk",
-   "params": {},
+   "params": {
+    "ladder": "right"
+   },
    "finishes": {
     "madera": "roble",
     "sabanas": "algodon-blanco",
@@ -78,8 +121,47 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "2d23fc88f79a0aaec9939aec1ffab2bd06fc66d877f372e5266b9fb4ee61a6b1",
-   "builtAt": "2026-10-06"
+   "specHash": "df0732550d395bd2d8076bce10ba95be382f4d064c52caa36c7f7b34664f21b6",
+   "builtAt": "2026-10-10"
+  },
+  "litera_madera_90_izquierda": {
+   "file": "litera_madera_90_izquierda.glb",
+   "thumbnail": "thumbs/litera_madera_90_izquierda.webp",
+   "sha256": "f7a6cea76680c99764812183e62153aa078138597f9a77d7a38a2a04aaa77f02",
+   "bytes": 1110776,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {
+    "ladder": "left"
+   },
+   "finishes": {
+    "madera": "roble",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino",
+    "roble"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "1898d93b7fe6cb1358b05176579224b724eaff08b9c58b3b71f832853e544668",
+   "builtAt": "2026-10-10"
   },
   "litera_madera_blanca": {
    "file": "litera_madera_blanca.glb",
@@ -101,7 +183,9 @@
    ],
    "family": "descanso",
    "type": "bunk",
-   "params": {},
+   "params": {
+    "ladder": "right"
+   },
    "finishes": {
     "madera": "lacado-blanco",
     "sabanas": "algodon-blanco",
@@ -114,8 +198,46 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "7ce2fc42cd3f2219abe28fe43d332f7fe0f16f0c6afb6b8b12bcc9f2588f6592",
-   "builtAt": "2026-10-06"
+   "specHash": "4a13bb2a12f800b30782b897b36613de7a5c442e58704f88db26662f4e2fd7e3",
+   "builtAt": "2026-10-10"
+  },
+  "litera_madera_blanca_izquierda": {
+   "file": "litera_madera_blanca_izquierda.glb",
+   "thumbnail": "thumbs/litera_madera_blanca_izquierda.webp",
+   "sha256": "7cbd03ed5d97d057b21eff022ffb203efba064ae3f1c1a2ade7fab529dd8d0f8",
+   "bytes": 664276,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {
+    "ladder": "left"
+   },
+   "finishes": {
+    "madera": "lacado-blanco",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "77593a2f9e58055cbfa1d633c76cebaf442f23d49c2895afd85a69a8e32a7f63",
+   "builtAt": "2026-10-10"
   },
   "litera_metal_90": {
    "file": "litera_metal_90.glb",
@@ -137,7 +259,9 @@
    ],
    "family": "descanso",
    "type": "bunk",
-   "params": {},
+   "params": {
+    "ladder": "right"
+   },
    "finishes": {
     "madera": "metal-negro",
     "sabanas": "algodon-blanco",
@@ -150,8 +274,46 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "89588dd165f80c9f8dbd77b528e3116aaa0bbaed49cdf94a5f53812c4288cfe7",
-   "builtAt": "2026-10-06"
+   "specHash": "285fb1e8d63beca814680c606a2b87060842b34a6101347253971b2e07483245",
+   "builtAt": "2026-10-10"
+  },
+  "litera_metal_90_izquierda": {
+   "file": "litera_metal_90_izquierda.glb",
+   "thumbnail": "thumbs/litera_metal_90_izquierda.webp",
+   "sha256": "cc71a79ca465053633f72652e98afa40da181246f246bd8d064944fd74fd1273",
+   "bytes": 664152,
+   "triangles": 8540,
+   "texturePx": 1024,
+   "dimensionsMm": [
+    1085,
+    2010,
+    1800
+   ],
+   "elevationMm": 0,
+   "specDimensionsMm": [
+    1100,
+    2020,
+    1800
+   ],
+   "family": "descanso",
+   "type": "bunk",
+   "params": {
+    "ladder": "left"
+   },
+   "finishes": {
+    "madera": "metal-negro",
+    "sabanas": "algodon-blanco",
+    "edredon": "lino-salvia"
+   },
+   "textures": [
+    "algodon",
+    "lino"
+   ],
+   "author": "Habiteka (modelo propio)",
+   "license": "LicenseRef-Habiteka",
+   "generatorVersion": "1.1.0",
+   "specHash": "f7d3d21a5c38b5af3a5518be7c1c27d9cc51a7ac5cccf9182b69fd1703de975f",
+   "builtAt": "2026-10-10"
   },
   "set_comedor_rectangular_4": {
    "file": "set_comedor_rectangular_4.glb",
@@ -191,8 +353,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "725336474082d7fafd1e8a47a8f93d48ad092bd8220fa7415545499217c0b88e",
-   "builtAt": "2026-10-06"
+   "specHash": "0c5272e845dc71176476a01dfcef08b7edb7c90d2f4aaa34d39c05c50dc52ab6",
+   "builtAt": "2026-10-10"
   },
   "set_comedor_rectangular_6": {
    "file": "set_comedor_rectangular_6.glb",
@@ -232,8 +394,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "ce7d6f077fe3ddf6838efa85b699fc330ba8bb143bf9b95e36b3eb958712c1bd",
-   "builtAt": "2026-10-06"
+   "specHash": "cc81e0ad496db1f15ce78858f3354f74b7d5fa87feefcb2299a0eaa431b364fa",
+   "builtAt": "2026-10-10"
   },
   "set_comedor_redondo_4": {
    "file": "set_comedor_redondo_4.glb",
@@ -275,8 +437,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "8f9146281f9de7e80eaf6f9b8a7b0ba9144efa22396d2cf965468980bb2f5ef5",
-   "builtAt": "2026-10-06"
+   "specHash": "466ad4973835ea15d68d8930dc3032ac7f256fdf1e128e4dcdce1de592fb58e6",
+   "builtAt": "2026-10-10"
   },
   "sillon_chillout_bajo_gris": {
    "file": "sillon_chillout_bajo_gris.glb",
@@ -313,8 +475,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "bea740b68b4dcad9e64b12950b262ef4e0fb092411eedf90256377767e0f075a",
-   "builtAt": "2026-10-06"
+   "specHash": "ffa89c1b7bfc235e95899e9ce4b5c395bcfdcd12e09d74b3af1cebb5586a86c7",
+   "builtAt": "2026-10-10"
   },
   "sillon_chillout_bajo_natural": {
    "file": "sillon_chillout_bajo_natural.glb",
@@ -351,8 +513,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "1c2df8e22bd4c7269336769b20e71c2c2d37db6503a3eb92a81a2463b87212b7",
-   "builtAt": "2026-10-06"
+   "specHash": "eb66863299f169fc641e6ebe892ddfa2eda99f13c6c17f0619cfb3a8738176ce",
+   "builtAt": "2026-10-10"
   },
   "sofa_chillout_bajo_2p": {
    "file": "sofa_chillout_bajo_2p.glb",
@@ -389,8 +551,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "ccea6651260c8f4768c96fa61e8e1861703f0e63fd225840a89aa0a31a1110c2",
-   "builtAt": "2026-10-06"
+   "specHash": "0767aabf0e1ded0a06aec0fae2fb7811356b6d238a2188ae2f5229f1fd963e03",
+   "builtAt": "2026-10-10"
   },
   "sofa_chillout_bajo_3p": {
    "file": "sofa_chillout_bajo_3p.glb",
@@ -427,8 +589,8 @@
    "author": "Habiteka (modelo propio)",
    "license": "LicenseRef-Habiteka",
    "generatorVersion": "1.1.0",
-   "specHash": "3befee414d4566f4a361dc2492175f7bfc7da0e6f32949556874b75c783c5d85",
-   "builtAt": "2026-10-06"
+   "specHash": "d1cb48af10e51e462b75320dc4ddef59a53d817e97c87dfe913279c75331eb5e",
+   "builtAt": "2026-10-10"
   }
  },
  "textures": {

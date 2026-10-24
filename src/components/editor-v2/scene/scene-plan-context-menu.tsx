@@ -6,10 +6,12 @@ import { planObjects } from '@/lib/editor-document/boundary-types';
 import { canFitOnHost } from '@/lib/editor-document/object-host-rest';
 import { objectCenter } from '@/lib/editor-document/spatial-properties';
 import { elementName } from '@/lib/editor-document/element-classification';
+import { isElementLocked } from '@/lib/editor-document/element-locks';
 
-export function ScenePlanContextMenu({ document, item, x, y, onRotate, onHost, onClose }: {
+export function ScenePlanContextMenu({ document, item, x, y, onRotate, onHost, onClose, onReplace }: {
   document: EditorDocument; item: Furniture; x: number; y: number;
   onRotate: (degrees: number) => void; onHost: (hostId: string) => void; onClose: () => void;
+  onReplace?: () => void;
 }) {
   const firstButton = useRef<HTMLButtonElement>(null);
   useEffect(() => { firstButton.current?.focus(); }, [item.id]);
@@ -25,6 +27,8 @@ export function ScenePlanContextMenu({ document, item, x, y, onRotate, onHost, o
       padding: 10, borderRadius: 11, background: '#fffdfa', border: '1px solid #cad7cf',
       boxShadow: '0 12px 35px rgba(20,44,37,.2)', color: '#243a31', fontSize: 13 }}>
     <strong style={{ display: 'block', padding: '3px 5px 9px' }}>{elementName(item)}</strong>
+    <fieldset disabled={isElementLocked(document, item.id)} style={{ border: 0, padding: 0 }}>
+    {onReplace && <button type="button" onClick={onReplace}>Sustituir</button>}
     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
       <button ref={firstButton} type="button" onClick={() => onRotate(-15)}>↶ 15°</button>
       <button type="button" onClick={() => onRotate(15)}>↷ 15°</button>
@@ -37,6 +41,7 @@ export function ScenePlanContextMenu({ document, item, x, y, onRotate, onHost, o
         {elementName(host)}
       </button>)}
     </div>}
+    </fieldset>
     <button type="button" aria-label="Cerrar menú" onClick={onClose}
       style={{ marginTop: 9, fontSize: 11 }}>Cerrar</button>
   </div>;

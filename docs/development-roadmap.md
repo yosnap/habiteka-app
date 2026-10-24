@@ -4,23 +4,23 @@
 
 ## Estado General
 
-**Estado actualizado (2026-09-08):** aplicación implementada, en estabilización del pivote planos 2D.
-El plan de junio que sigue es histórico y sus estados no representan el avance actual.
-Prioridad vigente: plano fiel y editable → amueblar → cenital condicionada; 3D congelado.
-Consulta el [plan activo](../plans/260711-1018-planos-ia-boceto-y-render/plan.md) y el
-[informe de validación](../plans/reports/260908-estudio-validacion.md).
+**Dirección UX actualizada (2026-10-10):** WalkMyHome es referencia visual de navegación y trabajo, conservando todas las funcionalidades/opciones de Habiteka y el método de construcción y edición del plano 2D. La implementación incorpora barra izquierda con siete grupos desplegables, Ayuda/Ajustes inferiores y menús flotantes en los tres modos, asistente existente junto al lienzo y adaptación móvil. Diseños y Vídeos reciben una composición más amplia. Consulta la [referencia documentada](ux/walkmyhome-reference.md) y el [plan](../plans/261010-0427-referencia-walkmyhome/plan.md). Navegación autenticada de escritorio revisada en Comet; sin nuevos motores externos. Audio del espacio de trabajo pendiente.
+
+El estado funcional vigente está en la [guía pública](site/src/content/docs/guias/primer-proyecto.md) y las [novedades](site/src/content/docs/ayuda/novedades.md). El modelo 3D es guía de geometría y preparación; los resultados finales proceden de diseños IA aceptados. La visita virtual continua desde esos diseños sigue pendiente.
+
+El plan de junio que sigue y el pivote de septiembre son históricos; sus estados y la antigua congelación del 3D no representan el avance actual.
 
 ## Fases por Hito
 
 ### M1 — Cimientos (F0, F1, F2, F3, F11)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F0** | ARQ | Setup repo, 11 contratos (freeze gate), licencia base | — | Planificado |
-| **F1** | UX | Design system, wireframes, disclaimers UI | F0 | Planificado |
-| **F2** | BE | Datos Prisma, Better Auth, scoping, /api/health | F0 | Planificado |
-| **F3** | IA | Adaptadores OpenRouter (chat/visión) + imagen | F0 | Planificado |
-| **F11** | OPS | CI/CD, Docker, secrets, health check | F0 | Planificado |
+| Fase    | Rol | Alcance                                               | Depende | Estado      |
+| ------- | --- | ----------------------------------------------------- | ------- | ----------- |
+| **F0**  | ARQ | Setup repo, 11 contratos (freeze gate), licencia base | —       | Planificado |
+| **F1**  | UX  | Design system, wireframes, disclaimers UI             | F0      | Planificado |
+| **F2**  | BE  | Datos Prisma, Better Auth, scoping, /api/health       | F0      | Planificado |
+| **F3**  | IA  | Adaptadores OpenRouter (chat/visión) + imagen         | F0      | Planificado |
+| **F11** | OPS | CI/CD, Docker, secrets, health check                  | F0      | Planificado |
 
 **Salida:** Repo base, contratos congelados, BD+auth, adaptadores IA, pipeline CI.
 
@@ -35,20 +35,20 @@ Contratos de F0 se congelan. Cambios posteriores vía PR revisado por ARQ.
 
 ### 🚦 M0 — Quality Gate (F-S0: Spike)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F-S0** | IA + Producto | Spike: render 3D (15-20 muestras), plano 2D, visión | F0, F3 | Planificado |
+| Fase     | Rol           | Alcance                                             | Depende | Estado      |
+| -------- | ------------- | --------------------------------------------------- | ------- | ----------- |
+| **F-S0** | IA + Producto | Spike: render 3D (15-20 muestras), plano 2D, visión | F0, F3  | Planificado |
 
 **Decisión crítica (§9.1):** ¿FLUX / Nano Banana / Imagen? Spike decide. **GO/NO-GO:** si NO pasa, M2 se pausar. Si GO, M2 arranca.
 
 ### M2 — Flujo Core (F4, F5, F6, F7)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F4** | FE | Canvas Konva + controles | F1, F2 | Planificado |
-| **F5** | IA | Agente: 5 fases, state machine, persistencia | F2, F3 | Planificado |
-| **F6** | FE | Chat + panel entregables + UI add-ons base | F4, F5 | Planificado |
-| **F7** | IA+BE | Feedback por zona, render 3D, inpainting | F3, F5, F6 | Planificado |
+| Fase   | Rol   | Alcance                                      | Depende    | Estado      |
+| ------ | ----- | -------------------------------------------- | ---------- | ----------- |
+| **F4** | FE    | Canvas Konva + controles                     | F1, F2     | Planificado |
+| **F5** | IA    | Agente: 5 fases, state machine, persistencia | F2, F3     | Planificado |
+| **F6** | FE    | Chat + panel entregables + UI add-ons base   | F4, F5     | Planificado |
+| **F7** | IA+BE | Feedback por zona, render 3D, inpainting     | F3, F5, F6 | Planificado |
 
 **DebitService:** pasa a implementación mínima REAL (no stub).
 
@@ -56,41 +56,41 @@ Contratos de F0 se congelan. Cambios posteriores vía PR revisado por ARQ.
 
 ### 🔗 M-INT — Integración End-to-End
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
+| Fase      | Rol                   | Alcance                                            | Depende        | Estado      |
+| --------- | --------------------- | -------------------------------------------------- | -------------- | ----------- |
 | **F-INT** | Tech Lead / Fullstack | Flujo vivo sin mocks: ingesta→feedback con BD real | F5, F6, F7, F8 | Planificado |
 
 Detecta desajustes de contrato. Puerta M2 → M3.
 
 ### M2.5 — Back-office Base (F15)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F15** | FE+BE | Admin shell + users, requireAdmin guard | F2 | Planificado |
+| Fase    | Rol   | Alcance                                 | Depende | Estado      |
+| ------- | ----- | --------------------------------------- | ------- | ----------- |
+| **F15** | FE+BE | Admin shell + users, requireAdmin guard | F2      | Planificado |
 
 Arranca pronto; desbloquea pruebas operativas.
 
 ### M3 — Negocio + Add-ons + Admin (F8, F9, F10, F13, F16, F17)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F8** | BE | Créditos hold/settle, Polar webhooks, pricing | F2, F6 | Planificado |
-| **F9** | FE+BE | Add-on Votación comunitaria | F4, F6 | Planificado |
-| **F10** | FE+BE | Add-on Marketplace (seed DB + afiliación) | F4, F6 | Planificado |
-| **F13** | ARQ | Licencia fair-code (legal + operativo) | F3, F8 | Planificado |
-| **F16** | FE+BE | Admin: config modelos (BD), branding, flags | F2, F3, F15 | Planificado |
-| **F17** | FE+BE | Admin: media manager, StorageAdapter/MinIO | F2, F0, F15 | Planificado |
+| Fase    | Rol   | Alcance                                       | Depende     | Estado      |
+| ------- | ----- | --------------------------------------------- | ----------- | ----------- |
+| **F8**  | BE    | Créditos hold/settle, Polar webhooks, pricing | F2, F6      | Planificado |
+| **F9**  | FE+BE | Add-on Votación comunitaria                   | F4, F6      | Planificado |
+| **F10** | FE+BE | Add-on Marketplace (seed DB + afiliación)     | F4, F6      | Planificado |
+| **F13** | ARQ   | Licencia fair-code (legal + operativo)        | F3, F8      | Planificado |
+| **F16** | FE+BE | Admin: config modelos (BD), branding, flags   | F2, F3, F15 | Planificado |
+| **F17** | FE+BE | Admin: media manager, StorageAdapter/MinIO    | F2, F0, F15 | Planificado |
 
 **Salida:** Negocio operativo (pagos, créditos); dashboard admin para operar sin redeploy.
 
 ### M4 — Analítica + Hardening + Cumplimiento (F12, F14, F18, F19)
 
-| Fase | Rol | Alcance | Depende | Estado |
-|------|-----|---------|---------|--------|
-| **F12** | QA | Suite completa: unit, integration, e2e, coverage gates | todas | Planificado |
-| **F14** | ARQ/Legal+BE | RGPD: privacidad, retención, supresión, DPA | F2 | Planificado |
-| **F18** | FE+BE | Admin: analítica, facturación, auditoría (read-only) | F2, F3, F8, F15 | Planificado |
-| **F19** | ARQ/Legal+BE+FE | ToS/EULA, banner cookies, DPIA art. 35 | F14 | Planificado |
+| Fase    | Rol             | Alcance                                                | Depende         | Estado      |
+| ------- | --------------- | ------------------------------------------------------ | --------------- | ----------- |
+| **F12** | QA              | Suite completa: unit, integration, e2e, coverage gates | todas           | Planificado |
+| **F14** | ARQ/Legal+BE    | RGPD: privacidad, retención, supresión, DPA            | F2              | Planificado |
+| **F18** | FE+BE           | Admin: analítica, facturación, auditoría (read-only)   | F2, F3, F8, F15 | Planificado |
+| **F19** | ARQ/Legal+BE+FE | ToS/EULA, banner cookies, DPIA art. 35                 | F14             | Planificado |
 
 **Bloqueante UE:** F14 + F19 juntas habilitanodos para usuarios EU.
 
@@ -98,40 +98,40 @@ Arranca pronto; desbloquea pruebas operativas.
 
 ## Decisiones Clave Documentadas
 
-| Decisión | Rationale | Estado |
-|----------|-----------|--------|
-| Stack: Next.js 16 + React 19 + TS5 + Tailwind v4 + shadcn/ui | Modern, full-stack, DX. | ✅ Cerrado |
-| OpenRouter (baseURL chat+visión) | Unified billing, modelo-agnostic, fallback. | ✅ Cerrado |
-| Render 3D en MVP | Clave de valor; spike valida calidad. | ✅ Cerrado (M0 decide proveedor) |
-| Add-ons en MVP (votación + marketplace) | User engagement; interfaces extensibles. | ✅ Cerrado |
-| Fair-code license + control operativo | Legal + infraestructura como barrera. | ✅ Cerrado (F13 implementa) |
-| Dashboard admin (F15-F18) | Operación sin redeploy (config BD, branding, analítica). | ✅ Cerrado |
-| Branching: feat/<rol>/<task> → develop → main | Ownership por rol + gate único (team lead). | ✅ Cerrado |
-| Créditos + suscripción (Polar) | B2C monetización; hold/settle pattern. | ✅ Cerrado (F8 implementa) |
-| Contratos congelados (F0 freeze gate) | Previene cascadas de cambios. | ✅ Cerrado |
-| **TDD + test-first en todas las fases** | Confianza, refactorización segura. | ✅ Cerrado |
-| **Mocks solo servicios externos** (OpenRouter, Polar, imagen) | Aisla lógica propia; cero integración real en CI. | ✅ Cerrado |
+| Decisión                                                      | Rationale                                                | Estado                           |
+| ------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------- |
+| Stack: Next.js 16 + React 19 + TS5 + Tailwind v4 + shadcn/ui  | Modern, full-stack, DX.                                  | ✅ Cerrado                       |
+| OpenRouter (baseURL chat+visión)                              | Unified billing, modelo-agnostic, fallback.              | ✅ Cerrado                       |
+| Render 3D en MVP                                              | Clave de valor; spike valida calidad.                    | ✅ Cerrado (M0 decide proveedor) |
+| Add-ons en MVP (votación + marketplace)                       | User engagement; interfaces extensibles.                 | ✅ Cerrado                       |
+| Fair-code license + control operativo                         | Legal + infraestructura como barrera.                    | ✅ Cerrado (F13 implementa)      |
+| Dashboard admin (F15-F18)                                     | Operación sin redeploy (config BD, branding, analítica). | ✅ Cerrado                       |
+| Branching: feat/<rol>/<task> → develop → main                 | Ownership por rol + gate único (team lead).              | ✅ Cerrado                       |
+| Créditos + suscripción (Polar)                                | B2C monetización; hold/settle pattern.                   | ✅ Cerrado (F8 implementa)       |
+| Contratos congelados (F0 freeze gate)                         | Previene cascadas de cambios.                            | ✅ Cerrado                       |
+| **TDD + test-first en todas las fases**                       | Confianza, refactorización segura.                       | ✅ Cerrado                       |
+| **Mocks solo servicios externos** (OpenRouter, Polar, imagen) | Aisla lógica propia; cero integración real en CI.        | ✅ Cerrado                       |
 
 ## Riesgos Abiertos (Decisión de Negocio)
 
-| Riesgo | Impacto | Propuesto (sin confirmar) |
-|--------|---------|--------------------------|
-| **Re-scope del MVP:** ¿Incluir votación? ¿Render 3D? ¿Marketplace? | Scope creep → retrasos M2-M3. | Producto decide; comunicar a equipo ASAP. |
-| **Modelo de pricing:** ¿Por intento o por resultado? | Afecta a F8 (DebitService logic); conversión BCV. | Producto + financiero; F8 espera claridad. |
+| Riesgo                                                             | Impacto                                           | Propuesto (sin confirmar)                  |
+| ------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------ |
+| **Re-scope del MVP:** ¿Incluir votación? ¿Render 3D? ¿Marketplace? | Scope creep → retrasos M2-M3.                     | Producto decide; comunicar a equipo ASAP.  |
+| **Modelo de pricing:** ¿Por intento o por resultado?               | Afecta a F8 (DebitService logic); conversión BCV. | Producto + financiero; F8 espera claridad. |
 
 ## Progreso (%)
 
-| Hito | Fases | Completión | Comentario |
-|------|-------|-----------|-----------|
-| Planning | F0 (partial), plan, architecture | 100% | Especificación leída, plan validado. |
-| M1 | F0, F1, F2, F3, F11 | 0% | Implementación no comenzada. |
-| M1.5 | Contract validation | 0% | Espera M1 completado. |
-| M0 (Gate) | F-S0 | 0% | Espera F3 (adaptadores). |
-| M2 | F4, F5, F6, F7 | 0% | Espera M0 GO. |
-| M-INT | F-INT | 0% | Espera M2. |
-| M2.5 | F15 | 0% | Paralela M2. |
-| M3 | F8, F9, F10, F13, F16, F17 | 0% | Espera M2 + M-INT. |
-| M4 | F12, F14, F18, F19 | 0% | Espera M3. |
+| Hito      | Fases                            | Completión | Comentario                           |
+| --------- | -------------------------------- | ---------- | ------------------------------------ |
+| Planning  | F0 (partial), plan, architecture | 100%       | Especificación leída, plan validado. |
+| M1        | F0, F1, F2, F3, F11              | 0%         | Implementación no comenzada.         |
+| M1.5      | Contract validation              | 0%         | Espera M1 completado.                |
+| M0 (Gate) | F-S0                             | 0%         | Espera F3 (adaptadores).             |
+| M2        | F4, F5, F6, F7                   | 0%         | Espera M0 GO.                        |
+| M-INT     | F-INT                            | 0%         | Espera M2.                           |
+| M2.5      | F15                              | 0%         | Paralela M2.                         |
+| M3        | F8, F9, F10, F13, F16, F17       | 0%         | Espera M2 + M-INT.                   |
+| M4        | F12, F14, F18, F19               | 0%         | Espera M3.                           |
 
 **Total MVP:** 0% (bootstrap completado, implementación pendiente).
 

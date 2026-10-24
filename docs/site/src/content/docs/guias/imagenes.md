@@ -3,6 +3,8 @@ title: Crear y revisar imágenes
 description: Preparar vistas del inmueble sin perder su identidad.
 ---
 
+La galería **Mis diseños** dispone de más espacio para revisar las vistas y de accesos a **Volver al editor** y **Crear vídeo**, conservando la zona activa. El visor se abre como un panel flotante con una imagen amplia y las acciones de revisión a su lado; en móvil las acciones quedan debajo. La aceptación y la petición de cambios mantienen sus pasos actuales. Abrir la galería o preparar una vista no acepta imágenes ni inicia una generación de pago.
+
 La comparación con un diseño aceptado revisa también los detalles visibles de
 tapicería: brazos de sofás, cojines, mantas y colchas se describen por separado.
 Conservar el color principal del mueble no permite sustituir esos detalles. La
@@ -68,11 +70,11 @@ Elige si el resultado debe incluir solo la casa o también su entorno. En vistas
 
 ## Qué muestra cada vista
 
-| Vista | Muros y huecos | Techo y tejado |
-|---|---|---|
+| Vista                                 | Muros y huecos                                                                                                                                                | Techo y tejado                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Frontal, Trasera, Izquierda y Derecha | Se ocultan los muros exteriores del lado de cámara y sus puertas, ventanas, cortinas, estores y persianas. Se conservan los muros del fondo y los interiores. | Ocultos en las capturas para diseñar, porque la cámara mira desde encima de la casa. Visibles al usar estas vistas en el visor 3D. |
-| Cenital, Isométrica y Dron | Se conservan los muros para leer la distribución. | Ocultos para ver el interior. |
-| Exterior terminado | Fachadas completas y cerradas, sin retirar muros. | Visibles, con la forma del tejado configurado. |
+| Cenital, Isométrica y Dron            | Se conservan los muros para leer la distribución.                                                                                                             | Ocultos para ver el interior.                                                                                                      |
+| Exterior terminado                    | Fachadas completas y cerradas, sin retirar muros.                                                                                                             | Visibles, con la forma del tejado configurado.                                                                                     |
 
 Estos cortes son ayudas de visualización: no eliminan elementos del diseño. Comprueba **Ver vistas de referencia** antes de generar. La imagen debe respetar ese corte, sin reconstruir la fachada oculta ni añadir cortinas que vuelvan a taparla. Si preparaste referencias antes de cambiar estas opciones, vuelve a prepararlas.
 

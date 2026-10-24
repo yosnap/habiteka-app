@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, type ComponentRef } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useCallback, useEffect, useLayoutEffect, useRef, type ComponentRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useBounds } from '@react-three/drei';
 import { MOUSE, PerspectiveCamera, Vector3 } from 'three';
-import { cameraFitDistance } from './camera-fit';
+import { cameraFitDistance, sceneCameraNear } from './camera-fit';
+import { readWorkspaceCamera, saveWorkspaceCamera } from '../workspace/workspace-camera-state';
 
 export type SceneCameraPreset = 'top' | 'isometric' | 'front' | 'back' | 'left' | 'right' | 'drone';
 export interface CameraRequest {
@@ -36,7 +37,7 @@ const PRESET_DIRECTIONS: Record<SceneCameraPreset, readonly [number, number, num
   drone: [.35, 1.35, 1],
 };
 
-export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, pan = false, onManualChange, onContextLost, onApplied }: {
+export function SceneCamera({ request, sceneVersion, interior = false, enabled = true, plan = false, pan = false, onManualChange, onContextLost, onApplied, onReady, persistenceKey, canPersist }: {
   request: CameraRequest;
   sceneVersion: unknown;
   /** Dentro de una estancia: se puede mirar al techo y no se reencuadra sola. */
@@ -47,25 +48,57 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
   onManualChange: () => void;
   onContextLost: () => void;
   onApplied?: (sequence: number) => void;
+  onReady?: () => void;
+  persistenceKey?: string;
+  canPersist?: () => boolean;
 }) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null), bounds = useBounds();
   const lastSequence = useRef<number | null>(null);
   const lastSceneVersion = useRef<unknown>(null);
   const lastAction = useRef<CameraRequest['action'] | null>(null);
+  const initialized = useRef(false), revealed = useRef(false);
+  useFrame(() => {
+    if (!initialized.current || revealed.current) return;
+    revealed.current = true;
+    onReady?.();
+  });
   // Campo de visión de fuera, guardado al entrar en una estancia para devolverlo al salir.
   const exteriorFov = useRef<number | null>(null);
   const { get, invalidate, gl, size } = useThree();
+  useFrame(() => {
+    const camera = get().camera, orbit = controls.current;
+    if (!initialized.current || !orbit || !(camera instanceof PerspectiveCamera) || canPersist?.() === false) return;
+    const near = sceneCameraNear(camera.position.distanceTo(orbit.target), interior || lastAction.current === 'interior');
+    if (Math.abs(camera.near - near) > 1e-6) { camera.near = near; camera.updateProjectionMatrix(); }
+  });
+  const persistCamera = useCallback(() => {
+    const camera = get().camera, orbit = controls.current;
+    // Las capturas temporales y las visitas nunca sobrescriben la vista de trabajo.
+    if (!orbit || !(camera instanceof PerspectiveCamera) || interior || canPersist?.() === false) return;
+    saveWorkspaceCamera(persistenceKey, { position: camera.position.toArray(), target: orbit.target.toArray(), fov: camera.fov });
+  }, [get, interior, canPersist, persistenceKey]);
   // Camera fitting is imperative Three.js state; never writes canonical coordinates.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const camera = get().camera;
     const orbit = controls.current;
-    if (!orbit || !(camera instanceof PerspectiveCamera)) return;
+    if (!orbit || !(camera instanceof PerspectiveCamera) || size.width <= 0 || size.height <= 0) return;
     const isNewRequest = lastSequence.current !== request.sequence;
+    const restored = lastSequence.current === null ? readWorkspaceCamera(persistenceKey) : null;
     // Editar propiedades o abrir paneles conserva la cámara. Solo una petición
     // explícita o cambiar de planta/plantas apiladas vuelve a encuadrar.
     if (!isNewRequest && lastSceneVersion.current === sceneVersion) return;
     lastSceneVersion.current = sceneVersion;
     lastSequence.current = request.sequence;
+    if (restored) {
+      camera.position.fromArray(restored.position); orbit.target.fromArray(restored.target); camera.fov = restored.fov;
+      camera.near = sceneCameraNear(camera.position.distanceTo(orbit.target), interior);
+      camera.far = Math.max(500, camera.position.distanceTo(orbit.target) * 20);
+      orbit.maxDistance = Math.max(300, camera.position.distanceTo(orbit.target) * 10);
+      camera.updateProjectionMatrix(); camera.lookAt(orbit.target); orbit.update(); invalidate();
+      initialized.current = true;
+      onManualChange(); onApplied?.(request.sequence);
+      return;
+    }
     // Un cambio de escena reencuadra la vista, salvo estando dentro de una
     // estancia: ahí el usuario perdería su punto de vista sin haberlo pedido.
     if (!isNewRequest && lastAction.current === 'interior') return;
@@ -111,7 +144,7 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
       const distance = cameraFitDistance(extent, direction, verticalFov, camera.aspect);
       orbit.target.copy(center);
       orbit.maxDistance = Math.max(300, distance * 10);
-      camera.near = Math.min(.01, distance / 1000);
+      camera.near = sceneCameraNear(distance, interior);
       camera.far = Math.max(500, distance * 20);
       camera.position.copy(center).addScaledVector(direction, distance);
       camera.updateProjectionMatrix();
@@ -119,8 +152,10 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
     camera.lookAt(orbit.target);
     orbit.update();
     invalidate();
+    initialized.current = true;
+    persistCamera();
     onApplied?.(request.sequence);
-  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied, plan]);
+  }, [request, bounds, get, invalidate, size.width, size.height, sceneVersion, onApplied, plan, interior, persistenceKey, onManualChange, persistCamera]);
   // Release the external browser subscription when the 3D view unmounts.
   useEffect(() => {
     const canvas = gl.domElement;
@@ -130,5 +165,5 @@ export function SceneCamera({ request, sceneVersion, interior = false, enabled =
   }, [gl, onContextLost]);
   return <OrbitControls ref={controls} makeDefault enabled={enabled} enableDamping={false} minDistance={.3}
     enableRotate={!plan} mouseButtons={plan ? { LEFT: pan ? MOUSE.PAN : MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN } : undefined}
-    onStart={onManualChange} maxPolarAngle={interior ? Math.PI : Math.PI / 2} />;
+    onStart={onManualChange} onEnd={persistCamera} maxPolarAngle={interior ? Math.PI : Math.PI / 2} />;
 }

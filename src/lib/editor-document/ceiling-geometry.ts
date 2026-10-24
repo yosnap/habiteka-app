@@ -1,3 +1,4 @@
+import { roomClassification } from './space-classification';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { Ceiling, EditorDocument, Luminaire, Point } from './schema';
 import { deriveRooms, type DerivedRoom } from './rooms';
@@ -32,18 +33,7 @@ export interface ResolvedLuminaire {
 /** Un recinto lógico exterior no implica una cubierta. Las paredes ocultadas a mano siguen siendo interiores. */
 export function eligibleCeilingRooms(doc: EditorDocument): DerivedRoom[] {
   const rooms = deriveRooms(doc);
-  const isIndoorRoom = (room: DerivedRoom) =>
-    // Los límites ocultos de zonas exteriores (terraza, patio) marcan un espacio al aire libre; los de
-    // planta abierta (`hidden:open:`, una cocina abierta al salón) separan estancias interiores.
-    !room.wallIds.some((id) => doc.walls.some((wall) => wall.id === id && wall.hidden && !id.startsWith('hidden:open:')
-      && (id.startsWith('hidden:') || id.startsWith('outdoor:')))) &&
-    !doc.labels.some((label) => /\b(patio|terraza|jard[ií]n|balc[oó]n|exterior|porche|loggia)\b/i.test(label.text) && insideRoom(label, room.boundary));
-  const indoor = rooms.filter(isIndoorRoom);
-  // «Patio», «terraza» y «jardín» describen un espacio exterior completo solo
-  // cuando el plano no distingue ya sus áreas abiertas de las habitaciones.
-  const wholeOutdoor = ['patio', 'terraza', 'jardin'].includes(doc.designSpaceKind ?? '') &&
-    !doc.ceilings?.length && indoor.length === rooms.length;
-  return wholeOutdoor ? [] : indoor;
+  return rooms.filter(room => roomClassification(doc, room, rooms) === 'interior');
 }
 export function ceilingSurfaces(doc: EditorDocument): CeilingSurface[] {
   if (!doc.ceilings?.length) return [];

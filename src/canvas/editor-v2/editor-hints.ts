@@ -1,6 +1,7 @@
 import type { EditorDocument } from '@/lib/editor-document/schema';
 import { planObjects } from '@/lib/editor-document/boundary-types';
 import type { EditorTool } from './store';
+import { lockedElementIds } from '@/lib/editor-document/element-locks';
 
 /**
  * Pista de teclas para lo que se está haciendo, visible junto al lienzo: así nadie tiene que memorizar los
@@ -15,6 +16,7 @@ export function editorHint(tool: EditorTool, selection: readonly string[], doc: 
   if (tool === 'measure') return 'Arrastra para medir · Esc: cancelar';
   if (tool === 'split-wall') return 'Clic sobre la pared para añadir la esquina · Esc: cancelar';
   if (tool !== 'select') return null;
+  if (selection.some(id => lockedElementIds(doc).has(id))) return 'Selección bloqueada · usa el candado en Escena para desbloquear el elemento o su grupo';
   if (!selection.length) return `Clic: seleccionar · ${mod}/Mayús: añadir a la selección · doble clic: propiedades · Alt + doble clic en una pared: añadir esquina · A: imanes · Espacio: mover la vista`;
   const ids = new Set(selection);
   if (doc.walls.some((wall) => ids.has(wall.id)))

@@ -29,6 +29,8 @@ Para copiar un objeto o hueco, selecciónalo en el lienzo, pulsa **⌘/Ctrl+C**,
 | Espacio | Activar o desactivar Mano |
 | 0 | Encuadrar el plano |
 | + / − | Acercar / alejar |
+| ⌘/Ctrl + K | Buscar comandos de Opciones en Amueblado y Modelo 3D |
+| Alt/Option + 1 / 2 / 3 | Abrir Escena en Estructura / Mobiliario / Estancias (con Seleccionar activo) |
 | Rueda | Zoom del plano sobre el puntero |
 | ⌘/Ctrl + Z | Deshacer |
 | Mayús + ⌘/Ctrl + Z | Rehacer |

@@ -1,0 +1,575 @@
+/* Navegación compartida: el lienzo y los comandos originales de construcción no cambian. */
+.spatial {
+  --workspace-rail: 82px;
+  min-height: 0;
+}
+.spatial [data-workspace-body] {
+  grid-template-columns: var(--workspace-rail) minmax(0, 1fr);
+  position: relative;
+  isolation: isolate;
+}
+/* Los paneles flotan sobre la escena sin mover su cámara ni sus controles. */
+.spatial [data-workspace-body]:has(> [data-workspace-panel][data-open='true']) {
+  grid-template-columns: var(--workspace-rail) minmax(0, 1fr);
+}
+.spatial
+  [data-workspace-body]
+  > :is([data-workspace-canvas], [data-workspace-scene], [data-workspace-storyboard]) {
+  grid-column: 2;
+}
+.spatial
+  [data-workspace-body]:has(> [data-workspace-panel][data-open='true'])
+  > :is([data-workspace-canvas], [data-workspace-scene], [data-workspace-storyboard]) {
+  grid-column: 2;
+}
+.spatial [data-workspace-panel] {
+  position: absolute;
+  inset: 72px auto 16px calc(var(--workspace-rail) + 12px);
+  width: clamp(300px, 28vw, 380px);
+  max-width: calc(100% - var(--workspace-rail) - 24px);
+  height: auto;
+  max-height: none;
+  margin: 0;
+  grid-area: auto;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px #183a3220;
+}
+.spatial[data-mode] [data-workspace-construction] {
+  left: calc(var(--workspace-rail) + 12px);
+  top: 72px;
+  bottom: 16px;
+  height: auto;
+  max-height: none;
+  max-width: calc(100% - var(--workspace-rail) - 24px);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px #183a3220;
+}
+.rail {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 5px;
+  min-height: 0;
+  overflow: hidden;
+  background: #203c35;
+  color: #f5faf7;
+  scrollbar-width: thin;
+}
+.spatial .rail :is(button, a) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 55px;
+  flex-shrink: 0;
+  padding: 7px 3px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #e7f0ec;
+  text-decoration: none;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+.spatial .rail :is(button, a):hover:not(:disabled) {
+  background: #ffffff14;
+  color: #e7f0ec;
+  transform: none;
+}
+.spatial .rail button[aria-pressed='true'],
+.spatial .rail button[aria-pressed='true']:hover:not(:disabled) {
+  background: #d9eee5;
+  border-color: #d9eee5;
+  color: #163e30;
+}
+.spatial .rail :is(button, a):focus-visible {
+  outline: 2px solid #b3ebd2;
+  outline-offset: -2px;
+}
+.railEnd {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff25;
+  display: grid;
+  gap: 3px;
+}
+.development .railEnd {
+  padding-bottom: 32px;
+}
+.railTasks {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: safe center;
+  gap: 3px;
+  scrollbar-width: thin;
+}
+.railHistory, .historyArrows { display: grid; gap: 2px; }
+.historyArrows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spatial .historyArrows button { min-height: 44px; min-width: 0; width: 100%; padding-inline: 0; }
+.assistantTitle { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 650; }
+.spatial .assistantActions button { min-height: 96px; padding: 18px; transition: background .15s, color .15s; }
+.spatial .assistantActions button:is(:hover, :focus-visible):not(:disabled) { background: #197660; border-color: #197660; color: white; }
+.spatial .assistantActions button:is(:hover, :focus-visible):not(:disabled) :is(svg, small) { color: white; }
+.assistantProcess { border-top: 1px solid var(--line); padding-top: 16px; }
+.assistantProcess a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-weight: 600; color: var(--brand); }
+.viewToolbar {
+  position: absolute;
+  top: 12px;
+  left: calc(var(--workspace-rail) + 484px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: calc(100% - var(--workspace-rail) - 24px);
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafbf8;
+  box-shadow: 0 4px 14px #183a321a;
+}
+.spatial .viewToolbar [aria-label='Vista del espacio'] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+.spatial .viewToolbar [aria-label='Vista del espacio'] button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #56605c;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.spatial .viewToolbar [aria-label='Vista del espacio'] button[aria-pressed='true'] {
+  background: #202623;
+  color: #fff;
+  box-shadow: 0 2px 5px #0002;
+}
+.viewOptions.quickTools {
+  display: grid;
+  gap: 6px;
+  left: auto;
+  right: -4px;
+  width: 240px;
+  max-width: calc(100vw - var(--workspace-rail) - 24px);
+  z-index: 50;
+}
+@media (max-width: 1000px) {
+  .viewMenu:has(.quickTools) { position: static; }
+  .viewOptions.quickTools { left: 0; right: auto; }
+}
+.spatial [data-workspace-route-dock]:empty { display: none; }
+.spatial [data-workspace-route-dock] {
+  flex-shrink: 0;
+  max-height: 25vh;
+  overflow: auto;
+  padding: 8px 12px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.spatial [data-workspace-route-dock] > div {
+  position: static !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.spatial [data-workspace-scene] > div {
+  min-height: 0 !important;
+}
+.spatial:has([aria-label='Explorar plano guía']) :is(.viewToolbar, [data-workspace-lighting], [data-workspace-storyboard]) {
+  display: none;
+}
+.spatial [data-workspace-storyboard] {
+  max-height: 120px;
+  overflow: auto;
+}
+.spatial [data-workspace-body]:has([data-workspace-storyboard] > *) :is([data-workspace-panel], [data-workspace-construction]) {
+  bottom: 212px;
+  max-height: none;
+}
+.spatial [data-workspace-lighting] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 40;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 8px 28px #183a3226;
+}
+.spatial .viewToolbar > button,
+.viewMenu > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+.viewMenu > summary::-webkit-details-marker {
+  display: none;
+}
+.viewMenu > summary:hover {
+  background: var(--surface);
+}
+.viewMenu > summary:focus-visible {
+  outline: 2px solid var(--brand);
+}
+.viewMenu {
+  position: relative;
+}
+.viewOptions {
+  composes: surface items from '../../ui/editor-dropdown.module.css';
+  position: absolute;
+  top: calc(100% + 10px);
+  left: -4px;
+  width: 190px;
+}
+.viewOptions > div {
+  display: grid;
+  gap: 4px;
+}
+.lightingOptions {
+  display: grid;
+  gap: 4px;
+  left: auto;
+  right: -4px;
+}
+/* Barra de cámara separada de los desplegables; no modifica otras escenas ni el plano. */
+.spatial [data-workspace-scene] [aria-label='Controles de la vista 3D'] {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  width: max-content;
+}
+.spatial [data-workspace-scene] [aria-label='Controles de la vista 3D'] button {
+  min-height: 44px;
+  min-width: 44px;
+}
+.panelContent {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px;
+  min-width: 0;
+}
+.panelContent p {
+  margin: 0;
+}
+.spatial .panelContent > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  text-align: left;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.contextCard {
+  display: grid;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+.actionCards {
+  display: grid;
+  gap: 9px;
+}
+.spatial .actionCards button {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  text-align: left;
+}
+.actionCards svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--brand);
+}
+.actionCards span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.actionCards small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.search input {
+  width: 100%;
+  min-width: 0;
+}
+.group {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.group summary {
+  gap: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 650;
+}
+.group summary span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.branchChevron {
+  flex-shrink: 0;
+}
+:is(.group, .wallBranch)[open] > summary > .branchChevron {
+  transform: rotate(90deg);
+}
+.sceneTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.spatial .sceneTabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 2px;
+  font-size: 11px;
+}
+.treeNode {
+  min-width: 0;
+  margin-top: 5px;
+}
+.treeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, 36px);
+  align-items: center;
+  min-width: 0;
+}
+.spatial .treeRow button {
+  display: grid;
+  place-items: center;
+  border-color: transparent;
+  padding: 4px;
+  min-height: 44px;
+  min-width: 0;
+  background: transparent;
+}
+.spatial .treeRow .treeName {
+  display: block;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.spatial .treeName[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--brand);
+}
+.wallBranch {
+  padding: 0;
+}
+.wallBranch > summary {
+  font-size: 12px;
+  gap: 8px;
+}
+.wallBranch > summary span {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.treeChildren {
+  padding-left: 12px;
+}
+.renameForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+  gap: 4px;
+  padding-top: 4px;
+}
+.renameForm input {
+  min-width: 0;
+  width: 100%;
+}
+/* Las instrucciones de construcción quedan debajo de la barra de vistas. */
+.spatial [data-workspace-canvas] [role='status'][style*='top: 16px'] {
+  top: 72px !important;
+  max-width: calc(100% - 32px);
+  font-size: 12px;
+}
+.sceneRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.spatial .sceneRow button:first-child {
+  text-align: left;
+  overflow-wrap: anywhere;
+  border-color: transparent;
+  background: transparent;
+}
+.spatial .sceneRow button[aria-pressed='true'] {
+  background: var(--selected);
+  border-color: var(--brand);
+}
+.sceneRow button:last-child {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.tools {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+}
+.spatial .tools > :is(button, a),
+.spatial .tools > details > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.spatial .tools > details > :is([role='dialog'], [role='menu']) {
+  position: static;
+  width: 100%;
+  margin-top: 8px;
+  box-shadow: none;
+}
+@media (max-width: 800px) {
+  .spatial {
+    --workspace-rail: 68px;
+    min-height: 0;
+    height: auto;
+  }
+  .spatial [data-workspace-body],
+  .spatial [data-workspace-body]:has(> [data-workspace-panel][data-open='true']) {
+    grid-template-columns: var(--workspace-rail) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .spatial [data-workspace-body] > :is([data-workspace-canvas], [data-workspace-scene]),
+  .spatial
+    [data-workspace-body]:has(> [data-workspace-panel][data-open='true'])
+    > :is([data-workspace-canvas], [data-workspace-scene]) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .spatial [data-workspace-body] > [data-workspace-storyboard],
+  .spatial
+    [data-workspace-body]:has(> [data-workspace-panel][data-open='true'])
+    > [data-workspace-storyboard] {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .spatial [data-workspace-panel],
+  .spatial[data-mode] [data-workspace-construction] {
+    position: absolute;
+    inset: 68px auto 16px calc(var(--workspace-rail) + 8px);
+    width: min(380px, calc(100% - var(--workspace-rail) - 16px));
+    max-width: calc(100% - var(--workspace-rail) - 16px);
+    margin: 0;
+    max-height: none;
+  }
+  .viewToolbar {
+    top: 8px;
+    left: calc(var(--workspace-rail) + 8px);
+    max-width: calc(100% - var(--workspace-rail) - 16px);
+  }
+  .spatial [data-workspace-lighting] {
+    top: 8px;
+    right: 8px;
+  }
+  .spatial .rail :is(button, a) {
+    min-height: 52px;
+    font-size: 9px;
+  }
+  .panelContent,
+  .tools {
+    padding: 12px;
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spatial button {
+    transition: none;
+  }
+}
+@media (max-width: 600px) {
+  .viewToolbar [data-view-label='visual'] {
+    display: none;
+  }
+  .viewLabel,
+  .lightingLabel {
+    display: none;
+  }
+}
+/* En pantallas estrechas, proyecto y controles de vista ocupan dos bandas flotantes. */
+@media (max-width: 1000px) {
+  .viewToolbar { top: 128px; left: calc(var(--workspace-rail) + 8px); }
+  .spatial [data-workspace-lighting] { top: 128px; }
+  .spatial [data-workspace-panel], .spatial[data-mode] [data-workspace-construction] {
+    top: 188px; max-height: none;
+  }
+  .spatial [data-workspace-canvas] [role='status'][style*='top: 16px'] { top: 188px !important; }
+}
+.spatial:has([aria-label='Explorar plano guía']) [data-workspace-project] { display: none; }

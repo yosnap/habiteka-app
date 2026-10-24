@@ -1,6 +1,7 @@
 import registry from '../../../public/models/habiteka/catalog.json';
 import type { FurnitureCatalogEntry, FurnitureProfile, FurnitureRoom } from './furniture-catalog';
 import { withProductRoom } from './furniture-rooms';
+import { isLegacyVehicle } from './real-vehicles';
 
 /**
  * Muebles propios de Habiteka generados por la fábrica de Blender (scripts/build-furniture-factory.mjs). El registro
@@ -53,12 +54,15 @@ export function catalogEntryFromRegistry(entry: HabitekaRegistryEntry): Furnitur
 }
 
 /** Con la estancia que corresponde a cada producto (el zapatero al recibidor, la lavadora al lavadero). */
-export const HABITEKA_FURNITURE_CATALOG: FurnitureCatalogEntry[] = HABITEKA_REGISTRY.filter((entry) => !entry.hidden)
+const builtCatalog = HABITEKA_REGISTRY.filter((entry) => !entry.hidden)
   .map((entry) => withProductRoom(catalogEntryFromRegistry(entry)));
+export const HABITEKA_FURNITURE_CATALOG: FurnitureCatalogEntry[] = builtCatalog.filter((entry) => !isLegacyVehicle(entry));
+export const HABITEKA_LEGACY_VEHICLE_CATALOG: FurnitureCatalogEntry[] = builtCatalog.filter(isLegacyVehicle);
 
 /** Modelo 3D de cada pieza con la misma forma que los modelos CC0 (furniture-assets.ts). Ya llega con el frente en +Z. */
-const isVehicle = (id: string) => /^(turismo_|vehiculo_|furgoneta_)/.test(id);
-const assetVersion = (entry: HabitekaRegistryEntry) => isVehicle(entry.id) || entry.id === 'porche_entrada_exterior' ? `?v=${entry.sha256.slice(0, 12)}` : '';
+const isVehicle = (id: string) => /^(turismo_|vehiculo_|furgoneta_|coche_|moto_|scooter_|bicicleta_)/.test(id);
+const assetVersion = (entry: HabitekaRegistryEntry) => isVehicle(entry.id) || entry.id.startsWith('piscina_')
+  || entry.id === 'porche_entrada_exterior' ? `?v=${entry.sha256.slice(0, 12)}` : '';
 export const HABITEKA_MODEL_ASSETS = HABITEKA_REGISTRY.map((entry) => [`${HABITEKA_MODEL_PREFIX}${entry.id}`, {
   key: entry.id, url: `/models/habiteka/${entry.file}${assetVersion(entry)}`, frontRotation: 0, file: entry.file, kind: entry.id,
   source: 'Fábrica de muebles de Habiteka (Blender, scripts/build-furniture-factory.mjs)', author: HABITEKA_MODEL_AUTHOR,
@@ -71,6 +75,11 @@ export const HABITEKA_MODEL_ASSETS = HABITEKA_REGISTRY.map((entry) => [`${HABITE
   // El cristal de la placa puede teñirse sin borrar la serigrafía ni pintar el marco metálico.
   ...(entry.id.startsWith('vitroceramica_') ? { tintMaterialNames: ['vidrio'] } : {}),
   ...(entry.family === 'equipamiento' ? { tintMaterialNames: isVehicle(entry.id) ? ['pintura'] : entry.id === 'porche_entrada_exterior' ? ['blanco'] : ['pintura', 'metal', 'tela'] } : {}),
+  ...(entry.family === 'movilidad' ? { tintMaterialNames: ['pintura'] } : {}),
+  ...(entry.family === 'complementos' ? { tintMaterialNames: entry.profile === 'cabinet' || entry.profile === 'shelf'
+    ? ['madera', 'frentes'] : ['carcasa'] } : {}),
+  ...(entry.family === 'ocio' ? { tintMaterialNames: entry.id.startsWith('piscina_') ? ['blanco', 'piedra']
+    : entry.id.startsWith('aire_acondicionado_') ? ['blanco'] : ['pintura', 'madera', 'tela', 'asfalto'] } : {}),
 }] as const);
 
 const proposalIds = new Set(HABITEKA_REGISTRY.filter((entry) => entry.proposal).map((entry) => `${HABITEKA_MODEL_PREFIX}${entry.id}`));
@@ -80,7 +89,8 @@ const proposalIds = new Set(HABITEKA_REGISTRY.filter((entry) => entry.proposal).
  * no cambian la distribución y las demás medidas se prueban con HABITEKA_SMALLER cuando la elegida no cabe.
  */
 export function listedForProposal(entry: Pick<FurnitureCatalogEntry, 'id'>): boolean {
-  return !entry.id.startsWith(HABITEKA_MODEL_PREFIX) || proposalIds.has(entry.id);
+  return !isLegacyVehicle(entry) && !/^habiteka:(model:piscina_|outdoor:piscina)/.test(entry.id)
+    && (!entry.id.startsWith(HABITEKA_MODEL_PREFIX) || proposalIds.has(entry.id));
 }
 
 /** Variante inmediatamente más estrecha del mismo producto y acabado (calculada por la fábrica a partir de la especificación). */

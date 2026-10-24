@@ -202,7 +202,7 @@ def lounger(piece, spec):
     for i in range(round(flat / .085)):
         y = -d / 2 + .05 + .085 * (i + .5)
         piece.add(geo.box(w - .08, .065, .02, .004, 2, at=(0, y, rail_z + .09)), frame, 'x')
-    tilt = math.radians(38)
+    tilt = math.radians(spec['params'].get('backrestDeg', 38))
     for i in range(8):
         slat = geo.box(w - .1, .065, .02, .004, 2, at=(0, .085 * (i + .5), 0))
         geo.transform(slat, rot=(tilt, 0, 0))

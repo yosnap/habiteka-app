@@ -3,7 +3,7 @@
  * el servidor seleccionado (sandbox en pruebas, producción en vivo). Falla rápido
  * si falta el token, para no operar con credenciales ausentes.
  */
-import { Polar } from '@polar-sh/sdk';
+import { createPolar, type Polar } from '@polar-sh/sdk/2026-10';
 
 let client: Polar | undefined;
 
@@ -13,7 +13,7 @@ export function getPolarClient(): Polar {
   if (!accessToken) {
     throw new Error('POLAR_ACCESS_TOKEN no está definida');
   }
-  const server = process.env.POLAR_SERVER === 'production' ? 'production' : 'sandbox';
-  client = new Polar({ accessToken, server });
+  const environment = process.env.POLAR_SERVER === 'production' ? 'production' : 'sandbox';
+  client = createPolar({ accessToken, environment });
   return client;
 }

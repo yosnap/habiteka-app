@@ -13,8 +13,10 @@ export function assertDesignZoneFields(value: unknown, ids: Set<string>): void {
   for (const raw of value) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Zona de diseño inválida');
     const zone = raw as Record<string, unknown>;
-    if (Object.keys(zone).some((key) => !['id', 'name', 'polygon', 'floorFinish'].includes(key)))
+    if (Object.keys(zone).some((key) => !['id', 'name', 'polygon', 'floorFinish', 'classification'].includes(key)))
       throw new Error('Campo de zona de diseño desconocido');
+    if (zone.classification !== undefined && !['interior', 'exterior'].includes(zone.classification as string))
+      throw new Error('Clasificación de zona inválida');
     if (typeof zone.id !== 'string' || !zone.id.trim() || zone.id.length > 128 || ids.has(zone.id))
       throw new Error('ID de zona de diseño inválido o duplicado');
     ids.add(zone.id);

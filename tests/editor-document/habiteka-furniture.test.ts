@@ -12,6 +12,7 @@ import { measureElevation } from '../../scripts/lib/glb-optimize.mjs';
 import { furnitureAsset, REALISTIC_ASSET_REPLACEMENTS } from '@/lib/editor-document/furniture-assets';
 import { FURNITURE_CATALOG, getFurnitureCatalogEntry, searchFurnitureCatalog } from '@/lib/editor-document/furniture-catalog';
 import { furnitureModel } from '@/lib/editor-document/furniture-models';
+import { constructionGroup } from '@/lib/editor-document/element-classification';
 
 const DIR = 'public/models/habiteka';
 const manifests = Object.fromEntries(readdirSync(`${DIR}/manifest`).filter((file) => file.endsWith('.json'))
@@ -57,7 +58,7 @@ describe('muebles propios de la fábrica de Blender', () => {
       expect(getFurnitureCatalogEntry(entry.id)).toEqual(entry);
       const asset = furnitureAsset({ catalogId: entry.id })!;
       expect(asset).toMatchObject({ frontRotation: 0, attributionRequired: false });
-      expect(existsSync(`public${asset.url}`) && existsSync(`public${asset.thumbnailUrl}`)).toBe(true);
+      expect(existsSync(`public${asset.url.split('?')[0]}`) && existsSync(`public${asset.thumbnailUrl?.split('?')[0]}`)).toBe(true);
     }
     const products = new Map<string, number>();
     for (const entry of HABITEKA_FURNITURE_CATALOG) products.set(entry.productId, (products.get(entry.productId) ?? 0) + 1);
@@ -71,7 +72,7 @@ describe('muebles propios de la fábrica de Blender', () => {
 
   it('ofrece a Amueblar una variante por producto y la medida menor del mismo modelo', () => {
     const listed = HABITEKA_FURNITURE_CATALOG.filter(listedForProposal);
-    expect(listed.length).toBe(new Set(HABITEKA_FURNITURE_CATALOG.map((entry) => entry.productId)).size);
+    expect(listed.length).toBe(new Set(HABITEKA_FURNITURE_CATALOG.filter(entry => !constructionGroup(entry)).map((entry) => entry.productId)).size);
     for (const [from, to] of Object.entries(HABITEKA_SMALLER)) {
       const a = getFurnitureCatalogEntry(from)!, b = getFurnitureCatalogEntry(to)!;
       expect(b.productId).toBe(a.productId);

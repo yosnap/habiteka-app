@@ -1,0 +1,11 @@
+.panel, .actions, .card { display: grid; gap: 12px; }
+.panel { padding: 16px; overflow: auto; }
+.actions { padding: 12px 0; border-bottom: 1px solid #d8e2db; }
+.buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.buttons button { display: inline-flex; align-items: center; gap: 5px; }
+.buttons button[aria-pressed='true'] { background: #deeee4; color: #184b36; }
+.actions form, .panel label, .actions label { display: grid; gap: 8px; }
+.panel input, .actions input { width: 100%; min-width: 0; padding: 8px; border: 1px solid #c6d5cd; border-radius: 6px; }
+.actions p, .panel p { font-size: 13px; line-height: 1.5; margin: 0; }
+.card { border: 1px solid #d8e2db; border-radius: 10px; padding: 12px; background: #fcfdfa; }
+.card svg { background: #eef3ee; border-radius: 6px; }

@@ -4,10 +4,27 @@ import { insertSpatialItem } from '@/canvas/editor-v2/spatial-clipboard';
 import { createEditorStore } from '@/canvas/editor-v2/store';
 import { planDragPosition, positionedPending } from '@/components/editor-v2/scene/scene-plan-interaction';
 import { addTerrainSurface, suggestedTerrainSurface } from '@/lib/editor-document/terrain-surfaces';
+import { addWallPath } from '@/canvas/editor-v2/editing-operations';
+import { updateFurniture } from '@/lib/editor-document/spatial-commands';
 
 const table: Furniture = { id: 'mesa', kind: 'mesa-comedor', catalogId: 'habiteka:furniture:mesa-comedor',
   x: 1000, y: 1000, widthMm: 1600, depthMm: 900, heightMm: 750, elevationMm: 0, rotation: 0,
   color: '#b89364', dimensionalOrigin: 'physical' };
+
+it('conserva al soltar la vista previa limitada por una pared en el arrastre visual compartido', () => {
+  const doc = addWallPath(emptyEditorDocument(), [{ x: 4000, y: 0 }, { x: 4000, y: 6000 }]);
+  const store = createEditorStore(insertSpatialItem(doc, table));
+  const drag = { id: table.id, item: table, start: { x: 1100, y: 1100 }, pointerId: 1 };
+  const point = { x: 9000, y: 1100 };
+  const preview = planDragPosition(drag, point, store);
+  const released = planDragPosition(drag, point, store);
+  expect(preview.x).toBeGreaterThan(table.x);
+  expect(preview.x + table.widthMm).toBeLessThan(4000);
+  expect(released.x).toBeCloseTo(preview.x, 0);
+  store.getState().apply(updateFurniture(store.getState().document, table.id, { x: released.x, y: released.y }));
+  expect(store.getState().document.furniture.find(item => item.id === table.id)?.x).toBe(released.x);
+  expect(store.getState().error).toBeFalsy();
+});
 
 it('el plano visual usa la misma posición fina en vista previa y al soltar, sin el imán técnico', () => {
   const store = createEditorStore(insertSpatialItem(emptyEditorDocument(), table));

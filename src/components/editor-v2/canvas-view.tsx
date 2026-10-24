@@ -1,6 +1,7 @@
 'use client';
 import { planObjects, isBoundary, isLegacyBoundary, boundaryDefaults } from '@/lib/editor-document/boundary-types';
 import { danglingEnds } from '@/lib/editor-document/plan-issues';
+import { packageBounds } from '@/lib/editor-document/package-geometry';
 
 import { addBoundaryGate, projectBoundary } from '@/lib/editor-document/boundary-commands';
 import { snapPointDrag, snapSpatialDrag } from './magnetic-drag';
@@ -19,6 +20,7 @@ import { Hand, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { PropertyCompassOverlay } from './property-compass';
 import { shortcutHint } from '@/canvas/editor-v2/editor-shortcuts';
 import { fittedView, resizedView, zoomedView } from '@/canvas/editor-v2/view-math';
+import { SCENE_STYLES } from './workspace/scene-options-state';
 import type Konva from 'konva';
 import { useStore } from 'zustand';
 import type { EditorStore } from '@/canvas/editor-v2/store';
@@ -66,6 +68,9 @@ const REFERENCE_WAIT_MS = 2500;
 export function CanvasView({ store, onCenter, active = true, fitOnMount = false, presentation = 'technical', dimensions = 'all', showFurniture = true, showWalls = true, showLighting = true, showRoof = false, onHideRoof, roofRequest, onRoofAction, reference, originalVisible = true, originalOpacity = .75 }: { store: EditorStore; onCenter: (p: Point) => void; active?: boolean; fitOnMount?: boolean; presentation?: 'technical' | 'visual'; dimensions?: DimensionVisibility; showFurniture?: boolean; showWalls?: boolean; showLighting?: boolean; showRoof?: boolean; onHideRoof?: () => void; roofRequest?: RoofPlacementRequest | null; onRoofAction?: (action: RoofAction) => void; reference?: PlanReference | null; originalVisible?: boolean; originalOpacity?: number }) {
   const doc = useStore(store, (s) => s.document), tool = useStore(store, (s) => s.tool);
   const magneticGuides = useStore(store, (s) => s.magneticGuides);
+  const sceneOptions = useStore(store, (s) => s.sceneOptions);
+  dimensions = sceneOptions.dimensions ? dimensions : 'none';
+  showWalls = showWalls && sceneOptions.walls;
   useEffect(() => {
     const clear = () => store.getState().setMagneticGuides([]);
     window.addEventListener("mouseup", clear); window.addEventListener("pointerup", clear);
@@ -75,6 +80,10 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const snapEnabled = useStore(store, (s) => s.snap);
   const pendingSplitWallId = useStore(store, (s) => s.pendingSplitWallId);
   const pendingSpatial = useStore(store, (s) => s.pendingSpatial);
+  const pendingPackage = useStore(store, s => s.pendingPackage);
+  const packageSize = useMemo(() => pendingPackage ? packageBounds(pendingPackage.document) : null, [pendingPackage]);
+  const [placementOrientation, setPlacementOrientation] = useState<{ item: SpatialClipboardItem; rotation: number } | null>(null);
+  const preferredPlacementRotation = placementOrientation?.item === pendingSpatial ? placementOrientation.rotation : undefined;
   const zoneTool = useLightZoneTool(store);
   const [wallDraw, setWallDraw] = useState(idleWallDraw);
   // ⌘/Ctrl mientras se dibuja: el muro no se une a esquinas ni a muros. La medida tecleada fija la longitud del tramo.
@@ -288,15 +297,15 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
     setMarquee(null);
   };
   const grid = useMemo(() => {
-    if (presentation === 'visual') return [];
-    const step = view.scale < .04 ? 1000 : 500, lines: number[][] = [];
+    if (presentation === 'visual' || !sceneOptions.grid) return [];
+    const step = sceneOptions.gridStep * (sceneOptions.units === 'imperial' ? 304.8 : 1000), lines: number[][] = [];
     const left = -view.x / view.scale, top = -view.y / view.scale;
     for (let x = Math.floor(left / step) * step; x < left + size.width / view.scale; x += step)
       lines.push([x, top, x, top + size.height / view.scale]);
     for (let y = Math.floor(top / step) * step; y < top + size.height / view.scale; y += step)
       lines.push([left, y, left + size.width / view.scale, y]);
     return lines;
-  }, [presentation, size, view]);
+  }, [presentation, size, view, sceneOptions.grid, sceneOptions.gridStep, sceneOptions.units]);
   const drawing = !readOnly && ['garden-path', 'valla-madera', 'cerca-metal', 'seto', 'kitchen', 'light-strip', 'wall', 'guard-wall', 'rectangle', 'patio', 'measure'].includes(tool);
   const wallPreview = (tool === 'wall' || tool === 'guard-wall') && !readOnly ? wallDraw : idleWallDraw();
   const wallLength = wallPreview.anchor && wallPreview.preview ? distance(wallPreview.anchor, wallPreview.preview) : 0;
@@ -310,21 +319,21 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
   const zoneAnchor = zoneTool.draft.vertices.at(-1) ?? null;
   const zoneDimension = zoneTool.active && zoneAnchor && zoneTool.cursor ? drawingDimension(zoneAnchor, zoneTool.cursor, view.scale) : null;
   const splitting = tool === 'split-wall' && !readOnly;
-  const placingSpatial = tool === 'place-object' && !readOnly && !!pendingSpatial;
+  const placingSpatial = tool === 'place-object' && !readOnly && (!!pendingSpatial || !!pendingPackage);
   const spatialPreview = useMemo(() => {
     if (!pendingSpatial || !pointer) return null;
     const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
-  }, [doc, pendingSpatial, pointer, snapEnabled, view.scale]);
+    return snapObject(doc, { ...pendingSpatial, x: pointer.x - origin.x, y: pointer.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true, preferredRotation: preferredPlacementRotation });
+  }, [doc, pendingSpatial, pointer, snapEnabled, view.scale, preferredPlacementRotation]);
   const splitPreview = splitting && pendingSplitWallId && pointer ? resolveWallSplitPoint(doc, pendingSplitWallId, pointer, view.scale) : null;
   const splitNormal = splitPreview ? { x: (splitPreview.to.y - splitPreview.from.y) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale,
     y: -(splitPreview.to.x - splitPreview.from.x) / distance(splitPreview.from, splitPreview.to) * 40 / view.scale } : { x: 0, y: 0 };
   const hint = editorHint(tool, selected, doc, !!(start || wallPreview.anchor));
-  return <div className={styles.canvas} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
+  return <div className={styles.canvas} style={{ background: SCENE_STYLES[sceneOptions.style].background }} data-presentation={presentation} ref={container} aria-label="Lienzo del plano" tabIndex={0}
     onKeyDownCapture={roofTool.keyDown}
     onKeyDown={(e) => {
       if (e.key === 'Escape') {
-        if (pendingSpatial) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
+        if (pendingSpatial || pendingPackage) { e.preventDefault(); e.stopPropagation(); store.getState().cancelPendingSpatial(); return; }
         cancel(); return;
       }
       if (tool === 'walkthrough' && e.key === 'Enter') { e.preventDefault(); store.getState().setTool('select'); return; }
@@ -374,6 +383,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         if (placingSpatial) {
           if (e.evt.button !== undefined && e.evt.button !== 0) return;
           const raw = stage.current?.getRelativePointerPosition();
+          if (raw && pendingPackage) { store.getState().placePendingPackage(raw); return; }
           if (!raw || !pendingSpatial) return;
           // Un aparato de cocina soltado sobre un tramo se encaja en él como hueco.
           const drop = 'kind' in pendingSpatial && !('stepCount' in pendingSpatial) ? kitchenSlotDrop(doc, pendingSpatial, raw) : null;
@@ -383,7 +393,7 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
             setPointer(null); return;
           }
           const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
-          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true });
+          const item = snapObject(doc, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, snapEnabled, { preserveRotation: true, orientToWall: true, preferredRotation: preferredPlacementRotation });
           store.getState().placePendingSpatial(item); setPointer(null); return;
         }
         if (splitting) {
@@ -411,7 +421,15 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
       }} onPointerMove={() => {
         if (!pan && showRoof) { roofTool.pointerMove(); return; }
         if (!pan && zoneTool.active) { const p = point(); if (p) zoneTool.pointerMove(p); return; }
-        if (!pan && placingSpatial) { const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null); if (raw && pendingSpatial) { const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 }); snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale); } return; }
+        if (!pan && placingSpatial) {
+          const raw = stage.current?.getRelativePointerPosition(); setPointer(raw ?? null);
+          if (raw && pendingSpatial) {
+            const origin = objectCenter({ ...pendingSpatial, x: 0, y: 0 });
+            const placed = snapSpatialDrag(store, { ...pendingSpatial, x: raw.x - origin.x, y: raw.y - origin.y }, view.scale, preferredPlacementRotation);
+            if (placed.rotation !== preferredPlacementRotation) setPlacementOrientation({ item: pendingSpatial, rotation: placed.rotation });
+          }
+          return;
+        }
         if (!pan && splitting) { setPointer(point()); return; }
         if (!pan && marquee) { const p = point(); if (p) setMarquee((current) => current ? { ...current, to: p } : null); return; }
         if (pan || !drawing) return;
@@ -487,6 +505,10 @@ export function CanvasView({ store, onCenter, active = true, fitOnMount = false,
         <Text width={spatialPreview.widthMm} y={spatialPreview.depthMm / 2 - 7 / view.scale} align="center" fill="#087f75" fontSize={12 / view.scale}
           text={`${placementLabel(spatialPreview)} · clic para colocar · Esc cancela`} />
       </Group>}</>
+      {pendingPackage && packageSize && pointer && <Group listening={false} x={pointer.x - packageSize.width / 2} y={pointer.y - packageSize.height / 2}>
+        <Rect width={packageSize.width} height={packageSize.height} fill="#00a69322" stroke="#087f75" strokeWidth={2 / view.scale} dash={[8 / view.scale, 4 / view.scale]} />
+        <Text width={packageSize.width} align="center" fontSize={14 / view.scale} fill="#087f75" text={pendingPackage.name} />
+      </Group>}
       <>{magneticGuides.map((g, i) => <Line key={i} points={[g.from.x, g.from.y, g.to.x, g.to.y]} stroke="#087f75" strokeWidth={1.5 / view.scale} dash={[6 / view.scale, 4 / view.scale]} />)}</>
       </Layer>
     </Stage>}

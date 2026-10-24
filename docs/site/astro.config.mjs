@@ -24,6 +24,8 @@ export default defineConfig({
       ] },
       { label: 'Diseñar el inmueble', items: [
         { label: 'Herramientas del editor', slug: 'editor/herramientas' },
+        { label: 'Opciones de escena', slug: 'editor/opciones-escena' },
+        { label: 'Bloqueos, grupos y paquetes', slug: 'editor/grupos-paquetes' },
         { label: 'Navegación y atajos', slug: 'editor/atajos' },
         { label: 'Techos, luces y tejado', slug: 'editor/techos-luces-tejado' },
         { label: 'Parcela real', slug: 'guias/parcela-real' },
