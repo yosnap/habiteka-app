@@ -3,6 +3,10 @@ title: Estado y novedades
 description: Funciones implementadas y trabajo pendiente.
 ---
 
+## Nueva página de inicio — 24 de octubre de 2026
+
+**Página de inicio:** habiteka.app se ha rediseñado por completo. Abre con un plano técnico que se dibuja solo y se convierte en la foto amueblada, y recorre el proceso en cinco pasos: importar el plano, completarlo en el editor 2D y 3D, generar diseños con IA, aceptarlos y presentarlos. Puedes probar en la propia página un plano de ejemplo (al tocar una estancia aparece su diseño), un comparador arrastrable entre plano guía y diseño y una pieza 3D con muebles del catálogo que se gira con el ratón o el dedo. También muestra las funciones del editor, la parcela real, los vídeos (montaje 16:9 y 9:16, piloto de construcción y paseo de hasta 60 s), proyectos de muestra, cómo apruebas y aceptas cada resultado y preguntas frecuentes. Los proyectos y fotogramas de la home son ejemplos ilustrativos y van rotulados como tales. No muestra planes ni precios, y las animaciones se detienen si tu sistema tiene activado reducir el movimiento. El uso de la aplicación no cambia.
+
 ## Actualización de plataforma — 24 de octubre de 2026
 
 Habiteka se ha actualizado internamente (Next.js 16.4, React 19.3 y sus librerías de acceso, pagos, plano y 3D). El editor, los pagos y el acceso funcionan igual: no cambia ningún paso ni atajo. Las subidas de archivos (importar proyectos y vídeos) se han adaptado al nuevo almacenamiento del servidor sin cambiar su uso.

@@ -1,0 +1,107 @@
+/*
+ * Animaciones continuas de la home hechas con CSS (marquesina, fotogramas de los
+ * vídeos simulados, cabezal de reproducción, rejilla de plano). Todas se paran con
+ * movimiento reducido.
+ */
+
+.blueprint {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.06) 1px, transparent 1px),
+    linear-gradient(oklch(1 0 0 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.025) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+}
+
+.glow {
+  animation: glow-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes glow-drift {
+  from { transform: translate3d(-6%, -4%, 0) scale(1); }
+  to { transform: translate3d(8%, 6%, 0) scale(1.15); }
+}
+
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 70s linear infinite;
+}
+
+.marqueeReverse {
+  animation-direction: reverse;
+  animation-duration: 80s;
+}
+
+.marqueeHost:hover .marquee {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Cuatro fotogramas en bucle de 16 s; cada uno recibe un retraso de i × 4 s. */
+.frame {
+  opacity: 0;
+  animation: frame-cycle 16s linear infinite, ken-burns 16s linear infinite;
+}
+
+@keyframes frame-cycle {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  25% { opacity: 1; }
+  29% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes ken-burns {
+  0% { transform: scale(1.02); }
+  29% { transform: scale(1.14); }
+  100% { transform: scale(1.14); }
+}
+
+.progress {
+  transform-origin: left;
+  animation: progress 16s linear infinite;
+}
+
+@keyframes progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.playhead {
+  animation: playhead 12s linear infinite;
+}
+
+@keyframes playhead {
+  from { left: 0%; }
+  to { left: 100%; }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  from { transform: translateY(-6px); }
+  to { transform: translateY(6px); }
+}
+
+.selection {
+  animation: selection 4s ease-in-out infinite alternate;
+}
+
+@keyframes selection {
+  from { transform: scale(0.94); opacity: 0.75; }
+  to { transform: scale(1.03); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow, .marquee, .progress, .playhead, .float, .selection { animation: none; }
+  .frame { animation: none; opacity: 0; }
+  .frame:first-child { opacity: 1; }
+  .playhead { left: 35%; }
+}

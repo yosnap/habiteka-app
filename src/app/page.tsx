@@ -4,10 +4,17 @@ import { prisma } from '@/server/db/prisma';
 import { LandingHeader } from '@/components/landing/landing-header';
 import { LandingHero } from '@/components/landing/landing-hero';
 import { LandingHowItWorks } from '@/components/landing/landing-how-it-works';
-import { LandingFeatures } from '@/components/landing/landing-features';
+import { LandingMarquee } from '@/components/landing/landing-marquee';
+import { LandingDemo } from '@/components/landing/landing-demo';
+import { LandingBento } from '@/components/landing/landing-bento';
+import { LandingVideos } from '@/components/landing/landing-videos';
+import { LandingGallery } from '@/components/landing/landing-gallery';
+import { LandingTrust } from '@/components/landing/landing-trust';
+import { LandingFaq } from '@/components/landing/landing-faq';
 import { LandingCTA } from '@/components/landing/landing-cta';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { DevNavPanel } from '@/components/landing/dev-nav-panel';
+import { displayFont } from '@/components/landing/landing-fonts';
 
 const devLoginEnabled =
   process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_LOGIN === 'true';
@@ -35,12 +42,18 @@ export default async function Home() {
   }
 
   return (
-    <>
+    <div className={`${displayFont.variable} bg-surface flex min-h-full flex-col`}>
       <LandingHeader />
       <main className="flex-1">
         <LandingHero />
+        <LandingMarquee />
         <LandingHowItWorks />
-        <LandingFeatures />
+        <LandingDemo />
+        <LandingBento />
+        <LandingVideos />
+        <LandingGallery />
+        <LandingTrust />
+        <LandingFaq />
         <LandingCTA />
         {showDevPanel ? (
           <DevNavPanel
@@ -51,6 +64,6 @@ export default async function Home() {
         ) : null}
       </main>
       <LandingFooter />
-    </>
+    </div>
   );
 }
