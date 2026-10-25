@@ -3,7 +3,7 @@
 /** Navegación de «Mi perfil»: columna en escritorio y fila desplazable en el móvil, con la sección activa marcada. */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Cpu, KeyRound, LayoutDashboard, Shield, UserRound } from 'lucide-react';
+import { BarChart3, Building2, Cpu, KeyRound, LayoutDashboard, Shield, UserRound } from 'lucide-react';
 
 const SECTIONS = [
   { href: '/perfil', label: 'Resumen', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const SECTIONS = [
   { href: '/perfil/organizacion', label: 'Organización', icon: Building2 },
   { href: '/perfil/claves-ia', label: 'Claves de IA', icon: KeyRound },
   { href: '/perfil/modelos', label: 'Modelos de IA', icon: Cpu },
+  { href: '/perfil/uso', label: 'Uso y costes', icon: BarChart3 },
 ] as const;
 
 export function ProfileNav({ isAdmin }: { isAdmin: boolean }) {
@@ -28,7 +29,7 @@ export function ProfileNav({ isAdmin }: { isAdmin: boolean }) {
         );
       })}
       {isAdmin ? (
-        <Link href="/config" className={`${item} text-ink-soft hover:bg-muted hover:text-ink lg:mt-3 lg:border-t lg:border-line lg:pt-3`}>
+        <Link href="/users" className={`${item} text-ink-soft hover:bg-muted hover:text-ink lg:mt-3 lg:border-t lg:border-line lg:pt-3`}>
           <Shield size={16} aria-hidden />Administración
         </Link>
       ) : null}

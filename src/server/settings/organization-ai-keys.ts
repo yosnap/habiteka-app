@@ -1,7 +1,7 @@
 import 'server-only';
 import { prisma } from '@/server/db/prisma';
 import { openSecret, sealSecret, secretHint } from '@/server/security/secret-box';
-import { BUILT_IN_MODEL_PROVIDERS } from '@/server/ai/custom-ai-providers';
+import { BUILT_IN_MODEL_PROVIDERS, CUSTOM_PROVIDER_PRESETS } from '@/server/ai/custom-ai-providers';
 import { fail } from '@/server/errors/run-action';
 import type { OrgContext } from '@/server/auth/org-context';
 
@@ -13,6 +13,10 @@ export interface OrganizationAiKeyView {
   configured: boolean;
   keyHint: string | null;
   updatedAt: Date | null;
+  /** Proveedor compatible con OpenAI de la organización (o preconfigurado, como APIMart), no uno integrado. */
+  compatible: boolean;
+  /** Falso en un preconfigurado que la organización aún no ha dado de alta. */
+  saved: boolean;
 }
 
 /** Lo que devuelve «Probar»: la prueba no gasta tokens, solo consulta la lista de modelos o el saldo. */
@@ -21,15 +25,24 @@ export interface OrganizationAiKeyTest { ok: boolean; message: string }
 // Cada proveedor publica un endpoint gratuito que exige la clave; KIE no lista modelos, pero sí consulta el saldo.
 const KIE_CREDIT_URL = 'https://api.kie.ai/api/v1/chat/credit';
 
-/** Integrados de generación y compatibles del panel. Jev (TypeSafe) no está: la capa de calidad la paga la plataforma. */
-async function availableProviders(): Promise<{ id: string; label: string; baseUrl: string }[]> {
-  const custom = await prisma.aiCustomProvider.findMany({ orderBy: { label: 'asc' }, select: { id: true, label: true, baseUrl: true } });
-  return [...Object.values(BUILT_IN_MODEL_PROVIDERS), ...custom];
+type ProviderEntry = { id: string; label: string; baseUrl: string; compatible: boolean; saved: boolean };
+
+/**
+ * Integrados de generación, compatibles de la organización y preconfigurados aún sin alta. Jev (TypeSafe) no está: la
+ * capa de calidad la paga la plataforma.
+ */
+async function availableProviders(ctx: OrgContext): Promise<ProviderEntry[]> {
+  const own = await prisma.aiCustomProvider.findMany({ where: { organizationId: ctx.organizationId }, orderBy: { label: 'asc' }, select: { id: true, label: true, baseUrl: true } });
+  return [
+    ...Object.values(BUILT_IN_MODEL_PROVIDERS).map((item) => ({ ...item, compatible: false, saved: true })),
+    ...own.map((item) => ({ ...item, compatible: true, saved: true })),
+    ...CUSTOM_PROVIDER_PRESETS.filter((preset) => !own.some((item) => item.id === preset.id)).map((item) => ({ ...item, compatible: true, saved: false })),
+  ];
 }
 
-async function providerOrFail(provider: string) {
-  const found = (await availableProviders()).find((item) => item.id === provider);
-  if (!found) fail('Ese proveedor no está disponible en Habiteka.');
+async function providerOrFail(ctx: OrgContext, provider: string): Promise<ProviderEntry> {
+  const found = (await availableProviders(ctx)).find((item) => item.id === provider);
+  if (!found) fail('Ese proveedor no está disponible en tu organización.');
   return found;
 }
 
@@ -44,19 +57,29 @@ function assertCanManage(ctx: OrgContext): void {
 
 export async function listOrganizationAiKeys(ctx: OrgContext): Promise<OrganizationAiKeyView[]> {
   const [providers, rows] = await Promise.all([
-    availableProviders(),
+    availableProviders(ctx),
     prisma.organizationAiCredential.findMany({ where: { organizationId: ctx.organizationId }, select: { provider: true, keyHint: true, updatedAt: true } }),
   ]);
   const byProvider = new Map(rows.map((row) => [row.provider, row]));
-  return providers.map(({ id, label, baseUrl }) => {
+  return providers.map(({ id, label, baseUrl, compatible, saved }) => {
     const row = byProvider.get(id);
-    return { provider: id, label, baseUrl, configured: !!row, keyHint: row?.keyHint ?? null, updatedAt: row?.updatedAt ?? null };
+    return { provider: id, label, baseUrl, compatible, saved, configured: !!row, keyHint: row?.keyHint ?? null, updatedAt: row?.updatedAt ?? null };
   });
 }
 
 export async function saveOrganizationAiKey(ctx: OrgContext, provider: string, rawKey: string): Promise<void> {
   assertCanManage(ctx);
-  await providerOrFail(provider);
+  const entry = await providerOrFail(ctx, provider);
+  // Un preconfigurado (APIMart) se da de alta con su URL fija al guardar su primera clave.
+  if (!entry.saved) await prisma.aiCustomProvider.create({ data: { organizationId: ctx.organizationId, id: entry.id, label: entry.label, baseUrl: entry.baseUrl } });
+  await sealOrganizationKey(ctx, provider, rawKey);
+}
+
+/**
+ * Cifra y guarda la clave: en la base solo queda el texto cifrado y una pista de 4 caracteres. La clave en claro no
+ * se guarda, no se registra y nunca vuelve al navegador.
+ */
+export async function sealOrganizationKey(ctx: OrgContext, provider: string, rawKey: string): Promise<void> {
   const apiKey = rawKey.trim();
   if (apiKey.length < 12 || apiKey.length > 500 || /\s/.test(apiKey)) fail('La clave parece incompleta o tiene espacios. Cópiala de nuevo desde el proveedor.');
   const sealed = { encryptedApiKey: sealSecret(apiKey), keyHint: secretHint(apiKey) };
@@ -67,6 +90,16 @@ export async function saveOrganizationAiKey(ctx: OrgContext, provider: string, r
   });
 }
 
+/** Descifra en memoria la clave de la organización para una llamada al proveedor; nunca se devuelve al cliente. */
+export async function readOrganizationKey(ctx: OrgContext, provider: string): Promise<string> {
+  const row = await prisma.organizationAiCredential.findUnique({
+    where: { organizationId_provider: { organizationId: ctx.organizationId, provider } },
+  });
+  if (!row) fail('Guarda primero una clave para este proveedor.');
+  try { return openSecret(row.encryptedApiKey); }
+  catch { fail('No se pudo leer la clave guardada. Bórrala y vuelve a añadirla.'); }
+}
+
 export async function deleteOrganizationAiKey(ctx: OrgContext, provider: string): Promise<void> {
   assertCanManage(ctx);
   await prisma.organizationAiCredential.deleteMany({ where: { organizationId: ctx.organizationId, provider } });
@@ -74,14 +107,8 @@ export async function deleteOrganizationAiKey(ctx: OrgContext, provider: string)
 
 /** Comprueba la clave guardada de la organización del contexto contra el proveedor, sin generar nada. */
 export async function testOrganizationAiKey(ctx: OrgContext, provider: string): Promise<OrganizationAiKeyTest> {
-  const target = await providerOrFail(provider);
-  const row = await prisma.organizationAiCredential.findUnique({
-    where: { organizationId_provider: { organizationId: ctx.organizationId, provider } },
-  });
-  if (!row) fail('Guarda primero una clave para poder probarla.');
-  let apiKey: string;
-  try { apiKey = openSecret(row.encryptedApiKey); }
-  catch { fail('No se pudo leer la clave guardada. Bórrala y vuelve a añadirla.'); }
+  const target = await providerOrFail(ctx, provider);
+  const apiKey = await readOrganizationKey(ctx, provider);
   const url = provider === 'kie' ? KIE_CREDIT_URL : `${target.baseUrl}/models`;
   let response: Response;
   try {

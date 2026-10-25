@@ -13,7 +13,7 @@ import { AiError } from '@/server/ai/errors';
 const scope = { organizationId: 'org-a', userId: 'user-a' };
 beforeEach(() => {
   vi.resetAllMocks();
-  db.member.mockResolvedValue({ user: { role: 'user' } });
+  db.member.mockResolvedValue({ id: 'm' });
   db.platform.mockResolvedValue({ provider: 'openrouter', encryptedApiKey: 'global', enabled: true });
 });
 
@@ -46,20 +46,16 @@ describe('resolución de claves por organización', () => {
     expect(db.platform).not.toHaveBeenCalled();
   });
 
-  it('solo la cuenta admin de la plataforma, sin clave propia, usa la clave global del panel', async () => {
-    db.member.mockResolvedValue({ user: { role: 'admin' } });
+  it('la cuenta admin tampoco cae en claves globales: usa las de su organización', async () => {
+    db.member.mockResolvedValue({ id: 'm' });
     db.own.mockResolvedValue(null);
-    await expect(resolveProviderKey(scope, 'openrouter')).resolves.toBe('abierta:global');
-  });
-
-  it('la cuenta admin con clave propia usa la suya', async () => {
-    db.member.mockResolvedValue({ user: { role: 'admin' } });
+    await expect(resolveProviderKey(scope, 'openrouter')).rejects.toMatchObject({ kind: 'missing_key' });
+    expect(db.platform).not.toHaveBeenCalled();
     db.own.mockResolvedValue({ encryptedApiKey: 'propia' });
     await expect(resolveProviderKey(scope, 'openrouter')).resolves.toBe('abierta:propia');
-    expect(db.platform).not.toHaveBeenCalled();
   });
 
-  it('la clave global desactivada no sirve ni a la cuenta admin', async () => {
+  it('la clave de la plataforma (Jev) desactivada no se usa', async () => {
     db.platform.mockResolvedValue({ provider: 'kie', encryptedApiKey: 'global', enabled: false });
     await expect(resolvePlatformProviderKey('kie')).rejects.toMatchObject({ kind: 'provider_down' });
   });

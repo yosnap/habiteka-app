@@ -4,10 +4,12 @@ import { prisma } from '@/server/db/prisma';
 export interface AiCostFilters {
   from: Date;
   to: Date;
+  /** Limita el informe a una organización: obligatorio en «Mi perfil», opcional en el panel global. */
+  organizationId?: string;
   provider?: string;
   model?: string;
   status?: 'success' | 'error';
-  groupBy?: 'project' | 'design' | 'provider' | 'model' | 'user';
+  groupBy?: 'project' | 'design' | 'provider' | 'model' | 'user' | 'action';
   page?: number;
   interval?: 'day' | 'month';
 }
@@ -37,6 +39,8 @@ export interface AiCostReport {
   timeline: AiCostGroup[];
   requests: number;
   fallbackAttempts: number;
+  /** Errores del rango por código (clave que falta, proveedor caído…), de más a menos frecuente. */
+  errorCodes: { code: string; count: number }[];
 }
 
 export interface AiCostDetail {
@@ -64,6 +68,7 @@ const DETAIL_LIMIT = 200;
 export async function queryAiCosts(filters: AiCostFilters): Promise<AiCostReport> {
   const where: Prisma.AiRequestCostWhereInput = {
     createdAt: { gte: filters.from, lte: filters.to },
+    ...(filters.organizationId ? { organizationId: filters.organizationId } : {}),
     ...(filters.provider ? { provider: filters.provider } : {}),
     ...(filters.model ? { model: filters.model } : {}),
     ...(filters.status ? { status: filters.status } : {}),
@@ -71,7 +76,7 @@ export async function queryAiCosts(filters: AiCostFilters): Promise<AiCostReport
   const [rows, optionRows] = await Promise.all([
     prisma.aiRequestCost.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
     prisma.aiRequestCost.findMany({
-      where: { createdAt: { gte: filters.from, lte: filters.to } },
+      where: { createdAt: { gte: filters.from, lte: filters.to }, ...(filters.organizationId ? { organizationId: filters.organizationId } : {}) },
       distinct: ['provider', 'model'], select: { provider: true, model: true },
     }),
   ]);
@@ -84,7 +89,7 @@ export async function queryAiCosts(filters: AiCostFilters): Promise<AiCostReport
   const grouped = new Map<string, AiCostGroup>();
   const timeline = new Map<string, AiCostGroup>();
   for (const row of rows) {
-    const key = filters.groupBy === 'provider' ? row.provider : filters.groupBy === 'model' ? `${row.provider}/${row.model}`
+    const key = filters.groupBy === 'action' ? row.action : filters.groupBy === 'provider' ? row.provider : filters.groupBy === 'model' ? `${row.provider}/${row.model}`
       : filters.groupBy === 'user' ? row.userId ?? 'Sin usuario asociado'
       : filters.groupBy === 'design' ? row.refId ?? 'Sin diseño asociado' : row.projectId ?? 'Sin proyecto asociado';
     const label = filters.groupBy === 'user' ? names.get(key) || key
@@ -114,6 +119,7 @@ export async function queryAiCosts(filters: AiCostFilters): Promise<AiCostReport
     page, pageCount, timeline: [...timeline.values()].sort((a, b) => a.key.localeCompare(b.key)),
     requests: new Set(rows.map(row => row.requestId)).size,
     fallbackAttempts: rows.filter(row => row.attempt > 0).length,
+    errorCodes: tally(rows.flatMap((row) => row.status === 'error' ? [row.errorCode ?? 'unknown'] : [])),
     groups,
     totals: groups.reduce((total, group) => addGroup(total, group), emptyTotals()),
     providers: [...new Set(optionRows.map((row) => row.provider))].sort(),
@@ -131,6 +137,19 @@ export async function queryAiCosts(filters: AiCostFilters): Promise<AiCostReport
     detailLimit: DETAIL_LIMIT,
     detailTotal: rows.length,
   };
+}
+
+function tally(codes: string[]): { code: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const code of codes) counts.set(code, (counts.get(code) ?? 0) + 1);
+  return [...counts].map(([code, count]) => ({ code, count })).sort((a, b) => b.count - a.count);
+}
+
+/** Organizaciones con actividad de IA en el rango, para el filtro del panel global. */
+export async function aiCostOrganizations(from: Date, to: Date): Promise<{ id: string; name: string }[]> {
+  const rows = await prisma.aiRequestCost.findMany({ where: { createdAt: { gte: from, lte: to } }, distinct: ['organizationId'], select: { organizationId: true } });
+  if (rows.length === 0) return [];
+  return prisma.organization.findMany({ where: { id: { in: rows.map((row) => row.organizationId) } }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
 }
 
 function emptyTotals(): Omit<AiCostGroup, 'key' | 'label'> {

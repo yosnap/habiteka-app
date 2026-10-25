@@ -107,33 +107,38 @@ model OrganizationAiCredential {
   @@map("organization_ai_credential")
 }
 
-// Proveedor de IA compatible con OpenAI añadido desde el panel (APIMart, NodeClub.ai…). Su clave vive en
-// AiProviderCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
+// Proveedor de IA compatible con OpenAI que una organización añade desde Mi perfil (APIMart, NodeClub.ai…). Su clave
+// vive en OrganizationAiCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
 model AiCustomProvider {
-  id        String          @id
-  label     String
-  baseUrl   String
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String
+  label          String
+  baseUrl        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
+  @@id([organizationId, id])
   @@map("ai_custom_provider")
 }
 
-// Modelo de texto o visión que habilita el administrador, de un proveedor propio o de OpenRouter, NaN u OpenAI
+// Modelo de texto o visión que una organización habilita, de un proveedor propio o de OpenRouter, NaN, OpenAI o KIE
 // (`providerId` es el id del proveedor, sin clave foránea: los integrados no tienen fila en ai_custom_provider). Se
-// habilita para unos usos y con su precio de entrada por 1M tokens, que cuenta para el techo de cada uso y para
-// estimar el coste cuando el proveedor no lo informa.
+// habilita para unos usos y con su precio de entrada por 1M tokens, que sirve para estimar el coste cuando el
+// proveedor no lo informa.
 model AiCustomModel {
-  id              String           @id @default(cuid())
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   providerId      String
   model           String
   label           String
   actions         ModelAction[]
   priceUsdPerUnit Float
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  @@unique([providerId, model])
+  @@unique([organizationId, providerId, model])
   @@map("ai_custom_model")
 }
 

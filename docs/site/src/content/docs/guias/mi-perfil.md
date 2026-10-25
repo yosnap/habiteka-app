@@ -1,9 +1,9 @@
 ---
 title: Mi perfil
-description: Resumen de la cuenta, datos personales, organización, claves de IA y modelos de IA de cada función.
+description: Resumen de la cuenta, datos personales, organización, claves de IA, modelos de IA de cada función y uso y costes de la IA.
 ---
 
-**Mi perfil** reúne todo lo de tu cuenta y tu organización. Ábrelo desde **Mi perfil**, en la cabecera de la aplicación, o en `/perfil`. Tiene cinco secciones en la columna de la izquierda (en el móvil, en una fila que se desplaza). Si administras Habiteka, al final aparece también **Administración**.
+**Mi perfil** reúne todo lo de tu cuenta y tu organización. Ábrelo desde **Mi perfil**, en la cabecera de la aplicación, o en `/perfil`. Tiene seis secciones en la columna de la izquierda (en el móvil, en una fila que se desplaza). Si administras Habiteka, al final aparece también **Administración**.
 
 ## Resumen
 
@@ -11,7 +11,7 @@ Muestra de un vistazo:
 
 - **Claves de IA:** cuántos proveedores tienen clave y cuáles son.
 - **Modelos elegidos:** en cuántas funciones has elegido tus propios modelos; el resto usa los recomendados.
-- **Uso de IA · 30 días:** llamadas a la IA de tu organización y lo que han costado, en dólares, según tus proveedores (estimado cuando el proveedor no informa del importe).
+- **Uso de IA · 30 días:** llamadas a la IA de tu organización y lo que han costado, en dólares, según tus proveedores (estimado cuando el proveedor no informa del importe). Pulsa la tarjeta para ver el detalle en **Uso y costes**.
 - **Proyectos** y los **créditos** de la organización.
 
 Debajo, **Para generar con IA** marca en verde lo que ya está hecho y en rojo lo pendiente, con un enlace a cada sección.
@@ -52,14 +52,36 @@ Para elegir los tuyos:
 
 **Usar los recomendados** devuelve la función a la recomendación. Si la tarjeta avisa de que **ahora no se puede usar**, te falta la clave de todos sus modelos: añádela en [Claves de IA](/guias/claves-ia/).
 
-Solo el propietario o un administrador de la organización elige los modelos. Solo se ofrecen los modelos que la administración de Habiteka tiene habilitados.
+Solo el propietario o un administrador de la organización elige los modelos. Se ofrecen los del catálogo de Habiteka y los que tu organización habilite en [Claves de IA](/guias/claves-ia/#habilitar-más-modelos-de-un-proveedor), de sus proveedores o de proveedores compatibles que añada.
 
-### Qué pasa cuando Habiteka cambia una recomendación
+### Recomendaciones
+
+Las recomendaciones de cada función son fijas y las mantiene Habiteka: no las cambia nadie desde la administración. Si una versión nueva de Habiteka cambia una recomendación:
 
 - Las funciones que **no** has personalizado pasan a usar el nuevo modelo recomendado.
 - Las que **sí** has personalizado siguen con tu elección.
-- Si Habiteka retira un modelo que habías elegido, se salta. Si no te queda ninguno en esa función, vuelve a la recomendación.
+- Si un modelo que habías elegido deja de estar disponible (Habiteka lo retira o tu organización lo quita), se salta. Si no te queda ninguno en esa función, vuelve a la recomendación.
 
 ### Vídeos
 
 Los vídeos no se eligen aquí: Habiteka usa un modelo fijo para cada tipo, con tu clave de KIE. El paseo por las zonas usa **Hailuo 02 estándar**, en tramos de 6 o 10 segundos a 768p. La construcción y la visita usan **MiniMax H3** con varias imágenes aceptadas como referencia.
+
+## Uso y costes
+
+Lo que tu organización ha usado de la IA y lo que le han cobrado sus proveedores. Solo ves los datos de tu organización. Arriba eliges las fechas (por defecto, los últimos 30 días, en UTC), cómo agrupar (por **función**, **modelo**, **proveedor**, **proyecto** o **persona**) y si la evolución es diaria o mensual. Pulsa **Aplicar**.
+
+- **Coste:** la suma de lo **confirmado** por el proveedor y lo **estimado** con el precio del modelo cuando el proveedor no informa del importe. Los intentos sin importe conocido se indican aparte y no cuentan como cero.
+- **Peticiones:** cuántas veces se pidió algo a la IA, cuántos intentos hicieron falta y cuántos usaron un modelo de respaldo.
+- **Errores** y **Tiempo medio** por intento.
+- **Evolución del gasto:** una barra por día o por mes, en verde lo confirmado y en ámbar lo estimado.
+- **Reparto:** una fila por función, modelo, proveedor, proyecto o persona, según la agrupación, con intentos, errores y coste.
+- **Por qué fallaron:** los errores por causa, por ejemplo **Falta la clave del proveedor**, **Proveedor caído o clave rechazada** o **El proveedor no respondió a tiempo**.
+
+Debajo, **Eficacia: comprobaciones de calidad** resume lo que hizo Jev con tus generaciones. Jev comprueba antes de gastar si el plano o la petición son fiables, y después puntúa el resultado de 0 a 100. Su coste lo paga Habiteka, no tu organización.
+
+- **Comprobaciones:** cuántas hubo y cuántas siguieron o pidieron confirmación.
+- **Generaciones frenadas** y **Gasto evitado:** los bloqueos que evitaron pagar una generación poco fiable, estimados con el coste medio de tus generaciones.
+- **Aceptado sin rehacer**, **Rehecho con retoques** y **Sin puntuar:** cómo se reparte lo que gastaste en entregables.
+- Una línea por punto de control con sus comprobaciones, bloqueos y nota media.
+
+Úsalo para decidir en **Modelos de IA** qué modelo te compensa: cuánto cuesta, cuánto falla y qué nota sacan sus resultados.

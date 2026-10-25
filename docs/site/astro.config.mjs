@@ -41,7 +41,7 @@ export default defineConfig({
         { label: 'Promoción sobre parcela', slug: 'videos/promocion' },
       ] },
       { label: 'Administración', items: [
-        { label: 'Proveedores y modelos de IA', slug: 'admin/proveedores-ia' },
+        { label: 'Administración de la plataforma', slug: 'admin/plataforma' },
       ] },
       { label: 'Ayuda', items: [
         { label: 'Resolver problemas', slug: 'ayuda/problemas' },

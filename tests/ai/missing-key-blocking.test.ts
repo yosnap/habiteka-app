@@ -9,7 +9,7 @@ vi.mock('@/server/storage/s3-storage-adapter', () => ({ getStorageAdapter: () =>
 vi.mock('@/server/analytics/ai-cost-recorder', () => ({ recordAiAttempt: vi.fn(), aiErrorCode: () => 'missing_key' }));
 vi.mock('@/server/ai/guard/spend-guard', () => ({ assertCanSpend: vi.fn(), recordOutcome: fixture.outcome }));
 vi.mock('@/server/privacy/jurisdiction-allowlist', () => ({ enforceModelJurisdiction: vi.fn() }));
-vi.mock('@/server/admin/config/model-allowlist', () => ({ allowedModel: () => undefined }));
+vi.mock('@/server/ai/model-catalog', () => ({ allowedModel: () => undefined }));
 import { AiError, getChatVisionAdapter, getImageAdapterForAction } from '@/server/ai';
 import { aiError } from '@/server/ai/errors';
 

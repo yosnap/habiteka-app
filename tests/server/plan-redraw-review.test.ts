@@ -41,7 +41,7 @@ vi.mock('@/server/ai/design/redraw-plan-pipeline', () => ({
   },
 }));
 vi.mock('@/server/ai/model-routing', () => ({
-  resolveRoutes: async () => [{ provider: 'kie', model: 'gpt-image-2-5-sunburst-image-to-image', fallbacks: [] }],
+  resolveRoutes: async () => [{ provider: 'kie', model: 'gpt-image-2-5-sunburst-image-to-image', fallbacks: [], priceUsdPerUnit: 0.15, label: 'GPT Image 2.5 Sunburst' }],
 }));
 // El boceto se lee mal y el redibujado bien: así se ve qué imagen se ha leído.
 vi.mock('@/server/plan/import-plan-from-image', async () => {

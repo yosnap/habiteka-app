@@ -32,7 +32,6 @@ import { assertCanSpend, recordOutcome } from './guard/spend-guard';
 import { enforceModelJurisdiction } from '@/server/privacy/jurisdiction-allowlist';
 import { randomUUID } from 'node:crypto';
 import { aiErrorCode, recordAiAttempt, type AiCostScope } from '@/server/analytics/ai-cost-recorder';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { chatAttemptCost } from './cost/chat-attempt-cost';
 import { protectedInpaint } from './image/protected-inpaint';
 
@@ -94,7 +93,7 @@ export async function getImageAdapterForAction(
   let routes = (await resolveRoutes(action, ctx.organizationId)).filter((route) => route.provider !== 'nan');
   if (confirmedRoute) {
     const selected = routes.find(route => route.provider === confirmedRoute.provider && route.model === confirmedRoute.model);
-    const price = selected && allowedModel(action, selected.model, selected.provider)?.priceUsdPerUnit;
+    const price = selected?.priceUsdPerUnit;
     if (!selected || price === undefined || !Number.isFinite(confirmedRoute.maxUsd) || price > confirmedRoute.maxUsd)
       throw new AiError('provider_down', 'El modelo o precio de imagen ya no coincide con el presupuesto confirmado.');
     // Un encuadre presupuestado es un solo intento con este modelo, sin respaldo automático.
@@ -182,7 +181,7 @@ async function withChatFailover<T extends ChatResult>(
       // ocultaría qué proveedor/modelo respondió y rompería la trazabilidad real.
       const result = await invoke(adapter, { ...req, model, fallbackModels: undefined });
       const usage = result.usage;
-      const declared = route.provider !== 'openrouter' ? allowedModel(action, model, route.provider)?.priceUsdPerUnit : undefined;
+      const declared = route.provider !== 'openrouter' && model === route.model ? route.priceUsdPerUnit : undefined;
       await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units: usage ? { promptTokens: usage.promptTokens, completionTokens: usage.completionTokens } : undefined, ...chatAttemptCost(usage, declared) });
       return { ...result, execution: { provider: route.provider, model } };
     } catch (error) {
@@ -222,7 +221,7 @@ async function* streamWithChatFailover(ctx: AiCallContext, action: ModelAction, 
         if (delta.usage) units = delta.usage;
         yield delta;
       }
-      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units, ...chatAttemptCost(units, route.provider !== 'openrouter' ? allowedModel(action, model, route.provider)?.priceUsdPerUnit : undefined) });
+      await recordAiAttempt({ ...ctx, requestId, attempt, action, operation: action === 'vision' ? 'vision' : 'chat', provider: route.provider, model, status: 'success', latencyMs: elapsed(started), units, ...chatAttemptCost(units, route.provider !== 'openrouter' && model === route.model ? route.priceUsdPerUnit : undefined) });
       recorded = true;
       return;
     } catch (error) {
@@ -261,7 +260,7 @@ class FailoverImageAdapter implements ImageAdapter {
         const result = await operation(await createImageAdapter(this.ctx, route));
         // El importe que confirma el proveedor manda; sin él, la misma tarifa estimada que la previsualización.
         const confirmed = result.cost.confirmedUsd;
-        const costUsd = confirmed ?? allowedModel(this.action, route.model, route.provider)?.priceUsdPerUnit ?? result.cost.amountUsd;
+        const costUsd = confirmed ?? route.priceUsdPerUnit ?? result.cost.amountUsd;
         await recordAiAttempt({ ...this.ctx, requestId, attempt, action: this.action, operation: operationName, provider: route.provider, model: route.model, status: 'success', latencyMs: elapsed(started), units: { images: 1, unit: result.cost.unit }, costUsd, costType: confirmed !== undefined ? 'confirmed' : 'estimated' });
         return { ...result, generation: { provider: route.provider, model: route.model, fallbackIndex: attempt } };
       }
@@ -286,5 +285,4 @@ function elapsed(started: number): number {
   return Math.max(0, Math.round(performance.now() - started));
 }
 
-export { invalidate as invalidateModelConfig } from './model-config-loader';
 export { AiError } from './errors';

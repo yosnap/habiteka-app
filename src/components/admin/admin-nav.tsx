@@ -1,32 +1,25 @@
 'use client';
 
 /**
- * Navegación lateral del back-office, agrupada por área y con la sección activa marcada. El acceso real lo controla
+ * Navegación lateral del back-office, agrupada por área y con la sección activa marcada. La IA (proveedores, claves,
+ * modelos, costes y eficacia) no está aquí: la gestiona cada organización en Mi perfil. El acceso real lo controla
  * el guardia server-side, no la presencia o ausencia de un enlace.
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Cpu, Gauge, Image as ImageIcon, Package, Receipt, Settings, Users } from 'lucide-react';
+import { BarChart3, Image as ImageIcon, Settings, Users } from 'lucide-react';
 
 const GROUPS = [
   { title: 'Personas', items: [{ href: '/users', label: 'Usuarios', icon: Users }] },
-  { title: 'Inteligencia artificial', items: [
-    { href: '/config', label: 'Proveedores y modelos', icon: Cpu },
-    { href: '/analytics/ai-costs', label: 'Costes IA', icon: Receipt },
-    { href: '/analytics/quality', label: 'Eficacia IA', icon: Gauge },
-  ] },
   { title: 'Plataforma', items: [
     { href: '/config/system', label: 'Ajustes de sistema', icon: Settings },
-    { href: '/config/products', label: 'Productos', icon: Package },
     { href: '/media', label: 'Media', icon: ImageIcon },
     { href: '/analytics', label: 'Analítica', icon: BarChart3 },
   ] },
 ] as const;
 
-// «/config» también es la entrada de «/config/models»; el resto marca solo su propia ruta y sus hijas.
+// Cada enlace marca su propia ruta y sus hijas.
 function isActive(pathname: string, href: string): boolean {
-  if (href === '/config') return pathname === '/config' || pathname.startsWith('/config/models');
-  if (href === '/analytics') return pathname === '/analytics';
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

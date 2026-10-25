@@ -1,15 +1,10 @@
 /**
- * Allowlist curada de modelos por acción, con techo de precio.
- *
- * La edición de la configuración de modelos NO admite un id de modelo arbitrario:
- * solo modelos de esta lista, y nunca por encima del techo de precio de la acción.
- * Es la barrera contra un cambio (malicioso o por error) que apunte a un modelo
- * carísimo. La capa de IA también valida contra esta lista antes de usar un modelo
- * leído de la base de datos, de modo que una fila corrupta cae al modelo por
- * defecto en lugar de facturarse.
+ * Catálogo de modelos por uso: la lista curada de Habiteka, igual para todas las organizaciones, más los modelos que
+ * cada organización habilita en Mi perfil con el precio que declara. Nada fuera de él llega a un proveedor: la capa de
+ * IA valida cada modelo elegido contra este catálogo, y uno retirado cae a la recomendación.
  */
 import type { ModelAction } from '@/generated/prisma/enums';
-import { customModels } from '@/server/ai/custom-ai-providers';
+import { customModels, EMPTY_CATALOG, type OrganizationCatalog } from '@/server/ai/custom-ai-providers';
 
 /** Proveedor de una ruta: uno integrado (openrouter, kie, nan, openai) o el id de un proveedor propio del panel. */
 export type ModelProviderId = string;
@@ -315,27 +310,17 @@ const ALLOWED: Record<ModelAction, AllowedModel[]> = {
   ],
 };
 
-// Techo de precio por acción: ningún modelo más caro que esto puede configurarse.
-export const PRICE_CEILING: Record<ModelAction, number> = {
-  vision: 4,
-  chat: 6,
-  plano2d: 6,
-  render3d: 0.15,
-  inpaint: 0.15,
-  memoria: 6,
-};
-
 /**
- * Modelos elegibles para una acción (para el selector cerrado de la UI): los curados aquí y los que el administrador
- * habilitó en sus proveedores propios, con el precio que declaró. Los propios exigen haber cargado antes su registro.
+ * Modelos elegibles para un uso: los curados aquí y los que la organización habilitó, con el precio que declaró. Sin
+ * catálogo, solo los de Habiteka.
  */
-export function allowedModels(action: ModelAction): AllowedModel[] {
-  return [...ALLOWED[action], ...customModels(action).filter((added) => !includedModel(action, added.model, added.providerId))
+export function allowedModels(action: ModelAction, catalog: OrganizationCatalog = EMPTY_CATALOG): AllowedModel[] {
+  return [...ALLOWED[action], ...customModels(action, catalog).filter((added) => !includedModel(action, added.model, added.providerId))
     .map(({ model, providerId, providerLabel, label, priceUsdPerUnit, builtIn }) =>
       ({ id: model, provider: providerId, label: builtIn ? label : `${providerLabel} · ${label}`, status: 'current' as const, priceUsdPerUnit }))];
 }
 
-/** Modelo que ya viene de serie para el uso, sin habilitarlo desde el panel. */
+/** Modelo que ya viene de serie en el catálogo de Habiteka, sin habilitarlo. */
 export function includedModel(action: ModelAction, modelId: string, provider: string): AllowedModel | undefined {
   return ALLOWED[action].find((model) => model.id === modelId && model.provider === provider);
 }
@@ -344,19 +329,9 @@ export function allowedModel(
   action: ModelAction,
   modelId: string,
   provider?: string | null,
+  catalog: OrganizationCatalog = EMPTY_CATALOG,
 ): AllowedModel | undefined {
-  return allowedModels(action).find(
+  return allowedModels(action, catalog).find(
     (model) => model.id === modelId && (!provider || model.provider === provider),
   );
-}
-
-/** Verdadero si el modelo está permitido para la acción y no supera el techo. */
-export function isModelAllowed(
-  action: ModelAction,
-  modelId: string,
-  provider?: string | null,
-): boolean {
-  const model = allowedModel(action, modelId, provider);
-  if (!model) return false;
-  return model.priceUsdPerUnit <= PRICE_CEILING[action];
 }

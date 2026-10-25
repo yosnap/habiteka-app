@@ -62,7 +62,6 @@ import { renderSpatialReference } from '@/server/agent/editor-v2/render-spatial-
 import { assertRenderViewIntegrity } from '@/lib/editor-document/render-view-integrity';
 import { requestedRenderRedesign } from '@/lib/editor-document/render-redesign';
 import { resolveRoutes } from '@/server/ai/model-routing';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { runAction, fail } from '@/server/errors/run-action';
 import { assertEditorQuality } from '@/server/quality/editor-gate';
 import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
@@ -661,7 +660,7 @@ async function estimateConceptRenderFromEditorImpl(
     fail(`El número de generaciones debe ser un entero entre 1 y ${MAX_RENDER_PASSES}.`);
   const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
   if (!route) fail('No hay modelo de render configurado.');
-  const price = allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
+  const price = route.priceUsdPerUnit;
   if (price === undefined || !Number.isFinite(price) || price < 0)
     fail(`No hay precio estimado conocido para ${route.provider}:${route.model}.`);
   return { estimatedUsd: Number((price * viewCount).toFixed(4)), model: `${route.provider}:${route.model}` };

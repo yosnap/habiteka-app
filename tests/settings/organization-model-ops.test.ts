@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const db = vi.hoisted(() => ({ remove: vi.fn(), create: vi.fn(), transaction: vi.fn(), own: vi.fn(), keys: vi.fn(), recommended: vi.fn() }));
+const db = vi.hoisted(() => ({ remove: vi.fn(), create: vi.fn(), transaction: vi.fn(), own: vi.fn(), keys: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/server/db/prisma', () => ({ prisma: {
   organizationModelRoute: { deleteMany: db.remove, createMany: db.create, findMany: db.own },
@@ -8,7 +8,6 @@ vi.mock('@/server/db/prisma', () => ({ prisma: {
   aiCustomModel: { findMany: async () => [] },
   $transaction: db.transaction,
 } }));
-vi.mock('@/server/ai/model-config-loader', () => ({ getModelRoutes: db.recommended }));
 import { listOrganizationModelUses, resetOrganizationModelUse, saveOrganizationModelUse } from '@/server/settings/organization-model-ops';
 import type { OrgContext } from '@/server/auth/org-context';
 
@@ -19,7 +18,6 @@ beforeEach(() => {
   vi.resetAllMocks();
   db.remove.mockReturnValue('borrar'); db.create.mockReturnValue('crear');
   db.own.mockResolvedValue([]); db.keys.mockResolvedValue([{ provider: 'openrouter' }]);
-  db.recommended.mockResolvedValue([{ provider: 'openrouter', model: 'openai/gpt-5.2-chat', baseURL: null }]);
 });
 
 describe('elección de modelos desde Mi perfil', () => {
@@ -57,7 +55,10 @@ describe('elección de modelos desde Mi perfil', () => {
     db.own.mockImplementation(async ({ where }: { where: { action: string } }) => where.action === 'chat' ? [sonnet] : []);
     const uses = await listOrganizationModelUses(owner);
     const chat = uses.find((use) => use.action === 'chat')!;
-    expect(chat.recommended).toEqual([expect.objectContaining({ model: 'openai/gpt-5.2-chat', providerLabel: 'OpenRouter', hasKey: true })]);
+    expect(chat.recommended).toEqual([
+      expect.objectContaining({ model: 'anthropic/claude-sonnet-5', providerLabel: 'OpenRouter', hasKey: true }),
+      expect.objectContaining({ model: 'openai/gpt-5.2-chat' }),
+    ]);
     expect(chat.own).toEqual([expect.objectContaining({ model: 'anthropic/claude-sonnet-5' })]);
     expect(chat.options.some((option) => option.model === 'anthropic/claude-3.7-sonnet')).toBe(false);
     expect(uses.find((use) => use.action === 'memoria')!.own).toBeNull();

@@ -10,11 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { InlineConfirmButton } from '@/components/ui/inline-confirm-button';
 import { callAction } from '@/lib/action-result';
-import { deleteAiKeyAction, saveAiKeyAction, testAiKeyAction } from '@/server/settings/organization-ai-key-actions';
+import { deleteAiKeyAction, deleteCompatibleProviderAction, saveAiKeyAction, testAiKeyAction } from '@/server/settings/organization-ai-key-actions';
+import type { ProviderModelsView } from '@/server/settings/organization-catalog-ops';
+import { CompatibleProviderForm } from './compatible-provider-form';
+import { ProviderModelsEditor } from './provider-models-editor';
 
-export interface AiKeyRow { provider: string; label: string; baseUrl: string; configured: boolean; keyHint: string | null; updatedAt: string | null }
+export interface AiKeyRow { provider: string; label: string; baseUrl: string; configured: boolean; keyHint: string | null; updatedAt: string | null; compatible: boolean; saved: boolean }
 
-export function OrganizationAiKeysPanel({ keys, canEdit }: { keys: AiKeyRow[]; canEdit: boolean }) {
+export function OrganizationAiKeysPanel({ keys, canEdit, models }: { keys: AiKeyRow[]; canEdit: boolean; models: ProviderModelsView[] }) {
   return (
     <div className="grid gap-3 xl:grid-cols-2">
       {!canEdit ? (
@@ -22,12 +25,13 @@ export function OrganizationAiKeysPanel({ keys, canEdit }: { keys: AiKeyRow[]; c
           Solo el propietario o un administrador de la organización puede cambiar las claves. Aquí ves cuáles hay.
         </p>
       ) : null}
-      {keys.map((row) => <AiKeyCard key={row.provider} row={row} canEdit={canEdit} />)}
+      {keys.map((row) => <AiKeyCard key={row.provider} row={row} canEdit={canEdit} models={models.find((view) => view.provider === row.provider)} />)}
+      {canEdit ? <CompatibleProviderForm /> : null}
     </div>
   );
 }
 
-function AiKeyCard({ row, canEdit }: { row: AiKeyRow; canEdit: boolean }) {
+function AiKeyCard({ row, canEdit, models }: { row: AiKeyRow; canEdit: boolean; models?: ProviderModelsView }) {
   const [apiKey, setApiKey] = useState('');
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [pending, start] = useTransition();
@@ -45,6 +49,11 @@ function AiKeyCard({ row, canEdit }: { row: AiKeyRow; canEdit: boolean }) {
   const remove = () => run(async () => {
     await callAction(deleteAiKeyAction(row.provider));
     return { ok: true, message: `Clave borrada. Las funciones que usan ${row.label} quedan bloqueadas hasta que añadas otra.` };
+  });
+
+  const removeProvider = () => run(async () => {
+    await callAction(deleteCompatibleProviderAction(row.provider));
+    return { ok: true, message: `${row.label} quitado con su clave y sus modelos.` };
   });
 
   return (
@@ -75,7 +84,17 @@ function AiKeyCard({ row, canEdit }: { row: AiKeyRow; canEdit: boolean }) {
             <InlineConfirmButton label="Borrar" question="¿Borrar la clave?" confirmLabel="Sí, borrar" disabled={pending}
               className="text-sm text-[--color-danger] hover:underline" onConfirm={remove} />
           ) : null}
+          {row.compatible && row.saved ? (
+            <InlineConfirmButton label="Quitar proveedor" question="¿Quitar el proveedor, su clave y sus modelos?" confirmLabel="Sí, quitar" disabled={pending}
+              className="text-sm text-[--color-danger] hover:underline" onConfirm={removeProvider} />
+          ) : null}
         </div>
+      ) : null}
+      {models && row.saved && canEdit ? (
+        <details className="border-line border-t pt-3">
+          <summary className="text-ink cursor-pointer text-sm font-medium">Modelos ({models.included.length + models.models.length})</summary>
+          <div className="mt-3"><ProviderModelsEditor view={models} canLoad={row.configured} /></div>
+        </details>
       ) : null}
       {result ? (
         <p role="status" className={`flex items-center gap-2 text-sm ${result.ok ? 'text-brand-700' : 'text-[--color-danger]'}`}>

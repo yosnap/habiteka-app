@@ -112,6 +112,8 @@ model Organization {
   catalogItems  CatalogItem[]
   aiCredentials OrganizationAiCredential[]
   modelRoutes   OrganizationModelRoute[]
+  aiProviders   AiCustomProvider[]
+  aiModels      AiCustomModel[]
 
   @@map("organization")
 }

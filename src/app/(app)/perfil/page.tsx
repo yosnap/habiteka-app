@@ -45,7 +45,7 @@ export default async function ProfileSummaryPage() {
         <Stat icon={<Cpu size={14} aria-hidden />} label="Modelos elegidos" value={`${models.customized} de ${models.total}`}
           detail={models.customized === models.total ? 'Todos los usos personalizados' : 'El resto usa los recomendados'} href="/perfil/modelos" />
         <Stat icon={<Activity size={14} aria-hidden />} label="Uso de IA · 30 días" value={usage.calls}
-          detail={`${usd.format(usage.costUsd)} estimados en tus proveedores${usage.failed ? ` · ${usage.failed} con error` : ''}`} />
+          detail={`${usd.format(usage.costUsd)} estimados en tus proveedores${usage.failed ? ` · ${usage.failed} con error` : ''}`} href="/perfil/uso" />
         <Stat icon={<FolderOpen size={14} aria-hidden />} label="Proyectos" value={summary.projects} detail="De tu organización" href="/proyectos" />
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

@@ -11,15 +11,15 @@ export interface ProviderKeyScope { organizationId: string; userId: string }
 
 
 /**
- * Resuelve la clave de un proveedor para una llamada server-side. Cada organización usa su propia clave: primero se
- * comprueba que el usuario pertenece a la organización del contexto (sin eso, cualquiera podría gastar la clave de
- * otra pasando su id) y después se lee su credencial. Solo la cuenta admin de la plataforma, sin clave propia, cae en
- * la clave global del panel; al resto se le bloquea la generación con un mensaje que dice dónde añadirla.
+ * Resuelve la clave de un proveedor para una llamada server-side. Cada organización usa su propia clave, también la
+ * cuenta admin: primero se comprueba que el usuario pertenece a la organización del contexto (sin eso, cualquiera
+ * podría gastar la clave de otra pasando su id) y después se lee su credencial. Sin ella, la generación se bloquea con
+ * un mensaje que dice dónde añadirla. La clave solo se descifra en memoria para esta llamada.
  */
 export async function resolveProviderKey(scope: ProviderKeyScope, provider: string): Promise<string> {
   const member = await prisma.member.findUnique({
     where: { organizationId_userId: { organizationId: scope.organizationId, userId: scope.userId } },
-    select: { user: { select: { role: true } } },
+    select: { id: true },
   });
   // No es un fallo del proveedor: no pasa al respaldo ni prueba otra clave.
   if (!member) throw new UserFacingError('No perteneces a la organización de esta generación.');
@@ -27,7 +27,6 @@ export async function resolveProviderKey(scope: ProviderKeyScope, provider: stri
     where: { organizationId_provider: { organizationId: scope.organizationId, provider } },
   });
   if (own) return open(own.encryptedApiKey, provider);
-  if (member.user.role === 'admin') return resolvePlatformProviderKey(provider);
   throw aiError('missing_key', `Tu organización no tiene clave de ${providerLabel(provider)}. Añádela en Mi perfil › Claves de IA (${AI_KEYS_SETTINGS_PATH}).`);
 }
 
@@ -35,7 +34,7 @@ export async function resolveKieKey(scope: ProviderKeyScope): Promise<string> {
   return resolveProviderKey(scope, 'kie');
 }
 
-/** Clave global del panel de admin: solo para el propio panel, Jev y la cuenta admin. */
+/** Clave de la plataforma: solo Jev (TypeSafe), la capa de calidad que paga Habiteka. */
 export async function resolvePlatformProviderKey(provider: string): Promise<string> {
   const credential = await prisma.aiProviderCredential.findUnique({ where: { provider } });
   if (!credential?.enabled) throw aiError('provider_down', `${providerLabel(provider)} no está configurado o está desactivado`);
