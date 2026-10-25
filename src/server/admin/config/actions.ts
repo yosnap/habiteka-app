@@ -1,86 +1,21 @@
 'use server';
 
 /**
- * Server Actions de configuración del back-office. Cada una revalida el rol admin
- * antes de actuar y delega en las operaciones, que validan y auditan.
+ * Server Actions de configuración de la plataforma. Cada una revalida el rol admin antes de actuar y delega en las
+ * operaciones, que validan y auditan. Los proveedores, las claves y los modelos de IA no están aquí: los gestiona cada
+ * organización en Mi perfil. Solo queda la clave de Jev, que paga la plataforma.
  */
 import { requireAdmin } from '../guard';
 import { revalidatePath } from 'next/cache';
-import { updateModelConfig, replaceModelConfigs, listModelConfig, type UpdateModelInput } from './model-config-ops';
 import { updateSystemSetting, listSystemSettings } from './system-setting-ops';
-import { updateBranding, type BrandingInput } from '../branding/branding-ops';
-import { createPolarProduct, type CreateProductInput } from '../billing/product-ops';
-import { getKieProviderStatus, getNanProviderStatus, getOpenAiProviderStatus, getOpenRouterProviderStatus, updateKieProvider, updateNanProvider, updateOpenAiProvider, updateOpenRouterProvider, getTypesafeProviderStatus, updateTypesafeProvider } from './ai-provider-ops';
-import { listCustomModelProfiles, saveCustomModelProfile } from './model-profile-ops';
-import { deleteCustomModel, deleteCustomProvider, listBuiltInModelProviders, listCustomProviders, listProviderModels, saveCustomModel, saveCustomProvider } from './custom-provider-ops';
-import type { ModelAction } from '@/generated/prisma/enums';
-
-export async function adminListModelConfig() {
-  await requireAdmin();
-  return listModelConfig();
-}
-
-export async function adminListCustomModelProfiles() {
-  await requireAdmin();
-  return listCustomModelProfiles();
-}
-
-export async function adminSaveCustomModelProfile(input: { name: string; description?: string; configurations: UpdateModelInput[] }) {
-  const actor = await requireAdmin();
-  await saveCustomModelProfile(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminUpdateModelConfig(input: UpdateModelInput) {
-  const actor = await requireAdmin();
-  await updateModelConfig(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminReplaceModelConfigs(inputs: UpdateModelInput[]) {
-  const actor = await requireAdmin();
-  await replaceModelConfigs(actor.userId, inputs);
-  revalidateAiConfigPages();
-}
-
-export async function adminGetKieProviderStatus() { await requireAdmin(); return getKieProviderStatus(); }
-
-export async function adminUpdateKieProvider(input: { apiKey: string; enabled: boolean }) {
-  const actor = await requireAdmin();
-  await updateKieProvider(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminGetOpenRouterProviderStatus() { await requireAdmin(); return getOpenRouterProviderStatus(); }
-
-export async function adminUpdateOpenRouterProvider(input: { apiKey: string; enabled: boolean }) {
-  const actor = await requireAdmin();
-  await updateOpenRouterProvider(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminGetOpenAiProviderStatus() { await requireAdmin(); return getOpenAiProviderStatus(); }
-
-export async function adminUpdateOpenAiProvider(input: { apiKey: string; enabled: boolean }) {
-  const actor = await requireAdmin();
-  await updateOpenAiProvider(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminGetNanProviderStatus() { await requireAdmin(); return getNanProviderStatus(); }
-
-export async function adminUpdateNanProvider(input: { apiKey: string; enabled: boolean }) {
-  const actor = await requireAdmin();
-  await updateNanProvider(actor.userId, input);
-  revalidateAiConfigPages();
-}
+import { getTypesafeProviderStatus, updateTypesafeProvider } from './ai-provider-ops';
 
 export async function adminGetTypesafeProviderStatus() { await requireAdmin(); return getTypesafeProviderStatus(); }
 
 export async function adminUpdateTypesafeProvider(input: { apiKey: string; enabled: boolean }) {
   const actor = await requireAdmin();
   await updateTypesafeProvider(actor.userId, input);
-  revalidateAiConfigPages();
+  revalidatePath('/config/system');
 }
 
 export async function adminListSystemSettings() {
@@ -92,52 +27,4 @@ export async function adminUpdateSystemSetting(key: string, value: unknown) {
   const actor = await requireAdmin();
   await updateSystemSetting(actor.userId, key, value);
   revalidatePath('/config/system');
-}
-
-export async function adminUpdateBranding(input: BrandingInput) {
-  const actor = await requireAdmin();
-  await updateBranding(actor.userId, input);
-}
-
-export async function adminCreatePolarProduct(input: CreateProductInput) {
-  const actor = await requireAdmin();
-  return createPolarProduct(actor.userId, input);
-}
-
-function revalidateAiConfigPages(): void {
-  revalidatePath('/config');
-  revalidatePath('/config/models');
-}
-
-export async function adminListCustomProviders() { await requireAdmin(); return listCustomProviders(); }
-export async function adminListBuiltInModelProviders() { await requireAdmin(); return listBuiltInModelProviders(); }
-
-export async function adminSaveCustomProvider(input: { id?: string; label: string; baseUrl: string; apiKey: string; enabled: boolean }) {
-  const actor = await requireAdmin();
-  const id = await saveCustomProvider(actor.userId, input);
-  revalidateAiConfigPages();
-  return id;
-}
-
-export async function adminDeleteCustomProvider(id: string) {
-  const actor = await requireAdmin();
-  await deleteCustomProvider(actor.userId, id);
-  revalidateAiConfigPages();
-}
-
-export async function adminListProviderModels(id: string) {
-  await requireAdmin();
-  return listProviderModels(id);
-}
-
-export async function adminSaveCustomModel(input: { providerId: string; model: string; label: string; actions: ModelAction[]; priceUsdPerUnit: number }) {
-  const actor = await requireAdmin();
-  await saveCustomModel(actor.userId, input);
-  revalidateAiConfigPages();
-}
-
-export async function adminDeleteCustomModel(providerId: string, model: string) {
-  const actor = await requireAdmin();
-  await deleteCustomModel(actor.userId, providerId, model);
-  revalidateAiConfigPages();
 }

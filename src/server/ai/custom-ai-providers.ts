@@ -2,9 +2,9 @@ import type { ModelAction } from '@/generated/prisma/enums';
 import { prisma } from '@/server/db/prisma';
 
 /**
- * Proveedores de IA compatibles con OpenAI que el administrador añade desde el panel (APIMart, NodeClub.ai…), con sus
- * modelos de texto y visión. Se leen de la base y se guardan en caché, como el mapeo de modelos: el panel invalida la
- * caché al cambiarlos y la siguiente llamada ya los usa.
+ * Proveedores de IA compatibles con OpenAI que cada organización añade desde Mi perfil (APIMart, NodeClub.ai…) y los
+ * modelos que habilita, de esos proveedores o de los integrados. Se leen por organización en cada resolución: el
+ * catálogo de una nunca se mezcla con el de otra.
  */
 export interface CustomProvider { id: string; label: string; baseUrl: string }
 export interface CustomModel { providerId: string; model: string; label: string; actions: ModelAction[]; priceUsdPerUnit: number }
@@ -33,37 +33,36 @@ export const KIE_CHAT_MODELS: readonly string[] = [
 /** En KIE, los modelos de texto son los Claude; el resto de sus modelos son de imagen. */
 export const isKieChatModel = (model: string) => model.startsWith('claude-');
 
-let registry: { providers: Map<string, CustomProvider>; models: CustomModel[] } | null = null;
+/** Catálogo propio de una organización: sus proveedores compatibles y los modelos que ha habilitado. */
+export interface OrganizationCatalog { providers: Map<string, CustomProvider>; models: CustomModel[] }
 
-export async function loadCustomRegistry() {
-  if (registry) return registry;
+export const EMPTY_CATALOG: OrganizationCatalog = { providers: new Map(), models: [] };
+
+export async function loadOrganizationCatalog(organizationId: string): Promise<OrganizationCatalog> {
   try {
-    const [rows, models] = await Promise.all([prisma.aiCustomProvider.findMany({ orderBy: { label: 'asc' } }), prisma.aiCustomModel.findMany({ orderBy: { label: 'asc' } })]);
-    registry = {
+    const [rows, models] = await Promise.all([
+      prisma.aiCustomProvider.findMany({ where: { organizationId }, orderBy: { label: 'asc' } }),
+      prisma.aiCustomModel.findMany({ where: { organizationId }, orderBy: { label: 'asc' } }),
+    ]);
+    return {
       providers: new Map(rows.map(({ id, label, baseUrl }) => [id, { id, label, baseUrl }])),
       models: models.map(({ providerId, model, label, actions, priceUsdPerUnit }) => ({ providerId, model, label, actions, priceUsdPerUnit })),
     };
   } catch {
-    // Sin la tabla (base sin migrar) o con la base caída, la IA sigue con los proveedores de siempre.
-    registry = { providers: new Map(), models: [] };
+    // Sin la tabla (base sin migrar) o con la base caída, la organización sigue con el catálogo de Habiteka.
+    return EMPTY_CATALOG;
   }
-  return registry;
 }
 
-export function invalidateCustomRegistry(): void {
-  registry = null;
+/** Nombre legible de un proveedor para los mensajes: el integrado, el de la organización o su id en mayúsculas. */
+export function providerLabel(id: string, catalog: OrganizationCatalog = EMPTY_CATALOG): string {
+  return BUILT_IN_MODEL_PROVIDERS[id]?.label ?? catalog.providers.get(id)?.label ?? id.toUpperCase();
 }
 
-/** Proveedor propio ya cargado; quien lo consulte en una ruta debe haber esperado antes a `loadCustomRegistry`. */
-export function customProvider(id: string): CustomProvider | undefined {
-  return registry?.providers.get(id);
-}
-
-/** Modelos habilitados desde el panel para un uso (de proveedores propios o integrados), con el nombre del proveedor. */
-export function customModels(action: ModelAction): (CustomModel & { providerLabel: string; builtIn: boolean })[] {
-  if (!registry) return [];
-  return registry.models.flatMap((model) => {
-    const provider = BUILT_IN_MODEL_PROVIDERS[model.providerId] ?? registry!.providers.get(model.providerId);
+/** Modelos habilitados por la organización para un uso (de sus proveedores o de los integrados), con el proveedor. */
+export function customModels(action: ModelAction, catalog: OrganizationCatalog): (CustomModel & { providerLabel: string; builtIn: boolean })[] {
+  return catalog.models.flatMap((model) => {
+    const provider = BUILT_IN_MODEL_PROVIDERS[model.providerId] ?? catalog.providers.get(model.providerId);
     return model.actions.includes(action) && provider
       ? [{ ...model, providerLabel: provider.label, builtIn: !!BUILT_IN_MODEL_PROVIDERS[model.providerId] }] : [];
   });

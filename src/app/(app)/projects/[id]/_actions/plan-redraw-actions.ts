@@ -16,7 +16,6 @@ import { importPlanFromImage } from '@/server/plan/import-plan-from-image';
 import { runAction, fail } from '@/server/errors/run-action';
 import { redrawStudioSource } from '@/server/plan/studio-redraw';
 import { resolveRoutes } from '@/server/ai/model-routing';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 
 /**
  * Modelo y precio de una imagen generada (redibujado o vista del plano): el
@@ -26,10 +25,9 @@ export async function imageGenerationQuote(projectId: string) {
   return runAction(async () => {
     const ctx = await requireOrgContext();
     await loadStudio(ctx, projectId);
-    const route = (await resolveRoutes('render3d')).find((item) => item.provider !== 'nan');
-    const model = route && allowedModel('render3d', route.model, route.provider);
-    if (!route || !model) fail('No hay un modelo de imagen configurado para generar imágenes.');
-    return { provider: route.provider, model: route.model, label: model.label, priceUsd: model.priceUsdPerUnit };
+    const route = (await resolveRoutes('render3d', ctx.organizationId)).find((item) => item.provider !== 'nan');
+    if (!route || route.priceUsdPerUnit === undefined) fail('No hay un modelo de imagen configurado para generar imágenes.');
+    return { provider: route.provider, model: route.model, label: route.label ?? route.model, priceUsd: route.priceUsdPerUnit };
   });
 }
 

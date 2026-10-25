@@ -8,7 +8,7 @@ import {
 } from '@/server/admin/config/ai-provider-ops';
 import { updateSystemSetting } from '@/server/admin/config/system-setting-ops';
 import { ConfigValidationError } from '@/server/admin/config/config-errors';
-import { resolveProviderKey } from '@/server/ai/provider-key-resolver';
+import { resolvePlatformProviderKey } from '@/server/ai/provider-key-resolver';
 import { QUALITY_THRESHOLDS_KEY } from '@/server/quality/evaluate';
 import { prisma } from '@/server/db/prisma';
 import { resetDb } from '../helpers/db';
@@ -30,7 +30,7 @@ describe('proveedor typesafe en el admin', () => {
     expect(status.configured).toBe(true);
     expect(status.enabled).toBe(true);
     expect(status.keyHint).not.toContain('de-prueba');
-    expect(await resolveProviderKey(TYPESAFE_PROVIDER)).toBe('sk-jev-de-prueba-1234');
+    expect(await resolvePlatformProviderKey(TYPESAFE_PROVIDER)).toBe('sk-jev-de-prueba-1234');
 
     const row = await prisma.aiProviderCredential.findUniqueOrThrow({
       where: { provider: TYPESAFE_PROVIDER },

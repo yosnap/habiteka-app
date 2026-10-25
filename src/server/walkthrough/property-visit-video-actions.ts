@@ -33,7 +33,7 @@ export async function startPropertyVisitSegment(rawScope: EditorScope, id: strin
     .map(frame => ({ id: frame.id, version: frame.version }));
   if (!(await canUse(ctx.organizationId, 'generate')).allowed) throw new Error('Necesitas saldo para generar el paseo.');
   await assertGlobalCap(await isPremium(ctx.organizationId)); assertCanSpend(ctx.organizationId, usd);
-  const provider = new KieVideoProvider(await resolveKieKey());
+  const provider = new KieVideoProvider(await resolveKieKey(ctx));
   segment.state = 'submitting';
   let version = await updatePropertyVisit(ctx, scope, id, row.version, job), reserved = false;
   const holdId = `property-visit:${id}:${segmentId}:${segment.attempts?.length ?? 0}`;
@@ -71,7 +71,7 @@ export async function checkPropertyVisitSegment(rawScope: EditorScope, id: strin
   if (!segment) throw new Error('Tramo no encontrado.');
   if (!segment.taskId || !['generating', 'unknown'].includes(segment.state)) return segment.state;
   await reconcile(ctx, `property-visit:${id}:${segmentId}:${segment.attempts?.length ?? 0}`, id, segment.seconds, propertyVisitSegmentPrice(segment.seconds, job.resolution, job.videoModel));
-  const provider = new KieVideoProvider(await resolveKieKey()), result = await provider.status(segment.taskId);
+  const provider = new KieVideoProvider(await resolveKieKey(ctx)), result = await provider.status(segment.taskId);
   if (result.state === 'pending') return segment.state;
   if (result.state === 'failed') { segment.state = 'failed'; segment.error = 'El proveedor informa de un fallo. No se repite el gasto automáticamente.'; }
   else {

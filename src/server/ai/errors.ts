@@ -15,7 +15,9 @@ export type AiErrorKind =
   | 'provider_down'
   | 'gateway_down'
   | 'sanitizer'
-  | 'timeout';
+  | 'timeout'
+  // La organización no tiene clave propia del proveedor: se prueba el respaldo y, si ninguno la tiene, se bloquea.
+  | 'missing_key';
 
 import { UserFacingError } from '@/server/errors/user-facing-error';
 
@@ -40,6 +42,6 @@ export function canFailover(error: unknown): boolean {
   if ((error as { code?: string } | null)?.code === 'kie_task_pending') return false;
   return (
     error instanceof AiError &&
-    ['provider_down', 'gateway_down', 'timeout', 'rate_limit'].includes(error.kind)
+    ['provider_down', 'gateway_down', 'timeout', 'rate_limit', 'missing_key'].includes(error.kind)
   );
 }

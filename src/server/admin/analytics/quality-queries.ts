@@ -24,6 +24,8 @@ import { prisma } from '@/server/db/prisma';
 export interface QualityFilters {
   from: Date;
   to: Date;
+  /** Limita el informe a una organización: obligatorio en «Mi perfil», opcional en el panel global. */
+  organizationId?: string;
 }
 
 export interface QualityCheckpointRow {
@@ -105,13 +107,13 @@ const ITERATION_ACTIONS = ['inpaint'];
 export async function queryQualityEfficacy(
   filters: QualityFilters,
 ): Promise<QualityEfficacyReport> {
-  const { from, to } = filters;
+  const { from, to, organizationId } = filters;
   const [checkpointRows, costBuckets, basis, providerCosts, providerScores] = await Promise.all([
-    queryCheckpointGroups(from, to),
-    queryCostBuckets(from, to),
-    queryEstimateBasis(from, to),
-    queryProviderCosts(from, to),
-    queryProviderScores(from, to),
+    queryCheckpointGroups(from, to, organizationId),
+    queryCostBuckets(from, to, organizationId),
+    queryEstimateBasis(from, to, organizationId),
+    queryProviderCosts(from, to, organizationId),
+    queryProviderScores(from, to, organizationId),
   ]);
 
   const checkpoints = foldCheckpoints(checkpointRows);
@@ -149,6 +151,12 @@ export async function queryQualityEfficacy(
 
 // ── Consultas agregadas ───────────────────────────────────────────────────────
 
+/** Condición SQL de organización (vacía en la vista global); el id va siempre como parámetro, nunca concatenado. */
+function orgClause(organizationId?: string, alias?: string): Prisma.Sql {
+  if (!organizationId) return Prisma.empty;
+  return alias ? Prisma.sql`AND ${Prisma.raw(alias)}."organizationId" = ${organizationId}` : Prisma.sql`AND "organizationId" = ${organizationId}`;
+}
+
 interface CheckpointGroup {
   checkpoint: string;
   decision: string;
@@ -165,7 +173,7 @@ interface CheckpointGroup {
  * Una fila por (punto de control, decisión, marca de puerta, reutilización). La
  * marca vive dentro del JSON `answers`, así que se extrae en SQL.
  */
-async function queryCheckpointGroups(from: Date, to: Date): Promise<CheckpointGroup[]> {
+async function queryCheckpointGroups(from: Date, to: Date, organizationId?: string): Promise<CheckpointGroup[]> {
   return prisma.$queryRaw<CheckpointGroup[]>`
     SELECT
       checkpoint,
@@ -178,7 +186,7 @@ async function queryCheckpointGroups(from: Date, to: Date): Promise<CheckpointGr
       COALESCE(SUM(score), 0)::float8 AS score_sum,
       COALESCE(SUM("costUsd"), 0)::float8 AS cost
     FROM "ai_quality_evaluation"
-    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to}
+    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)}
     GROUP BY 1, 2, 3, 4
   `;
 }
@@ -196,19 +204,19 @@ interface CostBucketRow {
  * rehecho (hubo que iterarlo) > bloqueado > aceptado > sin evaluar. Así las
  * cuatro suman exactamente el total imputable a entregables.
  */
-async function queryCostBuckets(from: Date, to: Date) {
+async function queryCostBuckets(from: Date, to: Date, organizationId?: string) {
   const preGate = Prisma.join([...PRE_GATE_CHECKPOINTS]);
   const rows = await prisma.$queryRaw<CostBucketRow[]>`
     WITH gasto AS (
       SELECT "refId", SUM("costUsd") AS amount
       FROM "ai_request_cost"
-      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} AND "refId" IS NOT NULL
+      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)} AND "refId" IS NOT NULL
       GROUP BY "refId"
     ),
     veredicto AS (
       SELECT DISTINCT ON ("refId") "refId", decision
       FROM "ai_quality_evaluation"
-      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to}
+      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)}
         AND "refId" IS NOT NULL
         AND checkpoint NOT IN (${preGate})
       ORDER BY "refId", "createdAt" DESC
@@ -246,6 +254,7 @@ interface BasisRow {
 async function queryEstimateBasis(
   from: Date,
   to: Date,
+  organizationId?: string,
 ): Promise<QualityEfficacyReport['estimateBasis']> {
   const rows = await prisma.$queryRaw<BasisRow[]>`
     SELECT
@@ -253,7 +262,7 @@ async function queryEstimateBasis(
       COUNT(DISTINCT "requestId")::int AS requests,
       COALESCE(SUM("costUsd"), 0)::float8 AS cost
     FROM "ai_request_cost"
-    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to}
+    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)}
       AND action IN (${Prisma.join([...GENERATION_ACTIONS, ...ITERATION_ACTIONS])})
     GROUP BY 1
   `;
@@ -275,11 +284,11 @@ interface ProviderCostRow {
   cost: number;
 }
 
-async function queryProviderCosts(from: Date, to: Date): Promise<ProviderCostRow[]> {
+async function queryProviderCosts(from: Date, to: Date, organizationId?: string): Promise<ProviderCostRow[]> {
   return prisma.$queryRaw<ProviderCostRow[]>`
     SELECT provider, model, COUNT(*)::int AS attempts, COALESCE(SUM("costUsd"), 0)::float8 AS cost
     FROM "ai_request_cost"
-    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to}
+    WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)}
     GROUP BY 1, 2
   `;
 }
@@ -292,13 +301,13 @@ interface ProviderScoreRow {
 }
 
 /** Score medio por proveedor sobre entregables DISTINTOS (no por intento). */
-async function queryProviderScores(from: Date, to: Date): Promise<ProviderScoreRow[]> {
+async function queryProviderScores(from: Date, to: Date, organizationId?: string): Promise<ProviderScoreRow[]> {
   const preGate = Prisma.join([...PRE_GATE_CHECKPOINTS]);
   return prisma.$queryRaw<ProviderScoreRow[]>`
     WITH puntuado AS (
       SELECT DISTINCT ON ("refId") "refId", score
       FROM "ai_quality_evaluation"
-      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to}
+      WHERE "createdAt" >= ${from} AND "createdAt" <= ${to} ${orgClause(organizationId)}
         AND "refId" IS NOT NULL AND score IS NOT NULL
         AND checkpoint NOT IN (${preGate})
       ORDER BY "refId", "createdAt" DESC
@@ -307,7 +316,7 @@ async function queryProviderScores(from: Date, to: Date): Promise<ProviderScoreR
       SELECT DISTINCT c.provider, c.model, c."refId", p.score
       FROM "ai_request_cost" c
       JOIN puntuado p ON p."refId" = c."refId"
-      WHERE c."createdAt" >= ${from} AND c."createdAt" <= ${to}
+      WHERE c."createdAt" >= ${from} AND c."createdAt" <= ${to} ${orgClause(organizationId, 'c')}
     )
     SELECT provider, model, COUNT(*)::int AS scored, AVG(score)::float8 AS avg_score
     FROM por_entregable

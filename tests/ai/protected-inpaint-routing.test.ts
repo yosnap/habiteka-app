@@ -24,7 +24,7 @@ const response = async (width: number, height: number) => ({ assetUrl: `data:ima
 describe('protección conectada al adaptador real de inpaint', () => {
   it('la factory entrega máscara al proveedor y devuelve el resultado protegido con su modelo efectivo', async () => {
     fixture.inpaint.mockResolvedValue(await response(20, 10));
-    const image = await getImageAdapterForAction({ organizationId: 'test', projectId: 'project' }, 'inpaint');
+    const image = await getImageAdapterForAction({ organizationId: 'test', userId: 'user', projectId: 'project' }, 'inpaint');
     const result = await image.inpaint(await request());
     expect(result.regionEdit?.protectedPixels).toBe(192);
     expect(result.generation).toEqual({ provider: 'kie', model: 'primary', fallbackIndex: 0 });
@@ -33,7 +33,7 @@ describe('protección conectada al adaptador real de inpaint', () => {
   });
   it('un rechazo de composición no activa el proveedor de respaldo ni otra generación', async () => {
     fixture.inpaint.mockResolvedValue(await response(10, 10));
-    const image = await getImageAdapterForAction({ organizationId: 'test' }, 'inpaint');
+    const image = await getImageAdapterForAction({ organizationId: 'test', userId: 'user' }, 'inpaint');
     await expect(image.inpaint(await request())).rejects.toThrow('proporción');
     expect(fixture.inpaint).toHaveBeenCalledTimes(1);
     expect(fixture.record).toHaveBeenCalledTimes(1);

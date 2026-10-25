@@ -11,7 +11,6 @@ import { propertyVisitSequence, propertyVisitSegmentPrompt, PROPERTY_VISIT_COMPA
 import { readPropertyVisit, visitJson } from './property-visit-repo';
 import { DELIVERABLE_LEGAL_SEAL } from '@/lib/legal-text';
 import { resolveRoutes } from '@/server/ai/model-routing';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { LIGHTING_PRESETS } from '@/lib/lighting-preset';
 import { resolveRenderUrl } from '@/server/storage/render-urls';
 import { acceptedRenderIssue, renderReviewIssue } from '@/lib/editor-document/render-review';
@@ -33,8 +32,8 @@ export async function savePropertyVisit(rawScope: EditorScope, rawInput: z.input
     throw new Error('Elige una cenital aceptada y un exterior con tejado aceptado, de esta versión y luz.');
   const scene = propertyVisitDocument(sources.approved.document, input.openDoors);
   const plan = planPropertyVisit(scene.document, input.entryId), sequence = propertyVisitSequence(plan);
-  const route = (await resolveRoutes('render3d'))[0];
-  const price = route && allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
+  const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
+  const price = route?.priceUsdPerUnit;
   if (!route || price === undefined || !Number.isFinite(price) || price < 0) throw new Error('Falta un precio conocido para las imágenes.');
   const job: PropertyVisitJob = { type: 'video', mode: 'property-visit-ai', title: 'Paseo completo del inmueble',
     approvalId: sources.approved.id, approvedRevision: sources.approved.revision, approvedFingerprint: sources.approved.fingerprint,

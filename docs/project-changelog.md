@@ -2,6 +2,26 @@
 
 Cambios significativos, features e hitos se documentan aquí. Formato [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.9.0] — 2026-10-25
+
+### Added
+
+- **Claves de IA por organización:** cada organización genera con sus propias claves de OpenRouter, KIE, OpenAI, NaN y proveedores compatibles, que se guardan cifradas. Sin la clave necesaria, la función se bloquea con un aviso que dice qué añadir.
+- **Mi perfil:** resumen, datos personales, organización, claves de IA, modelos de IA y uso y costes.
+- **Modelos por organización:** principal y hasta tres respaldos por función, con recomendaciones fijas de Habiteka e indicaciones de qué conviene en cada uso.
+- **Catálogo propio:** cada organización habilita modelos de sus proveedores con su precio y añade proveedores compatibles con OpenAI.
+- **Uso y costes:** coste, peticiones, errores por causa y eficacia de las comprobaciones de calidad de la organización.
+
+### Changed
+
+- La administración queda en Usuarios, Ajustes de sistema, Media y Analítica. Jev pasa a Ajustes de sistema.
+- Las claves, proveedores, modelos y mapeo del panel pasan a la organización de la cuenta admin. En la plataforma solo queda la clave de Jev.
+- Las claves se cifran con `ADMIN_SECRETS_KEY`, obligatoria en producción. Las cifradas con la clave derivada anterior se siguen leyendo.
+
+### Removed
+
+- Del panel de administración: Proveedores y modelos, Productos, Facturación, Costes IA y Eficacia IA, con sus exportaciones CSV.
+
 ## [0.8.1] — 2026-10-24
 
 ### Fixed

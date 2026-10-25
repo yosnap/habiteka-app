@@ -1,2 +1,6 @@
-/** Entrada de configuración: comparte la pantalla de IA y su mapeo por uso. */
-export { default } from './models/page';
+/** Entrada de configuración: la plataforma solo conserva sus ajustes de sistema. */
+import { redirect } from 'next/navigation';
+
+export default function ConfigPage() {
+  redirect('/config/system');
+}

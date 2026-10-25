@@ -25,7 +25,6 @@ import { assertConsent } from '@/server/privacy/consent-service';
 import { assertTosAccepted } from '@/server/legal/tos-acceptance-service';
 import { assertEditorQuality } from '@/server/quality/editor-gate';
 import { resolveRoutes } from '@/server/ai/model-routing';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { englishImagePrompt } from '@/server/agent/editor-v2/english-image-prompt';
 import { assertPropertyVisitBudget } from './property-visit-budget';
 import { propertyVisitCorrection } from './property-visit-correction';
@@ -40,8 +39,8 @@ export async function generatePropertyVisitImage(rawScope: EditorScope, id: stri
   if (job.images.some(item => item.state === 'submitting')) throw new Error('Espera a la imagen en curso.');
   // No gastar en nuevas referencias de un paseo cuyo vídeo ya excede el límite completo.
   await assertPropertyVisitBudget(job);
-  const route = (await resolveRoutes('render3d'))[0];
-  const price = route && allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
+  const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
+  const price = route?.priceUsdPerUnit;
   if (!consent.generate || !Number.isFinite(consent.maxImageUsd) || price === undefined || price > consent.maxImageUsd ||
     `${route?.provider}:${route?.model}` !== job.imageModel) throw new Error('Confirma el modelo y precio de esta imagen. Las revisiones IA se facturan aparte.');
   const document = await propertyVisitSourceDocument(ctx, scope, job), anchors = await propertyVisitAnchors(ctx, scope, job);

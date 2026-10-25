@@ -110,6 +110,10 @@ model Organization {
   sourceImages  SourceImage[]
   zones         ProjectZone[]
   catalogItems  CatalogItem[]
+  aiCredentials OrganizationAiCredential[]
+  modelRoutes   OrganizationModelRoute[]
+  aiProviders   AiCustomProvider[]
+  aiModels      AiCustomModel[]
 
   @@map("organization")
 }

@@ -40,10 +40,11 @@ const FREE_DEBIT: DebitService = {
 
 /** Tipo de entregable tal como se guarda en BD (`RENDER_3D`, `PLANO_2D`, `MEMORIA`). */
 export async function buildFeedbackDeps(
-  organizationId: string,
+  scope: { organizationId: string; userId: string },
   deliverable: { id: string; type: string },
 ): Promise<FeedbackDeps> {
-  const org = { organizationId };
+  const { organizationId } = scope;
+  const org = { organizationId, userId: scope.userId };
   const plano2d = deliverable.type === 'PLANO_2D' ? await getChatVisionAdapter(org, 'plano2d') : null;
   const memoria = deliverable.type === 'MEMORIA' ? await getChatVisionAdapter(org, 'memoria') : null;
   const free = await isNextIterationFree(deliverable.id);

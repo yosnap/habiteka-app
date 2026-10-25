@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   try {
     // Mismas dependencias que «Diseños»: imagen base desde storage, memoria y plano.
     const result = await runFeedback(
-      await buildFeedbackDeps(ctx.organizationId, deliverable),
+      await buildFeedbackDeps({ organizationId: ctx.organizationId, userId: ctx.userId }, deliverable),
       {
         organizationId: ctx.organizationId,
         deliverableId: body.deliverableId,

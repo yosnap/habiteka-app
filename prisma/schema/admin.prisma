@@ -52,6 +52,21 @@ model AiModelRoute {
   @@map("ai_model_route")
 }
 
+// Modelos que una organización eligió para un uso de IA: principal (posición 0) y respaldos, en orden. Sin filas
+// para un uso, la organización usa los modelos recomendados del panel (AiModelRoute).
+model OrganizationModelRoute {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  action         ModelAction
+  position       Int
+  provider       String
+  model          String
+  updatedAt      DateTime     @updatedAt
+
+  @@id([organizationId, action, position])
+  @@map("organization_model_route")
+}
+
 // Perfiles reutilizables de mapeo IA. Los perfiles de sistema viven en código;
 // esta tabla guarda las variantes personalizadas creadas desde administración.
 model AiModelProfile {
@@ -77,33 +92,53 @@ model AiProviderCredential {
   @@map("ai_provider_credential")
 }
 
-// Proveedor de IA compatible con OpenAI añadido desde el panel (APIMart, NodeClub.ai…). Su clave vive en
-// AiProviderCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
-model AiCustomProvider {
-  id        String          @id
-  label     String
-  baseUrl   String
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+// Clave de proveedor de IA de cada organización (OpenRouter, KIE, OpenAI, NaN o un compatible del panel). Cada
+// organización paga su propio uso: la generación usa esta clave y solo la cuenta admin cae en AiProviderCredential.
+model OrganizationAiCredential {
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider        String
+  encryptedApiKey String
+  keyHint         String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
+  @@id([organizationId, provider])
+  @@map("organization_ai_credential")
+}
+
+// Proveedor de IA compatible con OpenAI que una organización añade desde Mi perfil (APIMart, NodeClub.ai…). Su clave
+// vive en OrganizationAiCredential con el mismo id y solo se envía a esta URL; cambiarla exige una clave nueva.
+model AiCustomProvider {
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String
+  label          String
+  baseUrl        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@id([organizationId, id])
   @@map("ai_custom_provider")
 }
 
-// Modelo de texto o visión que habilita el administrador, de un proveedor propio o de OpenRouter, NaN u OpenAI
+// Modelo de texto o visión que una organización habilita, de un proveedor propio o de OpenRouter, NaN, OpenAI o KIE
 // (`providerId` es el id del proveedor, sin clave foránea: los integrados no tienen fila en ai_custom_provider). Se
-// habilita para unos usos y con su precio de entrada por 1M tokens, que cuenta para el techo de cada uso y para
-// estimar el coste cuando el proveedor no lo informa.
+// habilita para unos usos y con su precio de entrada por 1M tokens, que sirve para estimar el coste cuando el
+// proveedor no lo informa.
 model AiCustomModel {
-  id              String           @id @default(cuid())
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   providerId      String
   model           String
   label           String
   actions         ModelAction[]
   priceUsdPerUnit Float
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  @@unique([providerId, model])
+  @@unique([organizationId, providerId, model])
   @@map("ai_custom_model")
 }
 
