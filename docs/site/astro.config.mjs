@@ -21,6 +21,8 @@ export default defineConfig({
         { label: 'Tu primer proyecto', slug: 'guias/primer-proyecto' },
         { label: 'Importar un plano', slug: 'guias/importar-plano' },
         { label: 'Guardar y aprobar', slug: 'guias/guardar-aprobar' },
+        { label: 'Mi perfil', slug: 'guias/mi-perfil' },
+        { label: 'Claves de IA', slug: 'guias/claves-ia' },
       ] },
       { label: 'Diseñar el inmueble', items: [
         { label: 'Herramientas del editor', slug: 'editor/herramientas' },
@@ -39,7 +41,7 @@ export default defineConfig({
         { label: 'Promoción sobre parcela', slug: 'videos/promocion' },
       ] },
       { label: 'Administración', items: [
-        { label: 'Proveedores y modelos de IA', slug: 'admin/proveedores-ia' },
+        { label: 'Administración de la plataforma', slug: 'admin/plataforma' },
       ] },
       { label: 'Ayuda', items: [
         { label: 'Resolver problemas', slug: 'ayuda/problemas' },

@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * Cabecera del área autenticada: marca, saldo de créditos y menú de cuenta.
+ * Cabecera del área autenticada: marca, saldo de créditos, acceso a «Mi perfil» y cierre de sesión.
  * Recibe sesión y saldo del layout de servidor; adapta la densidad al espacio
  * de trabajo del proyecto. Los permisos se validan siempre en el servidor.
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House } from 'lucide-react';
+import { House, UserRound } from 'lucide-react';
 import { SignOutButton } from './sign-out-button';
 
 interface Props {
@@ -40,7 +40,11 @@ export function AppHeader({ userName, balance, isAdmin }: Props) {
           >
             {balance} créditos
           </span>
-          {userName ? <span className="text-ink-soft hidden sm:inline">{userName}</span> : null}
+          <Link href="/perfil" className="text-ink-soft hover:text-ink inline-flex items-center gap-1.5" title="Mi perfil: datos, organización, claves y modelos de IA">
+            <UserRound size={14} aria-hidden />
+            <span>Mi perfil</span>
+            {userName ? <span className="text-ink hidden font-medium sm:inline">· {userName}</span> : null}
+          </Link>
           <SignOutButton />
         </div>
       </div>

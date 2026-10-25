@@ -13,10 +13,13 @@ export function aiCostFilterParams(search: URLSearchParams): AiCostFilters {
   const status = search.get('status');
   const from = date('from', new Date(now.getTime() - 30 * 86400000));
   const to = date('to', now, true);
+  // Id de organización del filtro del panel global; «Mi perfil» lo ignora y fija la de la sesión.
+  const org = search.get('org') ?? '';
   return { from: from > to ? to : from, to,
+    organizationId: /^[\w-]{1,64}$/.test(org) ? org : undefined,
     provider: search.get('provider') || undefined, model: search.get('model') || undefined,
     status: status === 'success' || status === 'error' ? status : undefined,
-    groupBy: group === 'design' || group === 'provider' || group === 'model' || group === 'user' ? group : 'project',
+    groupBy: group === 'design' || group === 'provider' || group === 'model' || group === 'user' || group === 'action' ? group : 'project',
     page: Math.max(1, Number.parseInt(search.get('page') ?? '1') || 1),
     interval: search.get('interval') === 'month' ? 'month' : 'day' };
 }

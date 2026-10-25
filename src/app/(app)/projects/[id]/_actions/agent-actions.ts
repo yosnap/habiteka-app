@@ -62,7 +62,6 @@ import { renderSpatialReference } from '@/server/agent/editor-v2/render-spatial-
 import { assertRenderViewIntegrity } from '@/lib/editor-document/render-view-integrity';
 import { requestedRenderRedesign } from '@/lib/editor-document/render-redesign';
 import { resolveRoutes } from '@/server/ai/model-routing';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
 import { runAction, fail } from '@/server/errors/run-action';
 import { assertEditorQuality } from '@/server/quality/editor-gate';
 import { assertStudioPlanQuality } from '@/server/quality/studio-plan-gate';
@@ -659,9 +658,9 @@ async function estimateConceptRenderFromEditorImpl(
   await assertProjectInOrg(ctx, projectId);
   if (!Number.isFinite(viewCount) || !Number.isInteger(viewCount) || viewCount < 1 || viewCount > MAX_RENDER_PASSES)
     fail(`El número de generaciones debe ser un entero entre 1 y ${MAX_RENDER_PASSES}.`);
-  const route = (await resolveRoutes('render3d'))[0];
+  const route = (await resolveRoutes('render3d', ctx.organizationId))[0];
   if (!route) fail('No hay modelo de render configurado.');
-  const price = allowedModel('render3d', route.model, route.provider)?.priceUsdPerUnit;
+  const price = route.priceUsdPerUnit;
   if (price === undefined || !Number.isFinite(price) || price < 0)
     fail(`No hay precio estimado conocido para ${route.provider}:${route.model}.`);
   return { estimatedUsd: Number((price * viewCount).toFixed(4)), model: `${route.provider}:${route.model}` };
@@ -819,7 +818,7 @@ export async function recommendDecoration(
     fail('El plano está vacío: añade elementos antes de pedir sugerencias.');
   }
 
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'chat');
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId }, 'chat');
   return runRecommend(chat, estilo, String(objetivo ?? '').slice(0, 200), description);
 }
 
@@ -839,7 +838,7 @@ export async function detectPlanFromPhoto(
   await assertTosAccepted(ctx.userId);
 
   // Usa el adaptador de VISIÓN (la detección lee una imagen), no el de chat texto.
-  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId }, 'vision');
+  const chat = await getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId }, 'vision');
   return detectLayout(chat, imageParts);
 }
 
@@ -867,7 +866,7 @@ export async function redrawPlanFromImage(
   );
   if (!source?.base64) fail('Falta la imagen del plano.');
 
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await redrawPlan(
     { image },
     { base64: source.base64, ...(source.mimeType ? { mimeType: source.mimeType } : {}) },
@@ -957,7 +956,7 @@ export async function generateCenitalFromRedrawn(
   );
 
   const source = await imageBytesFromTrustedUrl(imageUrl);
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await generateCenitalFromImage(
     { image },
     source,
@@ -994,7 +993,7 @@ export async function generateCenitalFromPlano(
     'cenital_plano',
   );
 
-  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d');
+  const image = await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d');
   const result = await generateCenital({ image }, plano, estilo);
   return { imageUrl: result.assetUrl };
 }

@@ -19,13 +19,13 @@ Al **Extraer y revisar medidas**, se lee el plano y Jev decide si esa lectura es
 
 - **Si Jev la da por buena,** revisas el plano y lo envías al editor sin generar imágenes.
 - **Si no la da por buena,** la revisión propone **Redibujar con IA y volver a leer**:
-  - Lo redibuja como un plano técnico limpio con el modelo principal de **Render 3D** de [Modelos por uso](/admin/proveedores-ia/).
+  - Lo redibuja como un plano técnico limpio con el modelo principal de **Imágenes del diseño** de tu organización ([Mi perfil › Modelos de IA](/guias/mi-perfil/#modelos-de-ia)).
   - Muestra el precio de esa imagen y solo genera si marcas la autorización. La lectura del redibujado se factura aparte.
   - Se usa solo ese modelo, sin pasar a otro si falla.
 - **La nueva lectura vuelve a pasar por Jev.** Verás juntos tu original y el redibujado, y **Leer esta · sin generar** cambia entre ambos sin generar otra imagen.
 - **Si Jev tampoco da por buena el redibujado,** puedes generar otro o corregir el plano en el editor.
 
-Los demás botones que generan imágenes en esta pestaña también piden marcar su autorización con el precio: **Generar redibujado** y la vista cenital o la maqueta. En esos, si el modelo principal falla, puede usarse un respaldo de **Modelos por uso**, con su propio precio.
+Los demás botones que generan imágenes en esta pestaña también piden marcar su autorización con el precio: **Generar redibujado** y la vista cenital o la maqueta. En esos, si el modelo principal falla, puede usarse un respaldo de los modelos de tu organización, con su propio precio.
 
 Un redibujado limpio no garantiza medidas correctas: revisa las cotas igualmente.
 

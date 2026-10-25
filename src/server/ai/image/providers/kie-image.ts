@@ -3,7 +3,7 @@ import type { ImageGenRequest, InpaintRequest, ImageResult } from '@/lib/contrac
 import type { StorageAdapter } from '@/server/storage/storage-adapter';
 import type { ImageProvider } from './image-provider';
 import { imageCost } from '../../cost/usage-to-cost';
-import { allowedModel } from '@/server/admin/config/model-allowlist';
+import { allowedModel } from '@/server/ai/model-catalog';
 import { AiError, aiError } from '../../errors';
 import { MAX_OWN_RENDER_BYTES } from '../input-sanitizer';
 

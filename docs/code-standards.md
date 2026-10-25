@@ -71,7 +71,7 @@ Si necesitas un efecto (ej. sync localStorage), **documenta el porqué** (invari
 
 ## Server-only
 
-- **Secrets jamás al cliente:** `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET` solo en `src/server/`.
+- **Secrets jamás al cliente:** `OPENROUTER_API_KEY`, `IMAGE_PROVIDER_KEY`, `POLAR_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ADMIN_SECRETS_KEY` solo en `src/server/`. `ADMIN_SECRETS_KEY` (base64 de 32 bytes, por ejemplo `openssl rand -base64 32`) cifra las claves de IA y es obligatoria en producción.
 - Usa `'use server'` en Server Actions; valida roles/scoping en servidor.
 - Presigned URLs al cliente para assets (expiración corta).
 

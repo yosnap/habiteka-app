@@ -25,7 +25,7 @@ export async function redrawStudioSource(
     ? { ...state, results: appendStudioResult(state, source, { kind: 'source' }) }
     : state;
   const image = withEnglishPrompts(
-    await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d', confirmedRoute),
+    await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d', confirmedRoute),
     () => getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision'),
   );
   const result = await redrawPlan({ image }, await readStudioImage(source), mode);

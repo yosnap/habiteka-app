@@ -8,12 +8,10 @@ import { SignOutButton } from '@/components/app/sign-out-button';
 
 const NAV = [
   { href: '/users', label: 'Back-office · Usuarios' },
-  { href: '/config/models', label: 'Config · Modelos de IA' },
   { href: '/config/system', label: 'Config · Ajustes' },
-  { href: '/config/products', label: 'Config · Productos (Polar)' },
   { href: '/media', label: 'Media' },
   { href: '/analytics', label: 'Analítica' },
-  { href: '/billing', label: 'Facturación' },
+  { href: '/perfil', label: 'Mi perfil' },
 ];
 
 interface Props {

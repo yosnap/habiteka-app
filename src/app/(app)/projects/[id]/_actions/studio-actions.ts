@@ -165,7 +165,7 @@ async function cenitalStudioImpl(
   // estado guardado en el servidor, nunca del cliente.
   await assertStudioPlanQuality(ctx, projectId, state, qualityAck === true, 'cenital_estudio');
   const renderVista: RenderVista = vista === 'maqueta' ? 'maqueta' : 'cenital';
-  const image = withEnglishPrompts(await getImageAdapterForAction({ organizationId: ctx.organizationId }, 'render3d'),
+  const image = withEnglishPrompts(await getImageAdapterForAction({ organizationId: ctx.organizationId, userId: ctx.userId }, 'render3d'),
     () => getChatVisionAdapter({ organizationId: ctx.organizationId, userId: ctx.userId, projectId }, 'vision'));
   const notes = String(detalles).slice(0, 800);
   // El ORIGINAL manda (trae el mobiliario y los sanitarios que un redibujado

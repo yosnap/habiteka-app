@@ -41,9 +41,10 @@ sirve como referencia de acabado de las siguientes, sin sustituir la captura de
 su cámara. Cerrar el diálogo pierde el estado de reanudación local, no los diseños
 ya guardados. Varias imágenes no equivalen todavía a un tour continuo o un vídeo.
 
-## Informe administrativo
+## Informe de costes
 
-`/analytics/ai-costs` requiere administrador. Se registra cada intento y respaldo
+Cada organización ve sus propios costes en `/perfil/uso` (Mi perfil › Uso y
+costes); el panel de admin ya no tiene informe de costes. Se registra cada intento y respaldo
 con proveedor, modelo, proyecto, referencia de diseño y lote cuando el llamador
 dispone de ellos. Los datos anteriores a esta incorporación no se reconstruyen.
 Los costes estimados no son importes facturados; los errores sin importe conocido
